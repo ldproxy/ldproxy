@@ -253,4 +253,8 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
                 false))
         : Optional.empty();
   }
+
+  public Optional<Link> getCrud() {
+    return rawLinks().stream().filter(link -> Objects.equals(link.getRel(), "edit")).findFirst();
+  }
 }

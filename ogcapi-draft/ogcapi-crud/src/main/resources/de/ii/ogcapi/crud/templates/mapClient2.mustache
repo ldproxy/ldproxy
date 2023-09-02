@@ -1,0 +1,64 @@
+{{#mapClient}}
+<script type="text/javascript">
+  globalThis._map = {
+      container: 'map',
+      interactive: {{interactive}},
+    {{#savePosition}}
+      savePosition: {{.}},
+    {{/savePosition}}
+    {{#styleUrl}}
+      styleUrl: '{{{.}}}',
+      {{#removeZoomLevelConstraints}}
+        removeZoomLevelConstraints: {{.}},
+      {{/removeZoomLevelConstraints}}
+    {{/styleUrl}}
+    {{^styleUrl}}
+      {{#backgroundUrl}}
+        backgroundUrl: '{{{.}}}',
+      {{/backgroundUrl}}
+      {{#attribution}}
+        attribution: '{{{.}}}',
+      {{/attribution}}
+      //center: [{{centerLon}},{{centerLat}}],
+      //zoom: {{zoom}},
+    {{/styleUrl}}
+    {{#bounds}}
+      bounds: [[{{minLng}},{{minLat}}],[{{maxLng}},{{maxLat}}]],
+      drawBounds: {{drawBounds}},
+    {{/bounds}}
+    {{#data}}
+     {{#isData}}
+      dataUrl:  {{{url}}},
+     {{/isData}}
+     {{^isData}}
+      dataUrl:  '{{{url}}}',
+     {{/isData}}
+      dataType: '{{type}}',
+      dataLayers: {
+        {{#layers.entries}}
+        '{{key}}': [{{#value}}'{{.}}',{{/value}}],
+        {{/layers.entries}}
+      },
+    {{/data}}
+    {{#defaultStyle}}
+      defaultStyle: {
+          color: '{{color}}',
+          opacity: {{opacity}},
+          circleRadius: {{circleRadius}},
+          circleMinZoom: {{#circleMinZoom}}{{.}}{{/circleMinZoom}}{{^circleMinZoom}}undefined{{/circleMinZoom}},
+          circleMaxZoom: {{#circleMaxZoom}}{{.}}{{/circleMaxZoom}}{{^circleMaxZoom}}undefined{{/circleMaxZoom}},
+          lineWidth: {{lineWidth}},
+          lineMinZoom: {{#lineMinZoom}}{{.}}{{/lineMinZoom}}{{^lineMinZoom}}undefined{{/lineMinZoom}},
+          lineMaxZoom: {{#lineMaxZoom}}{{.}}{{/lineMaxZoom}}{{^lineMaxZoom}}undefined{{/lineMaxZoom}},
+          fillOpacity: {{fillOpacity}},
+          outlineWidth: {{outlineWidth}},
+          polygonMinZoom: {{#polygonMinZoom}}{{.}}{{/polygonMinZoom}}{{^polygonMinZoom}}undefined{{/polygonMinZoom}},
+          polygonMaxZoom: {{#polygonMaxZoom}}{{.}}{{/polygonMaxZoom}}{{^polygonMaxZoom}}undefined{{/polygonMaxZoom}},
+      },
+    {{/defaultStyle}}
+  }
+</script>
+
+
+{{/mapClient}}
+
