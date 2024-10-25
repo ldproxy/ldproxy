@@ -119,6 +119,21 @@ public class FeaturesFormatDebugTokens extends FeatureFormatExtension implements
   }
 
   @Override
+  public boolean supportsEmbedding() {
+    return true;
+  }
+
+  @Override
+  public boolean supportsHitsOnly() {
+    return true;
+  }
+
+  @Override
+  public boolean isComplex() {
+    return true;
+  }
+
+  @Override
   public Optional<FeatureTokenEncoder<?>> getFeatureEncoder(
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
     return Optional.of(new FeatureTokenEncoderDebug());

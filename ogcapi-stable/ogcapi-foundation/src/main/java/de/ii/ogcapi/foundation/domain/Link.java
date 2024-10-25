@@ -48,6 +48,9 @@ public abstract class Link {
           .put("application/gml+xml", "GML")
           .put("application/xml", "XML")
           .put("application/vnd.oai.openapi", "YAML")
+          // TODO: this should be removed, I think typeLabel should be settable instead so that it
+          // could receive ApiMediaType.label e.g. in FeaturesLinksGenerator
+          .put("text/plain", "Debug Tokens")
           .build();
 
   public static final Comparator<Link> COMPARATOR_LINKS =
