@@ -8,10 +8,8 @@
 package de.ii.ldproxy.cfg;
 
 import com.fasterxml.jackson.databind.ext.Java7HandlersImpl;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URLEncodedUtils;
 
 class RequiredIncludes {
 
@@ -20,6 +18,6 @@ class RequiredIncludes {
 
   RequiredIncludes() {
     this.java7Handlers = new Java7HandlersImpl();
-    this.nameValuePairs = URLEncodedUtils.parse("", StandardCharsets.UTF_8);
+    this.nameValuePairs = List.of();
   }
 }
