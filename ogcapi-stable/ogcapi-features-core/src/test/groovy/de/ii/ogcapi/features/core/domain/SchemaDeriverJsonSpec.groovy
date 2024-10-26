@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.features.core.domain
 
-
 import com.google.common.collect.ImmutableMap
 import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.SchemaBase
@@ -31,7 +30,7 @@ class SchemaDeriverJsonSpec extends Specification {
 
         when:
         JsonSchemaDocument document = SchemaDeriverFixtures.FEATURE_SCHEMA
-                .accept(featureRefResolver)
+                .accept(featureRefResolver, [])
                 .accept(withScopeSchema)
                 .accept(withTransformationsApplied)
                 .accept(schemaDeriver) as JsonSchemaDocument
@@ -40,7 +39,7 @@ class SchemaDeriverJsonSpec extends Specification {
         document == expected
 
         where:
-        version         || expected
+        version                            || expected
         JsonSchemaDocument.VERSION.V202012 || EXPECTED_SCHEMA
         JsonSchemaDocument.VERSION.V201909 || EXPECTED_SCHEMA_V201909
         JsonSchemaDocument.VERSION.V7      || EXPECTED_SCHEMA_V7
@@ -58,7 +57,7 @@ class SchemaDeriverJsonSpec extends Specification {
 
         when:
         JsonSchemaDocument document = SchemaDeriverFixtures.FEATURE_SCHEMA
-                .accept(featureRefResolver)
+                .accept(featureRefResolver, [])
                 .accept(queryablesSelector)
                 .accept(schemaFlattener)
                 .accept(schemaDeriver) as JsonSchemaDocument
@@ -67,7 +66,7 @@ class SchemaDeriverJsonSpec extends Specification {
         document == expected
 
         where:
-        version         || expected
+        version                            || expected
         JsonSchemaDocument.VERSION.V202012 || EXPECTED_QUERYABLES
         JsonSchemaDocument.VERSION.V201909 || EXPECTED_QUERYABLES_V201909
         JsonSchemaDocument.VERSION.V7      || EXPECTED_QUERYABLES_V7
@@ -226,14 +225,14 @@ class SchemaDeriverJsonSpec extends Specification {
                             .description("bar")
                             .role("primary-instant")
                             .build())
-                    /*
-                    .putProperties("objects.date", new ImmutableJsonSchemaArray.Builder()
-                            .title("foo > date")
-                            .items(new ImmutableJsonSchemaString.Builder()
-                                .format("date")
-                                .build())
-                            .build())
-                     */
+            /*
+            .putProperties("objects.date", new ImmutableJsonSchemaArray.Builder()
+                    .title("foo > date")
+                    .items(new ImmutableJsonSchemaString.Builder()
+                        .format("date")
+                        .build())
+                    .build())
+             */
                     .additionalProperties(new ImmutableJsonSchemaFalse.Builder().build())
                     .build();
 

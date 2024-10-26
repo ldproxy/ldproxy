@@ -31,7 +31,7 @@
   "$defs": {
     "OgcApiDataV2": {
       "title": "OgcApiDataV2",
-      "description": "# OGC API       Each API represents a deployment of a single OGC Web API, i.e., an API that implements     conformance classes from OGC API standards.       ## General rules       ### Response encoding       For operations that return a response, the encoding is chosen using standard HTTP content     negotiation with `Accept` headers.       GET operations that support more than one encoding additionally support the query     parameter `f`, which allows to explicitly choose the encoding and override the result of the     content negotiation. The supported encodings depend on the affected resource and the     configuration.       ### Response language       For operations that return a response, the language for linguistic texts is chosen using     standard HTTP content negiotiation with `Accept-Language` headers.       If enabled in [Common Core](building-blocks/common_core.md), GET operations additionally     support the query parameter `lang`, which allows to explicitely choose the language and     override the result of the content negotiation. The supported languages depend on the     affected resource and the configuration. Support for multilingualism is currently limited.     There are four possible sources for linguistic texts:        - Static texts: For example link labels or static texts in HTML represenations. Currently the languages English (`en`) and German (`de`) are supported. - Texts contained in the data: Currently not supported. - Texts set in the configuration: Currently not supported. - Error messages: These are always in english, the messages are currently hard-coded.        ### Resource paths       All resource paths in this documentation are relative to the base URI of the API. For     example given the base URI `https://example.com/pfad/zu/apis/{apiId}` and the relative     resource path `collections`, the full path would be     `https://example.com/pfad/zu/apis/{apiId}/collections`.  ## Configuration       Details regarding the API modules can be found [here](building-blocks/README.md), see     `api` in the table below.       {@docTable:properties }  ### Collection       Every collection corresponds to a feature type defined in the feature provider (only     *Feature Collections* are currently supported).       {@docTable:collectionProperties }  ### Building Blocks       Building blocks might be configured for the API or for single collections. The final     configuration is formed by merging the following sources in this order:        - The building block defaults, see [Building Blocks](building-blocks/README.md). - Optional deployment defaults in the `defaults` directory. - API level configuration. - Collection level configuration. - Optional deployment overrides in the `overrides` directory.          ### Metadata       {@docVar:metadata }       {@docTable:metadataProperties }  ### External document       {@docVar:externalDocument }       {@docTable:externalDocumentProperties }  ### Default extent       {@docVar:extent }       {@docTable:extentProperties }  ### Caching       {@docVar:caching }       {@docTable:cachingProperties }  ### Access Control       {@docVar:security }       #### Configuration       {@docTable:securityProperties }       {@docVar:policies }       {@docTable:policies }  ### Examples       See the [API     configuration](https://github.com/interactive-instruments/ldproxy/blob/master/demo/vineyards/store/entities/services/vineyards.yml)     of the API [Vineyards in Rhineland-Palatinate, Germany](https://demo.ldproxy.net/vineyards).  ## Storage       API configurations reside under the relative path `store/entities/services/{apiId}.yml` in     the data directory or in the [Store (new)](../application/20-configuration/10-store-new.md)     as entities with type `services`.",
+      "description": "# OGC API       Each API represents a deployment of a single OGC Web API, i.e., an API that implements     conformance classes from OGC API standards.       ## General rules       ### Response encoding       For operations that return a response, the encoding is chosen using standard HTTP content     negotiation with `Accept` headers.       GET operations that support more than one encoding additionally support the query     parameter `f`, which allows to explicitly choose the encoding and override the result of the     content negotiation. The supported encodings depend on the affected resource and the     configuration.       ### Response language       For operations that return a response, the language for linguistic texts is chosen using     standard HTTP content negotiation with `Accept-Language` headers.       If enabled in [Common Core](building-blocks/common_core.md), GET operations additionally     support the query parameter `lang`, which allows to explicitly choose the language and     override the result of the content negotiation. The supported languages depend on the     affected resource and the configuration. Support for multilingualism is currently limited.     There are four possible sources for linguistic texts:        - Static texts: For example link labels or static texts in HTML representations. Currently the languages English (`en`) and German (`de`) are supported. - Texts contained in the data: Currently not supported. - Texts set in the configuration: Currently not supported. - Error messages: These are always in english, the messages are currently hard-coded.        ### Resource paths       All resource paths in this documentation are relative to the base URI of the API. For     example given the base URI `https://example.com/pfad/zu/apis/{apiId}` and the relative     resource path `collections`, the full path would be     `https://example.com/pfad/zu/apis/{apiId}/collections`.  ## Configuration       Details regarding the API building blocks can be found [here](building-blocks/README.md),     see `api` in the table below.       {@docTable:properties }  ### Collection       Every collection corresponds to a feature type defined in the feature provider (only     *Feature Collections* are currently supported).       {@docTable:collectionProperties }  ### Building Blocks       Building blocks might be configured for the API or for single collections. The final     configuration is formed by merging the following sources in this order:        - The building block defaults, see [Building Blocks](building-blocks/README.md). - Optional deployment defaults in the `defaults` directory. - API level configuration. - Collection level configuration. - Optional deployment overrides in the `overrides` directory.          ### Metadata       {@docVar:metadata }       {@docTable:metadataProperties }  ### External document       {@docVar:externalDocument }       {@docTable:externalDocumentProperties }  ### Default extent       {@docVar:extent }       {@docTable:extentProperties }  ### Caching       {@docVar:caching }       {@docTable:cachingProperties }  ### Access Control       {@docVar:security }       #### Configuration       {@docTable:securityProperties }       {@docVar:policies }       {@docTable:policies }  ### Examples       See the [API     configuration](https://github.com/interactive-instruments/ldproxy/blob/master/demo/vineyards/store/entities/services/vineyards.yml)     of the API [Vineyards in Rhineland-Palatinate, Germany](https://demo.ldproxy.net/vineyards).  ## Storage       API configurations reside in the [Store](../application/20-configuration/10-store-new.md)     as entities with type `services`.",
       "type": "object",
       "properties": {
         "id": {
@@ -42,54 +42,6 @@
             "number",
             "boolean",
             "null"
-          ]
-        },
-        "createdAt": {
-          "title": "createdAt",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "lastModified": {
-          "title": "lastModified",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "entityStorageVersion": {
-          "title": "entityStorageVersion",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
           ]
         },
         "label": {
@@ -114,36 +66,19 @@
         },
         "enabled": {
           "title": "enabled",
-          "description": "Option to disable the service, which means its REST API will not be available and     background tasks will not be running.",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
           "oneOf": [
             {
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
             }
           ]
-        },
-        "shouldStart": {
-          "title": "shouldStart",
-          "description": "*Deprecated* See `enabled`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "deprecated": true
         },
         "apiVersion": {
           "title": "apiVersion",
@@ -153,8 +88,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -169,24 +104,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "autoPersist": {
-          "title": "autoPersist",
-          "description": "*Deprecated, use the editor instead.* Option to persist definitions generated with     `auto` to the configuration file. The [Store](/application/20-configuration/00-store.md)     must not be `READ_ONLY` for this to take effect.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -535,8 +454,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -551,8 +470,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -585,8 +504,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -601,8 +520,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -617,8 +536,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -633,8 +552,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -649,8 +568,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -665,8 +584,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -695,8 +614,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -711,8 +630,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -741,8 +660,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -763,8 +682,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -868,8 +787,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -908,8 +827,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1103,8 +1022,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -1119,8 +1038,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1170,8 +1089,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1210,8 +1129,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1226,8 +1145,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1253,6 +1172,12 @@
           ],
           "const": "QUERYABLES"
         },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
@@ -1261,19 +1186,13 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
             }
           ]
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
         },
         "included": {
           "title": "included",
@@ -1361,8 +1280,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1377,8 +1296,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1412,8 +1331,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1477,8 +1396,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1517,8 +1436,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1561,6 +1480,22 @@
             "number",
             "boolean",
             "null"
+          ]
+        },
+        "removeNullValues": {
+          "title": "removeNullValues",
+          "description": "Remove properties with value `null`, including properties transformed with `nullify`.     Can only be applied on the feature level in the provider or using the wildcard property     name `*` otherwise.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "objectReduceFormat": {
@@ -1613,7 +1548,7 @@
         },
         "stringFormat": {
           "title": "stringFormat",
-          "description": "Format a value, where `{{value}}` is replaced with the actual value and     `{{serviceUrl}}` is replaced with the API landing page URI. Additonal operations can be     applied to `{{value}}` by chaining them with `|`, see the examples below.",
+          "description": "Format a value, where `{{value}}` is replaced with the actual value and     `{{serviceUrl}}` is replaced with the API landing page URI. Additonal operations can be     applied to `{{value}}` by chaining them with `\\|`, see the examples below.",
           "type": [
             "string",
             "number",
@@ -1680,7 +1615,7 @@
     },
     "CityJsonConfiguration": {
       "title": "CityJsonConfiguration",
-      "description": "### Prerequisites       The module requires that the feature provider includes a type `building` that is mapped to     a CityJSON Building feature. Properties of the type `building` are mapped to CityJSON as     follows:        - `consistsOfBuildingPart`: The value must be an object with the same properties as `building`.   The object is encoded as a BuildingPart feature of the Building feature. - `address`: The value must be an array of address objects. The following attributes are mapped   to an Address object, all other properties are ignored:   - `multiPoint`: a  MULTI_POINT geometry representing the address location   - `ThoroughfareName`: a string   - `ThoroughfareNumber`: a string   - `LocalityName`: a string   - `PostalCode`: a string   - `AdministrativeArea`: a string   - `CountryName`: a string - `lod1Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 1. - `lod2Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 2. - `surfaces`: an array of semantic surface objects. The object must have a `surfaceType` and the   values must be one of the following: `CeilingSurface`, `ClosureSurface`, `Door`, `FloorSurface`,   `GroundSurface`, `InteriorWallSurface`, `OuterCeilingSurface`, `OuterFloorSurface`, `RoofSurface`,   `WallSurface`, or `Window`. The object should have a property with a POLYGON or MULTI_POLYGON   geometry that represents the surface geometry. - all other properties: The property will be mapped to a CityJSON attribute, except for `gml_id` properties.            The property of the `building` with the role `ID` will be used as the CityJSON id. Since     the embedded building parts do not have a property with a role `ID`, the building part     feature will use the value of a property `id` as the id of the CityJSON building part,     otherwise a UUID will be generated. If `id` is provided, its values must be unique.       The [example](#examples) includes a sample type definition for the building features in a     PostgreSQL feature provider based on the CityGML profile of the German surveying and mapping     authorities.",
+      "description": "### Prerequisites       The building block requires that the feature provider includes a type `building` that is     mapped to a CityJSON Building feature. Properties of the type `building` are mapped to     CityJSON as follows:        - `consistsOfBuildingPart`: The value must be an object with the same properties as `building`.   The object is encoded as a BuildingPart feature of the Building feature. - `address`: The value must be an array of address objects. The following attributes are mapped   to an Address object, all other properties are ignored:   - `multiPoint`: a  MULTI_POINT geometry representing the address location   - `ThoroughfareName`: a string   - `ThoroughfareNumber`: a string   - `LocalityName`: a string   - `PostalCode`: a string   - `AdministrativeArea`: a string   - `CountryName`: a string - `lod1Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 1. - `lod2Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 2. - `surfaces`: an array of semantic surface objects. The object must have a `surfaceType` and the   values must be one of the following: `CeilingSurface`, `ClosureSurface`, `Door`, `FloorSurface`,   `GroundSurface`, `InteriorWallSurface`, `OuterCeilingSurface`, `OuterFloorSurface`, `RoofSurface`,   `WallSurface`, or `Window`. The object should have a property with a POLYGON or MULTI_POLYGON   geometry that represents the surface geometry. - all other properties: The property will be mapped to a CityJSON attribute, except for `gml_id` properties.            The property of the `building` with the role `ID` will be used as the CityJSON id. Since     the embedded building parts do not have a property with a role `ID`, the building part     feature will use the value of a property `id` as the id of the CityJSON building part,     otherwise a UUID will be generated. If `id` is provided, its values must be unique.       The [example](#examples) includes a sample type definition for the building features in a     PostgreSQL feature provider based on the CityGML profile of the German surveying and mapping     authorities.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -1702,8 +1637,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1745,8 +1680,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1823,8 +1758,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -1903,8 +1838,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -1919,8 +1854,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -1935,8 +1870,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -1985,8 +1920,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2065,8 +2000,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2126,8 +2061,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2179,8 +2114,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -2267,8 +2202,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2318,6 +2253,22 @@
             "boolean",
             "null"
           ]
+        },
+        "gmlIdOnGeometries": {
+          "title": "gmlIdOnGeometries",
+          "description": "This option adds a `gml:id` attribute on all GML geometry elements. The id attribute     was required by GML 3.2 until 2016, older copies of the GML schema may still require the     attribute. This option allows to create instances that are valid for such schemas.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -2346,8 +2297,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2376,7 +2327,7 @@
         },
         "transformations": {
           "title": "transformations",
-          "description": "Optional transformations for feature properties for HTML, see     [transformations](README.md#transformations).",
+          "description": "Optional transformations for feature properties for HTML, see     [transformations](../../providers/details/transformations.md).",
           "type": "object",
           "additionalProperties": {
             "allOf": [
@@ -2413,7 +2364,7 @@
         },
         "style": {
           "title": "style",
-          "description": "An optional style in the style repository to use for the map in the HTML representation     of a feature or feature collection. The style should render all data. If set to `DEFAULT`,     the `defaultStyle` configured in the [HTML configuration](html.md) is used. If the map     client is MapLibre, the style must be available in the Mapbox format. If the style is set     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the     map client is Cesium, the style must be available in the 3D Tiles format. If the style is     set to `NONE`, the standard 3D Tiles styling is used.",
+          "description": "An optional style in the style repository to use for the map in the HTML representation     of a feature or feature collection. The style should render all data. If set to `DEFAULT`,     the `defaultStyle` configured in the [HTML building block](html.md) is used. If the map     client is MapLibre, the style must be available in the Mapbox format. If the style is set     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the     map client is Cesium, the style must be available in the 3D Tiles format. If the style is     set to `NONE`, the standard 3D Tiles styling is used.",
           "type": [
             "string",
             "number",
@@ -2429,8 +2380,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2473,14 +2424,14 @@
         },
         "maximumPageSize": {
           "title": "maximumPageSize",
-          "description": "This option can be used to set a custom maximum value for the `limit` parameter for the     HTML output. If no value is specified, the value from the Features Core module applies.     When using CesiumJS as a map client, a value of 100 is recommended.",
+          "description": "This option can be used to set a custom maximum value for the `limit` parameter for the     HTML output. If no value is specified, the value from the Features Core building block     applies. When using CesiumJS as a map client, a value of 100 is recommended.",
           "oneOf": [
             {
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -2495,8 +2446,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2511,8 +2462,43 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FilterConfiguration": {
+      "title": "FilterConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FILTER`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FILTER"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2524,7 +2510,7 @@
     },
     "FoundationConfiguration": {
       "title": "FoundationConfiguration",
-      "description": "Provides base functionality for all other modules and therefore cannot be disabled.",
+      "description": "Provides base functionality for all other building blocks and therefore cannot be disabled.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -2546,8 +2532,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2562,8 +2548,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2578,8 +2564,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2624,8 +2610,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2746,8 +2732,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2767,7 +2753,7 @@
     },
     "HtmlConfiguration": {
       "title": "HtmlConfiguration",
-      "description": "### Customization       The HTML encoding is implemented using [Mustache templates](https://mustache.github.io/)     which can be overridden by the user. Any template may be overridden but doing so for     non-empty templates is strongly discouraged since it will most certainly lead to issues on     updates.       There are predefined empty templates prefixed with `custom-` that should cover most use     cases:        - `custom-head.mustache`: add something to the `\u003chead\u003e` element, e.g. CSS styles - `custom-body-start.mustache`: add something at the start of the `\u003cbody\u003e` element - `custom-body-end.mustache`: add something at the end of the `\u003cbody\u003e` element - `custom-navbar-start.mustache`: add something at the left side of the navbar - `custom-navbar-end.mustache`: add something at the right side of the navbar - `custom-footer-start.mustache`: add something at the start of the footer - `custom-footer-end.mustache`: add something at the end of footer - `custom-footer-url.mustache`: add a link to the list at the right of the footer            These templates have to reside in the data directory either under the relative path     `templates/html/{templateName}.mustache` if you are still using the old layout (deprecated,     will stop working in v4) or under `resources/html/templates/{templateName}.mustache` with the     new layout.       #### Custom assets       It is also possible to publish any custom files, e.g. CSS files that can then be included     in `custom-head.mustache`. The files have to reside in the data directory either under the     relative path `store/resources/html/assets/` if you are still using the old layout     (deprecated, will stop working in v4) or under `resources/html/assets/` with the new layout.       For example the CSS file `resources/html/assets/my.css` could be included in     `custom-head.mustache` with `\u003clink href\u003d\"{{urlPrefix}}/custom/assets/my.css\" rel\u003d\"stylesheet\" \u003e`.       ### Login Provider       For APIs with [restricted access](../README.md#access-control) using an [identity     provider](../../application/20-configuration/40-auth.md) with login capabilities, the     `loginProvider` option can be set to enable automatic redirects to the login form of the     identity provider for restricted HTML pages. The logged-in user will also be shown on all     HTML pages along with a logout button.        ::: warning   This functionality uses cookies to retain the login information when     navigating between HTML pages. The cookies are neither processed nor passed on to any third     party.       In regard to the European GDPR and the German TTDSG we would deem these cookies as     technically required. That means if you publish an API with this functionality, you would be     required to mention these cookies in the privacy policy.  :::6        ::: info   If the identity provider uses `https` (which it should), this feature only works     if the API is also published using `https`. The only exception is accessing an API on     `localhost`.  :::",
+      "description": "### Customization       The HTML encoding is implemented using [Mustache templates](https://mustache.github.io/)     which can be overridden by the user. Any template may be overridden but doing so for     non-empty templates is strongly discouraged since it will most certainly lead to issues on     updates.       There are predefined empty templates prefixed with `custom-` that should cover most use     cases:        - `custom-head.mustache`: add something to the `\u003chead\u003e` element, e.g. CSS styles - `custom-body-start.mustache`: add something at the start of the `\u003cbody\u003e` element - `custom-body-end.mustache`: add something at the end of the `\u003cbody\u003e` element - `custom-navbar-start.mustache`: add something at the left side of the navbar - `custom-navbar-end.mustache`: add something at the right side of the navbar - `custom-footer-start.mustache`: add something at the start of the footer - `custom-footer-end.mustache`: add something at the end of footer - `custom-footer-url.mustache`: add a link to the list at the right of the footer            These templates have to reside in the     [Store](../../application/20-configuration/10-store-new.md) as resources with type     `html/templates`.       #### Custom assets       It is also possible to publish any custom files, e.g. CSS files that can then be included     in `custom-head.mustache`. The files have to reside in the     [Store](../../application/20-configuration/10-store-new.md) as resources with type     `html/assets`.       For example the CSS file `resources/html/assets/my.css` could be included in     `custom-head.mustache` with `\u003clink href\u003d\"{{urlPrefix}}/custom/assets/my.css\" rel\u003d\"stylesheet\" \u003e`.       ### Login Provider       For APIs with [restricted access](../README.md#access-control) using an [identity     provider](../../application/20-configuration/40-auth.md) with login capabilities, the     `loginProvider` option can be set to enable automatic redirects to the login form of the     identity provider for restricted HTML pages. The logged-in user will also be shown on all     HTML pages along with a logout button.        ::: warning   This functionality uses cookies to retain the login information when     navigating between HTML pages. The cookies are neither processed nor passed on to any third     party.       In regard to the European GDPR and the German TTDSG we would deem these cookies as     technically required. That means if you publish an API with this functionality, you would be     required to mention these cookies in the privacy policy.  :::6        ::: info   If the identity provider uses `https` (which it should), this feature only works     if the API is also published using `https`. The only exception is accessing an API on     `localhost`.  :::",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -2789,8 +2775,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2805,8 +2791,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2821,8 +2807,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2837,8 +2823,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2853,8 +2839,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -2869,8 +2855,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3018,8 +3004,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3053,8 +3039,40 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "showSchemaConstraintsInHtml": {
+          "title": "showSchemaConstraintsInHtml",
+          "description": "In the HTML view of the OpenAPI definition, schema constraints except `enum` and     `default` values are not displayed. Set this to `true` to display also `minimum`,     `maximum`, `pattern`, `minLength`, and `maxLength` constraints.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "isShowSchemaConstraintsInHtml": {
+          "title": "isShowSchemaConstraintsInHtml",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3080,12 +3098,6 @@
           ],
           "const": "TILE_MATRIX_SETS"
         },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
-        },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
@@ -3094,17 +3106,23 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
             }
           ]
         },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
         "includePredefined": {
           "title": "includePredefined",
-          "description": "The list of pre-defined tile matrix sets that are included in the API. All tile matrix     sets used by a tile provider of the API are automatically added to the list.",
+          "description": "The list of pre-defined tile matrix sets that are published via this API.",
           "allOf": [
             {
               "if": {
@@ -3141,7 +3159,7 @@
     },
     "TilesConfiguration": {
       "title": "TilesConfiguration",
-      "description": "### Prerequisites       The building block *Tile Matrix Sets* must be enabled. If that building block is not     configured, it is automatically enabled if *Tiles* is enabled.       ### Storage       The tile cache is located in the data directory under the relative path     `cache/tiles/{apiId}` (old) or in the [Store (new)](../../application/20-configuration/10-store-new.md) as resource with path       `tiles/{apiId}`.       If the data for an API or tile configuration has been changed, then     the cache directory for the API should be deleted so that the cache is rebuilt with the     updated data or rules.",
+      "description": "### Prerequisites       The building block *Tile Matrix Sets* must be enabled       ### Storage       The tile cache is located in the [Store](../../application/20-configuration/10-store-new.md) as resource with path       `tiles/{apiId}`.       If the data for an API or tile configuration has been changed, then     the cache directory for the API should be deleted so that the cache is rebuilt with the     updated data or rules.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -3163,8 +3181,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3206,8 +3224,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -3297,7 +3315,7 @@
         },
         "style": {
           "title": "style",
-          "description": "A style in the style repository to be used in maps with tiles by default. With     `DEFAULT` the `defaultStyle` from [module HTML](html.md) is used. If the map client is     MapLibre, the style must be available in the Mapbox format. If the style is set to `NONE`,     a simple wireframe style will be used with OpenStreetMap as a basemap. If the map client is     Open Layers, the setting is ignored.",
+          "description": "A style in the style repository to be used in maps with tiles by default. With     `DEFAULT` the `defaultStyle` from the [HTML building block](html.md) is used. If the map     client is MapLibre, the style must be available in the Mapbox format. If the style is set     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the     map client is Open Layers, the setting is ignored.",
           "type": [
             "string",
             "number",
@@ -3313,12 +3331,22 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
             }
+          ]
+        },
+        "wmts": {
+          "title": "wmts",
+          "description": "Adds support for OGC WMTS 1.0.0 (HTTP RESTful binding) for tilesets. `NONE` disables     support, `ALL` adds all dataset and collection raster tilesets. `DATASET` publishes all     dataset raster tilesets, `COLLECTION` all collection raster tilesets.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
           ]
         }
       },
@@ -3348,8 +3376,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3383,8 +3411,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3427,8 +3455,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3443,8 +3471,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3459,8 +3487,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3520,7 +3548,7 @@
     },
     "GltfConfiguration": {
       "title": "GltfConfiguration",
-      "description": "### Prerequisites       The module requires that the feature provider includes a type `building`. The requirements     for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
+      "description": "### Prerequisites       Theis building block requires that the feature provider includes a type `building`. The     requirements for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -3542,8 +3570,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3585,8 +3613,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3601,8 +3629,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3617,8 +3645,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3633,8 +3661,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3657,8 +3685,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3673,8 +3701,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -3708,8 +3736,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3751,8 +3779,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3787,8 +3815,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3803,8 +3831,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3853,8 +3881,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3946,8 +3974,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3968,8 +3996,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -3984,8 +4012,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4000,43 +4028,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FilterConfiguration": {
-      "title": "FilterConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FILTER`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FILTER"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4070,8 +4063,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4105,8 +4098,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4139,8 +4132,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4190,8 +4183,8 @@
                       "type": "number"
                     },
                     {
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                      "type": "string"
+                      "type": "string",
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                     },
                     {
                       "type": "null"
@@ -4210,8 +4203,8 @@
                     "type": "number"
                   },
                   {
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                   },
                   {
                     "type": "null"
@@ -4236,8 +4229,8 @@
                       "type": "number"
                     },
                     {
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                      "type": "string"
+                      "type": "string",
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                     },
                     {
                       "type": "null"
@@ -4256,8 +4249,8 @@
                     "type": "number"
                   },
                   {
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                   },
                   {
                     "type": "null"
@@ -4282,8 +4275,8 @@
                       "type": "number"
                     },
                     {
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                      "type": "string"
+                      "type": "string",
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                     },
                     {
                       "type": "null"
@@ -4302,8 +4295,8 @@
                     "type": "number"
                   },
                   {
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
                   },
                   {
                     "type": "null"
@@ -4321,8 +4314,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -4345,8 +4338,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4386,8 +4379,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4418,8 +4411,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4434,8 +4427,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4450,8 +4443,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4466,8 +4459,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4482,8 +4475,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4554,8 +4547,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -4595,8 +4588,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4686,7 +4679,7 @@
     },
     "StylesConfiguration": {
       "title": "StylesConfiguration",
-      "description": "### Storage        - MapLibre stylesheets reside under the relative path `styles/{apiId}/{styleId}.mbs` in      the data directory (old) or in the [Store (new)](../../application/20-configuration/10-store-new.md) as values with type      `maplibre-styles` and path `{apiId}/{styleId}`. In the latter case the extension `mbs` is      still supported, but preferably stylesheets are stored as plain YAML or JSON files. The URIs (Sprites,     Glyphs, Source.url, Source.tiles) used in MapLibre styles links might contain `{serviceUrl}`. - 3d Tiles stylesheets reside under the relative path `styles/{apiId}/{styleId}.3dtiles` in      the data directory (old) or in the [Store (new)](../../application/20-configuration/10-store-new.md) as values with type      `3dtiles-styles` and path `{apiId}/{styleId}`. In the latter case the extension `3dtiles`      is still supported, but preferably stylesheets are stored as plain YAML or JSON files. - Other stylesheets reside under the relative path `styles/{apiId}/{styleId}.{ext}` in      the data directory (old) or in the [Store (new)](../../application/20-configuration/10-store-new.md) as resources with type      `other-styles` and path `{apiId}/{styleId}.{ext}`.     The file extension `{ext}` must have the following value depending on the style encoding:   - OGC SLD 1.0: `sld10`   - OGC SLD 1.1: `sld11`   - QGIS QML: `qml`   - ArcGIS Desktop: `lyr`   - ArcGIS Pro: `lyrx` - Style metadata reside under the relative path `styles/{apiId}/{styleId}.metadata` in       the data directory (old) or in the [Store (new)](../../application/20-configuration/10-store-new.md) as resources with type       `other-styles` and path `{apiId}/{styleId}.metadata`. Links     might be templates (by setting `templated` to `true`) containing `{serviceUrl}`.     *Deprecated, the support for style metadata will be removed in v4.*       ### Layer Control       The layer control dialog in the webmap is activated via the `webmapWithLayerControl`     option (see \u0027Options\u0027 below).       The dialog can be configured in the MapLibre style metadata (member     `ldproxy:layerControl`). On the top level there are the following JSON members:        - `onlyLegend` (Boolean, default: false): With `true` only the groups and layers with the symbols are displayed without the possibility to deactivate layers. - `opened` (Boolean, default: false): If `true` is set, the layer selection dialog will be displayed open when the map is loaded. - `entries` (default: one merge group per source layer in the vector tiles): The configuration of the groups and layers as described below.            In `entries` the following items allowed:        - The `id` of a MapLibre layer in the style (string). The layer is displayed in the dialog with the `id` as name. The symbol of the layer is created without specifying attributes or a particular zoom layer. - A layer object. `id` is the `id` of the MapLibre layer in the style (string, mandatory). `label` is the name of the layer in the dialog (string, default: `id`). `zoom` is the zoom level to use when creating symbols (number, default: none). `properties` are attributes (object, default `{}`) to be used during symbol generation. - A group object. `type` is always \"group\". `id` is an `id` of the group (string, mandatory). `label` is the name of the group in the dialog (string, default: `id`). With `onlyLegend` the possibility to disable layers can be disabled for the group (Boolean, default: `false`). `entries` can contain layers (objects or string), groups or merge groups (array, default: `[]`). - A radio group object. It may only occur on the top level of entries. Only exactly one entry can be selected from the group, e.g. for the selection of a basemap. `type` is always \"radio-group\". `id`, `label` have the same effect as for normal groups. `entries` can only contain layers (objects or string) (array, default: `[]`). - A merge group object. `type` is always \"merge-group\". A merge group is a group where `entries` may only contain layers (objects or string) (array, default: `[]`); these entries are not displayed as subentries in the dialog, but a symbol is created from all layers together. Instead of specifying `entries`, `source-layer` (string, default: none) can be specified alternatively; in this case, all layers with this source layer become entries.            For an example, see below.",
+      "description": "### Storage        - MapLibre stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type      `maplibre-styles` and path `{apiId}/{styleId}`. In the latter case the extension `mbs` is      still supported, but preferably stylesheets are stored as plain YAML or JSON files. The URIs (Sprites,     Glyphs, Source.url, Source.tiles) used in MapLibre styles links might contain `{serviceUrl}`. - 3d Tiles stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type      `3dtiles-styles` and path `{apiId}/{styleId}`. In the latter case the extension `3dtiles`      is still supported, but preferably stylesheets are stored as plain YAML or JSON files. - Other stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as resources with type      `other-styles` and path `{apiId}/{styleId}.{ext}`.     The file extension `{ext}` must have the following value depending on the style encoding:   - OGC SLD 1.0: `sld10`   - OGC SLD 1.1: `sld11`   - QGIS QML: `qml`   - ArcGIS Desktop: `lyr`   - ArcGIS Pro: `lyrx`       ### Layer Control       The layer control dialog in the webmap is activated via the `webmapWithLayerControl`     option (see \u0027Options\u0027 below).       The dialog can be configured in the MapLibre style metadata (member     `ldproxy:layerControl`). On the top level there are the following JSON members:        - `onlyLegend` (Boolean, default: false): With `true` only the groups and layers with the symbols are displayed without the possibility to deactivate layers. - `opened` (Boolean, default: false): If `true` is set, the layer selection dialog will be displayed open when the map is loaded. - `entries` (default: one merge group per source layer in the vector tiles): The configuration of the groups and layers as described below.            In `entries` the following items allowed:        - The `id` of a MapLibre layer in the style (string). The layer is displayed in the dialog with the `id` as name. The symbol of the layer is created without specifying attributes or a particular zoom layer. - A layer object. `id` is the `id` of the MapLibre layer in the style (string, mandatory). `label` is the name of the layer in the dialog (string, default: `id`). `zoom` is the zoom level to use when creating symbols (number, default: none). `properties` are attributes (object, default `{}`) to be used during symbol generation. - A group object. `type` is always \"group\". `id` is an `id` of the group (string, mandatory). `label` is the name of the group in the dialog (string, default: `id`). With `onlyLegend` the possibility to disable layers can be disabled for the group (Boolean, default: `false`). `entries` can contain layers (objects or string), groups or merge groups (array, default: `[]`). - A radio group object. It may only occur on the top level of entries. Only exactly one entry can be selected from the group, e.g. for the selection of a basemap. `type` is always \"radio-group\". `id`, `label` have the same effect as for normal groups. `entries` can only contain layers (objects or string) (array, default: `[]`). - A merge group object. `type` is always \"merge-group\". A merge group is a group where `entries` may only contain layers (objects or string) (array, default: `[]`); these entries are not displayed as subentries in the dialog, but a symbol is created from all layers together. Instead of specifying `entries`, `source-layer` (string, default: none) can be specified alternatively; in this case, all layers with this source layer become entries.            For an example, see below.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -4708,8 +4701,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4764,8 +4757,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4774,14 +4767,14 @@
         },
         "validationEnabled": {
           "title": "validationEnabled",
-          "description": "Option to validate styles when using POST and PUT by setting the query parameter     `validate`. For details see conformance class *Validation of styles*.",
+          "description": "Option to validate styles when using POST and PUT by setting the header `Prefer`. For     details see conformance class *Validation of styles*.",
           "oneOf": [
             {
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4796,8 +4789,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4806,14 +4799,14 @@
         },
         "deriveCollectionStyles": {
           "title": "deriveCollectionStyles",
-          "description": "Only applies to styles in Mapbox Style format. Controls whether the styles at the     collection level should be derived from the styles in the parent style collection. The     prerequisite is that the name of the `source` in the stylesheet corresponds to `{apiId}`     and the name of the `source-layer` corresponds to `{collectionId}`. If a style is to be     used for displaying features in the FEATURES_HTML module, the option should be enabled.",
+          "description": "Only applies to styles in Mapbox Style format. Controls whether the styles at the     collection level should be derived from the styles in the parent style collection. The     prerequisite is that the name of the `source` in the stylesheet corresponds to `{apiId}`     and the name of the `source-layer` corresponds to `{collectionId}`. If a style is to be     used for displaying features in the FEATURES_HTML building block, the option should be     enabled.",
           "oneOf": [
             {
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4828,8 +4821,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4844,8 +4837,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4860,8 +4853,40 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "addBoundsToVectorSource": {
+          "title": "addBoundsToVectorSource",
+          "description": "Option to add the `bounds` property to the vector source in a MapLibre style based on     the bounding box of the dataset or collection.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "legendEnabled": {
+          "title": "legendEnabled",
+          "description": "Option to support an endpoint to access the legend of a style.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4895,8 +4920,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4953,8 +4978,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4979,8 +5004,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -4995,12 +5020,22 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
             }
+          ]
+        },
+        "jobSize": {
+          "title": "jobSize",
+          "description": "The maximum number of tiles in a seeding job (S\u003d256, M\u003d1024, L\u003d16384, XL\u003d65536). The     tile seeding is split into multiple jobs to distribute the work across threads and nodes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
           ]
         }
       },
@@ -5008,7 +5043,7 @@
     },
     "Tiles3dConfiguration": {
       "title": "Tiles3dConfiguration",
-      "description": "### Prerequisites       The module requires that the feature provider includes a type `building`. The requirements     for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
+      "description": "### Prerequisites       The building block requires that the feature provider includes a type `building`. The     requirements for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -5030,8 +5065,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5046,8 +5081,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5062,8 +5097,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5146,8 +5181,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5162,8 +5197,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5172,7 +5207,7 @@
         },
         "seeding": {
           "title": "seeding",
-          "description": "Controls how and when tiles are precomputed, see [Seeding options in the Tiles building     block](tiles.md#seeding-options).",
+          "description": "Controls how and when tiles are precomputed, see [Seeding options in the tile provider     \"Features\"](../../providers/tile/10-features.md#seeding).",
           "type": "object",
           "$ref": "#/$defs/SeedingOptions"
         },
@@ -5184,8 +5219,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5230,8 +5265,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5240,7 +5275,7 @@
         },
         "style": {
           "title": "style",
-          "description": "A style in the style repository of the collection to be used in maps with 3D Tiles.     With `DEFAULT` the `defaultStyle` from [module HTML](html.md) is used. With `NONE` the     default 3D Tiles style is used. The style must be available in the 3D Tiles Styling format.     If no style is found, \u0027NONE\u0027 is used.",
+          "description": "A style in the style repository of the collection to be used in maps with 3D Tiles.     With `DEFAULT` the `defaultStyle` from the [HTML building block](html.md) is used. With     `NONE` the default 3D Tiles style is used. The style must be available in the 3D Tiles     Styling format. If no style is found, \u0027NONE\u0027 is used.",
           "type": [
             "string",
             "number",
@@ -5275,8 +5310,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5318,8 +5353,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5353,8 +5388,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5369,8 +5404,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5404,8 +5439,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5447,8 +5482,8 @@
               "type": "number"
             },
             {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
             },
             {
               "type": "null"
@@ -5482,8 +5517,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5581,8 +5616,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5603,8 +5638,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"
@@ -5628,6 +5663,7 @@
             "GEO_JSON",
             "GML",
             "FEATURES_HTML",
+            "FILTER",
             "FOUNDATION",
             "HTML",
             "JSON",
@@ -5641,7 +5677,6 @@
             "GLTF",
             "JSON_FG",
             "SEARCH",
-            "FILTER",
             "GEOMETRY_SIMPLIFICATION",
             "PROJECTIONS",
             "ROUTING",
@@ -5794,6 +5829,21 @@
           },
           "then": {
             "$ref": "#/$defs/FeaturesHtmlConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "FILTER"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FilterConfiguration"
           }
         },
         {
@@ -5989,21 +6039,6 @@
           },
           "then": {
             "$ref": "#/$defs/SearchConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "FILTER"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FilterConfiguration"
           }
         },
         {
@@ -6231,8 +6266,8 @@
               "type": "boolean"
             },
             {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
             },
             {
               "type": "null"

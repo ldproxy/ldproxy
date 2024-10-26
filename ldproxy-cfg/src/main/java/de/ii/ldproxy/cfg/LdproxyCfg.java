@@ -14,6 +14,7 @@ import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.entities.domain.EntityDataStore;
 import de.ii.xtraplatform.entities.domain.EntityFactories;
 import de.ii.xtraplatform.values.domain.Identifier;
+import de.ii.xtraplatform.values.domain.ValueFactories;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -42,6 +43,8 @@ public interface LdproxyCfg extends LdproxyCfgWriter {
 
   Path getEntitiesPath();
 
+  Path getValuesPath();
+
   ObjectMapper getObjectMapper();
 
   EntityDataDefaultsStore getEntityDataDefaultsStore();
@@ -49,6 +52,8 @@ public interface LdproxyCfg extends LdproxyCfgWriter {
   EntityDataStore<EntityData> getEntityDataStore();
 
   EntityFactories getEntityFactories();
+
+  ValueFactories getValueFactories();
 
   List<Identifier> getEntityIdentifiers();
 

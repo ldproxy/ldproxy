@@ -1,6 +1,6 @@
 [versions]
 # plugins
-xtraplatform-build = "5.2.5"
+xtraplatform-build = "5.2.6"
 spotless = "6.23.3"
 node = "7.0.1"
 download = "5.5.0"

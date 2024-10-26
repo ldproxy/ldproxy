@@ -71,6 +71,16 @@ public interface LdproxyCfgWriter {
   <T extends StoredValue> void writeValue(T data, String name, String... path) throws IOException;
 
   /**
+   * Check if value exists in the connected store.
+   *
+   * @param type value type
+   * @param name file name
+   * @param path file path
+   * @return true if value exists
+   */
+  boolean hasValue(String type, String name, String... path);
+
+  /**
    * Write the connected store as ZIP file to the given OutputStream.
    *
    * @param outputStream the target OutputStream

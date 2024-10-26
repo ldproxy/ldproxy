@@ -24,6 +24,7 @@ import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.values.domain.AutoValue;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
 import de.ii.xtraplatform.values.domain.ValueEncoding.FORMAT;
@@ -41,12 +42,17 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Value.Style(jdkOnly = true, builder = "new", deepImmutablesDetection = true)
+@Value.Style(
+    jdkOnly = true,
+    builder = "new",
+    deepImmutablesDetection = true,
+    passAnnotations = {FromValueStore.class})
 @FromValueStore(
     type = "maplibre-styles",
+    defaultFormat = FORMAT.JSON,
     formatAliases = {@FormatAlias(extension = "mbs", format = FORMAT.JSON)})
 @JsonDeserialize(builder = ImmutableMbStyleStylesheet.Builder.class)
-public abstract class MbStyleStylesheet implements StoredValue {
+public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
 
   public static final String SCHEMA_REF = "#/components/schemas/MbStyleStylesheet";
 

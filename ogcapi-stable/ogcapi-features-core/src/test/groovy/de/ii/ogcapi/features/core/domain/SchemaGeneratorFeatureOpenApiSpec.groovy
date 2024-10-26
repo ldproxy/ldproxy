@@ -71,7 +71,7 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
 
         when:
         FeatureSchema featureSchema = SchemaDeriverFixtures.FEATURE_SCHEMA
-                .accept(featureRefResolver)
+                .accept(featureRefResolver, [])
                 .accept(withScopeSchema)
                 .accept(withTransformationsApplied)
         Schema schema = schemaGenerator.getSchema(featureSchema, collectionData)
