@@ -115,8 +115,8 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
   }
 
   @Override
-  public boolean canSupportTransactions() {
-    return false;
+  public boolean supportsEmbedding() {
+    return true;
   }
 
   @Override
