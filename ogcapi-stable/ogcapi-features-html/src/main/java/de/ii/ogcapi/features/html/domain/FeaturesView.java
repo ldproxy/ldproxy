@@ -29,7 +29,7 @@ import de.ii.ogcapi.html.domain.MapClient.Type;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +42,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URLEncodedUtils;
+import org.apache.hc.core5.net.URIBuilder;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -286,12 +286,21 @@ public abstract class FeaturesView extends OgcApiDatasetView {
 
   @Value.Derived
   public String getQueryWithoutPage() {
-    List<NameValuePair> query =
-        URLEncodedUtils.parse(Query().substring(1), StandardCharsets.UTF_8).stream()
-            .filter(kvp -> !kvp.getName().equals("offset") && !kvp.getName().equals("limit"))
-            .collect(Collectors.toList());
+    try {
+      List<NameValuePair> query =
+          new URIBuilder(RawQuery())
+              .getQueryParams().stream()
+                  .filter(kvp -> !kvp.getName().equals("offset") && !kvp.getName().equals("limit"))
+                  .collect(Collectors.toList());
 
-    return '?' + URLEncodedUtils.format(query, '&', StandardCharsets.UTF_8) + '&';
+      if (query.isEmpty()) {
+        return "?";
+      }
+      return '?' + new URIBuilder().setParameters(query).build().getRawQuery() + '&';
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(
+          String.format("Failed to parse query parameters: '%s'", RawQuery()), e);
+    }
   }
 
   @Value.Derived
@@ -316,14 +325,21 @@ public abstract class FeaturesView extends OgcApiDatasetView {
     return without -> {
       List<String> ignore = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(without);
 
-      List<NameValuePair> query =
-          URLEncodedUtils.parse(RawQuery().substring(1), StandardCharsets.UTF_8).stream()
-              .filter(kvp -> !ignore.contains(kvp.getName().toLowerCase()))
-              .collect(Collectors.toList());
+      try {
+        List<NameValuePair> query =
+            new URIBuilder(RawQuery())
+                .getQueryParams().stream()
+                    .filter(kvp -> !ignore.contains(kvp.getName().toLowerCase()))
+                    .collect(Collectors.toList());
 
-      return '?'
-          + URLEncodedUtils.format(query, '&', StandardCharsets.UTF_8)
-          + (!query.isEmpty() ? '&' : "");
+        if (query.isEmpty()) {
+          return "?";
+        }
+        return '?' + new URIBuilder().setParameters(query).build().getRawQuery() + '&';
+      } catch (URISyntaxException e) {
+        throw new IllegalStateException(
+            String.format("Failed to parse query parameters: '%s'", RawQuery()), e);
+      }
     };
   }
 
