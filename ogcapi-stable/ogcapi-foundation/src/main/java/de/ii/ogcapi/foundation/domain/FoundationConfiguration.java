@@ -157,9 +157,11 @@ public interface FoundationConfiguration extends ExtensionConfiguration {
   /**
    * @langEn Additional entries for resource *API Catalog*. Every entry must contain an `id`, a
    *     `title` and a `landingPageUri`. It may also contain a `description` and a list of `tags`.
+   *     Entries that do not represent a dataset should set `isDataset` to `false`.
    * @langDe Zusätzliche Einträge für die API-Catalog-Ressource in diesem Deployment. Jeder Eintrag
    *     muss eine `id`, einen `title` und eine `landingPageUri` enthalten. Optional können auch
-   *     eine `description` und eine Liste von `tags` angegeben werden.
+   *     eine `description` und eine Liste von `tags` angegeben werden. Einträge, die keinen
+   *     Datensatz darstellen, sollten `isDataset` auf `false` setzen.
    * @default []
    */
   List<ApiCatalogEntry> getApiCatalogAdditionalEntries();
