@@ -62,15 +62,15 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(Tiles3dConfiguration.class)
-        .filter(
-            config ->
-                config.isEnabled()
-                    && (config.shouldClampToEllipsoid()
+    return Format3dTilesTileset.super.isEnabledForApi(apiData)
+        && apiData
+            .getExtension(Tiles3dConfiguration.class)
+            .filter(
+                config ->
+                    config.shouldClampToEllipsoid()
                         || config.getIonAccessToken().isPresent()
-                        || config.getMaptilerApiKey().isPresent()))
-        .isPresent();
+                        || config.getMaptilerApiKey().isPresent())
+            .isPresent();
   }
 
   @Override
