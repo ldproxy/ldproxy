@@ -21,11 +21,13 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
 import de.ii.xtraplatform.geometries.domain.ImmutableCoordinatesTransformer;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Stack;
 import org.immutables.value.Value;
 
 /**
@@ -81,16 +83,33 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     return json;
   }
 
+  class BufferEmbeddedFeature {
+    TokenBuffer tokenBuffer;
+    boolean isBuffering;
+
+    BufferEmbeddedFeature() {
+      this.tokenBuffer = createJsonBuffer();
+      this.isBuffering = true;
+    }
+  }
+
   // TODO: to state
   private TokenBuffer tokenBuffer;
-  private final Stack<TokenBuffer> tokenBufferEmbeddedFeature = new Stack<>();
+  private final Deque<BufferEmbeddedFeature> bufferEmbeddedFeature = new ArrayDeque<>();
 
   protected TokenBuffer getJsonBuffer() {
     return tokenBuffer;
   }
 
   protected TokenBuffer getJsonBufferEmbeddedFeature() {
-    return tokenBufferEmbeddedFeature.empty() ? null : tokenBufferEmbeddedFeature.peek();
+    Iterator<BufferEmbeddedFeature> it = bufferEmbeddedFeature.descendingIterator();
+    while (it.hasNext()) {
+      BufferEmbeddedFeature buffer = it.next();
+      if (buffer.isBuffering) {
+        return buffer.tokenBuffer;
+      }
+    }
+    return null;
   }
 
   // @Value.Derived
@@ -104,9 +123,8 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
   }
 
   public JsonGenerator getJson() {
-    return getState().isBufferingEmbeddedFeature() > 0
-        ? getJsonBufferEmbeddedFeature()
-        : (getState().isBuffering() ? getJsonBuffer() : getJsonGenerator());
+    return Optional.ofNullable((JsonGenerator) getJsonBufferEmbeddedFeature())
+        .orElse(getState().isBuffering() ? getJsonBuffer() : getJsonGenerator());
   }
 
   public final void startBuffering() throws IOException {
@@ -133,30 +151,22 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     if (!getState().isBuffering()) {
       getJsonGenerator().flush();
     }
-    this.tokenBufferEmbeddedFeature.push(createJsonBuffer());
-    getState().setIsBufferingEmbeddedFeature(getState().isBufferingEmbeddedFeature() + 1);
+    this.bufferEmbeddedFeature.addLast(new BufferEmbeddedFeature());
   }
 
   public final void stopBufferingEmbeddedFeature() throws IOException {
-    if (getState().isBufferingEmbeddedFeature() > 0) {
-      getState().setIsBufferingEmbeddedFeature(getState().isBufferingEmbeddedFeature() - 1);
+    if (!this.bufferEmbeddedFeature.isEmpty()
+        && this.bufferEmbeddedFeature.peekLast().isBuffering) {
       getJsonBufferEmbeddedFeature().close();
+      this.bufferEmbeddedFeature.peekLast().isBuffering = false;
     }
   }
 
   public final void flushBufferEmbeddedFeature() throws IOException {
-    TokenBuffer buffer = this.tokenBufferEmbeddedFeature.pop();
+    BufferEmbeddedFeature buffer = this.bufferEmbeddedFeature.pollLast();
     if (!Objects.isNull(buffer)) {
-      if (this.tokenBufferEmbeddedFeature.empty()) {
-        if (getState().isBuffering()) {
-          buffer.serialize(getJsonBuffer());
-        } else {
-          buffer.serialize(getJsonGenerator());
-        }
-      } else {
-        buffer.serialize(getJsonBufferEmbeddedFeature());
-      }
-      buffer.flush();
+      buffer.tokenBuffer.serialize(getJson());
+      buffer.tokenBuffer.flush();
     }
   }
 
@@ -175,11 +185,6 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     @Value.Default
     public boolean isBuffering() {
       return false;
-    }
-
-    @Value.Default
-    public int isBufferingEmbeddedFeature() {
-      return 0;
     }
 
     @Value.Default
