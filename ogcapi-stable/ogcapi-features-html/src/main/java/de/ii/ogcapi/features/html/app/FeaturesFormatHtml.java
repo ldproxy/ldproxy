@@ -36,6 +36,7 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.MapClient.Type;
@@ -82,7 +83,7 @@ import javax.inject.Singleton;
 @Singleton
 @AutoBind
 public class FeaturesFormatHtml extends FeatureFormatExtension
-    implements ItemTypeSpecificConformanceClass {
+    implements ItemTypeSpecificConformanceClass, FormatHtml {
 
   private static final WithTransformationsApplied SCHEMA_FLATTENER =
       new WithTransformationsApplied(
@@ -471,10 +472,12 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 .add(
                     new NavigationDTO(
                         rootTitle,
-                        uriBuilder
-                            .copy()
-                            .removeLastPathSegments(2 + subPathToLandingPage.size())
-                            .toString()))
+                        homeUrl(apiData)
+                            .orElse(
+                                uriBuilder
+                                    .copy()
+                                    .removeLastPathSegments(2 + subPathToLandingPage.size())
+                                    .toString())))
                 .add(
                     new NavigationDTO(
                         apiLabel, uriBuilder.copy().removeLastPathSegments(2).toString()))
@@ -604,10 +607,12 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 .add(
                     new NavigationDTO(
                         rootTitle,
-                        uriBuilder
-                            .copy()
-                            .removeLastPathSegments(3 + subPathToLandingPage.size())
-                            .toString()))
+                        homeUrl(apiData)
+                            .orElse(
+                                uriBuilder
+                                    .copy()
+                                    .removeLastPathSegments(3 + subPathToLandingPage.size())
+                                    .toString())))
                 .add(
                     new NavigationDTO(
                         apiLabel, uriBuilder.copy().removeLastPathSegments(3).toString()))

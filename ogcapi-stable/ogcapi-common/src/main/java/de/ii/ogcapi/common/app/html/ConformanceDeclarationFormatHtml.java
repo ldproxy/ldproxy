@@ -19,6 +19,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import java.util.List;
@@ -30,7 +31,8 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class ConformanceDeclarationFormatHtml implements ConformanceDeclarationFormatExtension {
+public class ConformanceDeclarationFormatHtml
+    implements ConformanceDeclarationFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
@@ -70,10 +72,12 @@ public class ConformanceDeclarationFormatHtml implements ConformanceDeclarationF
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    uriCustomizer
-                        .copy()
-                        .removeLastPathSegments(api.getData().getSubPath().size() + 1)
-                        .toString()))
+                    homeUrl(api.getData())
+                        .orElse(
+                            uriCustomizer
+                                .copy()
+                                .removeLastPathSegments(api.getData().getSubPath().size() + 1)
+                                .toString())))
             .add(
                 new NavigationDTO(
                     api.getData().getLabel(),

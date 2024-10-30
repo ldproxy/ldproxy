@@ -19,6 +19,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.routes.domain.HtmlForm;
@@ -36,7 +37,7 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class RoutesFormatHtml implements RoutesFormatExtension {
+public class RoutesFormatHtml implements RoutesFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
@@ -81,10 +82,12 @@ public class RoutesFormatHtml implements RoutesFormatExtension {
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    uriCustomizer
-                        .copy()
-                        .removeLastPathSegments(api.getData().getSubPath().size() + 1)
-                        .toString()))
+                    homeUrl(api.getData())
+                        .orElse(
+                            uriCustomizer
+                                .copy()
+                                .removeLastPathSegments(api.getData().getSubPath().size() + 1)
+                                .toString())))
             .add(
                 new NavigationDTO(
                     api.getData().getLabel(),

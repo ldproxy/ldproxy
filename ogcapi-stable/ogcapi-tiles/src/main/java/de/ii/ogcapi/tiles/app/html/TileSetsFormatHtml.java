@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.NavigationDTO;
@@ -39,7 +40,7 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class TileSetsFormatHtml implements TileSetsFormatExtension {
+public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
 
   private final I18n i18n;
   private final URI servicesUri;
@@ -99,11 +100,15 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension {
                                     .add(
                                         new NavigationDTO(
                                             rootTitle,
-                                            resourceUri
-                                                .copy()
-                                                .removeLastPathSegments(
-                                                    api.getData().getSubPath().size() + 5 + diff)
-                                                .toString()))
+                                            homeUrl(api.getData())
+                                                .orElse(
+                                                    resourceUri
+                                                        .copy()
+                                                        .removeLastPathSegments(
+                                                            api.getData().getSubPath().size()
+                                                                + 5
+                                                                + diff)
+                                                        .toString())))
                                     .add(
                                         new NavigationDTO(
                                             api.getData().getLabel(),
@@ -147,11 +152,15 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension {
                                     .add(
                                         new NavigationDTO(
                                             rootTitle,
-                                            resourceUri
-                                                .copy()
-                                                .removeLastPathSegments(
-                                                    api.getData().getSubPath().size() + 3 + diff)
-                                                .toString()))
+                                            homeUrl(api.getData())
+                                                .orElse(
+                                                    resourceUri
+                                                        .copy()
+                                                        .removeLastPathSegments(
+                                                            api.getData().getSubPath().size()
+                                                                + 3
+                                                                + diff)
+                                                        .toString())))
                                     .add(
                                         new NavigationDTO(
                                             api.getData().getLabel(),
@@ -184,11 +193,15 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension {
                                     .add(
                                         new NavigationDTO(
                                             rootTitle,
-                                            resourceUri
-                                                .copy()
-                                                .removeLastPathSegments(
-                                                    api.getData().getSubPath().size() + 3 + diff)
-                                                .toString()))
+                                            homeUrl(api.getData())
+                                                .orElse(
+                                                    resourceUri
+                                                        .copy()
+                                                        .removeLastPathSegments(
+                                                            api.getData().getSubPath().size()
+                                                                + 3
+                                                                + diff)
+                                                        .toString())))
                                     .add(
                                         new NavigationDTO(
                                             api.getData().getLabel(),
@@ -218,11 +231,15 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension {
                                     .add(
                                         new NavigationDTO(
                                             rootTitle,
-                                            resourceUri
-                                                .copy()
-                                                .removeLastPathSegments(
-                                                    api.getData().getSubPath().size() + 1 + diff)
-                                                .toString()))
+                                            homeUrl(api.getData())
+                                                .orElse(
+                                                    resourceUri
+                                                        .copy()
+                                                        .removeLastPathSegments(
+                                                            api.getData().getSubPath().size()
+                                                                + 1
+                                                                + diff)
+                                                        .toString())))
                                     .add(
                                         new NavigationDTO(
                                             api.getData().getLabel(),
