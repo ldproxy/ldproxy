@@ -123,6 +123,11 @@ public abstract class FeaturesFormatCityJsonBase extends FeatureFormatExtension 
   }
 
   @Override
+  public boolean supportsEmbedding() {
+    return true;
+  }
+
+  @Override
   public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
 
     // no additional operational checks for now, only validation; we can stop, if no validation is

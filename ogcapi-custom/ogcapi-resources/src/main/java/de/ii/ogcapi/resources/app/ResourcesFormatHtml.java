@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
@@ -28,7 +29,7 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class ResourcesFormatHtml implements ResourcesFormatExtension {
+public class ResourcesFormatHtml implements ResourcesFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
@@ -66,10 +67,12 @@ public class ResourcesFormatHtml implements ResourcesFormatExtension {
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    resourceUri
-                        .copy()
-                        .removeLastPathSegments(apiData.getSubPath().size() + 1)
-                        .toString()))
+                    homeUrl(apiData)
+                        .orElse(
+                            resourceUri
+                                .copy()
+                                .removeLastPathSegments(apiData.getSubPath().size() + 1)
+                                .toString())))
             .add(
                 new NavigationDTO(
                     apiData.getLabel(), resourceUri.copy().removeLastPathSegments(1).toString()))

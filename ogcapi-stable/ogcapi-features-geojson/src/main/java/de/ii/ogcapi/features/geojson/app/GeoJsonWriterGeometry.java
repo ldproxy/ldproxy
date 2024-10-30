@@ -21,13 +21,16 @@ import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
-import java.util.Stack;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zahnen
@@ -35,6 +38,8 @@ import javax.inject.Singleton;
 @Singleton
 @AutoBind
 public class GeoJsonWriterGeometry implements GeoJsonWriter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(GeoJsonWriterGeometry.class);
 
   private final CrsTransformerFactory crsTransformerFactory;
 
@@ -47,7 +52,8 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   private boolean geometryOpen;
   private boolean hasPrimaryGeometry;
   private boolean inPrimaryGeometry;
-  private Stack<Boolean> hasEmbeddedPrimaryGeometry;
+  private Deque<Boolean> hasEmbeddedPrimaryGeometry;
+  private Deque<Boolean> isBufferingEmbeddedFeature;
   private final List<String> pos = new ArrayList<>();
   // TODO: move coordinate conversion to WGS 84 to the transformation pipeline,
   //       see https://github.com/interactive-instruments/ldproxy/issues/521
@@ -85,9 +91,13 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onFeatureStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("FEATURE {}", context.schema().get().getFullPathAsString());
+    }
     hasPrimaryGeometry = false;
     inPrimaryGeometry = false;
-    hasEmbeddedPrimaryGeometry = new Stack<>();
+    hasEmbeddedPrimaryGeometry = new ArrayDeque<>();
+    isBufferingEmbeddedFeature = new ArrayDeque<>();
 
     next.accept(context);
   }
@@ -96,6 +106,9 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onObjectStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("OBJECT {}", context.schema().get().getFullPathAsString());
+    }
     if (context.schema().filter(SchemaBase::isSpatial).isPresent()
         && context.geometryType().isPresent()) {
       if (suppressPrimaryGeometry
@@ -106,11 +119,20 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
         if ((!inEmbeddedFeature() && context.schema().get().isPrimaryGeometry())
             || (inEmbeddedFeature() && context.schema().get().isEmbeddedPrimaryGeometry())) {
           if (inEmbeddedFeature()) {
-            hasEmbeddedPrimaryGeometry.set(hasEmbeddedPrimaryGeometry.size() - 1, true);
+            hasEmbeddedPrimaryGeometry.removeLast();
+            hasEmbeddedPrimaryGeometry.addLast(true);
+            isBufferingEmbeddedFeature.removeLast();
+            isBufferingEmbeddedFeature.addLast(false);
             context.encoding().stopBufferingEmbeddedFeature();
+            if (LOGGER.isTraceEnabled()) {
+              LOGGER.trace("BUFFER STOP EMBEDDED {}", context.schema().get().getFullPathAsString());
+            }
           } else {
             hasPrimaryGeometry = true;
             context.encoding().stopBuffering();
+            if (LOGGER.isTraceEnabled()) {
+              LOGGER.trace("BUFFER STOP {}", context.schema().get().getFullPathAsString());
+            }
           }
           inPrimaryGeometry = true;
 
@@ -135,7 +157,8 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
         .flatMap(FeatureSchema::getRole)
         .filter(r -> r == Role.EMBEDDED_FEATURE)
         .isPresent()) {
-      this.hasEmbeddedPrimaryGeometry.push(false);
+      this.hasEmbeddedPrimaryGeometry.addLast(false);
+      this.isBufferingEmbeddedFeature.addLast(false);
     }
 
     next.accept(context);
@@ -149,6 +172,9 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onArrayStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("ARRAY {}", context.schema().get().getFullPathAsString());
+    }
 
     if (geometryOpen) {
       context.encoding().getJson().writeStartArray();
@@ -163,6 +189,9 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onArrayEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("ARRAY END {}", context.schema().get().getFullPathAsString());
+    }
 
     if (geometryOpen) {
       if (!pos.isEmpty()) {
@@ -201,16 +230,15 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onObjectEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("OBJECT END {}", context.schema().get().getFullPathAsString());
+    }
+
     if (context.schema().filter(SchemaBase::isSpatial).isPresent() && geometryOpen) {
 
       boolean stopBuffering = context.schema().get().isPrimaryGeometry();
       boolean stopBufferingEmbeddedFeature =
           inEmbeddedFeature() && context.schema().get().isEmbeddedPrimaryGeometry();
-      if (stopBuffering) {
-        context.encoding().stopBuffering();
-      } else if (stopBufferingEmbeddedFeature) {
-        context.encoding().stopBufferingEmbeddedFeature();
-      }
 
       geometryOpen = false;
       inPrimaryGeometry = false;
@@ -220,8 +248,14 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
 
       if (stopBuffering) {
         context.encoding().flushBuffer();
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("BUFFER FLUSH {}", context.schema().get().getFullPathAsString());
+        }
       } else if (stopBufferingEmbeddedFeature) {
         context.encoding().flushBufferEmbeddedFeature();
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("BUFFER FLUSH EMBEDDED {}", context.schema().get().getFullPathAsString());
+        }
       }
     } else if (inEmbeddedFeature()
         && context
@@ -230,15 +264,24 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
             .filter(r -> r == Role.EMBEDDED_FEATURE)
             .isPresent()) {
 
+      isBufferingEmbeddedFeature.pollLast();
+
       // write null geometry if none was written for this feature
-      if (!hasEmbeddedPrimaryGeometry.pop()) {
+      if (Boolean.FALSE.equals(hasEmbeddedPrimaryGeometry.pollLast())) {
         context.encoding().stopBufferingEmbeddedFeature();
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace(
+              "BUFFER STOP EMBEDDED NO GEOMETRY {}", context.schema().get().getFullPathAsString());
+        }
 
         // null geometry
         context.encoding().getJson().writeFieldName("geometry");
         context.encoding().getJson().writeNull();
 
         context.encoding().flushBufferEmbeddedFeature();
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("BUFFER FLUSH EMBEDDED {}", context.schema().get().getFullPathAsString());
+        }
       }
     }
 
@@ -249,6 +292,9 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onValue(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("VALUE {} {}", context.schema().get().getFullPathAsString(), context.value());
+    }
 
     if (geometryOpen) {
       if (inPrimaryGeometry && context.encoding().getForceDefaultCrs()) {
@@ -268,35 +314,56 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onFeatureEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("FEATURE END {}", context.schema().get().getFullPathAsString());
+    }
 
     // write null geometry if none was written for this feature
     if (!hasPrimaryGeometry) {
       context.encoding().stopBuffering();
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("BUFFER STOP {}", context.schema().get().getFullPathAsString());
+      }
 
       // null geometry
       context.encoding().getJson().writeFieldName("geometry");
       context.encoding().getJson().writeNull();
 
       context.encoding().flushBuffer();
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("BUFFER FLUSH {}", context.schema().get().getFullPathAsString());
+      }
     }
 
     next.accept(context);
   }
 
   private void startBufferingIfNecessary(EncodingAwareContextGeoJson context) {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("BUFFER CHECK {}", context.schema().get().getFullPathAsString());
+    }
+
     if (!geometryOpen
         && ((!hasPrimaryGeometry
                 && !inEmbeddedFeature()
                 && !context.encoding().getState().isBuffering())
             || (inEmbeddedFeature()
-                && !hasEmbeddedPrimaryGeometry.peek()
-                && context.encoding().getState().isBufferingEmbeddedFeature() == 0))) {
+                && Boolean.FALSE.equals(hasEmbeddedPrimaryGeometry.peekLast())
+                && Boolean.FALSE.equals(isBufferingEmbeddedFeature.peekLast())))) {
       // buffer properties until primary geometry arrives
       try {
         if (inEmbeddedFeature()) {
           context.encoding().startBufferingEmbeddedFeature();
+          isBufferingEmbeddedFeature.removeLast();
+          isBufferingEmbeddedFeature.addLast(true);
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("BUFFER START EMBEDDED {}", context.schema().get().getFullPathAsString());
+          }
         } else {
           context.encoding().startBuffering();
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("BUFFER START {}", context.schema().get().getFullPathAsString());
+          }
         }
       } catch (IOException e) {
         throw new IllegalStateException(e);

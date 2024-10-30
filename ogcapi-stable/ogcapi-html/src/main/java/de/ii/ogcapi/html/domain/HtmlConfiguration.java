@@ -8,7 +8,6 @@
 package de.ii.ogcapi.html.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.foundation.domain.ApiCatalogEntry;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import de.ii.xtraplatform.base.domain.LogContext;
@@ -18,7 +17,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -324,7 +322,13 @@ public interface HtmlConfiguration extends ExtensionConfiguration {
   @Nullable
   String getLoginProvider();
 
-  List<ApiCatalogEntry> getAdditionalApis();
+  /**
+   * @langEn Use a different URL for the home link on every HTML page.
+   * @langDe Verwendung einer anderen URL für den Home-Link auf jeder HTML-Seite.
+   * @default null
+   */
+  @Nullable
+  String getHomeUrl();
 
   @Override
   default Builder getBuilder() {

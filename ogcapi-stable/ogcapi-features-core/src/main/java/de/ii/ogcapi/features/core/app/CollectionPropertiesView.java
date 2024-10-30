@@ -22,6 +22,7 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.html.domain.OgcApiView;
 import java.util.List;
@@ -35,7 +36,7 @@ import org.immutables.value.Value.Style.ImplementationVisibility;
 
 @Value.Immutable
 @Value.Style(builder = "new", visibility = ImplementationVisibility.PUBLIC)
-public abstract class CollectionPropertiesView extends OgcApiView {
+public abstract class CollectionPropertiesView extends OgcApiView implements FormatHtml {
 
   public CollectionPropertiesView() {
     super("collectionProperties.mustache");
@@ -67,10 +68,12 @@ public abstract class CollectionPropertiesView extends OgcApiView {
         .add(
             new NavigationDTO(
                 rootTitle,
-                resourceUri
-                    .copy()
-                    .removeLastPathSegments(apiData().getSubPath().size() + 3)
-                    .toString()))
+                homeUrl(apiData())
+                    .orElse(
+                        resourceUri
+                            .copy()
+                            .removeLastPathSegments(apiData().getSubPath().size() + 3)
+                            .toString())))
         .add(
             new NavigationDTO(
                 apiData().getLabel(), resourceUri.copy().removeLastPathSegments(3).toString()))

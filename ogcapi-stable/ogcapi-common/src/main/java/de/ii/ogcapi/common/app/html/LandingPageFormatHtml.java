@@ -20,6 +20,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import java.util.List;
@@ -31,7 +32,8 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class LandingPageFormatHtml implements LandingPageFormatExtension, ConformanceClass {
+public class LandingPageFormatHtml
+    implements LandingPageFormatExtension, ConformanceClass, FormatHtml {
 
   private final I18n i18n;
 
@@ -74,10 +76,12 @@ public class LandingPageFormatHtml implements LandingPageFormatExtension, Confor
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    resourceUri
-                        .copy()
-                        .removeLastPathSegments(api.getData().getSubPath().size())
-                        .toString()))
+                    homeUrl(api.getData())
+                        .orElse(
+                            resourceUri
+                                .copy()
+                                .removeLastPathSegments(api.getData().getSubPath().size())
+                                .toString())))
             .add(new NavigationDTO(api.getData().getLabel()))
             .build();
 

@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSets;
@@ -30,7 +31,7 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class TileMatrixSetsFormatHtml implements TileMatrixSetsFormatExtension {
+public class TileMatrixSetsFormatHtml implements TileMatrixSetsFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
@@ -68,10 +69,12 @@ public class TileMatrixSetsFormatHtml implements TileMatrixSetsFormatExtension {
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    resourceUri
-                        .copy()
-                        .removeLastPathSegments(api.getData().getSubPath().size() + 1)
-                        .toString()))
+                    homeUrl(api.getData())
+                        .orElse(
+                            resourceUri
+                                .copy()
+                                .removeLastPathSegments(api.getData().getSubPath().size() + 1)
+                                .toString())))
             .add(
                 new NavigationDTO(
                     api.getData().getLabel(),

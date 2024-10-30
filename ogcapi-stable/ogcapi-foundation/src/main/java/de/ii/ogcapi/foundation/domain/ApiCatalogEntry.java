@@ -24,7 +24,10 @@ public abstract class ApiCatalogEntry extends PageRepresentation {
 
   public abstract List<String> getTags();
 
-  public abstract boolean isDataset();
+  @Value.Default
+  public boolean isDataset() {
+    return true;
+  }
 
   @JsonAnyGetter
   public abstract Map<String, Object> getExtensions();

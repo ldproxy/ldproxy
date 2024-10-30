@@ -19,6 +19,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import java.util.List;
@@ -30,7 +31,7 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class CollectionFormatHtml implements CollectionFormatExtension {
+public class CollectionFormatHtml implements CollectionFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
@@ -76,10 +77,12 @@ public class CollectionFormatHtml implements CollectionFormatExtension {
             .add(
                 new NavigationDTO(
                     rootTitle,
-                    resourceUri
-                        .copy()
-                        .removeLastPathSegments(api.getData().getSubPath().size() + 2)
-                        .toString()))
+                    homeUrl(api.getData())
+                        .orElse(
+                            resourceUri
+                                .copy()
+                                .removeLastPathSegments(api.getData().getSubPath().size() + 2)
+                                .toString())))
             .add(
                 new NavigationDTO(
                     api.getData().getLabel(),

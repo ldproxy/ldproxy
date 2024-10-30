@@ -49,7 +49,8 @@ public class OgcApiExtentXml {
   public OgcApiExtentTemporalXml getTemporal() {
     return Objects.nonNull(temporal)
         ? new OgcApiExtentTemporalXml(
-            temporal.getInterval()[0][0].toString(), temporal.getInterval()[0][1].toString())
+            temporal.getInterval()[0][0] != null ? temporal.getInterval()[0][0].toString() : null,
+            temporal.getInterval()[0][1] != null ? temporal.getInterval()[0][1].toString() : null)
         : null;
   }
 }
