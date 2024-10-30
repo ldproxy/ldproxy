@@ -151,6 +151,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Nullable
   Float getGeometricErrorRoot();
 
   /**
@@ -260,15 +261,20 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
   @Value.Check
   default void check() {
     Preconditions.checkState(
-        Objects.requireNonNull(getMaxLevel()) <= 16,
+        Objects.requireNonNullElse(getMaxLevel(), 0) <= 16,
         "The maximum level that is supported is 16. Found: %s.",
         getMaxLevel());
     //noinspection ConstantConditions
     Preconditions.checkState(
         getContentFilters().isEmpty()
-            || getContentFilters().size() == getMaxLevel() - getFirstLevelWithContent() + 1,
+            || getContentFilters().size()
+                == Objects.requireNonNullElse(getMaxLevel(), 0)
+                    - Objects.requireNonNullElse(getFirstLevelWithContent(), 0)
+                    + 1,
         "The length of 'contentFilters' must be the same as the levels with content. Found: %s filters and %s levels with content.",
         getContentFilters().size(),
-        getMaxLevel() - getFirstLevelWithContent() + 1);
+        Objects.requireNonNullElse(getMaxLevel(), 0)
+            - Objects.requireNonNullElse(getFirstLevelWithContent(), 0)
+            + 1);
   }
 }

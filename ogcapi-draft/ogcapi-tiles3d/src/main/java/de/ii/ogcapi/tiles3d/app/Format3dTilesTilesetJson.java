@@ -17,7 +17,6 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tileset;
@@ -56,24 +55,6 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return Tiles3dConfiguration.class;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(getBuildingBlockConfigurationType())
-        .map(ExtensionConfiguration::isEnabled)
-        .orElse(false);
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return apiData
-        .getCollections()
-        .get(collectionId)
-        .getExtension(getBuildingBlockConfigurationType())
-        .map(ExtensionConfiguration::isEnabled)
-        .orElse(false);
   }
 
   @Override
