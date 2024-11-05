@@ -179,7 +179,7 @@ public interface QueryablesConfiguration extends ExtensionConfiguration, Caching
       FeatureTypeConfigurationOgcApi collectionData,
       FeatureSchema schema,
       FeaturesCoreProviders providers) {
-    return getQueryables(apiData, collectionData, schema, providers, false);
+    return getQueryables(apiData, collectionData, schema, providers, true);
   }
 
   default FeatureSchema getQueryablesSchema(
@@ -200,7 +200,7 @@ public interface QueryablesConfiguration extends ExtensionConfiguration, Caching
       FeatureTypeConfigurationOgcApi collectionData,
       FeatureSchema schema,
       FeaturesCoreProviders providers) {
-    return getQueryablesSchema(apiData, collectionData, schema, providers, false);
+    return getQueryablesSchema(apiData, collectionData, schema, providers, true);
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
