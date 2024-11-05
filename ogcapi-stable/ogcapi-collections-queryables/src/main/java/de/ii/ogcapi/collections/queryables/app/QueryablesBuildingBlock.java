@@ -53,6 +53,13 @@ import javax.inject.Singleton;
  * - objects or arrays of objects;
  * - properties with multiple sources, i.e., with `coalesce` or `concat`.
  *     </code>
+ *     <p>In addition, the following types of properties should not be queryables: <code>
+ * - constant values;
+ * - properties with value transformations in the provider schema (`stringFormat`, `dateFormat`, `nullify`, `map`, `codelist`).
+ *     </code>
+ *     <p>These properties are still accepted as queryables, if explicitly included. This behavior
+ *     is deprecated and these properties will not be eligible as queryables in the next major
+ *     version.
  *     <p>If the queryable property is a value, e.g., a string or integer, that is nested in an
  *     array, the type of the queryable will be an array of values.
  * @scopeDe Die Queryables werden als Schema kodiert, wobei jede Queryable eine Objekteigenschaft
@@ -63,6 +70,13 @@ import javax.inject.Singleton;
  * - Objekte oder Arrays von Objekten
  * - Eigenschaften mit multiplen Quellen, d.h. mit `coalesce` oder `concat`.
  *     </code>
+ *     <p>Darüber hinaus sollten die folgenden Arten von Eigenschaften nicht abfragbar sein: <code>
+ * - konstante Werte;
+ * - Eigenschaften mit Wertumwandlungen im Provider-Schema (`stringFormat`, `dateFormat`, `nullify`, `map`, `codelist`).
+ *     </code>
+ *     <p>Diese Eigenschaften werden nach wie vor als Queryables akzeptiert, wenn sie explizit
+ *     enthalten sind. Dieses Verhalten ist deprecated und diese Eigenschaften werden in der
+ *     nächsten Hauptversion nicht mehr als Queryables akzeptiert.
  *     <p>Wenn die abfragbare Eigenschaft ein Wert ist, z.B. ein String oder ein Integer, die in
  *     einem Array verschachtelt ist, ist der Typ der abfragbaren Eigenschaft ein Array der Werte.
  * @conformanceEn *Feature Collections - Queryables* implements the conformance classes "Queryables"
