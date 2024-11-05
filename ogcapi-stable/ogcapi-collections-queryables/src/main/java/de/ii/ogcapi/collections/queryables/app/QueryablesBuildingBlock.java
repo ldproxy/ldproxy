@@ -58,8 +58,7 @@ import javax.inject.Singleton;
  * - properties with value transformations in the provider schema (`stringFormat`, `dateFormat`, `nullify`, `map`, `codelist`).
  *     </code>
  *     <p>These properties are still accepted as queryables, if explicitly included. This behavior
- *     is deprecated and these properties will not be eligible as queryables in the next major
- *     version.
+ *     is deprecated, these properties will not be eligible as queryables in the next major version.
  *     <p>If the queryable property is a value, e.g., a string or integer, that is nested in an
  *     array, the type of the queryable will be an array of values.
  * @scopeDe Die Queryables werden als Schema kodiert, wobei jede Queryable eine Objekteigenschaft
@@ -74,9 +73,9 @@ import javax.inject.Singleton;
  * - konstante Werte;
  * - Eigenschaften mit Wertumwandlungen im Provider-Schema (`stringFormat`, `dateFormat`, `nullify`, `map`, `codelist`).
  *     </code>
- *     <p>Diese Eigenschaften werden nach wie vor als Queryables akzeptiert, wenn sie explizit
- *     enthalten sind. Dieses Verhalten ist deprecated und diese Eigenschaften werden in der
- *     nächsten Hauptversion nicht mehr als Queryables akzeptiert.
+ *     <p>Diese Eigenschaften werden nach wie vor als Queryables akzeptiert, wenn sie explizit in
+ *     `included` enthalten sind. Dieses Verhalten ist deprecated, diese Eigenschaften werden in der
+ *     nächsten Hauptversion nicht mehr als Queryables akzeptiert werden.
  *     <p>Wenn die abfragbare Eigenschaft ein Wert ist, z.B. ein String oder ein Integer, die in
  *     einem Array verschachtelt ist, ist der Typ der abfragbaren Eigenschaft ein Array der Werte.
  * @conformanceEn *Feature Collections - Queryables* implements the conformance classes "Queryables"
