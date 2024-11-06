@@ -7,6 +7,14 @@
  */
 package de.ii.ogcapi.common.app.json;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.ImmutableLandingPage;
@@ -36,11 +44,20 @@ public class LandingPageFormatJson implements LandingPageFormatExtension, Confor
 
   private final Schema<?> schemaLandingPage;
   private final Map<String, Schema<?>> referencedSchemasLandingPage;
+  private final ObjectMapper mapper;
 
   @Inject
   public LandingPageFormatJson(ClassSchemaCache classSchemaCache) {
     schemaLandingPage = classSchemaCache.getSchema(LandingPage.class);
     referencedSchemasLandingPage = classSchemaCache.getReferencedSchemas(LandingPage.class);
+    mapper =
+        new ObjectMapper()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .setSerializationInclusion(JsonInclude.Include.NON_ABSENT)
+            .registerModule(new Jdk8Module())
+            .registerModule(new GuavaModule())
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Override
@@ -66,12 +83,18 @@ public class LandingPageFormatJson implements LandingPageFormatExtension, Confor
   @Override
   public Object getEntity(
       LandingPage apiLandingPage, OgcApi api, ApiRequestContext requestContext) {
-    return new ImmutableLandingPage.Builder()
-        .from(apiLandingPage)
-        .extensions(
-            apiLandingPage.getExtensions().entrySet().stream()
-                .filter(entry -> !entry.getKey().equals("datasetDownloadLinks"))
-                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
-        .build();
+    try {
+      return mapper.writeValueAsBytes(
+          new ImmutableLandingPage.Builder()
+              .from(apiLandingPage)
+              .extensions(
+                  apiLandingPage.getExtensions().entrySet().stream()
+                      .filter(entry -> !entry.getKey().equals("datasetDownloadLinks"))
+                      .collect(
+                          Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
+              .build());
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
