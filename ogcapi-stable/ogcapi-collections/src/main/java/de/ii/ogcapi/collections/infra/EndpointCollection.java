@@ -173,13 +173,10 @@ public class EndpointCollection extends EndpointSubCollection {
         }
         Optional<TemporalExtent> temporal = extent.get().getTemporal();
         if (temporal.isPresent() && Objects.nonNull(temporal.get())) {
-          long start =
-              Objects.nonNull(temporal.get().getStart())
-                  ? temporal.get().getStart()
-                  : Long.MIN_VALUE;
-          long end =
-              Objects.nonNull(temporal.get().getEnd()) ? temporal.get().getEnd() : Long.MAX_VALUE;
-          if (end < start) {
+          Long start =
+              Objects.nonNull(temporal.get().getStart()) ? temporal.get().getStart() : null;
+          Long end = Objects.nonNull(temporal.get().getEnd()) ? temporal.get().getEnd() : null;
+          if (start != null && end != null && end < start) {
             builder.addStrictErrors(
                 MessageFormat.format(
                     "The temporal extent in collection ''{0}'' has an end ''{1}'' before the start ''{2}''.",

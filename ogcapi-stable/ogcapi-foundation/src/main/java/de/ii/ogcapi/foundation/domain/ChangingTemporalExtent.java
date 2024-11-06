@@ -17,25 +17,31 @@ public interface ChangingTemporalExtent extends ChangingValue<TemporalExtent> {
 
   static ChangingTemporalExtent of(TemporalExtent interval) {
     return new ImmutableChangingTemporalExtent.Builder()
-        .value(
-            Objects.requireNonNullElse(interval, TemporalExtent.of(Long.MIN_VALUE, Long.MAX_VALUE)))
+        .value(Objects.requireNonNullElse(interval, TemporalExtent.of(null, null)))
         .build();
   }
 
   @Override
   default Optional<ChangingValue<TemporalExtent>> updateWith(ChangingValue<TemporalExtent> delta) {
     TemporalExtent deltaExtent = delta.getValue();
-    long currentStart = Objects.requireNonNullElse(getValue().getStart(), Long.MIN_VALUE);
-    long currentEnd = Objects.requireNonNullElse(getValue().getEnd(), Long.MAX_VALUE);
-    long deltaStart = Objects.requireNonNullElse(deltaExtent.getStart(), Long.MIN_VALUE);
-    long deltaEnd = Objects.requireNonNullElse(deltaExtent.getEnd(), Long.MAX_VALUE);
+    Long currentStart = getValue().getStart();
+    Long currentEnd = getValue().getEnd();
+    Long deltaStart = deltaExtent.getStart();
+    Long deltaEnd = deltaExtent.getEnd();
 
-    if (currentStart <= deltaStart && currentEnd >= deltaEnd) {
+    if (Objects.requireNonNullElse(currentStart, Long.MIN_VALUE)
+            <= Objects.requireNonNullElse(deltaStart, Long.MIN_VALUE)
+        && Objects.requireNonNullElse(currentEnd, Long.MAX_VALUE)
+            >= Objects.requireNonNullElse(deltaEnd, Long.MAX_VALUE)) {
       return Optional.empty();
     }
 
     return Optional.of(
         ChangingTemporalExtent.of(
-            TemporalExtent.of(Math.min(currentStart, deltaStart), Math.max(currentEnd, deltaEnd))));
+            TemporalExtent.of(
+                currentStart == null || deltaStart == null
+                    ? null
+                    : Math.min(currentStart, deltaStart),
+                currentEnd == null || deltaEnd == null ? null : Math.max(currentEnd, deltaEnd))));
   }
 }
