@@ -16,6 +16,7 @@ import de.ii.ogcapi.codelists.domain.CodelistsFormatExtension;
 import de.ii.ogcapi.codelists.domain.ImmutableCodelistEntry;
 import de.ii.ogcapi.codelists.domain.ImmutableCodelists;
 import de.ii.ogcapi.codelists.domain.QueriesHandlerCodelists;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -47,6 +48,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -135,6 +137,31 @@ public class QueriesHandlerCodelistsImpl extends AbstractVolatileComposed
                       .id(id)
                       .title(codelist.getLabel())
                       .lastModified(LastModified.from(codelistStore.lastModified(identifier)))
+                      .isUsedInNonEmptyCollection(
+                          providers
+                              .getFeatureProvider(apiData)
+                              .map(
+                                  provider ->
+                                      provider.info().getSchemas().stream()
+                                          .filter(
+                                              schema ->
+                                                  getItemCount(api, schema.getName()).orElse(0L)
+                                                      > 0L)
+                                          .map(FeatureSchema::getAllNestedProperties)
+                                          .flatMap(List::stream)
+                                          .flatMap(
+                                              prop ->
+                                                  Stream.concat(
+                                                      prop.getConstraints().stream()
+                                                          .map(SchemaConstraints::getCodelist)
+                                                          .filter(Optional::isPresent)
+                                                          .map(Optional::get),
+                                                      prop.getTransformations().stream()
+                                                          .map(PropertyTransformation::getCodelist)
+                                                          .filter(Optional::isPresent)
+                                                          .map(Optional::get)))
+                                          .anyMatch(c -> c.equals(id)))
+                              .orElse(false))
                       .addLinks(
                           codelistsLinkGenerator.generateCodelistLink(
                               requestContext.getUriCustomizer(), id, codelist.getLabel()))
@@ -179,6 +206,22 @@ public class QueriesHandlerCodelistsImpl extends AbstractVolatileComposed
                 String.format("codelists.%s", format.getMediaType().fileExtension())))
         .entity(format.getCodelistsEntity(codelists, apiData, requestContext))
         .build();
+  }
+
+  private static Optional<Long> getItemCount(OgcApi api, String featureType) {
+    return api.getData().getCollections().entrySet().stream()
+        .filter(
+            entry ->
+                api.getData().isCollectionEnabled(entry.getKey())
+                    && entry
+                        .getValue()
+                        .getExtension(FeaturesCoreConfiguration.class)
+                        .flatMap(FeaturesCoreConfiguration::getFeatureType)
+                        .orElse(entry.getKey())
+                        .equals(featureType))
+        .map(Entry::getValue)
+        .findFirst()
+        .flatMap(cd -> api.getItemCount(cd.getId()));
   }
 
   private Response getCodelistResponse(

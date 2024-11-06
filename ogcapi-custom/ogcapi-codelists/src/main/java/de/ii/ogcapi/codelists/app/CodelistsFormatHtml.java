@@ -58,6 +58,13 @@ public class CodelistsFormatHtml implements CodelistsFormatExtension, FormatHtml
         .orElse(true);
   }
 
+  private boolean suppressUnusedCodelistsInOverview(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(HtmlConfiguration.class)
+        .map(HtmlConfiguration::getSuppressUnusedCodelistsInOverview)
+        .orElse(false);
+  }
+
   @Override
   public Object getCodelistsEntity(
       Codelists codelists, OgcApiDataV2 apiData, ApiRequestContext requestContext) {
@@ -83,6 +90,7 @@ public class CodelistsFormatHtml implements CodelistsFormatExtension, FormatHtml
             .build();
 
     HtmlConfiguration htmlConfig = apiData.getExtension(HtmlConfiguration.class).orElse(null);
+    boolean showUnusedCodelistsInOverview = !suppressUnusedCodelistsInOverview(apiData);
 
     return new ImmutableCodelistsView.Builder()
         .apiData(apiData)
@@ -96,6 +104,9 @@ public class CodelistsFormatHtml implements CodelistsFormatExtension, FormatHtml
         .none(i18n.get("none", requestContext.getLanguage()))
         .codelistEntries(
             codelists.getCodelistEntries().stream()
+                .filter(
+                    codelist ->
+                        showUnusedCodelistsInOverview || codelist.isUsedInNonEmptyCollection())
                 .sorted(Comparator.comparing(e -> e.getTitle().orElse(e.getId())))
                 .collect(Collectors.toList()))
         .uriCustomizer(requestContext.getUriCustomizer().copy())

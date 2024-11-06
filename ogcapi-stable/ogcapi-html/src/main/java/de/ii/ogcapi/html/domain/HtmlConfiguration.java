@@ -225,6 +225,17 @@ public interface HtmlConfiguration extends ExtensionConfiguration {
   @Nullable
   Boolean getSuppressEmptyCollectionsInOverview();
 
+  /**
+   * @langEn Suppress codelists that are only used by collections without items in the HTML
+   *     representation of the *Codelists* resource.
+   * @langDe Steuert, ob in der HTML-Ausgabe der Codelists-Ressource Codelisten aus Collections ohne
+   *     Daten unterdrückt sein sollen.
+   * @default false
+   * @since v4.2
+   */
+  @Nullable
+  Boolean getSuppressUnusedCodelistsInOverview();
+
   @Nullable
   Boolean getSendEtags();
 

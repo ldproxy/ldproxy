@@ -39,6 +39,9 @@ public abstract class CodelistEntry extends PageRepresentationWithId {
         .orElse(null);
   }
 
+  @JsonIgnore
+  public abstract boolean isUsedInNonEmptyCollection();
+
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<CodelistEntry> FUNNEL = PageRepresentationWithId.FUNNEL::funnel;
 }
