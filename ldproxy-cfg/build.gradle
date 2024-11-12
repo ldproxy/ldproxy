@@ -3,6 +3,11 @@ plugins {
 }
 
 dependencies {
+    provided(group: 'de.interactive_instruments', name: 'xtraplatform-modules', version: catalog.versions.xtraplatform.build.get()) {
+        capabilities {
+            requireCapability("de.interactive_instruments:xtraplatform-modules-annotations")
+        }
+    }
     api(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.35')
 }
 
@@ -89,7 +94,7 @@ tasks.shadowJar {
         it.path.startsWith('json-schema/entities') || it.name.endsWith('jsv-messages.properties')
                 || it.name.endsWith('sql2003_reserved_words.txt') || it.name.endsWith('SchemaCrawler.txt') || it.name.endsWith('schemacrawler-postgresql.config.properties') || it.name.endsWith('schemacrawler-sqlite.config.properties')
                 || it.path.endsWith('Mac/aarch64/libsqlitejdbc.dylib') || it.path.endsWith('Linux/x86_64/libsqlitejdbc.so') || it.path.endsWith('Linux/aarch64/libsqlitejdbc.so') || it.path.endsWith('Windows/x86_64/sqlitejdbc.dll') || it.path.endsWith('sqlite-jdbc/native-image.properties') || it.path.contains('SqliteJdbcFeature')
-                || it.path.contains('com/sun/xml/xsom/impl/parser') || it.name.endsWith('.xsd') || it.name.endsWith('.rng')
+                || it.path.contains('com/sun/xml/xsom/impl/parser') || it.name.endsWith('.xsd') || it.name.endsWith('.rng') || it.path.endsWith('reflect-config.json')
     }
     minimize()
     relocate('com.', 'shadow.com.')
@@ -140,4 +145,24 @@ tasks.withType(GenerateModuleMetadata) {
 tasks.register('schemaExtract', de.interactive_instruments.xtraplatform.docs.JsonSchemaTask) {
     dependsOn project.parent.tasks.jar
     docsName 'entities'
+}
+
+tasks.register('rcExtract', de.interactive_instruments.xtraplatform.docs.ReflectionConfigTask) {
+    dependsOn project.parent.tasks.jar
+    docsName 'entities'
+    entryPoints([
+            new de.interactive_instruments.xtraplatform.docs.ReflectionConfigTask.EntryPoint(
+                    intrface: 'de.ii.xtraplatform.entities.domain.PersistentEntity',
+                    annotation: 'de.ii.xtraplatform.entities.domain.Entity',
+                    classAttribute: 'data',
+                    attribute: 'type',
+            ),
+            new de.interactive_instruments.xtraplatform.docs.ReflectionConfigTask.EntryPoint(
+                    intrface: 'de.ii.xtraplatform.values.domain.StoredValue',
+                    annotation: 'de.ii.xtraplatform.values.domain.annotations.FromValueStore',
+                    attribute: 'type',
+                    attributeValues: ["codelists", "maplibre-styles"]
+            ),
+    ])
+    extraTypes(["java.util.LinkedHashMap", "java.util.HashSet"])
 }

@@ -279,7 +279,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
             .objectMapper(jsonMapper)
             .build();
 
-    for (String entityType : List.of("codelists", "providers", "services", "users")) {
+    for (String entityType : List.of("providers", "services", "users")) {
       URL schemaResource =
           Resources.getResource(
               LdproxyCfgImpl.class, String.format("/json-schema/entities/%s.json", entityType));

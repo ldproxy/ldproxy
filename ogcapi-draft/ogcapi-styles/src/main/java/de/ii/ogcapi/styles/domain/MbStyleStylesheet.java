@@ -399,5 +399,5 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
         .build();
   }
 
-  abstract static class Builder implements ValueBuilder<MbStyleStylesheet> {}
+  public abstract static class Builder implements ValueBuilder<MbStyleStylesheet> {}
 }

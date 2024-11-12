@@ -72,8 +72,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -88,8 +88,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -104,8 +104,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -454,8 +454,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -470,8 +470,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -504,8 +504,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -520,8 +520,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -536,8 +536,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -552,8 +552,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -568,8 +568,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -584,8 +584,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -614,8 +614,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -630,8 +630,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -660,8 +660,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -682,8 +682,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -787,8 +787,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -827,8 +827,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1022,8 +1022,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1038,8 +1038,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1089,8 +1089,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1129,8 +1129,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1145,8 +1145,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1186,8 +1186,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1280,8 +1280,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1296,8 +1296,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1331,8 +1331,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1396,8 +1396,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1436,8 +1436,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1490,8 +1490,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1568,13 +1568,21 @@
         },
         "codelist": {
           "title": "codelist",
-          "description": "Maps the value according to the given [codelist](../../auxiliaries/codelists.md). If     the value is not found in the codelist or the codelist does not exist, the original value     is passed through. Falls der Wert nicht in der Codelist enthalten ist oder die Codelist     nicht gefunden wird, bleibt der Wert unverändert. Not applicable for properties containing     objects.",
+          "description": "Maps the value according to the given [codelist](../../auxiliaries/codelists.md). If     the value is not found in the codelist or the codelist does not exist, the original value     is passed through. Not applicable for properties containing objects. It is no longer     recommended to specify `codelist` transformations in the feature provider or in the     service. Instead, codelists associated with a property should be specified through the     `constraints` of the property. Only the use in `constraints` enables the control of the     representation of the values via the `profile` query parameter.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ]
+        },
+        "map": {
+          "title": "map",
+          "description": "Maps the value according to the given map. If the value does not have a matching entry     , the original value is passed through. A fallback mapping can be provided with the key     `*`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "nullify": {
           "title": "nullify",
@@ -1637,8 +1645,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1672,6 +1680,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "textSequences": {
           "title": "textSequences",
           "description": "Enables support for CityJSON text sequences (media type `application/city+json-seq`).     Requires version 1.1 or later.",
@@ -1680,8 +1696,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1758,8 +1774,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1838,8 +1854,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1854,8 +1870,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1870,8 +1886,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1920,8 +1936,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1992,6 +2008,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
@@ -2000,8 +2024,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2061,8 +2085,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2096,6 +2120,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "gmlVersion": {
           "title": "gmlVersion",
           "description": "Selects the GML version to use: `GML32` for GML 3.2, `GML31` for GML 3.1 and `GML21`     for GML 2.1.",
@@ -2114,8 +2146,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2202,8 +2234,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2262,8 +2294,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2297,8 +2329,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2327,7 +2359,7 @@
         },
         "transformations": {
           "title": "transformations",
-          "description": "Optional transformations for feature properties for HTML, see     [transformations](../../providers/details/transformations.md).",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
           "type": "object",
           "additionalProperties": {
             "allOf": [
@@ -2380,8 +2412,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2391,6 +2423,7 @@
         "geometryProperties": {
           "title": "geometryProperties",
           "description": "This option works only for CesiumJS as map client. By default, the geometry identified     in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option     allows multiple geometry properties to be specified in a list. The first geometry property     set for a feature will be used.",
+          "deprecated": true,
           "allOf": [
             {
               "if": {
@@ -2430,8 +2463,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2446,8 +2479,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2462,13 +2495,21 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
             }
           ]
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
@@ -2497,121 +2538,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FoundationConfiguration": {
-      "title": "FoundationConfiguration",
-      "description": "Provides base functionality for all other building blocks and therefore cannot be disabled.",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FOUNDATION`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FOUNDATION"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "useLangParameter": {
-          "title": "useLangParameter",
-          "description": "Support query parameter `lang` to set the desired response language.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "includeLinkHeader": {
-          "title": "includeLinkHeader",
-          "description": "Return links contained in API responses also as [HTTP     header](https://docs.ogc.org/is/17-069r4/17-069r4.html#_link_headers).",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "apiCatalogLabel": {
-          "title": "apiCatalogLabel",
-          "description": "Title for resource *API Catalog*.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "apiCatalogDescription": {
-          "title": "apiCatalogDescription",
-          "description": "Description for resource *API Catalog*. May contain HTML elements.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "googleSiteVerification": {
-          "title": "googleSiteVerification",
-          "description": "If set, the value is embedded in the HTML page of the API catalog resource in a     \"googleSiteVerification\" meta tag (`\u003cmeta name\u003d\"`google-site-verification`\" content\u003d\"{value}\" \u003e).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "includeSpecificationInformation": {
-          "title": "includeSpecificationInformation",
-          "description": "Controls whether information (name, link, maturity) about the specification of an API     component, e.g., an operation or query parameter, is included in the API definition. It is     recommended to enable this option, if the API includes building blocks that are not marked     as `stable`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2732,8 +2660,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2747,6 +2675,143 @@
           "additionalProperties": {
             "type": "object"
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FoundationConfiguration": {
+      "title": "FoundationConfiguration",
+      "description": "Provides base functionality for all other building blocks and therefore cannot be disabled.",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FOUNDATION`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FOUNDATION"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "useLangParameter": {
+          "title": "useLangParameter",
+          "description": "Support query parameter `lang` to set the desired response language.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "includeLinkHeader": {
+          "title": "includeLinkHeader",
+          "description": "Return links contained in API responses also as [HTTP     header](https://docs.ogc.org/is/17-069r4/17-069r4.html#_link_headers).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "apiCatalogLabel": {
+          "title": "apiCatalogLabel",
+          "description": "Title for resource *API Catalog*.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "apiCatalogDescription": {
+          "title": "apiCatalogDescription",
+          "description": "Description for resource *API Catalog*. May contain HTML elements.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "apiCatalogAdditionalEntries": {
+          "title": "apiCatalogAdditionalEntries",
+          "description": "Additional entries for resource *API Catalog*. Every entry must contain an `id`, a     `title` and a `landingPageUri`. It may also contain a `description` and a list of `tags`.     Entries that do not represent a dataset should set `isDataset` to `false`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ApiCatalogEntry"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ApiCatalogEntry"
+              }
+            }
+          ]
+        },
+        "googleSiteVerification": {
+          "title": "googleSiteVerification",
+          "description": "If set, the value is embedded in the HTML page of the API catalog resource in a     \"googleSiteVerification\" meta tag (`\u003cmeta name\u003d\"`google-site-verification`\" content\u003d\"{value}\" \u003e).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "includeSpecificationInformation": {
+          "title": "includeSpecificationInformation",
+          "description": "Controls whether information (name, link, maturity) about the specification of an API     component, e.g., an operation or query parameter, is included in the API definition. It is     recommended to enable this option, if the API includes building blocks that are not marked     as `stable`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -2775,8 +2840,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2791,8 +2856,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2807,8 +2872,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2823,8 +2888,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2839,8 +2904,24 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "suppressUnusedCodelistsInOverview": {
+          "title": "suppressUnusedCodelistsInOverview",
+          "description": "Suppress codelists that are only used by collections without items in the HTML     representation of the *Codelists* resource.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2855,8 +2936,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2953,28 +3034,14 @@
             "null"
           ]
         },
-        "additionalApis": {
-          "title": "additionalApis",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ApiCatalogEntry"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ApiCatalogEntry"
-              }
-            }
+        "homeUrl": {
+          "title": "homeUrl",
+          "description": "Use a different URL for the home link on every HTML page.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
           ]
         }
       },
@@ -3004,8 +3071,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3039,8 +3106,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3055,8 +3122,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3071,8 +3138,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3106,8 +3173,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3181,8 +3248,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3216,6 +3283,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "maxMultiplicity": {
           "title": "maxMultiplicity",
           "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
@@ -3224,8 +3299,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3331,8 +3406,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3376,8 +3451,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3411,8 +3486,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3455,8 +3530,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3471,8 +3546,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3487,8 +3562,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3570,8 +3645,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3605,6 +3680,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "meshQuantization": {
           "title": "meshQuantization",
           "description": "Enables support for the glTF 2.0 extension     [KHR_mesh_quantization](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_mesh_quantization).",
@@ -3613,8 +3696,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3629,8 +3712,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3645,8 +3728,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3661,8 +3744,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3685,8 +3768,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3701,8 +3784,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3736,8 +3819,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3771,6 +3854,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "describedby": {
           "title": "describedby",
           "description": "*Partially Deprecated* For schemas specific to the feature type, use `schemaCollection`     and `schemaFeature`. Enables that links to the generic JSON-FG and GeoJSON JSON Schema     documents are added to the JSON-FG response document. The links have the link relation type     \"describedby\". The schemas can be used to validate the JSON document.",
@@ -3779,8 +3870,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3815,8 +3906,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3831,8 +3922,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3881,8 +3972,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3974,8 +4065,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3996,8 +4087,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4012,8 +4103,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4028,8 +4119,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4063,8 +4154,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4098,8 +4189,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4132,8 +4223,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4183,8 +4274,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -4203,8 +4294,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -4229,8 +4320,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -4249,8 +4340,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -4275,8 +4366,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -4295,8 +4386,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -4314,8 +4405,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4338,8 +4429,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4379,8 +4470,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4411,8 +4502,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4427,8 +4518,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4443,8 +4534,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4459,8 +4550,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4475,8 +4566,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4547,8 +4638,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4588,8 +4679,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4701,8 +4792,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4757,8 +4848,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4773,8 +4864,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4789,8 +4880,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4805,8 +4896,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4821,8 +4912,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4837,8 +4928,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4853,8 +4944,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4869,8 +4960,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4885,8 +4976,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4920,8 +5011,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4978,8 +5069,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5004,8 +5095,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5020,8 +5111,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5065,8 +5156,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5081,8 +5172,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5097,8 +5188,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5181,8 +5272,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5197,8 +5288,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5219,8 +5310,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5265,8 +5356,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5282,6 +5373,47 @@
             "boolean",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CodelistsConfiguration": {
+      "title": "CodelistsConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `CODELISTS`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "CODELISTS"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
         }
       },
       "additionalProperties": false
@@ -5310,8 +5442,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5345,6 +5477,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "maxMultiplicity": {
           "title": "maxMultiplicity",
           "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
@@ -5353,8 +5493,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5388,8 +5528,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5404,8 +5544,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5439,8 +5579,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5474,6 +5614,14 @@
             ]
           }
         },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "maxMultiplicity": {
           "title": "maxMultiplicity",
           "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
@@ -5482,8 +5630,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5517,8 +5665,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5592,6 +5740,41 @@
       },
       "additionalProperties": false
     },
+    "ResultTypeConfiguration": {
+      "title": "ResultTypeConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `RESULT_TYPE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "RESULT_TYPE"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "ResourcesConfiguration": {
       "title": "ResourcesConfiguration",
       "description": "",
@@ -5616,8 +5799,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5638,8 +5821,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5684,10 +5867,12 @@
             "STYLES",
             "TEXT_SEARCH",
             "TILES3D",
+            "CODELISTS",
             "CSV",
             "FEATURES_EXTENSIONS",
             "FLATGEOBUF",
             "GEO_JSON_LD",
+            "RESULT_TYPE",
             "RESOURCES"
           ]
         }
@@ -6150,6 +6335,21 @@
           "if": {
             "properties": {
               "buildingBlock": {
+                "const": "CODELISTS"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/CodelistsConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
                 "const": "CSV"
               }
             },
@@ -6204,6 +6404,21 @@
           },
           "then": {
             "$ref": "#/$defs/GeoJsonLdConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "RESULT_TYPE"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/ResultTypeConfiguration"
           }
         },
         {
@@ -6266,8 +6481,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
