@@ -69,6 +69,10 @@ const sidebar = (lang) => {
           collapsible: true,
           headerReadme: true,
         }),
+        group({ en: "xtratiler", de: "xtratiler" }[lang], prefix + "tools/xtratiler", {
+          collapsible: true,
+          headerReadme: true,
+        }),
       ],
     }),
     group({ en: "References", de: "Referenzen" }[lang], prefix + "references"),

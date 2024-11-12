@@ -9,8 +9,9 @@ node {
 
 ext {
     workingDir = new File(project.buildDir, 'markdown').absolutePath
-    cliVersion = 'v3.0.0'
+    cliVersion = 'v4.0.0'
     editorVersion = 'v1.0.0'
+    xtratilerVersion = 'main'
 }
 
 def docsDownload(List<String> files, File targetDir, Closure<?> process = null) {
@@ -49,10 +50,10 @@ tasks.register('docsAssembleCli') {
 tasks.register('docsAssembleEditor') {
     doLast {
         def baseUrl = "https://raw.githubusercontent.com/ldproxy/editor/${editorVersion}"
-        def targetDir = new File(project.buildDir, 'tmp/tools/tools')
-        def targetDirDe = new File(project.buildDir, 'tmp/tools/de/tools')
         def files = ["${baseUrl}/README.md", "${baseUrl}/screenshot.png", "${baseUrl}/screenshot2.png"]
         def filesDe = ["${baseUrl}/README_DE.md", "${baseUrl}/screenshot.png", "${baseUrl}/screenshot2.png"]
+        def targetDir = new File(project.buildDir, 'tmp/tools/tools')
+        def targetDirDe = new File(project.buildDir, 'tmp/tools/de/tools')
         def process = { f ->
             def name = f.path == "README_DE.md" ? "README.md" : f.path
             f.path = "editor/${name}"
@@ -63,9 +64,27 @@ tasks.register('docsAssembleEditor') {
     }
 }
 
+tasks.register('docsAssembleXtratiler') {
+    doLast {
+        def baseUrl = "https://raw.githubusercontent.com/ldproxy/xtratiler/${xtratilerVersion}"
+        def files = ["${baseUrl}/docs/en/README.md", "${baseUrl}/docs/COMMANDS.md"]
+        def filesDe = ["${baseUrl}/docs/de/README.md", "${baseUrl}/docs/COMMANDS.md"]
+        def targetDir = new File(project.buildDir, 'tmp/tools/tools')
+        def targetDirDe = new File(project.buildDir, 'tmp/tools/de/tools')
+        def process = { f ->
+            def name = f.path
+            f.path = "xtratiler/${name}"
+        }
+
+        docsDownload(files, targetDir, process)
+        docsDownload(filesDe, targetDirDe, process)
+    }
+}
+
 tasks.register('docsAssemble', Sync) {
     dependsOn tasks.named("docsAssembleCli")
     dependsOn tasks.named("docsAssembleEditor")
+    dependsOn tasks.named("docsAssembleXtratiler")
     finalizedBy tasks.named('markdownAssemble')
 
     from(file('src/markdown/docs')) {
