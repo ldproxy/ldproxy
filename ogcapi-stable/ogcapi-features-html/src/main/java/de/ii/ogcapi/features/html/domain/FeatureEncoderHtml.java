@@ -274,7 +274,10 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
   @Override
   public void onEnd(ModifiableContext context) {
     if (transformationContext.isFeatureCollection()) {
-      renderView(transformationContext.collectionView());
+      renderView(
+          new ImmutableFeatureCollectionView.Builder()
+              .from(transformationContext.collectionView())
+              .build());
 
     } else {
       renderView(
