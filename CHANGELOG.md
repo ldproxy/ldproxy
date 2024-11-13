@@ -1,5 +1,48 @@
 # Changelog
 
+## v4.2.0 (13/11/2024)
+#### Implemented enhancements
+
+-  add option to suppress unused codelists in HTML [#1290](https://github.com/interactive-instruments/ldproxy/issues/1290)
+-  embedding of referenced features [#1279](https://github.com/interactive-instruments/ldproxy/issues/1279)
+-  advanced SQL [#1272](https://github.com/interactive-instruments/ldproxy/issues/1272)
+-  support concat on root level [#1269](https://github.com/interactive-instruments/ldproxy/issues/1269)
+-  support substitutions from `cfg.yml` [#1267](https://github.com/interactive-instruments/ldproxy/issues/1267)
+-  Geometry Simplification: upgrade to current draft of Features Part 7 [#1241](https://github.com/interactive-instruments/ldproxy/issues/1241)
+-  Projections: upgrade to current draft of Features Part 6 [#1240](https://github.com/interactive-instruments/ldproxy/issues/1240)
+-  add support for codelists in the API [#1238](https://github.com/interactive-instruments/ldproxy/issues/1238)
+
+#### Improvements
+
+-  Features HTML: mapPosition 'AUTO' is slow [#1294](https://github.com/interactive-instruments/ldproxy/issues/1294)
+-  add additional checks on queryables [#1288](https://github.com/interactive-instruments/ldproxy/issues/1288)
+- improve vector tile seeding performance for sparse datasets [#1287](https://github.com/interactive-instruments/ldproxy/pull/1287)
+-  basic joint catalog [#1285](https://github.com/interactive-instruments/ldproxy/issues/1285)
+-  improve performance when requesting many features [#1284](https://github.com/interactive-instruments/ldproxy/issues/1284)
+- additional metadata in the WMTS ServiceProvider [#1266](https://github.com/interactive-instruments/ldproxy/pull/1266)
+-  Schemas: add remaining conformance class URIs  [#1248](https://github.com/interactive-instruments/ldproxy/issues/1248)
+-  Text Search: upgrade to current draft of Features Part 9 [#1243](https://github.com/interactive-instruments/ldproxy/issues/1243)
+-  Sorting: upgrade to the current draft of Features Parts 5 and 8 [#1242](https://github.com/interactive-instruments/ldproxy/issues/1242)
+-  support for hitsOnly [#706](https://github.com/interactive-instruments/ldproxy/issues/706)
+
+#### Fixed bugs
+
+-  CRUD: feature still exists after DELETE [#1293](https://github.com/interactive-instruments/ldproxy/issues/1293)
+- fix temporal extent on landing page [#1292](https://github.com/interactive-instruments/ldproxy/pull/1292)
+-  pagination makes the added CQL2 filter invalid [#1278](https://github.com/interactive-instruments/ldproxy/issues/1278)
+- fix query parameter applicability [#1275](https://github.com/interactive-instruments/ldproxy/pull/1275)
+-  Dashboard: use of localhost:7081 [#1265](https://github.com/interactive-instruments/ldproxy/issues/1265)
+- maintain CRS dimension in cached spatial extents [#1263](https://github.com/interactive-instruments/ldproxy/pull/1263)
+-  Filter Editor: fields are not in alphabetic order [#1262](https://github.com/interactive-instruments/ldproxy/issues/1262)
+-  Geometry Simplification: incorrect derivation of the Douglas Peucker parameter [#1261](https://github.com/interactive-instruments/ldproxy/issues/1261)
+-  fix 'labelTemplate' option in the SQL feature provider [#1259](https://github.com/interactive-instruments/ldproxy/issues/1259)
+-  fix OpenAPI / schema issues [#1249](https://github.com/interactive-instruments/ldproxy/issues/1249)
+
+#### Dependency updates
+
+-  upgrade dropwizard from 3.0.7 to 3.0.10 [#1296](https://github.com/interactive-instruments/ldproxy/issues/1296)
+
+---
 ## v4.1.0 (05/08/2024)
 #### Implemented enhancements
 
