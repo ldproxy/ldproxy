@@ -18,6 +18,10 @@ export const extractFields = (obj) => {
   if (obj && obj.properties) {
     // eslint-disable-next-line
     for (const key in obj.properties) {
+      if (obj.properties[key]["x-ogc-role"] && obj.properties[key]["x-ogc-role"].startsWith("primary-")) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
       if (obj.properties[key].title) {
         fields[key] = obj.properties[key].title;
       }
