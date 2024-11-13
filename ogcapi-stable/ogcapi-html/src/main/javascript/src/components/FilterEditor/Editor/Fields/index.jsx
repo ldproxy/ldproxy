@@ -27,7 +27,7 @@ const FieldFilter = ({
 
   const filtersToMap = Object.keys(filters).filter(
     (key) => filters[key].remove === false && key !== "bbox" && key !== "datetime"
-  );
+  ).toSorted();
   const enumKeys = Object.keys(code);
 
   const save = (event) => {
@@ -65,7 +65,7 @@ const FieldFilter = ({
               <option value="" className="d-none">
                 none
               </option>
-              {Object.keys(fields).map((f) => (
+              {Object.keys(fields).toSorted().map((f) => (
                 <option value={f} key={f}>
                   {fields[f]}
                 </option>
