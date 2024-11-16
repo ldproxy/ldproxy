@@ -10,8 +10,17 @@ pluginManagement {
     }
 }
 
+buildscript {
+    configurations.all {
+        resolutionStrategy {
+            cacheChangingModulesFor 0, 'seconds'
+            cacheDynamicVersionsFor 0, 'seconds'
+        }
+    }
+}
+
 plugins {
-    id "org.danilopianini.gradle-pre-commit-git-hooks" version "1.0.12"
+    id "de.interactive_instruments.xtraplatform-settings" version "6.0.0"
 }
 
 apply from: 'catalog.gradle'
@@ -23,13 +32,6 @@ rootDir.listFiles().each { file ->
     if (file.isDirectory() && (file.name.startsWith('ldproxy-'))) {
     	include file.name
     }    
-}
-
-extensions.gitHooks.with {
-    preCommit { ctx ->
-        ctx.tasks('check', [].toArray(), true)
-    }
-    createHooks(false)
 }
 
 includeBuild 'ogcapi-stable'

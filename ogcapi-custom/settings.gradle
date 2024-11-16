@@ -10,6 +10,19 @@ pluginManagement {
     }
 }
 
+buildscript {
+    configurations.all {
+        resolutionStrategy {
+            cacheChangingModulesFor 0, 'seconds'
+            cacheDynamicVersionsFor 0, 'seconds'
+        }
+    }
+}
+
+plugins {
+    id "de.interactive_instruments.xtraplatform-settings" version "6.0.0"
+}
+
 apply from: '../catalog.gradle'
 
 rootDir.listFiles().each { file ->

@@ -1,5 +1,5 @@
 plugins {
-    alias catalog.plugins.xtraplatform.composite
+    id "de.interactive_instruments.xtraplatform-composite"
 }
 tasks.register('d') {
     dependsOn project.gradle.includedBuild('ldproxy').task(':dependencies')

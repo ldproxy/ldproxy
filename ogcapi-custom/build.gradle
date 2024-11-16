@@ -1,6 +1,5 @@
 plugins {
-    alias catalog.plugins.xtraplatform.layer
-    alias catalog.plugins.spotless apply false
+    id "de.interactive_instruments.xtraplatform-layer"
 }
 
 allprojects {
@@ -10,8 +9,6 @@ allprojects {
 apply from: '../version.gradle'
 
 apply from: '../xtraplatform.gradle'
-
-apply from: '../formatting.gradle'
 
 dependencies {
     layers group: 'de.interactive_instruments', name: 'ogcapi-stable', version: version

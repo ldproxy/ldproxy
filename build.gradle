@@ -1,6 +1,5 @@
 plugins {
-    alias catalog.plugins.xtraplatform.application
-    alias catalog.plugins.spotless apply false
+    id "de.interactive_instruments.xtraplatform-application"
     alias catalog.plugins.node apply false
     alias catalog.plugins.download apply false
 }
@@ -12,8 +11,6 @@ allprojects {
 apply from: 'version.gradle'
 
 apply from: 'xtraplatform.gradle'
-
-apply from: 'formatting.gradle'
 
 dependencies {
     // layers to include in this application
