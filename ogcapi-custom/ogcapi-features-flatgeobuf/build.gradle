@@ -11,12 +11,8 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-geometries'
     provided 'de.interactive_instruments:ogcapi-features-core'
 
-    embedded (catalog.flatbuffers)
-    embedded (catalog.flatgeobuf) {
-        exclude group: 'javax.media', module: 'jai_core'
-        exclude module: 'jts-core'
-        exclude module: 'jts-io-common'
-    }
+    embeddedFlat (catalog.flatbuffers)
+    embeddedFlat (catalog.flatgeobuf)
 
     //use jts exported from this
     embeddedImport 'de.interactive_instruments:xtraplatform-geometries'
