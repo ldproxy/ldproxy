@@ -3,9 +3,9 @@ plugins {
 }
 
 dependencies {
-    provided(group: 'de.interactive_instruments', name: 'xtraplatform-modules', version: catalog.versions.xtraplatform.build.get()) {
+    provided(group: 'de.interactive_instruments', name: 'xtraplatform-build', version: de.interactive_instruments.xtraplatform.ApplicationPlugin.getVersion(project.rootProject)) {
         capabilities {
-            requireCapability("de.interactive_instruments:xtraplatform-modules-annotations")
+            requireCapability("de.interactive_instruments:xtraplatform-build-annotations")
         }
     }
     api(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.35')

@@ -1,0 +1,10 @@
+[versions]
+# plugins
+node = "7.0.1"
+download = "5.5.0"
+shadow = "7.1.2"
+
+[plugins]
+node = { id = "com.github.node-gradle.node", version.ref = "node" }
+download = { id = "de.undercouch.download", version.ref = "download" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }

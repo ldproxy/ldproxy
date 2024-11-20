@@ -1,7 +1,7 @@
 plugins {
     id "de.interactive_instruments.xtraplatform-application"
-    alias catalog.plugins.node apply false
-    alias catalog.plugins.download apply false
+    alias pluginCatalog.plugins.node apply false
+    alias pluginCatalog.plugins.download apply false
 }
 
 allprojects {

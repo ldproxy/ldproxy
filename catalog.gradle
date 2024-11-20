@@ -3,5 +3,8 @@ dependencyResolutionManagement {
         catalog {
             from(files("gradle/libs.versions.toml"))
         }
+        pluginCatalog {
+            from(files("gradle/plugins.versions.toml"))
+        }
     }
 }

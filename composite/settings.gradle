@@ -1,12 +1,12 @@
 pluginManagement {
     repositories {
+        gradlePluginPortal()
         maven {
             url "https://dl.interactive-instruments.de/repository/maven-releases/"
         }
         maven {
             url "https://dl.interactive-instruments.de/repository/maven-snapshots/"
         }
-        gradlePluginPortal()
     }
 }
 

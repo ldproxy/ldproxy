@@ -1,5 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["ldproxy/renovate-config:xtraplatform"],
-  "packageRules": []
+  "packageRules": [
+    {
+      "groupName": "flatgeobuf",
+      "matchPackageNames": ["/flatgeobuf/", "/flatbuffers/"]
+    }
+  ]
 }
