@@ -1,7 +1,7 @@
 [versions]
 # plugins
-node = "7.0.1"
-download = "5.5.0"
+node = "7.1.0"
+download = "5.6.0"
 shadow = "7.1.2"
 
 [plugins]
