@@ -5,6 +5,9 @@ node {
     version = '20.10.0'
     yarnVersion = 'berry'
     download = project.findProperty('downloadNode') != 'false' ?: false
+    // do not declare the repository, that is not allowed outside of settings.gradle
+    // it is automatically added by the settings plugin
+    distBaseUrl = null
 }
 
 ext {
