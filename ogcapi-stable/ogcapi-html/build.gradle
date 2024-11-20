@@ -36,6 +36,9 @@ node {
     version = '16.15.1'
     yarnVersion = '1.22.19'
     download = project.findProperty('downloadNode') != 'false' ?: false
+    // do not declare the repository, that is not allowed outside of settings.gradle
+    // it is automatically added by the settings plugin
+    distBaseUrl = null
 }
 
 yarn_install {
