@@ -32,5 +32,5 @@ configure(subprojects.findAll { !it.name.endsWith("-tpl") }) {
 tasks.register('checkAll') { dependsOn subprojects*.tasks*.findByPath('check') }
 tasks.register('cleanAll') { dependsOn subprojects*.tasks*.findByPath('clean') + tasks.clean }
 tasks.register('spotlessApplyAll') { dependsOn subprojects*.tasks*.findByPath('spotlessApply') }
-tasks.publish { dependsOn subprojects*.tasks*.findByPath('publish') }
+tasks.named('publish') { dependsOn subprojects*.tasks*.findByPath('publish') }
 
