@@ -5,12 +5,6 @@ ext {
     spatialVersion = '7.3.0-build-plugins-SNAPSHOT'
 }
 
-xtraplatform {
-    layer group: 'de.interactive_instruments', name: 'xtraplatform-core', version: coreVersion
-    layerNative group: 'de.interactive_instruments', name: 'xtraplatform-native', version: nativeVersion
-    layer group: 'de.interactive_instruments', name: 'xtraplatform-spatial', version: spatialVersion
-}
-
 dependencyResolutionManagement {
     versionCatalogs {
         libCatalog {

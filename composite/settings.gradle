@@ -20,34 +20,36 @@ buildscript {
 }
 
 plugins {
-    id "de.interactive_instruments.xtraplatform-settings" version "6.0.2"
+    id "de.interactive_instruments.xtraplatform-settings" version "6.1.0-SNAPSHOT"
 }
 
-apply from: '../catalog.gradle'
+apply from: '../shared.gradle'
 
 rootProject.name = 'ldproxy-composite'
 
 def siblingDirectories = rootDir.parentFile.parentFile.listFiles()
-def xtraplatform = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform') })
-def xtraplatformSpatial = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-spatial') })
 def xtraplatformBuild = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-build') })
+def xtraplatformCore = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform') })
+def xtraplatformSpatial = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-spatial') })
 def xtraplatformNative = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-native') })
 
 if (hasProperty('build-plugins') && xtraplatformBuild) {
     includeBuild "../../${xtraplatformBuild.name}"
 }
-if (xtraplatform) {
-    includeBuild "../../${xtraplatform.name}"
-}
-if (hasProperty('native') && xtraplatformNative) {
-    includeBuild "../../${xtraplatformNative.name}"
-}
-if (xtraplatformSpatial) {
-    includeBuild "../../${xtraplatformSpatial.name}"
-}
 
-includeBuild '../ogcapi-stable'
-includeBuild '../ogcapi-draft'
-includeBuild '../ogcapi-custom'
+xtraplatform {    
+    if (xtraplatformCore) {
+        layerInclude path: '../../', dir: "${xtraplatformCore.name}", group: 'de.interactive_instruments', name: 'xtraplatform-core'
+    }
+    if (xtraplatformSpatial) {
+        layerInclude path: '../../', dir: "${xtraplatformSpatial.name}", group: 'de.interactive_instruments', name: 'xtraplatform-spatial'
+    }
+    if (hasProperty('native') && xtraplatformNative) {
+        //TODO
+        //layerIncludeNative path: '../../', dir: "${xtraplatformSpatial.name}", group: 'de.interactive_instruments', name: 'xtraplatform-spatial'
+    }
 
-includeBuild '../'
+    layerInclude path: '../../', dir: rootDir.parentFile.name, group: 'de.interactive_instruments', name: 'ldproxy'
+
+    exclude 'ldproxy-cfg'
+}

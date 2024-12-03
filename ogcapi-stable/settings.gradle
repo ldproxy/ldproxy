@@ -25,3 +25,8 @@ plugins {
 
 apply from: '../shared.gradle'
 
+xtraplatform {
+    layer group: 'de.interactive_instruments', name: 'xtraplatform-core', version: coreVersion
+    layerNative group: 'de.interactive_instruments', name: 'xtraplatform-native', version: nativeVersion
+    layer group: 'de.interactive_instruments', name: 'xtraplatform-spatial', version: spatialVersion
+}
