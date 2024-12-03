@@ -4,7 +4,7 @@ when:
 steps:
 
   libs:
-    image: eclipse-temurin:11
+    image: eclipse-temurin:17
     environment:
       - DOCS_VERSION=next
     commands:
@@ -22,7 +22,7 @@ steps:
       branch: master
 
   dist-arm64:
-    image: eclipse-temurin:11
+    image: eclipse-temurin:17
     commands:
       - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]

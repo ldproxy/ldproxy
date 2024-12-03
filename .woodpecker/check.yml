@@ -4,7 +4,7 @@ when:
 steps:
 
   code:
-    image: eclipse-temurin:11
+    image: eclipse-temurin:17
     environment:
       - DOCS_VERSION=next
     commands:
