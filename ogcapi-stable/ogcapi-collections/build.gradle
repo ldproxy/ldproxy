@@ -12,5 +12,5 @@ dependencies {
     provided project(":ogcapi-common")
     provided project(":ogcapi-html")
 
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
+    testProvided(testFixtures(project(":ogcapi-foundation")))
 }

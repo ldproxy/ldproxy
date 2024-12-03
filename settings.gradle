@@ -20,21 +20,17 @@ buildscript {
 }
 
 plugins {
-    id "de.interactive_instruments.xtraplatform-settings" version "6.0.2"
+    id "de.interactive_instruments.xtraplatform-settings" version "6.1.0-SNAPSHOT"
 }
 
-apply from: 'catalog.gradle'
+apply from: 'shared.gradle'
+
+xtraplatform {
+    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-stable'
+    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-draft'
+    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-custom'
+
+    exclude 'ldproxy-cfg'
+}
 
 rootProject.name = 'ldproxy'
-
-//include bundles
-rootDir.listFiles().each { file ->
-    if (file.isDirectory() && (file.name.startsWith('ldproxy-'))) {
-    	include file.name
-    }    
-}
-
-includeBuild 'ogcapi-stable'
-includeBuild 'ogcapi-draft'
-includeBuild 'ogcapi-custom'
-

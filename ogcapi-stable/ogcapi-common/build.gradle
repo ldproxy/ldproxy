@@ -13,6 +13,6 @@ dependencies {
     provided project(":ogcapi-json")
     provided project(":ogcapi-xml")
 
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
+    testProvided(testFixtures(project(":ogcapi-foundation")))
 }
 

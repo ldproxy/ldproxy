@@ -20,13 +20,12 @@ buildscript {
 }
 
 plugins {
-    id "de.interactive_instruments.xtraplatform-settings" version "6.0.2"
+    id "de.interactive_instruments.xtraplatform-settings" version "6.1.0-SNAPSHOT"
 }
 
-apply from: '../catalog.gradle'
+apply from: '../shared.gradle'
 
-rootDir.listFiles().each { file ->
-    if (file.isDirectory() && (file.name.startsWith('ogcapi'))) {
-    	include file.name
-    }    
+xtraplatform {
+    layerInclude path: '../', group: 'de.interactive_instruments', name: 'ogcapi-stable'
 }
+

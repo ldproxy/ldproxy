@@ -12,7 +12,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-features'
 
     //TODO: move to xtraplatform
-    embeddedExport (catalog.schema.validator) {
+    embeddedExport (libCatalog.schema.validator) {
         exclude module: 'jackson-core'
         exclude module: 'jackson-databind'
         exclude module: 'jackson-dataformat-yaml'

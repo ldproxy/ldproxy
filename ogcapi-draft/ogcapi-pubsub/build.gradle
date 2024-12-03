@@ -24,3 +24,10 @@ dependencies {
         exclude group: 'org.jetbrains', module: 'annotations'
     }
 }
+
+moduleInfo {
+    exports = [
+            '!io.netty*',
+            '!org.jctools*',
+    ]
+}

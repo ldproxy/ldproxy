@@ -22,12 +22,12 @@ dependencies {
     provided project(":ogcapi-json")
     provided project(":ogcapi-oas30")
 
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
-    testImplementation project(":ogcapi-html")
-    testImplementation project(":ogcapi-json")
-    testImplementation project(":ogcapi-xml")
-    testImplementation 'de.interactive_instruments:xtraplatform-blobs'
-    testImplementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    testProvided(testFixtures(project(":ogcapi-foundation")))
+    testProvided project(":ogcapi-html")
+    testProvided project(":ogcapi-json")
+    testProvided project(":ogcapi-xml")
+    testProvided 'de.interactive_instruments:xtraplatform-blobs'
+    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }
 
 moduleInfo {

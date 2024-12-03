@@ -17,6 +17,6 @@ dependencies {
     provided project(":ogcapi-collections")
     provided project(":ogcapi-features-core")
 
-    testImplementation 'de.interactive_instruments:xtraplatform-auth'
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
+    testProvided 'de.interactive_instruments:xtraplatform-auth'
+    testProvided(testFixtures(project(":ogcapi-foundation")))
 }
