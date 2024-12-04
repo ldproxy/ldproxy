@@ -23,8 +23,6 @@ plugins {
     id "de.interactive_instruments.xtraplatform-settings" version "6.1.0-SNAPSHOT"
 }
 
-apply from: '../shared.gradle'
-
 rootProject.name = 'ldproxy-composite'
 
 def siblingDirectories = rootDir.parentFile.parentFile.listFiles()
@@ -33,23 +31,24 @@ def xtraplatformCore = siblingDirectories.find({ it.name.toLowerCase().equals('x
 def xtraplatformSpatial = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-spatial') })
 def xtraplatformNative = siblingDirectories.find({ it.name.toLowerCase().equals('xtraplatform-native') })
 
-if (hasProperty('build-plugins') && xtraplatformBuild) {
+if (hasProperty('build-plugins') && xtraplatformBuild != null) {
     includeBuild "../../${xtraplatformBuild.name}"
 }
 
-xtraplatform {    
-    if (xtraplatformCore) {
-        layerInclude path: '../../', dir: "${xtraplatformCore.name}", group: 'de.interactive_instruments', name: 'xtraplatform-core'
-    }
-    if (xtraplatformSpatial) {
-        layerInclude path: '../../', dir: "${xtraplatformSpatial.name}", group: 'de.interactive_instruments', name: 'xtraplatform-spatial'
-    }
-    if (hasProperty('native') && xtraplatformNative) {
-        //TODO
-        //layerIncludeNative path: '../../', dir: "${xtraplatformSpatial.name}", group: 'de.interactive_instruments', name: 'xtraplatform-spatial'
-    }
+def includes = []
 
-    layerInclude path: '../../', dir: rootDir.parentFile.name, group: 'de.interactive_instruments', name: 'ldproxy'
+if (xtraplatformCore != null) includes.add('xtraplatform-core');
+if (xtraplatformNative != null && hasProperty('native')) includes.add('xtraplatform-native');
+if (xtraplatformSpatial != null) includes.add('xtraplatform-spatial');
 
-    exclude 'ldproxy-cfg'
+apply from: '../shared.gradle'
+
+xtraplatform {
+    includeOnlyIf { layer -> layer.name == 'ldproxy' || includes.contains(layer.name) }
+
+    layerInclude       name: 'xtraplatform-core', group: 'de.interactive_instruments', version: coreVersion, path: '../../', dir: 'xtraplatform'
+    layerIncludeNative name: 'xtraplatform-native', group: 'de.interactive_instruments', version: nativeVersion, path: '../../'
+    layerInclude       name: 'xtraplatform-spatial', group: 'de.interactive_instruments', version: spatialVersion, path: '../../'
+
+    layerInclude       name: 'ldproxy', group: 'de.interactive_instruments', path: '../../', dir: rootDir.parentFile.name
 }

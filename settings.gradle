@@ -26,13 +26,15 @@ plugins {
 apply from: 'shared.gradle'
 
 xtraplatform {
-    layer group: 'de.interactive_instruments', name: 'xtraplatform-core', version: coreVersion
-    layerNative group: 'de.interactive_instruments', name: 'xtraplatform-native', version: nativeVersion
-    layer group: 'de.interactive_instruments', name: 'xtraplatform-spatial', version: spatialVersion
+    includeOnlyIf { layer -> layer.name.startsWith('ogcapi-') || (gradle.parent != null && (layer.name != 'xtraplatform-native' || settings.hasProperty('native')))  }
 
-    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-stable'
-    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-draft'
-    layerInclude path: './', group: 'de.interactive_instruments', name: 'ogcapi-custom'
+    layerInclude       name: 'xtraplatform-core', group: 'de.interactive_instruments', version: coreVersion, path: '../', dir: 'xtraplatform'
+    layerIncludeNative name: 'xtraplatform-native', group: 'de.interactive_instruments', version: nativeVersion, path: '../'
+    layerInclude       name: 'xtraplatform-spatial', group: 'de.interactive_instruments', version: spatialVersion, path: '../'
+
+    layerInclude name: 'ogcapi-stable', group: 'de.interactive_instruments', path: './'
+    layerInclude name: 'ogcapi-draft', group: 'de.interactive_instruments', path: './'
+    layerInclude name: 'ogcapi-custom', group: 'de.interactive_instruments', path: './'
 
     exclude 'ldproxy-cfg'
 }
