@@ -20,14 +20,15 @@ buildscript {
 }
 
 plugins {
-    id "de.interactive_instruments.xtraplatform-settings" version "6.0.2"
+    id "de.interactive_instruments.xtraplatform-settings" version "6.1.0-SNAPSHOT"
 }
 
-apply from: '../catalog.gradle'
+apply from: '../shared.gradle'
 
-rootDir.listFiles().each { file ->
-    if (file.isDirectory() && (file.name.startsWith('ogcapi'))) {
-    	include file.name
-    }    
+xtraplatform {
+    includeOnlyIf { layer -> gradle.parent != null && gradle.parent.startParameter.currentDir.name.endsWith('composite') && (layer.name != 'xtraplatform-native' || settings.hasProperty('native'))  }
+
+    layerInclude       name: 'xtraplatform-core', group: 'de.interactive_instruments', version: coreVersion, path: '../../', dir: 'xtraplatform'
+    layerIncludeNative name: 'xtraplatform-native', group: 'de.interactive_instruments', version: nativeVersion, path: '../../'
+    layerInclude       name: 'xtraplatform-spatial', group: 'de.interactive_instruments', version: spatialVersion, path: '../../'
 }
-

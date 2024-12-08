@@ -1,0 +1,23 @@
+
+def versions =  xtraplatform.getCatalogVersions(file("gradle/layers.versions.toml"))
+
+ext {
+    coreVersionCatalog    = versions['xtraplatform-core']
+    nativeVersionCatalog  = versions['xtraplatform-native']
+    spatialVersionCatalog = versions['xtraplatform-spatial']
+
+    coreVersion    = settings.hasProperty('coreVersionExt') ? settings.getProperty('coreVersionExt') : coreVersionCatalog
+    nativeVersion  = settings.hasProperty('nativeVersionExt') ? settings.getProperty('nativeVersionExt') : nativeVersionCatalog
+    spatialVersion = settings.hasProperty('spatialVersionExt') ? settings.getProperty('spatialVersionExt') : spatialVersionCatalog
+}
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libCatalog {
+            from(files("gradle/libs.versions.toml"))
+        }
+        pluginCatalog {
+            from(files("gradle/plugins.versions.toml"))
+        }
+    }
+}

@@ -13,5 +13,5 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided 'de.interactive_instruments:ogcapi-features-geojson'
 
-    testImplementation(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
+    testProvided(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
 }

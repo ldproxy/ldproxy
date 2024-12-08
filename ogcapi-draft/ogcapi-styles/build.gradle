@@ -20,8 +20,8 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-html'
     provided 'de.interactive_instruments:ogcapi-tiles'
 
-    testImplementation(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
-    testImplementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    testProvided(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
+    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }
 
 moduleInfo {

@@ -8,16 +8,6 @@ allprojects {
 
 apply from: '../version.gradle'
 
-apply from: '../xtraplatform.gradle'
-
-dependencies {
-    layers group: 'de.interactive_instruments', name: 'ogcapi-stable', version: version
-    layers group: 'de.interactive_instruments', name: 'ogcapi-draft', version: version
-
-    // modules to include in this layer
-    modules subprojects
-}
-
 //TODO
 layer {
     CANDIDATE {
@@ -25,7 +15,7 @@ layer {
     }
 }
 
-subprojects {
+configure(subprojects.findAll { !it.name.endsWith("-tpl") }) {
     dependencies {
         provided 'de.interactive_instruments:xtraplatform-entities'
         provided 'de.interactive_instruments:xtraplatform-openapi'
@@ -35,8 +25,7 @@ subprojects {
     }
 }
 
-task checkAll { dependsOn subprojects*.tasks*.findByPath('check') }
-task testAll { dependsOn subprojects*.tasks*.findByPath('test') }
-tasks.publish { dependsOn subprojects*.tasks*.findByPath('publish') }
-task cleanAll { dependsOn subprojects*.tasks*.findByPath('clean') + tasks.clean }
-task spotlessApplyAll { dependsOn subprojects*.tasks*.findByPath('spotlessApply') }
+tasks.register('checkAll') { dependsOn subprojects*.tasks*.findByPath('check') }
+tasks.register('cleanAll') { dependsOn subprojects*.tasks*.findByPath('clean') + tasks.clean }
+tasks.register('spotlessApplyAll') { dependsOn subprojects*.tasks*.findByPath('spotlessApply') }
+tasks.named('publish') { dependsOn subprojects*.tasks*.findByPath('publish') }

@@ -16,8 +16,8 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-geojson'
     provided project(":ogcapi-collections-schema")
 
-    testImplementation 'de.interactive_instruments:xtraplatform-auth'
-    testImplementation 'de.interactive_instruments:xtraplatform-codelists'
-    testImplementation 'de.interactive_instruments:xtraplatform-features-json'
-    testImplementation(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
+    testProvided 'de.interactive_instruments:xtraplatform-auth'
+    testProvided 'de.interactive_instruments:xtraplatform-codelists'
+    testProvided 'de.interactive_instruments:xtraplatform-features-json'
+    testProvided(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
 }
