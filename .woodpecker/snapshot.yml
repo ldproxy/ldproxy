@@ -21,11 +21,11 @@ steps:
     when:
       branch: master
 
-#  dist-arm64:
-#    image: eclipse-temurin:17
-#    commands:
-#      - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
-#    secrets: [ snapshot_user, snapshot_pass]
+  dist-arm64:
+    image: eclipse-temurin:17
+    commands:
+      - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
+    secrets: [ snapshot_user, snapshot_pass]
 
   docker:
     image: docker.ci.interactive-instruments.de/cicd/drone-docker-buildx
@@ -42,7 +42,7 @@ steps:
       pull_image: true
       platforms:
         - linux/amd64
- #       - linux/arm64
+        - linux/arm64
 
   docker-hub:
     image: docker.ci.interactive-instruments.de/cicd/drone-docker-buildx
@@ -62,6 +62,6 @@ steps:
       pull_image: true
       platforms:
         - linux/amd64
-#        - linux/arm64
+        - linux/arm64
     when:
       branch: master
