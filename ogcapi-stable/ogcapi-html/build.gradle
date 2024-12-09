@@ -46,6 +46,7 @@ yarn_install {
     inputs.file("src/main/javascript/yarn.lock")
     outputs.dir("src/main/javascript/node_modules")
     outputs.dir("src/main/javascript/.yarn/cache")
+    outputs.cacheIf { true }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
@@ -57,6 +58,7 @@ task yarn_build(type: YarnTask) {
     inputs.file("src/main/javascript/yarn.lock")
     inputs.dir("src/main/javascript/src")
     outputs.dir(generatedResourcesDir)
+    outputs.cacheIf { true }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
