@@ -12,7 +12,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-web'
     provided project(":ogcapi-foundation")
 
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
+    testProvided(testFixtures(project(":ogcapi-foundation")))
 }
 
 ext {

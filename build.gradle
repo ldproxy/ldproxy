@@ -10,35 +10,15 @@ allprojects {
 
 apply from: 'version.gradle'
 
-apply from: 'xtraplatform.gradle'
-
-dependencies {
-    // layers to include in this application
-    layers group: 'de.interactive_instruments', name: 'ogcapi-stable'
-    layers group: 'de.interactive_instruments', name: 'ogcapi-draft'
-    layers group: 'de.interactive_instruments', name: 'ogcapi-custom'
-
-
-    // modules to include in this application
-    modules subprojects.findAll {it.name != 'ldproxy-cfg'}
-}
-
 cyclonedxBom {
     skipProjects = ["ldproxy-cfg"]
-}
-
-tasks.test {
-    dependsOn project.gradle.includedBuild('ogcapi-stable').task(':testAll')
-    dependsOn project.gradle.includedBuild('ogcapi-draft').task(':testAll')
-    dependsOn project.gradle.includedBuild('ogcapi-custom').task(':testAll')
-    dependsOn(':ldproxy-cfg:test')
 }
 
 tasks.check {
     dependsOn project.gradle.includedBuild('ogcapi-stable').task(':checkAll')
     dependsOn project.gradle.includedBuild('ogcapi-draft').task(':checkAll')
     dependsOn project.gradle.includedBuild('ogcapi-custom').task(':checkAll')
-    dependsOn(':ldproxy-cfg:check')
+    //dependsOn(':ldproxy-cfg:check')
 }
 
 tasks.publish {
@@ -52,7 +32,7 @@ tasks.clean {
     dependsOn project.gradle.includedBuild('ogcapi-stable').task(':cleanAll')
     dependsOn project.gradle.includedBuild('ogcapi-draft').task(':cleanAll')
     dependsOn project.gradle.includedBuild('ogcapi-custom').task(':cleanAll')
-    dependsOn(':ldproxy-cfg:clean')
+    //dependsOn(':ldproxy-cfg:clean')
 }
 
 task spotlessApply {

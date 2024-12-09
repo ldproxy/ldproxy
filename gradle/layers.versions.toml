@@ -1,0 +1,5 @@
+[versions]
+xtraplatform-core    = '6.3.0-build-plugins-SNAPSHOT'
+xtraplatform-native  = '2.5.0-SNAPSHOT'
+xtraplatform-spatial = '7.3.0-build-plugins-SNAPSHOT'
+

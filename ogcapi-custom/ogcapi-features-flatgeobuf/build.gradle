@@ -11,8 +11,8 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-geometries'
     provided 'de.interactive_instruments:ogcapi-features-core'
 
-    embeddedFlat (catalog.flatbuffers)
-    embeddedFlat (catalog.flatgeobuf)
+    embeddedFlat (libCatalog.flatbuffers)
+    embeddedFlat (libCatalog.flatgeobuf)
 
     //use jts exported from this
     embeddedImport 'de.interactive_instruments:xtraplatform-geometries'

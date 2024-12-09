@@ -17,8 +17,8 @@ dependencies {
     provided project(":ogcapi-features-core")
     provided project(":ogcapi-tiles")
 
-    testImplementation 'de.interactive_instruments:ogcapi-common'
-    testImplementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    testProvided project(':ogcapi-common')
+    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }
 
 test {

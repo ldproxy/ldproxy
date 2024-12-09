@@ -17,5 +17,5 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided project(':ogcapi-collections-schema')
 
-    testImplementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }

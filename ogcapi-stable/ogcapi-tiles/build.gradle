@@ -25,6 +25,6 @@ dependencies {
     provided project(":ogcapi-oas30")
     provided project(":ogcapi-tilematrixsets")
 
-    testImplementation(testFixtures(project(":ogcapi-foundation")))
-    testImplementation 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    testProvided(testFixtures(project(":ogcapi-foundation")))
+    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }

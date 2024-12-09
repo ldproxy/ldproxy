@@ -1,6 +1,5 @@
-plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
-}
+// already included in xtraplatform-build
+apply plugin: 'com.gradleup.shadow'
 
 dependencies {
     provided(group: 'de.interactive_instruments', name: 'xtraplatform-build', version: de.interactive_instruments.xtraplatform.ApplicationPlugin.getVersion(project.rootProject)) {
@@ -136,6 +135,10 @@ publishing {
             }
         }
     }
+}
+
+java {
+    modularity.inferModulePath = false
 }
 
 tasks.withType(GenerateModuleMetadata) {
