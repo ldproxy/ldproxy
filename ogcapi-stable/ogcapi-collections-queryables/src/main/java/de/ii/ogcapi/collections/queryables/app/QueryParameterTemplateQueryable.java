@@ -27,6 +27,7 @@ import de.ii.xtraplatform.cql.domain.Eq;
 import de.ii.xtraplatform.cql.domain.Like;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.ScalarLiteral;
+import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import io.swagger.v3.oas.models.media.Schema;
@@ -136,6 +137,9 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
           return Like.of(getName(), ScalarLiteral.of(value.replaceAll("\\*", "%")));
         }
         return Eq.of(getName(), ScalarLiteral.of(value));
+      case DATE:
+      case DATETIME:
+        return Eq.of(getName(), TemporalLiteral.of(value));
       default:
         return BooleanValue2.of(false);
     }
