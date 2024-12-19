@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.2.1 (19/12/2024)
+#### Improvements
+
+-  query parameters for DATE/DATETIME queryables always result in an empty set [#1308](https://github.com/ldproxy/ldproxy/issues/1308)
+
+#### Fixed bugs
+
+-  CRUD: issue with idle transactions [#1318](https://github.com/ldproxy/ldproxy/issues/1318)
+
+#### Dependency updates
+
+-  upgrade dropwizard from 3.0.10 to 3.0.11 [#1317](https://github.com/ldproxy/ldproxy/issues/1317)
+-  upgrade postgresql from 42.7.3. to 42.7.4 [#1316](https://github.com/ldproxy/ldproxy/issues/1316)
+-  upgrade minio from 8.5.6 to 8.5.14 [#1315](https://github.com/ldproxy/ldproxy/issues/1315)
+-  upgrade rxjava from 3.1.8 to 3.1.10 [#1314](https://github.com/ldproxy/ldproxy/issues/1314)
+-  upgrade swagger from 2.2.21 to 2.2.27 [#1313](https://github.com/ldproxy/ldproxy/issues/1313)
+
+---
+
 ## v4.2.0 (13/11/2024)
 #### Implemented enhancements
 
