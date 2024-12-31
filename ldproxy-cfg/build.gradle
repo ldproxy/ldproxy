@@ -7,7 +7,7 @@ dependencies {
             requireCapability("de.interactive_instruments:xtraplatform-build-annotations")
         }
     }
-    api(group: 'org.slf4j', name: 'slf4j-api', version: '1.7.35')
+    api(group: 'org.slf4j', name: 'slf4j-api', version: '2.0.16')
 }
 
 // add all modules from all layers with all transitive dependencies to provided
