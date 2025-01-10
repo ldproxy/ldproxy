@@ -94,8 +94,10 @@ tasks.shadowJar {
                 || it.name.endsWith('sql2003_reserved_words.txt') || it.name.endsWith('SchemaCrawler.txt') || it.name.endsWith('schemacrawler-postgresql.config.properties') || it.name.endsWith('schemacrawler-sqlite.config.properties')
                 || it.path.endsWith('Mac/aarch64/libsqlitejdbc.dylib') || it.path.endsWith('Linux/x86_64/libsqlitejdbc.so') || it.path.endsWith('Linux/aarch64/libsqlitejdbc.so') || it.path.endsWith('Windows/x86_64/sqlitejdbc.dll') || it.path.endsWith('sqlite-jdbc/native-image.properties') || it.path.contains('SqliteJdbcFeature')
                 || it.path.contains('com/sun/xml/xsom/impl/parser') || it.name.endsWith('.xsd') || it.name.endsWith('.rng') || it.path.endsWith('reflect-config.json')
+                || it.path.endsWith('schemacrawler.tools.catalogloader.CatalogLoader') || it.path.endsWith('schemacrawler.tools.databaseconnector.DatabaseConnector') || it.path.endsWith('java.sql.Driver')
     }
     minimize()
+    mergeServiceFiles()
     relocate('com.', 'shadow.com.')
     relocate('dagger.', 'shadow.dagger.')
     relocate('io.', 'shadow.io.')
@@ -167,5 +169,15 @@ tasks.register('rcExtract', de.interactive_instruments.xtraplatform.docs.Reflect
                     attributeValues: ["codelists", "maplibre-styles"]
             ),
     ])
-    extraTypes(["java.util.LinkedHashMap", "java.util.HashSet"])
+    extraTypes([
+            "java.util.LinkedHashMap",
+            "java.util.HashSet",
+            //TODO: entrypoints for these
+            "de.ii.xtraplatform.services.domain.ServiceDataCommon",
+            "de.ii.xtraplatform.services.domain.ImmutableServiceDataCommon",
+            "de.ii.xtraplatform.services.domain.ImmutableServiceDataCommon.Builder",
+            "de.ii.xtraplatform.features.domain.ProviderCommonData",
+            "de.ii.xtraplatform.features.domain.ImmutableProviderCommonData",
+            "de.ii.xtraplatform.features.domain.ImmutableProviderCommonData.Builder",
+    ])
 }
