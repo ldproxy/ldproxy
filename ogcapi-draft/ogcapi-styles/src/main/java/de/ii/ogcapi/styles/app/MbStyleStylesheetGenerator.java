@@ -41,11 +41,11 @@ public class MbStyleStylesheetGenerator
     List<String> mapboxColors =
         Arrays.asList(
             "#3887be", // Mapbox Cyan-Blue Azure
-            "#8a8acb", // Ube
             "#56b881", // Mapbox Emerald
             "#50667f", // Dark Electric Blue
             "#41afa5", // Mapbox Keppel
             "#e55e5e", // Fire Opal
+            "#8a8acb", // Ube
             "#ed6498", // Light Crimson
             "#fbb03b", // Mapbox Yellow Orange
             "#28353d", // Mapbox Gunmetal
