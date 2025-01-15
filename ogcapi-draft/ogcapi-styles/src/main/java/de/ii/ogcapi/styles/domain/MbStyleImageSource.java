@@ -14,12 +14,13 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true)
 @JsonDeserialize(as = ImmutableMbStyleImageSource.class)
-public abstract class MbStyleImageSource extends MbStyleSource {
-  public final String getType() {
+public interface MbStyleImageSource extends MbStyleSource {
+  @Value.Derived
+  default String getType() {
     return "image";
   }
 
-  public abstract String getUrl();
+  String getUrl();
 
-  public abstract List<List<Double>> getCoordinates();
+  List<List<Double>> getCoordinates();
 }

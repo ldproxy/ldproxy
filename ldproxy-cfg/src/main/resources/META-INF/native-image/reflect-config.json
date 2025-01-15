@@ -48,6 +48,30 @@
     ]
   },
   {
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
     "name": "de.ii.xtraplatform.features.graphql.domain.FeatureProviderGraphQlData",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
@@ -61,30 +85,6 @@
   },
   {
     "name": "de.ii.xtraplatform.features.gml.domain.FeatureProviderWfsData",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -196,26 +196,26 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.LinkedHashMap",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.LinkedHashMap"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.HashSet",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.HashSet"
   },
   {
     "name": "de.ii.xtraplatform.services.domain.ServiceDataCommon",
@@ -242,26 +242,26 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.Optional",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.Optional"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Boolean",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Boolean"
   },
   {
     "name": "de.ii.xtraplatform.entities.domain.EntityData",
@@ -336,30 +336,30 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.String",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.String"
   },
   {
     "queryAllDeclaredMethods": true,
     "name": "boolean"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Integer",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Integer"
   },
   {
     "name": "de.ii.xtraplatform.services.domain.ImmutableServiceDataCommon$Builder",
@@ -612,48 +612,48 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.constant.Constable",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.constant.Constable"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Comparable",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Comparable"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.io.Serializable",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.io.Serializable"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.OptionalLong",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.OptionalLong"
   },
   {
     "name": "de.ii.xtraplatform.auth.app.User$UserData",
@@ -898,37 +898,37 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Double",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Double"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.com.google.common.collect.ImmutableMap",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.com.google.common.collect.ImmutableMap"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.List",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.List"
   },
   {
     "name": "de.ii.xtraplatform.tiles.domain.LevelTransformation",
@@ -987,15 +987,15 @@
     "name": "int"
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.com.google.common.collect.ImmutableList",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.com.google.common.collect.ImmutableList"
   },
   {
     "name": "de.ii.xtraplatform.tiles.domain.ImmutableLevelTransformation$Builder",
@@ -1044,15 +1044,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Iterable",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Iterable"
   },
   {
     "name": "de.ii.xtraplatform.entities.domain.maptobuilder.BuildableMap",
@@ -1067,15 +1067,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.Map",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.Map"
   },
   {
     "name": "de.ii.xtraplatform.entities.domain.maptobuilder.ImmutableBuildableMap",
@@ -2844,7 +2844,7 @@
     ]
   },
   {
-    "name": "de.ii.xtraplatform.features.graphql.domain.ImmutableFeatureProviderGraphQlData",
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -2891,10 +2891,6 @@
       },
       {
         "parameterTypes": [],
-        "name": "getFragments"
-      },
-      {
-        "parameterTypes": [],
         "name": "getCodelists"
       },
       {
@@ -2907,11 +2903,19 @@
       },
       {
         "parameterTypes": [],
-        "name": "getQueries"
+        "name": "getSourcePathDefaults"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getQueryGeneration"
       },
       {
         "parameterTypes": [],
         "name": "getTypes"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getFragments"
       }
     ]
   },
@@ -2948,15 +2952,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.OptionalInt",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.OptionalInt"
   },
   {
     "name": "de.ii.xtraplatform.crs.domain.EpsgCrs$Force",
@@ -3005,15 +3009,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.time.ZoneId",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.time.ZoneId"
   },
   {
     "name": "de.ii.xtraplatform.entities.domain.ValidationResult$MODE",
@@ -3290,6 +3294,99 @@
     ]
   },
   {
+    "name": "de.ii.xtraplatform.feature.changes.sql.domain.FeatureChangesPgConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.feature.changes.sql.domain.ImmutableFeatureChangesPgConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getListenForTypes"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPollingInterval"
+      }
+    ]
+  },
+  {
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.io.dropwizard.util.Duration"
+  },
+  {
+    "name": "de.ii.xtraplatform.feature.changes.sql.domain.ImmutableFeatureChangesPgConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "listenForTypes"
+      },
+      {
+        "parameterTypes": [
+          "io.dropwizard.util.Duration"
+        ],
+        "name": "pollingInterval"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.feature.changes.sql.domain.FeatureChangesPgConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
     "name": "de.ii.xtraplatform.schemas.ext.domain.JsonSchemaConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
@@ -3404,7 +3501,87 @@
     ]
   },
   {
-    "name": "de.ii.xtraplatform.feature.changes.sql.domain.FeatureChangesPgConfiguration",
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getConnectionUri"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDialect"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDatabase"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getHost"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUser"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPassword"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSchemas"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPool"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDriverOptions"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTriggers"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAssumeExternalChanges"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getMaxConnections"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMinConnections"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getInitFailTimeout"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getIdleTimeout"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getShared"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -3416,42 +3593,7 @@
     ]
   },
   {
-    "name": "de.ii.xtraplatform.feature.changes.sql.domain.ImmutableFeatureChangesPgConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getType"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getListenForTypes"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPollingInterval"
-      }
-    ]
-  },
-  {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.io.dropwizard.util.Duration",
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.feature.changes.sql.domain.ImmutableFeatureChangesPgConfiguration$Builder",
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -3466,26 +3608,38 @@
       },
       {
         "parameterTypes": [
+          "java.lang.Integer"
+        ],
+        "name": "maxConnections"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Integer"
+        ],
+        "name": "minConnections"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "initFailTimeout"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "idleTimeout"
+      },
+      {
+        "parameterTypes": [
           "java.lang.Boolean"
         ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "listenForTypes"
-      },
-      {
-        "parameterTypes": [
-          "io.dropwizard.util.Duration"
-        ],
-        "name": "pollingInterval"
+        "name": "shared"
       }
     ]
   },
   {
-    "name": "de.ii.xtraplatform.feature.changes.sql.domain.FeatureChangesPgConfiguration$Builder",
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureActionTrigger",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -3493,6 +3647,448 @@
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getOnDelete"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "onDelete"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.domain.ConnectionInfo",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getConnectorType"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.oracle.domain.ImmutableConnectionInfoOracle",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getConnectionUri"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTriggers"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDatabase"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getHost"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUser"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPassword"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSchemas"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPool"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.oracle.domain.ConnectionInfoOracle",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.oracle.domain.ImmutableConnectionInfoOracle$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "connectionUri"
+      },
+      {
+        "parameterTypes": [],
+        "name": "triggersBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder"
+        ],
+        "name": "triggersBuilder"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "triggers"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "database"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "host"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "user"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "password"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "schemas"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings"
+        ],
+        "name": "pool"
+      },
+      {
+        "parameterTypes": [],
+        "name": "poolBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder"
+        ],
+        "name": "poolBuilder"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "connectionUri"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "dialect"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "database"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "host"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "user"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "password"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "schemas"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings"
+        ],
+        "name": "pool"
+      },
+      {
+        "parameterTypes": [],
+        "name": "poolBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder"
+        ],
+        "name": "poolBuilder"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "setDriverOptions"
+      },
+      {
+        "parameterTypes": [],
+        "name": "triggersBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder"
+        ],
+        "name": "triggersBuilder"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "triggers"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "assumeExternalChanges"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDriverOptions"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getPrimaryKey"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSortKey"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSchema"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getJunctionTablePattern"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.SqlPathDefaults",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "primaryKey"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "sortKey"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "schema"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "junctionTablePattern"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getChunkSize"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getComputeNumberMatched"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAccentiCollation"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$QueryGeneratorSettings",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "int"
+        ],
+        "name": "chunkSize"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "computeNumberMatched"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "accentiCollation"
       }
     ]
   },
@@ -4345,15 +4941,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.com.google.common.collect.ImmutableSet",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.com.google.common.collect.ImmutableSet"
   },
   {
     "name": "de.ii.xtraplatform.features.domain.FeatureSchema$Builder",
@@ -4372,6 +4968,280 @@
           "java.lang.Iterable"
         ],
         "name": "coalesceBuilders"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "id"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "long"
+        ],
+        "name": "createdAt"
+      },
+      {
+        "parameterTypes": [
+          "long"
+        ],
+        "name": "lastModified"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "providerType"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "providerSubType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "nativeCrsBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs$Builder"
+        ],
+        "name": "nativeCrsBuilder"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "nativeCrs"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "nativeTimeZone"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "defaultLanguage"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.entities.domain.ValidationResult$MODE"
+        ],
+        "name": "typeValidation"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "labelTemplate"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "extensions"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "codelists"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "auto"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql"
+        ],
+        "name": "connectionInfo"
+      },
+      {
+        "parameterTypes": [],
+        "name": "connectionInfoBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql$Builder"
+        ],
+        "name": "connectionInfoBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.SqlPathDefaults"
+        ],
+        "name": "sourcePathDefaults"
+      },
+      {
+        "parameterTypes": [],
+        "name": "sourcePathDefaultsBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults$Builder"
+        ],
+        "name": "sourcePathDefaultsBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$QueryGeneratorSettings"
+        ],
+        "name": "queryGeneration"
+      },
+      {
+        "parameterTypes": [],
+        "name": "queryGenerationBuilder"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings$Builder"
+        ],
+        "name": "queryGenerationBuilder"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "setTypes"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "setFragments"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTypes"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getFragments"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.xtraplatform.features.graphql.domain.ImmutableFeatureProviderGraphQlData",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getId"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getProviderType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getProviderSubType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getNativeCrs"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getNativeTimeZone"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefaultLanguage"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTypeValidation"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getLabelTemplate"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getExtensions"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getFragments"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCodelists"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAuto"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getConnectionInfo"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getQueries"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTypes"
       }
     ]
   },
@@ -4408,30 +5278,18 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.net.URI",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.net.URI"
   },
   {
     "name": "de.ii.xtraplatform.features.graphql.domain.ConnectionInfoGraphQlHttp",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getConnectorType"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.domain.ConnectionInfo",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -5507,864 +6365,6 @@
     ]
   },
   {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getId"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getProviderType"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getProviderSubType"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getNativeCrs"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getNativeTimeZone"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefaultLanguage"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTypeValidation"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getLabelTemplate"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getExtensions"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCodelists"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAuto"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getConnectionInfo"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSourcePathDefaults"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getQueryGeneration"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTypes"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getFragments"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getConnectionUri"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDialect"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDatabase"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getHost"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getUser"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPassword"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSchemas"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPool"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDriverOptions"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTriggers"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAssumeExternalChanges"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getMaxConnections"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getMinConnections"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getInitFailTimeout"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getIdleTimeout"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getShared"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Integer"
-        ],
-        "name": "maxConnections"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Integer"
-        ],
-        "name": "minConnections"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "initFailTimeout"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "idleTimeout"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "shared"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureActionTrigger",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getOnDelete"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "onDelete"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.oracle.domain.ImmutableConnectionInfoOracle",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getConnectionUri"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTriggers"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDatabase"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getHost"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getUser"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPassword"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSchemas"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPool"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.oracle.domain.ConnectionInfoOracle",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.oracle.domain.ImmutableConnectionInfoOracle$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "connectionUri"
-      },
-      {
-        "parameterTypes": [],
-        "name": "triggersBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder"
-        ],
-        "name": "triggersBuilder"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "triggers"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "database"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "host"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "user"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "password"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "schemas"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings"
-        ],
-        "name": "pool"
-      },
-      {
-        "parameterTypes": [],
-        "name": "poolBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder"
-        ],
-        "name": "poolBuilder"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "connectionUri"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "dialect"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "database"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "host"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "user"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "password"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "schemas"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql$PoolSettings"
-        ],
-        "name": "pool"
-      },
-      {
-        "parameterTypes": [],
-        "name": "poolBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutablePoolSettings$Builder"
-        ],
-        "name": "poolBuilder"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "setDriverOptions"
-      },
-      {
-        "parameterTypes": [],
-        "name": "triggersBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureActionTrigger$Builder"
-        ],
-        "name": "triggersBuilder"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "triggers"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "assumeExternalChanges"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDriverOptions"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getPrimaryKey"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSortKey"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSchema"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getJunctionTablePattern"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.SqlPathDefaults",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "primaryKey"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "sortKey"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "schema"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "junctionTablePattern"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getChunkSize"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getComputeNumberMatched"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAccentiCollation"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$QueryGeneratorSettings",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "int"
-        ],
-        "name": "chunkSize"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "computeNumberMatched"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "accentiCollation"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "id"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "long"
-        ],
-        "name": "createdAt"
-      },
-      {
-        "parameterTypes": [
-          "long"
-        ],
-        "name": "lastModified"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "providerType"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "providerSubType"
-      },
-      {
-        "parameterTypes": [],
-        "name": "nativeCrsBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs$Builder"
-        ],
-        "name": "nativeCrsBuilder"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "nativeCrs"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "nativeTimeZone"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "defaultLanguage"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.entities.domain.ValidationResult$MODE"
-        ],
-        "name": "typeValidation"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "labelTemplate"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "extensions"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "codelists"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "auto"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ConnectionInfoSql"
-        ],
-        "name": "connectionInfo"
-      },
-      {
-        "parameterTypes": [],
-        "name": "connectionInfoBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutableConnectionInfoSql$Builder"
-        ],
-        "name": "connectionInfoBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.SqlPathDefaults"
-        ],
-        "name": "sourcePathDefaults"
-      },
-      {
-        "parameterTypes": [],
-        "name": "sourcePathDefaultsBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutableSqlPathDefaults$Builder"
-        ],
-        "name": "sourcePathDefaultsBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$QueryGeneratorSettings"
-        ],
-        "name": "queryGeneration"
-      },
-      {
-        "parameterTypes": [],
-        "name": "queryGenerationBuilder"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.xtraplatform.features.sql.domain.ImmutableQueryGeneratorSettings$Builder"
-        ],
-        "name": "queryGenerationBuilder"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "setTypes"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "setFragments"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTypes"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getFragments"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.xtraplatform.features.sql.domain.FeatureProviderSqlData$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
     "name": "de.ii.ogcapi.foundation.domain.ExtensionConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
@@ -6611,15 +6611,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Object",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Object"
   },
   {
     "name": "de.ii.ogcapi.foundation.domain.ImmutableApiCatalogEntry$Builder",
@@ -7634,15 +7634,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.Date",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.Date"
   },
   {
     "name": "de.ii.ogcapi.foundation.domain.Caching",
@@ -8201,15 +8201,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.com.fasterxml.jackson.databind.util.Converter",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.com.fasterxml.jackson.databind.util.Converter"
   },
   {
     "name": "de.ii.ogcapi.features.html.domain.ImmutableFeaturesHtmlConfiguration$Builder",
@@ -9046,7 +9046,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.text.search.domain.TextSearchConfiguration",
+    "name": "de.ii.ogcapi.sorting.domain.SortingConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -9058,7 +9058,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.text.search.domain.ImmutableTextSearchConfiguration",
+    "name": "de.ii.ogcapi.sorting.domain.ImmutableSortingConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -9073,12 +9073,20 @@
       },
       {
         "parameterTypes": [],
-        "name": "getProperties"
+        "name": "getIncluded"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getExcluded"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPathSeparator"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.text.search.domain.ImmutableTextSearchConfiguration$Builder",
+    "name": "de.ii.ogcapi.sorting.domain.ImmutableSortingConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -9101,972 +9109,24 @@
         "parameterTypes": [
           "java.lang.Iterable"
         ],
-        "name": "properties"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.text.search.domain.TextSearchConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.collections.schema.domain.SchemaConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.collections.schema.domain.ImmutableSchemaConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBuildingBlock"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCaching"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.collections.schema.domain.ImmutableSchemaConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.ogcapi.foundation.domain.Caching"
-        ],
-        "name": "caching"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.collections.schema.domain.SchemaConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.RoutingConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBuildingBlock"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCaching"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getFeatureType"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getManageRoutes"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getIntermediateWaypoints"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getWeightRestrictions"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getHeightRestrictions"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getObstacles"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSpeedLimitUnit"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefaultPreference"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefaultMode"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAdditionalFlags"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefaultCrs"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCoordinatePrecision"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getElevationProfileSimplificationTolerance"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getHtml"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.RoutingFlag",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingFlag",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getLabel"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefault"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getProviderFlag"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingFlag$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "label"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "getDefault"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "providerFlag"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.HtmlForm",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlForm",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDefaults"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.HtmlFormDefaults",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlFormDefaults",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getName"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getStart"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnd"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCenter"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCenterLevel"
-      }
-    ]
-  },
-  {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Float",
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlFormDefaults$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "name"
+        "name": "included"
       },
       {
         "parameterTypes": [
           "java.lang.Iterable"
         ],
-        "name": "start"
+        "name": "excluded"
       },
       {
         "parameterTypes": [
-          "java.lang.Iterable"
+          "de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration$PathSeparator"
         ],
-        "name": "end"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "center"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Integer"
-        ],
-        "name": "centerLevel"
+        "name": "pathSeparator"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlForm$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "defaults"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.ogcapi.foundation.domain.Caching"
-        ],
-        "name": "caching"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "featureType"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "manageRoutes"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "intermediateWaypoints"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "weightRestrictions"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "heightRestrictions"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "obstacles"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "speedLimitUnit"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "defaultPreference"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "defaultMode"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "additionalFlags"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration$DefaultCrs"
-        ],
-        "name": "defaultCrs"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "coordinatePrecision"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Double"
-        ],
-        "name": "elevationProfileSimplificationTolerance"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.ogcapi.routes.domain.HtmlForm"
-        ],
-        "name": "html"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.routes.domain.RoutingConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.PubSubConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBuildingBlock"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getBrokers"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPublisher"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPublications"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.Broker",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutableBroker",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getHost"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPort"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getSsl"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getUsername"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getPassword"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutableBroker$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "host"
-      },
-      {
-        "parameterTypes": [
-          "int"
-        ],
-        "name": "port"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "ssl"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "username"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "password"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.Publication",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutablePublication",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBroker"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getParameters"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getProperty"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getMqttQos"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getTimeout"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getRetain"
-      }
-    ]
-  },
-  {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "shadow.com.hivemq.client.mqtt.datatypes.MqttQos",
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutablePublication$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "broker"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "parameters"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Optional"
-        ],
-        "name": "property"
-      },
-      {
-        "parameterTypes": [
-          "com.hivemq.client.mqtt.datatypes.MqttQos"
-        ],
-        "name": "mqttQos"
-      },
-      {
-        "parameterTypes": [
-          "int"
-        ],
-        "name": "timeout"
-      },
-      {
-        "parameterTypes": [
-          "boolean"
-        ],
-        "name": "retain"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "brokers"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.String"
-        ],
-        "name": "publisher"
-      },
-      {
-        "parameterTypes": [
-          "java.util.Map"
-        ],
-        "name": "publications"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.pubsub.app.PubSubConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.styles.domain.StylesConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBuildingBlock"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getCaching"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getStyleEncodings"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getManagerEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getValidationEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getUseIdFromStylesheet"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getDeriveCollectionStyles"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getWebmapWithPopup"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getWebmapWithLayerControl"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getLayerControlAllLayers"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAddBoundsToVectorSource"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getLegendEnabled"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      },
-      {
-        "parameterTypes": [],
-        "name": "build"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "enabled"
-      },
-      {
-        "parameterTypes": [
-          "de.ii.ogcapi.foundation.domain.Caching"
-        ],
-        "name": "caching"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Iterable"
-        ],
-        "name": "styleEncodings"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "managerEnabled"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "validationEnabled"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "useIdFromStylesheet"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "deriveCollectionStyles"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "webmapWithPopup"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "webmapWithLayerControl"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "layerControlAllLayers"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "addBoundsToVectorSource"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "legendEnabled"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.styles.domain.StylesConfiguration$Builder",
+    "name": "de.ii.ogcapi.sorting.domain.SortingConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10330,7 +9390,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.geometry.simplification.app.GeometrySimplificationConfiguration",
+    "name": "de.ii.ogcapi.routes.domain.RoutingConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10342,7 +9402,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.geometry.simplification.app.ImmutableGeometrySimplificationConfiguration",
+    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10354,11 +9414,262 @@
       {
         "parameterTypes": [],
         "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCaching"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getFeatureType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getManageRoutes"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getIntermediateWaypoints"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getWeightRestrictions"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getHeightRestrictions"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getObstacles"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSpeedLimitUnit"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefaultPreference"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefaultMode"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAdditionalFlags"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefaultCrs"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCoordinatePrecision"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getElevationProfileSimplificationTolerance"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getHtml"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.geometry.simplification.app.ImmutableGeometrySimplificationConfiguration$Builder",
+    "name": "de.ii.ogcapi.routes.domain.RoutingFlag",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingFlag",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getLabel"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefault"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getProviderFlag"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingFlag$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "label"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "getDefault"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "providerFlag"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.HtmlForm",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlForm",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDefaults"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.HtmlFormDefaults",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlFormDefaults",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getName"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getStart"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnd"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCenter"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCenterLevel"
+      }
+    ]
+  },
+  {
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Float"
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlFormDefaults$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "name"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "start"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "end"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "center"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Integer"
+        ],
+        "name": "centerLevel"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.routes.domain.ImmutableHtmlForm$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10376,51 +9687,17 @@
           "java.lang.Boolean"
         ],
         "name": "enabled"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.geometry.simplification.app.GeometrySimplificationConfiguration$Builder",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.projections.app.ProjectionsConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "name": "de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration",
-    "allDeclaredFields": true,
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "getBuildingBlock"
       },
       {
-        "parameterTypes": [],
-        "name": "getEnabled"
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "defaults"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration$Builder",
+    "name": "de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10438,11 +9715,101 @@
           "java.lang.Boolean"
         ],
         "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.foundation.domain.Caching"
+        ],
+        "name": "caching"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "featureType"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "manageRoutes"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "intermediateWaypoints"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "weightRestrictions"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "heightRestrictions"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "obstacles"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "speedLimitUnit"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "defaultPreference"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "defaultMode"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "additionalFlags"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration$DefaultCrs"
+        ],
+        "name": "defaultCrs"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "coordinatePrecision"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Double"
+        ],
+        "name": "elevationProfileSimplificationTolerance"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.routes.domain.HtmlForm"
+        ],
+        "name": "html"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.projections.app.ProjectionsConfiguration$Builder",
+    "name": "de.ii.ogcapi.routes.domain.RoutingConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10638,7 +10005,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.sorting.domain.SortingConfiguration",
+    "name": "de.ii.ogcapi.pubsub.app.PubSubConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10650,7 +10017,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.sorting.domain.ImmutableSortingConfiguration",
+    "name": "de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10665,20 +10032,213 @@
       },
       {
         "parameterTypes": [],
-        "name": "getIncluded"
+        "name": "getBrokers"
       },
       {
         "parameterTypes": [],
-        "name": "getExcluded"
+        "name": "getPublisher"
       },
       {
         "parameterTypes": [],
-        "name": "getPathSeparator"
+        "name": "getPublications"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.sorting.domain.ImmutableSortingConfiguration$Builder",
+    "name": "de.ii.ogcapi.pubsub.app.Broker",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.ImmutableBroker",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getHost"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPort"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getSsl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUsername"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getPassword"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.ImmutableBroker$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "host"
+      },
+      {
+        "parameterTypes": [
+          "int"
+        ],
+        "name": "port"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "ssl"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "username"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "password"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.Publication",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.ImmutablePublication",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBroker"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getParameters"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getProperty"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMqttQos"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTimeout"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getRetain"
+      }
+    ]
+  },
+  {
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "shadow.com.hivemq.client.mqtt.datatypes.MqttQos"
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.ImmutablePublication$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.String"
+        ],
+        "name": "broker"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Map"
+        ],
+        "name": "parameters"
+      },
+      {
+        "parameterTypes": [
+          "java.util.Optional"
+        ],
+        "name": "property"
+      },
+      {
+        "parameterTypes": [
+          "com.hivemq.client.mqtt.datatypes.MqttQos"
+        ],
+        "name": "mqttQos"
+      },
+      {
+        "parameterTypes": [
+          "int"
+        ],
+        "name": "timeout"
+      },
+      {
+        "parameterTypes": [
+          "boolean"
+        ],
+        "name": "retain"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10699,26 +10259,26 @@
       },
       {
         "parameterTypes": [
-          "java.lang.Iterable"
+          "java.util.Map"
         ],
-        "name": "included"
+        "name": "brokers"
       },
       {
         "parameterTypes": [
-          "java.lang.Iterable"
+          "java.lang.String"
         ],
-        "name": "excluded"
+        "name": "publisher"
       },
       {
         "parameterTypes": [
-          "de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration$PathSeparator"
+          "java.util.Map"
         ],
-        "name": "pathSeparator"
+        "name": "publications"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.sorting.domain.SortingConfiguration$Builder",
+    "name": "de.ii.ogcapi.pubsub.app.PubSubConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -10801,6 +10361,414 @@
   },
   {
     "name": "de.ii.ogcapi.crud.app.CrudConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.features.search.domain.SearchConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBuildingBlock"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCaching"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getManagerEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getValidationEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAllLinksAreLocal"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.foundation.domain.Caching"
+        ],
+        "name": "caching"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "managerEnabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "validationEnabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "allLinksAreLocal"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.features.search.domain.SearchConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.StylesConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBuildingBlock"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCaching"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getStyleEncodings"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getManagerEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getValidationEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUseIdFromStylesheet"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getDeriveCollectionStyles"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getWebmapWithPopup"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getWebmapWithLayerControl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getLayerControlAllLayers"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAddBoundsToVectorSource"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getLegendEnabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.foundation.domain.Caching"
+        ],
+        "name": "caching"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "styleEncodings"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "managerEnabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "validationEnabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "useIdFromStylesheet"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "deriveCollectionStyles"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "webmapWithPopup"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "webmapWithLayerControl"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "layerControlAllLayers"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "addBoundsToVectorSource"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "legendEnabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.StylesConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.collections.schema.domain.SchemaConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.collections.schema.domain.ImmutableSchemaConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBuildingBlock"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCaching"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.collections.schema.domain.ImmutableSchemaConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      },
+      {
+        "parameterTypes": [
+          "de.ii.ogcapi.foundation.domain.Caching"
+        ],
+        "name": "caching"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.collections.schema.domain.SchemaConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.geometry.simplification.app.GeometrySimplificationConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.geometry.simplification.app.ImmutableGeometrySimplificationConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBuildingBlock"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.geometry.simplification.app.ImmutableGeometrySimplificationConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.geometry.simplification.app.GeometrySimplificationConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -11014,7 +10982,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.features.search.domain.SearchConfiguration",
+    "name": "de.ii.ogcapi.text.search.domain.TextSearchConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -11026,7 +10994,7 @@
     ]
   },
   {
-    "name": "de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration",
+    "name": "de.ii.ogcapi.text.search.domain.ImmutableTextSearchConfiguration",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -11041,24 +11009,12 @@
       },
       {
         "parameterTypes": [],
-        "name": "getCaching"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getManagerEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getValidationEnabled"
-      },
-      {
-        "parameterTypes": [],
-        "name": "getAllLinksAreLocal"
+        "name": "getProperties"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration$Builder",
+    "name": "de.ii.ogcapi.text.search.domain.ImmutableTextSearchConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -11079,32 +11035,76 @@
       },
       {
         "parameterTypes": [
-          "de.ii.ogcapi.foundation.domain.Caching"
+          "java.lang.Iterable"
         ],
-        "name": "caching"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "managerEnabled"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "validationEnabled"
-      },
-      {
-        "parameterTypes": [
-          "java.lang.Boolean"
-        ],
-        "name": "allLinksAreLocal"
+        "name": "properties"
       }
     ]
   },
   {
-    "name": "de.ii.ogcapi.features.search.domain.SearchConfiguration$Builder",
+    "name": "de.ii.ogcapi.text.search.domain.TextSearchConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.projections.app.ProjectionsConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getBuildingBlock"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEnabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration$Builder",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      },
+      {
+        "parameterTypes": [],
+        "name": "build"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "enabled"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.projections.app.ProjectionsConfiguration$Builder",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
@@ -12186,15 +12186,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Long",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Long"
   },
   {
     "name": "de.ii.ogcapi.foundation.domain.ImmutableTemporalExtent$Builder",
@@ -12325,15 +12325,15 @@
     ]
   },
   {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.util.Set",
     "methods": [
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"
       }
-    ]
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.util.Set"
   },
   {
     "name": "de.ii.ogcapi.foundation.domain.ApiSecurity$ScopeGranularity",
@@ -13060,6 +13060,345 @@
     ]
   },
   {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleVideoSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleVideoSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUrl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCoordinates"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleVectorSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleVectorSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUrl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTiles"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getBounds"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getScheme"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMinzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMaxzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAttribution"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleSource$Scheme",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ],
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "name": "java.lang.Number"
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleRasterSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleRasterSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUrl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTiles"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getBounds"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getScheme"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTileSize"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMinzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMaxzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAttribution"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleGeojsonSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleGeojsonSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getData"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMaxzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAttribution"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getBuffer"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTolerance"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCluster"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getClusterRadius"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getClusterMaxZoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getClusterMinPoints"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getClusterProperties"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getFilter"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getLineMetrics"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getGenerateId"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleRasterDemSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleRasterDemSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUrl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTiles"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getBounds"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getTileSize"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMinzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMaxzoom"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getAttribution"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getEncoding"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleRasterDemSource$Encoding",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.MbStyleImageSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "\u003cinit\u003e"
+      }
+    ]
+  },
+  {
+    "name": "de.ii.ogcapi.styles.domain.ImmutableMbStyleImageSource",
+    "allDeclaredFields": true,
+    "queryAllDeclaredMethods": true,
+    "queryAllDeclaredConstructors": true,
+    "methods": [
+      {
+        "parameterTypes": [],
+        "name": "getType"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getUrl"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getCoordinates"
+      }
+    ]
+  },
+  {
     "name": "de.ii.ogcapi.styles.domain.MbStyleTransition",
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
@@ -13152,17 +13491,6 @@
     "allDeclaredFields": true,
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
-    "methods": [
-      {
-        "parameterTypes": [],
-        "name": "\u003cinit\u003e"
-      }
-    ]
-  },
-  {
-    "queryAllDeclaredMethods": true,
-    "queryAllDeclaredConstructors": true,
-    "name": "java.lang.Number",
     "methods": [
       {
         "parameterTypes": [],

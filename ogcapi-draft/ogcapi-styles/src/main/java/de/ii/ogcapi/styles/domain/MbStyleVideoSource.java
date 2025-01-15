@@ -14,12 +14,13 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true)
 @JsonDeserialize(as = ImmutableMbStyleVideoSource.class)
-public abstract class MbStyleVideoSource extends MbStyleSource {
-  public final String getType() {
+public interface MbStyleVideoSource extends MbStyleSource {
+  @Value.Derived
+  default String getType() {
     return "video";
   }
 
-  public abstract String getUrl();
+  String getUrl();
 
-  public abstract List<List<Double>> getCoordinates();
+  List<List<Double>> getCoordinates();
 }
