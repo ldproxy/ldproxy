@@ -14,38 +14,38 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true)
 @JsonDeserialize(as = ImmutableMbStyleGeojsonSource.class)
-public abstract class MbStyleGeojsonSource extends MbStyleSource {
-  public final String getType() {
+public interface MbStyleGeojsonSource extends MbStyleSource {
+  @Value.Derived
+  default String getType() {
     return "geojson";
   }
 
-  public abstract Optional<Object> getData();
+  Optional<Object> getData();
 
   @Value.Default
-  public Number getMaxzoom() {
+  default Number getMaxzoom() {
     return 18;
   }
 
-  public abstract Optional<String> getAttribution();
+  Optional<String> getAttribution();
 
-  public abstract Optional<Integer> getBuffer(); // { return Optional.of(128); }
+  Optional<Integer> getBuffer(); // { return Optional.of(128); }
 
-  public abstract Optional<Double> getTolerance(); // { return Optional.of(0.375); }
+  Optional<Double> getTolerance(); // { return Optional.of(0.375); }
 
-  public abstract Optional<Boolean> getCluster(); // { return Optional.of(false); }
+  Optional<Boolean> getCluster(); // { return Optional.of(false); }
 
-  public abstract Optional<Integer> getClusterRadius(); // { return Optional.of(50); }
+  Optional<Integer> getClusterRadius(); // { return Optional.of(50); }
 
-  public abstract Optional<Integer>
-      getClusterMaxZoom(); // { return Optional.of(Integer.valueOf(getMaxzoom()-1)); }
+  Optional<Integer> getClusterMaxZoom(); // { return Optional.of(Integer.valueOf(getMaxzoom()-1)); }
 
-  public abstract Optional<Integer> getClusterMinPoints(); // { return Optional.of(2); }
+  Optional<Integer> getClusterMinPoints(); // { return Optional.of(2); }
 
-  public abstract Optional<Object> getClusterProperties();
+  Optional<Object> getClusterProperties();
 
-  public abstract Optional<Object> getFilter(); // { return Optional.empty(); }
+  Optional<Object> getFilter(); // { return Optional.empty(); }
 
-  public abstract Optional<Boolean> getLineMetrics(); // { return Optional.of(false); }
+  Optional<Boolean> getLineMetrics(); // { return Optional.of(false); }
 
-  public abstract Optional<Boolean> getGenerateId(); // { return Optional.of(false); }
+  Optional<Boolean> getGenerateId(); // { return Optional.of(false); }
 }

@@ -15,28 +15,30 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true)
 @JsonDeserialize(as = ImmutableMbStyleRasterSource.class)
-public abstract class MbStyleRasterSource extends MbStyleSource {
-  public final String getType() {
+public interface MbStyleRasterSource extends MbStyleSource {
+
+  @Value.Derived
+  default String getType() {
     return "raster";
   }
 
-  public abstract Optional<String> getUrl();
+  Optional<String> getUrl();
 
-  public abstract Optional<List<String>> getTiles();
+  Optional<List<String>> getTiles();
 
-  public abstract Optional<List<Double>>
+  Optional<List<Double>>
       getBounds(); // { return Optional.of(ImmutableList.of(-180.0,-85.051129,180.0,85.051129)); }
 
   @Value.Default
-  public Scheme getScheme() {
+  default Scheme getScheme() {
     return Scheme.xyz;
   }
 
-  public abstract Optional<Integer> getTileSize(); // { return Optional.of(512); }
+  Optional<Integer> getTileSize(); // { return Optional.of(512); }
 
-  public abstract Optional<Number> getMinzoom(); // { return Optional.of(0); }
+  Optional<Number> getMinzoom(); // { return Optional.of(0); }
 
-  public abstract Optional<Number> getMaxzoom(); // { return Optional.of(22); }
+  Optional<Number> getMaxzoom(); // { return Optional.of(22); }
 
-  public abstract Optional<String> getAttribution();
+  Optional<String> getAttribution();
 }

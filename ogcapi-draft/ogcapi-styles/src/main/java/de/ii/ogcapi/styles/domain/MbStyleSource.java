@@ -22,8 +22,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = MbStyleImageSource.class, name = "image"),
   @JsonSubTypes.Type(value = MbStyleVideoSource.class, name = "video")
 })
-public abstract class MbStyleSource {
-  public enum Scheme {
+public interface MbStyleSource {
+  enum Scheme {
     xyz,
     tms
   }
