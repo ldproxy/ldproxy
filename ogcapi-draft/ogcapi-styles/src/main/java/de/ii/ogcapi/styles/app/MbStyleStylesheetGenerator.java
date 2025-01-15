@@ -18,11 +18,9 @@ import de.ii.xtraplatform.entities.domain.EntityDataStore;
 import de.ii.xtraplatform.values.domain.AutoValueFactory;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class MbStyleStylesheetGenerator
     implements AutoValueFactory<MbStyleStylesheet, String, Map<String, String>> {
@@ -37,34 +35,26 @@ public class MbStyleStylesheetGenerator
     return Map.of();
   }
 
-  private Map<String, String> usedColors = new HashMap<>();
+  private int colorIndex = 0;
 
   private String generateColorForCollection(String collectionName) {
     List<String> mapboxColors =
         Arrays.asList(
-            "#3bb2d0", // Mapbox Maximum Blue
             "#3887be", // Mapbox Cyan-Blue Azure
-            "#8a8acb", // Ube
             "#56b881", // Mapbox Emerald
             "#50667f", // Dark Electric Blue
             "#41afa5", // Mapbox Keppel
-            "#f9886c", // Mapbox Salmon
             "#e55e5e", // Fire Opal
+            "#8a8acb", // Ube
             "#ed6498", // Light Crimson
             "#fbb03b", // Mapbox Yellow Orange
-            "#142736", // Mapbox Yankees Blue
             "#28353d", // Mapbox Gunmetal
-            "#222b30" // Mapbox Charleston Green
+            "#f9886c", // Mapbox Salmon
+            "#3bb2d0" // Mapbox Maximum Blue
             );
 
-    Random random = new Random();
-    String color;
-
-    do {
-      color = mapboxColors.get(random.nextInt(mapboxColors.size()));
-    } while (usedColors.containsValue(color) && usedColors.size() < mapboxColors.size());
-
-    usedColors.put(collectionName, color);
+    String color = mapboxColors.get(colorIndex);
+    colorIndex = (colorIndex + 1) % mapboxColors.size();
 
     return color;
   }
