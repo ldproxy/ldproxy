@@ -279,6 +279,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                             (MbStyleStylesheet)
                                 new ImmutableMbStyleStylesheet.Builder()
                                     .from(this)
+                                    .center(this.getCenter().orElse(computeCenter(bbox)))
                                     .putSources(
                                         entry.getKey(),
                                         ImmutableMbStyleVectorSource.builder()
@@ -292,6 +293,12 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                             .build())
                                     .build()))
         .orElse(this);
+  }
+
+  private static List<Double> computeCenter(BoundingBox bbox) {
+    double centerX = (bbox.getXmin() + bbox.getXmax()) / 2;
+    double centerY = (bbox.getYmin() + bbox.getYmax()) / 2;
+    return ImmutableList.of(centerX, centerY);
   }
 
   @JsonIgnore

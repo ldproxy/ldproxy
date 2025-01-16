@@ -9,6 +9,7 @@ package de.ii.ogcapi.styles.app;
 
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleLayer;
+import de.ii.ogcapi.styles.domain.ImmutableMbStyleRasterSource;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleStylesheet.Builder;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleVectorSource;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
@@ -17,7 +18,6 @@ import de.ii.xtraplatform.entities.domain.EntityData;
 import de.ii.xtraplatform.entities.domain.EntityDataStore;
 import de.ii.xtraplatform.values.domain.AutoValueFactory;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,14 +85,29 @@ public class MbStyleStylesheetGenerator
 
   @Override
   public MbStyleStylesheet generate(String apiId, Map<String, String> collectionColors) {
-    Builder style = new Builder().version(8);
+    Builder style = new Builder().version(8).zoom(12);
+
+    // add base map
+    style.putSources(
+        "osm",
+        ImmutableMbStyleRasterSource.builder()
+            .tiles(
+                List.of(
+                    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"))
+            .attribution(
+                "&copy; <a href=\"http://osm.org/copyright\">OpenStreetMap</a> contributors")
+            .build());
+
+    style.addLayers(
+        ImmutableMbStyleLayer.builder().id("basemap").type(LayerType.raster).source("osm").build());
 
     // add source for api
     style.putSources(
         apiId,
         ImmutableMbStyleVectorSource.builder()
-            .tiles(
-                Collections.singletonList("{serviceUrl}/tiles/WebMercatorQuad/{z}/{y}/{x}?f=mvt"))
+            .tiles(List.of("{serviceUrl}/tiles/WebMercatorQuad/{z}/{y}/{x}?f=mvt"))
             .build());
 
     // iterate over each collection
@@ -103,28 +118,31 @@ public class MbStyleStylesheetGenerator
           ImmutableMbStyleLayer.builder()
               .id(collectionName + ".fill")
               .type(LayerType.fill)
-              .source(collectionName)
-              .sourceLayer(apiId)
+              .source(apiId)
+              .sourceLayer(collectionName)
               .putPaint("fill-color", color)
+              .filter(List.of("==", List.of("geometry-type"), "Polygon"))
               .build(),
           ImmutableMbStyleLayer.builder()
               .id(collectionName + ".line")
               .type(LayerType.line)
-              .source(collectionName)
-              .sourceLayer(apiId)
+              .source(apiId)
+              .sourceLayer(collectionName)
               .putPaint("line-color", color)
               .putPaint("line-width", 2)
+              .filter(List.of("==", List.of("geometry-type"), "LineString"))
               .build(),
           ImmutableMbStyleLayer.builder()
               .id(collectionName + ".circle")
               .type(LayerType.circle)
-              .source(collectionName)
-              .sourceLayer(apiId)
+              .source(apiId)
+              .sourceLayer(collectionName)
               .putPaint("circle-radius", 3)
               .putPaint("circle-opacity", 0.5)
               .putPaint("circle-stroke-color", color)
               .putPaint("circle-stroke-width", 1)
               .putPaint("circle-color", color)
+              .filter(List.of("==", List.of("geometry-type"), "Point"))
               .build());
     }
 
