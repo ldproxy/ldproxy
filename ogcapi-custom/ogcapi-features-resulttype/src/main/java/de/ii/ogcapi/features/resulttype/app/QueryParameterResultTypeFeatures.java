@@ -9,8 +9,8 @@ package de.ii.ogcapi.features.resulttype.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.resulttype.domain.ResultTypeConfiguration;
 import de.ii.ogcapi.foundation.domain.EnumSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -140,7 +140,7 @@ public class QueryParameterResultTypeFeatures extends OgcApiQueryParameterBase
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return FeaturesCoreConfiguration.class;
+    return ResultTypeConfiguration.class;
   }
 
   @Override
