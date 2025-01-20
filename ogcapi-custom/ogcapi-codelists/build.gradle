@@ -1,6 +1,6 @@
 
 maturity = 'PROPOSAL'
-maintenance = 'NONE'
+maintenance = 'LOW'
 description = 'Publish codelists associated with feature properties.'
 descriptionDe = 'Veröffentlichung von Codelisten, die mit Feature-Eigenschaften verbunden sind.'
 
