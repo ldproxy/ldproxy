@@ -1,6 +1,6 @@
 
 maturity = 'PROPOSAL'
-maintenance = 'NONE'
+maintenance = 'LOW'
 description = 'Only return the number of features matched by a request.'
 descriptionDe = 'Rückgabe ohne Features, nur mit der Anzahl der Features, die von der Anfrage selektiert werden.'
 
