@@ -8,14 +8,14 @@ The following published standards and drafts of future standards for geospatial 
 
 * [OGC API - Features - Part 1: Core, Version 1.0.1](https://docs.ogc.org/is/17-069r4/17-069r4.html)
 * [OGC API - Features - Part 2: Coordinate Reference Systems by Reference 1.0.1](https://docs.ogc.org/is/18-058r1/18-058r1.html)
-* [OGC API - Features - Part 3: Filtering, draft](https://docs.ogc.org/DRAFTS/19-079r2.html)
+* [OGC API - Features - Part 3: Filtering, 1.0.0](https://docs.ogc.org/is/19-079r2/19-079r2.html)
 * [OGC API - Features - Part 4: Create, Replace, Update and Delete, draft](https://docs.ogc.org/DRAFTS/20-002r1.html)
 * [OGC API - Features - Part 5: Schemas, draft](https://docs.ogc.org/DRAFTS/23-058r1.html)
 * [OGC API - Tiles - Part 1: Core, Version 1.0.0](https://docs.ogc.org/is/20-057/20-057.html)
 * [OGC API - Styles, draft](https://docs.ogc.org/DRAFTS/20-009.html)
 * [OGC API - Routes - Part 1: Core, draft](https://docs.ogc.org/DRAFTS/21-000.html)
 * [OGC API - 3D GeoVolumes, draft](https://github.com/opengeospatial/ogcapi-3d-geovolumes)
-* [Common Query Language (CQL2), draft](https://docs.ogc.org/DRAFTS/21-065r1.html)
+* [Common Query Language (CQL2), 1.0.0](https://docs.ogc.org/is/21-065r2/21-065r2.html)
 
 The functionality implemented in lproxy will in general differ from the current draft specifications since the drafts are changing.
 
