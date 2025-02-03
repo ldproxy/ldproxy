@@ -8,7 +8,6 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
-import de.ii.ogcapi.features.core.domain.ImmutableProfileTransformations.Builder;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -18,6 +17,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
+import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.HashSet;
 import java.util.List;
@@ -147,7 +148,7 @@ public abstract class FeatureFormatExtension implements FormatExtension {
       return getPropertyTransformations(collectionData);
     }
 
-    Builder builder = new Builder();
+    ImmutableProfileTransformations.Builder builder = new ImmutableProfileTransformations.Builder();
 
     List<ProfileExtensionFeatures> profileExtensions =
         extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class);

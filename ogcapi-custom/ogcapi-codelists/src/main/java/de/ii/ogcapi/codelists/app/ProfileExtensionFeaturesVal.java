@@ -7,16 +7,19 @@
  */
 package de.ii.ogcapi.codelists.app;
 
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetVal.AS_CODE;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetVal.AS_TITLE;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetVal.mapToTitle;
+
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableProfileTransformations.Builder;
 import de.ii.ogcapi.features.core.domain.ProfileExtensionFeatures;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
+import de.ii.xtraplatform.features.domain.profile.ProfileSet;
+import de.ii.xtraplatform.features.domain.profile.ProfileSetVal;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,14 +28,13 @@ import javax.inject.Singleton;
 @AutoBind
 public class ProfileExtensionFeaturesVal extends ProfileExtensionFeatures {
 
-  public static final String VAL = "val";
-  public static final String AS_CODE = "val-as-code";
-  public static final String AS_TITLE = "val-as-title";
+  private final ProfileSet profileSet;
 
   @Inject
   public ProfileExtensionFeaturesVal(
       ExtensionRegistry extensionRegistry, FeaturesCoreProviders providers) {
     super(extensionRegistry, providers);
+    profileSet = new ProfileSetVal();
   }
 
   @Override
@@ -47,12 +49,12 @@ public class ProfileExtensionFeaturesVal extends ProfileExtensionFeatures {
 
   @Override
   public String getPrefix() {
-    return VAL;
+    return profileSet.getPrefix();
   }
 
   @Override
   public List<String> getValues() {
-    return List.of(AS_CODE, AS_TITLE);
+    return profileSet.getValues();
   }
 
   @Override
@@ -71,7 +73,10 @@ public class ProfileExtensionFeaturesVal extends ProfileExtensionFeatures {
 
   @Override
   public void addPropertyTransformations(
-      String value, FeatureSchema schema, String mediaType, Builder builder) {
+      String value,
+      FeatureSchema schema,
+      String mediaType,
+      ImmutableProfileTransformations.Builder builder) {
     if (!getValues().contains(value)) {
       return;
     }
@@ -97,28 +102,8 @@ public class ProfileExtensionFeaturesVal extends ProfileExtensionFeatures {
             collectionData ->
                 providers
                     .getFeatureSchema(apiData, collectionData)
-                    .map(
-                        schema ->
-                            schema.getAllNestedProperties().stream()
-                                .anyMatch(
-                                    p ->
-                                        p.getConstraints()
-                                            .flatMap(SchemaConstraints::getCodelist)
-                                            .isPresent()))
+                    .map(ProfileSetVal::usesCodedValue)
                     .orElse(false))
         .orElse(false);
-  }
-
-  static void mapToTitle(FeatureSchema property, Builder builder) {
-    property
-        .getConstraints()
-        .flatMap(SchemaConstraints::getCodelist)
-        .ifPresent(
-            codelist -> {
-              builder.putTransformations(
-                  property.getFullPathAsString(),
-                  ImmutableList.of(
-                      new ImmutablePropertyTransformation.Builder().codelist(codelist).build()));
-            });
   }
 }

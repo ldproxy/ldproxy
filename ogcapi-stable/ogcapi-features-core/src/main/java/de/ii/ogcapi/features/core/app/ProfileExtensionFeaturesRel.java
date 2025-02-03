@@ -7,20 +7,25 @@
  */
 package de.ii.ogcapi.features.core.app;
 
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.AS_KEY;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.AS_LINK;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.AS_URI;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.mapToLink;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.reduceToKey;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.reduceToLink;
+import static de.ii.xtraplatform.features.domain.profile.ProfileSetRel.reduceToUri;
+
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableProfileTransformations.Builder;
 import de.ii.ogcapi.features.core.domain.ProfileExtensionFeatures;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.features.domain.transform.FeatureRefResolver;
-import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
+import de.ii.xtraplatform.features.domain.profile.ProfileSet;
+import de.ii.xtraplatform.features.domain.profile.ProfileSetRel;
 import java.util.List;
-import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
@@ -29,28 +34,13 @@ import javax.ws.rs.core.MediaType;
 @AutoBind
 public class ProfileExtensionFeaturesRel extends ProfileExtensionFeatures {
 
-  public static final String REL = "rel";
-  public static final String AS_KEY = "rel-as-key";
-  public static final String AS_URI = "rel-as-uri";
-  public static final String AS_LINK = "rel-as-link";
-
-  private static final String URI_TEMPLATE =
-      String.format(
-          "{{%s | orElse:'{{apiUri}}/collections/%s/items/%s'}}",
-          FeatureRefResolver.URI_TEMPLATE, FeatureRefResolver.SUB_TYPE, FeatureRefResolver.SUB_ID);
-
-  private static final String KEY_TEMPLATE =
-      String.format(
-          "{{%s | orElse:'%s::%s'}}",
-          FeatureRefResolver.KEY_TEMPLATE, FeatureRefResolver.SUB_TYPE, FeatureRefResolver.SUB_ID);
-
-  private static final String HTML_LINK_TEMPLATE =
-      String.format("<a href=\"%s\">%s</a>", URI_TEMPLATE, FeatureRefResolver.SUB_TITLE);
+  private final ProfileSet profileSet;
 
   @Inject
   public ProfileExtensionFeaturesRel(
       ExtensionRegistry extensionRegistry, FeaturesCoreProviders providers) {
     super(extensionRegistry, providers);
+    profileSet = new ProfileSetRel();
   }
 
   @Override
@@ -65,12 +55,12 @@ public class ProfileExtensionFeaturesRel extends ProfileExtensionFeatures {
 
   @Override
   public String getPrefix() {
-    return REL;
+    return profileSet.getPrefix();
   }
 
   @Override
   public List<String> getValues() {
-    return List.of(AS_KEY, AS_URI, AS_LINK);
+    return profileSet.getValues();
   }
 
   @Override
@@ -140,62 +130,7 @@ public class ProfileExtensionFeaturesRel extends ProfileExtensionFeatures {
             collectionData ->
                 providers
                     .getFeatureSchema(apiData, collectionData)
-                    .map(
-                        schema ->
-                            schema.getAllNestedProperties().stream()
-                                .anyMatch(SchemaBase::isFeatureRef)))
+                    .map(ProfileSetRel::usesFeatureRef))
         .orElse(false);
-  }
-
-  static void reduceToKey(FeatureSchema property, Builder builder) {
-    builder.putTransformations(
-        property.getFullPathAsString(),
-        ImmutableList.of(
-            property
-                        .getRefType()
-                        .filter(
-                            refType ->
-                                !Objects.equals(refType, FeatureRefResolver.REF_TYPE_DYNAMIC))
-                        .isPresent()
-                    && property.getRefKeyTemplate().isEmpty()
-                ? new ImmutablePropertyTransformation.Builder()
-                    .objectRemoveSelect(FeatureRefResolver.ID)
-                    .objectReduceSelect(FeatureRefResolver.ID)
-                    .build()
-                : new ImmutablePropertyTransformation.Builder()
-                    .objectRemoveSelect(FeatureRefResolver.ID)
-                    .objectReduceFormat(KEY_TEMPLATE)
-                    .build()));
-  }
-
-  static void reduceToUri(FeatureSchema property, Builder builder) {
-    builder.putTransformations(
-        property.getFullPathAsString(),
-        ImmutableList.of(
-            new ImmutablePropertyTransformation.Builder()
-                .objectRemoveSelect(FeatureRefResolver.ID)
-                .objectReduceFormat(URI_TEMPLATE)
-                .build()));
-  }
-
-  static void mapToLink(FeatureSchema property, Builder builder) {
-    builder.putTransformations(
-        property.getFullPathAsString(),
-        ImmutableList.of(
-            new ImmutablePropertyTransformation.Builder()
-                .objectRemoveSelect(FeatureRefResolver.ID)
-                .objectMapFormat(
-                    ImmutableMap.of("title", FeatureRefResolver.SUB_TITLE, "href", URI_TEMPLATE))
-                .build()));
-  }
-
-  static void reduceToLink(FeatureSchema property, Builder builder) {
-    builder.putTransformations(
-        property.getFullPathAsString(),
-        ImmutableList.of(
-            new ImmutablePropertyTransformation.Builder()
-                .objectRemoveSelect(FeatureRefResolver.ID)
-                .objectReduceFormat(HTML_LINK_TEMPLATE)
-                .build()));
   }
 }
