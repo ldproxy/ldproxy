@@ -10,6 +10,7 @@ package de.ii.ogcapi.pubsub.app;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -44,6 +45,8 @@ import org.immutables.value.Value;
  * </code>
  */
 @Value.Immutable
+@Value.Style(builder = "new")
+@JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "PUB_SUB")
 @JsonDeserialize(builder = ImmutablePubSubConfiguration.Builder.class)
 public interface PubSubConfiguration extends ExtensionConfiguration {
 
@@ -84,7 +87,7 @@ public interface PubSubConfiguration extends ExtensionConfiguration {
 
   @Override
   default Builder getBuilder() {
-    return ImmutablePubSubConfiguration.builder();
+    return new ImmutablePubSubConfiguration.Builder();
   }
 
   static Set<String> getBrokersInUse(OgcApiDataV2 apiData) {

@@ -26,6 +26,7 @@ import de.ii.ogcapi.features.gltf.app.JacksonSubTypeIdsGltf;
 import de.ii.ogcapi.features.gml.app.JacksonSubTypeIdsGml;
 import de.ii.ogcapi.features.html.app.JacksonSubTypeIdsFeaturesHtml;
 import de.ii.ogcapi.features.jsonfg.app.JacksonSubTypeIdsJsonFg;
+import de.ii.ogcapi.features.resulttype.app.JacksonSubTypeIdsResultType;
 import de.ii.ogcapi.features.search.app.JacksonSubTypeIdsSearch;
 import de.ii.ogcapi.filter.domain.JacksonSubTypeIdsFilter;
 import de.ii.ogcapi.foundation.domain.JacksonSubTypeIdsFoundation;
@@ -34,6 +35,7 @@ import de.ii.ogcapi.html.app.JacksonSubTypeIdsHtml;
 import de.ii.ogcapi.json.app.JacksonSubTypeIdsJson;
 import de.ii.ogcapi.oas30.app.JacksonSubTypeIdsOas30;
 import de.ii.ogcapi.projections.app.JacksonSubTypeIdsProjections;
+import de.ii.ogcapi.pubsub.app.JacksonSubTypeIdsPubSub;
 import de.ii.ogcapi.resources.app.JacksonSubTypeIdsResources;
 import de.ii.ogcapi.routes.app.JacksonSubTypeIdsRouting;
 import de.ii.ogcapi.sorting.app.JacksonSubTypeIdsSorting;
@@ -78,8 +80,10 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsOgcApiCollections())
         .add(new JacksonSubTypeIdsOgcApiCommon())
         .add(new JacksonSubTypeIdsProjections())
+        .add(new JacksonSubTypeIdsPubSub())
         .add(new JacksonSubTypeIdsQueryables())
         .add(new JacksonSubTypeIdsResources())
+        .add(new JacksonSubTypeIdsResultType())
         .add(new JacksonSubTypeIdsRouting())
         .add(new JacksonSubTypeIdsSchema())
         .add(new JacksonSubTypeIdsSearch())

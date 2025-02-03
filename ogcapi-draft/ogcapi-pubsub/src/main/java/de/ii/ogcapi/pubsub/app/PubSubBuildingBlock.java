@@ -216,7 +216,7 @@ public class PubSubBuildingBlock
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return ImmutablePubSubConfiguration.builder().enabled(false).publisher("ldproxy").build();
+    return new ImmutablePubSubConfiguration.Builder().enabled(false).publisher("ldproxy").build();
   }
 
   @Override

@@ -27,6 +27,7 @@ import de.ii.ogcapi.features.gltf.app.GltfBuildingBlock;
 import de.ii.ogcapi.features.gml.app.GmlBuildingBlock;
 import de.ii.ogcapi.features.html.app.FeaturesHtmlBuildingBlock;
 import de.ii.ogcapi.features.jsonfg.app.JsonFgBuildingBlock;
+import de.ii.ogcapi.features.resulttype.app.ResultTypeBuildingBlock;
 import de.ii.ogcapi.features.search.app.SearchBuildingBlock;
 import de.ii.ogcapi.filter.app.FilterBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ApiExtension;
@@ -37,6 +38,7 @@ import de.ii.ogcapi.html.app.HtmlBuildingBlock;
 import de.ii.ogcapi.json.app.JsonBuildingBlock;
 import de.ii.ogcapi.oas30.app.OpenApiBuildingBlock;
 import de.ii.ogcapi.projections.app.ProjectionsBuildingBlock;
+import de.ii.ogcapi.pubsub.app.PubSubBuildingBlock;
 import de.ii.ogcapi.resources.app.ResourcesBuildingBlock;
 import de.ii.ogcapi.routes.app.RoutingBuildingBlock;
 import de.ii.ogcapi.sorting.app.SortingBuildingBlock;
@@ -81,8 +83,10 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new JsonFgBuildingBlock())
             .add(new OpenApiBuildingBlock())
             .add(new ProjectionsBuildingBlock())
+            .add(new PubSubBuildingBlock(this, null, null))
             .add(new QueryablesBuildingBlock(null, null))
             .add(new ResourcesBuildingBlock())
+            .add(new ResultTypeBuildingBlock())
             .add(new RoutingBuildingBlock())
             .add(new SchemaBuildingBlock())
             .add(new SearchBuildingBlock())
