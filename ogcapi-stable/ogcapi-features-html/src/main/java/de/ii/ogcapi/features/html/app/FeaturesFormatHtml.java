@@ -60,11 +60,8 @@ import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.web.domain.MustacheRenderer;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -429,17 +426,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                             mapClientType,
                             cfg.getDefaultStyle()))
                 .orElse(null));
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl.get());
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
 
@@ -468,7 +454,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
-        .setStyle(style)
+        .setAdditionalStyleUrl(mapClientType == Type.CESIUM ? styleUrl : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setPropertyTooltips(propertyTooltips)
@@ -562,17 +548,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                     serviceUrl,
                     mapClientType,
                     cfg.getDefaultStyle()));
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl.get());
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
 
@@ -604,7 +579,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
-        .setStyle(style)
+        .setAdditionalStyleUrl(mapClientType == Type.CESIUM ? styleUrl : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setPropertyTooltips(propertyTooltips)
@@ -683,17 +658,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                         mapClientType,
                         cfg.getDefaultStyle()))
             .orElse(null);
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && Objects.nonNull(styleUrl)) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl);
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
     URICustomizer resourceUri = uriCustomizer.copy().clearParameters();
@@ -718,7 +682,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapClientType(mapClientType)
         .setPropertyTooltips(propertyTooltips)
         .setStyleUrl(styleUrl)
-        .setStyle(style)
+        .setAdditionalStyleUrl(
+            mapClientType == Type.CESIUM ? Optional.ofNullable(styleUrl) : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setUriCustomizer(uriCustomizer)
