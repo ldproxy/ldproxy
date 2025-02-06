@@ -41,6 +41,7 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
@@ -97,6 +98,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
   private final URI servicesUri;
   private final MustacheRenderer mustacheRenderer;
   private final HttpClient httpClient;
+  private final StyleReader styleReader;
 
   @Inject
   public FeaturesFormatHtml(
@@ -107,7 +109,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       FeaturesCoreProviders providers,
       FeaturesCoreValidation featuresCoreValidator,
       ServicesContext servicesContext,
-      Http http) {
+      Http http,
+      StyleReader styleReader) {
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.i18n = i18n;
@@ -115,6 +118,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     this.servicesUri = servicesContext.getUri();
     this.mustacheRenderer = mustacheRenderer;
     this.httpClient = http.getDefaultClient();
+    this.styleReader = styleReader;
   }
 
   @Override
@@ -417,11 +421,13 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
             htmlConfig
                 .map(
                     cfg ->
-                        cfg.getStyle(
+                        styleReader.getStyleUrl(
                             config.map(FeaturesHtmlConfiguration::getStyle),
                             Optional.of(featureType.getId()),
+                            apiData.getId(),
                             serviceUrl,
-                            mapClientType))
+                            mapClientType,
+                            cfg.getDefaultStyle()))
                 .orElse(null));
     Optional<String> style = Optional.empty();
     if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
@@ -549,11 +555,13 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     Optional<String> styleUrl =
         htmlConfig.map(
             cfg ->
-                cfg.getStyle(
+                styleReader.getStyleUrl(
                     config.map(FeaturesHtmlConfiguration::getStyle),
                     Optional.of(featureType.getId()),
+                    apiData.getId(),
                     serviceUrl,
-                    mapClientType));
+                    mapClientType,
+                    cfg.getDefaultStyle()));
     Optional<String> style = Optional.empty();
     if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
       // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
@@ -667,11 +675,13 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         htmlConfig
             .map(
                 cfg ->
-                    cfg.getStyle(
+                    styleReader.getStyleUrl(
                         config.map(FeaturesHtmlConfiguration::getStyle),
                         Optional.empty(),
+                        apiData.getId(),
                         serviceUrl,
-                        mapClientType))
+                        mapClientType,
+                        cfg.getDefaultStyle()))
             .orElse(null);
     Optional<String> style = Optional.empty();
     if (mapClientType == Type.CESIUM && Objects.nonNull(styleUrl)) {
