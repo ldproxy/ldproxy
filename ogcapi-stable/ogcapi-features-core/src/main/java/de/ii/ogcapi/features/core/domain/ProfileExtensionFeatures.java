@@ -7,11 +7,11 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
-import de.ii.ogcapi.features.core.domain.ImmutableProfileTransformations.Builder;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
@@ -59,5 +59,5 @@ public abstract class ProfileExtensionFeatures implements ProfileExtension {
       @NotNull String value,
       @NotNull FeatureSchema schema,
       @NotNull String mediaType,
-      @NotNull Builder builder);
+      @NotNull ImmutableProfileTransformations.Builder builder);
 }
