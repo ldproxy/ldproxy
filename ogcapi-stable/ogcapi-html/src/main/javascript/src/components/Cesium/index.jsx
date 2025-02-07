@@ -44,7 +44,7 @@ const Cesium = ({
   accessToken,
   tileset,
   terrainProvider,
-  style,
+  additionalStyleUrl,
 }) => {
   let viewer;
 
@@ -128,11 +128,19 @@ const Cesium = ({
     }
 
     Cesium3DTileset.fromUrl(url, options).then((tileset) => {
-      if (style) {
-        tileset.style = new Cesium3DTileStyle(style);
+      if (additionalStyleUrl) {
+        fetch(additionalStyleUrl)
+            .then((response) => response.json())
+            .then((style) => {
+              tileset.style = new Cesium3DTileStyle(style);
+              viewer.scene.primitives.add(tileset);
+              viewer.flyTo(tileset);
+            });
+      } else {
+        tileset.style = new Cesium3DTileStyle({});
+        viewer.scene.primitives.add(tileset);
+        viewer.flyTo(tileset);
       }
-      viewer.scene.primitives.add(tileset);
-      viewer.flyTo(tileset);
     });
   }
 };

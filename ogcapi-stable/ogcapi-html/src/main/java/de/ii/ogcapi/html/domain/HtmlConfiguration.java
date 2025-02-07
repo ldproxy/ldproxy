@@ -9,20 +9,9 @@ package de.ii.ogcapi.html.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
-import de.ii.ogcapi.html.domain.MapClient.Type;
-import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Objects;
-import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @buildingBlock HTML
@@ -174,7 +163,6 @@ import org.slf4j.LoggerFactory;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "HTML")
 @JsonDeserialize(builder = ImmutableHtmlConfiguration.Builder.class)
 public interface HtmlConfiguration extends ExtensionConfiguration {
-  Logger LOGGER = LoggerFactory.getLogger(HtmlConfiguration.class);
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
@@ -344,82 +332,5 @@ public interface HtmlConfiguration extends ExtensionConfiguration {
   @Override
   default Builder getBuilder() {
     return new ImmutableHtmlConfiguration.Builder();
-  }
-
-  default String getStyle(
-      Optional<String> requestedStyle,
-      Optional<String> collectionId,
-      String serviceUrl,
-      MapClient.Type mapClientType) {
-    String f =
-        mapClientType == Type.MAP_LIBRE ? "mbs" : mapClientType == Type.CESIUM ? "3dtiles" : null;
-    URL styleUrl = null;
-
-    if (Objects.nonNull(f)) {
-      styleUrl =
-          requestedStyle
-              .map(
-                  s ->
-                      s.equals("DEFAULT")
-                          ? Objects.requireNonNullElse(getDefaultStyle(), "NONE")
-                          : s)
-              .filter(s -> !s.equals("NONE"))
-              .map(
-                  s -> {
-                    try {
-                      URI serviceUri = new URI(serviceUrl);
-                      String path =
-                          collectionId.isEmpty()
-                              ? String.format("%s/styles/%s", serviceUri.getPath(), s)
-                              : String.format(
-                                  "%s/collections/%s/styles/%s",
-                                  serviceUri.getPath(), collectionId.get(), s);
-                      String query = String.format("f=%s", f);
-                      return new URI(
-                              serviceUri.getScheme(), serviceUri.getAuthority(), path, query, null)
-                          .toURL();
-                    } catch (URISyntaxException | MalformedURLException e) {
-                      return null;
-                    }
-                  })
-              .orElse(null);
-    }
-
-    // Check that the style exists
-    if (Objects.isNull(styleUrl)) {
-      return null;
-    }
-
-    // TODO we currently test for the availability of the style using a HTTP request to
-    //      avoid a dependency to STYLES. Once OGC API Styles is stable, we should consider to
-    //      separate the StyleRepository from the endpoints. The StyleRepository could be part
-    //      of FOUNDATION or its own module
-    try {
-      HttpURLConnection http = (HttpURLConnection) styleUrl.openConnection();
-      http.setRequestMethod("HEAD");
-      if (http.getResponseCode() == 404 && collectionId.isPresent()) {
-        // Try fallback to the dataset style, if we have a collection style
-        return getStyle(requestedStyle, Optional.empty(), serviceUrl, mapClientType);
-      } else if (http.getResponseCode() != 200) {
-        LOGGER.error(
-            "Could not access style '{}', falling back to style 'NONE'. Response code: '{}'. Message: {}",
-            styleUrl,
-            http.getResponseCode(),
-            http.getResponseMessage());
-        return null;
-      }
-      http.disconnect();
-    } catch (Exception e) {
-      LOGGER.error(
-          "Could not access style '{}', falling back to style 'NONE'. Reason: {}",
-          styleUrl,
-          e.getMessage());
-      if (LOGGER.isDebugEnabled(LogContext.MARKER.STACKTRACE)) {
-        LOGGER.debug(LogContext.MARKER.STACKTRACE, "Stacktrace: ", e);
-      }
-      return null;
-    }
-
-    return styleUrl.toString();
   }
 }

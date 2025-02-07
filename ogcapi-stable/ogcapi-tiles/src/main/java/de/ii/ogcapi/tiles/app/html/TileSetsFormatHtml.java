@@ -21,6 +21,7 @@ import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles.domain.TileSet.DataType;
 import de.ii.ogcapi.tiles.domain.TileSets;
 import de.ii.ogcapi.tiles.domain.TileSetsFormatExtension;
@@ -45,13 +46,18 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
   private final I18n i18n;
   private final URI servicesUri;
   private final TileMatrixSetRepository tileMatrixSetRepository;
+  private final StyleReader styleReader;
 
   @Inject
   public TileSetsFormatHtml(
-      I18n i18n, ServicesContext servicesContext, TileMatrixSetRepository tileMatrixSetRepository) {
+      I18n i18n,
+      ServicesContext servicesContext,
+      TileMatrixSetRepository tileMatrixSetRepository,
+      StyleReader styleReader) {
     this.i18n = i18n;
     this.servicesUri = servicesContext.getUri();
     this.tileMatrixSetRepository = tileMatrixSetRepository;
+    this.styleReader = styleReader;
   }
 
   @Override
@@ -272,11 +278,13 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
             ? htmlConfig
                 .map(
                     cfg ->
-                        cfg.getStyle(
+                        styleReader.getStyleUrl(
                             tilesConfig.map(TilesConfiguration::getStyle),
                             collectionId,
+                            api.getId(),
                             serviceUrl,
-                            mapClientType))
+                            mapClientType,
+                            cfg.getDefaultStyle()))
                 .orElse(null)
             : null;
     boolean removeZoomLevelConstraints =
