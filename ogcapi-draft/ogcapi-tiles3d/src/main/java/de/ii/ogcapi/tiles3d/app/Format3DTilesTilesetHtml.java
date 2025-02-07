@@ -19,8 +19,8 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import de.ii.ogcapi.styles.domain.StyleFormatExtension;
-import de.ii.ogcapi.styles.domain.StyleRepository;
+import de.ii.ogcapi.html.domain.MapClient;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tileset;
@@ -28,7 +28,6 @@ import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,13 +49,12 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
   private static final String SCHEMA_REF = "#/components/schemas/htmlSchema";
   private final Schema<?> schema;
   private final URI servicesUri;
-  private final StyleRepository styleRepository;
+  private final StyleReader styleReader;
 
   @Inject
-  public Format3DTilesTilesetHtml(
-      ServicesContext servicesContext, StyleRepository styleRepository) {
+  public Format3DTilesTilesetHtml(ServicesContext servicesContext, StyleReader styleReader) {
     this.servicesUri = servicesContext.getUri();
-    this.styleRepository = styleRepository;
+    this.styleReader = styleReader;
     this.schema = new StringSchema().example("<html>...</html>");
   }
 
@@ -108,36 +106,22 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
         api.getData().getExtension(Tiles3dConfiguration.class, collectionId).orElseThrow();
     HtmlConfiguration htmlConfig =
         api.getData().getExtension(HtmlConfiguration.class, collectionId).orElseThrow();
-    String styleId = tiles3dConfig.getStyle();
-    if (Objects.isNull(styleId) || "DEFAULT".equals(styleId)) {
-      styleId = htmlConfig.getDefaultStyle();
-    }
+    Optional<String> styleUrl =
+        Optional.ofNullable(
+            styleReader.getStyleUrl(
+                Optional.of(Objects.requireNonNullElse(tiles3dConfig.getStyle(), "DEFAULT")),
+                Optional.of(collectionId),
+                api.getData().getId(),
+                serviceUrl,
+                MapClient.Type.CESIUM,
+                htmlConfig.getDefaultStyle()));
 
-    Optional<StyleFormatExtension> format =
-        styleRepository
-            .getStyleFormatStream(api.getData(), Optional.ofNullable(collectionId))
-            .filter(f -> "3dtiles".equals(f.getFileExtension()))
-            .findFirst();
-    Optional<String> style =
-        Objects.isNull(styleId) || "NONE".equals(styleId) || format.isEmpty()
-            ? Optional.empty()
-            : Optional.of(
-                new String(
-                    styleRepository
-                        .getStylesheet(
-                            api.getData(),
-                            Optional.ofNullable(collectionId),
-                            styleId,
-                            format.get(),
-                            requestContext)
-                        .getContent(),
-                    StandardCharsets.UTF_8));
     return ImmutableTilesetView.builder()
         .apiData(api.getData())
         .collectionId(collectionId)
         .tileset(tileset)
         .urlPrefix(requestContext.getStaticUrlPrefix())
-        .style(style)
+        .additionalStyleUrl(styleUrl)
         .htmlConfig(htmlConfig)
         .rawLinks(links)
         .uriCustomizer(requestContext.getUriCustomizer().copy())

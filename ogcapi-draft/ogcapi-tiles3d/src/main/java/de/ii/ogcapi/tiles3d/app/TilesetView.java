@@ -48,7 +48,7 @@ public abstract class TilesetView extends OgcApiView {
     }
   }
 
-  public abstract Optional<String> style();
+  public abstract Optional<String> additionalStyleUrl();
 
   public abstract Optional<BoundingBox> spatialExtent();
 

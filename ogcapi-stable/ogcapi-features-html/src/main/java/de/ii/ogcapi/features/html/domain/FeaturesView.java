@@ -75,7 +75,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   @Nullable
   public abstract String styleUrl();
 
-  public abstract Optional<String> style();
+  public abstract Optional<String> additionalStyleUrl();
 
   public abstract boolean removeZoomLevelConstraints();
 

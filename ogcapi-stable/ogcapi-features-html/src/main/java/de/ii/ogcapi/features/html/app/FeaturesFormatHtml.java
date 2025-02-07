@@ -41,6 +41,7 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
@@ -59,11 +60,8 @@ import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.web.domain.MustacheRenderer;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -97,6 +95,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
   private final URI servicesUri;
   private final MustacheRenderer mustacheRenderer;
   private final HttpClient httpClient;
+  private final StyleReader styleReader;
 
   @Inject
   public FeaturesFormatHtml(
@@ -107,7 +106,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       FeaturesCoreProviders providers,
       FeaturesCoreValidation featuresCoreValidator,
       ServicesContext servicesContext,
-      Http http) {
+      Http http,
+      StyleReader styleReader) {
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.i18n = i18n;
@@ -115,6 +115,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     this.servicesUri = servicesContext.getUri();
     this.mustacheRenderer = mustacheRenderer;
     this.httpClient = http.getDefaultClient();
+    this.styleReader = styleReader;
   }
 
   @Override
@@ -417,23 +418,14 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
             htmlConfig
                 .map(
                     cfg ->
-                        cfg.getStyle(
+                        styleReader.getStyleUrl(
                             config.map(FeaturesHtmlConfiguration::getStyle),
                             Optional.of(featureType.getId()),
+                            apiData.getId(),
                             serviceUrl,
-                            mapClientType))
+                            mapClientType,
+                            cfg.getDefaultStyle()))
                 .orElse(null));
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl.get());
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
 
@@ -462,7 +454,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
-        .setStyle(style)
+        .setAdditionalStyleUrl(mapClientType == Type.CESIUM ? styleUrl : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setPropertyTooltips(propertyTooltips)
@@ -549,22 +541,13 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     Optional<String> styleUrl =
         htmlConfig.map(
             cfg ->
-                cfg.getStyle(
+                styleReader.getStyleUrl(
                     config.map(FeaturesHtmlConfiguration::getStyle),
                     Optional.of(featureType.getId()),
+                    apiData.getId(),
                     serviceUrl,
-                    mapClientType));
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && styleUrl.isPresent()) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl.get());
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
+                    mapClientType,
+                    cfg.getDefaultStyle()));
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
 
@@ -596,7 +579,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
-        .setStyle(style)
+        .setAdditionalStyleUrl(mapClientType == Type.CESIUM ? styleUrl : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setPropertyTooltips(propertyTooltips)
@@ -667,23 +650,14 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         htmlConfig
             .map(
                 cfg ->
-                    cfg.getStyle(
+                    styleReader.getStyleUrl(
                         config.map(FeaturesHtmlConfiguration::getStyle),
                         Optional.empty(),
+                        apiData.getId(),
                         serviceUrl,
-                        mapClientType))
+                        mapClientType,
+                        cfg.getDefaultStyle()))
             .orElse(null);
-    Optional<String> style = Optional.empty();
-    if (mapClientType == Type.CESIUM && Objects.nonNull(styleUrl)) {
-      // TODO we currently use a HTTP request to avoid a dependency to STYLES. Once the
-      //  StyleRepository is part of xtraplatform, access the style directly.
-      InputStream styleStream = httpClient.getAsInputStream(styleUrl);
-      try {
-        style = Optional.of(new String(styleStream.readAllBytes(), StandardCharsets.UTF_8));
-      } catch (IOException e) {
-        // ignore
-      }
-    }
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
     URICustomizer resourceUri = uriCustomizer.copy().clearParameters();
@@ -708,7 +682,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setMapClientType(mapClientType)
         .setPropertyTooltips(propertyTooltips)
         .setStyleUrl(styleUrl)
-        .setStyle(style)
+        .setAdditionalStyleUrl(
+            mapClientType == Type.CESIUM ? Optional.ofNullable(styleUrl) : Optional.empty())
         .setRemoveZoomLevelConstraints(removeZoomLevelConstraints)
         .setHideMap(hideMap)
         .setUriCustomizer(uriCustomizer)
