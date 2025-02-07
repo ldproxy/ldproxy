@@ -55,11 +55,9 @@ public interface StyleReader {
             .map(s -> s.equals("DEFAULT") ? Objects.requireNonNullElse(defaultStyle, "NONE") : s)
             .filter(s -> !s.equals("NONE"));
     StyleFormat f =
-        switch (mapClientType) {
-          case MAP_LIBRE -> StyleFormat.MBS;
-          case CESIUM -> StyleFormat._3DTILES;
-          default -> null;
-        };
+        (mapClientType == Type.MAP_LIBRE)
+            ? StyleFormat.MBS
+            : (mapClientType == Type.CESIUM) ? StyleFormat._3DTILES : null;
 
     if (styleId.isEmpty() || Objects.isNull(f)) {
       return null;
