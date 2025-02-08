@@ -1,7 +1,7 @@
 
 //TODO: move versions to catalog
 dependencies {
-    layers group: 'de.interactive_instruments', name: 'xtraplatform-core', version: '6.2.2'
+    layers group: 'de.interactive_instruments', name: 'xtraplatform-core', version: '6.2.3'
     layers group: 'de.interactive_instruments', name: 'xtraplatform-native', version: "2.4.0-${platform}"
-    layers group: 'de.interactive_instruments', name: 'xtraplatform-spatial', version: '7.2.1'
+    layers group: 'de.interactive_instruments', name: 'xtraplatform-spatial', version: '7.2.2'
 }
