@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.2.2 (08/02/2025)
+#### Fixed bugs
+
+-  LIMIT is ignored with IN filter [#1334](https://github.com/ldproxy/ldproxy/issues/1334)
+-  style errors with http client proxy [#1332](https://github.com/ldproxy/ldproxy/issues/1332)
+-  OIDC provider does not work anymore [#1331](https://github.com/ldproxy/ldproxy/issues/1331)
+
+#### Dependency updates
+
+- Update dependency org.postgresql:postgresql to v42.7.5 by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/322
+- Update swagger to v2.2.28 by @renovate in https://github.com/ldproxy/xtraplatform/pull/208
+- Update dropwizard to v3.0.12 by @renovate in https://github.com/ldproxy/xtraplatform/pull/207
+- Update dependency io.minio:minio to v8.5.17 by @renovate in https://github.com/ldproxy/xtraplatform/pull/204
+---
+
 ## v4.2.1 (19/12/2024)
 #### Improvements
 
