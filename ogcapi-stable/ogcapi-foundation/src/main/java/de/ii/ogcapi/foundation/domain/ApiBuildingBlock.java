@@ -41,6 +41,10 @@ import de.ii.xtraplatform.docs.DocVar;
  *   - **proposal**: stable core functionality, but might have limitations regarding generally
  *     supported use cases, might not adhere to code quality and testing standards
  *     </code>
+ *     <p>Pre-release versions are provided for ldproxy modules based on specifications in "Draft"
+ *     status. As long as the underlying specifications have not yet been approved, the module
+ *     remains in the status of the preliminary version and the functionality and scope may change.
+ *     Compatibility with previous versions is not guaranteed.
  *     <p>## Overview
  *     <p>{@docTable:overview}
  * @langDe # Bausteine
@@ -67,6 +71,11 @@ import de.ii.xtraplatform.docs.DocVar;
  *     unterstützte Anwendungsfälle enthalten, hält eventuell nicht alle Code-Quality und
  *     Testing Standards ein
  *     </code>
+ *     <p>Bei ldproxy-Modulen auf der Grundlage von Spezifikationen im Status "Draft" werden
+ *     Vorabversionen bereitgestellt. Solange die jeweils zugrundeliegenden Spezifikationen noch
+ *     nicht verabschiedet worden sind, bleibt das Modul bzw. das Paket im Status der Vorabversion
+ *     und die Funktionalität und der Umfang können sich ändern, ohne dass Kompatibilität zu den
+ *     vorherigen Versionen gewährleistet ist.
  *     <p>## Übersicht
  *     <p>{@docTable:overview}
  */
