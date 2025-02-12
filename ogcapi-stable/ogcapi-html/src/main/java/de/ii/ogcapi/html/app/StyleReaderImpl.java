@@ -7,13 +7,17 @@
  */
 package de.ii.ogcapi.html.app;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.ValueStoreDecorator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -60,8 +64,15 @@ public class StyleReaderImpl implements StyleReader {
 
   @Override
   public boolean exists(
-      String apiId, Optional<String> collectionId, String styleId, StyleFormat styleFormat) {
+      String apiId,
+      Optional<String> collectionId,
+      String styleId,
+      StyleFormat styleFormat,
+      OgcApiDataV2 apiData) {
     if (isMbStyle(styleFormat)) {
+      boolean deriveCollectionStyles =
+          hasDeriveCollectionStyles(apiData, collectionId.orElse(null));
+
       return mbStylesStore.has(styleId, getPathArrayStyles(apiId, collectionId));
     }
     if (is3dTilesStyle(styleFormat)) {
@@ -80,5 +91,50 @@ public class StyleReaderImpl implements StyleReader {
 
   private boolean is3dTilesStyle(StyleFormat format) {
     return Objects.equals(format, StyleFormat._3DTILES);
+  }
+
+  // TODO: Everything below this line is an ugly hack and should be replaced by a proper solution
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final TypeReference<Map<String, Object>> AS_MAP = new TypeReference<>() {};
+
+  @Deprecated(forRemoval = true)
+  private static boolean hasDeriveCollectionStyles(OgcApiDataV2 apiData, String collectionId) {
+    try {
+      String s = MAPPER.writeValueAsString(apiData);
+      Map<String, Object> api = MAPPER.readValue(s, AS_MAP);
+
+      if (api.containsKey("collections")) {
+        Map<String, Object> collections = (Map<String, Object>) api.get("collections");
+        if (collections.containsKey(collectionId)) {
+          Map<String, Object> collection = (Map<String, Object>) collections.get(collectionId);
+          if (hasDeriveCollectionStyles(collection)) {
+            return true;
+          }
+        }
+      }
+
+      return hasDeriveCollectionStyles(api);
+    } catch (Throwable e) {
+      return false;
+    }
+  }
+
+  @Deprecated(forRemoval = true)
+  private static boolean hasDeriveCollectionStyles(Map<String, Object> apiOrCollection) {
+    if (apiOrCollection.containsKey("api")) {
+      List<Map<String, Object>> api = (List<Map<String, Object>>) apiOrCollection.get("api");
+      Optional<Map<String, Object>> styles =
+          api.stream()
+              .filter(
+                  bb -> bb.containsKey("buildingBlock") && bb.get("buildingBlock").equals("STYLES"))
+              .findFirst();
+
+      if (styles.isPresent() && styles.get().containsKey("deriveCollectionStyles")) {
+        return Objects.equals(Boolean.TRUE, styles.get().get("deriveCollectionStyles"));
+      }
+    }
+
+    return false;
   }
 }

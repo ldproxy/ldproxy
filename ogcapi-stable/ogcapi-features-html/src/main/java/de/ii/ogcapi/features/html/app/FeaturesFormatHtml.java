@@ -424,7 +424,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                             apiData.getId(),
                             serviceUrl,
                             mapClientType,
-                            cfg.getDefaultStyle()))
+                            cfg.getDefaultStyle(),
+                            apiData))
                 .orElse(null));
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
@@ -547,7 +548,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                     apiData.getId(),
                     serviceUrl,
                     mapClientType,
-                    cfg.getDefaultStyle()));
+                    cfg.getDefaultStyle(),
+                    apiData));
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);
 
@@ -656,7 +658,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                         apiData.getId(),
                         serviceUrl,
                         mapClientType,
-                        cfg.getDefaultStyle()))
+                        cfg.getDefaultStyle(),
+                        apiData))
             .orElse(null);
     boolean removeZoomLevelConstraints =
         config.map(FeaturesHtmlConfiguration::getRemoveZoomLevelConstraints).orElse(false);

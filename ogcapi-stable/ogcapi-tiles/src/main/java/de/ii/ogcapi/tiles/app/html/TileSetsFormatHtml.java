@@ -284,7 +284,8 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
                             api.getId(),
                             serviceUrl,
                             mapClientType,
-                            cfg.getDefaultStyle()))
+                            cfg.getDefaultStyle(),
+                            api.getData()))
                 .orElse(null)
             : null;
     boolean removeZoomLevelConstraints =
