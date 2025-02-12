@@ -7,9 +7,13 @@
  */
 package de.ii.ogcapi.html.app;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.xtraplatform.values.domain.KeyValueStore;
@@ -70,10 +74,18 @@ public class StyleReaderImpl implements StyleReader {
       StyleFormat styleFormat,
       OgcApiDataV2 apiData) {
     if (isMbStyle(styleFormat)) {
-      boolean deriveCollectionStyles =
-          hasDeriveCollectionStyles(apiData, collectionId.orElse(null));
+      if (mbStylesStore.has(styleId, getPathArrayStyles(apiId, collectionId))) {
+        return true;
+      }
 
-      return mbStylesStore.has(styleId, getPathArrayStyles(apiId, collectionId));
+      // TODO: This is a hack and also fails to detect, if a collection style cannot be derived from
+      //       the dataset style for some reason (however, the deriveCollectionStyles option should
+      //       only be enabled where the derivation works, so this should be ok as a temporary
+      //       hack).
+      return collectionId
+          .filter(id -> hasDeriveCollectionStyles(apiData, id))
+          .map(id -> mbStylesStore.has(styleId, getPathArrayStyles(apiId, Optional.empty())))
+          .orElse(false);
     }
     if (is3dTilesStyle(styleFormat)) {
       return tiles3dStylesStore.has(styleId, getPathArrayStyles(apiId, collectionId));
@@ -93,46 +105,37 @@ public class StyleReaderImpl implements StyleReader {
     return Objects.equals(format, StyleFormat._3DTILES);
   }
 
-  // TODO: Everything below this line is an ugly hack and should be replaced by a proper solution
+  // TODO: Everything below this line is an ugly hack and should be replaced by a proper solution;
+  //       also remove the module dependency to 'de.interactive_instruments:xtraplatform-features'
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final TypeReference<Map<String, Object>> AS_MAP = new TypeReference<>() {};
+  private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+  private static final TypeReference<List<Map<String, Object>>> AS_LIST = new TypeReference<>() {};
 
   @Deprecated(forRemoval = true)
   private static boolean hasDeriveCollectionStyles(OgcApiDataV2 apiData, String collectionId) {
-    try {
-      String s = MAPPER.writeValueAsString(apiData);
-      Map<String, Object> api = MAPPER.readValue(s, AS_MAP);
+    if (apiData
+        .getCollectionData(collectionId)
+        .map(FeatureTypeConfigurationOgcApi::getExtensions)
+        .map(StyleReaderImpl::hasDeriveCollectionStyles)
+        .orElse(false)) {
+      return true;
+    }
 
-      if (api.containsKey("collections")) {
-        Map<String, Object> collections = (Map<String, Object>) api.get("collections");
-        if (collections.containsKey(collectionId)) {
-          Map<String, Object> collection = (Map<String, Object>) collections.get(collectionId);
-          if (hasDeriveCollectionStyles(collection)) {
+    return hasDeriveCollectionStyles(apiData.getExtensions());
+  }
+
+  @Deprecated(forRemoval = true)
+  private static boolean hasDeriveCollectionStyles(List<ExtensionConfiguration> extensions) {
+    try {
+      for (Map<String, Object> ext :
+          MAPPER.readValue(MAPPER.writeValueAsString(extensions), AS_LIST)) {
+        if (Objects.equals(ext.get("buildingBlock"), "STYLES")) {
+          if (Objects.equals(Boolean.TRUE, ext.get("deriveCollectionStyles"))) {
             return true;
           }
         }
       }
-
-      return hasDeriveCollectionStyles(api);
-    } catch (Throwable e) {
-      return false;
-    }
-  }
-
-  @Deprecated(forRemoval = true)
-  private static boolean hasDeriveCollectionStyles(Map<String, Object> apiOrCollection) {
-    if (apiOrCollection.containsKey("api")) {
-      List<Map<String, Object>> api = (List<Map<String, Object>>) apiOrCollection.get("api");
-      Optional<Map<String, Object>> styles =
-          api.stream()
-              .filter(
-                  bb -> bb.containsKey("buildingBlock") && bb.get("buildingBlock").equals("STYLES"))
-              .findFirst();
-
-      if (styles.isPresent() && styles.get().containsKey("deriveCollectionStyles")) {
-        return Objects.equals(Boolean.TRUE, styles.get().get("deriveCollectionStyles"));
-      }
+    } catch (JsonProcessingException ignore) {
     }
 
     return false;
