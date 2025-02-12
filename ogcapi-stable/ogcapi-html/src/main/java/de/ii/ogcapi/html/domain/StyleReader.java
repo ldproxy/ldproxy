@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.html.domain;
 
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,7 +42,11 @@ public interface StyleReader {
   }
 
   boolean exists(
-      String apiId, Optional<String> collectionId, String styleId, StyleFormat styleFormat);
+      String apiId,
+      Optional<String> collectionId,
+      String styleId,
+      StyleFormat styleFormat,
+      @Deprecated(forRemoval = true) OgcApiDataV2 apiData);
 
   default String getStyleUrl(
       Optional<String> requestedStyle,
@@ -49,7 +54,8 @@ public interface StyleReader {
       String apiId,
       String serviceUrl,
       Type mapClientType,
-      String defaultStyle) {
+      String defaultStyle,
+      @Deprecated(forRemoval = true) OgcApiDataV2 apiData) {
     Optional<String> styleId =
         requestedStyle
             .map(s -> s.equals("DEFAULT") ? Objects.requireNonNullElse(defaultStyle, "NONE") : s)
@@ -92,16 +98,22 @@ public interface StyleReader {
       return null;
     }
 
-    boolean exists = exists(apiId, collectionId, styleId.get(), f);
+    boolean exists = exists(apiId, collectionId, styleId.get(), f, apiData);
 
     if (exists) {
       return styleUrl;
     }
 
-    // Try fallback to the dataset style, if we have a collection style
+    // Try fallback to the dataset style, if we have a collection id
     if (collectionId.isPresent()) {
       return getStyleUrl(
-          requestedStyle, Optional.empty(), apiId, serviceUrl, mapClientType, defaultStyle);
+          requestedStyle,
+          Optional.empty(),
+          apiId,
+          serviceUrl,
+          mapClientType,
+          defaultStyle,
+          apiData);
     }
 
     LOGGER.error("Style '{}' does not exist, falling back to style 'NONE'.", styleUrl);
