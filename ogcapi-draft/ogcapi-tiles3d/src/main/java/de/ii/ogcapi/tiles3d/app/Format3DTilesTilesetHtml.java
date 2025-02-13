@@ -114,7 +114,8 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
                 api.getData().getId(),
                 serviceUrl,
                 MapClient.Type.CESIUM,
-                htmlConfig.getDefaultStyle()));
+                htmlConfig.getDefaultStyle(),
+                api.getData()));
 
     return ImmutableTilesetView.builder()
         .apiData(api.getData())

@@ -10,6 +10,7 @@ descriptionDe = 'HTML-Kodierung für alle unterstützten Ressourcen.'
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-features'
     provided project(":ogcapi-foundation")
 
     testProvided(testFixtures(project(":ogcapi-foundation")))
