@@ -74,13 +74,12 @@ public interface CollectionExtent {
   Optional<Boolean> getSpatialComputed();
 
   /**
-   * @langEn `start` and `end` of the temporal extent of the data, specified as a RFC 3339 string in
-   *     UTC. Unspecified values indicate an unbounded interval end.
+   * @langEn `start` and `end` of the temporal extent of the data, specified as Unix timestamp in
+   *     milliseconds. Unspecified values indicate an unbounded interval end.
    * @langDe Beginn (`start`) und Ende (`end`) der zeitlichen Ausdehnung der Daten. Die Angabe
-   *     erfolgt als Textstring gemäß RFC 3339 in UTC. Fehlende Angaben stehen für ein unbegrenztes
+   *     erfolgt als Unix Timestamp in Millisekunden. Fehlende Angaben stehen für ein unbegrenztes
    *     Intervall.
    * @default
-   * @example { "start": "2020-01-01T00:00:00Z", "end": "2020-12-31T23:59:59Z" }
    */
   Optional<TemporalExtent> getTemporal();
 
