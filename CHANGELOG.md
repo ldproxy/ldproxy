@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.2.3 (14/02/2025)
+#### Fixed bugs
+
+-  `deriveCollectionStyles` is ignored [#1341](https://github.com/ldproxy/ldproxy/issues/1341)
+
+---
+
 ## v4.2.2 (08/02/2025)
 #### Fixed bugs
 
