@@ -21,6 +21,7 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesProvidersCache;
 import de.ii.xtraplatform.base.domain.LogContext.MARKER;
+import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
@@ -382,16 +383,30 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
   @Override
   public DatasetChangeListener onDatasetChange(OgcApi api) {
     return change -> {
-      for (String featureType : change.getFeatureTypes()) {
-        String collectionId = FeaturesCoreConfiguration.getCollectionId(api.getData(), featureType);
+      Optional<SeedingOptions> seeding =
+          tilesProviders
+              .getTileProvider(api.getData())
+              .map(TileProvider::seeding)
+              .filter(OptionalCapability::isSupported)
+              .map(s -> s.get().getOptions());
 
-        try {
-          tilesProvidersCache.deleteTiles(
-              api, Optional.of(collectionId), Optional.empty(), Optional.empty());
-        } catch (Exception e) {
-          if (LOGGER.isErrorEnabled()) {
-            LOGGER.error(
-                "Error while deleting tiles from the tile cache after a dataset change.", e);
+      if (seeding.isEmpty() || !seeding.get().shouldRunOnDatasetChange()) {
+        return;
+      }
+
+      if (seeding.get().shouldPurge()) {
+        for (String featureType : change.getFeatureTypes()) {
+          String collectionId =
+              FeaturesCoreConfiguration.getCollectionId(api.getData(), featureType);
+
+          try {
+            tilesProvidersCache.deleteTiles(
+                api, Optional.of(collectionId), Optional.empty(), Optional.empty());
+          } catch (Exception e) {
+            if (LOGGER.isErrorEnabled()) {
+              LOGGER.error(
+                  "Error while deleting tiles from the tile cache after a dataset change.", e);
+            }
           }
         }
       }
