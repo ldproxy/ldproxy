@@ -52,7 +52,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -74,7 +75,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -96,7 +98,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -118,7 +121,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -140,7 +144,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -162,7 +167,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -184,7 +190,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 
@@ -206,7 +213,8 @@ public interface EntityFactories {
               }
 
               @Override
-              public CompletableFuture<PersistentEntity> updateInstance(EntityData entityData) {
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
                 return CompletableFuture.completedFuture(null);
               }
 

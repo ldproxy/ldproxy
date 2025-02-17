@@ -12,47 +12,58 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChanges;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 // ignore in bindings
 @AutoMultiBind(exclude = {WithChangeListeners.class})
 public interface WithChangeListeners {
 
-  Map<String, DatasetChangeListener> datasetChangeListeners = new ConcurrentHashMap<>();
-  Map<String, FeatureChangeListener> featureChangeListeners = new ConcurrentHashMap<>();
+  Map<String, DatasetChangeListener> DATASET_CHANGE_LISTENERS =
+      Collections.synchronizedMap(new HashMap<>());
+  Map<String, FeatureChangeListener> FEATURE_CHANGE_LISTENERS =
+      Collections.synchronizedMap(new HashMap<>());
 
   DatasetChangeListener onDatasetChange(OgcApi api);
 
   FeatureChangeListener onFeatureChange(OgcApi api);
 
   default void updateChangeListeners(FeatureChanges changeHandler, OgcApi api) {
-    if (datasetChangeListeners.containsKey(api.getId())) {
-      changeHandler.removeListener(datasetChangeListeners.get(api.getId()));
+    // since the maps are static,the api id is not sufficient, the key needs to include the class
+    // name
+    String key = api.getId() + this.getClass().getName();
+
+    if (DATASET_CHANGE_LISTENERS.containsKey(key)) {
+      changeHandler.removeListener(DATASET_CHANGE_LISTENERS.get(key));
     }
 
     DatasetChangeListener datasetChangeListener = onDatasetChange(api);
     changeHandler.addListener(datasetChangeListener);
-    datasetChangeListeners.put(api.getId(), datasetChangeListener);
+    DATASET_CHANGE_LISTENERS.put(key, datasetChangeListener);
 
-    if (featureChangeListeners.containsKey(api.getId())) {
-      changeHandler.removeListener(featureChangeListeners.get(api.getId()));
+    if (FEATURE_CHANGE_LISTENERS.containsKey(key)) {
+      changeHandler.removeListener(FEATURE_CHANGE_LISTENERS.get(key));
     }
 
     FeatureChangeListener featureChangeListener = onFeatureChange(api);
     changeHandler.addListener(featureChangeListener);
-    featureChangeListeners.put(api.getId(), featureChangeListener);
+    FEATURE_CHANGE_LISTENERS.put(key, featureChangeListener);
   }
 
   default void removeChangeListeners(FeatureChanges changeHandler, OgcApi api) {
-    if (datasetChangeListeners.containsKey(api.getId())) {
-      changeHandler.removeListener(datasetChangeListeners.get(api.getId()));
-      datasetChangeListeners.remove(api.getId());
+    // since the maps are static,the api id is not sufficient, the key needs to include the class
+    // name
+    String key = api.getId() + this.getClass().getName();
+
+    if (DATASET_CHANGE_LISTENERS.containsKey(key)) {
+      changeHandler.removeListener(DATASET_CHANGE_LISTENERS.get(key));
+      DATASET_CHANGE_LISTENERS.remove(key);
     }
 
-    if (featureChangeListeners.containsKey(api.getId())) {
-      changeHandler.removeListener(featureChangeListeners.get(api.getId()));
-      featureChangeListeners.remove(api.getId());
+    if (FEATURE_CHANGE_LISTENERS.containsKey(key)) {
+      changeHandler.removeListener(FEATURE_CHANGE_LISTENERS.get(key));
+      FEATURE_CHANGE_LISTENERS.remove(key);
     }
   }
 }
