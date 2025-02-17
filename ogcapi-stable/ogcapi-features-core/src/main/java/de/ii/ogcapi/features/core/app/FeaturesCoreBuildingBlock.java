@@ -266,9 +266,6 @@ public class FeaturesCoreBuildingBlock
     ApiBuildingBlock.super.onShutdown(api);
   }
 
-  // TODO: add capability to periodically reinitialize metadata from the feature data (to account
-  // for lost notifications,
-  //       because extent changes because of deletes are not taken into account, etc.)
   // initialize dynamic collection metadata
   private void initMetadata(OgcApi api, String collectionId, Instant lastModified) {
     OgcApiDataV2 apiData = api.getData();
