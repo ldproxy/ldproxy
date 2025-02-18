@@ -31,6 +31,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient.Type;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.services.domain.ServicesContext;
@@ -66,13 +67,18 @@ public class EndpointEditor extends EndpointSubCollection {
 
   private final URI servicesUri;
   private final CrsSupport crsSupport;
+  private final StyleReader styleReader;
 
   @Inject
   public EndpointEditor(
-      ExtensionRegistry extensionRegistry, ServicesContext servicesContext, CrsSupport crsSupport) {
+      ExtensionRegistry extensionRegistry,
+      ServicesContext servicesContext,
+      CrsSupport crsSupport,
+      StyleReader styleReader) {
     super(extensionRegistry);
     this.servicesUri = servicesContext.getUri();
     this.crsSupport = crsSupport;
+    this.styleReader = styleReader;
   }
 
   @Override
@@ -150,7 +156,10 @@ public class EndpointEditor extends EndpointSubCollection {
                 Optional.empty(),
                 getOperationId("editor", collectionId),
                 GROUP_DATA_WRITE,
-                TAGS)
+                TAGS,
+                // TODO: specMaturity and spec
+                Optional.empty(),
+                Optional.empty())
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());
@@ -180,8 +189,14 @@ public class EndpointEditor extends EndpointSubCollection {
     Optional<String> styleUrl =
         htmlConfig.map(
             cfg ->
-                cfg.getStyle(
-                    Optional.empty(), Optional.of(collectionId), serviceUrl, Type.OPEN_LAYERS));
+                styleReader.getStyleUrl(
+                    Optional.empty(),
+                    Optional.of(collectionId),
+                    api.getId(),
+                    serviceUrl,
+                    Type.OPEN_LAYERS,
+                    cfg.getDefaultStyle(),
+                    api.getData()));
 
     return new ImmutableEditorView.Builder()
         .apiData(api.getData())
