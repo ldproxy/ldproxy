@@ -54,10 +54,7 @@ public abstract class EditorView extends OgcApiView {
   @Value.Derived
   public MapClient getMapClient() {
     return new Builder()
-        .backgroundUrl(
-            Optional.ofNullable(htmlConfig())
-                .map(HtmlConfiguration::getLeafletUrl)
-                .or(() -> Optional.ofNullable(htmlConfig()).map(HtmlConfiguration::getBasemapUrl)))
+        .backgroundUrl(Optional.ofNullable(htmlConfig()).map(HtmlConfiguration::getBasemapUrl))
         .attribution(getAttribution())
         .bounds(Optional.ofNullable(getBbox()))
         .type(Type.OPEN_LAYERS)
