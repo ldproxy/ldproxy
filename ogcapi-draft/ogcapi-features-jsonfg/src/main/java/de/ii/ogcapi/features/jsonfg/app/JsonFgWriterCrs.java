@@ -16,6 +16,7 @@ import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -82,7 +83,16 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
   }
 
   private void writeCrs(JsonGenerator json, EpsgCrs crs) throws IOException {
-    json.writeStringField(JSON_KEY, useCuries ? crs.toSafeCurie() : crs.toUriString());
+    if (crs.getVerticalCode().isPresent()) {
+      json.writeArrayFieldStart(JSON_KEY);
+      List<String> values = useCuries ? crs.toSafeCuries() : crs.toUriStrings();
+      for (String value : values) {
+        json.writeString(value);
+      }
+      json.writeEndArray();
+    } else {
+      json.writeStringField(JSON_KEY, useCuries ? crs.toSafeCurie() : crs.toUriString());
+    }
   }
 
   private Map<String, Boolean> getCollectionMap(
