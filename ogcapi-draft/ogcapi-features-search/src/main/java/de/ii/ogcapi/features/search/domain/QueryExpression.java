@@ -76,6 +76,7 @@ public interface QueryExpression extends StoredValue {
         from.getMaxAllowableOffset().ifPresent(into::putDouble);
         from.getLimit().ifPresent(into::putInt);
         from.getOffset().ifPresent(into::putInt);
+        from.getProfiles().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
       };
 
   ObjectMapper MAPPER =

@@ -68,6 +68,11 @@ import javax.inject.Singleton;
  * - A "title" and "description" for the query expression can be added. Providing both is
  *     strongly recommended to explain the query to users.
  * - The "limit" member applies to the entire result set.
+ * - The “crs” and “verticalCrs” members are optional and can be used to specify the coordinate
+ *     reference system for the coordinates in the response. If no value is specified, the default
+ *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
+ *     of a vertical coordinate reference system and "crs" must be specified and be the URI of a
+ *     horizontal 2D coordinate reference system.
  * - "sortby" will only apply per query. A global "sortby" would require that the
  *     results of all queries are compiled first and then the combined result set is sorted. This
  *     would not support "streaming" the response.
@@ -115,6 +120,7 @@ import javax.inject.Singleton;
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
  * - Das Element "limit" gilt für die gesamte Ergebnismenge.
+ * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
