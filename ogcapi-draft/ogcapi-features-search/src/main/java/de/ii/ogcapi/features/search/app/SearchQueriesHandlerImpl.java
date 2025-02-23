@@ -61,6 +61,7 @@ import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
@@ -528,7 +529,22 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     QueryExpression queryExpression = queryInput.getQuery();
     EpsgCrs crs =
-        queryExpression.getCrs().map(EpsgCrs::fromString).orElse(queryInput.getDefaultCrs());
+        queryExpression
+            .getCrs()
+            .map(EpsgCrs::fromString)
+            .map(
+                hCrs ->
+                    queryExpression
+                        .getVerticalCrs()
+                        .map(
+                            vCrsUri ->
+                                (EpsgCrs)
+                                    new ImmutableEpsgCrs.Builder()
+                                        .from(hCrs)
+                                        .verticalCode(EpsgCrs.fromString(vCrsUri).getCode())
+                                        .build())
+                        .orElse(hCrs))
+            .orElse(queryInput.getDefaultCrs());
 
     MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
 

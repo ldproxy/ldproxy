@@ -72,6 +72,7 @@ public interface QueryExpression extends StoredValue {
         from.getSortby().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
         from.getProperties().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
         from.getCrs().ifPresent(s -> into.putString(s, StandardCharsets.UTF_8));
+        from.getVerticalCrs().ifPresent(s -> into.putString(s, StandardCharsets.UTF_8));
         from.getMaxAllowableOffset().ifPresent(into::putDouble);
         from.getLimit().ifPresent(into::putInt);
         from.getOffset().ifPresent(into::putInt);
@@ -127,6 +128,8 @@ public interface QueryExpression extends StoredValue {
   List<String> getProperties(); // String or Parameter
 
   Optional<String> getCrs(); // String or Parameter
+
+  Optional<String> getVerticalCrs(); // String or Parameter
 
   Optional<Double> getMaxAllowableOffset(); // Double or Parameter
 
