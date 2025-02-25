@@ -53,6 +53,7 @@ public class DeprecatedKeyword extends AbstractKeyword {
                   .type(getValue())
                   .code(CustomErrorMessageType.of(getValue()).getErrorCode())
                   .format(new MessageFormat("{0}: is deprecated and should be upgraded"))
+                  .schemaLocation(schemaLocation)
                   .evaluationPath(schemaPath)
                   .instanceLocation(at)
                   .instanceNode(node)
