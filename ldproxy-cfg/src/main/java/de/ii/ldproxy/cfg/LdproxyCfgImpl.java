@@ -271,12 +271,12 @@ class LdproxyCfgImpl implements LdproxyCfg {
     JsonMetaSchema metaSchema =
         JsonMetaSchema.builder(
                 "https://json-schema.org/draft/2020-12/schema", JsonMetaSchema.getV202012())
-            .addKeyword(new DeprecatedKeyword())
+            .keyword(new DeprecatedKeyword())
             .build();
     JsonSchemaFactory factory =
         JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(VersionFlag.V202012))
-            .addMetaSchema(metaSchema)
-            .objectMapper(jsonMapper)
+            .metaSchema(metaSchema)
+            .jsonMapper(jsonMapper)
             .build();
 
     for (String entityType : List.of("providers", "services", "users")) {

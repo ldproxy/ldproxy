@@ -11,8 +11,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.networknt.schema.AbstractJsonValidator;
 import com.networknt.schema.AbstractKeyword;
 import com.networknt.schema.CustomErrorMessageType;
+import com.networknt.schema.ExecutionContext;
+import com.networknt.schema.JsonNodePath;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonValidator;
+import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.ValidationContext;
 import com.networknt.schema.ValidationMessage;
 import java.text.MessageFormat;
@@ -33,23 +36,27 @@ public class DeprecatedKeyword extends AbstractKeyword {
 
   @Override
   public JsonValidator newValidator(
-      String schemaPath,
+      SchemaLocation schemaLocation,
+      JsonNodePath schemaPath,
       JsonNode schemaNode,
       JsonSchema parentSchema,
       ValidationContext validationContext) {
     boolean deprecated = schemaNode.asBoolean(false);
 
-    return new AbstractJsonValidator() {
+    return new AbstractJsonValidator(schemaLocation, schemaPath, this, schemaNode) {
       @Override
-      public Set<ValidationMessage> validate(JsonNode node, JsonNode rootNode, String at) {
+      public Set<ValidationMessage> validate(
+          ExecutionContext context, JsonNode node, JsonNode rootNode, JsonNodePath at) {
         if (deprecated) {
           return Set.of(
-              ValidationMessage.of(
-                  getValue(),
-                  CustomErrorMessageType.of(getValue()),
-                  new MessageFormat("{0}: is deprecated and should be upgraded"),
-                  at,
-                  schemaPath));
+              ValidationMessage.builder()
+                  .type(getValue())
+                  .code(CustomErrorMessageType.of(getValue()).getErrorCode())
+                  .format(new MessageFormat("{0}: is deprecated and should be upgraded"))
+                  .evaluationPath(schemaPath)
+                  .instanceLocation(at)
+                  .instanceNode(node)
+                  .build());
         }
 
         return Set.of();
