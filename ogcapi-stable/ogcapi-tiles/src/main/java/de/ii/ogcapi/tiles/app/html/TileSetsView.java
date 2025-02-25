@@ -197,7 +197,7 @@ public abstract class TileSetsView extends OgcApiView {
                   .put("defaultCenterLat", lat)
                   .put("resolutions", resolutions)
                   .put("sizes", sizes)
-                  .put("projection", "EPSG:" + tileMatrixSet.getCrs().getCode())
+                  .put("projection", tileMatrixSet.getCrs().toSimpleString())
                   .build()
                   .entrySet();
             })
