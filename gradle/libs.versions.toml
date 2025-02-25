@@ -1,8 +1,8 @@
 [versions]
 schema-validator = '1.0.87'
 earcut4j = '2.2.2'
-flatbuffers = '22.10.26'
-flatgeobuf = '3.24.0'
+flatbuffers = '22.12.06'
+flatgeobuf = '3.27.1'
 
 [libraries]
 # foundation
