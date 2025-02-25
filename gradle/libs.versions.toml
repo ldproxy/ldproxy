@@ -1,5 +1,5 @@
 [versions]
-schema-validator = '1.0.87'
+schema-validator = '1.5.6'
 earcut4j = '2.2.2'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.27.1'
