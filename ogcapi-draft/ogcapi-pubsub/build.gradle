@@ -30,4 +30,7 @@ moduleInfo {
             '!io.netty*',
             '!org.jctools*',
     ]
+    uses = [
+            '!reactor.blockhound.integration*',
+    ]
 }
