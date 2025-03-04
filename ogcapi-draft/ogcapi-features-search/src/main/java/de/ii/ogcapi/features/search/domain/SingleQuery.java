@@ -10,10 +10,8 @@ package de.ii.ogcapi.features.search.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
-import com.google.common.hash.Funnel;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -21,29 +19,17 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableSingleQuery.Builder.class)
 public interface SingleQuery {
 
-  @SuppressWarnings("UnstableApiUsage")
-  Funnel<SingleQuery> FUNNEL =
-      (from, into) -> {
-        from.getCollections().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
-        from.getFilter()
-            .forEach(
-                (name, filter) -> {
-                  into.putString(name, StandardCharsets.UTF_8);
-                });
-        from.getSortby().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
-        from.getProperties().forEach(s -> into.putString(s, StandardCharsets.UTF_8));
-      };
-
   @JsonIgnore String SCHEMA_REF = "#/components/schemas/Query";
 
   List<String> getCollections(); // String or Parameter
 
-  Map<String, Object> getFilter();
+  Optional<Object> getFilter();
 
   List<String> getSortby(); // String or Parameter
 
   List<String> getProperties(); // String or Parameter
 
+  @JsonIgnore
   @Value.Check
   default void check() {
     Preconditions.checkState(

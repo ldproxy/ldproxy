@@ -13,5 +13,5 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 @AutoMultiBind
 public interface QueryExpressionQueryParameter {
 
-  void applyTo(ImmutableQueryExpression.Builder builder, QueryParameterSet queryParameterSet);
+  void applyTo(ImmutableStoredQueryExpression.Builder builder, QueryParameterSet queryParameterSet);
 }

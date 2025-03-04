@@ -15,12 +15,12 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.common.domain.QueryParameterDryRun;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
-import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputStoredQueryCreateReplace;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputStoredQueryDelete;
-import de.ii.ogcapi.features.search.domain.QueryExpression;
+import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
@@ -43,6 +43,7 @@ import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -208,17 +209,17 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
-      byte[] requestBody) {
+      InputStream requestBody) {
 
     OgcApiDataV2 apiData = api.getData();
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
-    QueryExpression query;
+    StoredQueryExpression query;
     try {
       query =
-          new ImmutableQueryExpression.Builder()
-              .from(QueryExpression.of(requestBody))
+          new ImmutableStoredQueryExpression.Builder()
+              .from(StoredQueryExpression.of(requestBody))
               .id(queryId)
               .offset(Optional.empty())
               .build();

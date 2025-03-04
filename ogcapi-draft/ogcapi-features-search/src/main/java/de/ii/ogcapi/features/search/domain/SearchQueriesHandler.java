@@ -75,21 +75,21 @@ public interface SearchQueriesHandler
   interface QueryInputQueryDefinition extends QueryInput {
     String getQueryId();
 
-    QueryExpression getQuery();
+    StoredQueryExpression getQuery();
   }
 
   @Value.Immutable
   interface QueryInputParameters extends QueryInput {
     String getQueryId();
 
-    QueryExpression getQuery();
+    StoredQueryExpression getQuery();
   }
 
   @Value.Immutable
   interface QueryInputParameter extends QueryInput {
     String getQueryId();
 
-    QueryExpression getQuery();
+    StoredQueryExpression getQuery();
 
     String getParameterName();
   }
@@ -98,7 +98,7 @@ public interface SearchQueriesHandler
   interface QueryInputStoredQueryCreateReplace extends QueryInput, WithDryRun {
     String getQueryId();
 
-    QueryExpression getQuery();
+    StoredQueryExpression getQuery();
 
     boolean getStrict();
   }

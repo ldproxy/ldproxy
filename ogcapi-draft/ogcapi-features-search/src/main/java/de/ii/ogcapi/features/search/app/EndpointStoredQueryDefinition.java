@@ -14,11 +14,11 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQueryDefinition;
-import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQueryDefinition;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
@@ -166,7 +166,7 @@ public class EndpointStoredQueryDefinition extends EndpointRequiresFeatures
     checkPathParameter(
         extensionRegistry, apiData, "/search/{queryId}/definition", "queryId", queryId);
 
-    QueryExpression query = repository.get(apiData, queryId);
+    StoredQueryExpression query = repository.get(apiData, queryId);
 
     QueryInputQueryDefinition queryInput =
         new ImmutableQueryInputQueryDefinition.Builder()

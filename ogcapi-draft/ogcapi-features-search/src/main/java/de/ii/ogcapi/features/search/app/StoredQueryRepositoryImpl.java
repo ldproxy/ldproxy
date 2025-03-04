@@ -9,8 +9,8 @@ package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -47,7 +47,7 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
   private static final Logger LOGGER = LoggerFactory.getLogger(StoredQueryRepositoryImpl.class);
 
   private final ExtensionRegistry extensionRegistry;
-  private final KeyValueStore<QueryExpression> queriesStore;
+  private final KeyValueStore<StoredQueryExpression> queriesStore;
   private final VolatileRegistry volatileRegistry;
 
   @Inject
@@ -57,7 +57,7 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
       VolatileRegistry volatileRegistry) {
     super(volatileRegistry, "app/storedqueries");
     this.extensionRegistry = extensionRegistry;
-    this.queriesStore = valueStore.forTypeWritable(QueryExpression.class);
+    this.queriesStore = valueStore.forTypeWritable(StoredQueryExpression.class);
     this.volatileRegistry = volatileRegistry;
   }
 
@@ -91,14 +91,14 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public List<QueryExpression> getAll(OgcApiDataV2 apiData) {
+  public List<StoredQueryExpression> getAll(OgcApiDataV2 apiData) {
     return queriesStore.identifiers(apiData.getId()).stream()
         .map(queriesStore::get)
         .collect(ImmutableList.toImmutableList());
   }
 
   @Override
-  public QueryExpression get(OgcApiDataV2 apiData, String queryId) {
+  public StoredQueryExpression get(OgcApiDataV2 apiData, String queryId) {
     if (!exists(apiData, queryId)) {
       throw new NotFoundException(
           MessageFormat.format("The stored query ''{0}'' does not exist in this API.", queryId));
@@ -152,13 +152,13 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
   @Override
   public Set<String> getIds(OgcApiDataV2 apiData) {
     return getAll(apiData).stream()
-        .map(QueryExpression::getId)
+        .map(StoredQueryExpression::getId)
         .collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
-  public void writeStoredQueryDocument(OgcApiDataV2 apiData, String queryId, QueryExpression query)
-      throws IOException {
+  public void writeStoredQueryDocument(
+      OgcApiDataV2 apiData, String queryId, StoredQueryExpression query) throws IOException {
     try {
       queriesStore.put(queryId, query, apiData.getId()).join();
     } catch (CompletionException e) {

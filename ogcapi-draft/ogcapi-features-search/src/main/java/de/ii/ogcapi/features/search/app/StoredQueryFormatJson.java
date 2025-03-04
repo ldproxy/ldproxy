@@ -8,7 +8,7 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.search.domain.QueryExpression;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -40,8 +40,8 @@ public class StoredQueryFormatJson implements StoredQueryFormat {
 
   @Inject
   public StoredQueryFormatJson(ClassSchemaCache classSchemaCache) {
-    this.schema = classSchemaCache.getSchema(QueryExpression.class);
-    referencedSchemas = classSchemaCache.getReferencedSchemas(QueryExpression.class);
+    this.schema = classSchemaCache.getSchema(StoredQueryExpression.class);
+    referencedSchemas = classSchemaCache.getReferencedSchemas(StoredQueryExpression.class);
   }
 
   @Override
@@ -53,7 +53,7 @@ public class StoredQueryFormatJson implements StoredQueryFormat {
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schema)
-        .schemaRef(QueryExpression.SCHEMA_REF)
+        .schemaRef(StoredQueryExpression.SCHEMA_REF)
         .referencedSchemas(referencedSchemas)
         .ogcApiMediaType(MEDIA_TYPE)
         .build();
@@ -71,7 +71,7 @@ public class StoredQueryFormatJson implements StoredQueryFormat {
 
   @Override
   public Object getEntity(
-      QueryExpression query, OgcApiDataV2 apiData, ApiRequestContext requestContext) {
+      StoredQueryExpression query, OgcApiDataV2 apiData, ApiRequestContext requestContext) {
     return query;
   }
 }

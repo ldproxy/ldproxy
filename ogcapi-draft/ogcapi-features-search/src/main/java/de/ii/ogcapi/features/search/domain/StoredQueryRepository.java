@@ -52,7 +52,7 @@ public interface StoredQueryRepository extends Volatile2 {
    * @param apiData information about the API
    * @return the list of stored queries in this collection and links to API resources
    */
-  List<QueryExpression> getAll(OgcApiDataV2 apiData);
+  List<StoredQueryExpression> getAll(OgcApiDataV2 apiData);
 
   /**
    * fetches a stored query
@@ -61,7 +61,7 @@ public interface StoredQueryRepository extends Volatile2 {
    * @param queryId the identifier of the query in the query collection
    * @return the stored queriesheet, or throws an exception, if not available
    */
-  QueryExpression get(OgcApiDataV2 apiData, String queryId);
+  StoredQueryExpression get(OgcApiDataV2 apiData, String queryId);
 
   /**
    * determine, if a stored query is available
@@ -101,7 +101,7 @@ public interface StoredQueryRepository extends Volatile2 {
 
   Set<String> getIds(OgcApiDataV2 apiData);
 
-  void writeStoredQueryDocument(OgcApiDataV2 apiData, String queryId, QueryExpression query)
+  void writeStoredQueryDocument(OgcApiDataV2 apiData, String queryId, StoredQueryExpression query)
       throws IOException;
 
   void deleteStoredQuery(OgcApiDataV2 apiData, String queryId) throws IOException;
