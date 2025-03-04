@@ -14,11 +14,11 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputParameters;
 import de.ii.ogcapi.features.search.domain.ParametersFormat;
-import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputParameters;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
@@ -147,7 +147,7 @@ public class EndpointParameters extends EndpointRequiresFeatures implements ApiE
     checkPathParameter(
         extensionRegistry, apiData, "/search/{queryId}/parameters", "queryId", queryId);
 
-    QueryExpression query = repository.get(apiData, queryId);
+    StoredQueryExpression query = repository.get(apiData, queryId);
 
     QueryInputParameters queryInput =
         new ImmutableQueryInputParameters.Builder()

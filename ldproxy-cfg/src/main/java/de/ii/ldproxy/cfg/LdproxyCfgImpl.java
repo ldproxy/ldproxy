@@ -16,6 +16,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion.VersionFlag;
 import com.networknt.schema.ValidationMessage;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.styles.domain.MbStyleStylesheet;
 import de.ii.xtraplatform.base.app.StoreImpl;
@@ -471,7 +472,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
       return Codelist.class;
     }
     if (Objects.equals(type, "queries")) {
-      return QueryExpression.class;
+      return StoredQueryExpression.class;
     }
     if (Objects.equals(type, "maplibre-styles")) {
       return MbStyleStylesheet.class;

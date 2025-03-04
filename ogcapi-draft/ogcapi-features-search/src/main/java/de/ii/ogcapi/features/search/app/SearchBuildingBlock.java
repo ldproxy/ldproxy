@@ -84,6 +84,8 @@ import javax.inject.Singleton;
  *     converted to an array, if the parameter is of type "array".
  * - Parameters may also be provided in a member "parameters" in the query expression and
  *     referenced using "$ref".
+ * - Parameters may be used in all members of the query expression, except "id", "title",
+ *     "description", and "offset".
  *     </code>
  * @scopeDe Dieser Baustein unterstützt die Suche nach Features aus einer oder mehreren Collections.
  *     Das heißt, es unterstützt Abfragen, die mit den Filtermechanismen, die durch die Bausteine
@@ -124,6 +126,7 @@ import javax.inject.Singleton;
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
+ * - Parameter können in allen Membern der Query Expression verwendet werden, außer in "id", "title", "description" und "offset".
  *     </code>
  * @conformanceEn This building block implements the OGC API Features extensions specified in
  *     chapters 5 and 6 of the [OGC Testbed-18 Filtering Service and Rule Set Engineering
@@ -135,7 +138,6 @@ import javax.inject.Singleton;
  *     sich im Zuge der weiteren Standardisierung der Spezifikation noch ändern.
  * @limitationsEn Parameterized stored queries have the following constraints:
  *     <p><code>
- * - Parameters can only occur in filter expressions.
  * - The JSON Schema of a parameter supports a subset of the language. In particular,
  *     `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`,
  *     `additionalItems` and `items: false` are not supported.
@@ -149,7 +151,6 @@ import javax.inject.Singleton;
  *     </code>
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
- * - Parameter können nur in Filterausdrücken vorkommen.
  * - Das JSON-Schema eines Parameters unterstützt eine Teilmenge der Sprache. Insbesondere werden `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`, `additionalItems` und `items: false` nicht unterstützt.
  * - POST zur Ausführung einer gespeicherten Abfrage wird nicht unterstützt. Dies wird hinzugefügt, nachdem die Spezifikation in OGC diskutiert wurde (z.B. ob die Nutzlast JSON oder URL-kodierte Abfrageparameter sein sollen).
  *     </code>

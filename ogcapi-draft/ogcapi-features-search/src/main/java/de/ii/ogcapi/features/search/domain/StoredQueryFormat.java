@@ -26,5 +26,6 @@ public interface StoredQueryFormat extends GenericFormatExtension {
    */
   String getFileExtension();
 
-  Object getEntity(QueryExpression query, OgcApiDataV2 apiData, ApiRequestContext requestContext);
+  Object getEntity(
+      StoredQueryExpression query, OgcApiDataV2 apiData, ApiRequestContext requestContext);
 }

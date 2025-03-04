@@ -16,14 +16,15 @@ import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
+import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
@@ -207,17 +208,20 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
-    QueryExpression query = repository.get(apiData, queryId);
-    ImmutableQueryExpression.Builder builder = new ImmutableQueryExpression.Builder().from(query);
+    StoredQueryExpression storedQuery = repository.get(apiData, queryId);
 
+    ImmutableStoredQueryExpression.Builder builder =
+        new ImmutableStoredQueryExpression.Builder().from(storedQuery);
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
       if (parameter instanceof QueryExpressionQueryParameter) {
         ((QueryExpressionQueryParameter) parameter).applyTo(builder, queryParameterSet);
       }
     }
+    storedQuery = builder.build();
 
-    query = builder.build().resolveParameters(queryParameterSet, schemaValidator);
+    QueryExpression executableQuery =
+        storedQuery.resolveParameters(queryParameterSet, schemaValidator);
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
@@ -225,7 +229,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     QueryInputQuery queryInput =
         new ImmutableQueryInputQuery.Builder()
             .from(getGenericQueryInput(apiData))
-            .query(query)
+            .query(executableQuery)
             .featureProvider(providers.getFeatureProviderOrThrow(apiData))
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .minimumPageSize(Optional.ofNullable(coreConfiguration.getMinimumPageSize()))

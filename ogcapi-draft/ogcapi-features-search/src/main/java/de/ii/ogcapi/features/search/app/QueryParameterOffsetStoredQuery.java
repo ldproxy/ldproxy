@@ -8,7 +8,7 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
+import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -121,7 +121,7 @@ public class QueryParameterOffsetStoredQuery extends OgcApiQueryParameterBase
 
   @Override
   public void applyTo(
-      ImmutableQueryExpression.Builder builder, QueryParameterSet queryParameterSet) {
+      ImmutableStoredQueryExpression.Builder builder, QueryParameterSet queryParameterSet) {
     builder.offset(queryParameterSet.getValue(this));
   }
 }
