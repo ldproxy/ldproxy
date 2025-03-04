@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.2.4 (03/03/2025)
+
+#### Fixed bugs
+
+-  services with styles are limited after startup in rare cases [#1353](https://github.com/ldproxy/ldproxy/issues/1353)
+-  CRUD: transactions are not closed properly for PUT/PATCH [#1352](https://github.com/ldproxy/ldproxy/issues/1352)
+
+---
+
 ## v4.2.3 (14/02/2025)
 #### Fixed bugs
 
