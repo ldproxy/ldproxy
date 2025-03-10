@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -31,6 +32,7 @@ import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueries;
 import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -194,34 +196,37 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   private Response writeStoredQuery(
       QueryInputStoredQueryCreateReplace queryInput, ApiRequestContext requestContext) {
     if (queryInput.getStrict()) {
-      QueryExpression query = queryInput.getQuery();
+      StoredQueryExpression query = queryInput.getQuery();
 
       // check collections
       query
           .getQueries()
           .forEach(
               q ->
-                  q.getCollections()
+                  q.getCollections().stream()
+                      .filter(JsonNode::isTextual)
+                      .map(JsonNode::asText)
                       .forEach(
                           collectionId ->
                               ensureCollectionIdExists(
                                   requestContext.getApi().getData(), collectionId)));
-      query
-          .getCollections()
+      query.getCollections().stream()
+          .filter(JsonNode::isTextual)
+          .map(JsonNode::asText)
           .forEach(
               collectionId ->
                   ensureCollectionIdExists(requestContext.getApi().getData(), collectionId));
 
-      if (!query.hasParameters()) {
-        // if we do not have parameters, we can also check that the filters are valid CQL2 JSON
-        getCql2Expression(query.getFilter(), query.getFilterCrs());
-        query.getQueries().forEach(q -> getCql2Expression(q.getFilter(), query.getFilterCrs()));
-      } else if (query.getParametersWithOpenApiSchema().values().stream()
-          .allMatch(p -> Objects.nonNull(p.getDefault()))) {
-        // .. or if all parameters have default values
+      if (!query.hasParameters()
+          || query.getParametersWithOpenApiSchema().values().stream()
+              .allMatch(p -> Objects.nonNull(p.getDefault()))) {
+        // if we do not have parameters or if all parameters have default values, we can also check
+        // that the filters are valid CQL2 JSON
         QueryExpression resolved = query.resolveParameters(QueryParameterSet.of(), schemaValidator);
-        getCql2Expression(resolved.getFilter(), query.getFilterCrs());
-        resolved.getQueries().forEach(q -> getCql2Expression(q.getFilter(), query.getFilterCrs()));
+        getCql2Expression(resolved.getFilter(), resolved.getFilterCrs());
+        resolved
+            .getQueries()
+            .forEach(q -> getCql2Expression(q.getFilter(), resolved.getFilterCrs()));
       }
     }
 
@@ -493,7 +498,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     EntityTag etag =
         sendEtag(format.getMediaType(), apiData)
             ? ETag.from(
-                queryInput.getQuery(), QueryExpression.FUNNEL, format.getMediaType().label())
+                queryInput.getQuery(), StoredQueryExpression.FUNNEL, format.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) {
@@ -753,8 +758,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private Optional<Cql2Expression> getCql2Expression(
-      Map<String, Object> filter, Optional<String> filterCrs) {
-    if (!filter.isEmpty()) {
+      Optional<Object> filter, Optional<String> filterCrs) {
+    if (filter.isPresent()) {
       Optional<EpsgCrs> crs;
       try {
         crs = filterCrs.map(EpsgCrs::fromString);
@@ -763,12 +768,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             String.format("The CRS URI '%s' is invalid: %s", filterCrs.get(), e.getMessage()), e);
       }
       try {
-        String jsonFilter = new ObjectMapper().writeValueAsString(filter);
+        String jsonFilter = new ObjectMapper().writeValueAsString(filter.get());
         return crs.map(epsgCrs -> cql.read(jsonFilter, Format.JSON, epsgCrs))
             .or(() -> Optional.ofNullable(cql.read(jsonFilter, Format.JSON)));
       } catch (JsonProcessingException | CqlParseException e) {
         throw new IllegalArgumentException(
-            String.format("The CQL2 JSON Filter is invalid: %s", filter), e);
+            String.format("The CQL2 JSON Filter is invalid: %s", filter.get()), e);
       }
     }
     return Optional.empty();
