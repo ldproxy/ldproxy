@@ -949,137 +949,21 @@
       },
       "additionalProperties": false
     },
-    "Link": {
-      "title": "Link",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "rel": {
-          "title": "rel",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "type": {
-          "title": "type",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "anchor": {
-          "title": "anchor",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "title": {
-          "title": "title",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "href": {
-          "title": "href",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "hreflang": {
-          "title": "hreflang",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "length": {
-          "title": "length",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "templated": {
-          "title": "templated",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "var-base": {
-          "title": "var-base",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CollectionsConfiguration": {
-      "title": "CollectionsConfiguration",
+    "FilterConfiguration": {
+      "title": "FilterConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `COLLECTIONS`.",
+          "description": "Always `FILTER`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "COLLECTIONS"
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
+          "const": "FILTER"
         },
         "enabled": {
           "title": "enabled",
@@ -1096,201 +980,29 @@
               "type": "null"
             }
           ]
-        },
-        "additionalLinks": {
-          "title": "additionalLinks",
-          "description": "Add additional links to the *Collections* resource. The value is an array of link     objects. Required properties of a link are a URI (`href`), a label (`label`) and a relation     (`rel`).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/Link"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/Link"
-              }
-            }
-          ]
-        },
-        "collectionIdAsParameter": {
-          "title": "collectionIdAsParameter",
-          "description": "Controls whether each feature collection and subresource is listed as a single resource     in the API definition (`false`), or whether a path parameter `collectionId` is used and     each resource is specified only once in the definition (`true`). With `true` the API     definition becomes simpler and shorter, but the schema is no longer collection-specific and     collection-specific query parameters can no longer be specified in the API definition.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "collectionDefinitionsAreIdentical": {
-          "title": "collectionDefinitionsAreIdentical",
-          "description": "If in the case of `collectionIdAsParameter: true` all collections have a structurally     identical schema and the same queryables, the value `true` can be used to control that in     the API definition schema and queryables are determined from any collection.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "additionalProperties": false
     },
-    "QueryablesConfiguration": {
-      "title": "QueryablesConfiguration",
+    "XmlConfiguration": {
+      "title": "XmlConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `QUERYABLES`.",
+          "description": "Always `XML`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "QUERYABLES"
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
+          "const": "XML"
         },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "included": {
-          "title": "included",
-          "description": "The list of properties that can be used in CQL2 filter expressions and/or for which     filtering query parameters are provided for a collection. Properties that are not of type     `OBJECT` or `OBJECT_ARRAY` are eligible as queryables unless `isQueryable` is set to     `false` for the property. The special value `*` includes all eligible properties as     queryables. By default, no property is queryable.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "excluded": {
-          "title": "excluded",
-          "description": "The list of properties that would be queryables based on `included`, but which should     not be queryables.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pathSeparator": {
-          "title": "pathSeparator",
-          "description": "The character that is used as the path separator in case of object-valued properties.     Either `DOT` or `UNDERSCORE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enableEndpoint": {
-          "title": "enableEndpoint",
-          "description": "If `true`, the Queryables endpoint will be enabled.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "asQueryParameters": {
-          "title": "asQueryParameters",
-          "description": "If `true`, all queryables with a simple value (string, number or boolean) will be     provided query parameters to filter features.",
           "oneOf": [
             {
               "type": "boolean"
@@ -1475,6 +1187,1248 @@
                   "null"
                 ]
               }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CityJsonConfiguration": {
+      "title": "CityJsonConfiguration",
+      "description": "### Prerequisites       The building block requires that the feature provider includes a type `building` that is     mapped to a CityJSON Building feature. Properties of the type `building` are mapped to     CityJSON as follows:        - `consistsOfBuildingPart`: The value must be an object with the same properties as `building`.   The object is encoded as a BuildingPart feature of the Building feature. - `address`: The value must be an array of address objects. The following attributes are mapped   to an Address object, all other properties are ignored:   - `multiPoint`: a  MULTI_POINT geometry representing the address location   - `ThoroughfareName`: a string   - `ThoroughfareNumber`: a string   - `LocalityName`: a string   - `PostalCode`: a string   - `AdministrativeArea`: a string   - `CountryName`: a string - `lod1Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 1. - `lod2Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 2. - `surfaces`: an array of semantic surface objects. The object must have a `surfaceType` and the   values must be one of the following: `CeilingSurface`, `ClosureSurface`, `Door`, `FloorSurface`,   `GroundSurface`, `InteriorWallSurface`, `OuterCeilingSurface`, `OuterFloorSurface`, `RoofSurface`,   `WallSurface`, or `Window`. The object should have a property with a POLYGON or MULTI_POLYGON   geometry that represents the surface geometry. - all other properties: The property will be mapped to a CityJSON attribute, except for `gml_id` properties.            The property of the `building` with the role `ID` will be used as the CityJSON id. Since     the embedded building parts do not have a property with a role `ID`, the building part     feature will use the value of a property `id` as the id of the CityJSON building part,     otherwise a UUID will be generated. If `id` is provided, its values must be unique.       The [example](#examples) includes a sample type definition for the building features in a     PostgreSQL feature provider based on the CityGML profile of the German surveying and mapping     authorities.",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `CITY_JSON`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "CITY_JSON"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "textSequences": {
+          "title": "textSequences",
+          "description": "Enables support for CityJSON text sequences (media type `application/city+json-seq`).     Requires version 1.1 or later.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "title": "version",
+          "description": "Select the CityJSON version that should be returned. Supported versions are `V10`     (CityJSON 1.0) and `V11` (CityJSON 1.1).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "JsonConfiguration": {
+      "title": "JsonConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `JSON`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "JSON"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeaturesHtmlConfiguration": {
+      "title": "FeaturesHtmlConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FEATURES_HTML`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FEATURES_HTML"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mapPosition": {
+          "title": "mapPosition",
+          "description": "Can be `TOP`, `RIGHT` or `AUTO`. `AUTO` is the default, it chooses `TOP` when any     nested objects are found and `RIGHT` otherwise.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "featureTitleTemplate": {
+          "title": "featureTitleTemplate",
+          "description": "Define how the feature label for HTML is formed. Default is the feature id. Property     names in double curly braces will be replaced with the corresponding value.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "mapClientType": {
+          "title": "mapClientType",
+          "description": "The map client library to use to display features in the HTML representation. The     default is MapLibre GL (`MAP_LIBRE`). Cesium (`CESIUM`) can be used for displaying 3D     features on a globe, if [Features - glTF](features_-_gltf.md) is enabled.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "style": {
+          "title": "style",
+          "description": "An optional style in the style repository to use for the map in the HTML representation     of a feature or feature collection. The style should render all data. If set to `DEFAULT`,     the `defaultStyle` configured in the [HTML building block](html.md) is used. If the map     client is MapLibre, the style must be available in the Mapbox format. If the style is set     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the     map client is Cesium, the style must be available in the 3D Tiles format. If the style is     set to `NONE`, the standard 3D Tiles styling is used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "removeZoomLevelConstraints": {
+          "title": "removeZoomLevelConstraints",
+          "description": "If `true`, any `minzoom` or `maxzoom` members are removed from the GeoJSON layers. The     value is ignored, if the map client is not MapLibre or `style` is `NONE`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "geometryProperties": {
+          "title": "geometryProperties",
+          "description": "This option works only for CesiumJS as map client. By default, the geometry identified     in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option     allows multiple geometry properties to be specified in a list. The first geometry property     set for a feature will be used.",
+          "deprecated": true,
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "maximumPageSize": {
+          "title": "maximumPageSize",
+          "description": "This option can be used to set a custom maximum value for the `limit` parameter for the     HTML output. If no value is specified, the value from the Features Core building block     applies. When using CesiumJS as a map client, a value of 100 is recommended.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "propertyTooltips": {
+          "title": "propertyTooltips",
+          "description": "If `true`, on the single item page any property that has a description in the provider     schema will get an info icon with the description as a tooltip.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "propertyTooltipsOnItems": {
+          "title": "propertyTooltipsOnItems",
+          "description": "If `true`, on the items page any property that has a description in the provider schema     will get an info icon with the description in a tooltip.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TileMatrixSetsConfiguration": {
+      "title": "TileMatrixSetsConfiguration",
+      "description": "### Custom Tiling Schemes       Additional tiling schemes can be configured as JSON files according to the [OGC Two     Dimensional Tile Matrix Set and Tile Set Metadata 2.0     Standard](https://docs.ogc.org/is/17-083r4/17-083r4.html) in the data directory at     `api-resources/tile-matrix-sets/{tileMatrixSetId}.json`.",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `TILE_MATRIX_SETS`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "TILE_MATRIX_SETS"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
+        "includePredefined": {
+          "title": "includePredefined",
+          "description": "The list of pre-defined tile matrix sets that are published via this API.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Link": {
+      "title": "Link",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "rel": {
+          "title": "rel",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "type": {
+          "title": "type",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "anchor": {
+          "title": "anchor",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "title": {
+          "title": "title",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "href": {
+          "title": "href",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "hreflang": {
+          "title": "hreflang",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "length": {
+          "title": "length",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "templated": {
+          "title": "templated",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "var-base": {
+          "title": "var-base",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CommonConfiguration": {
+      "title": "CommonConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `COMMON`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "COMMON"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
+        "additionalLinks": {
+          "title": "additionalLinks",
+          "description": "Add additional links to the *Landing Page* resource. The value is an array of link     objects. Required properties of a link are a URI (`href`), a label (`label`) and a relation     (`rel`).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/Link"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/Link"
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeaturesCoreConfiguration": {
+      "title": "FeaturesCoreConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FEATURES_CORE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FEATURES_CORE"
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "featureProvider": {
+          "title": "featureProvider",
+          "description": "Id of the feature provider to use. Normally the feature provider and API ids are the     same.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "featureType": {
+          "title": "featureType",
+          "description": "Id of the feature type to use as defined in the given feature provider. Normally the     feature type and collection ids are the same.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "": {
+          "title": "",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "defaultCrs": {
+          "title": "defaultCrs",
+          "description": "Default coordinate reference system, either `CRS84` for datasets with 2D geometries or     `CRS84h` for datasets with 3D geometries.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "minimumPageSize": {
+          "title": "minimumPageSize",
+          "description": "Minimum value for parameter `limit`.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultPageSize": {
+          "title": "defaultPageSize",
+          "description": "Default value for parameter `limit`.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maximumPageSize": {
+          "title": "maximumPageSize",
+          "description": "Maximum value for parameter `limit`.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "embeddedFeatureLinkRels": {
+          "title": "embeddedFeatureLinkRels",
+          "description": "Controls which links should be specified for each feature in the Features resource, if     these exist. The values are the link relation types to be included. By default, links such     as `self` or `alternate` are omitted from features in a FeatureCollection, this option can     be used to add them if needed.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "validateCoordinatesInQueries": {
+          "title": "validateCoordinatesInQueries",
+          "description": "Validate the coordinates of the bbox or filter parameters against the domain of validity of the  coordinate reference system",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "itemType": {
+          "title": "itemType",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "coordinatePrecision": {
+          "title": "coordinatePrecision",
+          "description": "Controls whether coordinates are limited to a certain number of places depending on the     coordinate reference system used. The unit of measurement and the corresponding number of     decimal places must be specified. Example: `{ \"metre\" : 2, \"degree\" : 7 }`. Valid units of     measurement are \"metre\" and \"degree\".",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Oas30Configuration": {
+      "title": "Oas30Configuration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `OAS30`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "OAS30"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "showSchemaConstraintsInHtml": {
+          "title": "showSchemaConstraintsInHtml",
+          "description": "In the HTML view of the OpenAPI definition, schema constraints except `enum` and     `default` values are not displayed. Set this to `true` to display also `minimum`,     `maximum`, `pattern`, `minLength`, and `maxLength` constraints.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "isShowSchemaConstraintsInHtml": {
+          "title": "isShowSchemaConstraintsInHtml",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "GeoJsonConfiguration": {
+      "title": "GeoJsonConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `GEO_JSON`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "GEO_JSON"
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ApiCatalogEntry": {
+      "title": "ApiCatalogEntry",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "title": {
+          "title": "title",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "description": {
+          "title": "description",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "links": {
+          "title": "links",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/Link"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/Link"
+              }
+            }
+          ]
+        },
+        "id": {
+          "title": "id",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "landingPageUri": {
+          "title": "landingPageUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "tags": {
+          "title": "tags",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "isDataset": {
+          "title": "isDataset",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FoundationConfiguration": {
+      "title": "FoundationConfiguration",
+      "description": "Provides base functionality for all other building blocks and therefore cannot be disabled.",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FOUNDATION`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FOUNDATION"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "useLangParameter": {
+          "title": "useLangParameter",
+          "description": "Support query parameter `lang` to set the desired response language.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "includeLinkHeader": {
+          "title": "includeLinkHeader",
+          "description": "Return links contained in API responses also as [HTTP     header](https://docs.ogc.org/is/17-069r4/17-069r4.html#_link_headers).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "apiCatalogLabel": {
+          "title": "apiCatalogLabel",
+          "description": "Title for resource *API Catalog*.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "apiCatalogDescription": {
+          "title": "apiCatalogDescription",
+          "description": "Description for resource *API Catalog*. May contain HTML elements.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "apiCatalogAdditionalEntries": {
+          "title": "apiCatalogAdditionalEntries",
+          "description": "Additional entries for resource *API Catalog*. Every entry must contain an `id`, a     `title` and a `landingPageUri`. It may also contain a `description` and a list of `tags`.     Entries that do not represent a dataset should set `isDataset` to `false`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ApiCatalogEntry"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ApiCatalogEntry"
+              }
+            }
+          ]
+        },
+        "googleSiteVerification": {
+          "title": "googleSiteVerification",
+          "description": "If set, the value is embedded in the HTML page of the API catalog resource in a     \"googleSiteVerification\" meta tag (`\u003cmeta name\u003d\"`google-site-verification`\"  content\u003d\"{value}\" \u003e).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "includeSpecificationInformation": {
+          "title": "includeSpecificationInformation",
+          "description": "Controls whether information (name, link, maturity) about the specification of an API     component, e.g., an operation or query parameter, is included in the API definition. It is     recommended to enable this option, if the API includes building blocks that are not marked     as `stable`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
             }
           ]
         }
@@ -1915,60 +2869,65 @@
       },
       "additionalProperties": false
     },
-    "GeoJsonConfiguration": {
-      "title": "GeoJsonConfiguration",
+    "CrsConfiguration": {
+      "title": "CrsConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `GEO_JSON`.",
+          "description": "Always `CRS`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "GEO_JSON"
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "const": "CRS"
         },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "additionalCrs": {
+          "title": "additionalCrs",
+          "description": "Lists additional coordinate reference systems to be supported in the API or for a     feature collection. The native coordinate reference system of the data and the default     coordinate reference system of the API are automatically enabled. Coordinate reference     systems are identified by their EPSG code (`code`). Additionally, the order of the     coordinate axes must be specified in `forceAxisOrder` (`NONE`: as in the coordinate     reference system, `LON_LAT` or `LAT_LON`: the order in the coordinate reference system is     ignored and the specified order is used).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/EpsgCrs"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/EpsgCrs"
+              }
+            }
+          ]
+        },
+        "suppressGlobalCrsList": {
+          "title": "suppressGlobalCrsList",
+          "description": "If `true`, the coordinate reference systems will be included in every Collection     resource that is embedded in the Collections resource. The global `crs` array will not be     used or referenced. Use this option, if the API is intended to be used with a client that     does not support the global `crs` array.",
           "oneOf": [
             {
               "type": "boolean"
@@ -1985,143 +2944,31 @@
       },
       "additionalProperties": false
     },
-    "FilterConfiguration": {
-      "title": "FilterConfiguration",
+    "QueryablesConfiguration": {
+      "title": "QueryablesConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `FILTER`.",
+          "description": "Always `QUERYABLES`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "FILTER"
+          "const": "QUERYABLES"
         },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeaturesHtmlConfiguration": {
-      "title": "FeaturesHtmlConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FEATURES_HTML`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FEATURES_HTML"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "mapPosition": {
-          "title": "mapPosition",
-          "description": "Can be `TOP`, `RIGHT` or `AUTO`. `AUTO` is the default, it chooses `TOP` when any     nested objects are found and `RIGHT` otherwise.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "featureTitleTemplate": {
-          "title": "featureTitleTemplate",
-          "description": "Define how the feature label for HTML is formed. Default is the feature id. Property     names in double curly braces will be replaced with the corresponding value.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
           "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
+          "$ref": "#/$defs/Caching"
         },
-        "mapClientType": {
-          "title": "mapClientType",
-          "description": "The map client library to use to display features in the HTML representation. The     default is MapLibre GL (`MAP_LIBRE`). Cesium (`CESIUM`) can be used for displaying 3D     features on a globe, if [Features - glTF](features_-_gltf.md) is enabled.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "style": {
-          "title": "style",
-          "description": "An optional style in the style repository to use for the map in the HTML representation     of a feature or feature collection. The style should render all data. If set to `DEFAULT`,     the `defaultStyle` configured in the [HTML building block](html.md) is used. If the map     client is MapLibre, the style must be available in the Mapbox format. If the style is set     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the     map client is Cesium, the style must be available in the 3D Tiles format. If the style is     set to `NONE`, the standard 3D Tiles styling is used.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "removeZoomLevelConstraints": {
-          "title": "removeZoomLevelConstraints",
-          "description": "If `true`, any `minzoom` or `maxzoom` members are removed from the GeoJSON layers. The     value is ignored, if the map client is not MapLibre or `style` is `NONE`.",
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
           "oneOf": [
             {
               "type": "boolean"
@@ -2135,10 +2982,9 @@
             }
           ]
         },
-        "geometryProperties": {
-          "title": "geometryProperties",
-          "description": "This option works only for CesiumJS as map client. By default, the geometry identified     in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option     allows multiple geometry properties to be specified in a list. The first geometry property     set for a feature will be used.",
-          "deprecated": true,
+        "included": {
+          "title": "included",
+          "description": "The list of properties that can be used in CQL2 filter expressions and/or for which     filtering query parameters are provided for a collection. Properties that are not of type     `OBJECT` or `OBJECT_ARRAY` are eligible as queryables unless `isQueryable` is set to     `false` for the property. The special value `*` includes all eligible properties as     queryables. By default, no property is queryable.",
           "allOf": [
             {
               "if": {
@@ -2170,84 +3016,69 @@
             }
           ]
         },
-        "maximumPageSize": {
-          "title": "maximumPageSize",
-          "description": "This option can be used to set a custom maximum value for the `limit` parameter for the     HTML output. If no value is specified, the value from the Features Core building block     applies. When using CesiumJS as a map client, a value of 100 is recommended.",
-          "oneOf": [
+        "excluded": {
+          "title": "excluded",
+          "description": "The list of properties that would be queryables based on `included`, but which should     not be queryables.",
+          "allOf": [
             {
-              "type": "number"
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
             }
           ]
         },
-        "propertyTooltips": {
-          "title": "propertyTooltips",
-          "description": "If `true`, on the single item page any property that has a description in the provider     schema will get an info icon with the description as a tooltip.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "propertyTooltipsOnItems": {
-          "title": "propertyTooltipsOnItems",
-          "description": "If `true`, on the items page any property that has a description in the provider schema     will get an info icon with the description in a tooltip.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "XmlConfiguration": {
-      "title": "XmlConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `XML`.",
+        "pathSeparator": {
+          "title": "pathSeparator",
+          "description": "The character that is used as the path separator in case of object-valued properties.     Either `DOT` or `UNDERSCORE`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
-          ],
-          "const": "XML"
+          ]
         },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
+        "enableEndpoint": {
+          "title": "enableEndpoint",
+          "description": "If `true`, the Queryables endpoint will be enabled.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asQueryParameters": {
+          "title": "asQueryParameters",
+          "description": "If `true`, all queryables with a simple value (string, number or boolean) will be     provided query parameters to filter features.",
           "oneOf": [
             {
               "type": "boolean"
@@ -2534,21 +3365,27 @@
       },
       "additionalProperties": false
     },
-    "CommonConfiguration": {
-      "title": "CommonConfiguration",
+    "CollectionsConfiguration": {
+      "title": "CollectionsConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `COMMON`.",
+          "description": "Always `COLLECTIONS`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "COMMON"
+          "const": "COLLECTIONS"
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
         },
         "enabled": {
           "title": "enabled",
@@ -2565,135 +3402,10 @@
               "type": "null"
             }
           ]
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
         },
         "additionalLinks": {
           "title": "additionalLinks",
-          "description": "Add additional links to the *Landing Page* resource. The value is an array of link     objects. Required properties of a link are a URI (`href`), a label (`label`) and a relation     (`rel`).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/Link"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/Link"
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "Oas30Configuration": {
-      "title": "Oas30Configuration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `OAS30`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "OAS30"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "showSchemaConstraintsInHtml": {
-          "title": "showSchemaConstraintsInHtml",
-          "description": "In the HTML view of the OpenAPI definition, schema constraints except `enum` and     `default` values are not displayed. Set this to `true` to display also `minimum`,     `maximum`, `pattern`, `minLength`, and `maxLength` constraints.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "isShowSchemaConstraintsInHtml": {
-          "title": "isShowSchemaConstraintsInHtml",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ApiCatalogEntry": {
-      "title": "ApiCatalogEntry",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "title": {
-          "title": "title",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "description": {
-          "title": "description",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "links": {
-          "title": "links",
-          "description": "",
+          "description": "Add additional links to the *Collections* resource. The value is an array of link     objects. Required properties of a link are a URI (`href`), a label (`label`) and a relation     (`rel`).",
           "allOf": [
             {
               "if": {
@@ -2715,63 +3427,9 @@
             }
           ]
         },
-        "id": {
-          "title": "id",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "landingPageUri": {
-          "title": "landingPageUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "tags": {
-          "title": "tags",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "isDataset": {
-          "title": "isDataset",
-          "description": "",
+        "collectionIdAsParameter": {
+          "title": "collectionIdAsParameter",
+          "description": "Controls whether each feature collection and subresource is listed as a single resource     in the API definition (`false`), or whether a path parameter `collectionId` is used and     each resource is specified only once in the definition (`true`). With `true` the API     definition becomes simpler and shorter, but the schema is no longer collection-specific and     collection-specific query parameters can no longer be specified in the API definition.",
           "oneOf": [
             {
               "type": "boolean"
@@ -2785,36 +3443,9 @@
             }
           ]
         },
-        "extensions": {
-          "title": "extensions",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "type": "object"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "FoundationConfiguration": {
-      "title": "FoundationConfiguration",
-      "description": "Provides base functionality for all other building blocks and therefore cannot be disabled.",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FOUNDATION`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FOUNDATION"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
+        "collectionDefinitionsAreIdentical": {
+          "title": "collectionDefinitionsAreIdentical",
+          "description": "If in the case of `collectionIdAsParameter: true` all collections have a structurally     identical schema and the same queryables, the value `true` can be used to control that in     the API definition schema and queryables are determined from any collection.",
           "oneOf": [
             {
               "type": "boolean"
@@ -2826,637 +3457,6 @@
             {
               "type": "null"
             }
-          ]
-        },
-        "useLangParameter": {
-          "title": "useLangParameter",
-          "description": "Support query parameter `lang` to set the desired response language.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "includeLinkHeader": {
-          "title": "includeLinkHeader",
-          "description": "Return links contained in API responses also as [HTTP     header](https://docs.ogc.org/is/17-069r4/17-069r4.html#_link_headers).",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "apiCatalogLabel": {
-          "title": "apiCatalogLabel",
-          "description": "Title for resource *API Catalog*.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "apiCatalogDescription": {
-          "title": "apiCatalogDescription",
-          "description": "Description for resource *API Catalog*. May contain HTML elements.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "apiCatalogAdditionalEntries": {
-          "title": "apiCatalogAdditionalEntries",
-          "description": "Additional entries for resource *API Catalog*. Every entry must contain an `id`, a     `title` and a `landingPageUri`. It may also contain a `description` and a list of `tags`.     Entries that do not represent a dataset should set `isDataset` to `false`.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ApiCatalogEntry"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ApiCatalogEntry"
-              }
-            }
-          ]
-        },
-        "googleSiteVerification": {
-          "title": "googleSiteVerification",
-          "description": "If set, the value is embedded in the HTML page of the API catalog resource in a     \"googleSiteVerification\" meta tag (`\u003cmeta name\u003d\"`google-site-verification`\"  content\u003d\"{value}\" \u003e).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "includeSpecificationInformation": {
-          "title": "includeSpecificationInformation",
-          "description": "Controls whether information (name, link, maturity) about the specification of an API     component, e.g., an operation or query parameter, is included in the API definition. It is     recommended to enable this option, if the API includes building blocks that are not marked     as `stable`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "JsonConfiguration": {
-      "title": "JsonConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `JSON`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "JSON"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CrsConfiguration": {
-      "title": "CrsConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `CRS`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "CRS"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "additionalCrs": {
-          "title": "additionalCrs",
-          "description": "Lists additional coordinate reference systems to be supported in the API or for a     feature collection. The native coordinate reference system of the data and the default     coordinate reference system of the API are automatically enabled. Coordinate reference     systems are identified by their EPSG code (`code`). Additionally, the order of the     coordinate axes must be specified in `forceAxisOrder` (`NONE`: as in the coordinate     reference system, `LON_LAT` or `LAT_LON`: the order in the coordinate reference system is     ignored and the specified order is used).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/EpsgCrs"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/EpsgCrs"
-              }
-            }
-          ]
-        },
-        "suppressGlobalCrsList": {
-          "title": "suppressGlobalCrsList",
-          "description": "If `true`, the coordinate reference systems will be included in every Collection     resource that is embedded in the Collections resource. The global `crs` array will not be     used or referenced. Use this option, if the API is intended to be used with a client that     does not support the global `crs` array.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeaturesCoreConfiguration": {
-      "title": "FeaturesCoreConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FEATURES_CORE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FEATURES_CORE"
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "featureProvider": {
-          "title": "featureProvider",
-          "description": "Id of the feature provider to use. Normally the feature provider and API ids are the     same.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "featureType": {
-          "title": "featureType",
-          "description": "Id of the feature type to use as defined in the given feature provider. Normally the     feature type and collection ids are the same.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "": {
-          "title": "",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "defaultCrs": {
-          "title": "defaultCrs",
-          "description": "Default coordinate reference system, either `CRS84` for datasets with 2D geometries or     `CRS84h` for datasets with 3D geometries.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "minimumPageSize": {
-          "title": "minimumPageSize",
-          "description": "Minimum value for parameter `limit`.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "defaultPageSize": {
-          "title": "defaultPageSize",
-          "description": "Default value for parameter `limit`.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "maximumPageSize": {
-          "title": "maximumPageSize",
-          "description": "Maximum value for parameter `limit`.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "embeddedFeatureLinkRels": {
-          "title": "embeddedFeatureLinkRels",
-          "description": "Controls which links should be specified for each feature in the Features resource, if     these exist. The values are the link relation types to be included. By default, links such     as `self` or `alternate` are omitted from features in a FeatureCollection, this option can     be used to add them if needed.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "validateCoordinatesInQueries": {
-          "title": "validateCoordinatesInQueries",
-          "description": "Validate the coordinates of the bbox or filter parameters against the domain of validity of the  coordinate reference system",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "itemType": {
-          "title": "itemType",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "coordinatePrecision": {
-          "title": "coordinatePrecision",
-          "description": "Controls whether coordinates are limited to a certain number of places depending on the     coordinate reference system used. The unit of measurement and the corresponding number of     decimal places must be specified. Example: `{ \"metre\" : 2, \"degree\" : 7 }`. Valid units of     measurement are \"metre\" and \"degree\".",
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "TileMatrixSetsConfiguration": {
-      "title": "TileMatrixSetsConfiguration",
-      "description": "### Custom Tiling Schemes       Additional tiling schemes can be configured as JSON files according to the [OGC Two     Dimensional Tile Matrix Set and Tile Set Metadata 2.0     Standard](https://docs.ogc.org/is/17-083r4/17-083r4.html) in the data directory at     `api-resources/tile-matrix-sets/{tileMatrixSetId}.json`.",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `TILE_MATRIX_SETS`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "TILE_MATRIX_SETS"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
-        },
-        "includePredefined": {
-          "title": "includePredefined",
-          "description": "The list of pre-defined tile matrix sets that are published via this API.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CityJsonConfiguration": {
-      "title": "CityJsonConfiguration",
-      "description": "### Prerequisites       The building block requires that the feature provider includes a type `building` that is     mapped to a CityJSON Building feature. Properties of the type `building` are mapped to     CityJSON as follows:        - `consistsOfBuildingPart`: The value must be an object with the same properties as `building`.   The object is encoded as a BuildingPart feature of the Building feature. - `address`: The value must be an array of address objects. The following attributes are mapped   to an Address object, all other properties are ignored:   - `multiPoint`: a  MULTI_POINT geometry representing the address location   - `ThoroughfareName`: a string   - `ThoroughfareNumber`: a string   - `LocalityName`: a string   - `PostalCode`: a string   - `AdministrativeArea`: a string   - `CountryName`: a string - `lod1Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 1. - `lod2Solid`: a closed MULTI_POLYGON geometry that represents the shell of the building at LoD 2. - `surfaces`: an array of semantic surface objects. The object must have a `surfaceType` and the   values must be one of the following: `CeilingSurface`, `ClosureSurface`, `Door`, `FloorSurface`,   `GroundSurface`, `InteriorWallSurface`, `OuterCeilingSurface`, `OuterFloorSurface`, `RoofSurface`,   `WallSurface`, or `Window`. The object should have a property with a POLYGON or MULTI_POLYGON   geometry that represents the surface geometry. - all other properties: The property will be mapped to a CityJSON attribute, except for `gml_id` properties.            The property of the `building` with the role `ID` will be used as the CityJSON id. Since     the embedded building parts do not have a property with a role `ID`, the building part     feature will use the value of a property `id` as the id of the CityJSON building part,     otherwise a UUID will be generated. If `id` is provided, its values must be unique.       The [example](#examples) includes a sample type definition for the building features in a     PostgreSQL feature provider based on the CityGML profile of the German surveying and mapping     authorities.",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `CITY_JSON`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "CITY_JSON"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "textSequences": {
-          "title": "textSequences",
-          "description": "Enables support for CityJSON text sequences (media type `application/city+json-seq`).     Requires version 1.1 or later.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "version": {
-          "title": "version",
-          "description": "Select the CityJSON version that should be returned. Supported versions are `V10`     (CityJSON 1.0) and `V11` (CityJSON 1.1).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
           ]
         }
       },
@@ -3917,69 +3917,21 @@
       },
       "additionalProperties": false
     },
-    "GltfPropertyDefinition": {
-      "title": "GltfPropertyDefinition",
+    "GeometrySimplificationConfiguration": {
+      "title": "GeometrySimplificationConfiguration",
       "description": "",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "componentType": {
-          "title": "componentType",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "stringOffsetType": {
-          "title": "stringOffsetType",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "noData": {
-          "title": "noData",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "GltfConfiguration": {
-      "title": "GltfConfiguration",
-      "description": "### Prerequisites       Theis building block requires that the feature provider includes a type `building`. The     requirements for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `GLTF`.",
+          "description": "Always `GEOMETRY_SIMPLIFICATION`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "GLTF"
+          "const": "GEOMETRY_SIMPLIFICATION"
         },
         "enabled": {
           "title": "enabled",
@@ -3994,391 +3946,6 @@
             },
             {
               "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "meshQuantization": {
-          "title": "meshQuantization",
-          "description": "Enables support for the glTF 2.0 extension     [KHR_mesh_quantization](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_mesh_quantization).",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "withNormals": {
-          "title": "withNormals",
-          "description": "If `true`, the normals are computed for every vertex.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "withOutline": {
-          "title": "withOutline",
-          "description": "If `true`, the polygon edges are outlined in Cesium.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "polygonOrientationNotGuaranteed": {
-          "title": "polygonOrientationNotGuaranteed",
-          "description": "If `true`, materials are defined as     [double-sided](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#double-sided).",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "properties": {
-          "title": "properties",
-          "description": "Use this option to specify which feature attributes are included in the glTF model.     `type` is one of `SCALAR`, `STRING` or `ENUM`. For a scalar, specify the `componentType`     (see [3D Metadata     Specification](https://github.com/CesiumGS/3d-tiles/tree/main/specification/Metadata#component-type)),     default is `UNIT16`. For a string, specify the `stringOffsetType` as `UNIT8`, `UNIT16`, or     `UNIT32` depending on the expected length of the string buffer, default is `UNIT32`. For an     enum, the feature property must either have an `enum` constraint in the provider schema or     a `codelist` constraint where the codelist uses an integer code; specify the     `componentType` according to the range of code values, default is `UINT32`. In addition, a     sentinel value can be specified using `noData` (see [3D Metadata     Specification](https://github.com/CesiumGS/3d-tiles/tree/main/specification/Metadata) for     details).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/GltfPropertyDefinition"
-          }
-        },
-        "withSurfaceType": {
-          "title": "withSurfaceType",
-          "description": "If `true`, for buildings in Level-of-Detail 2 with information about the semantics of     each surface (wall, roof, etc.), a property \"surfaceType\" is added and available for each     vertex.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "maxMultiplicity": {
-          "title": "maxMultiplicity",
-          "description": "If the data is flattened and the feature schema includes arrays, `maxMultiplicity`     properties will be created for each array property. If an instance has more values in an     array, only the first values are included in the data.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "JsonFgConfiguration": {
-      "title": "JsonFgConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `JSON_FG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "JSON_FG"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "describedby": {
-          "title": "describedby",
-          "description": "*Partially Deprecated* For schemas specific to the feature type, use `schemaCollection`     and `schemaFeature`. Enables that links to the generic JSON-FG and GeoJSON JSON Schema     documents are added to the JSON-FG response document. The links have the link relation type     \"describedby\". The schemas can be used to validate the JSON document.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "schemaCollection": {
-          "title": "schemaCollection",
-          "description": "The URI of a JSON Schema document describing a feature collection with the features of     the collection/dataset. The schema will be referenced from JSON-FG feature collection     responses by a link with the link relation type \"describedby\". The schemas can be used to     validate the JSON document.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schemaFeature": {
-          "title": "schemaFeature",
-          "description": "The URI of a JSON Schema document describing a feature of the collection/dataset. The     schema will be referenced from JSON-FG feature responses by a link with the link relation     type \"describedby\". The schemas can be used to validate the JSON document.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "coordRefSys": {
-          "title": "coordRefSys",
-          "description": "Activates the output of the coordinate reference system in a JSON member \"coordRefSys\"     for features and feature collections. The coordinate reference system is identified by its     OGC URI, for example, `http://www.opengis.net/def/crs/EPSG/0/25832` for ETRS89 / UTM 32N.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "geojsonCompatibility": {
-          "title": "geojsonCompatibility",
-          "description": "Activates support for the \"compatibility\u003dgeojson\" media type parameter. If the     parameter is provided, JSON-FG features with a \"place\" member that is not `null` will also     include a GeoJSON geometry in the \"geometry\" member in WGS 84. If the parameter is missing,     the \"geometry\" member of a JSON-FG feature will be `null`, if the \"place\" member is not     `null`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "featureType": {
-          "title": "featureType",
-          "description": "Features are often categorized by type. Typically, all features of the same type have     the same schema and the same properties.       Many GIS clients depend on knowledge about the feature type when processing feature     data. For example, when associating a style to a feature in order to render that feature on     a map.       This option adds a \"featureType\" member with the specified values. If a single value is     specified, then a string is added, otherwise an array of strings.       A value can include a template `{{type}}`, which will be replaced with the value of the     feature property with `role: TYPE` in the provider schema of the feature type of the     collection. The property must be of type `STRING`.       If the feature type in the provider schema includes an `objectType` value, the value     will be used as the default. Otherwise, the default is an empty array.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "useCuries": {
-          "title": "useCuries",
-          "description": "If `true`, values in \"conformsTo\" and \"coordRefSys\" will be Safe CURIEs, not HTTP URIs.     For example, `[EPSG:25832]` instead of `http://www.opengis.net/def/crs/EPSG/0/25832`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "links": {
-          "title": "links",
-          "description": "Adds the specified links to the `links` array of features. All values of the array must     be a valid link object with `href` and `rel`.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/Link"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/Link"
-              }
-            }
-          ]
-        },
-        "includeInGeoJson": {
-          "title": "includeInGeoJson",
-          "description": "The option allows selected JSON-FG extensions to be included in the GeoJSON encoding as     well. Allowed values are: `describedby`, `featureType`, `featureSchema`, `time`, `place`,     `coordRefSys`, `links`. `conformsTo` is only used in JSON-FG responses.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
             }
           ]
         }
@@ -4722,25 +4289,259 @@
       },
       "additionalProperties": false
     },
-    "GeometrySimplificationConfiguration": {
-      "title": "GeometrySimplificationConfiguration",
+    "TextSearchConfiguration": {
+      "title": "TextSearchConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `GEOMETRY_SIMPLIFICATION`.",
+          "description": "Always `TEXT_SEARCH`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "GEOMETRY_SIMPLIFICATION"
+          "const": "TEXT_SEARCH"
         },
         "enabled": {
           "title": "enabled",
           "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "properties": {
+          "title": "properties",
+          "description": "Controls which of the queryable attributes are used for text search.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CrudConfiguration": {
+      "title": "CrudConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `CRUD`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "enum": [
+            "CRUD",
+            "TRANSACTIONS"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optimisticLockingLastModified": {
+          "title": "optimisticLockingLastModified",
+          "description": "Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,     based on the time when the feature was last updated. Such requests must include an     `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be     changed, if the feature was not changed since the timestamp in the header (or if no last     modification time is known for the feature).       The setting is ignored, if `optimisticLockingETag` is enabled.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optimisticLockingETag": {
+          "title": "optimisticLockingETag",
+          "description": "Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,     based on a strong Entity Tag (ETag) of the feature. Such requests must include an     `If-Match` header, otherwise they will be rejected. A feature will only be changed, if the     feature matches the Etag(s) in the header.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SchemaConfiguration": {
+      "title": "SchemaConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `SCHEMA`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "SCHEMA"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SearchConfiguration": {
+      "title": "SearchConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `SEARCH`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "SEARCH"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        },
+        "managerEnabled": {
+          "title": "managerEnabled",
+          "description": "Option to manage stored queries using PUT and DELETE.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validationEnabled": {
+          "title": "validationEnabled",
+          "description": "Option to validate stored queries when using PUT by setting a `Prefer` header with     `handling\u003dstrict`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "allLinksAreLocal": {
+          "title": "allLinksAreLocal",
+          "description": "Signals feature encoders whether all link targets are within the same document.",
           "oneOf": [
             {
               "type": "boolean"
@@ -4792,14 +4593,14 @@
       },
       "additionalProperties": false
     },
-    "Broker": {
-      "title": "Broker",
+    "GltfPropertyDefinition": {
+      "title": "GltfPropertyDefinition",
       "description": "",
       "type": "object",
       "properties": {
-        "host": {
-          "title": "host",
-          "description": "The hostname of the broker.",
+        "type": {
+          "title": "type",
+          "description": "",
           "type": [
             "string",
             "number",
@@ -4807,41 +4608,9 @@
             "null"
           ]
         },
-        "port": {
-          "title": "port",
-          "description": "The port used to connect the broker.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "ssl": {
-          "title": "ssl",
-          "description": "Flag, if the connection should use SSL.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "username": {
-          "title": "username",
-          "description": "Optional username, if credentials are required.",
+        "componentType": {
+          "title": "componentType",
+          "description": "",
           "type": [
             "string",
             "number",
@@ -4849,9 +4618,19 @@
             "null"
           ]
         },
-        "password": {
-          "title": "password",
-          "description": "Optional password, if credentials are required.",
+        "stringOffsetType": {
+          "title": "stringOffsetType",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "noData": {
+          "title": "noData",
+          "description": "",
           "type": [
             "string",
             "number",
@@ -4862,94 +4641,21 @@
       },
       "additionalProperties": false
     },
-    "Publication": {
-      "title": "Publication",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "broker": {
-          "title": "broker",
-          "description": "ID of the broker to use for the publication.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "parameters": {
-          "title": "parameters",
-          "description": "Dictionary of parameters and their corresponding feature property used in the MQTT     topic.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "property": {
-          "title": "property",
-          "description": "Feature property that should be sent in the publication. If not set, the feature will     be sent.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "mqttQos": {
-          "title": "mqttQos",
-          "description": "The MQTT QoS value for the messages, `AT_MOST_ONCE` (default), `AT_LEAST_ONCE`, or     `EXACTLY_ONCE`.",
-          "type": "object"
-        },
-        "timeout": {
-          "title": "timeout",
-          "description": "The timeout in seconds.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "retain": {
-          "title": "retain",
-          "description": "Flag whether the broker should retain the message.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "PubSubConfiguration": {
-      "title": "PubSubConfiguration",
-      "description": "",
+    "GltfConfiguration": {
+      "title": "GltfConfiguration",
+      "description": "### Prerequisites       Theis building block requires that the feature provider includes a type `building`. The     requirements for the type are the same as in the configuration of the [CityJSON     encoding](features_-_cityjson.html#configuration).",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `PUB_SUB`.",
+          "description": "Always `GLTF`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "PUB_SUB"
+          "const": "GLTF"
         },
         "enabled": {
           "title": "enabled",
@@ -4967,31 +4673,144 @@
             }
           ]
         },
-        "brokers": {
-          "title": "brokers",
-          "description": "A dictionary of MQTT brokers to connect to. The key is an id of the borker. The value     is a broker object with the following properties: `host` (the hostname of the broker),     `port` (the port to use, default is 1883), `ssl` (whether to use SSL, default is `true`, if     the port is 8883, otherwise `false`), `username` and `password` (optional credentials, if     required by the broker).",
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/Broker"
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
           }
         },
-        "publisher": {
-          "title": "publisher",
-          "description": "The unique identifier to use when connecting to the broker. Since the value must be     unique in the broker, the value should be set explicitly in the configuration.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "meshQuantization": {
+          "title": "meshQuantization",
+          "description": "Enables support for the glTF 2.0 extension     [KHR_mesh_quantization](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_mesh_quantization).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "publications": {
-          "title": "publications",
-          "description": "See [Publications](#publications)",
+        "withNormals": {
+          "title": "withNormals",
+          "description": "If `true`, the normals are computed for every vertex.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "withOutline": {
+          "title": "withOutline",
+          "description": "If `true`, the polygon edges are outlined in Cesium.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "polygonOrientationNotGuaranteed": {
+          "title": "polygonOrientationNotGuaranteed",
+          "description": "If `true`, materials are defined as     [double-sided](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#double-sided).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "properties": {
+          "title": "properties",
+          "description": "Use this option to specify which feature attributes are included in the glTF model.     `type` is one of `SCALAR`, `STRING` or `ENUM`. For a scalar, specify the `componentType`     (see [3D Metadata     Specification](https://github.com/CesiumGS/3d-tiles/tree/main/specification/Metadata#component-type)),     default is `UNIT16`. For a string, specify the `stringOffsetType` as `UNIT8`, `UNIT16`, or     `UNIT32` depending on the expected length of the string buffer, default is `UNIT32`. For an     enum, the feature property must either have an `enum` constraint in the provider schema or     a `codelist` constraint where the codelist uses an integer code; specify the     `componentType` according to the range of code values, default is `UINT32`. In addition, a     sentinel value can be specified using `noData` (see [3D Metadata     Specification](https://github.com/CesiumGS/3d-tiles/tree/main/specification/Metadata) for     details).",
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/Publication"
+            "$ref": "#/$defs/GltfPropertyDefinition"
           }
+        },
+        "withSurfaceType": {
+          "title": "withSurfaceType",
+          "description": "If `true`, for buildings in Level-of-Detail 2 with information about the semantics of     each surface (wall, roof, etc.), a property \"surfaceType\" is added and available for each     vertex.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxMultiplicity": {
+          "title": "maxMultiplicity",
+          "description": "If the data is flattened and the feature schema includes arrays, `maxMultiplicity`     properties will be created for each array property. If an instance has more values in an     array, only the first values are included in the data.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -5215,28 +5034,40 @@
       },
       "additionalProperties": false
     },
-    "CrudConfiguration": {
-      "title": "CrudConfiguration",
+    "Broker": {
+      "title": "Broker",
       "description": "",
       "type": "object",
       "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `CRUD`.",
+        "host": {
+          "title": "host",
+          "description": "The hostname of the broker.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
-          ],
-          "enum": [
-            "CRUD",
-            "TRANSACTIONS"
           ]
         },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
+        "port": {
+          "title": "port",
+          "description": "The port used to connect the broker.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ssl": {
+          "title": "ssl",
+          "description": "Flag, if the connection should use SSL.",
           "oneOf": [
             {
               "type": "boolean"
@@ -5250,97 +5081,117 @@
             }
           ]
         },
-        "optimisticLockingLastModified": {
-          "title": "optimisticLockingLastModified",
-          "description": "Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,     based on the time when the feature was last updated. Such requests must include an     `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be     changed, if the feature was not changed since the timestamp in the header (or if no last     modification time is known for the feature).       The setting is ignored, if `optimisticLockingETag` is enabled.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
+        "username": {
+          "title": "username",
+          "description": "Optional username, if credentials are required.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
           ]
         },
-        "optimisticLockingETag": {
-          "title": "optimisticLockingETag",
-          "description": "Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,     based on a strong Entity Tag (ETag) of the feature. Such requests must include an     `If-Match` header, otherwise they will be rejected. A feature will only be changed, if the     feature matches the Etag(s) in the header.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
+        "password": {
+          "title": "password",
+          "description": "Optional password, if credentials are required.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
           ]
         }
       },
       "additionalProperties": false
     },
-    "SchemaConfiguration": {
-      "title": "SchemaConfiguration",
+    "Publication": {
+      "title": "Publication",
       "description": "",
       "type": "object",
       "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `SCHEMA`.",
+        "broker": {
+          "title": "broker",
+          "description": "ID of the broker to use for the publication.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
-          ],
-          "const": "SCHEMA"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
           ]
         },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+        "parameters": {
+          "title": "parameters",
+          "description": "Dictionary of parameters and their corresponding feature property used in the MQTT     topic.",
           "type": "object",
-          "$ref": "#/$defs/Caching"
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "property": {
+          "title": "property",
+          "description": "Feature property that should be sent in the publication. If not set, the feature will     be sent.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "mqttQos": {
+          "title": "mqttQos",
+          "description": "The MQTT QoS value for the messages, `AT_MOST_ONCE` (default), `AT_LEAST_ONCE`, or     `EXACTLY_ONCE`.",
+          "type": "object"
+        },
+        "timeout": {
+          "title": "timeout",
+          "description": "The timeout in seconds.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retain": {
+          "title": "retain",
+          "description": "Flag whether the broker should retain the message.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
     },
-    "SearchConfiguration": {
-      "title": "SearchConfiguration",
+    "PubSubConfiguration": {
+      "title": "PubSubConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `SEARCH`.",
+          "description": "Always `PUB_SUB`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "SEARCH"
+          "const": "PUB_SUB"
         },
         "enabled": {
           "title": "enabled",
@@ -5358,128 +5209,31 @@
             }
           ]
         },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+        "brokers": {
+          "title": "brokers",
+          "description": "A dictionary of MQTT brokers to connect to. The key is an id of the borker. The value     is a broker object with the following properties: `host` (the hostname of the broker),     `port` (the port to use, default is 1883), `ssl` (whether to use SSL, default is `true`, if     the port is 8883, otherwise `false`), `username` and `password` (optional credentials, if     required by the broker).",
           "type": "object",
-          "$ref": "#/$defs/Caching"
+          "additionalProperties": {
+            "$ref": "#/$defs/Broker"
+          }
         },
-        "managerEnabled": {
-          "title": "managerEnabled",
-          "description": "Option to manage stored queries using PUT and DELETE.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "validationEnabled": {
-          "title": "validationEnabled",
-          "description": "Option to validate stored queries when using PUT by setting a `Prefer` header with     `handling\u003dstrict`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "allLinksAreLocal": {
-          "title": "allLinksAreLocal",
-          "description": "Signals feature encoders whether all link targets are within the same document.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TextSearchConfiguration": {
-      "title": "TextSearchConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `TEXT_SEARCH`.",
+        "publisher": {
+          "title": "publisher",
+          "description": "The unique identifier to use when connecting to the broker. Since the value must be     unique in the broker, the value should be set explicitly in the configuration.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
-          ],
-          "const": "TEXT_SEARCH"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
           ]
         },
-        "properties": {
-          "title": "properties",
-          "description": "Controls which of the queryable attributes are used for text search.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
+        "publications": {
+          "title": "publications",
+          "description": "See [Publications](#publications)",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Publication"
+          }
         }
       },
       "additionalProperties": false
@@ -5597,6 +5351,465 @@
       },
       "additionalProperties": false
     },
+    "JsonFgConfiguration": {
+      "title": "JsonFgConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `JSON_FG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "JSON_FG"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "describedby": {
+          "title": "describedby",
+          "description": "*Partially Deprecated* For schemas specific to the feature type, use `schemaCollection`     and `schemaFeature`. Enables that links to the generic JSON-FG and GeoJSON JSON Schema     documents are added to the JSON-FG response document. The links have the link relation type     \"describedby\". The schemas can be used to validate the JSON document.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schemaCollection": {
+          "title": "schemaCollection",
+          "description": "The URI of a JSON Schema document describing a feature collection with the features of     the collection/dataset. The schema will be referenced from JSON-FG feature collection     responses by a link with the link relation type \"describedby\". The schemas can be used to     validate the JSON document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schemaFeature": {
+          "title": "schemaFeature",
+          "description": "The URI of a JSON Schema document describing a feature of the collection/dataset. The     schema will be referenced from JSON-FG feature responses by a link with the link relation     type \"describedby\". The schemas can be used to validate the JSON document.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "coordRefSys": {
+          "title": "coordRefSys",
+          "description": "Activates the output of the coordinate reference system in a JSON member \"coordRefSys\"     for features and feature collections. The coordinate reference system is identified by its     OGC URI, for example, `http://www.opengis.net/def/crs/EPSG/0/25832` for ETRS89 / UTM 32N.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "geojsonCompatibility": {
+          "title": "geojsonCompatibility",
+          "description": "Activates support for the \"compatibility\u003dgeojson\" media type parameter. If the     parameter is provided, JSON-FG features with a \"place\" member that is not `null` will also     include a GeoJSON geometry in the \"geometry\" member in WGS 84. If the parameter is missing,     the \"geometry\" member of a JSON-FG feature will be `null`, if the \"place\" member is not     `null`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "featureType": {
+          "title": "featureType",
+          "description": "Features are often categorized by type. Typically, all features of the same type have     the same schema and the same properties.       Many GIS clients depend on knowledge about the feature type when processing feature     data. For example, when associating a style to a feature in order to render that feature on     a map.       This option adds a \"featureType\" member with the specified values. If a single value is     specified, then a string is added, otherwise an array of strings.       A value can include a template `{{type}}`, which will be replaced with the value of the     feature property with `role: TYPE` in the provider schema of the feature type of the     collection. The property must be of type `STRING`.       If the feature type in the provider schema includes an `objectType` value, the value     will be used as the default. Otherwise, the default is an empty array.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "useCuries": {
+          "title": "useCuries",
+          "description": "If `true`, values in \"conformsTo\" and \"coordRefSys\" will be Safe CURIEs, not HTTP URIs.     For example, `[EPSG:25832]` instead of `http://www.opengis.net/def/crs/EPSG/0/25832`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "links": {
+          "title": "links",
+          "description": "Adds the specified links to the `links` array of features. All values of the array must     be a valid link object with `href` and `rel`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/Link"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/Link"
+              }
+            }
+          ]
+        },
+        "includeInGeoJson": {
+          "title": "includeInGeoJson",
+          "description": "The option allows selected JSON-FG extensions to be included in the GeoJSON encoding as     well. Allowed values are: `describedby`, `featureType`, `featureSchema`, `time`, `place`,     `coordRefSys`, `links`. `conformsTo` is only used in JSON-FG responses.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FlatgeobufConfiguration": {
+      "title": "FlatgeobufConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `FLATGEOBUF`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FLATGEOBUF"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "maxMultiplicity": {
+          "title": "maxMultiplicity",
+          "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CodelistsConfiguration": {
+      "title": "CodelistsConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `CODELISTS`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "CODELISTS"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "caching": {
+          "title": "caching",
+          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
+          "type": "object",
+          "$ref": "#/$defs/Caching"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CsvConfiguration": {
+      "title": "CsvConfiguration",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "buildingBlock": {
+          "title": "buildingBlock",
+          "description": "Always `CSV`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "CSV"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the building block?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/PropertyTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/PropertyTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "defaultProfiles": {
+          "title": "defaultProfiles",
+          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "maxMultiplicity": {
+          "title": "maxMultiplicity",
+          "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "FeaturesExtensionsConfiguration": {
       "title": "FeaturesExtensionsConfiguration",
       "description": "",
@@ -5705,213 +5918,6 @@
       },
       "additionalProperties": false
     },
-    "FlatgeobufConfiguration": {
-      "title": "FlatgeobufConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `FLATGEOBUF`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FLATGEOBUF"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "maxMultiplicity": {
-          "title": "maxMultiplicity",
-          "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ResultTypeConfiguration": {
-      "title": "ResultTypeConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `RESULT_TYPE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "RESULT_TYPE"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CsvConfiguration": {
-      "title": "CsvConfiguration",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "buildingBlock": {
-          "title": "buildingBlock",
-          "description": "Always `CSV`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "CSV"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the building block?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "[Property transformations](../../providers/details/transformations.md) do not affect     data sources, they are applied on-the-fly as part of the encoding. Filter expressions do     not take transformations into account, they have to be based on the source values. That     means queryable properties (see `queryables` in [Features](features.md)) should not use     transformations in most cases. The exception to the rule is the HTML encoding, where     readability might be more important than filter support.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/PropertyTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/PropertyTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "defaultProfiles": {
-          "title": "defaultProfiles",
-          "description": "Allows to change the default value of the [profile     parameter](features.md#query-parameters) for a specific format. The key is the kind of     profile, e.g. `rel` or `val`. The value is the default profile value, e.g. `rel-as-uri` or     `val-as-title`. If only some or no profile kinds are set, the application defaults apply.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "maxMultiplicity": {
-          "title": "maxMultiplicity",
-          "description": "If the feature schema includes array properties, `maxMultiplicity` properties will be     created for each array property. If an instance has more values in an array, only the first     values are included in the data.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
     "GeoJsonLdConfiguration": {
       "title": "GeoJsonLdConfiguration",
       "description": "",
@@ -6011,21 +6017,21 @@
       },
       "additionalProperties": false
     },
-    "CodelistsConfiguration": {
-      "title": "CodelistsConfiguration",
+    "ResultTypeConfiguration": {
+      "title": "ResultTypeConfiguration",
       "description": "",
       "type": "object",
       "properties": {
         "buildingBlock": {
           "title": "buildingBlock",
-          "description": "Always `CODELISTS`.",
+          "description": "Always `RESULT_TYPE`.",
           "type": [
             "string",
             "number",
             "boolean",
             "null"
           ],
-          "const": "CODELISTS"
+          "const": "RESULT_TYPE"
         },
         "enabled": {
           "title": "enabled",
@@ -6042,12 +6048,6 @@
               "type": "null"
             }
           ]
-        },
-        "caching": {
-          "title": "caching",
-          "description": "Sets fixed values for [HTTP Caching Headers](/services/README.md#caching) for the     resources.",
-          "type": "object",
-          "$ref": "#/$defs/Caching"
         }
       },
       "additionalProperties": false
@@ -6057,44 +6057,44 @@
       "properties": {
         "buildingBlock": {
           "enum": [
-            "COLLECTIONS",
-            "QUERYABLES",
+            "FILTER",
+            "XML",
+            "CITY_JSON",
+            "JSON",
+            "FEATURES_HTML",
+            "TILE_MATRIX_SETS",
+            "COMMON",
+            "FEATURES_CORE",
+            "OAS30",
+            "GEO_JSON",
+            "FOUNDATION",
             "TILES",
             "HTML",
-            "GEO_JSON",
-            "FILTER",
-            "FEATURES_HTML",
-            "XML",
-            "GML",
-            "COMMON",
-            "OAS30",
-            "FOUNDATION",
-            "JSON",
             "CRS",
-            "FEATURES_CORE",
-            "TILE_MATRIX_SETS",
-            "CITY_JSON",
+            "QUERYABLES",
+            "GML",
+            "COLLECTIONS",
             "ROUTING",
-            "GLTF",
-            "JSON_FG",
-            "TILES3D",
             "GEOMETRY_SIMPLIFICATION",
-            "PROJECTIONS",
-            "PUB_SUB",
-            "STYLES",
+            "TILES3D",
+            "TEXT_SEARCH",
             "CRUD",
             "TRANSACTIONS",
             "SCHEMA",
             "SEARCH",
-            "TEXT_SEARCH",
+            "PROJECTIONS",
+            "GLTF",
+            "STYLES",
+            "PUB_SUB",
             "SORTING",
+            "JSON_FG",
+            "FLATGEOBUF",
+            "CODELISTS",
+            "CSV",
             "FEATURES_EXTENSIONS",
             "RESOURCES",
-            "FLATGEOBUF",
-            "RESULT_TYPE",
-            "CSV",
             "GEO_JSON_LD",
-            "CODELISTS"
+            "RESULT_TYPE"
           ]
         }
       },
@@ -6106,7 +6106,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "COLLECTIONS"
+                "const": "FILTER"
               }
             },
             "required": [
@@ -6114,14 +6114,14 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/CollectionsConfiguration"
+            "$ref": "#/$defs/FilterConfiguration"
           }
         },
         {
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "QUERYABLES"
+                "const": "XML"
               }
             },
             "required": [
@@ -6129,7 +6129,142 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/QueryablesConfiguration"
+            "$ref": "#/$defs/XmlConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "CITY_JSON"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/CityJsonConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "JSON"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/JsonConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "FEATURES_HTML"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FeaturesHtmlConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "TILE_MATRIX_SETS"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/TileMatrixSetsConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "COMMON"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/CommonConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "FEATURES_CORE"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FeaturesCoreConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "OAS30"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/Oas30Configuration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "GEO_JSON"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/GeoJsonConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "FOUNDATION"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FoundationConfiguration"
           }
         },
         {
@@ -6166,7 +6301,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "GEO_JSON"
+                "const": "CRS"
               }
             },
             "required": [
@@ -6174,14 +6309,14 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/GeoJsonConfiguration"
+            "$ref": "#/$defs/CrsConfiguration"
           }
         },
         {
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "FILTER"
+                "const": "QUERYABLES"
               }
             },
             "required": [
@@ -6189,37 +6324,7 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/FilterConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "FEATURES_HTML"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FeaturesHtmlConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "XML"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/XmlConfiguration"
+            "$ref": "#/$defs/QueryablesConfiguration"
           }
         },
         {
@@ -6241,7 +6346,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "COMMON"
+                "const": "COLLECTIONS"
               }
             },
             "required": [
@@ -6249,112 +6354,7 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/CommonConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "OAS30"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/Oas30Configuration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "FOUNDATION"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FoundationConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "JSON"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/JsonConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "CRS"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/CrsConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "FEATURES_CORE"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FeaturesCoreConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "TILE_MATRIX_SETS"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/TileMatrixSetsConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "CITY_JSON"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/CityJsonConfiguration"
+            "$ref": "#/$defs/CollectionsConfiguration"
           }
         },
         {
@@ -6376,7 +6376,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "GLTF"
+                "const": "GEOMETRY_SIMPLIFICATION"
               }
             },
             "required": [
@@ -6384,22 +6384,7 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/GltfConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "JSON_FG"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/JsonFgConfiguration"
+            "$ref": "#/$defs/GeometrySimplificationConfiguration"
           }
         },
         {
@@ -6421,7 +6406,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "GEOMETRY_SIMPLIFICATION"
+                "const": "TEXT_SEARCH"
               }
             },
             "required": [
@@ -6429,52 +6414,7 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/GeometrySimplificationConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "PROJECTIONS"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/ProjectionsConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "PUB_SUB"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/PubSubConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "STYLES"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/StylesConfiguration"
+            "$ref": "#/$defs/TextSearchConfiguration"
           }
         },
         {
@@ -6541,7 +6481,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "TEXT_SEARCH"
+                "const": "PROJECTIONS"
               }
             },
             "required": [
@@ -6549,7 +6489,52 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/TextSearchConfiguration"
+            "$ref": "#/$defs/ProjectionsConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "GLTF"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/GltfConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "STYLES"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/StylesConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "PUB_SUB"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/PubSubConfiguration"
           }
         },
         {
@@ -6565,6 +6550,66 @@
           },
           "then": {
             "$ref": "#/$defs/SortingConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "JSON_FG"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/JsonFgConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "FLATGEOBUF"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FlatgeobufConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "CODELISTS"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/CodelistsConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "buildingBlock": {
+                "const": "CSV"
+              }
+            },
+            "required": [
+              "buildingBlock"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/CsvConfiguration"
           }
         },
         {
@@ -6601,51 +6646,6 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "FLATGEOBUF"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FlatgeobufConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "RESULT_TYPE"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/ResultTypeConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
-                "const": "CSV"
-              }
-            },
-            "required": [
-              "buildingBlock"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/CsvConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "buildingBlock": {
                 "const": "GEO_JSON_LD"
               }
             },
@@ -6661,7 +6661,7 @@
           "if": {
             "properties": {
               "buildingBlock": {
-                "const": "CODELISTS"
+                "const": "RESULT_TYPE"
               }
             },
             "required": [
@@ -6669,7 +6669,7 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/CodelistsConfiguration"
+            "$ref": "#/$defs/ResultTypeConfiguration"
           }
         }
       ]

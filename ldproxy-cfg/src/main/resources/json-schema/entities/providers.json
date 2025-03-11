@@ -11,12 +11,12 @@
     "providerSubType": {
       "enum": [
         "WFS",
-        "SQL",
-        "ORACLE",
-        "GRAPHQL",
         "FEATURES",
         "MBTILES",
-        "HTTP"
+        "HTTP",
+        "GRAPHQL",
+        "ORACLE",
+        "SQL"
       ]
     }
   },
@@ -42,63 +42,6 @@
       },
       "then": {
         "$ref": "#/$defs/FeatureProviderWfsData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "SQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "ORACLE"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "GRAPHQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderGraphQlData"
       }
     },
     {
@@ -156,6 +99,63 @@
       },
       "then": {
         "$ref": "#/$defs/TileProviderHttpData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "GRAPHQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderGraphQlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "ORACLE"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "SQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
       }
     }
   ],
@@ -320,374 +320,6 @@
           "description": "",
           "type": "object",
           "$ref": "#/$defs/ConnectionInfoWfsHttp"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureProviderSqlData": {
-      "title": "FeatureProviderSqlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "See [Connection Info](#connection-info).",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoSql"
-        },
-        "datasetChanges": {
-          "title": "datasetChanges",
-          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)     below.",
-          "type": "object",
-          "$ref": "#/$defs/DatasetChangeSettings"
-        },
-        "sourcePathDefaults": {
-          "title": "sourcePathDefaults",
-          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path     Defaults](10-sql.md#source-path-defaults) below.",
-          "type": "object",
-          "$ref": "#/$defs/SqlPathDefaults"
-        },
-        "queryGeneration": {
-          "title": "queryGeneration",
-          "description": "Options for query generation, for details see [Query     Generation](10-sql.md#query-generation) below.",
-          "type": "object",
-          "$ref": "#/$defs/QueryGeneratorSettings"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureProviderGraphQlData": {
-      "title": "FeatureProviderGraphQlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
-        },
-        "queries": {
-          "title": "queries",
-          "description": "Options for query generation, for details see [Queries](#queries) below.",
-          "type": "object",
-          "$ref": "#/$defs/GraphQlQueries"
         },
         "types": {
           "title": "types",
@@ -958,6 +590,374 @@
       },
       "additionalProperties": false
     },
+    "FeatureProviderGraphQlData": {
+      "title": "FeatureProviderGraphQlData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
+        },
+        "queries": {
+          "title": "queries",
+          "description": "Options for query generation, for details see [Queries](#queries) below.",
+          "type": "object",
+          "$ref": "#/$defs/GraphQlQueries"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureProviderSqlData": {
+      "title": "FeatureProviderSqlData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "See [Connection Info](#connection-info).",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoSql"
+        },
+        "datasetChanges": {
+          "title": "datasetChanges",
+          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)     below.",
+          "type": "object",
+          "$ref": "#/$defs/DatasetChangeSettings"
+        },
+        "sourcePathDefaults": {
+          "title": "sourcePathDefaults",
+          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path     Defaults](10-sql.md#source-path-defaults) below.",
+          "type": "object",
+          "$ref": "#/$defs/SqlPathDefaults"
+        },
+        "queryGeneration": {
+          "title": "queryGeneration",
+          "description": "Options for query generation, for details see [Query     Generation](10-sql.md#query-generation) below.",
+          "type": "object",
+          "$ref": "#/$defs/QueryGeneratorSettings"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "EpsgCrs": {
       "title": "EpsgCrs",
       "description": "",
@@ -1004,73 +1004,6 @@
             "boolean",
             "null"
           ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "JsonSchemaConfiguration": {
-      "title": "JsonSchemaConfiguration",
-      "description": "```yaml  - type: JSON_SCHEMA   enabled: true   objectTypeRefs:     \u0027#/$defs/Link\u0027: Link  ```",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Always `JSON_SCHEMA`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "JSON_SCHEMA"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the extension?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "objectTypeRefs": {
-          "title": "objectTypeRefs",
-          "description": "Allows to map JSON schema definitions to an `objectType`, e.g. `\u0027#/$defs/Link\u0027: Link`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "geometryTypeRefs": {
-          "title": "geometryTypeRefs",
-          "description": "Allows to map JSON schema definitions to a `geometryType`, e.g.     `https://geojson.org/schema/LineString.json\u0027: LINE_STRING`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "relationRefs": {
-          "title": "relationRefs",
-          "description": "Allows to map JSON schema definitions to a `refType`, e.g. `\u0027#/$defs/Address\u0027:     address`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "compositionIndexes": {
-          "title": "compositionIndexes",
-          "description": "Allows to choose a specific variant for oneOf/anyOf/allOf.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          }
         }
       },
       "additionalProperties": false
@@ -1250,6 +1183,73 @@
       },
       "additionalProperties": false
     },
+    "JsonSchemaConfiguration": {
+      "title": "JsonSchemaConfiguration",
+      "description": "```yaml  - type: JSON_SCHEMA   enabled: true   objectTypeRefs:     \u0027#/$defs/Link\u0027: Link  ```",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `JSON_SCHEMA`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "JSON_SCHEMA"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the extension?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "objectTypeRefs": {
+          "title": "objectTypeRefs",
+          "description": "Allows to map JSON schema definitions to an `objectType`, e.g. `\u0027#/$defs/Link\u0027: Link`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "geometryTypeRefs": {
+          "title": "geometryTypeRefs",
+          "description": "Allows to map JSON schema definitions to a `geometryType`, e.g.     `https://geojson.org/schema/LineString.json\u0027: LINE_STRING`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "relationRefs": {
+          "title": "relationRefs",
+          "description": "Allows to map JSON schema definitions to a `refType`, e.g. `\u0027#/$defs/Address\u0027:     address`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "compositionIndexes": {
+          "title": "compositionIndexes",
+          "description": "Allows to choose a specific variant for oneOf/anyOf/allOf.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "FeatureChangesPgConfiguration": {
       "title": "FeatureChangesPgConfiguration",
       "description": "```yaml  - type: FEATURE_CHANGES_PG   enabled: true   listenForTypes: # optional, default is to listen for all types   - governmentalservice   pollingInterval: 30s # optional, default is 60s  ```",
@@ -1334,8 +1334,8 @@
       "properties": {
         "type": {
           "enum": [
-            "JSON_SCHEMA",
             "ROUTES",
+            "JSON_SCHEMA",
             "FEATURE_CHANGES_PG"
           ]
         }
@@ -1344,21 +1344,6 @@
         "type"
       ],
       "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "JSON_SCHEMA"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/JsonSchemaConfiguration"
-          }
-        },
         {
           "if": {
             "properties": {
@@ -1372,6 +1357,21 @@
           },
           "then": {
             "$ref": "#/$defs/RoutesConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "JSON_SCHEMA"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/JsonSchemaConfiguration"
           }
         },
         {
@@ -2303,651 +2303,6 @@
           "additionalProperties": {
             "type": "string"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "PoolSettings": {
-      "title": "PoolSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "maxConnections": {
-          "title": "maxConnections",
-          "description": "Maximum number of connections to the database. The default value is computed     depending on the number of processor cores and the maximum number of joins per feature     type in the [Types Configuration](README.md#schema-definitions). The default value is     recommended for optimal performance under load. The smallest possible value also depends     on the maximum number of joins per feature type, smaller values are rejected.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "minConnections": {
-          "title": "minConnections",
-          "description": "Minimum number of connections to the database that are maintained.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "initFailTimeout": {
-          "title": "initFailTimeout",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "idleTimeout": {
-          "title": "idleTimeout",
-          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only     applies to connections beyond the `minConnections` limit. A value of 0 means that idle     connections are never removed from the pool.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "shared": {
-          "title": "shared",
-          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a     single connection pool will be shared between these providers. If any of the other     `connectionInfo` options do not match, the provider startup will fail.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureActionTrigger": {
-      "title": "FeatureActionTrigger",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "onDelete": {
-          "title": "onDelete",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ConnectionInfoSql": {
-      "title": "ConnectionInfoSql",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "dialect": {
-          "title": "dialect",
-          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "database": {
-          "title": "database",
-          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`     in the [Store](../../application/20-configuration/10-store-new.md).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "host": {
-          "title": "host",
-          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.     `db:30305`. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schemas": {
-          "title": "schemas",
-          "description": "The names of database schemas that should be used in addition to `public`. Not relevant     for `GPKG`.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pool": {
-          "title": "pool",
-          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
-          "type": "object",
-          "$ref": "#/$defs/PoolSettings"
-        },
-        "driverOptions": {
-          "title": "driverOptions",
-          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,     `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the     [driver     documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "triggers": {
-          "title": "triggers",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/FeatureActionTrigger"
-        },
-        "assumeExternalChanges": {
-          "title": "assumeExternalChanges",
-          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may     be changed by external applications. Setting this to `true` for example will recompute     extents and counts on every provider start or reload.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "deprecated": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "DatasetChangeSettings": {
-      "title": "DatasetChangeSettings",
-      "description": "Defines how dataset changes should be detected. There are the following modes:        - `OFF`: The dataset is considered static and no change detection is performed. If there is a   new dataset version, that should result in changes to `connectionInfo`. (This will be the default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes   (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.   In this mode a synchronization happens on every provider start or reload.   Additionally a periodic synchronization can be configured with `syncPeriodic`.",
-      "type": "object",
-      "properties": {
-        "mode": {
-          "title": "mode",
-          "description": "The mode for dataset change detection, see above.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "syncPeriodic": {
-          "title": "syncPeriodic",
-          "description": "A crontab pattern to periodically refresh all cached data that is derived from the     dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "SqlPathDefaults": {
-      "title": "SqlPathDefaults",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "primaryKey": {
-          "title": "primaryKey",
-          "description": "The default column that is used for join analysis if no differing primary key is set in     the [sourcePath](#path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "sortKey": {
-          "title": "sortKey",
-          "description": "The default column that is used to sort rows if no differing sort key is set in the     [sourcePath](#path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schema": {
-          "title": "schema",
-          "description": "The default schema that is applied to tables without prefix in     [sourcePaths](#path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "junctionTablePattern": {
-          "title": "junctionTablePattern",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryGeneratorSettings": {
-      "title": "QueryGeneratorSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "chunkSize": {
-          "title": "chunkSize",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "computeNumberMatched": {
-          "title": "computeNumberMatched",
-          "description": "Option to disable computation of the number of selected features for performance     reasons that are returned in `numberMatched`. As a general rule this should be disabled     for big datasets.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "nullOrder": {
-          "title": "nullOrder",
-          "description": "If no value is provided, the sort order of the underlying feature provider (typically     `last` for ascending and `first` for descending) is used. `last` or `first` can be used     to force a specific sort order, if some rows have null values.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "accentiCollation": {
-          "title": "accentiCollation",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ConnectionInfoGraphQlHttp": {
-      "title": "ConnectionInfoGraphQlHttp",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "connectorType": {
-          "title": "connectorType",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "uri": {
-          "title": "uri",
-          "description": "The URI of the GraphQL endpoint.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "accept": {
-          "title": "accept",
-          "description": "The Accept header sent for GraphQL requests.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryArgumentsCollection": {
-      "title": "QueryArgumentsCollection",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Argument to select a feature with a specific id. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the id property and `{{value}}` is replaced with the actual     id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "limit": {
-          "title": "limit",
-          "description": "Argument to limit the number of selected features. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the limit.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "offset": {
-          "title": "offset",
-          "description": "Argument to change the index of the first feature in the overall result set. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the offset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "filter": {
-          "title": "filter",
-          "description": "Argument that wraps filter expressions. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the filter expressions.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "bbox": {
-          "title": "bbox",
-          "description": "Argument for a bounding box filter. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the primary spatial property and `{{value}}` is replaced     with spatial value (see `geometry` below).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "geometry": {
-          "title": "geometry",
-          "description": "Argument that wraps geometries in filter expressions. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the spatial value. A filter to convert the geometry to a textual     representation is required, currently only `toWkt` is supported (`{{value \\| toWkt}}`).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryFields": {
-      "title": "QueryFields",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "geometry": {
-          "title": "geometry",
-          "description": "Subfield or argument for properties of type `GEOMETRY`. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the spatial property.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CollectionQuery": {
-      "title": "CollectionQuery",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "name",
-          "description": "Name of the GraphQL query.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "arguments": {
-          "title": "arguments",
-          "description": "Arguments for the GraphQL query.",
-          "type": "object",
-          "$ref": "#/$defs/QueryArgumentsCollection"
-        },
-        "fields": {
-          "title": "fields",
-          "description": "Subfields or arguments for specific types.",
-          "type": "object",
-          "$ref": "#/$defs/QueryFields"
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryArgumentsSingle": {
-      "title": "QueryArgumentsSingle",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Argument to select a feature with a specific id. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the id property and `{{value}}` is replaced with the actual     id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "SingleQuery": {
-      "title": "SingleQuery",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "name",
-          "description": "Name of the GraphQL query.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "arguments": {
-          "title": "arguments",
-          "description": "Arguments for the GraphQL query.",
-          "type": "object",
-          "$ref": "#/$defs/QueryArgumentsSingle"
-        },
-        "fields": {
-          "title": "fields",
-          "description": "Subfields for specific types.",
-          "type": "object",
-          "$ref": "#/$defs/QueryFields"
-        }
-      },
-      "additionalProperties": false
-    },
-    "GraphQlQueries": {
-      "title": "GraphQlQueries",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "collection": {
-          "title": "collection",
-          "description": "Options for collection queries.",
-          "type": "object",
-          "$ref": "#/$defs/CollectionQuery"
-        },
-        "single": {
-          "title": "single",
-          "description": "Options for single feature queries. If not set, a collection query will be used.",
-          "type": "object",
-          "$ref": "#/$defs/SingleQuery"
         }
       },
       "additionalProperties": false
@@ -3991,6 +3346,651 @@
         "urlTemplate": {
           "title": "urlTemplate",
           "description": "URL template for accessing tiles. Parameters to use are `{{tileMatrix}}`,     `{{tileRow}}`, `{{tileCol}}` and `{{fileExtension}}`. Single curly braces are also allowed.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoGraphQlHttp": {
+      "title": "ConnectionInfoGraphQlHttp",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "connectorType": {
+          "title": "connectorType",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "uri": {
+          "title": "uri",
+          "description": "The URI of the GraphQL endpoint.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "accept": {
+          "title": "accept",
+          "description": "The Accept header sent for GraphQL requests.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryArgumentsCollection": {
+      "title": "QueryArgumentsCollection",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Argument to select a feature with a specific id. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the id property and `{{value}}` is replaced with the actual     id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limit": {
+          "title": "limit",
+          "description": "Argument to limit the number of selected features. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the limit.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "offset": {
+          "title": "offset",
+          "description": "Argument to change the index of the first feature in the overall result set. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the offset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "filter": {
+          "title": "filter",
+          "description": "Argument that wraps filter expressions. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the filter expressions.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "bbox": {
+          "title": "bbox",
+          "description": "Argument for a bounding box filter. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the primary spatial property and `{{value}}` is replaced     with spatial value (see `geometry` below).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "geometry": {
+          "title": "geometry",
+          "description": "Argument that wraps geometries in filter expressions. [String     template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is     replaced with the spatial value. A filter to convert the geometry to a textual     representation is required, currently only `toWkt` is supported (`{{value \\| toWkt}}`).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryFields": {
+      "title": "QueryFields",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "title": "geometry",
+          "description": "Subfield or argument for properties of type `GEOMETRY`. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the spatial property.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CollectionQuery": {
+      "title": "CollectionQuery",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "name",
+          "description": "Name of the GraphQL query.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "arguments": {
+          "title": "arguments",
+          "description": "Arguments for the GraphQL query.",
+          "type": "object",
+          "$ref": "#/$defs/QueryArgumentsCollection"
+        },
+        "fields": {
+          "title": "fields",
+          "description": "Subfields or arguments for specific types.",
+          "type": "object",
+          "$ref": "#/$defs/QueryFields"
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryArgumentsSingle": {
+      "title": "QueryArgumentsSingle",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Argument to select a feature with a specific id. [String     template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`     is replaced with the name of the id property and `{{value}}` is replaced with the actual     id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SingleQuery": {
+      "title": "SingleQuery",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "name",
+          "description": "Name of the GraphQL query.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "arguments": {
+          "title": "arguments",
+          "description": "Arguments for the GraphQL query.",
+          "type": "object",
+          "$ref": "#/$defs/QueryArgumentsSingle"
+        },
+        "fields": {
+          "title": "fields",
+          "description": "Subfields for specific types.",
+          "type": "object",
+          "$ref": "#/$defs/QueryFields"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraphQlQueries": {
+      "title": "GraphQlQueries",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "collection": {
+          "title": "collection",
+          "description": "Options for collection queries.",
+          "type": "object",
+          "$ref": "#/$defs/CollectionQuery"
+        },
+        "single": {
+          "title": "single",
+          "description": "Options for single feature queries. If not set, a collection query will be used.",
+          "type": "object",
+          "$ref": "#/$defs/SingleQuery"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PoolSettings": {
+      "title": "PoolSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "maxConnections": {
+          "title": "maxConnections",
+          "description": "Maximum number of connections to the database. The default value is computed     depending on the number of processor cores and the maximum number of joins per feature     type in the [Types Configuration](README.md#schema-definitions). The default value is     recommended for optimal performance under load. The smallest possible value also depends     on the maximum number of joins per feature type, smaller values are rejected.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minConnections": {
+          "title": "minConnections",
+          "description": "Minimum number of connections to the database that are maintained.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initFailTimeout": {
+          "title": "initFailTimeout",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "idleTimeout": {
+          "title": "idleTimeout",
+          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only     applies to connections beyond the `minConnections` limit. A value of 0 means that idle     connections are never removed from the pool.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "shared": {
+          "title": "shared",
+          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a     single connection pool will be shared between these providers. If any of the other     `connectionInfo` options do not match, the provider startup will fail.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureActionTrigger": {
+      "title": "FeatureActionTrigger",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "onDelete": {
+          "title": "onDelete",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoSql": {
+      "title": "ConnectionInfoSql",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dialect": {
+          "title": "dialect",
+          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "database": {
+          "title": "database",
+          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`     in the [Store](../../application/20-configuration/10-store-new.md).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "title": "host",
+          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.     `db:30305`. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schemas": {
+          "title": "schemas",
+          "description": "The names of database schemas that should be used in addition to `public`. Not relevant     for `GPKG`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pool": {
+          "title": "pool",
+          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
+          "type": "object",
+          "$ref": "#/$defs/PoolSettings"
+        },
+        "driverOptions": {
+          "title": "driverOptions",
+          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,     `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the     [driver     documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "triggers": {
+          "title": "triggers",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/FeatureActionTrigger"
+        },
+        "assumeExternalChanges": {
+          "title": "assumeExternalChanges",
+          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may     be changed by external applications. Setting this to `true` for example will recompute     extents and counts on every provider start or reload.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "deprecated": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DatasetChangeSettings": {
+      "title": "DatasetChangeSettings",
+      "description": "Defines how dataset changes should be detected. There are the following modes:        - `OFF`: The dataset is considered static and no change detection is performed. If there is a   new dataset version, that should result in changes to `connectionInfo`. (This will be the default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes   (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.   In this mode a synchronization happens on every provider start or reload.   Additionally a periodic synchronization can be configured with `syncPeriodic`.",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "title": "mode",
+          "description": "The mode for dataset change detection, see above.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "syncPeriodic": {
+          "title": "syncPeriodic",
+          "description": "A crontab pattern to periodically refresh all cached data that is derived from the     dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SqlPathDefaults": {
+      "title": "SqlPathDefaults",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "primaryKey": {
+          "title": "primaryKey",
+          "description": "The default column that is used for join analysis if no differing primary key is set in     the [sourcePath](#path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "sortKey": {
+          "title": "sortKey",
+          "description": "The default column that is used to sort rows if no differing sort key is set in the     [sourcePath](#path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schema": {
+          "title": "schema",
+          "description": "The default schema that is applied to tables without prefix in     [sourcePaths](#path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "junctionTablePattern": {
+          "title": "junctionTablePattern",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryGeneratorSettings": {
+      "title": "QueryGeneratorSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "chunkSize": {
+          "title": "chunkSize",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "computeNumberMatched": {
+          "title": "computeNumberMatched",
+          "description": "Option to disable computation of the number of selected features for performance     reasons that are returned in `numberMatched`. As a general rule this should be disabled     for big datasets.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nullOrder": {
+          "title": "nullOrder",
+          "description": "If no value is provided, the sort order of the underlying feature provider (typically     `last` for ascending and `first` for descending) is used. `last` or `first` can be used     to force a specific sort order, if some rows have null values.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "accentiCollation": {
+          "title": "accentiCollation",
+          "description": "",
           "type": [
             "string",
             "number",
