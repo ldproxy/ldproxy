@@ -53,12 +53,12 @@
 <script type="text/javascript">
     const xyzTemplates = {
       {{#tileMatrixSetIds}}
-        '{{.}}': '{{{xyzTemplate}}}'.replace("WebMercatorQuad","{{.}}"),
+        '{{.}}': '{{{xyzTemplate}}}'.replace("/WebMercatorQuad/","/{{.}}/"),
       {{/tileMatrixSetIds}}
     };
     const tileJsonLinks = {
       {{#tileMatrixSetIds}}
-        '{{.}}': '{{{tileJsonLink}}}'.replace("WebMercatorQuad","{{.}}"),
+        '{{.}}': '{{{tileJsonLink}}}'.replace("/WebMercatorQuad?","/{{.}}?"),
       {{/tileMatrixSetIds}}
     };
     function changeTileMatrixSet(id) {
