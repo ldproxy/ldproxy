@@ -30,6 +30,7 @@ import org.immutables.value.Value;
  *     <p>These are the **predefined main permission groups**, every operation/permission is
  *     contained in exactly one main group:
  *     <p><code>
+ * - `noaccess`: no access
  * - `discover`: access API landing pages, conformance declarations and OpenAPI definitions
  * - `collections:read`: access feature collection metadata
  * - `data:read`: access and query features
@@ -62,7 +63,9 @@ import org.immutables.value.Value;
  *     <p>**Custom permission groups** are defined in `groups`, they may contain permissions and/or
  *     predefined permission groups.
  *     <p>The special **permission group `public`** defines the list of permissions and/or
- *     predefined permission groups that every user possesses, if authenticated or not.
+ *     predefined permission groups that every user possesses, if authenticated or not. The default
+ *     for `public` is `[read]`. If `public` should have no permissions at all, keep in mind that an
+ *     empty list has no effect in this case. Use `[noaccess]` instead.
  *     <p>#### Data-specific permissions
  *     <p>The permissions groups and permissions described above will permit access to any API and
  *     collection. To restrict the access to specific APIs or collections, a suffix can be added to
@@ -110,6 +113,7 @@ import org.immutables.value.Value;
  *     <p>Das sind die **vordefinierten Main-Berechtigungsgruppen**, jede Operation/Berechtigung ist
  *     in genau einer Main-Gruppe enthalten:
  *     <p><code>
+ * - `noaccess`: Kein Zugriff
  * - `discover`: Lesen von API Landing Pages, Conformance Declarations und OpenAPI Definitionen
  * - `collections:read`: Lesen von Metadaten zu Feature Collections
  * - `data:read`: Lesen und Abfragen von Features
@@ -145,7 +149,9 @@ import org.immutables.value.Value;
  *     Berechtigungen und/oder vordefinierte Berechtigungsgruppen enthalten.
  *     <p>Die spezielle **Berechtigungsgruppe `public`** definiert die Liste der Berechtigungen
  *     und/oder vordefinierten Berechtigungsgruppen, die jeder Benutzer besitzt, ob angemeldet oder
- *     nicht.
+ *     nicht. Der Default für `public` ist `[read]`. Soll `public` überhaupt keine Berechtigungen
+ *     haben, ist zu beachten, dass eine leere Liste in diesem Fall keine Wirkung hat. Stattdessen
+ *     muss `[noaccess]` verwendet werden.
  *     <p>#### Daten-spezifische Berechtigungen
  *     <p>Die oben beschriebenen Berechtigungen gewähren Zugriff zu jeder API und Collection. Um den
  *     Zugriff auf bestimmte APIs oder Collections einzuschränken, kann ein Suffix zu
