@@ -35,7 +35,6 @@ import de.ii.ogcapi.features.gltf.domain.SchemaProperty.Type;
 import de.ii.ogcapi.features.gltf.domain.TriangleMesh;
 import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.xtraplatform.base.domain.LogContext.MARKER;
-import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.features.domain.FeatureObjectEncoder;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import java.io.ByteArrayOutputStream;
@@ -114,7 +113,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
   private final ModifiableStateGltf state;
 
   private ImmutableGltfAsset.Builder builder;
-  private List<Integer> featureNodes;
+  private List<Integer> nodes;
   private final long transformerStart = System.nanoTime();
   private long processingStart;
   private OptionalLong featuresFetched;
@@ -195,9 +194,13 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
             addMultiPolygons(
                 builder, transformationContext, state, feature, fid, surfaces, withSurfaceType);
         if (added) {
-          int nextNodeId = state.getNextNodeId();
-          featureNodes.add(nextNodeId++);
-          state.setNextNodeId(nextNodeId);
+          // flush node, if the indices count is close to the maximum value of an unsigned short
+          if (state.getIndices().size() > (Short.MAX_VALUE - Short.MIN_VALUE) * 0.9) {
+            flushNode(builder, transformationContext, state);
+            int nextNodeId = state.getNextNodeId();
+            nodes.add(nextNodeId++);
+            state.setNextNodeId(nextNodeId);
+          }
           this.featureCount++;
         }
       } catch (Exception e) {
@@ -217,6 +220,17 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
   @Override
   public void onEnd(ModifiableContext context) {
     long writingStart = System.nanoTime();
+
+    if (!state.getIndices().isEmpty()) {
+      try {
+        flushNode(builder, transformationContext, state);
+        int nextNodeId = state.getNextNodeId();
+        nodes.add(nextNodeId++);
+        state.setNextNodeId(nextNodeId);
+      } catch (IOException e) {
+        throw new IllegalStateException(e);
+      }
+    }
 
     finalizeModel();
 
@@ -338,7 +352,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
 
     builder = ImmutableGltfAsset.builder().asset(metadataBuilder.build());
 
-    featureNodes = new ArrayList<>(INITIAL_SIZE);
+    nodes = new ArrayList<>(8);
 
     Map<String, ByteArrayOutputStream> buffers = new HashMap<>();
     Map<String, Integer> currentBufferViewOffsets = new HashMap<>();
@@ -536,7 +550,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
       builder.addBuffers(ImmutableBuffer.builder().byteLength(offset).build());
       builder.addNodes(
           ImmutableNode.builder()
-              .children(featureNodes)
+              .children(nodes)
               // z-up (CRS) => y-up (glTF uses y-up)
               .addMatrix(1d, 0d, 0d, 0d, 0d, 0d, -1d, 0d, 0d, 1d, 0d, 0d, 0d, 0d, 0d, 1d)
               .build());
@@ -645,15 +659,6 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
     return 4;
   }
 
-  private static double[] getOriginEcef(double[][] minMax, CrsTransformer crs84hToEcef) {
-    double[] min = minMax[0];
-    double[] max = minMax[1];
-    return crs84hToEcef.transform(
-        new double[] {(min[0] + max[0]) / 2.0, (min[1] + max[1]) / 2.0, (min[2] + max[2]) / 2.0},
-        1,
-        3);
-  }
-
   private static boolean addMultiPolygons(
       ImmutableGltfAsset.Builder builder,
       FeatureTransformationContextGltf context,
@@ -661,8 +666,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
       FeatureGltf feature,
       String featureName,
       MeshSurfaceList surfaces,
-      boolean withSurfaceType)
-      throws IOException {
+      boolean withSurfaceType) {
 
     double[][] minMax = surfaces.getMinMax();
 
@@ -671,11 +675,10 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
     List<Integer> indices = new ArrayList<>();
     List<Integer> featureIds = new ArrayList<>();
     List<Integer> outline = new ArrayList<>();
-    int indexCount = 0;
-    int surfaceCount = 0;
+    int indexCount = state.getIndexCount();
+    int surfaceCount = state.getSurfaceCount();
 
     Map<String, ByteArrayOutputStream> buffers = state.getBuffers();
-    Map<String, Integer> currentBufferViewOffsets = state.getCurrentBufferViewOffsets();
 
     for (MeshSurface surface : surfaces.getMeshSurfaces()) {
       TriangleMesh triangleMesh =
@@ -765,344 +768,13 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
         }
       }
 
-      int componentType;
-      if (indices.size() <= Byte.MAX_VALUE - Byte.MIN_VALUE) {
-        componentType = UNSIGNED_BYTE;
-      } else if (indices.size() <= Short.MAX_VALUE - Short.MIN_VALUE) {
-        componentType = UNSIGNED_SHORT;
-      } else {
-        // UNSIGNED_INT is not allowed
-        componentType = FLOAT;
-      }
-
-      // write indices and add accessor
-      ByteArrayOutputStream buffer = buffers.get(INDICES);
-      switch (componentType) {
-        case UNSIGNED_BYTE:
-          for (int v : indices) {
-            buffer.write(GltfAsset.intToLittleEndianByte(v));
-          }
-          break;
-
-        case UNSIGNED_SHORT:
-          for (int v : indices) {
-            buffer.write(GltfAsset.intToLittleEndianShort(v));
-          }
-          break;
-
-        case FLOAT:
-        default:
-          for (int v : indices) {
-            buffer.write(GltfAsset.intToLittleEndianFloat(v));
-          }
-          break;
-      }
-
-      ImmutableAttributes.Builder attributesBuilder = ImmutableAttributes.builder();
-      builder.addAccessors(
-          ImmutableAccessor.builder()
-              .bufferView(BUFFER_VIEW_INDICES)
-              .byteOffset(currentBufferViewOffsets.get(INDICES))
-              .componentType(componentType)
-              .addMax(indices.stream().max(Comparator.naturalOrder()).orElseThrow())
-              .addMin(indices.stream().min(Comparator.naturalOrder()).orElseThrow())
-              .count(indices.size())
-              .type("SCALAR")
-              .build());
-
-      // pad for alignment, all offsets must be divisible by 4
-      while (buffers.get(INDICES).size() % 4 > 0) {
-        buffers.get(INDICES).write(GltfAsset.BIN_PADDING);
-      }
-
-      int nextAccessorId = state.getNextAccessorId();
-      int accessorIdIndices = nextAccessorId;
-      state.setNextAccessorId(++nextAccessorId);
-
-      currentBufferViewOffsets.put(INDICES, buffer.size());
-
-      // prepare vertices and add accessor
-
-      // vertices are ECEF coordinates
-      // translate to the origin
-      double[] originEcef = getOriginEcef(minMax, context.getCrsTransformerCrs84hToEcef());
-      for (int n = 0; n < vertices.size() / 3; n++) {
-        vertices.set(n * 3, vertices.get(n * 3) - originEcef[0]);
-        vertices.set(n * 3 + 1, vertices.get(n * 3 + 1) - originEcef[1]);
-        vertices.set(n * 3 + 2, vertices.get(n * 3 + 2) - originEcef[2]);
-      }
-
-      final double[] scale;
-      final boolean quantizeMesh = context.getGltfConfiguration().useMeshQuantization();
-      if (quantizeMesh) {
-        // scale vertices to SHORT
-        double[] maxAbs = {0d, 0d, 0d};
-        for (int n = 0; n < vertices.size(); n++) {
-          if (Math.abs(vertices.get(n)) > maxAbs[n % 3]) {
-            maxAbs[n % 3] = Math.abs(vertices.get(n));
-          }
-        }
-        scale = IntStream.range(0, 3).mapToDouble(n -> maxAbs[n] / GltfAsset.MAX_SHORT).toArray();
-        for (int n = 0; n < vertices.size() / 3; n++) {
-          vertices.set(n * 3, vertices.get(n * 3) / scale[0]);
-          vertices.set(n * 3 + 1, vertices.get(n * 3 + 1) / scale[1]);
-          vertices.set(n * 3 + 2, vertices.get(n * 3 + 2) / scale[2]);
-        }
-
-        buffer = buffers.get(VERTICES);
-        for (int n = 0; n < vertices.size() / 3; n++) {
-          buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3)));
-          buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3 + 1)));
-          buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3 + 2)));
-          // 3 shorts are 6 bytes, add 2 bytes to be aligned with 4-byte boundaries
-          buffer.write(GltfAsset.BIN_PADDING);
-          buffer.write(GltfAsset.BIN_PADDING);
-        }
-      } else {
-        scale = new double[] {1d, 1d, 1d};
-
-        for (Double v : vertices) {
-          buffers.get(VERTICES).write(GltfAsset.doubleToLittleEndianFloat(v));
-        }
-      }
-
-      final List<Double> verticesMin = getMin(vertices);
-      final List<Double> verticesMax = getMax(vertices);
-      builder.addAccessors(
-          ImmutableAccessor.builder()
-              .bufferView(BUFFER_VIEW_VERTICES)
-              .byteOffset(currentBufferViewOffsets.get(VERTICES))
-              .componentType(quantizeMesh ? SHORT : FLOAT)
-              .normalized(false)
-              .max(
-                  quantizeMesh
-                      ? ImmutableList.of(
-                          Math.round(verticesMax.get(0)),
-                          Math.round(verticesMax.get(1)),
-                          Math.round(verticesMax.get(2)))
-                      : verticesMax)
-              .min(
-                  quantizeMesh
-                      ? ImmutableList.of(
-                          Math.round(verticesMin.get(0)),
-                          Math.round(verticesMin.get(1)),
-                          Math.round(verticesMin.get(2)))
-                      : verticesMin)
-              .count(vertices.size() / 3)
-              .type("VEC3")
-              .build());
-      attributesBuilder.position(nextAccessorId++);
-      state.setNextAccessorId(nextAccessorId);
-      currentBufferViewOffsets.put(VERTICES, buffers.get(VERTICES).size());
-
-      int nextBufferView = BUFFER_VIEW_NORMALS;
-      if (context.getGltfConfiguration().writeNormals()) {
-        // write normals and add accessor
-        buffer = buffers.get(NORMALS);
-        if (quantizeMesh) {
-          // scale normals to BYTE
-          for (int n = 0; n < normals.size() / 3; n++) {
-            normals.set(n * 3, normals.get(n * 3) * GltfAsset.MAX_BYTE);
-            normals.set(n * 3 + 1, normals.get(n * 3 + 1) * GltfAsset.MAX_BYTE);
-            normals.set(n * 3 + 2, normals.get(n * 3 + 2) * GltfAsset.MAX_BYTE);
-          }
-
-          for (int n = 0; n < normals.size() / 3; n++) {
-            buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3)));
-            buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3 + 1)));
-            buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3 + 2)));
-            // 3 bytes, add 1 byte to be aligned with 4-byte boundaries
-            buffer.write(GltfAsset.BIN_PADDING);
-          }
-        } else {
-          for (Double v : normals) {
-            buffer.write(GltfAsset.doubleToLittleEndianFloat(v));
-          }
-        }
-
-        final List<Double> normalsMin = getMin(normals);
-        final List<Double> normalsMax = getMax(normals);
-        builder.addAccessors(
-            ImmutableAccessor.builder()
-                .bufferView(nextBufferView++)
-                .byteOffset(currentBufferViewOffsets.get(NORMALS))
-                .componentType(quantizeMesh ? BYTE : FLOAT)
-                .normalized(quantizeMesh)
-                .max(
-                    quantizeMesh
-                        ? ImmutableList.of(
-                            Math.round(normalsMax.get(0)),
-                            Math.round(normalsMax.get(1)),
-                            Math.round(normalsMax.get(2)))
-                        : normalsMax)
-                .min(
-                    quantizeMesh
-                        ? ImmutableList.of(
-                            Math.round(normalsMin.get(0)),
-                            Math.round(normalsMin.get(1)),
-                            Math.round(normalsMin.get(2)))
-                        : normalsMin)
-                .count(normals.size() / 3)
-                .type("VEC3")
-                .build());
-        attributesBuilder.normal(nextAccessorId++);
-        state.setNextAccessorId(nextAccessorId);
-        currentBufferViewOffsets.put(NORMALS, buffers.get(NORMALS).size());
-      }
-
-      if (!context.getProperties().isEmpty()) {
-        // write feature ids and create accessor
-        buffer = buffers.get(FEATURE_ID);
-
-        final int nextFeatureId = state.getNextFeatureId();
-        if (nextFeatureId <= Byte.MAX_VALUE - Byte.MIN_VALUE) {
-          componentType = UNSIGNED_BYTE;
-        } else if (nextFeatureId <= Short.MAX_VALUE - Short.MIN_VALUE) {
-          componentType = UNSIGNED_SHORT;
-        } else {
-          componentType = UNSIGNED_INT;
-        }
-
-        // write indices and add accessor
-        switch (componentType) {
-          case UNSIGNED_BYTE:
-            for (int i = 0; i < vertices.size() / 3; i++) {
-              buffer.write(GltfAsset.intToLittleEndianByte(featureIds.get(i)));
-              buffer.write(GltfAsset.BIN_PADDING);
-              buffer.write(GltfAsset.BIN_PADDING);
-              buffer.write(GltfAsset.BIN_PADDING);
-            }
-            break;
-
-          case UNSIGNED_SHORT:
-            for (int i = 0; i < vertices.size() / 3; i++) {
-              buffer.write(GltfAsset.intToLittleEndianShort(featureIds.get(i)));
-              buffer.write(GltfAsset.BIN_PADDING);
-              buffer.write(GltfAsset.BIN_PADDING);
-            }
-            break;
-
-          case UNSIGNED_INT:
-          default:
-            for (int i = 0; i < vertices.size() / 3; i++) {
-              buffer.write(GltfAsset.intToLittleEndianInt(featureIds.get(i)));
-            }
-            break;
-        }
-
-        builder.addAccessors(
-            ImmutableAccessor.builder()
-                .bufferView(nextBufferView++)
-                .byteOffset(currentBufferViewOffsets.get(FEATURE_ID))
-                .componentType(componentType)
-                .count(featureIds.size())
-                .type("SCALAR")
-                .build());
-        attributesBuilder.featureId0(nextAccessorId++);
-        state.setNextAccessorId(nextAccessorId);
-        currentBufferViewOffsets.put(FEATURE_ID, buffer.size());
-      }
-
-      Integer accessorIdOutline = null;
-      if (context.getGltfConfiguration().writeOutline()) {
-        // write outline edges and add accessor
-        if (indices.size() <= Short.MAX_VALUE - Short.MIN_VALUE) {
-          componentType = UNSIGNED_SHORT;
-        } else {
-          componentType = UNSIGNED_INT;
-        }
-
-        // write indices and add accessor
-        buffer = buffers.get(OUTLINE);
-        switch (componentType) {
-          case UNSIGNED_SHORT:
-            for (int v : outline) {
-              buffer.write(GltfAsset.intToLittleEndianShort(v));
-            }
-            break;
-
-          case UNSIGNED_INT:
-          default:
-            for (int v : outline) {
-              buffer.write(GltfAsset.intToLittleEndianInt(v));
-            }
-            break;
-        }
-
-        builder.addAccessors(
-            ImmutableAccessor.builder()
-                .bufferView(nextBufferView++)
-                .byteOffset(currentBufferViewOffsets.get(OUTLINE))
-                .componentType(componentType)
-                .addMax(outline.stream().max(Comparator.naturalOrder()).orElseThrow())
-                .addMin(outline.stream().min(Comparator.naturalOrder()).orElseThrow())
-                .count(outline.size())
-                .type("SCALAR")
-                .build());
-
-        // pad for alignment, all offsets must be divisible by 4
-        while (buffers.get(OUTLINE).size() % 4 > 0) {
-          buffers.get(OUTLINE).write(GltfAsset.BIN_PADDING);
-        }
-
-        accessorIdOutline = nextAccessorId++;
-        state.setNextAccessorId(nextAccessorId);
-        currentBufferViewOffsets.put(OUTLINE, buffers.get(OUTLINE).size());
-      }
-
-      // add mesh and node for the feature
-      ImmutableList.Builder<Map<String, Object>> featureIdsBuilder = ImmutableList.builder();
-      if (!context.getProperties().isEmpty()) {
-        featureIdsBuilder.add(
-            ImmutableMap.of("featureCount", surfaceCount, "attribute", 0, "propertyTable", 0));
-      }
-      List<Map<String, Object>> meshFeatures = featureIdsBuilder.build();
-      ImmutableMap.Builder<String, Map<String, Object>> extensionsBuilder =
-          new ImmutableMap.Builder<>();
-      if (!meshFeatures.isEmpty()) {
-        extensionsBuilder.put(EXT_MESH_FEATURES, ImmutableMap.of("featureIds", meshFeatures));
-      }
-      if (Objects.nonNull(accessorIdOutline)) {
-        extensionsBuilder.put(
-            CESIUM_PRIMITIVE_OUTLINE, ImmutableMap.of("indices", accessorIdOutline));
-      }
-      builder.addMeshes(
-          ImmutableMesh.builder()
-              .addPrimitives(
-                  ImmutablePrimitive.builder()
-                      .attributes(attributesBuilder.build())
-                      .mode(TRIANGLES)
-                      .indices(accessorIdIndices)
-                      .material(MATERIAL)
-                      .extensions(extensionsBuilder.build())
-                      .build())
-              .build());
-
-      int nextMeshId = state.getNextMeshId();
-      builder.addNodes(
-          ImmutableNode.builder()
-              .name(Optional.ofNullable(featureName))
-              .mesh(nextMeshId++)
-              .matrix(
-                  ImmutableList.of(
-                      scale[0],
-                      0d,
-                      0d,
-                      0d,
-                      0d,
-                      scale[1],
-                      0d,
-                      0d,
-                      0d,
-                      0d,
-                      scale[2],
-                      0d,
-                      originEcef[0],
-                      originEcef[1],
-                      originEcef[2],
-                      1d))
-              .build());
-      state.setNextMeshId(nextMeshId);
+      state.addAllVertices(vertices);
+      state.addAllNormals(normals);
+      state.addAllIndices(indices);
+      state.addAllFeatureIds(featureIds);
+      state.addAllOutline(outline);
+      state.setIndexCount(indexCount);
+      state.setSurfaceCount(surfaceCount);
 
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace(
@@ -1114,6 +786,371 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
     }
 
     return true;
+  }
+
+  private static void flushNode(
+      ImmutableGltfAsset.Builder builder,
+      FeatureTransformationContextGltf context,
+      ModifiableStateGltf state)
+      throws IOException {
+
+    Map<String, ByteArrayOutputStream> buffers = state.getBuffers();
+    Map<String, Integer> currentBufferViewOffsets = state.getCurrentBufferViewOffsets();
+    List<Double> vertices = state.getVertices();
+    List<Double> normals = state.getNormals();
+    List<Integer> indices = state.getIndices();
+    List<Integer> featureIds = state.getFeatureIds();
+    List<Integer> outline = state.getOutline();
+    int surfaceCount = state.getSurfaceCount();
+
+    if (indices.isEmpty()) {
+      return;
+    }
+
+    int componentType;
+    if (indices.size() <= Byte.MAX_VALUE - Byte.MIN_VALUE) {
+      componentType = UNSIGNED_BYTE;
+    } else if (indices.size() <= Short.MAX_VALUE - Short.MIN_VALUE) {
+      componentType = UNSIGNED_SHORT;
+    } else {
+      // UNSIGNED_INT is not allowed
+      componentType = UNSIGNED_INT;
+    }
+
+    // write indices and add accessor
+    ByteArrayOutputStream buffer = buffers.get(INDICES);
+    switch (componentType) {
+      case UNSIGNED_BYTE:
+        for (int v : indices) {
+          buffer.write(GltfAsset.intToLittleEndianByte(v));
+        }
+        break;
+
+      case UNSIGNED_SHORT:
+        for (int v : indices) {
+          buffer.write(GltfAsset.intToLittleEndianShort(v));
+        }
+        break;
+
+      case UNSIGNED_INT:
+      default:
+        for (int v : indices) {
+          buffer.write(GltfAsset.intToLittleEndianInt(v));
+        }
+        break;
+    }
+
+    ImmutableAttributes.Builder attributesBuilder = ImmutableAttributes.builder();
+    builder.addAccessors(
+        ImmutableAccessor.builder()
+            .bufferView(BUFFER_VIEW_INDICES)
+            .byteOffset(currentBufferViewOffsets.get(INDICES))
+            .componentType(componentType)
+            .addMax(indices.stream().max(Comparator.naturalOrder()).orElseThrow())
+            .addMin(indices.stream().min(Comparator.naturalOrder()).orElseThrow())
+            .count(indices.size())
+            .type("SCALAR")
+            .build());
+
+    // pad for alignment, all offsets must be divisible by 4
+    while (buffers.get(INDICES).size() % 4 > 0) {
+      buffers.get(INDICES).write(GltfAsset.BIN_PADDING);
+    }
+
+    int nextAccessorId = state.getNextAccessorId();
+    int accessorIdIndices = nextAccessorId;
+    state.setNextAccessorId(++nextAccessorId);
+
+    currentBufferViewOffsets.put(INDICES, buffer.size());
+
+    // prepare vertices and add accessor
+
+    // vertices are ECEF coordinates, compute center and translate the center as the origin
+    double[] min = new double[] {Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE};
+    double[] max = new double[] {Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE};
+    for (int n = 0; n < vertices.size() / 3; n++) {
+      min[0] = Math.min(min[0], vertices.get(n * 3));
+      min[1] = Math.min(min[1], vertices.get(n * 3 + 1));
+      min[2] = Math.min(min[2], vertices.get(n * 3 + 2));
+      max[0] = Math.max(max[0], vertices.get(n * 3));
+      max[1] = Math.max(max[1], vertices.get(n * 3 + 1));
+      max[2] = Math.max(max[2], vertices.get(n * 3 + 2));
+    }
+    double[] origin =
+        new double[] {(min[0] + max[0]) / 2.0, (min[1] + max[1]) / 2.0, (min[2] + max[2]) / 2.0};
+
+    for (int n = 0; n < vertices.size() / 3; n++) {
+      vertices.set(n * 3, vertices.get(n * 3) - origin[0]);
+      vertices.set(n * 3 + 1, vertices.get(n * 3 + 1) - origin[1]);
+      vertices.set(n * 3 + 2, vertices.get(n * 3 + 2) - origin[2]);
+    }
+
+    final double[] scale;
+    final boolean quantizeMesh = context.getGltfConfiguration().useMeshQuantization();
+    if (quantizeMesh) {
+      // scale vertices to SHORT
+      double[] maxAbs = {0d, 0d, 0d};
+      for (int n = 0; n < vertices.size(); n++) {
+        if (Math.abs(vertices.get(n)) > maxAbs[n % 3]) {
+          maxAbs[n % 3] = Math.abs(vertices.get(n));
+        }
+      }
+      scale = IntStream.range(0, 3).mapToDouble(n -> maxAbs[n] / GltfAsset.MAX_SHORT).toArray();
+
+      for (int n = 0; n < vertices.size() / 3; n++) {
+        vertices.set(n * 3, vertices.get(n * 3) / scale[0]);
+        vertices.set(n * 3 + 1, vertices.get(n * 3 + 1) / scale[1]);
+        vertices.set(n * 3 + 2, vertices.get(n * 3 + 2) / scale[2]);
+      }
+
+      buffer = buffers.get(VERTICES);
+      for (int n = 0; n < vertices.size() / 3; n++) {
+        buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3)));
+        buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3 + 1)));
+        buffer.write(GltfAsset.doubleToLittleEndianShort(vertices.get(n * 3 + 2)));
+        // 3 shorts are 6 bytes, add 2 bytes to be aligned with 4-byte boundaries
+        buffer.write(GltfAsset.BIN_PADDING);
+        buffer.write(GltfAsset.BIN_PADDING);
+      }
+    } else {
+      scale = new double[] {1d, 1d, 1d};
+
+      for (Double v : vertices) {
+        buffers.get(VERTICES).write(GltfAsset.doubleToLittleEndianFloat(v));
+      }
+    }
+
+    final List<Double> verticesMin = getMin(vertices);
+    final List<Double> verticesMax = getMax(vertices);
+    builder.addAccessors(
+        ImmutableAccessor.builder()
+            .bufferView(BUFFER_VIEW_VERTICES)
+            .byteOffset(currentBufferViewOffsets.get(VERTICES))
+            .componentType(quantizeMesh ? SHORT : FLOAT)
+            .normalized(false)
+            .max(
+                quantizeMesh
+                    ? ImmutableList.of(
+                        Math.round(verticesMax.get(0)),
+                        Math.round(verticesMax.get(1)),
+                        Math.round(verticesMax.get(2)))
+                    : verticesMax)
+            .min(
+                quantizeMesh
+                    ? ImmutableList.of(
+                        Math.round(verticesMin.get(0)),
+                        Math.round(verticesMin.get(1)),
+                        Math.round(verticesMin.get(2)))
+                    : verticesMin)
+            .count(vertices.size() / 3)
+            .type("VEC3")
+            .build());
+    attributesBuilder.position(nextAccessorId++);
+    state.setNextAccessorId(nextAccessorId);
+    currentBufferViewOffsets.put(VERTICES, buffers.get(VERTICES).size());
+
+    int nextBufferView = BUFFER_VIEW_NORMALS;
+    if (context.getGltfConfiguration().writeNormals()) {
+      // write normals and add accessor
+      buffer = buffers.get(NORMALS);
+      if (quantizeMesh) {
+        // scale normals to BYTE
+        for (int n = 0; n < normals.size() / 3; n++) {
+          normals.set(n * 3, normals.get(n * 3) * GltfAsset.MAX_BYTE);
+          normals.set(n * 3 + 1, normals.get(n * 3 + 1) * GltfAsset.MAX_BYTE);
+          normals.set(n * 3 + 2, normals.get(n * 3 + 2) * GltfAsset.MAX_BYTE);
+        }
+
+        for (int n = 0; n < normals.size() / 3; n++) {
+          buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3)));
+          buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3 + 1)));
+          buffer.write(GltfAsset.doubleToLittleEndianByte(normals.get(n * 3 + 2)));
+          // 3 bytes, add 1 byte to be aligned with 4-byte boundaries
+          buffer.write(GltfAsset.BIN_PADDING);
+        }
+      } else {
+        for (Double v : normals) {
+          buffer.write(GltfAsset.doubleToLittleEndianFloat(v));
+        }
+      }
+
+      final List<Double> normalsMin = getMin(normals);
+      final List<Double> normalsMax = getMax(normals);
+      builder.addAccessors(
+          ImmutableAccessor.builder()
+              .bufferView(nextBufferView++)
+              .byteOffset(currentBufferViewOffsets.get(NORMALS))
+              .componentType(quantizeMesh ? BYTE : FLOAT)
+              .normalized(quantizeMesh)
+              .max(
+                  quantizeMesh
+                      ? ImmutableList.of(
+                          Math.round(normalsMax.get(0)),
+                          Math.round(normalsMax.get(1)),
+                          Math.round(normalsMax.get(2)))
+                      : normalsMax)
+              .min(
+                  quantizeMesh
+                      ? ImmutableList.of(
+                          Math.round(normalsMin.get(0)),
+                          Math.round(normalsMin.get(1)),
+                          Math.round(normalsMin.get(2)))
+                      : normalsMin)
+              .count(normals.size() / 3)
+              .type("VEC3")
+              .build());
+      attributesBuilder.normal(nextAccessorId++);
+      state.setNextAccessorId(nextAccessorId);
+      currentBufferViewOffsets.put(NORMALS, buffers.get(NORMALS).size());
+    }
+
+    if (!context.getProperties().isEmpty()) {
+      // write feature ids and create accessor
+      buffer = buffers.get(FEATURE_ID);
+
+      final int nextFeatureId = state.getNextFeatureId();
+      if (nextFeatureId <= Byte.MAX_VALUE - Byte.MIN_VALUE) {
+        componentType = UNSIGNED_BYTE;
+      } else if (nextFeatureId <= Short.MAX_VALUE - Short.MIN_VALUE) {
+        componentType = UNSIGNED_SHORT;
+      } else {
+        componentType = UNSIGNED_INT;
+      }
+
+      // write indices and add accessor
+      switch (componentType) {
+        case UNSIGNED_BYTE:
+          for (int i = 0; i < vertices.size() / 3; i++) {
+            buffer.write(GltfAsset.intToLittleEndianByte(featureIds.get(i)));
+            buffer.write(GltfAsset.BIN_PADDING);
+            buffer.write(GltfAsset.BIN_PADDING);
+            buffer.write(GltfAsset.BIN_PADDING);
+          }
+          break;
+
+        case UNSIGNED_SHORT:
+          for (int i = 0; i < vertices.size() / 3; i++) {
+            buffer.write(GltfAsset.intToLittleEndianShort(featureIds.get(i)));
+            buffer.write(GltfAsset.BIN_PADDING);
+            buffer.write(GltfAsset.BIN_PADDING);
+          }
+          break;
+
+        case UNSIGNED_INT:
+        default:
+          for (int i = 0; i < vertices.size() / 3; i++) {
+            buffer.write(GltfAsset.intToLittleEndianInt(featureIds.get(i)));
+          }
+          break;
+      }
+
+      builder.addAccessors(
+          ImmutableAccessor.builder()
+              .bufferView(nextBufferView++)
+              .byteOffset(currentBufferViewOffsets.get(FEATURE_ID))
+              .componentType(componentType)
+              .count(featureIds.size())
+              .type("SCALAR")
+              .build());
+      attributesBuilder.featureId0(nextAccessorId++);
+      state.setNextAccessorId(nextAccessorId);
+      currentBufferViewOffsets.put(FEATURE_ID, buffer.size());
+    }
+
+    Integer accessorIdOutline = null;
+    if (context.getGltfConfiguration().writeOutline()) {
+      // write outline edges and add accessor
+      if (indices.size() <= Short.MAX_VALUE - Short.MIN_VALUE) {
+        componentType = UNSIGNED_SHORT;
+      } else {
+        componentType = UNSIGNED_INT;
+      }
+
+      // write indices and add accessor
+      buffer = buffers.get(OUTLINE);
+      switch (componentType) {
+        case UNSIGNED_SHORT:
+          for (int v : outline) {
+            buffer.write(GltfAsset.intToLittleEndianShort(v));
+          }
+          break;
+
+        case UNSIGNED_INT:
+        default:
+          for (int v : outline) {
+            buffer.write(GltfAsset.intToLittleEndianInt(v));
+          }
+          break;
+      }
+
+      builder.addAccessors(
+          ImmutableAccessor.builder()
+              .bufferView(nextBufferView++)
+              .byteOffset(currentBufferViewOffsets.get(OUTLINE))
+              .componentType(componentType)
+              .addMax(outline.stream().max(Comparator.naturalOrder()).orElseThrow())
+              .addMin(outline.stream().min(Comparator.naturalOrder()).orElseThrow())
+              .count(outline.size())
+              .type("SCALAR")
+              .build());
+
+      // pad for alignment, all offsets must be divisible by 4
+      while (buffers.get(OUTLINE).size() % 4 > 0) {
+        buffers.get(OUTLINE).write(GltfAsset.BIN_PADDING);
+      }
+
+      accessorIdOutline = nextAccessorId++;
+      state.setNextAccessorId(nextAccessorId);
+      currentBufferViewOffsets.put(OUTLINE, buffers.get(OUTLINE).size());
+    }
+
+    // add mesh and node for the feature
+    Builder<Map<String, Object>> featureIdsBuilder = ImmutableList.builder();
+    if (!context.getProperties().isEmpty()) {
+      featureIdsBuilder.add(
+          ImmutableMap.of("featureCount", surfaceCount, "attribute", 0, "propertyTable", 0));
+    }
+    List<Map<String, Object>> meshFeatures = featureIdsBuilder.build();
+    ImmutableMap.Builder<String, Map<String, Object>> extensionsBuilder =
+        new ImmutableMap.Builder<>();
+    if (!meshFeatures.isEmpty()) {
+      extensionsBuilder.put(EXT_MESH_FEATURES, ImmutableMap.of("featureIds", meshFeatures));
+    }
+    if (Objects.nonNull(accessorIdOutline)) {
+      extensionsBuilder.put(
+          CESIUM_PRIMITIVE_OUTLINE, ImmutableMap.of("indices", accessorIdOutline));
+    }
+    builder.addMeshes(
+        ImmutableMesh.builder()
+            .addPrimitives(
+                ImmutablePrimitive.builder()
+                    .attributes(attributesBuilder.build())
+                    .mode(TRIANGLES)
+                    .indices(accessorIdIndices)
+                    .material(MATERIAL)
+                    .extensions(extensionsBuilder.build())
+                    .build())
+            .build());
+
+    int nextMeshId = state.getNextMeshId();
+    builder.addNodes(
+        ImmutableNode.builder()
+            .mesh(nextMeshId++)
+            .matrix(
+                ImmutableList.of(
+                    scale[0], 0d, 0d, 0d, 0d, scale[1], 0d, 0d, 0d, 0d, scale[2], 0d, origin[0],
+                    origin[1], origin[2], 1d))
+            .build());
+    state.setNextMeshId(nextMeshId);
+
+    state.setVertices(new ArrayList<>());
+    state.setNormals(new ArrayList<>());
+    state.setIndices(new ArrayList<>());
+    state.setFeatureIds(new ArrayList<>());
+    state.setOutline(new ArrayList<>());
+    state.setVertices(new ArrayList<>());
+    state.setIndexCount(0);
+    state.setSurfaceCount(0);
   }
 
   private static List<Double> getMin(List<Double> vertices) {
