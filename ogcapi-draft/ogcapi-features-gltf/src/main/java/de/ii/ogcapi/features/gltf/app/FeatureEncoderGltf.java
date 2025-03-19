@@ -194,8 +194,8 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
             addMultiPolygons(
                 builder, transformationContext, state, feature, fid, surfaces, withSurfaceType);
         if (added) {
-          // flush node, if the indices count is close to the maximum value of an unsigned short
-          if (state.getIndices().size() > (Short.MAX_VALUE - Short.MIN_VALUE) * 0.9) {
+          if (state.getIndices().size() > Integer.MAX_VALUE * 0.9) {
+            // flush node, if the indices count is close to the maximum value
             flushNode(builder, transformationContext, state);
             int nextNodeId = state.getNextNodeId();
             nodes.add(nextNodeId++);
@@ -813,7 +813,6 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
     } else if (indices.size() <= Short.MAX_VALUE - Short.MIN_VALUE) {
       componentType = UNSIGNED_SHORT;
     } else {
-      // UNSIGNED_INT is not allowed
       componentType = UNSIGNED_INT;
     }
 
