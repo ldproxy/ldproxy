@@ -4,27 +4,11 @@ ldproxy wird als OCI-Image auf [Docker Hub](https://hub.docker.com/r/iide/ldprox
 
 ## Data Volume
 
-Das Verzeichnis `/ldproxy/data` im Container ist der Ort, von dem ldproxy standardmäßig Dateien liest und in den er sie schreibt.
+Das Verzeichnis `/data` im Container ist der Ort, von dem ldproxy standardmäßig Dateien liest und in den er sie schreibt.
 
-Es ist als Volume im Image deklariert, was bedeutet, dass es außerhalb des Container-Dateisystems existiert. Wenn kein Mount für `/ldproxy/data` angegeben ist, wird die Container-Laufzeit normalerweise ein anonymes Volume erstellen.
+Es ist als Volume im Image deklariert, was bedeutet, dass es außerhalb des Container-Dateisystems existiert. Wenn kein Mount für `/data` angegeben ist, wird die Container-Laufzeit normalerweise ein anonymes Volume erstellen.
 
-### Inhalt (alt)
-
-::: info
-Dies beschreibt das Layout des Datenverzeichnisses bis `v3.5`. Es wird ab `v4.0` nicht mehr unterstützt. Siehe unten für das neue Layout.
-:::
-
-Das Datenverzeichnis enthält normalerweise die folgenden Dateien und Verzeichnisse:
-
-- `cfg.yml`: Die [Konfigurationsdatei für globale Einstellungen](20-configuration/README.md).
-- `api-resources`: Ein Repository von Ressourcen oder Sub-Ressourcen, auf die über die API zugegriffen werden kann und die entweder vom Administrator oder über die API geändert werden können. Beispiele sind Stile, Kartensymbole, JSON-LD Kontexte, etc. Weitere Einzelheiten finden Sie in der Datei [API-Bausteine](../services/building-blocks/README.md). Wenn ein Baustein nicht aktiviert ist oder war, dann fehlen auch die entsprechenden Verzeichnisse.
-- `cache`: Der Cache für Ressourcen, die von ldproxy aus Leistungsgründen zwischengespeichert werden. Derzeit sind dies nur die Vector Tiles für den [Baustein "Tiles"](../services/building-blocks/tiles.md).
-- `logs`: Die Log-Dateien gemäß den Einstellungen in `cfg.yml`.
-- `store`: Die [ldproxy-Konfigurationsdateien](20-configuration/10-store-new.md).
-- `templates`: Mustache-Vorlagen für die HTML-Seiten, die die Standardvorlagen von ldproxy überschreiben.
-- `tmp`: Ein Verzeichnis für temporäre Daten. Der Inhalt kann bei Bedarf gelöscht werden, wenn ldproxy gestoppt wird. Es enthält z.B. den Cache der OSGi-Bundles.
-
-### Inhalt (neu)
+### Inhalt
 
 Ein minimales Datenverzeichnis enthält nur ein `tmp`-Verzeichnis für temporäre Dateien, die bei Bedarf gelöscht werden können, wenn ldproxy gestoppt wird.
 
@@ -39,7 +23,7 @@ Um ldproxy einzusetzen, benötigen Sie eine Installation von Docker. Docker ist 
 Um ldproxy zu installieren, führen Sie einfach den folgenden Befehl auf einem Rechner mit installiertem Docker aus:
 
 ```bash
-docker run -d -p 7080:7080 -v ldproxy_data:/ldproxy/data iide/ldproxy:latest
+docker run -d -p 7080:7080 -v ldproxy_data:/data iide/ldproxy:latest
 ```
 
 Dadurch wird das neueste stabile ldproxy-Image heruntergeladen, als neuer Container bereitgestellt, die Webanwendung auf Port 7080 verfügbar gemacht und Ihre Anwendungsdaten in einem vom Docker bereitgestellten Verzeichnis außerhalb des Containers gespeichert.
@@ -47,7 +31,7 @@ Dadurch wird das neueste stabile ldproxy-Image heruntergeladen, als neuer Contai
 Anstatt ein vom Docker bereitgestelltes Verzeichnis zu verwenden, in dem ldproxy seine Daten speichert (d.h. "ldproxy_data"), können Sie z.B. einen absoluten Pfad angeben:
 
 ```bash
-docker run --name ldproxy -d -p 7080:7080 -v ~/docker/ldproxy_data:/ldproxy/data iide/ldproxy:latest
+docker run --name ldproxy -d -p 7080:7080 -v ~/docker/ldproxy_data:/data iide/ldproxy:latest
 ```
 
 Wir haben zusätzlich `--name ldproxy` hinzugefügt, um den Namen des Docker-Containers von einem zufälligen Namen in "ldproxy" zu ändern.
@@ -78,7 +62,7 @@ Um ldproxy zu aktualisieren, entfernen Sie einfach den Container und erstellen S
 ```bash
 docker stop ldproxy
 docker rm ldproxy
-docker run --name ldproxy -d -p 7080:7080 -v ~/docker/ldproxy_data:/ldproxy/data iide/ldproxy:latest
+docker run --name ldproxy -d -p 7080:7080 -v ~/docker/ldproxy_data:/data iide/ldproxy:latest
 ```
 
 Ihre Daten werden in einem Volume gespeichert, nicht im Container, so dass Ihre Konfigurationen, API-Ressourcen und Caches auch nach der Aktualisierung noch vorhanden sind.
