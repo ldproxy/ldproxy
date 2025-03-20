@@ -11,7 +11,7 @@ Für diese Anleitung benötigen Sie eine Installation von Docker. Docker ist fü
 Um ldproxy zu installieren, führen Sie einfach den folgenden Befehl auf einem Rechner mit installiertem Docker aus:
 
 ```bash
-docker run --name ldproxy -d -p 7080:7080 -v ~/ldproxy_data:/ldproxy/data iide/ldproxy:latest
+docker run --name ldproxy -d -p 7080:7080 -v ~/ldproxy_data:/data iide/ldproxy:latest
 ```
 
 Dadurch wird das neueste stabile ldproxy-Image heruntergeladen, als neuer Container bereitgestellt, die Webanwendung auf Port 7080 verfügbar gemacht und die Anwendungsdaten in Ihrem Home-Verzeichnis gespeichert.
