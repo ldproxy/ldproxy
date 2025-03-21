@@ -8,7 +8,9 @@
 package de.ii.ogcapi.features.gltf.app;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -21,13 +23,48 @@ public class StateGltf {
   }
 
   @Value.Default
-  Map<String, Integer> getCurrentBufferViewOffsets() {
-    return new HashMap<>();
+  int getNextFeatureId() {
+    return 0;
   }
 
   @Value.Default
-  int getNextFeatureId() {
+  List<Double> getVertices() {
+    return new ArrayList<>();
+  }
+
+  @Value.Default
+  List<Double> getNormals() {
+    return new ArrayList<>();
+  }
+
+  @Value.Default
+  List<Integer> getIndices() {
+    return new ArrayList<>();
+  }
+
+  @Value.Default
+  List<Integer> getFeatureIds() {
+    return new ArrayList<>();
+  }
+
+  @Value.Default
+  List<Integer> getOutline() {
+    return new ArrayList<>();
+  }
+
+  @Value.Default
+  int getIndexCount() {
     return 0;
+  }
+
+  @Value.Default
+  int getSurfaceCount() {
+    return 0;
+  }
+
+  @Value.Default
+  Map<String, Integer> getCurrentBufferViewOffsets() {
+    return new HashMap<>();
   }
 
   @Value.Default
