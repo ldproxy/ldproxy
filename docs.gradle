@@ -12,9 +12,9 @@ node {
 
 ext {
     workingDir = new File(project.buildDir, 'markdown').absolutePath
-    cliVersion = 'v4.0.0'
-    editorVersion = 'v1.0.0'
-    xtratilerVersion = 'main'
+    cliVersion = 'v4.2.0'
+    editorVersion = 'dev_native_and_web_extension' //'v1.1.0'
+    xtratilerVersion = 'main' //'v1.0.0'
 }
 
 def docsDownload(List<String> files, File targetDir, Closure<?> process = null) {
@@ -53,17 +53,25 @@ tasks.register('docsAssembleCli') {
 tasks.register('docsAssembleEditor') {
     doLast {
         def baseUrl = "https://raw.githubusercontent.com/ldproxy/editor/${editorVersion}"
-        def files = ["${baseUrl}/README.md", "${baseUrl}/screenshot.png", "${baseUrl}/screenshot2.png"]
-        def filesDe = ["${baseUrl}/README_DE.md", "${baseUrl}/screenshot.png", "${baseUrl}/screenshot2.png"]
+        def files = ["${baseUrl}/README.md", "${baseUrl}/docs/screenshot.png", "${baseUrl}/docs/screenshot2.png", "${baseUrl}/docs/screenshot3.png"]
+        def filesDe = ["${baseUrl}/README_DE.md", "${baseUrl}/docs/screenshot.png", "${baseUrl}/docs/screenshot2.png", "${baseUrl}/docs/screenshot3.png"]
+        def files2 = ["${baseUrl}/docs/screenshot.png", "${baseUrl}/docs/screenshot2.png", "${baseUrl}/docs/screenshot3.png"]
+        def filesDe2 = ["${baseUrl}/docs/screenshot.png", "${baseUrl}/docs/screenshot2.png", "${baseUrl}/docs/screenshot3.png"]
         def targetDir = new File(project.buildDir, 'tmp/tools/tools')
         def targetDirDe = new File(project.buildDir, 'tmp/tools/de/tools')
         def process = { f ->
             def name = f.path == "README_DE.md" ? "README.md" : f.path
             f.path = "editor/${name}"
         }
+        def process2 = { f ->
+            def name = f.path == "README_DE.md" ? "README.md" : f.path
+            f.path = "editor/docs/${name}"
+        }
 
         docsDownload(files, targetDir, process)
         docsDownload(filesDe, targetDirDe, process)
+        docsDownload(files2, targetDir, process2)
+        docsDownload(filesDe2, targetDirDe, process2)
     }
 }
 
