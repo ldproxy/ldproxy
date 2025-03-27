@@ -66,8 +66,6 @@ public interface SearchQueriesHandler
       return false;
     }
 
-    boolean getProfileIsApplicable();
-
     boolean isStoredQuery();
   }
 

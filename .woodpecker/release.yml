@@ -54,7 +54,7 @@ steps:
     image: node:18
     commands:
       - export HOME=$${CI_WORKSPACE}
-      - npx --yes @cjbarth/github-release-notes@3.0.0 release -d --head $CI_COMMIT_BRANCH --token=$GITHUB_TOKEN
+      - npx --yes @cjbarth/github-release-notes@3.0.0 release -d --head $CI_COMMIT_BRANCH -t $CI_COMMIT_TAG --token=$GITHUB_TOKEN
 ## TODO: the automatic changelog PR does not work anymore because a draft release is created above, reevaluate when woodpecker supports a github_release event
 #      - npx --yes @cjbarth/github-release-notes@3.0.0 changelog --override -f NEW.md --token=$GITHUB_TOKEN
 #      - sed -i -e "/# Changelog/r NEW.md" -e "/# Changelog/a ---" -e '/# Changelog/d' CHANGELOG.md
