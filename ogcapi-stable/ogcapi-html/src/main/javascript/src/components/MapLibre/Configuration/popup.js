@@ -47,7 +47,11 @@ const getPopupContent = (e) => {
   Object.keys(e.features[0].properties)
     .sort()
     .forEach((prop) => {
-      description += `<tr><td title="${prop}" class="pr-4"><strong>${prop}</strong></td><td title="${e.features[0].properties[prop]}">${e.features[0].properties[prop]}</td></tr>`;
+      let val = e.features[0].properties[prop];
+      if (typeof val === 'string' && /^https?:\/\/[^\s]+$/.test(val)) {
+        val = `<a href="${val}" target="_blank">${val}</a>`;
+      }
+      description += `<tr><td title="${prop}" class="pr-4"><strong>${prop}</strong></td><td title="${e.features[0].properties[prop]}">${val}</td></tr>`;
     });
 
   description += "</table>";
