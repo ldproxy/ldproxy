@@ -212,6 +212,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     List<String> profiles =
         extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
+            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
             .map(
                 profileExtension ->
                     profileExtension.negotiateProfile(

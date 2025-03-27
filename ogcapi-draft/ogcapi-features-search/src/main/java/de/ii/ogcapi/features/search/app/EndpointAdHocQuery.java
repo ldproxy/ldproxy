@@ -47,7 +47,6 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
-import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.oas.models.media.Schema;
 import java.io.IOException;
@@ -282,17 +281,6 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
                     .map(SearchConfiguration::getAllLinksAreLocal)
                     .orElse(false))
             .isStoredQuery(false)
-            .profileIsApplicable(
-                apiData.getCollections().values().stream()
-                    .anyMatch(
-                        collectionData ->
-                            providers
-                                .getFeatureSchema(apiData, collectionData)
-                                .map(
-                                    schema ->
-                                        schema.getAllNestedProperties().stream()
-                                            .anyMatch(SchemaBase::isFeatureRef))
-                                .orElse(false)))
             .build();
 
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
