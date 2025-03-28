@@ -68,6 +68,14 @@ public interface OgcApi extends Service {
   }
 
   /**
+   * Set spatial extent of a collection in the dataset.
+   *
+   * @param collectionId the name of the feature type
+   * @param bbox the extent
+   */
+  void setSpatialExtent(String collectionId, BoundingBox bbox);
+
+  /**
    * Update spatial extent of a collection in the dataset.
    *
    * @param collectionId the name of the feature type
@@ -90,6 +98,14 @@ public interface OgcApi extends Service {
    * @return the temporal extent in the Gregorian calendar
    */
   Optional<TemporalExtent> getTemporalExtent(String collectionId);
+
+  /**
+   * Set temporal extent of a collection in the dataset.
+   *
+   * @param collectionId the name of the feature type
+   * @param temporalExtent the extent
+   */
+  void setTemporalExtent(String collectionId, TemporalExtent temporalExtent);
 
   /**
    * Update temporal extent of a collection in the dataset.
@@ -138,6 +154,14 @@ public interface OgcApi extends Service {
    * @return the number of items
    */
   Optional<Long> getItemCount(String collectionId);
+
+  /**
+   * Set the number of items in a collection.
+   *
+   * @param collectionId the name of the feature type
+   * @param itemCount the item count
+   */
+  void setItemCount(String collectionId, Long itemCount);
 
   /**
    * Update the number of items in a collection.

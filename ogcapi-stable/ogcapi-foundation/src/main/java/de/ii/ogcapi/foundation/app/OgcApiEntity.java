@@ -260,6 +260,12 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
   }
 
   @Override
+  public void setSpatialExtent(String collectionId, BoundingBox bbox) {
+    getChangingData()
+        .put(ChangingSpatialExtent.class, collectionId, ChangingSpatialExtent.of(bbox));
+  }
+
+  @Override
   public boolean updateSpatialExtent(String collectionId, BoundingBox bbox) {
     return getChangingData()
         .update(ChangingSpatialExtent.class, collectionId, ChangingSpatialExtent.of(bbox));
@@ -275,6 +281,12 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
     return getChangingData()
         .get(ChangingTemporalExtent.class, collectionId)
         .map(ChangingValue::getValue);
+  }
+
+  @Override
+  public void setTemporalExtent(String collectionId, TemporalExtent temporalExtent) {
+    getChangingData()
+        .put(ChangingTemporalExtent.class, collectionId, ChangingTemporalExtent.of(temporalExtent));
   }
 
   @Override
@@ -312,6 +324,11 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
     return getChangingData()
         .get(ChangingItemCount.class, collectionId)
         .map(ChangingValue::getValue);
+  }
+
+  @Override
+  public void setItemCount(String collectionId, Long itemCount) {
+    getChangingData().put(ChangingItemCount.class, collectionId, ChangingItemCount.of(itemCount));
   }
 
   @Override
