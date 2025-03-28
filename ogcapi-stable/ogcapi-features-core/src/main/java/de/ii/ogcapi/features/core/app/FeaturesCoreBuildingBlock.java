@@ -276,12 +276,12 @@ public class FeaturesCoreBuildingBlock
     optionalExtent
         .flatMap(extent -> extent.isSpatialComputed() ? Optional.empty() : extent.getSpatial())
         .or(() -> computeBbox(apiData, collectionId))
-        .ifPresent(bbox -> api.updateSpatialExtent(collectionId, bbox));
+        .ifPresent(bbox -> api.setSpatialExtent(collectionId, bbox));
 
     optionalExtent
         .flatMap(extent -> extent.isTemporalComputed() ? Optional.empty() : extent.getTemporal())
         .or(() -> computeInterval(apiData, collectionId))
-        .ifPresent(interval -> api.updateTemporalExtent(collectionId, interval));
+        .ifPresent(interval -> api.setTemporalExtent(collectionId, interval));
 
     final Optional<FeatureQueries> featureQueries =
         providers.getFeatureProvider(apiData, collectionData, FeatureProvider::queries);
@@ -292,7 +292,7 @@ public class FeaturesCoreBuildingBlock
               .map(cfg -> cfg.getFeatureType().orElse(collectionId))
               .orElse(collectionId);
       final long count = featureQueries.get().getFeatureCount(featureTypeId);
-      api.updateItemCount(collectionId, count);
+      api.setItemCount(collectionId, count);
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Number of items in collection '{}': {}", collectionId, count);
       }
