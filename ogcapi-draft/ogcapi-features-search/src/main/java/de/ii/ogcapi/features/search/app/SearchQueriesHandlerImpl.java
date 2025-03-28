@@ -584,23 +584,20 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // negotiate profiles, if profiles are applicable and the format does not support the selected
-    // profiles
+    // negotiate profiles
     List<String> profiles =
-        queryInput.getProfileIsApplicable()
-            ? extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
-                .filter(p -> p.isEnabledForApi(requestContext.getApi().getData()))
-                .map(
-                    p ->
-                        p.negotiateProfile(
-                            queryExpression.getProfiles(),
-                            outputFormat,
-                            requestContext.getApi().getData(),
-                            null))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList())
-            : ImmutableList.of();
+        extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
+            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData()))
+            .map(
+                p ->
+                    p.negotiateProfile(
+                        queryExpression.getProfiles(),
+                        outputFormat,
+                        requestContext.getApi().getData(),
+                        null))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(Collectors.toList());
 
     StreamingOutput streamingOutput =
         getStreamingOutput(

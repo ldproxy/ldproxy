@@ -208,6 +208,9 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   @Value.Default
   @Nullable
   public FilterEditor filterEditor() {
+    if (collectionData().isEmpty()) {
+      return null;
+    }
     return new Builder()
         .backgroundUrl(Optional.ofNullable(htmlConfig().getBasemapUrl()))
         .attribution(Optional.ofNullable(htmlConfig().getBasemapAttribution()))
