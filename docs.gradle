@@ -13,7 +13,7 @@ node {
 ext {
     workingDir = new File(project.buildDir, 'markdown').absolutePath
     cliVersion = 'v4.2.0'
-    editorVersion = 'dev_native_and_web_extension' //'v1.1.0'
+    editorVersion = 'v1.1.0'
     xtratilerVersion = 'v1.0.0'
 }
 
