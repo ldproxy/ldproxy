@@ -179,16 +179,19 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
       ImmutableTileGenerationParametersTransient.Builder userParametersBuilder,
       QueryParameterSet parameters,
       Optional<TileGenerationSchema> generationSchema) {
-    generationSchema
-        .map(TileGenerationSchema::getProperties)
-        .map(Map::keySet)
+    parameters
+        .getValue(this)
         .ifPresent(
-            keys ->
-                keys.stream()
-                    .filter(
-                        propertyName ->
-                            !parameters.getValue(this).orElse(List.of()).contains(propertyName))
-                    .forEach(userParametersBuilder::addFields));
+            excludeProperties -> {
+              generationSchema
+                  .map(TileGenerationSchema::getProperties)
+                  .map(Map::keySet)
+                  .ifPresent(
+                      keys ->
+                          keys.stream()
+                              .filter(propertyName -> !excludeProperties.contains(propertyName))
+                              .forEach(userParametersBuilder::addFields));
+            });
   }
 
   @Override
