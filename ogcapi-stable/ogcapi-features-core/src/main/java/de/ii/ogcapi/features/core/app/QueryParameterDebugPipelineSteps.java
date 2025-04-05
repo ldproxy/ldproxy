@@ -59,7 +59,7 @@ public class QueryParameterDebugPipelineSteps extends OgcApiQueryParameterBase
 
   @Inject
   public QueryParameterDebugPipelineSteps(AppContext appContext, SchemaValidator schemaValidator) {
-    this.isDevEnv = appContext.isDevEnv();
+    this.isDevEnv = true; // TODO changed for testing; was: appContext.isDevEnv();
     this.schemaValidator = schemaValidator;
   }
 
