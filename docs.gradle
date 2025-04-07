@@ -14,7 +14,7 @@ ext {
     workingDir = new File(project.buildDir, 'markdown').absolutePath
     cliVersion = 'v4.2.0'
     editorVersion = 'v1.1.0'
-    xtratilerVersion = 'v1.0.0'
+    xtratilerVersion = 'main' //'v1.0.0'
 }
 
 def docsDownload(List<String> files, File targetDir, Closure<?> process = null) {
