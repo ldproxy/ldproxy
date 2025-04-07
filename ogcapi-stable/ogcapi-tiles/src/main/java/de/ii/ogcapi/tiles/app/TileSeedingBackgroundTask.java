@@ -20,7 +20,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesProvidersCache;
-import de.ii.xtraplatform.base.domain.LogContext.MARKER;
+import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
@@ -204,28 +204,30 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
     try {
       if (!taskContext.isStopped()) {
         seedTilesets(api, reseed);
+      } else if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Seeding task context is stopped, skipping seeding");
       }
 
     } catch (IOException e) {
       if (!taskContext.isStopped()) {
         throw new RuntimeException("Error accessing the tile cache during seeding.", e);
+      } else if (LOGGER.isDebugEnabled()) {
+        LogContext.errorAsDebug(LOGGER, e, "Seeding task context is stopped, ignoring exception");
       }
     } catch (Throwable e) {
       // in general, this should only happen on shutdown (as we cannot influence shutdown order,
       // exceptions during seeding on shutdown are currently inevitable), but for other situations
       // we still add the error to the log
       if (!taskContext.isStopped()) {
-        if (LOGGER.isErrorEnabled()) {
-          LOGGER.error(
-              "An error occurred during seeding. Note that this may be a side-effect of a server shutdown.",
-              e);
-        }
-        if (LOGGER.isDebugEnabled(MARKER.STACKTRACE)) {
-          LOGGER.debug("Stacktrace", e);
-        }
+        LogContext.error(
+            LOGGER,
+            e,
+            "An error occurred during seeding. Note that this may be a side-effect of a server shutdown.");
         throw new RuntimeException(
             "An error occurred during seeding. Note that this may be a side-effect of a server shutdown.",
             e);
+      } else if (LOGGER.isDebugEnabled()) {
+        LogContext.errorAsDebug(LOGGER, e, "Seeding task context is stopped, ignoring exception");
       }
     }
   }
@@ -378,11 +380,19 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
     }
 
     jobQueue.push(jobSet);
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Added seeding job set to the queue ({})", jobSet.getId());
+    }
   }
 
   @Override
   public DatasetChangeListener onDatasetChange(OgcApi api) {
     return change -> {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Seeding on dataset change: {}", change);
+      }
+
       Optional<SeedingOptions> seeding =
           tilesProviders
               .getTileProvider(api.getData())
@@ -391,28 +401,24 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
               .map(s -> s.get().getOptions());
 
       if (seeding.isEmpty() || !seeding.get().shouldRunOnDatasetChange()) {
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug(
+              "Seeding on dataset change is disabled {} {}",
+              seeding.isEmpty(),
+              seeding.get().getRunOnDatasetChange());
+        }
         return;
       }
 
-      if (seeding.get().shouldPurge()) {
-        for (String featureType : change.getFeatureTypes()) {
-          String collectionId =
-              FeaturesCoreConfiguration.getCollectionId(api.getData(), featureType);
-
-          try {
-            tilesProvidersCache.deleteTiles(
-                api, Optional.of(collectionId), Optional.empty(), Optional.empty());
-          } catch (Exception e) {
-            if (LOGGER.isErrorEnabled()) {
-              LOGGER.error(
-                  "Error while deleting tiles from the tile cache after a dataset change.", e);
-            }
-          }
-        }
-      }
-
-      if (Objects.nonNull(trigger)) {
-        trigger.accept(api);
+      try {
+        seedTilesets(api, seeding.get().shouldPurge());
+      } catch (IOException e) {
+        throw new RuntimeException("Error accessing the tile cache during seeding.", e);
+      } catch (Throwable e) {
+        LogContext.error(
+            LOGGER,
+            e,
+            "An error occurred during seeding. Note that this may be a side-effect of a server shutdown.");
       }
     };
   }
