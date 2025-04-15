@@ -85,7 +85,7 @@ const Header = ({
       <Col xs="10" style={{ display: "flex", alignItems: "center" }}>
         {check ? (
           <HeaderCheck
-            id={id}
+            id={label || id}
             level={level}
             isControlable={isControlable}
             isSelected={isSelected}
@@ -98,7 +98,10 @@ const Header = ({
         )}
       </Col>
       <Col xs="2">
-        <CollapseButton collapsed={!isOpened(id)} toggleCollapsed={() => onOpen(id)} />
+        <CollapseButton
+          collapsed={!isOpened(label || id)}
+          toggleCollapsed={() => onOpen(label || id)}
+        />
       </Col>
     </Row>
   );
