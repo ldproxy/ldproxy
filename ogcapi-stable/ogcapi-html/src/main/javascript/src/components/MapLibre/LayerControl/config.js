@@ -1,6 +1,8 @@
 /* eslint-disable no-param-reassign */
 export const getLabel = (entry) => (typeof entry === "string" ? entry : entry.label || entry.id);
 
+export const getId = (entry) => (typeof entry === "string" ? entry : entry.id);
+
 export const asLayer = (entry) =>
   typeof entry === "string"
     ? { id: entry, isLayer: true, type: "layer" }
@@ -13,10 +15,9 @@ export const getRadioGroups = (groups, selected) => {
     .filter((g) => g.isBasemap === true)
     .forEach((g) => {
       if (selected) {
-        radioGroups[g.label || g.id] =
-          g.entries && g.entries.length > 0 ? g.entries[0].label || g.entries[0].id : null;
+        radioGroups[g.id] = g.entries && g.entries.length > 0 ? g.entries[0].id : null;
       } else {
-        radioGroups[g.label || g.id] = g.entries ? g.entries.map((e) => e.label || e.id) : [];
+        radioGroups[g.id] = g.entries ? g.entries.map((e) => e.id) : [];
       }
     });
 
@@ -30,10 +31,9 @@ const getRadioGroupLayers = (groups, selectedOnly) => {
     .filter((g) => g.type === "radio-group")
     .forEach((g) => {
       if (selectedOnly) {
-        radioGroups[g.label || g.id] =
-          g.entries && g.entries.length > 0 ? getLabel(g.entries[0]) : null;
+        radioGroups[g.id] = g.entries && g.entries.length > 0 ? getId(g.entries[0]) : null;
       } else {
-        radioGroups[g.label || g.id] = g.entries ? g.entries.map((e) => getLabel(e)) : [];
+        radioGroups[g.id] = g.entries ? g.entries.map((e) => getId(e)) : [];
       }
     });
 
@@ -45,7 +45,7 @@ export const getIds = (entries, types) => {
 
   entries.forEach((e) => {
     if (!types || types.includes(e.type)) {
-      ids.push(e.label || e.id);
+      ids.push(e.id);
     }
     if (e.entries) {
       getIds(e.entries, types).forEach((id) => ids.push(id));
@@ -60,12 +60,12 @@ export const getDeps = (groups, parents = []) => {
 
   groups.forEach((g) => {
     const children = g.entries || g.subLayers || g.layers || [];
-    const childDeps = getDeps(children, parents.concat(g.id ? [g.label || g.id] : [g]));
-    deps[g.label || g.id || g] = [
+    const childDeps = getDeps(children, parents.concat(g.id ? [g.id] : [g]));
+    deps[g.id || g] = [
       ...new Set(
         parents
-          .concat(g.id ? [g.label || g.id] : [g])
-          .concat(Object.values(childDeps).flatMap((c) => c.label || c.id || c))
+          .concat(g.id ? [g.id] : [g])
+          .concat(Object.values(childDeps).flatMap((c) => c.id || c))
       ),
     ];
     Object.keys(childDeps).forEach((c) => {
@@ -80,7 +80,7 @@ export const getParentDeps = (groups, parents = []) => {
   const deps = {};
 
   groups.forEach((g) => {
-    const id = g.label || g.id || g;
+    const id = g.id || g;
     const children = g.entries || g.subLayers || g.layers || [];
     const childDeps = getParentDeps(children, [id].concat(parents));
     deps[id] = parents.filter((id2) => id2 !== id);
@@ -96,16 +96,12 @@ export const getChildDeps = (groups, tmp) => {
   const deps = { clean: {}, tmp: {} };
 
   groups.forEach((g) => {
-    const id = g.label || g.id || g;
+    const id = g.id || g;
     const children = g.entries || g.subLayers || g.layers || [];
     const childDeps = getChildDeps(children, true);
     deps.tmp[id] =
       Object.keys(childDeps.tmp).length > 0
-        ? [
-            ...new Set(
-              [id].concat(Object.values(childDeps.tmp).flatMap((c) => c.label || c.id || c))
-            ),
-          ]
+        ? [...new Set([id].concat(Object.values(childDeps.tmp).flatMap((c) => c.id || c)))]
         : [id];
     deps.clean[id] = deps.tmp[id].filter((id2) => id2 !== id);
     Object.keys(childDeps.clean).forEach((c) => {
@@ -119,8 +115,8 @@ export const getChildDeps = (groups, tmp) => {
 const getLayers = (style) =>
   style && style.layers
     ? style.layers.reduce((layers, layer, index) => {
-        layers[layer.label || layer.id] = {
-          id: layer.label || layer.id,
+        layers[layer.id] = {
+          id: layer.id,
           isLayer: true,
           type: "layer",
           sourceLayer: layer["source-layer"],
@@ -136,7 +132,7 @@ const getLayersFor = (sourceLayer, layers) =>
     .toSorted((layer) => layer.index);
 
 const enrichLayer = (target, layers) =>
-  Object.hasOwn(layers, target.id) ? { ...target, ...layers[target.label || target.id] } : target;
+  Object.hasOwn(layers, target.id) ? { ...target, ...layers[target.id] } : target;
 
 const mergeLayers = (from, into) => {
   return from.map((layer) => {

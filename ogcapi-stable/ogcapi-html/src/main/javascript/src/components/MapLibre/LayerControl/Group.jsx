@@ -9,7 +9,7 @@ import Separator from "./Separator";
 const Group = ({ parent, style, level, isControlable, isOpened, isSelected, onSelect, onOpen }) => {
   if (parent.type === "radio-group") {
     return (
-      <Collapse isOpen={isOpened(parent.label || parent.id)}>
+      <Collapse isOpen={isOpened(parent.id)}>
         {parent.entries.map((entry, i) => {
           return (
             <React.Fragment key={entry.id}>
@@ -24,7 +24,7 @@ const Group = ({ parent, style, level, isControlable, isOpened, isSelected, onSe
                   onSelect={onSelect}
                   style={style}
                   level={level + 1}
-                  radioGroup={parent.label || parent.id}
+                  radioGroup={parent.id}
                 />
               </Row>
             </React.Fragment>
@@ -55,7 +55,7 @@ const Group = ({ parent, style, level, isControlable, isOpened, isSelected, onSe
   }
   if (parent.type === "group") {
     return (
-      <Collapse isOpen={isOpened(parent.label || parent.id)}>
+      <Collapse isOpen={isOpened(parent.id)}>
         {parent.entries.map((entry, i) => {
           if (entry.isLayer) {
             return (

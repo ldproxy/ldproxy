@@ -38,7 +38,8 @@ const Layer = ({
   return (
     <Col xs="12" style={{ display: "flex", alignItems: "center" }}>
       <HeaderCheck
-        id={label || id}
+        id={id}
+        label={label}
         level={level}
         radioGroup={radioGroup}
         isControlable={isControlable}
