@@ -8,6 +8,7 @@
 package de.ii.ogcapi.collections.queryables.app;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -19,11 +20,12 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
-import de.ii.xtraplatform.cql.domain.AEquals;
+import de.ii.xtraplatform.cql.domain.AContains;
 import de.ii.xtraplatform.cql.domain.ArrayLiteral;
 import de.ii.xtraplatform.cql.domain.BooleanValue2;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.Eq;
+import de.ii.xtraplatform.cql.domain.Function;
 import de.ii.xtraplatform.cql.domain.Like;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.ScalarLiteral;
@@ -118,7 +120,13 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
 
     // handle array case
     if (getType() == Type.VALUE_ARRAY) {
-      return AEquals.of(
+      if (value.contains("*")) {
+        return Function.of(
+            "ALIKE",
+            ImmutableList.of(
+                Property.of(getName()), ScalarLiteral.of(value.replaceAll("\\*", "%"))));
+      }
+      return AContains.of(
           Property.of(getName()),
           ArrayLiteral.of(
               ARRAY_SPLITTER.splitToList(value).stream()
