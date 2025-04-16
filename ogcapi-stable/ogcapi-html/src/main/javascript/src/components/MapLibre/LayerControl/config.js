@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
-export const getId = (entry) => (typeof entry === "string" ? entry : entry.id);
-
 export const getLabel = (entry) => (typeof entry === "string" ? entry : entry.label || entry.id);
+
+export const getId = (entry) => (typeof entry === "string" ? entry : entry.id);
 
 export const asLayer = (entry) =>
   typeof entry === "string"

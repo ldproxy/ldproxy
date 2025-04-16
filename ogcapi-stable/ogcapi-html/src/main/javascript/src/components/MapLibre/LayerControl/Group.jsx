@@ -42,6 +42,7 @@ const Group = ({ parent, style, level, isControlable, isOpened, isSelected, onSe
       >
         <Layer
           id={parent.id}
+          label={parent.label}
           icons={parent.entries}
           isControlable={isControlable}
           isSelected={isSelected}
