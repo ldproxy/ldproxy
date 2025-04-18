@@ -13,9 +13,13 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.BooleanValue2;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.Geometry;
 import de.ii.xtraplatform.cql.domain.Geometry.Bbox;
+import de.ii.xtraplatform.cql.domain.Geometry.Polygon;
+import de.ii.xtraplatform.cql.domain.Not;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.SIntersects;
 import de.ii.xtraplatform.cql.domain.SpatialLiteral;
@@ -29,6 +33,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import org.immutables.value.Value;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.shape.fractal.MortonCode;
@@ -128,10 +133,22 @@ public abstract class TileResourceDescriptor {
                 .flatMap(SchemaBase::getPrimaryGeometry)
                 .map(
                     property ->
-                        (Cql2Expression)
-                            SIntersects.of(
-                                Property.of(property.getFullPathAsString()),
-                                SpatialLiteral.of(Bbox.of(computeBbox()))))
+                        (computeExclusionPolygon()
+                            .map(
+                                p ->
+                                    (Cql2Expression)
+                                        And.of(
+                                            SIntersects.of(
+                                                Property.of(property.getFullPathAsString()),
+                                                SpatialLiteral.of(Bbox.of(computeBbox()))),
+                                            Not.of(
+                                                SIntersects.of(
+                                                    Property.of(property.getFullPathAsString()),
+                                                    SpatialLiteral.of(p)))))
+                            .orElse(
+                                SIntersects.of(
+                                    Property.of(property.getFullPathAsString()),
+                                    SpatialLiteral.of(Bbox.of(computeBbox()))))))
                 .orElse(BooleanValue2.of(false)))
         .build();
   }
@@ -206,6 +223,84 @@ public abstract class TileResourceDescriptor {
         ymax,
         Objects.requireNonNull(bbox.getZmax()),
         OgcCrs.CRS84h);
+  }
+
+  @Value.Derived
+  @Value.Auxiliary
+  public Optional<Polygon> computeExclusionPolygon() {
+    BoundingBox bbox = getApi().getSpatialExtent(getCollectionId()).orElseThrow();
+    double dx = bbox.getXmax() - bbox.getXmin();
+    double dy = bbox.getYmax() - bbox.getYmin();
+    double factor = Math.pow(2, getLevel());
+
+    /* The exclusion polygon is the area west and north of the tile. If T is the tile,
+      any building that intersects the tiles TW, TN, and TNW, the tiles to the west,
+      north, and northwest of T, is excluded.
+      Special cases are: In the northwest corner, there is no tile to the north or west,
+      so no area is excluded. For the western or nothern boundaries, only the northern
+      or western are excluded, respectively.
+
+         x ---- x ---- x
+         |      |      |
+         | TNW  |  TN  |
+         |      |      |
+         x ---- x ---- x
+         |      |      |
+         |  TW  |  T   |
+         |      |      |
+         x ---- x ---- x
+    */
+
+    // handle the special cases first
+    if (getX() == 0 && getY() == (factor - 1)) {
+      return Optional.empty();
+    } else if (getX() == 0) {
+      double xmin = bbox.getXmin() + dx / factor * getX();
+      double xmax = xmin + dx / factor;
+      double ymin = bbox.getYmin() + dy / factor * (getY() + 1);
+      double ymax = ymin + dy / factor;
+      return Optional.of(
+          Polygon.of(
+              OgcCrs.CRS84,
+              List.of(
+                  Geometry.Coordinate.of(xmin, ymin),
+                  Geometry.Coordinate.of(xmax, ymin),
+                  Geometry.Coordinate.of(xmax, ymax),
+                  Geometry.Coordinate.of(xmin, ymax),
+                  Geometry.Coordinate.of(xmin, ymin))));
+    } else if (getY() == (factor - 1)) {
+      double xmin = bbox.getXmin() + dx / factor * (getX() - 1);
+      double xmax = xmin + dx / factor;
+      double ymin = bbox.getYmin() + dy / factor * getY();
+      double ymax = ymin + dy / factor;
+      return Optional.of(
+          Polygon.of(
+              OgcCrs.CRS84,
+              List.of(
+                  Geometry.Coordinate.of(xmin, ymin),
+                  Geometry.Coordinate.of(xmax, ymin),
+                  Geometry.Coordinate.of(xmax, ymax),
+                  Geometry.Coordinate.of(xmin, ymax),
+                  Geometry.Coordinate.of(xmin, ymin))));
+    }
+
+    double x0 = bbox.getXmin() + dx / factor * (getX() - 1);
+    double y0 = bbox.getYmin() + dy / factor * getY();
+    double x1 = x0 + dx / factor;
+    double y1 = y0 + dy / factor;
+    double x2 = x0 + 2 * dx / factor;
+    double y2 = y0 + 2 * dy / factor;
+    return Optional.of(
+        Polygon.of(
+            OgcCrs.CRS84,
+            List.of(
+                Geometry.Coordinate.of(x0, y0),
+                Geometry.Coordinate.of(x1, y0),
+                Geometry.Coordinate.of(x1, y1),
+                Geometry.Coordinate.of(x2, y1),
+                Geometry.Coordinate.of(x2, y2),
+                Geometry.Coordinate.of(x0, y2),
+                Geometry.Coordinate.of(x0, y0))));
   }
 
   @Override
