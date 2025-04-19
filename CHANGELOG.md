@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.3.1 (19/04/2025)
+#### Fixed bugs
+
+-  layer control: "label" has no effect [#1373](https://github.com/ldproxy/ldproxy/issues/1373)
+-  tile cache is ignored for collection tiles [#1371](https://github.com/ldproxy/ldproxy/issues/1371)
+-  feature count adds up on dataset changes [#1369](https://github.com/ldproxy/ldproxy/issues/1369)
+-  filter editor not applicable for stored query responses in HTML [#1364](https://github.com/ldproxy/ldproxy/issues/1364)
+-  remove outdated assumptions on profiles [#1363](https://github.com/ldproxy/ldproxy/issues/1363)
+
+#### Dependency updates
+
+- Update swagger to v2.2.30 (maintenance-6.3) by @renovate in https://github.com/ldproxy/xtraplatform/pull/222
+- Update dropwizard to v3.0.13 (maintenance-6.3) by @renovate in https://github.com/ldproxy/xtraplatform/pull/221
+- Update schemacrawler to v16.25.3 (maintenance-7.3) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/336
+
+---
+
 ## v4.3.0 (21/03/2025)
 
 #### Implemented enhancements
