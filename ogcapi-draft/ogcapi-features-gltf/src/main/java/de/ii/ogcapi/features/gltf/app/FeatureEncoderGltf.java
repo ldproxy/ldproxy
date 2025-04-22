@@ -681,6 +681,11 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
     Map<String, ByteArrayOutputStream> buffers = state.getBuffers();
 
     for (MeshSurface surface : surfaces.getMeshSurfaces()) {
+      if (surface.getSurfaceType().filter(t -> t.toLowerCase().startsWith("closure")).isPresent()) {
+        // closure surface are virtual surfaces that are not relevant for visualization; skip them
+        continue;
+      }
+
       TriangleMesh triangleMesh =
           TriangleMesh.of(
               surface.getGeometry(),
