@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.triangulate.polygon.ConstrainedDelaunayTriangulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,8 @@ import org.slf4j.LoggerFactory;
 public interface TriangleMesh {
 
   Logger LOGGER = LoggerFactory.getLogger(TriangleMesh.class);
+
+  GeometryFactory geometryFactory = new GeometryFactory();
 
   double EPSILON = 1.0e-7;
 
@@ -148,13 +152,13 @@ public interface TriangleMesh {
 
         if (numRing == 0) {
           // outer ring
-          final double area01 = Math.abs(computeArea(coords, 0, 1));
-          final double area12 = Math.abs(computeArea(coords, 1, 2));
-          final double area20 = Math.abs(computeArea(coords, 2, 0));
-          if (area01 > area12 && area01 > area20) {
+          final double area01 = computeArea(coords, 0, 1);
+          final double area12 = computeArea(coords, 1, 2);
+          final double area20 = computeArea(coords, 2, 0);
+          if (Math.abs(area01) > Math.abs(area12) && Math.abs(area01) > Math.abs(area20)) {
             axes = AXES.XYZ;
             area = area01;
-          } else if (area12 > area20) {
+          } else if (Math.abs(area12) > Math.abs(area20)) {
             axes = AXES.YZX;
             area = area12;
           } else if (Math.abs(area20) > 0.0) {
@@ -171,7 +175,7 @@ public interface TriangleMesh {
             }
             break;
           }
-          ccw = area < 0;
+          ccw = area > 0;
         } else {
           // inner ring
           holeIndices.add(data.size() / 3 + 1);
@@ -223,10 +227,33 @@ public interface TriangleMesh {
         continue;
       }
 
-      List<Integer> triangles = triangulate(data, holeIndices, axes, ccw, featureName);
+      // try JTS triangulation first; it is a bit slower, but produces better results while earcut
+      // sometimes creates incorrect triangles; on the other hand, JTS is not always able to
+      // triangulate, so we fall back to earcut in that case
+      List<Integer> triangles;
+      try {
+        triangles = triangulateWithJts(data, holeIndices, axes);
+      } catch (Exception e) {
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace(
+              "JTS triangulation failed for a polygon in Feature '{}', falling back to earcut: {}",
+              featureName,
+              e.getMessage());
+        }
+        triangles = triangulateWithEarcut(data, holeIndices, axes);
+      }
+
       if (triangles.isEmpty()) {
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug(
+              "Cannot triangulate a polygon of feature '{}', the polygon is ignored: {}",
+              featureName,
+              data);
+        }
         continue;
       }
+
+      ensureTriangleOrientation(triangles, data, holeIndices, axes, ccw);
 
       // we have a triangle mesh for the polygon
       for (int ringIndex : triangles) {
@@ -246,25 +273,103 @@ public interface TriangleMesh {
     return builder.build();
   }
 
-  private static List<Integer> triangulate(
-      List<Double> data, List<Integer> holeIndices, AXES axes, boolean ccw, String featureName) {
-    double[] coords2dForTriangulation = new double[data.size() / 3 * 2];
-    if (axes == AXES.XYZ) {
-      for (int n = 0; n < data.size() / 3; n++) {
-        coords2dForTriangulation[n * 2] = data.get(n * 3);
-        coords2dForTriangulation[n * 2 + 1] = data.get(n * 3 + 1);
-      }
-    } else if (axes == AXES.YZX) {
-      for (int n = 0; n < data.size() / 3; n++) {
-        coords2dForTriangulation[n * 2] = data.get(n * 3 + 1);
-        coords2dForTriangulation[n * 2 + 1] = data.get(n * 3 + 2);
-      }
-    } else {
-      for (int n = 0; n < data.size() / 3; n++) {
-        coords2dForTriangulation[n * 2] = data.get(n * 3 + 2);
-        coords2dForTriangulation[n * 2 + 1] = data.get(n * 3);
+  private static List<Integer> triangulateWithJts(
+      List<Double> data, List<Integer> holeIndices, AXES axes) {
+    org.locationtech.jts.geom.Coordinate[] coords2dForTriangulation =
+        IntStream.range(0, data.size() / 3 + 1)
+            .mapToObj(
+                n -> {
+                  int n2 = n % (data.size() / 3);
+                  return new org.locationtech.jts.geom.Coordinate(
+                      axes == AXES.XYZ
+                          ? data.get(n2 * 3)
+                          : (axes == AXES.YZX ? data.get(n2 * 3 + 1) : data.get(n2 * 3 + 2)),
+                      axes == AXES.XYZ
+                          ? data.get(n2 * 3 + 1)
+                          : (axes == AXES.YZX ? data.get(n2 * 3 + 2) : data.get(n2 * 3)));
+                })
+            .toArray(org.locationtech.jts.geom.Coordinate[]::new);
+
+    List<Integer> triangles = new ArrayList<>();
+    int outerRingEnd = holeIndices.isEmpty() ? coords2dForTriangulation.length : holeIndices.get(0);
+    org.locationtech.jts.geom.Coordinate[] outerRing =
+        Arrays.copyOfRange(coords2dForTriangulation, 0, outerRingEnd);
+
+    org.locationtech.jts.geom.LinearRing shell = geometryFactory.createLinearRing(outerRing);
+    org.locationtech.jts.geom.LinearRing[] holes =
+        new org.locationtech.jts.geom.LinearRing[holeIndices.size()];
+
+    for (int i = 0; i < holeIndices.size(); i++) {
+      int startIdx = holeIndices.get(i);
+      int endIdx =
+          i < holeIndices.size() - 1 ? holeIndices.get(i + 1) : coords2dForTriangulation.length;
+      org.locationtech.jts.geom.Coordinate[] holeCoords =
+          Arrays.copyOfRange(coords2dForTriangulation, startIdx, endIdx);
+      holes[i] = geometryFactory.createLinearRing(holeCoords);
+    }
+
+    org.locationtech.jts.geom.Polygon polygon = geometryFactory.createPolygon(shell, holes);
+    ConstrainedDelaunayTriangulator triangulator = new ConstrainedDelaunayTriangulator(polygon);
+    org.locationtech.jts.geom.Geometry triangulation = triangulator.getResult();
+
+    for (int i = 0; i < triangulation.getNumGeometries(); i++) {
+      org.locationtech.jts.geom.Polygon tri =
+          (org.locationtech.jts.geom.Polygon) triangulation.getGeometryN(i);
+      org.locationtech.jts.geom.Coordinate[] triCoords = tri.getExteriorRing().getCoordinates();
+
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < coords2dForTriangulation.length; k++) {
+          if (triCoords[j].equals2D(coords2dForTriangulation[k])) {
+            triangles.add(k);
+            break;
+          }
+        }
       }
     }
+    return triangles;
+  }
+
+  private static void ensureTriangleOrientation(
+      List<Integer> triangles,
+      List<Double> data,
+      List<Integer> holeIndices,
+      AXES axes,
+      boolean ccw) {
+    for (int i = 0; i < triangles.size() / 3; i++) {
+      Integer p0 = triangles.get(i * 3);
+      Integer p1 = triangles.get(i * 3 + 1);
+      Integer p2 = triangles.get(i * 3 + 2);
+      ImmutableList<Coordinate> triangle =
+          ImmutableList.of(
+              Coordinate.of(data.get(p0 * 3), data.get(p0 * 3 + 1), data.get(p0 * 3 + 2)),
+              Coordinate.of(data.get(p1 * 3), data.get(p1 * 3 + 1), data.get(p1 * 3 + 2)),
+              Coordinate.of(data.get(p2 * 3), data.get(p2 * 3 + 1), data.get(p2 * 3 + 2)));
+      boolean ccwTriangle =
+          axes == AXES.XYZ
+              ? computeAreaTriangle(triangle, 0, 1) > 0
+              : axes == AXES.YZX
+                  ? computeAreaTriangle(triangle, 1, 2) > 0
+                  : computeAreaTriangle(triangle, 2, 0) > 0;
+      boolean exterior = holeIndices.isEmpty() || p0 <= holeIndices.get(0);
+      if (exterior && ccwTriangle != ccw || !exterior && ccwTriangle == ccw) {
+        // switch orientation, if the triangle has the wrong orientation
+        triangles.set(i * 3, p2);
+        triangles.set(i * 3 + 2, p0);
+      }
+    }
+  }
+
+  private static List<Integer> triangulateWithEarcut(
+      List<Double> data, List<Integer> holeIndices, AXES axes) {
+    double[] coords2dForTriangulation = new double[data.size() / 3 * 2];
+    IntStream.range(0, data.size() / 3)
+        .forEach(
+            n -> {
+              int xIndex = axes == AXES.XYZ ? n * 3 : (axes == AXES.YZX ? n * 3 + 1 : n * 3 + 2);
+              int yIndex = axes == AXES.XYZ ? n * 3 + 1 : (axes == AXES.YZX ? n * 3 + 2 : n * 3);
+              coords2dForTriangulation[n * 2] = data.get(xIndex);
+              coords2dForTriangulation[n * 2 + 1] = data.get(yIndex);
+            });
 
     List<Integer> triangles =
         coords2dForTriangulation.length > 6
@@ -276,44 +381,12 @@ public interface TriangleMesh {
                 2)
             : new ArrayList<>(ImmutableList.of(0, 1, 2));
 
-    if (triangles.isEmpty()) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "Cannot triangulate a polygon of feature '{}', the polygon is ignored: {}",
-            featureName,
-            data);
-      }
-    } else {
-      for (int i = 0; i < triangles.size() / 3; i++) {
-        Integer p0 = triangles.get(i * 3);
-        Integer p1 = triangles.get(i * 3 + 1);
-        Integer p2 = triangles.get(i * 3 + 2);
-        ImmutableList<Coordinate> triangle =
-            ImmutableList.of(
-                Coordinate.of(data.get(p0 * 3), data.get(p0 * 3 + 1), data.get(p0 * 3 + 2)),
-                Coordinate.of(data.get(p1 * 3), data.get(p1 * 3 + 1), data.get(p1 * 3 + 2)),
-                Coordinate.of(data.get(p2 * 3), data.get(p2 * 3 + 1), data.get(p2 * 3 + 2)));
-        boolean ccwTriangle =
-            axes == AXES.XYZ
-                ? computeAreaTriangle(triangle, 0, 1) < 0
-                : axes == AXES.YZX
-                    ? computeAreaTriangle(triangle, 1, 2) < 0
-                    : computeAreaTriangle(triangle, 2, 0) < 0;
-        boolean exterior = holeIndices.isEmpty() || p0 >= holeIndices.get(0);
-        if (exterior && ccwTriangle != ccw || !exterior && ccwTriangle == ccw) {
-          // switch orientation, if the triangle has the wrong orientation
-          triangles.set(i * 3, p2);
-          triangles.set(i * 3 + 2, p0);
-        }
-      }
-    }
-
     return triangles;
   }
 
   private static double computeArea(double[] ring, int axis1, int axis2) {
     int len = ring.length / 3;
-    return (IntStream.range(0, ring.length / 3)
+    return (IntStream.range(0, len)
                 .mapToDouble(n -> ring[n * 3 + axis1] * ring[((n + 1) % len) * 3 + axis2])
                 .sum()
             - IntStream.range(0, ring.length / 3)
