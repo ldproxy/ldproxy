@@ -8,7 +8,7 @@ const firstCoordinate = (geometry) => {
     case "Point":
       return geometry.coordinates;
     case "LineString":
-    case "MultiPoints":
+    case "MultiPoint":
       return geometry.coordinates[0];
     case "Polygon":
     case "MultiLineString":
