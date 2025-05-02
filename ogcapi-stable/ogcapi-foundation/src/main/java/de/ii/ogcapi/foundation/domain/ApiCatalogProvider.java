@@ -183,7 +183,9 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
               builder, uriCustomizer.copy(), mediaType, alternateMediaTypes, language);
     }
 
-    getFoundationConfigurationDefaults().getApiCatalogAdditionalEntries().forEach(builder::addApis);
+    getFoundationConfigurationDefaults().getApiCatalogAdditionalEntries().stream()
+        .filter(entry -> tags.isEmpty() || entry.getTags().stream().anyMatch(tags::contains))
+        .forEach(builder::addApis);
 
     return builder.build();
   }
