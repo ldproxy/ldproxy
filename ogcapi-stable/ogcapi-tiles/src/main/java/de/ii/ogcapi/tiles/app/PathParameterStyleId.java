@@ -15,11 +15,15 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -40,11 +44,14 @@ public class PathParameterStyleId implements OgcApiPathParameter {
 
   public static final String STYLE_ID_PATTERN = "[^/]+";
 
+  private final ConcurrentMap<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();
   protected final SchemaValidator schemaValidator;
+  private final StyleReader styleReader;
 
   @Inject
-  PathParameterStyleId(SchemaValidator schemaValidator) {
+  PathParameterStyleId(SchemaValidator schemaValidator, StyleReader styleReader) {
     this.schemaValidator = schemaValidator;
+    this.styleReader = styleReader;
   }
 
   @Override
@@ -54,12 +61,30 @@ public class PathParameterStyleId implements OgcApiPathParameter {
 
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    return ImmutableList.of();
+    return Stream.concat(
+            styleReader
+                .getStyleIds(apiData.getId(), Optional.empty(), StyleReader.StyleFormat.MBS)
+                .stream(),
+            apiData.getCollections().keySet().stream()
+                .flatMap(
+                    collection ->
+                        styleReader
+                            .getStyleIds(
+                                apiData.getId(),
+                                Optional.of(collection),
+                                StyleReader.StyleFormat.MBS)
+                            .stream()))
+        .toList();
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return new StringSchema().pattern(getPattern());
+    if (!schemaMap.containsKey(apiData.hashCode())) {
+      schemaMap.put(
+          apiData.hashCode(), new StringSchema()._enum(ImmutableList.copyOf(getValues(apiData))));
+    }
+
+    return schemaMap.get(apiData.hashCode());
   }
 
   @Override

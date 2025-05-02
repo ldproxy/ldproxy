@@ -100,6 +100,8 @@ public abstract class AbstractEndpointTileSetDataset extends Endpoint {
       String definitionPath,
       Optional<String> styleId,
       String tileMatrixSetId) {
+    styleId.ifPresent(
+        id -> checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
     checkPathParameter(
         extensionRegistry, apiData, definitionPath, "tileMatrixSetId", tileMatrixSetId);
 
