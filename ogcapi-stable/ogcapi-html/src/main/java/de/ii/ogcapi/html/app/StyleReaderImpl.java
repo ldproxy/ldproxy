@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.StyleReader;
+import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueStore;
@@ -91,6 +92,23 @@ public class StyleReaderImpl implements StyleReader {
       return tiles3dStylesStore.has(styleId, getPathArrayStyles(apiId, collectionId));
     }
     return false;
+  }
+
+  @Override
+  public List<String> getStyleIds(
+      String apiId, Optional<String> collectionId, StyleFormat styleFormat) {
+    if (isMbStyle(styleFormat)) {
+      return mbStylesStore.identifiers(getPathArrayStyles(apiId, collectionId)).stream()
+          .map(Identifier::id)
+          .toList();
+    }
+    if (is3dTilesStyle(styleFormat)) {
+      return tiles3dStylesStore.identifiers(getPathArrayStyles(apiId, collectionId)).stream()
+          .map(Identifier::id)
+          .toList();
+    }
+
+    return List.of();
   }
 
   private String[] getPathArrayStyles(String apiId, Optional<String> collectionId) {

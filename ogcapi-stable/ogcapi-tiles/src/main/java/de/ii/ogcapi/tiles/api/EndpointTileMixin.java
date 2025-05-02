@@ -204,6 +204,9 @@ public interface EndpointTileMixin {
         id ->
             endpoint.checkPathParameter(
                 extensionRegistry, apiData, definitionPath, "collectionId", id));
+    styleId.ifPresent(
+        id ->
+            endpoint.checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
     endpoint.checkPathParameter(
         extensionRegistry, apiData, definitionPath, "tileMatrixSetId", tileMatrixSetId);
     endpoint.checkPathParameter(
