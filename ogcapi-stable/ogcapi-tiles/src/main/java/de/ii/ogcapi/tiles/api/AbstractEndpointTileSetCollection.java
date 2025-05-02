@@ -148,6 +148,8 @@ public abstract class AbstractEndpointTileSetCollection extends EndpointSubColle
       String tileMatrixSetId) {
 
     checkPathParameter(extensionRegistry, apiData, definitionPath, "collectionId", collectionId);
+    styleId.ifPresent(
+        id -> checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
     checkPathParameter(
         extensionRegistry, apiData, definitionPath, "tileMatrixSetId", tileMatrixSetId);
 

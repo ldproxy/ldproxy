@@ -111,6 +111,9 @@ public abstract class AbstractEndpointTileSetsDataset extends Endpoint {
 
     TilesetMetadata tilesetMetadata = tilesProviders.getTilesetMetadataOrThrow(apiData);
 
+    styleId.ifPresent(
+        id -> checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
+
     TilesQueriesHandler.QueryInputTileSets queryInput =
         new Builder()
             .from(getGenericQueryInput(apiData))

@@ -11,6 +11,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ public interface StyleReader {
       String styleId,
       StyleFormat styleFormat,
       @Deprecated(forRemoval = true) OgcApiDataV2 apiData);
+
+  List<String> getStyleIds(String apiId, Optional<String> collectionId, StyleFormat styleFormat);
 
   default String getStyleUrl(
       Optional<String> requestedStyle,

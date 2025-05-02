@@ -150,6 +150,8 @@ public abstract class AbstractEndpointTileSetsCollection extends EndpointSubColl
       boolean onlyWebMercatorQuad) {
 
     checkPathParameter(extensionRegistry, apiData, definitionPath, "collectionId", collectionId);
+    styleId.ifPresent(
+        id -> checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
 
     TilesetMetadata tilesetMetadata =
         tilesProviders.getTilesetMetadataOrThrow(apiData, apiData.getCollectionData(collectionId));
