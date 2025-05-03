@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.triangulate.polygon.ConstrainedDelaunayTriangulator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,7 @@ public interface TriangleMesh {
     List<Double> normals = new ArrayList<>();
     List<Integer> outlineIndices = new ArrayList<>();
     double area;
+    Geometry.Coordinate normal = null;
     for (Geometry.Polygon polygon : multiPolygon.getCoordinates()) {
       numRing = 0;
       data.clear();
@@ -176,35 +178,26 @@ public interface TriangleMesh {
             break;
           }
           ccw = area > 0;
+          if (withNormals) {
+            normal = computeNormal(coords);
+          }
         } else {
           // inner ring
-          holeIndices.add(data.size() / 3 + 1);
+          holeIndices.add(data.size() / 3);
         }
 
         data.addAll(Arrays.stream(coords).boxed().collect(Collectors.toUnmodifiableList()));
 
         if (withNormals) {
-          Geometry.Coordinate normal = computeNormal(coords);
-          if (normal.isEmpty()) {
-            if (numRing == 0) {
-              // skip polygon, if exterior boundary
-              if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug(
-                    "Skipping polygon of feature '{}', could not compute normal for exterior ring: {}",
-                    featureName,
-                    coordList);
-              }
-              break;
-            } else {
-              // skip ring, if a hole
-              if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug(
-                    "Skipping hole of feature '{}', could not compute normal for exterior ring: {}",
-                    featureName,
-                    coordList);
-              }
-              continue;
+          if (Objects.isNull(normal)) {
+            // skip polygon
+            if (LOGGER.isDebugEnabled()) {
+              LOGGER.debug(
+                  "Skipping polygon of feature '{}', could not compute normal for exterior ring: {}",
+                  featureName,
+                  coordList);
             }
+            break;
           }
           for (int i = 0; i < coords.length / 3; i++) {
             normals.addAll(normal);
@@ -276,42 +269,54 @@ public interface TriangleMesh {
   private static List<Integer> triangulateWithJts(
       List<Double> data, List<Integer> holeIndices, AXES axes) {
     org.locationtech.jts.geom.Coordinate[] coords2dForTriangulation =
-        IntStream.range(0, data.size() / 3 + 1)
+        IntStream.range(0, data.size() / 3)
             .mapToObj(
-                n -> {
-                  int n2 = n % (data.size() / 3);
-                  return new org.locationtech.jts.geom.Coordinate(
-                      axes == AXES.XYZ
-                          ? data.get(n2 * 3)
-                          : (axes == AXES.YZX ? data.get(n2 * 3 + 1) : data.get(n2 * 3 + 2)),
-                      axes == AXES.XYZ
-                          ? data.get(n2 * 3 + 1)
-                          : (axes == AXES.YZX ? data.get(n2 * 3 + 2) : data.get(n2 * 3)));
-                })
+                n ->
+                    new org.locationtech.jts.geom.Coordinate(
+                        axes == AXES.XYZ
+                            ? data.get(n * 3)
+                            : (axes == AXES.YZX ? data.get(n * 3 + 1) : data.get(n * 3 + 2)),
+                        axes == AXES.XYZ
+                            ? data.get(n * 3 + 1)
+                            : (axes == AXES.YZX ? data.get(n * 3 + 2) : data.get(n * 3))))
             .toArray(org.locationtech.jts.geom.Coordinate[]::new);
 
-    List<Integer> triangles = new ArrayList<>();
-    int outerRingEnd = holeIndices.isEmpty() ? coords2dForTriangulation.length : holeIndices.get(0);
-    org.locationtech.jts.geom.Coordinate[] outerRing =
-        Arrays.copyOfRange(coords2dForTriangulation, 0, outerRingEnd);
-
-    org.locationtech.jts.geom.LinearRing shell = geometryFactory.createLinearRing(outerRing);
-    org.locationtech.jts.geom.LinearRing[] holes =
-        new org.locationtech.jts.geom.LinearRing[holeIndices.size()];
-
-    for (int i = 0; i < holeIndices.size(); i++) {
-      int startIdx = holeIndices.get(i);
-      int endIdx =
-          i < holeIndices.size() - 1 ? holeIndices.get(i + 1) : coords2dForTriangulation.length;
-      org.locationtech.jts.geom.Coordinate[] holeCoords =
-          Arrays.copyOfRange(coords2dForTriangulation, startIdx, endIdx);
-      holes[i] = geometryFactory.createLinearRing(holeCoords);
+    org.locationtech.jts.geom.Polygon polygon;
+    if (holeIndices.isEmpty()) {
+      polygon =
+          geometryFactory.createPolygon(
+              geometryFactory.createLinearRing(
+                  IntStream.range(0, data.size() / 3 + 1)
+                      .mapToObj(n -> coords2dForTriangulation[n == data.size() / 3 ? 0 : n])
+                      .toArray(org.locationtech.jts.geom.Coordinate[]::new)));
+    } else {
+      LinearRing shell =
+          geometryFactory.createLinearRing(
+              IntStream.range(0, holeIndices.get(0) + 1)
+                  .mapToObj(n -> coords2dForTriangulation[n == data.size() / 3 ? 0 : n])
+                  .toArray(org.locationtech.jts.geom.Coordinate[]::new));
+      LinearRing[] holes =
+          IntStream.range(1, holeIndices.size() + 1)
+              .mapToObj(
+                  r -> {
+                    int n0 = holeIndices.get(r - 1);
+                    int n1 = r < holeIndices.size() ? holeIndices.get(r) : data.size() / 3;
+                    return geometryFactory.createLinearRing(
+                        IntStream.range(n0, n1 + 1)
+                            .mapToObj(
+                                n -> {
+                                  return coords2dForTriangulation[n == n1 ? n0 : n];
+                                })
+                            .toArray(org.locationtech.jts.geom.Coordinate[]::new));
+                  })
+              .toArray(org.locationtech.jts.geom.LinearRing[]::new);
+      polygon = geometryFactory.createPolygon(shell, holes);
     }
 
-    org.locationtech.jts.geom.Polygon polygon = geometryFactory.createPolygon(shell, holes);
     ConstrainedDelaunayTriangulator triangulator = new ConstrainedDelaunayTriangulator(polygon);
     org.locationtech.jts.geom.Geometry triangulation = triangulator.getResult();
 
+    List<Integer> triangles = new ArrayList<>();
     for (int i = 0; i < triangulation.getNumGeometries(); i++) {
       org.locationtech.jts.geom.Polygon tri =
           (org.locationtech.jts.geom.Polygon) triangulation.getGeometryN(i);
@@ -350,8 +355,7 @@ public interface TriangleMesh {
               : axes == AXES.YZX
                   ? computeAreaTriangle(triangle, 1, 2) > 0
                   : computeAreaTriangle(triangle, 2, 0) > 0;
-      boolean exterior = holeIndices.isEmpty() || p0 <= holeIndices.get(0);
-      if (exterior && ccwTriangle != ccw || !exterior && ccwTriangle == ccw) {
+      if (ccwTriangle != ccw) {
         // switch orientation, if the triangle has the wrong orientation
         triangles.set(i * 3, p2);
         triangles.set(i * 3 + 2, p0);
@@ -438,7 +442,7 @@ public interface TriangleMesh {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Normal has length 0 for ring: {}", ring);
       }
-      return Geometry.Coordinate.of(ImmutableList.of());
+      return null;
     }
     return Geometry.Coordinate.of(x / length, y / length, z / length);
   }
