@@ -58,6 +58,7 @@ import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueEncoding.FORMAT;
 import de.ii.xtraplatform.values.domain.ValueFactory;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
+import io.dropwizard.util.DataSize;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -115,7 +116,8 @@ class LdproxyCfgImpl implements LdproxyCfg {
     this.requiredIncludes = new RequiredIncludes();
     this.builders = new Builders() {};
     Jackson jackson = new JacksonProvider(JacksonSubTypes::ids, false);
-    this.valueEncoding = new ValueEncodingJackson<EntityData>(jackson, false);
+    this.valueEncoding =
+        new ValueEncodingJackson<EntityData>(jackson, sc.getMaxYamlFileSize(), false);
     this.objectMapper = valueEncoding.getMapper(FORMAT.YML);
     this.eventSubscriptions = new EventSubscriptionsSync();
     EventStoreDriver storeDriver = new EventStoreDriverFs(dataDirectory);
@@ -155,7 +157,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
             }
           }
         });
-    AppContext appContext = new AppContextCfg();
+    AppContext appContext = new AppContextCfg(storeConfiguration);
     ResourceStore mockResourceStore = new MockResourceStore(dataDirectory);
     OgcApiExtensionRegistry extensionRegistry = new OgcApiExtensionRegistry(appContext);
     Set<EntityFactory> factories =
@@ -186,7 +188,13 @@ class LdproxyCfgImpl implements LdproxyCfg {
   private static StoreConfiguration detectStore(Path dataDirectory) {
     Optional<ImmutableStoreConfiguration> sc =
         LayoutImpl.detectSource(dataDirectory)
-            .map(storeSourceFs -> new Builder().addSources(storeSourceFs).build());
+            .map(
+                storeSourceFs ->
+                    new Builder()
+                        // TODO: read from cfg.yml
+                        .maxYamlFileSize(DataSize.megabytes(10))
+                        .addSources(storeSourceFs)
+                        .build());
 
     if (sc.isEmpty()) {
       throw new IllegalArgumentException("No store detected in " + dataDirectory);
