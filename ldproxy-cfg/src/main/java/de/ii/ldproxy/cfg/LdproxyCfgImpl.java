@@ -157,7 +157,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
             }
           }
         });
-    AppContext appContext = new AppContextCfg();
+    AppContext appContext = new AppContextCfg(storeConfiguration);
     ResourceStore mockResourceStore = new MockResourceStore(dataDirectory);
     OgcApiExtensionRegistry extensionRegistry = new OgcApiExtensionRegistry(appContext);
     Set<EntityFactory> factories =

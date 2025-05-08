@@ -12,7 +12,6 @@ import de.ii.xtraplatform.base.domain.AuthConfiguration;
 import de.ii.xtraplatform.base.domain.BackgroundTasksConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuthConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableModulesConfiguration;
-import de.ii.xtraplatform.base.domain.ImmutableStoreConfiguration;
 import de.ii.xtraplatform.base.domain.LoggingConfiguration;
 import de.ii.xtraplatform.base.domain.MetricsConfiguration;
 import de.ii.xtraplatform.base.domain.ModulesConfiguration;
@@ -23,6 +22,12 @@ import io.dropwizard.client.HttpClientConfiguration;
 import java.util.Map;
 
 class AppConfigurationCfg extends AppConfiguration {
+
+  private final StoreConfiguration storeConfiguration;
+
+  public AppConfigurationCfg(StoreConfiguration storeConfiguration) {
+    this.storeConfiguration = storeConfiguration;
+  }
 
   @Override
   public ServerConfiguration getServerFactory() {
@@ -46,7 +51,7 @@ class AppConfigurationCfg extends AppConfiguration {
 
   @Override
   public StoreConfiguration getStore() {
-    return new ImmutableStoreConfiguration.Builder().failOnUnknownProperties(false).build();
+    return storeConfiguration;
   }
 
   @Override

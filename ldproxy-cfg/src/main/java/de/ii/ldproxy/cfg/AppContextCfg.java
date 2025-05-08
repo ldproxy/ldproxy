@@ -10,10 +10,17 @@ package de.ii.ldproxy.cfg;
 import de.ii.xtraplatform.base.domain.AppConfiguration;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.Constants.ENV;
+import de.ii.xtraplatform.base.domain.StoreConfiguration;
 import java.net.URI;
 import java.nio.file.Path;
 
 class AppContextCfg implements AppContext {
+
+  private final StoreConfiguration storeConfiguration;
+
+  public AppContextCfg(StoreConfiguration storeConfiguration) {
+    this.storeConfiguration = storeConfiguration;
+  }
 
   @Override
   public String getName() {
@@ -42,7 +49,7 @@ class AppContextCfg implements AppContext {
 
   @Override
   public AppConfiguration getConfiguration() {
-    return new AppConfigurationCfg();
+    return new AppConfigurationCfg(storeConfiguration);
   }
 
   @Override
