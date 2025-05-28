@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.3.2 (28/05/2025)
+#### Fixed bugs
+
+-  missing path parameter validation for style id with map tiles [#1383](https://github.com/ldproxy/ldproxy/issues/1383)
+-  tag filtering does not work for additional entries in API catalog [#1381](https://github.com/ldproxy/ldproxy/issues/1381)
+-  MapLibre: no popup on MultiPoint geometries [#1378](https://github.com/ldproxy/ldproxy/issues/1378)
+
+#### Dependency updates
+
+* Update dropwizard to v3.0.14 (maintenance-6.3) by @renovate in https://github.com/ldproxy/xtraplatform/pull/233
+* Update swagger to v2.2.32 (maintenance-6.3) by @renovate in https://github.com/ldproxy/xtraplatform/pull/230
+* Update schemacrawler to v16.25.4 (maintenance-7.3) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/347
+---
+
 ## v4.3.1 (19/04/2025)
 #### Fixed bugs
 
