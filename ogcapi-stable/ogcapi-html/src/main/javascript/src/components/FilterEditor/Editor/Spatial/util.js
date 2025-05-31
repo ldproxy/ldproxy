@@ -1,9 +1,9 @@
 export const round = (value) => Math.round((parseFloat(value) + Number.EPSILON) * 10000) / 10000;
 
-export const roundBounds = (bounds) => [
+export const roundBounds = (bounds) => bounds && bounds.length > 0 ? [
   [round(bounds[0][0]), round(bounds[0][1])],
   [round(bounds[1][0]), round(bounds[1][1])],
-];
+] : [];
 
 const arrayEquals = (a, b, ignoreValues) => {
   return (
