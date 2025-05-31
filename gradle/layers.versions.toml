@@ -1,5 +1,5 @@
 [versions]
 xtraplatform-core    = '6.4.0-SNAPSHOT'
 xtraplatform-native  = '2.5.0'
-xtraplatform-spatial = '7.4.0-pgis-asmvt-SNAPSHOT'
+xtraplatform-spatial = '7.4.0-SNAPSHOT'
 
