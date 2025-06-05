@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.FeaturesFormatJsonFgBase;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import java.io.IOException;
 import java.util.List;
@@ -72,23 +71,26 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
                     .getExtension(JsonFgConfiguration.class, collectionId)
                     .ifPresentOrElse(
                         cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && schema
-                                      .flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
-                                      .isPresent()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.geometryDimension)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          boolean enabled = cfg.isEnabled();
+                          /* FIXME
+                          && schema
+                              .flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
+                              .isPresent()
+                          && (cfg.getIncludeInGeoJson()
+                                  .contains(JsonFgConfiguration.OPTION.geometryDimension)
+                              || transformationContext
+                                  .getMediaType()
+                                  .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                              || transformationContext
+                                  .getMediaType()
+                                  .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                           */
                           builder.put(
                               collectionId,
                               enabled
-                                  ? schema.flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
+                                  ? Optional.empty()
+                                  // FIXME
+                                  // schema.flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
                                   : Optional.empty());
                         },
                         () -> builder.put(collectionId, Optional.empty())));

@@ -158,13 +158,15 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
                                   && !Objects.requireNonNullElse(cfg.getLinks(), ImmutableList.of())
                                       .isEmpty()
                                   && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.links)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                                      .contains(JsonFgConfiguration.OPTION.links));
+                          /* FIXME
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          */
                           builder.put(collectionId, enabled ? cfg.getLinks() : ImmutableList.of());
                         },
                         () -> builder.put(collectionId, ImmutableList.of())));

@@ -200,11 +200,6 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
       throws IOException {
 
     if (isEnabled) {
-      if (!hasPlaceGeometry) {
-        // write null geometry if none was written for this feature
-        json.writeFieldName(JSON_KEY);
-        json.writeNull();
-      }
       json.serialize(context.encoding().getJson());
       json.flush();
     }
@@ -225,16 +220,17 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
                     .getExtension(JsonFgConfiguration.class, collectionId)
                     .ifPresentOrElse(
                         cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.place)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          boolean enabled = cfg.isEnabled();
+                          /* FIXME
+                                 && (cfg.getIncludeInGeoJson()
+                                         .contains(JsonFgConfiguration.OPTION.place)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          */
                           builder.put(collectionId, enabled);
                         },
                         () -> builder.put(collectionId, false)));

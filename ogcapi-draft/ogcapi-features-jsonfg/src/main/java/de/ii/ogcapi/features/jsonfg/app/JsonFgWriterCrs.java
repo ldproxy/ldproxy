@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,6 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
 
   Map<String, Boolean> collectionMap;
   boolean isEnabled;
-  boolean useCuries;
 
   @Inject
   JsonFgWriterCrs() {}
@@ -52,13 +52,6 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
       throws IOException {
     collectionMap = getCollectionMap(context.encoding());
     isEnabled = collectionMap.values().stream().anyMatch(enabled -> enabled);
-    useCuries =
-        context
-            .encoding()
-            .getApiData()
-            .getExtension(JsonFgConfiguration.class, context.encoding().getCollectionId())
-            .map(cfg -> Objects.equals(cfg.getUseCuries(), Boolean.TRUE))
-            .orElse(false);
 
     if (isEnabled && context.encoding().isFeatureCollection()) {
       writeCrs(context.encoding().getJson(), context.encoding().getTargetCrs());
@@ -83,15 +76,24 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
   }
 
   private void writeCrs(JsonGenerator json, EpsgCrs crs) throws IOException {
-    if (crs.getVerticalCode().isPresent()) {
+    if (OgcCrs.CRS84.equals(crs)) {
+      if (crs.getVerticalCode().isPresent()) {
+        json.writeArrayFieldStart(JSON_KEY);
+        json.writeString(OgcCrs.CRS84_URI_NEW);
+        json.writeString(crs.toUriStrings().get(1));
+        json.writeEndArray();
+      } else {
+        json.writeStringField(JSON_KEY, OgcCrs.CRS84_URI_NEW);
+      }
+    } else if (crs.getVerticalCode().isPresent()) {
       json.writeArrayFieldStart(JSON_KEY);
-      List<String> values = useCuries ? crs.toSafeCuries() : crs.toUriStrings();
+      List<String> values = crs.toUriStrings();
       for (String value : values) {
         json.writeString(value);
       }
       json.writeEndArray();
     } else {
-      json.writeStringField(JSON_KEY, useCuries ? crs.toSafeCurie() : crs.toUriString());
+      json.writeStringField(JSON_KEY, crs.toUriString());
     }
   }
 
@@ -112,13 +114,15 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
                               cfg.isEnabled()
                                   && Objects.requireNonNullElse(cfg.getCoordRefSys(), false)
                                   && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.coordRefSys)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                                      .contains(JsonFgConfiguration.OPTION.coordRefSys));
+                          /* FIXME
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          */
                           builder.put(collectionId, enabled);
                         },
                         () -> builder.put(collectionId, false)));

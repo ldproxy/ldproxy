@@ -95,9 +95,6 @@ public class JsonFgWriterTime implements GeoJsonWriter {
         else json.writeNull();
         json.writeEndArray();
         json.writeEndObject();
-      } else {
-        json.writeFieldName(JSON_KEY);
-        json.writeNull();
       }
     }
   }
@@ -131,16 +128,17 @@ public class JsonFgWriterTime implements GeoJsonWriter {
                     .getExtension(JsonFgConfiguration.class, collectionId)
                     .ifPresentOrElse(
                         cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.time)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          boolean enabled = cfg.isEnabled();
+                          /* FIXME
+                                 && (cfg.getIncludeInGeoJson()
+                                         .contains(JsonFgConfiguration.OPTION.time)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                     || transformationContext
+                                         .getMediaType()
+                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
+                          */
                           builder.put(collectionId, enabled);
                         },
                         () -> builder.put(collectionId, false)));

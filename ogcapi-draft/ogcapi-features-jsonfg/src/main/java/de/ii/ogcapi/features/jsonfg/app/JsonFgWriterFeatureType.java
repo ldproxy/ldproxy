@@ -7,9 +7,7 @@
  */
 package de.ii.ogcapi.features.jsonfg.app;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
@@ -20,12 +18,10 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -37,11 +33,11 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
   public static String JSON_KEY = "featureType";
   public static String JSON_KEY_SCHEMA = "featureSchema";
 
-  Map<String, List<String>> collectionMap;
+  Map<String, String> collectionMap;
   boolean isEnabled;
   boolean homogenous;
-  List<String> writeAtEnd;
-  Map<String, Optional<String>> schemaMap;
+  String writeAtEnd;
+  Map<String, String> schemaMap;
   Map<String, String> effectiveSchemas;
 
   @Inject
@@ -64,16 +60,15 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
     collectionMap = getCollectionMap(context.encoding());
     isEnabled = collectionMap.values().stream().anyMatch(types -> !types.isEmpty());
     homogenous =
-        collectionMap.values().stream()
-                .noneMatch(types -> types.stream().anyMatch(type -> type.contains(OPEN_TEMPLATE)))
+        collectionMap.values().stream().noneMatch(type -> type.contains(OPEN_TEMPLATE))
             && context.encoding().isFeatureCollection()
             && collectionMap.size() == 1;
-    writeAtEnd = ImmutableList.of();
+    writeAtEnd = null;
     schemaMap = getSchemaMap(context.encoding());
     effectiveSchemas = new HashMap<>();
 
     if (isEnabled && homogenous) {
-      writeTypes(context.encoding(), collectionMap.values().iterator().next());
+      writeType(context.encoding(), collectionMap.values().iterator().next());
       writeSingleSchema(context.encoding(), schemaMap.values().iterator().next());
     }
 
@@ -86,16 +81,17 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled && !homogenous) {
-      List<String> types = collectionMap.get(context.type());
-      if (Objects.nonNull(types) && !types.isEmpty()) {
-        if (types.stream().anyMatch(type -> type.contains(OPEN_TEMPLATE))) {
-          writeAtEnd = types;
+      String type = collectionMap.get(context.type());
+      if (Objects.nonNull(type) && !type.isEmpty()) {
+        if (type.contains(OPEN_TEMPLATE)) {
+          writeAtEnd = type;
         } else {
-          writeTypes(context.encoding(), types);
+          writeType(context.encoding(), type);
           if (schemaMap.containsKey(context.type())) {
-            schemaMap
-                .get(context.type())
-                .ifPresent(s -> types.forEach(t -> effectiveSchemas.put(t, s)));
+            String schema = schemaMap.get(context.type());
+            if (Objects.nonNull(schema)) {
+              effectiveSchemas.put(type, schema);
+            }
           }
         }
       }
@@ -109,25 +105,16 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
   public void onValue(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    if (!writeAtEnd.isEmpty()
+    if (Objects.nonNull(writeAtEnd)
+        && !writeAtEnd.isEmpty()
         && context.schema().filter(FeatureSchema::isValue).isPresent()
         && Objects.nonNull(context.value())) {
 
-      final FeatureSchema schema = context.schema().get();
+      FeatureSchema schema = context.schema().get();
       if (schema.isType()) {
-        writeAtEnd =
-            writeAtEnd.stream()
-                .map(type -> type.replace("{{type}}", context.value()))
-                .collect(Collectors.toUnmodifiableList());
-        if (schemaMap.containsKey(context.type())) {
-          schemaMap
-              .get(context.type())
-              .ifPresent(
-                  s -> {
-                    writeAtEnd.stream()
-                        .map(type -> type.replace("{{type}}", context.value()))
-                        .forEach(type -> effectiveSchemas.put(type, s));
-                  });
+        writeAtEnd = writeAtEnd.replace("{{type}}", context.value());
+        if (schemaMap.containsKey(context.type()) && !effectiveSchemas.containsKey(writeAtEnd)) {
+          effectiveSchemas.put(writeAtEnd, schemaMap.get(context.type()));
         }
       }
     }
@@ -139,9 +126,9 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
   public void onFeatureEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    if (!writeAtEnd.isEmpty()) {
-      writeTypes(context.encoding(), writeAtEnd);
-      writeAtEnd = ImmutableList.of();
+    if (Objects.nonNull(writeAtEnd) && !writeAtEnd.isEmpty()) {
+      writeType(context.encoding(), writeAtEnd);
+      writeAtEnd = null;
     }
     if (!context.encoding().isFeatureCollection()) {
       writeSchemas(context.encoding());
@@ -160,9 +147,9 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
     next.accept(context);
   }
 
-  private Map<String, List<String>> getCollectionMap(
+  private Map<String, String> getCollectionMap(
       FeatureTransformationContextGeoJson transformationContext) {
-    ImmutableMap.Builder<String, List<String>> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     transformationContext
         .getFeatureSchemas()
         .keySet()
@@ -171,47 +158,39 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
                 transformationContext
                     .getApiData()
                     .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
+                    .ifPresent(
                         cfg -> {
                           if (cfg.isEnabled()
                               && (cfg.getIncludeInGeoJson()
-                                      .contains(JsonFgConfiguration.OPTION.featureType)
-                                  || transformationContext
-                                      .getMediaType()
-                                      .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                  || transformationContext
-                                      .getMediaType()
-                                      .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
-                            builder.put(
-                                collectionId,
+                                  .contains(JsonFgConfiguration.OPTION.featureType))) {
+                            /* FIXME
+                                 || transformationContext
+                                     .getMediaType()
+                                     .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                 || transformationContext
+                                     .getMediaType()
+                                     .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
+                            */
+                            String type =
                                 cfg.getEffectiveFeatureType(
-                                    transformationContext.getFeatureSchemas().get(collectionId)));
-                          } else {
-                            builder.put(collectionId, ImmutableList.of());
+                                    transformationContext.getFeatureSchemas().get(collectionId));
+                            if (Objects.nonNull(type)) {
+                              builder.put(collectionId, type);
+                            }
                           }
-                        },
-                        () -> builder.put(collectionId, ImmutableList.of())));
+                        }));
     return builder.build();
   }
 
-  private void writeTypes(
-      FeatureTransformationContextGeoJson transformationContext, List<String> types)
+  private void writeType(FeatureTransformationContextGeoJson transformationContext, String type)
       throws IOException {
-    if (types.stream().allMatch(type -> type.contains("{{type}}"))) return;
-
-    JsonGenerator json = transformationContext.getJson();
-    if (types.size() == 1) json.writeStringField(JSON_KEY, types.get(0));
-    else {
-      json.writeFieldName(JSON_KEY);
-      json.writeStartArray(types.size());
-      for (String t : types) if (!t.contains("{{type}}")) json.writeString(t);
-      json.writeEndArray();
-    }
+    if (Objects.isNull(type) || type.isEmpty() || type.contains("{{type}}")) return;
+    transformationContext.getJson().writeStringField(JSON_KEY, type);
   }
 
-  private Map<String, Optional<String>> getSchemaMap(
+  private Map<String, String> getSchemaMap(
       FeatureTransformationContextGeoJson transformationContext) {
-    ImmutableMap.Builder<String, Optional<String>> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     transformationContext
         .getFeatureSchemas()
         .keySet()
@@ -220,24 +199,22 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
                 transformationContext
                     .getApiData()
                     .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
+                    .ifPresent(
                         cfg -> {
                           if (cfg.isEnabled()
-                              && !Objects.requireNonNullElse(
-                                      cfg.getEffectiveFeatureType(
-                                          transformationContext
-                                              .getFeatureSchemas()
-                                              .get(collectionId)),
-                                      ImmutableList.of())
-                                  .isEmpty()
+                              && Objects.nonNull(
+                                  cfg.getEffectiveFeatureType(
+                                      transformationContext.getFeatureSchemas().get(collectionId)))
                               && (cfg.getIncludeInGeoJson()
-                                      .contains(JsonFgConfiguration.OPTION.featureSchema)
-                                  || transformationContext
-                                      .getMediaType()
-                                      .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                  || transformationContext
-                                      .getMediaType()
-                                      .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
+                                  .contains(JsonFgConfiguration.OPTION.featureSchema))) {
+                            /* FIXME
+                                 || transformationContext
+                                     .getMediaType()
+                                     .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
+                                 || transformationContext
+                                     .getMediaType()
+                                     .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
+                            */
                             Optional<String> value =
                                 transformationContext
                                     .getApiData()
@@ -249,24 +226,16 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
                                                 "%s/collections/%s/schema",
                                                 transformationContext.getServiceUrl(),
                                                 collectionId));
-                            builder.put(collectionId, value);
-                          } else {
-                            builder.put(collectionId, Optional.empty());
+                            value.ifPresent(v -> builder.put(collectionId, v));
                           }
-                        },
-                        () -> builder.put(collectionId, Optional.empty())));
+                        }));
     return builder.build();
   }
 
   private void writeSingleSchema(
-      FeatureTransformationContextGeoJson transformationContext, Optional<String> schema) {
-    schema.ifPresent(
-        s -> {
-          try {
-            transformationContext.getJson().writeStringField(JSON_KEY_SCHEMA, s);
-          } catch (IOException ignore) {
-          }
-        });
+      FeatureTransformationContextGeoJson transformationContext, String schema) throws IOException {
+    if (Objects.isNull(schema) || schema.isEmpty()) return;
+    transformationContext.getJson().writeStringField(JSON_KEY_SCHEMA, schema);
   }
 
   private void writeSchemas(FeatureTransformationContextGeoJson transformationContext)

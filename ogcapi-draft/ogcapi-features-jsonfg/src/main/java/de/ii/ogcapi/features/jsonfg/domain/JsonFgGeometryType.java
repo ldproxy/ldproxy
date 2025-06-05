@@ -18,7 +18,7 @@ public enum JsonFgGeometryType {
   POLYGON("Polygon", SimpleFeatureGeometry.POLYGON, 2),
   MULTI_POLYGON("MultiPolygon", SimpleFeatureGeometry.MULTI_POLYGON, 2),
   POLYHEDRON("Polyhedron", SimpleFeatureGeometry.MULTI_POLYGON, 3, true, true),
-  GEOMETRY_COLLECTION("GeometryCollection", SimpleFeatureGeometry.NONE, null),
+  GEOMETRY_COLLECTION("GeometryCollection", SimpleFeatureGeometry.GEOMETRY_COLLECTION, null),
   GENERIC("", SimpleFeatureGeometry.NONE, null),
   NONE("", SimpleFeatureGeometry.NONE, null);
 

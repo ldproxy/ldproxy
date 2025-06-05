@@ -8,7 +8,6 @@
 package de.ii.ogcapi.features.jsonfg.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.features.jsonfg.domain.ImmutableJsonFgConfiguration.Builder;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -183,55 +182,47 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
    *     <p>Many GIS clients depend on knowledge about the feature type when processing feature
    *     data. For example, when associating a style to a feature in order to render that feature on
    *     a map.
-   *     <p>This option adds a "featureType" member with the specified values. If a single value is
-   *     specified, then a string is added, otherwise an array of strings.
+   *     <p>This option adds a "featureType" member with the specified value.
    *     <p>A value can include a template `{{type}}`, which will be replaced with the value of the
    *     feature property with `role: TYPE` in the provider schema of the feature type of the
    *     collection. The property must be of type `STRING`.
    *     <p>If the feature type in the provider schema includes an `objectType` value, the value
-   *     will be used as the default. Otherwise, the default is an empty array.
+   *     will be used as the default. Otherwise, the default is `null`.
    * @langDe Features werden oft nach der Objektart kategorisiert. In der Regel haben alle Features
    *     derselben Art dasselbe Schema und dieselben Eigenschaften.
    *     <p>Viele GIS-Clients sind bei der Verarbeitung von Features auf das Wissen über den
    *     Objektart angewiesen. Zum Beispiel, wenn einem Feature ein Stil zugeordnet wird, um das
    *     Feature auf einer Karte darzustellen.
-   *     <p>Diese Option fügt ein JSON-Member "featureType" mit den angegebenen Werten hinzu. Wenn
-   *     ein einzelner Wert angegeben wird, wird ein String hinzugefügt, andernfalls ein Array von
-   *     Strings.
-   *     <p>Ein Wert kann ein Template `{{type}}` enthalten, das durch den Wert der
+   *     <p>Diese Option fügt ein JSON-Member "featureType" mit dem angegebenen Wert hinzu.
+   *     <p>Der Wert kann ein Template `{{type}}` enthalten, das durch den Wert der
    *     Objekteigenschaft mit `role: TYPE` im Provider-Schema der Objektart der Collection ersetzt
    *     wird. Die Eigenschaft muss vom Typ `STRING` sein.
    *     <p>Wenn der Objekttyp im Provider-Schema einen Wert für `objectType` hat, dann ist dieser
-   *     Wert der Default. Ansonsten ist der Default ein leeres Array.
+   *     Wert der Default. Ansonsten ist der Default `null`.
    * @default see description
-   * @examplesAll [ 'Building' ]
+   * @examplesAll 'Building'
    * @since v3.1
    */
   @Nullable
-  List<String> getFeatureType();
+  Object getFeatureType();
 
-  default List<String> getEffectiveFeatureType(Optional<FeatureSchema> schema) {
-    List<String> value = getFeatureType();
-    if (Objects.isNull(value) || value.isEmpty()) {
-      value =
-          schema
-              .flatMap(FeatureSchema::getObjectType)
-              .map(ImmutableList::of)
-              .orElse(ImmutableList.of());
+  default String getEffectiveFeatureType(Optional<FeatureSchema> schema) {
+    Object value = getFeatureType();
+    if (value instanceof List) {
+      if (!((List<?>) value).isEmpty()) {
+        value = ((List<?>) value).get(0);
+      } else {
+        value = null;
+      }
     }
-    return value;
+    if (value instanceof String) {
+      return (String) value;
+    }
+    if (Objects.isNull(value)) {
+      return schema.flatMap(FeatureSchema::getObjectType).orElse(null);
+    }
+    return null;
   }
-
-  /**
-   * @langEn If `true`, values in "conformsTo" and "coordRefSys" will be Safe CURIEs, not HTTP URIs.
-   *     For example, `[EPSG:25832]` instead of `http://www.opengis.net/def/crs/EPSG/0/25832`.
-   * @langDe Bei `true` sind die Werte in "conformsTo" und "coordRefSys" Safe CURIEs, keine HTTP
-   *     URIs. Beispiel: `[EPSG:25832]` statt `http://www.opengis.net/def/crs/EPSG/0/25832`.
-   * @default false
-   * @since v3.6
-   */
-  @Nullable
-  Boolean getUseCuries();
 
   /**
    * @langEn Adds the specified links to the `links` array of features. All values of the array must
