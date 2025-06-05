@@ -157,8 +157,20 @@ public class URICustomizer extends URIBuilder {
     }
 
     final List<String> pathSegments = getPathSegments();
+    int pathSegmentsIndex = -1;
 
-    int pathSegmentsIndex = pathSegments.lastIndexOf(segments[0]);
+    for (int i = 0; i <= pathSegments.size() - segments.length; i++) {
+      boolean found = true;
+      for (int j = 0; j < segments.length; j++) {
+        if (!pathSegments.get(i + j).equals(segments[j])) {
+          found = false;
+          break;
+        }
+      }
+      if (found) {
+        pathSegmentsIndex = i;
+      }
+    }
 
     if (pathSegmentsIndex == -1) {
       return this;
