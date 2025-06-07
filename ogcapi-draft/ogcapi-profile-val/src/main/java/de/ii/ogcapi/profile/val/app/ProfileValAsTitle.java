@@ -8,14 +8,9 @@
 package de.ii.ogcapi.profile.val.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
-import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
-import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
-import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -30,32 +25,11 @@ public class ProfileValAsTitle extends ProfileVal {
 
   @Override
   public String getId() {
-    return "val-as-title";
+    return ProfileTransformations.VAL_AS_TITLE;
   }
 
   @Override
   public boolean isDefaultForHumanReadable() {
     return true;
-  }
-
-  @Override
-  public void addPropertyTransformations(FeatureSchema schema, String mediaType, Builder builder) {
-    schema.getAllNestedProperties().stream()
-        .filter(p -> p.getConstraints().map(c -> c.getCodelist().isPresent()).orElse(false))
-        .forEach(property -> mapToTitle(property, builder));
-  }
-
-  public static void mapToTitle(
-      FeatureSchema property, ImmutableProfileTransformations.Builder builder) {
-    property
-        .getConstraints()
-        .flatMap(SchemaConstraints::getCodelist)
-        .ifPresent(
-            codelist -> {
-              builder.putTransformations(
-                  property.getFullPathAsString(),
-                  ImmutableList.of(
-                      new ImmutablePropertyTransformation.Builder().codelist(codelist).build()));
-            });
   }
 }

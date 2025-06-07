@@ -13,6 +13,9 @@ import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
 import de.ii.ogcapi.profile.val.domain.ProfileValConfiguration;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
+import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 
 public abstract class ProfileVal extends ProfileGeneric {
 
@@ -29,6 +32,11 @@ public abstract class ProfileVal extends ProfileGeneric {
 
   public boolean isDefaultForHumanReadable() {
     return false;
+  }
+
+  @Override
+  public void addPropertyTransformations(FeatureSchema schema, String mediaType, Builder builder) {
+    ProfileTransformations.addPredefined(getId(), schema, mediaType, builder);
   }
 
   @Override

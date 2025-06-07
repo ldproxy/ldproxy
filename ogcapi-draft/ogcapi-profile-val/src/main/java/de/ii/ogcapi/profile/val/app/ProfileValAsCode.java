@@ -10,6 +10,7 @@ package de.ii.ogcapi.profile.val.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
+import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -24,7 +25,7 @@ public class ProfileValAsCode extends ProfileVal {
 
   @Override
   public String getId() {
-    return "val-as-code";
+    return ProfileTransformations.VAL_AS_CODE;
   }
 
   @Override

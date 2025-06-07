@@ -13,6 +13,9 @@ import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.rel.domain.ProfileRelConfiguration;
 import de.ii.ogcapi.profile.rel.domain.ProfileSetRel;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
+import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 
 public abstract class ProfileRel extends ProfileGeneric {
 
@@ -29,6 +32,11 @@ public abstract class ProfileRel extends ProfileGeneric {
 
   public boolean isDefaultForComplex() {
     return false;
+  }
+
+  @Override
+  public void addPropertyTransformations(FeatureSchema schema, String mediaType, Builder builder) {
+    ProfileTransformations.addPredefined(getId(), schema, mediaType, builder);
   }
 
   @Override
