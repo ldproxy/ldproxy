@@ -96,7 +96,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
     return List.of(
-        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schema",
+        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schemas",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/sortables",
         "http://www.opengis.net/spec/ogcapi-features-8/0.0/conf/sortables");
   }

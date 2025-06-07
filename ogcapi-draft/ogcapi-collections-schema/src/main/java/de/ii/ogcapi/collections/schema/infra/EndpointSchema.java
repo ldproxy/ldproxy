@@ -81,7 +81,7 @@ public class EndpointSchema extends EndpointSubCollection
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
     return List.of(
-        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schema",
+        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schemas",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/core-roles-features",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/feature-references",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/returnables-and-receivables");
