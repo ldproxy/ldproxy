@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import java.io.IOException;
@@ -105,27 +104,7 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
         .keySet()
         .forEach(
             collectionId ->
-                transformationContext
-                    .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
-                        cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && Objects.requireNonNullElse(cfg.getCoordRefSys(), false)
-                                  && (cfg.getIncludeInGeoJson()
-                                      .contains(JsonFgConfiguration.OPTION.coordRefSys));
-                          /* FIXME
-                                     || transformationContext
-                                         .getMediaType()
-                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                     || transformationContext
-                                         .getMediaType()
-                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
-                          */
-                          builder.put(collectionId, enabled);
-                        },
-                        () -> builder.put(collectionId, false)));
+                builder.put(collectionId, writeJsonFgExtensions(transformationContext)));
     return builder.build();
   }
 }

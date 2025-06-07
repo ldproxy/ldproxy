@@ -10,13 +10,18 @@ package de.ii.ogcapi.common.domain;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 public abstract class QueryParameterProfile extends OgcApiQueryParameterBase {
 
@@ -40,50 +45,61 @@ public abstract class QueryParameterProfile extends OgcApiQueryParameterBase {
     return "Select the profiles to be used in the response. If no value is provided, the default profiles will be used.";
   }
 
-  protected abstract List<String> getProfiles(OgcApiDataV2 apiData);
-
-  protected List<String> getProfiles(OgcApiDataV2 apiData, String collectionId) {
-    return getProfiles(apiData);
+  protected List<Profile> getProfiles(OgcApiDataV2 apiData, ResourceType resourceType) {
+    return extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+        .filter(
+            profileSet ->
+                profileSet.isEnabledForApi(apiData) && profileSet.getResourceType() == resourceType)
+        .map(profileSet -> profileSet.getProfiles(apiData, Optional.empty()))
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
   }
 
-  protected abstract List<String> getDefault(OgcApiDataV2 apiData);
-
-  protected List<String> getDefault(OgcApiDataV2 apiData, String collectionId) {
-    return getDefault(apiData);
+  protected List<Profile> getProfiles(
+      OgcApiDataV2 apiData, String collectionId, ResourceType resourceType) {
+    return extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+        .filter(
+            profileSet ->
+                profileSet.isEnabledForApi(apiData, collectionId)
+                    && profileSet.getResourceType() == resourceType)
+        .filter(profileSet -> profileSet.isEnabledForApi(apiData, collectionId))
+        .map(profileSet -> profileSet.getProfiles(apiData, Optional.of(collectionId)))
+        .flatMap(List::stream)
+        .collect(Collectors.toList());
   }
 
   protected ConcurrentMap<Integer, ConcurrentMap<String, Schema<?>>> schemaMap =
       new ConcurrentHashMap<>();
 
-  @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData) {
+  protected Schema<?> getSchema(OgcApiDataV2 apiData, ResourceType resourceType) {
     int apiHashCode = apiData.hashCode();
     if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      StringSchema schema = new StringSchema()._enum(getProfiles(apiData));
-      List<String> defaults = getDefault(apiData);
-      if (!defaults.isEmpty()) {
-        schema._default(String.join(",", defaults));
-      }
-      schemaMap.get(apiHashCode).put("*", schema);
+    if (!schemaMap.get(apiHashCode).containsKey("*_" + resourceType.name())) {
+      StringSchema schema =
+          new StringSchema()
+              ._enum(
+                  getProfiles(apiData, ResourceType.FEATURE).stream().map(Profile::getId).toList());
+      schemaMap.get(apiHashCode).put("*_" + resourceType.name(), schema);
     }
-    return schemaMap.get(apiHashCode).get("*");
+    return schemaMap.get(apiHashCode).get("*_" + resourceType.name());
   }
 
-  @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
+  protected Schema<?> getSchema(
+      OgcApiDataV2 apiData, String collectionId, ResourceType resourceType) {
     int apiHashCode = apiData.hashCode();
     if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
+    if (!schemaMap.get(apiHashCode).containsKey(collectionId + "_" + resourceType.name())) {
       ArraySchema schema =
-          new ArraySchema().items(new StringSchema()._enum(getProfiles(apiData, collectionId)));
-      List<String> defaults = getDefault(apiData, collectionId);
-      if (!defaults.isEmpty()) {
-        schema._default(defaults);
-      }
-      schemaMap.get(apiHashCode).put(collectionId, schema);
+          new ArraySchema()
+              .items(
+                  new StringSchema()
+                      ._enum(
+                          getProfiles(apiData, collectionId, ResourceType.FEATURE).stream()
+                              .map(Profile::getId)
+                              .toList()));
+      schemaMap.get(apiHashCode).put(collectionId + "_" + resourceType.name(), schema);
     }
-    return schemaMap.get(apiHashCode).get(collectionId);
+    return schemaMap.get(apiHashCode).get(collectionId + "_" + resourceType.name());
   }
 
   @Override

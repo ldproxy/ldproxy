@@ -90,89 +90,28 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = Builder.class)
 public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureFormatConfiguration {
 
-  enum OPTION {
-    featureType,
-    featureSchema,
-    time,
-    place,
-    coordRefSys,
-    links,
-    geometryDimension
-  }
-
   /**
-   * @langEn *Partially Deprecated* For schemas specific to the feature type, use `schemaCollection`
-   *     and `schemaFeature`. Enables that links to the generic JSON-FG and GeoJSON JSON Schema
-   *     documents are added to the JSON-FG response document. The links have the link relation type
-   *     "describedby". The schemas can be used to validate the JSON document.
-   * @langDe *Teilweise Deprecated* Für Objektart-spezifische Schemas siehe `schemaCollection` and
-   *     `schemaFeature`. Aktiviert, dass Links zu den generischen JSON-FG und GeoJSON
-   *     JSON-Schema-Dokumenten in das JSON-FG-Antwortdokument eingefügt werden. Die Links haben den
-   *     Relationstyp "describedby". Die Schemas können zur Validierung des JSON-Dokuments verwendet
-   *     werden.
-   * @default false
-   * @since v3.1
-   */
-  @Nullable
-  Boolean getDescribedby();
-
-  /**
-   * @langEn The URI of a JSON Schema document describing a feature collection with the features of
-   *     the collection/dataset. The schema will be referenced from JSON-FG feature collection
-   *     responses by a link with the link relation type "describedby". The schemas can be used to
-   *     validate the JSON document.
-   * @langDe Die URI eines JSON-Schema-Dokuments, das eine Feature Collection mit den Features der
-   *     Collection/des Datensatzes beschreibt. Das Schema wird von JSON-FG
-   *     Feature-Collection-Responses durch einen Link mit dem Relationstyp "describedby"
-   *     referenziert. Die Schemas können zur Validierung des JSON-Dokuments verwendet werden.
-   * @default null
-   * @since v3.5
-   */
-  @Nullable
-  String getSchemaCollection();
-
-  /**
-   * @langEn The URI of a JSON Schema document describing a feature of the collection/dataset. The
-   *     schema will be referenced from JSON-FG feature responses by a link with the link relation
-   *     type "describedby". The schemas can be used to validate the JSON document.
-   * @langDe Die URI eines JSON-Schema-Dokuments, das ein Feature der Collection/des Datensatzes
-   *     beschreibt. Das Schema wird von JSON-FG Feature-Responses durch einen Link mit dem
-   *     Relationstyp "describedby" referenziert. Die Schemas können zur Validierung des
-   *     JSON-Dokuments verwendet werden.
-   * @default null
-   * @since v3.5
-   */
-  @Nullable
-  String getSchemaFeature();
-
-  /**
-   * @langEn Activates the output of the coordinate reference system in a JSON member "coordRefSys"
-   *     for features and feature collections. The coordinate reference system is identified by its
-   *     OGC URI, for example, `http://www.opengis.net/def/crs/EPSG/0/25832` for ETRS89 / UTM 32N.
-   * @langDe Aktiviert die Ausgabe des Koordinatenreferenzsystems in einem JSON-Member "coordRefSys"
-   *     bei Features und Feature Collections. Das Koordinatenreferenzsystem wird identifiziert
-   *     durch seine OGC URI, zum Beispiel `http://www.opengis.net/def/crs/EPSG/0/25832` für ETRS89
-   *     / UTM 32N.
+   * @langEn Activates support for the "jsonfg-plus" profile. In that profile, JSON-FG features with
+   *     a "place" member will also include a GeoJSON geometry in the "geometry" member in WGS 84.
+   *     Otherwise, the "geometry" member of a JSON-FG feature will be `null`, if the "place" member
+   *     is present.
+   * @langDe Aktiviert die Unterstützung für das "jsonfg-plus"-Profil. In diesem Profil enthalten
+   *     JSON-FG-Features mit einem JSON-Member "place" auch eine GeoJSON-Geometrie im JSON-Member
+   *     "geometry" im Koordinatenreferenzsystem WGS 84. Andernfalls ist "geometry" eines
+   *     JSON-FG-Features `null`, wenn "place" vorhanden ist.
    * @default true
-   * @since v3.1
+   * @since v4.4
    */
   @Nullable
-  Boolean getCoordRefSys();
+  Boolean getSupportPlusProfile();
 
   /**
-   * @langEn Activates support for the "compatibility=geojson" media type parameter. If the
-   *     parameter is provided, JSON-FG features with a "place" member that is not `null` will also
-   *     include a GeoJSON geometry in the "geometry" member in WGS 84. If the parameter is missing,
-   *     the "geometry" member of a JSON-FG feature will be `null`, if the "place" member is not
-   *     `null`.
-   * @langDe Aktiviert die Unterstützung für den "compatibility=geojson" Media-Type-Parameter. Wenn
-   *     der Parameter angegeben wird, enthalten JSON-FG-Features mit einem JSON-Member "place", das
-   *     nicht `null` ist, auch eine GeoJSON-Geometrie im JSON-Member "geometry" im
-   *     Koordinatenreferenzsystem WGS 84. Fehlt der Parameter, so ist "geometry" eines
-   *     JSON-FG-Features `null`, wenn "place" nicht `null` ist.
+   * @langEn *Deprecated* (replaced by `supportPlusProfile`).
+   * @langDe *Deprecated* (ersetzt durch `supportPlusProfile`).
    * @default true
    * @since v3.3
    */
+  @Deprecated(since = "4.4", forRemoval = true)
   @Nullable
   Boolean getGeojsonCompatibility();
 
@@ -235,18 +174,6 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
   @Nullable
   List<Link> getLinks();
 
-  /**
-   * @langEn The option allows selected JSON-FG extensions to be included in the GeoJSON encoding as
-   *     well. Allowed values are: `describedby`, `featureType`, `featureSchema`, `time`, `place`,
-   *     `coordRefSys`, `links`. `conformsTo` is only used in JSON-FG responses.
-   * @langDe Die Option ermöglicht, dass ausgewählte JSON-FG-Erweiterungen auch im GeoJSON-Encoding
-   *     berücksichtigt werden. Erlaubte Werte sind: `describedby`, `featureType`, `featureSchema`,
-   *     `time`, `place`, `coordRefSys`, `links`. `conformsTo` wird nur in JSON-FG unterstützt.
-   * @default []
-   * @since v3.1
-   */
-  List<OPTION> getIncludeInGeoJson();
-
   @Override
   default Builder getBuilder() {
     return new ImmutableJsonFgConfiguration.Builder();
@@ -266,4 +193,16 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
+
+  @Value.Check
+  default JsonFgConfiguration migrateGeojsonCompatibility() {
+    if (Objects.nonNull(getGeojsonCompatibility())) {
+      return new ImmutableJsonFgConfiguration.Builder()
+          .from(this)
+          .supportPlusProfile(getGeojsonCompatibility())
+          .build();
+    }
+
+    return this;
+  }
 }

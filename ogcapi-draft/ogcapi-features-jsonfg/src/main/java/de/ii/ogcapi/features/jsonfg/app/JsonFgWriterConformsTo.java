@@ -93,17 +93,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
   }
 
   private boolean isEnabled(FeatureTransformationContextGeoJson transformationContext) {
-    return transformationContext
-        .getApiData()
-        .getExtension(JsonFgConfiguration.class, transformationContext.getCollectionId())
-        .map(cfg -> cfg.isEnabled())
-        /* FIXME
-               && (transformationContext.getMediaType().equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                   || transformationContext
-                       .getMediaType()
-                       .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE)))
-        */
-        .orElse(false);
+    return writeJsonFgExtensions(transformationContext);
   }
 
   private boolean has3d(FeatureTransformationContextGeoJson transformationContext) {

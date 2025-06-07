@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.jsonfg.app
 
 import com.google.common.collect.ImmutableList
 import com.google.common.collect.ImmutableMap
+import de.ii.ogcapi.features.geojson.app.FeaturesFormatGeoJson
 import de.ii.ogcapi.features.geojson.domain.*
 import de.ii.ogcapi.features.jsonfg.domain.ImmutableJsonFgConfiguration
 import de.ii.ogcapi.foundation.app.OgcApiEntity
@@ -28,15 +29,27 @@ class JsonFgWriterSetupUtil {
 
     static EncodingAwareContextGeoJson createTransformationContext(OutputStream outputStream, boolean isCollection, CrsTransformer crsTransformer = null) throws URISyntaxException {
 
+        ProfileSetGeoJson profileSet = new ProfileSetGeoJson(null) {
+            @Override
+            String getId() {
+                return "geojson"
+            }
+        }
         FeatureTransformationContextGeoJson transformationContext =  ImmutableFeatureTransformationContextGeoJson.builder()
                 .crsTransformer(Optional.ofNullable(crsTransformer))
                 .defaultCrs(OgcCrs.CRS84)
-                .mediaType(FeaturesFormatJsonFg.MEDIA_TYPE)
+                .addProfiles(new ProfileJsonFg(null, profileSet) {
+                    @Override
+                    String getId() {
+                        return "jsonfg"
+                    }
+                })
+                .mediaType(FeaturesFormatGeoJson.MEDIA_TYPE)
                 .api(new OgcApiEntity(null, null, null, new AppContextTest(), null, new CacheTest(), null))
                 .apiData(new ImmutableOgcApiDataV2.Builder()
                         .id("s")
                         .serviceType("OGC_API")
-                        .addExtensions(new ImmutableJsonFgConfiguration.Builder().enabled(true).coordRefSys(true).build())
+                        .addExtensions(new ImmutableJsonFgConfiguration.Builder().enabled(true).build())
                         .build())
                 .featureSchemas(ImmutableMap.of("xyz",Optional.empty()))
                 .outputStream(outputStream)
@@ -50,7 +63,7 @@ class JsonFgWriterSetupUtil {
 
                     @Override
                     ApiMediaType getMediaType() {
-                        return FeaturesFormatJsonFg.MEDIA_TYPE
+                        return FeaturesFormatGeoJson.MEDIA_TYPE
 
                     }
 

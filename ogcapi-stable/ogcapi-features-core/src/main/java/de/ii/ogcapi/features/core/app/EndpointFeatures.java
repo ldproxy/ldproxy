@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -273,8 +274,8 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
 
-    List<String> requestedProfiles =
-        (List<String>)
+    List<Profile> requestedProfiles =
+        (List<Profile>)
             Objects.requireNonNullElse(
                 queryParameterSet.getTypedValues().get(QueryParameterProfileFeatures.PROFILE),
                 List.of());

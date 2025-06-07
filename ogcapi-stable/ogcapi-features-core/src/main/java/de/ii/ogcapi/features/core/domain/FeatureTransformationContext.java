@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -67,7 +68,10 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
 
   Map<String, Optional<FeatureSchema>> getFeatureSchemas();
 
+  // TODO remove
   OutputStream getOutputStream();
+
+  List<Profile> getProfiles();
 
   Optional<CrsTransformer> getCrsTransformer();
 

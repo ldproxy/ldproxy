@@ -13,6 +13,7 @@ import de.ii.ogcapi.features.geojson.domain.FeatureEncoderGeoJson
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -23,13 +24,13 @@ class JsonFgWriterCrsSpec extends Specification {
     @Shared EpsgCrs DEFAULT_CRS = OgcCrs.CRS84
     @Shared EpsgCrs OTHER_CRS = EpsgCrs.of(4258)
 
-    def "GeoJson writer CRS middleware for FeatureCollections if target is WGS84"() {
+    def "JsonFg writer CRS middleware for FeatureCollections if target is WGS84"() {
         given:
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
         boolean isCollection = true
         EpsgCrs crs = DEFAULT_CRS
         String expected = "{" + System.lineSeparator() +
-                "  \""+ JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toUriString()+"\"" + System.lineSeparator() +
+                "  \""+ JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toAlternativeUriString().get()+"\"" + System.lineSeparator() +
                 "}"
 
         when:
@@ -64,7 +65,7 @@ class JsonFgWriterCrsSpec extends Specification {
         boolean isCollection = false
         EpsgCrs crs = DEFAULT_CRS
         String expected = "{" + System.lineSeparator() +
-                "  \""+JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toUriString()+"\"" + System.lineSeparator() +
+                "  \""+JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toAlternativeUriString().get()+"\"" + System.lineSeparator() +
                 "}"
 
         when:

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.geojson.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
+import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeatureWriter;
 
 /**
@@ -16,4 +17,12 @@ import de.ii.ogcapi.features.core.domain.FeatureWriter;
 @AutoMultiBind
 public interface GeoJsonWriter extends FeatureWriter<EncodingAwareContextGeoJson> {
   GeoJsonWriter create();
+
+  default boolean writeJsonFgExtensions(FeatureTransformationContext transformationContext) {
+    return transformationContext.getProfiles().stream()
+        .anyMatch(
+            profile ->
+                profile instanceof ProfileGeoJson
+                    && ((ProfileGeoJson) profile).writeJsonFgExtensions());
+  }
 }

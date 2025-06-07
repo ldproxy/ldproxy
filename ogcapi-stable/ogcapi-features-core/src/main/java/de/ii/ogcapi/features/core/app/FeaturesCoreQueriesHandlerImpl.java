@@ -18,7 +18,6 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
-import de.ii.ogcapi.features.core.domain.ProfileExtensionFeatures;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -29,6 +28,9 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
@@ -70,7 +72,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
@@ -156,16 +157,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               requestContext.getMediaType().type()));
     }
 
-    List<String> profiles =
-        extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
-            .map(
-                profileExtension ->
-                    profileExtension.negotiateProfile(
-                        queryInput.getProfiles(), outputFormat, api.getData(), collectionId))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toList());
-
     return getResponse(
         api,
         requestContext,
@@ -173,7 +164,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         null,
         queryInput,
         query,
-        profiles,
         queryInput.getFeatureProvider(),
         null,
         outputFormat,
@@ -210,17 +200,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       query = ImmutableFeatureQuery.builder().from(query).eTag(Optional.empty()).build();
     }
 
-    List<String> profiles =
-        extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
-            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
-            .map(
-                profileExtension ->
-                    profileExtension.negotiateProfile(
-                        queryInput.getProfiles(), outputFormat, api.getData(), collectionId))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toList());
-
     String persistentUri = null;
     Optional<String> template =
         api.getData().getCollections().get(collectionId).getPersistentUriTemplate();
@@ -242,7 +221,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         featureId,
         queryInput,
         query,
-        profiles,
         queryInput.getFeatureProvider(),
         persistentUri,
         outputFormat,
@@ -257,9 +235,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       ApiRequestContext requestContext,
       String collectionId,
       String featureId,
-      QueryInput queryInput,
+      QueryInputFeaturesBase queryInput,
       FeatureQuery query,
-      List<String> profiles,
       FeatureProvider featureProvider,
       String canonicalUri,
       FeatureFormatExtension outputFormat,
@@ -279,6 +256,22 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       sourceCrs = featureProvider.crs().get().getNativeCrs();
       crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
     }
+
+    List<Profile> profiles =
+        extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
+            .map(
+                profileSet ->
+                    profileSet
+                        .negotiateProfile(
+                            queryInput.getProfiles(),
+                            outputFormat,
+                            ResourceType.FEATURE,
+                            api.getData(),
+                            Optional.of(collectionId))
+                        .orElse(null))
+            .filter(Objects::nonNull)
+            .toList();
 
     List<ApiMediaType> alternateMediaTypes = requestContext.getAlternateMediaTypes();
 
@@ -328,6 +321,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .apiData(api.getData())
             .featureSchemas(ImmutableMap.of(collectionId, schema))
             .ogcApiRequest(requestContext)
+            .profiles(profiles)
             .crsTransformer(crsTransformer)
             .codelists(codelistStore.asMap())
             .defaultCrs(defaultCrs)

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -152,33 +151,18 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     transformationContext
         .getFeatureSchemas()
-        .keySet()
         .forEach(
-            collectionId ->
+            (collectionId, schema) -> {
+              if (writeJsonFgExtensions(transformationContext)) {
                 transformationContext
                     .getApiData()
                     .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresent(
-                        cfg -> {
-                          if (cfg.isEnabled()
-                              && (cfg.getIncludeInGeoJson()
-                                  .contains(JsonFgConfiguration.OPTION.featureType))) {
-                            /* FIXME
-                                 || transformationContext
-                                     .getMediaType()
-                                     .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                 || transformationContext
-                                     .getMediaType()
-                                     .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
-                            */
-                            String type =
-                                cfg.getEffectiveFeatureType(
-                                    transformationContext.getFeatureSchemas().get(collectionId));
-                            if (Objects.nonNull(type)) {
-                              builder.put(collectionId, type);
-                            }
-                          }
-                        }));
+                    .filter(ExtensionConfiguration::isEnabled)
+                    .map(cfg -> cfg.getEffectiveFeatureType(schema))
+                    .filter(Objects::nonNull)
+                    .ifPresent(type -> builder.put(collectionId, type));
+              }
+            });
     return builder.build();
   }
 
@@ -195,40 +179,20 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
         .getFeatureSchemas()
         .keySet()
         .forEach(
-            collectionId ->
+            collectionId -> {
+              if (writeJsonFgExtensions(transformationContext)) {
                 transformationContext
                     .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresent(
-                        cfg -> {
-                          if (cfg.isEnabled()
-                              && Objects.nonNull(
-                                  cfg.getEffectiveFeatureType(
-                                      transformationContext.getFeatureSchemas().get(collectionId)))
-                              && (cfg.getIncludeInGeoJson()
-                                  .contains(JsonFgConfiguration.OPTION.featureSchema))) {
-                            /* FIXME
-                                 || transformationContext
-                                     .getMediaType()
-                                     .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                 || transformationContext
-                                     .getMediaType()
-                                     .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE))) {
-                            */
-                            Optional<String> value =
-                                transformationContext
-                                    .getApiData()
-                                    .getExtension(SchemaConfiguration.class, collectionId)
-                                    .filter(ExtensionConfiguration::isEnabled)
-                                    .map(
-                                        ignore ->
-                                            String.format(
-                                                "%s/collections/%s/schema",
-                                                transformationContext.getServiceUrl(),
-                                                collectionId));
-                            value.ifPresent(v -> builder.put(collectionId, v));
-                          }
-                        }));
+                    .getExtension(SchemaConfiguration.class, collectionId)
+                    .filter(ExtensionConfiguration::isEnabled)
+                    .map(
+                        ignore ->
+                            String.format(
+                                "%s/collections/%s/schema",
+                                transformationContext.getServiceUrl(), collectionId))
+                    .ifPresent(v -> builder.put(collectionId, v));
+              }
+            });
     return builder.build();
   }
 

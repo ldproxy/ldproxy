@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -215,25 +214,7 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
         .keySet()
         .forEach(
             collectionId ->
-                transformationContext
-                    .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
-                        cfg -> {
-                          boolean enabled = cfg.isEnabled();
-                          /* FIXME
-                                 && (cfg.getIncludeInGeoJson()
-                                         .contains(JsonFgConfiguration.OPTION.place)
-                                     || transformationContext
-                                         .getMediaType()
-                                         .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                     || transformationContext
-                                         .getMediaType()
-                                         .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
-                          */
-                          builder.put(collectionId, enabled);
-                        },
-                        () -> builder.put(collectionId, false)));
+                builder.put(collectionId, writeJsonFgExtensions(transformationContext)));
     return builder.build();
   }
 

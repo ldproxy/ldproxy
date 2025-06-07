@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.core.domain;
 
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
@@ -40,21 +41,26 @@ public interface FeaturesCoreQueriesHandler
     FEATURE
   }
 
-  @Value.Immutable
-  interface QueryInputFeatures extends QueryInput {
+  interface QueryInputFeaturesBase extends QueryInput {
     String getCollectionId();
 
     FeatureQuery getQuery();
 
-    List<String> getProfiles();
+    List<Profile> getProfiles();
 
     FeatureProvider getFeatureProvider();
 
     EpsgCrs getDefaultCrs();
 
+    boolean sendResponseAsStream();
+  }
+
+  @Value.Immutable
+  interface QueryInputFeatures extends QueryInputFeaturesBase {
     Optional<Integer> getDefaultPageSize();
 
     @Value.Default
+    @Override
     default boolean sendResponseAsStream() {
       return !getQuery().hitsOnly();
     }
@@ -66,20 +72,11 @@ public interface FeaturesCoreQueriesHandler
   }
 
   @Value.Immutable
-  interface QueryInputFeature extends QueryInput {
-    String getCollectionId();
-
+  interface QueryInputFeature extends QueryInputFeaturesBase {
     String getFeatureId();
 
-    FeatureQuery getQuery();
-
-    List<String> getProfiles();
-
-    FeatureProvider getFeatureProvider();
-
-    EpsgCrs getDefaultCrs();
-
     @Value.Default
+    @Override
     default boolean sendResponseAsStream() {
       return false;
     }

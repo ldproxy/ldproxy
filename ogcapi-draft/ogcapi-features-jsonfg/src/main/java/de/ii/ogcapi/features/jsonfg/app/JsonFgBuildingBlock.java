@@ -62,11 +62,6 @@ public class JsonFgBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new Builder()
-        .enabled(false)
-        .describedby(false)
-        .coordRefSys(true)
-        .geojsonCompatibility(true)
-        .build();
+    return new Builder().enabled(false).supportPlusProfile(true).build();
   }
 }
