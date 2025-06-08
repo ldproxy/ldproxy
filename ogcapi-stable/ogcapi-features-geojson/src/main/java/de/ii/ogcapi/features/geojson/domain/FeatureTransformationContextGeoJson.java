@@ -14,9 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
-import de.ii.ogcapi.features.geojson.app.FeaturesFormatGeoJson;
 import de.ii.ogcapi.features.geojson.app.JsonGeneratorDebug;
-import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
 import de.ii.xtraplatform.geometries.domain.ImmutableCoordinatesTransformer;
@@ -44,21 +42,6 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
   }
 
   public abstract GeoJsonConfiguration getGeoJsonConfig();
-
-  @Value.Default
-  public ApiMediaType getMediaType() {
-    return FeaturesFormatGeoJson.MEDIA_TYPE;
-  }
-
-  @Value.Default
-  public Boolean getSuppressPrimaryGeometry() {
-    return false;
-  }
-
-  @Value.Default
-  public Boolean getForceDefaultCrs() {
-    return false;
-  }
 
   public abstract Map<String, Object> getExtensions();
 

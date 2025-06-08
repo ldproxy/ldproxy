@@ -44,7 +44,6 @@ class JsonFgWriterSetupUtil {
                         return "jsonfg"
                     }
                 })
-                .mediaType(FeaturesFormatGeoJson.MEDIA_TYPE)
                 .api(new OgcApiEntity(null, null, null, new AppContextTest(), null, new CacheTest(), null))
                 .apiData(new ImmutableOgcApiDataV2.Builder()
                         .id("s")

@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.geojson.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
+import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
 import de.ii.xtraplatform.crs.domain.CoordinateTuple;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
@@ -49,6 +50,7 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   }
 
   private boolean suppressPrimaryGeometry;
+  private boolean forceDefaultCrs;
   private boolean geometryOpen;
   private boolean hasPrimaryGeometry;
   private boolean inPrimaryGeometry;
@@ -73,9 +75,21 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
   public void onStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    suppressPrimaryGeometry = context.encoding().getSuppressPrimaryGeometry();
+    // FIXME #521
+    suppressPrimaryGeometry =
+        context.encoding().getProfiles().stream()
+            .filter(profile -> profile instanceof ProfileGeoJson)
+            .findFirst()
+            .map(p -> ((ProfileGeoJson) p).suppressPrimaryGeometry())
+            .orElse(false);
+    forceDefaultCrs =
+        context.encoding().getProfiles().stream()
+            .filter(profile -> profile instanceof ProfileGeoJson)
+            .findFirst()
+            .map(p -> ((ProfileGeoJson) p).forceDefaultCrs())
+            .orElse(false);
     crsTransformerGeometry = null;
-    if (!suppressPrimaryGeometry && context.encoding().getForceDefaultCrs()) {
+    if (!suppressPrimaryGeometry && forceDefaultCrs) {
       EpsgCrs sourceCrs = context.encoding().getTargetCrs();
       EpsgCrs targetCrs = context.encoding().getDefaultCrs();
       if (!Objects.equals(sourceCrs, targetCrs)) {
@@ -297,7 +311,7 @@ public class GeoJsonWriterGeometry implements GeoJsonWriter {
     }
 
     if (geometryOpen) {
-      if (inPrimaryGeometry && context.encoding().getForceDefaultCrs()) {
+      if (inPrimaryGeometry && forceDefaultCrs) {
         // we buffer the whole coordinate in case we force WGS84 as the CRS in "geometry"
         pos.add(context.value());
       } else {

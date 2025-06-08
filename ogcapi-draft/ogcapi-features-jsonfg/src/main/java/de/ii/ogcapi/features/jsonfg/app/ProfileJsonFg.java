@@ -36,6 +36,11 @@ public class ProfileJsonFg extends ProfileGeoJson {
   }
 
   @Override
+  public boolean suppressPrimaryGeometry() {
+    return true;
+  }
+
+  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return JsonFgConfiguration.class;
   }

@@ -32,4 +32,12 @@ public abstract class ProfileGeoJson extends ProfileGeneric {
   public boolean writeJsonFgExtensions() {
     return false;
   }
+
+  public boolean suppressPrimaryGeometry() {
+    return false;
+  }
+
+  public boolean forceDefaultCrs() {
+    return false;
+  }
 }

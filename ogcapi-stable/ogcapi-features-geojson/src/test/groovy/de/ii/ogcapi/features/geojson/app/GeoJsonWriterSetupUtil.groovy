@@ -30,7 +30,6 @@ class GeoJsonWriterSetupUtil {
         FeatureTransformationContextGeoJson transformationContext =  ImmutableFeatureTransformationContextGeoJson.builder()
                 .crsTransformer(Optional.ofNullable(crsTransformer))
                 .defaultCrs(OgcCrs.CRS84)
-                .mediaType(FeaturesFormatGeoJson.MEDIA_TYPE)
                 .api(new OgcApiEntity(null, null, () -> "", new AppContextTest(), null, new CacheTest(), null))
                 .apiData(new ImmutableOgcApiDataV2.Builder()
                         .id("s")
