@@ -61,6 +61,6 @@ public interface LoginRedirectHandler extends ApiExtension {
       uriBuilder.addParameter("provider_id", loginProvider.get());
     }
 
-    return URI.create(uriBuilder.toString());
+    return URI.create(uriBuilder.optimize().toString());
   }
 }
