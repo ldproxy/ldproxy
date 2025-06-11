@@ -49,6 +49,7 @@ import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation.Builder;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
@@ -269,14 +270,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     ModifiableFeatureCollectionView featureTypeDataset;
 
     boolean hideMap =
-        transformationContext
-            .getFeatureSchema()
-            .flatMap(
-                schema ->
-                    schema.getProperties().stream()
-                        .filter(FeatureSchema::isPrimaryGeometry)
-                        .findFirst())
-            .isEmpty();
+        transformationContext.getFeatureSchema().flatMap(SchemaBase::getPrimaryGeometry).isEmpty();
 
     if (transformationContext.isQueryExpression()) {
       // Features - Search
