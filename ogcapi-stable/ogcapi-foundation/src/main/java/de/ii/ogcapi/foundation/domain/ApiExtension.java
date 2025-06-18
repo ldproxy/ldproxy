@@ -51,7 +51,7 @@ public interface ApiExtension {
   }
 
   default ValidationResult onStartup(OgcApi api, MODE apiValidation) {
-    // optional start actions
+    // optional start actions!
     return ValidationResult.of();
   }
 
