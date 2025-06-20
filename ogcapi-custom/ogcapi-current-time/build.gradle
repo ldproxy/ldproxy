@@ -1,0 +1,14 @@
+
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+
+dependencies {
+        provided 'de.interactive_instruments:xtraplatform-auth'
+        provided 'de.interactive_instruments:xtraplatform-crs'
+        provided 'de.interactive_instruments:xtraplatform-features'
+        provided 'de.interactive_instruments:ogcapi-common'
+        provided 'de.interactive_instruments:ogcapi-foundation'
+        provided 'de.interactive_instruments:ogcapi-html'
+        provided 'de.interactive_instruments:ogcapi-json'
+        provided 'de.interactive_instruments:ogcapi-xml'
+}
