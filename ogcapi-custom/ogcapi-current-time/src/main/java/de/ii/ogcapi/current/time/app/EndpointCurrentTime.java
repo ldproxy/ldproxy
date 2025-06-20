@@ -29,14 +29,18 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 /**
  * @title Conformance Declaration
@@ -121,7 +125,22 @@ public class EndpointCurrentTime extends Endpoint {
   public Response getTime(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
-      @Context ApiRequestContext requestContext) {
-    return Response.ok().type("application/json").entity(Map.of("foo", "bar")).build();
+      @Context ApiRequestContext requestContext,
+      @QueryParam("timezone") String timezoneParam) {
+
+    ZoneId timezone = (timezoneParam == null || timezoneParam.isBlank()) ? ZoneId.systemDefault() : ZoneId.of(timezoneParam);
+
+    String now = ZonedDateTime.now(timezone).toString();
+
+
+    String requestType = requestContext.getMediaType().type().getSubtype();
+    if(requestType.equals("json")){
+      return Response.ok().type("application/json").entity(Map.of("time", now, "timezone", timezone)).build();
+    };
+    if(requestType.equals("html")){
+      return Response.ok().type("text/html").entity("<html><body><h1>Aktuelle Uhrzeit</h1><p>" + now + "</p></body></html>").build();
+    }
+    return Response.status(Status.UNSUPPORTED_MEDIA_TYPE).build();
+
   }
 }
