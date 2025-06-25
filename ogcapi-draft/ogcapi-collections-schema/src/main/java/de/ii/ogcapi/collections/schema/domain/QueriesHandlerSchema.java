@@ -114,7 +114,7 @@ public interface QueriesHandlerSchema extends QueriesHandler<Query>, Volatile2 {
             null,
             HeaderContentDisposition.of(
                 String.format("%s.%s", collectionId, outputFormat.getMediaType().fileExtension())))
-        .entity(outputFormat.getEntity(schema, collectionId, api, requestContext))
+        .entity(outputFormat.getEntity(schema, links, collectionId, api, requestContext))
         .build();
   }
 

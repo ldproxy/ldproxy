@@ -28,6 +28,8 @@ dependencies {
     testProvided project(":ogcapi-xml")
     testProvided 'de.interactive_instruments:xtraplatform-blobs'
     testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+
+
 }
 
 moduleInfo {
