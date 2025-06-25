@@ -59,7 +59,13 @@ public class ProfileSetGeoJson extends ProfileSet {
 
     return getProfiles(apiData, collectionId).stream()
         .filter(profile -> ((ProfileGeoJson) profile).isDefault())
-        .findFirst();
+        .findFirst()
+        .or(() -> getProfiles(apiData, collectionId).stream().findFirst());
+  }
+
+  @Override
+  public boolean includeAlternateLinks() {
+    return true;
   }
 
   @Override

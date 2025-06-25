@@ -7,27 +7,26 @@
  */
 package de.ii.ogcapi.features.jsonfg.app;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.TokenBuffer;
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
-import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
-import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
+import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
+import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
+import de.ii.ogcapi.features.geojson.domain.GeoJsonWriterGeometryBase;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class JsonFgWriterPlace implements GeoJsonWriter {
+public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
 
   public static String JSON_KEY = "place";
 
@@ -39,196 +38,89 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
     return new JsonFgWriterPlace();
   }
 
-  Map<String, Boolean> collectionMap;
-  boolean isEnabled;
-  private boolean geometryOpen;
-  private boolean additionalArray;
-  private boolean hasPlaceGeometry;
-  private boolean hasSecondaryGeometry;
-  private boolean suppressPlace;
-  private TokenBuffer json;
-
   @Override
   public int getSortPriority() {
-    return 140;
-  }
-
-  private void reset(EncodingAwareContextGeoJson context) {
-    this.geometryOpen = false;
-    this.hasPlaceGeometry = false;
-    this.additionalArray = false;
-    this.json = new TokenBuffer(new ObjectMapper(), false);
-    if (context.encoding().getPrettify()) {
-      json.useDefaultPrettyPrinter();
-    }
+    return 35;
   }
 
   @Override
-  public void onStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    collectionMap = getCollectionMap(context.encoding());
-
-    next.accept(context);
+  protected String geomPropertyName() {
+    return JSON_KEY;
   }
 
   @Override
-  public void onFeatureStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    isEnabled = Objects.requireNonNullElse(collectionMap.get(context.type()), false);
-
-    hasSecondaryGeometry =
-        context.schema().map(schema -> schema.getSecondaryGeometry().isPresent()).orElse(false);
-    boolean primaryGeometryIsSimpleFeature =
-        context
-            .schema()
-            .flatMap(schema -> schema.getPrimaryGeometry().map(SchemaBase::isSimpleFeatureGeometry))
-            .orElse(false);
-
-    // set 'place' to null, if the geometry is in WGS84 (in this case it is in "geometry")
-    // and a simple feature geometry type unless a separate property is used for place
-    suppressPlace =
-        !hasSecondaryGeometry
-            && primaryGeometryIsSimpleFeature
-            && context.encoding().getTargetCrs().equals(context.encoding().getDefaultCrs());
-
-    if (isEnabled) reset(context);
-
-    next.accept(context);
+  protected boolean isEnabled(EncodingAwareContextGeoJson context) {
+    return writeJsonFgExtensions
+        && (geometryIsNotSimpleFeature(context.encoding().getBuffer().get())
+            || targetCrsIsNotWgs84(context.encoding().getTargetCrs()));
   }
 
-  @Override
-  public void onObjectStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    if (isEnabled
-        && !suppressPlace
-        && context.schema().filter(SchemaBase::isSpatial).isPresent()
-        && context.geometryType().isPresent()
-        && isPlaceGeometry(context.schema().get())) {
-      String type =
-          JsonFgGeometryType.forSimpleFeatureType(
-                  context.geometryType().get(),
-                  context
-                      .schema()
-                      .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getComposite))
-                      .orElse(false),
-                  context
-                      .schema()
-                      .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getClosed))
-                      .orElse(false))
-              .toString();
-
-      json.writeFieldName(JSON_KEY);
-      json.writeStartObject();
-      json.writeStringField("type", type);
-      json.writeFieldName("coordinates");
-
-      if (type.equals("Polyhedron")) {
-        json.writeStartArray();
-        additionalArray = true;
-      }
-
-      geometryOpen = true;
-      hasPlaceGeometry = true;
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onArrayStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-
-    if (geometryOpen) {
-      json.writeStartArray();
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onArrayEnd(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-
-    if (geometryOpen) {
-      json.writeEndArray();
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onObjectEnd(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    if (context.schema().filter(SchemaBase::isSpatial).isPresent() && geometryOpen) {
-
-      this.geometryOpen = false;
-
-      if (additionalArray) {
-        additionalArray = false;
-        json.writeEndArray();
-      }
-
-      // close geometry object
-      json.writeEndObject();
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onValue(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-
-    if (geometryOpen) {
-      json.writeRawValue(context.value());
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onFeatureEnd(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-
-    if (isEnabled) {
-      json.serialize(context.encoding().getJson());
-      json.flush();
-    }
-
-    next.accept(context);
-  }
-
-  private Map<String, Boolean> getCollectionMap(
-      FeatureTransformationContextGeoJson transformationContext) {
-    ImmutableMap.Builder<String, Boolean> builder = ImmutableMap.builder();
-    transformationContext
-        .getFeatureSchemas()
-        .keySet()
-        .forEach(
-            collectionId ->
-                builder.put(collectionId, writeJsonFgExtensions(transformationContext)));
-    return builder.build();
-  }
-
-  private boolean hasSecondaryGeometry(FeatureSchema schema) {
-    return schema.getProperties().stream()
-        .filter(SchemaBase::isSecondaryGeometry)
+  private static boolean geometryIsNotSimpleFeature(FeatureState featureState) {
+    return !featureState.primaryGeometryProperty.stream()
         .findFirst()
-        .map(property -> true)
-        .or(() -> schema.getProperties().stream().map(this::hasSecondaryGeometry).findFirst())
+        .map(SchemaBase::isSimpleFeatureGeometry)
         .orElse(false);
   }
 
-  private boolean isPlaceGeometry(FeatureSchema property) {
-    return (hasSecondaryGeometry && property.isSecondaryGeometry())
-        || (!hasSecondaryGeometry && property.isPrimaryGeometry());
+  private static boolean targetCrsIsNotWgs84(EpsgCrs targetCrs) {
+    return !(targetCrs.equals(OgcCrs.CRS84) || targetCrs.equals(OgcCrs.CRS84h));
+  }
+
+  @Override
+  protected GeometryState geometryState() {
+    return GeometryState.IN_PLACE;
+  }
+
+  @Override
+  protected Set<FeatureSchema> getProperty(
+      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+    if (!writeJsonFgExtensions) {
+      return Set.of();
+    }
+
+    if (schema.getAllNestedProperties().stream()
+            .filter(SchemaBase::isPrimaryGeometry)
+            .allMatch(SchemaBase::isSimpleFeatureGeometry)
+        && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+            || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
+      return Set.of();
+    }
+
+    return schema.getAllNestedProperties().stream()
+        .filter(SchemaBase::isPrimaryGeometry)
+        .collect(Collectors.toSet());
+  }
+
+  @Override
+  protected Set<FeatureSchema> getEmbeddedFeatureProperty(
+      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+    if (!writeJsonFgExtensions) {
+      return Set.of();
+    }
+
+    if (schema.getEmbeddedPrimaryGeometry().map(SchemaBase::isSimpleFeatureGeometry).orElse(false)
+        && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+            || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
+      return Set.of();
+    }
+
+    return schema.getAllNestedProperties().stream()
+        .filter(SchemaBase::isEmbeddedPrimaryGeometry)
+        .collect(Collectors.toSet());
+  }
+
+  @Override
+  protected String getGeometryType(EncodingAwareContextGeoJson context) {
+    return JsonFgGeometryType.forSimpleFeatureType(
+            context.geometryType().get(),
+            context
+                .schema()
+                .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getComposite))
+                .orElse(false),
+            context
+                .schema()
+                .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getClosed))
+                .orElse(false))
+        .toString();
   }
 }

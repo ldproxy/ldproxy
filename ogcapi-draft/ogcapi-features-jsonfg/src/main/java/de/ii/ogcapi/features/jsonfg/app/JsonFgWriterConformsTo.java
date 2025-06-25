@@ -17,7 +17,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -34,7 +33,6 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
   public static String URI_POLYHEDRA = "http://www.opengis.net/spec/json-fg-1/0.3/conf/polyhedra";
   public static String URI_TYPE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/types-schemas";
 
-  Map<String, Boolean> collectionMap;
   boolean isEnabled;
   boolean has3d;
   boolean hasFeatureType;
@@ -49,7 +47,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 135;
+    return 10;
   }
 
   @Override

@@ -42,7 +42,7 @@ public class JsonFgWriterCrs implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 130;
+    return 25;
   }
 
   @Override

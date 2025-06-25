@@ -66,6 +66,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
@@ -672,6 +673,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               if (!precisionList.isEmpty()) {
                 finalQueryBuilder.geometryPrecision(precisionList);
               }
+              precisionList = crsInfo.getPrecisionList(OgcCrs.CRS84h, coordinatePrecision);
+              if (!precisionList.isEmpty()) {
+                finalQueryBuilder.wgs84GeometryPrecision(precisionList);
+              }
             });
 
     MultiFeatureQuery query = finalQueryBuilder.build();
@@ -834,6 +839,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .offset(query.getOffset())
             .maxAllowableOffset(query.getMaxAllowableOffset())
             .geometryPrecision(query.getGeometryPrecision())
+            .wgs84GeometryPrecision(query.getWgs84GeometryPrecision())
             .fields(fields)
             .allLinksAreLocal(allLinksAreLocal)
             .idsIncludeCollectionId(collectionIds.size() > 1)

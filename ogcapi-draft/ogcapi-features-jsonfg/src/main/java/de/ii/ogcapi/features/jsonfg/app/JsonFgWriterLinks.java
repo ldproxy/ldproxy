@@ -37,7 +37,6 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
 
   Map<String, List<Link>> collectionMap;
   boolean isEnabled;
-  List<Link> links;
   List<Link> currentLinks;
   Map<String, String> currentMap = new HashMap<>();
 
@@ -51,7 +50,7 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 150;
+    return 60;
   }
 
   @Override

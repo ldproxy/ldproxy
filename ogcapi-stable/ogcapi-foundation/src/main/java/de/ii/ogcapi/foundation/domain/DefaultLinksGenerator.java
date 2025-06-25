@@ -10,6 +10,7 @@ package de.ii.ogcapi.foundation.domain;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -21,6 +22,18 @@ public class DefaultLinksGenerator {
       URICustomizer uriCustomizer,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
+      I18n i18n,
+      Optional<Locale> language) {
+    return generateLinks(
+        uriCustomizer, mediaType, alternateMediaTypes, List.of(), Map.of(), i18n, language);
+  }
+
+  public List<Link> generateLinks(
+      URICustomizer uriCustomizer,
+      ApiMediaType mediaType,
+      List<ApiMediaType> alternateMediaTypes,
+      List<Profile> profiles,
+      Map<ApiMediaType, List<Profile>> alternateProfiles,
       I18n i18n,
       Optional<Locale> language) {
     URICustomizer uriBuilder =
@@ -36,12 +49,43 @@ public class DefaultLinksGenerator {
                             : uriBuilder.copy().setParameter("f", mediaType.parameter()).toString())
                     .rel("self")
                     .type(mediaType.type().toString())
+                    .profiles(profiles)
                     .title(i18n.get("selfLink", language))
                     .build())
             .addAll(
                 alternateMediaTypes.stream()
+                    .filter(
+                        mt ->
+                            alternateProfiles.keySet().stream()
+                                .noneMatch(mt2 -> mt.type().equals(mt2.type())))
                     .map(generateAlternateLink(uriBuilder.copy(), i18n, language))
                     .collect(Collectors.toList()));
+
+    profiles.forEach(
+        p ->
+            builder.add(
+                new ImmutableLink.Builder()
+                    .href(ProfileExtension.getUri(p))
+                    .rel("profile")
+                    .title(i18n.get("profileLink", language).replace("{{profile}}", p.getLabel()))
+                    .build()));
+
+    alternateProfiles.forEach(
+        (mt, ps) ->
+            ps.forEach(
+                p ->
+                    builder.add(
+                        new ImmutableLink.Builder()
+                            .href(
+                                uriBuilder
+                                    .setParameter("f", mt.parameter())
+                                    .setParameter("profile", p.getId())
+                                    .toString())
+                            .rel("alternate")
+                            .mediaType(mt)
+                            .addProfiles(p)
+                            .title(i18n.get("alternateLink", language) + " " + p.getLabel())
+                            .build())));
 
     return builder.build();
   }

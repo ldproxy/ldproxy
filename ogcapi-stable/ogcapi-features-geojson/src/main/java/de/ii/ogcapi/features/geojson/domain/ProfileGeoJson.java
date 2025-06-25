@@ -33,11 +33,7 @@ public abstract class ProfileGeoJson extends ProfileGeneric {
     return false;
   }
 
-  public boolean suppressPrimaryGeometry() {
-    return false;
-  }
-
-  public boolean forceDefaultCrs() {
+  public boolean writeSecondaryGeometry() {
     return false;
   }
 }

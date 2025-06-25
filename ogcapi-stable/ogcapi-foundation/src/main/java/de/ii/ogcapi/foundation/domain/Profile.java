@@ -31,6 +31,10 @@ public interface Profile extends ApiExtension {
     return getId();
   }
 
+  default boolean includeAlternateLinks() {
+    return false;
+  }
+
   default void addPropertyTransformations(
       @NotNull FeatureSchema schema,
       @NotNull String mediaType,

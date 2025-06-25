@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 160;
+    return 28;
   }
 
   @Override
@@ -92,7 +93,7 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
     return schema.flatMap(
         s ->
             s.getProperties().stream()
-                .filter(p -> p.isPrimaryGeometry() || p.isSecondaryGeometry())
+                .filter(SchemaBase::isPrimaryGeometry)
                 .map(
                     p ->
                         JsonFgGeometryType.getGeometryDimension(

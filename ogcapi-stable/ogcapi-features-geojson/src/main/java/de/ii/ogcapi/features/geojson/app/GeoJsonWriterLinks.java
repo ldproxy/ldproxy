@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.foundation.domain.Link;
+import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +45,7 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 25;
+    return 50;
   }
 
   private void reset() {
@@ -147,6 +148,25 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
         if (Objects.nonNull(link.getRel())) json.writeStringField("rel", link.getRel());
         if (Objects.nonNull(link.getType())) json.writeStringField("type", link.getType());
         if (Objects.nonNull(link.getTitle())) json.writeStringField("title", link.getTitle());
+        if (!link.getProfiles().isEmpty()) {
+          json.writeArrayFieldStart("profile");
+          link.getProfiles()
+              .forEach(
+                  profile -> {
+                    try {
+                      json.writeString(ProfileExtension.getUri(profile));
+                    } catch (IOException e) {
+                      // ignore
+                    }
+                  });
+          json.writeEndArray();
+        }
+        if (Objects.nonNull(link.getHreflang()))
+          json.writeStringField("hreflang", link.getHreflang());
+        if (Objects.nonNull(link.getVarBase()))
+          json.writeStringField("var-base", link.getVarBase());
+        if (Objects.nonNull(link.getAnchor())) json.writeStringField("anchor", link.getAnchor());
+        if (Objects.nonNull(link.getLength())) json.writeNumberField("length", link.getLength());
         json.writeEndObject();
       }
 

@@ -14,10 +14,10 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.Profile;
-import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 public class FeaturesLinksGenerator extends DefaultLinksGenerator {
@@ -27,15 +27,23 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
       int offset,
       int limit,
       int defaultLimit,
-      List<Profile> profiles,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
+      List<Profile> profiles,
+      Map<ApiMediaType, List<Profile>> alternateProfiles,
       I18n i18n,
       Optional<Locale> language) {
     final ImmutableList.Builder<Link> builder =
         new ImmutableList.Builder<Link>()
             .addAll(
-                super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language));
+                super.generateLinks(
+                    uriBuilder,
+                    mediaType,
+                    alternateMediaTypes,
+                    profiles,
+                    alternateProfiles,
+                    i18n,
+                    language));
 
     uriBuilder.removeParameters("lang");
 
@@ -45,7 +53,7 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
         new ImmutableLink.Builder()
             .href(getUrlWithPageAndCount(uriBuilder.copy(), offset + limit, limit, defaultLimit))
             .rel("next")
-            .type(mediaType.type().toString())
+            .mediaType(mediaType)
             .title(i18n.get("nextLink", language))
             .build());
     if (offset > 0) {
@@ -53,25 +61,17 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
           new ImmutableLink.Builder()
               .href(getUrlWithPageAndCount(uriBuilder.copy(), offset - limit, limit, defaultLimit))
               .rel("prev")
-              .type(mediaType.type().toString())
+              .mediaType(mediaType)
               .title(i18n.get("prevLink", language))
               .build());
       builder.add(
           new ImmutableLink.Builder()
               .href(getUrlWithPageAndCount(uriBuilder.copy(), 0, limit, defaultLimit))
               .rel("first")
-              .type(mediaType.type().toString())
+              .mediaType(mediaType)
               .title(i18n.get("firstLink", language))
               .build());
     }
-    profiles.forEach(
-        p ->
-            builder.add(
-                new ImmutableLink.Builder()
-                    .href(ProfileExtension.getUri(p))
-                    .rel("profile")
-                    .title(i18n.get("profileLink", language).replace("{{profile}}", p.getLabel()))
-                    .build()));
 
     return builder.build();
   }

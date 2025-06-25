@@ -65,6 +65,10 @@ public interface ProfileExtension extends ApiExtension {
     return Optional.empty();
   }
 
+  default boolean includeAlternateLinks() {
+    return false;
+  }
+
   default void addPropertyTransformations(
       @NotNull String value,
       @NotNull FeatureSchema schema,

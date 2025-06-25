@@ -10,19 +10,18 @@ package de.ii.ogcapi.features.geojson.app;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
-import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
+import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
+import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaBase.Role;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Stack;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author zahnen
@@ -30,12 +29,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @AutoBind
 public class GeoJsonWriterProperties implements GeoJsonWriter {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(GeoJsonWriterProperties.class);
-
-  private boolean currentStarted;
-  private int embeddedFeatureNestingLevel;
-  private Stack<Boolean> currentEmbeddedStarted;
 
   @Inject
   public GeoJsonWriterProperties() {}
@@ -47,36 +40,14 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 40;
-  }
-
-  @Override
-  public void onFeatureStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-
-    this.currentStarted = false;
-    this.embeddedFeatureNestingLevel = 0;
-    this.currentEmbeddedStarted = new Stack<>();
-
-    next.accept(context);
+    return 2;
   }
 
   @Override
   public void onPropertiesEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-
-    if (currentStarted) {
-      this.currentStarted = false;
-
-      // end of "properties"
-      context.encoding().getJson().writeEndObject();
-    } else {
-
-      // no properties, write null member
-      context.encoding().getJson().writeNullField(getPropertiesFieldName());
-    }
+    finalizeCurrent(context);
 
     next.accept(context);
   }
@@ -86,21 +57,14 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
-      FeatureSchema schema = context.schema().get();
-
-      if (!currentStarted) {
-        this.currentStarted = true;
-
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
-      }
-
-      if (embeddedFeatureNestingLevel > 0 && !currentEmbeddedStarted.peek()) {
-        this.currentEmbeddedStarted.set(currentEmbeddedStarted.size() - 1, true);
-
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
-      }
-
-      context.encoding().getJson().writeArrayFieldStart(schema.getName());
+      startIfNecessary(context);
+      context.encoding().getJson().writeArrayFieldStart(context.schema().get().getName());
+    } else if (context
+        .encoding()
+        .getBuffer()
+        .map(b -> b.geometryState == GeometryState.IN_OTHER_GEOMETRY)
+        .orElse(false)) {
+      context.encoding().getJson().writeStartArray();
     }
 
     next.accept(context);
@@ -111,21 +75,42 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
-      FeatureSchema schema = context.schema().get();
+      startIfNecessary(context);
+      openObject(context, context.schema().get());
+    } else if (context.schema().map(SchemaBase::isSpatial).orElse(false)
+        && !context
+            .schema()
+            .map(
+                p ->
+                    context
+                        .encoding()
+                        .getBuffer()
+                        .map(s -> s.primaryGeometryProperty.stream().anyMatch(p::equals))
+                        .orElse(false))
+            .orElse(false)
+        && !context
+            .schema()
+            .map(
+                p ->
+                    context
+                        .encoding()
+                        .getBuffer()
+                        .map(s -> s.secondaryGeometryProperty.stream().anyMatch(p::equals))
+                        .orElse(false))
+            .orElse(false)
+        && context.geometryType().isPresent()) {
 
-      if (!currentStarted) {
-        this.currentStarted = true;
+      context.encoding().getJson().writeFieldName(context.schema().get().getName());
+      context.encoding().getJson().writeStartObject();
+      String type = getGeometryType(context);
+      context.encoding().getJson().writeStringField("type", type);
+      context.encoding().getJson().writeFieldName("coordinates");
+      context.encoding().getBuffer().get().geometryState = GeometryState.IN_OTHER_GEOMETRY;
 
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
+      if (type.equals("Polyhedron")) {
+        context.encoding().getJson().writeStartArray();
+        context.encoding().getBuffer().get().isPolyhedron = true;
       }
-
-      if (embeddedFeatureNestingLevel > 0 && !currentEmbeddedStarted.peek()) {
-        this.currentEmbeddedStarted.set(currentEmbeddedStarted.size() - 1, true);
-
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
-      }
-
-      openObject(context.encoding(), schema);
     }
 
     next.accept(context);
@@ -135,24 +120,37 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
   public void onObjectEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    next.accept(context);
+
+    FeatureState featureState = context.encoding().getBuffer().get();
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       FeatureSchema schema = context.schema().get();
 
-      closeObject(context.encoding(), schema);
-    }
+      closeObject(context, schema);
 
-    next.accept(context);
+    } else if (featureState.geometryState == GeometryState.IN_OTHER_GEOMETRY
+        && context.schema().map(SchemaBase::isSpatial).orElse(false)) {
+      if (featureState.isPolyhedron) {
+        context.encoding().getJson().writeEndArray();
+      }
+      context.encoding().getJson().writeEndObject();
+      featureState.geometryState = GeometryState.NOT_IN_GEOMETRY;
+      featureState.isPolyhedron = false;
+    }
   }
 
   @Override
   public void onArrayEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    next.accept(context);
+
     if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
       context.encoding().getJson().writeEndArray();
+    } else if (context.encoding().getBuffer().get().geometryState
+        == GeometryState.IN_OTHER_GEOMETRY) {
+      context.encoding().getJson().writeEndArray();
     }
-
-    next.accept(context);
   }
 
   @Override
@@ -162,34 +160,35 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
     if (!shouldSkipProperty(context)) {
       FeatureSchema schema = context.schema().get();
       String value = context.value();
-      JsonGenerator json = context.encoding().getJson();
 
-      if (!currentStarted) {
-        this.currentStarted = true;
-
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
-      }
-
-      if (embeddedFeatureNestingLevel > 0 && !currentEmbeddedStarted.peek()) {
-        this.currentEmbeddedStarted.set(currentEmbeddedStarted.size() - 1, true);
-
-        context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
-      }
+      startIfNecessary(context);
 
       if (schema.isArray() && !context.encoding().getGeoJsonConfig().isFlattened()) {
-        writeValue(json, value, getValueType(schema, context.valueType()));
+        writeValue(context.encoding().getJson(), value, getValueType(schema, context.valueType()));
       } else {
-        json.writeFieldName(schema.getName());
+        context.encoding().getJson().writeFieldName(schema.getName());
         Type valueType =
             schema.getCoalesce().isEmpty()
                     || (schema.getType() != Type.VALUE && schema.getType() != Type.FEATURE_REF)
                 ? schema.getType()
                 : getValueType(schema, context.valueType());
-        writeValue(json, value, valueType);
+        writeValue(context.encoding().getJson(), value, valueType);
       }
+    } else if (context.encoding().getBuffer().get().geometryState
+        == GeometryState.IN_OTHER_GEOMETRY) {
+      context.encoding().getJson().writeRawValue(context.value());
     }
 
     next.accept(context);
+  }
+
+  private void startIfNecessary(EncodingAwareContextGeoJson context) throws IOException {
+    FeatureState featureState = context.encoding().getBuffer().get();
+    if (!featureState.hasProperties) {
+      featureState.hasProperties = true;
+
+      context.encoding().getJson().writeObjectFieldStart(getPropertiesFieldName());
+    }
   }
 
   private Type getValueType(FeatureSchema schema, Type fromValue) {
@@ -197,6 +196,11 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
         .getValueType()
         .filter(t -> t != Type.VALUE && t != Type.VALUE_ARRAY)
         .orElse(Objects.requireNonNullElse(fromValue, Type.STRING));
+  }
+
+  // TODO: support for other geometry types
+  private String getGeometryType(EncodingAwareContextGeoJson context) {
+    return GeoJsonGeometryType.forSimpleFeatureType(context.geometryType().get()).toString();
   }
 
   protected String getPropertiesFieldName() {
@@ -246,39 +250,33 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
     }
   }
 
-  private void openObject(FeatureTransformationContextGeoJson encoding, FeatureSchema schema)
+  private void openObject(EncodingAwareContextGeoJson context, FeatureSchema schema)
       throws IOException {
     if (schema.isArray()) {
-      encoding.getJson().writeStartObject();
+      context.encoding().getJson().writeStartObject();
     } else {
-      encoding.getJson().writeObjectFieldStart(schema.getName());
-    }
-
-    if (schema.getRole().filter(r -> r == Role.EMBEDDED_FEATURE).isPresent()) {
-      encoding.getJson().writeStringField("type", "Feature");
-      this.embeddedFeatureNestingLevel++;
-      this.currentEmbeddedStarted.push(false);
+      context.encoding().getJson().writeObjectFieldStart(schema.getName());
     }
   }
 
-  private void closeObject(FeatureTransformationContextGeoJson encoding, FeatureSchema schema)
+  private void closeObject(EncodingAwareContextGeoJson context, FeatureSchema schema)
       throws IOException {
-    if (schema.getRole().filter(r -> r == Role.EMBEDDED_FEATURE).isPresent()) {
-
-      if (currentEmbeddedStarted.peek()) {
-
-        // end of "properties"
-        encoding.getJson().writeEndObject();
-      } else {
-
-        // no properties, write null member
-        encoding.getJson().writeNullField(getPropertiesFieldName());
-      }
-
-      this.embeddedFeatureNestingLevel--;
-      this.currentEmbeddedStarted.pop();
+    if (schema.isEmbeddedFeature()) {
+      finalizeCurrent(context);
     }
 
-    encoding.getJson().writeEndObject();
+    context.encoding().getJson().writeEndObject();
+  }
+
+  private void finalizeCurrent(EncodingAwareContextGeoJson context) throws IOException {
+    if (context.encoding().getBuffer().get().hasProperties) {
+
+      // end of "properties"
+      context.encoding().getJson().writeEndObject();
+    } else {
+
+      // no properties, write null member
+      context.encoding().getJson().writeNullField(getPropertiesFieldName());
+    }
   }
 }

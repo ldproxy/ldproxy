@@ -29,6 +29,7 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
@@ -64,6 +65,7 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -72,6 +74,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
@@ -257,6 +261,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
     }
 
+    List<ApiMediaType> alternateMediaTypes = requestContext.getAlternateMediaTypes();
+
     List<Profile> profiles =
         extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
             .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
@@ -273,7 +279,27 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .filter(Objects::nonNull)
             .toList();
 
-    List<ApiMediaType> alternateMediaTypes = requestContext.getAlternateMediaTypes();
+    Map<ApiMediaType, List<Profile>> alternateProfiles =
+        extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+            .filter(ProfileExtension::includeAlternateLinks)
+            .filter(
+                profileSet ->
+                    requestContext.getMediaType().type().equals(profileSet.getMediaType())
+                        || alternateMediaTypes.stream()
+                            .anyMatch(mt -> mt.type().equals(profileSet.getMediaType())))
+            .map(
+                profileSet ->
+                    new SimpleImmutableEntry<>(
+                        Stream.concat(
+                                alternateMediaTypes.stream(),
+                                Stream.of(requestContext.getMediaType()))
+                            .filter(mt -> mt.type().equals(profileSet.getMediaType()))
+                            .findFirst()
+                            .get(),
+                        profileSet.getProfiles(api.getData(), Optional.of(collectionId)).stream()
+                            .filter(profile -> !profiles.contains(profile))
+                            .toList()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     List<Link> links =
         Objects.isNull(featureId)
@@ -283,17 +309,19 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                     query.getOffset(),
                     query.getLimit(),
                     defaultPageSize.orElse(0),
-                    profiles,
                     requestContext.getMediaType(),
                     alternateMediaTypes,
+                    profiles,
+                    alternateProfiles,
                     i18n,
                     requestContext.getLanguage())
             : new FeatureLinksGenerator()
                 .generateLinks(
                     requestContext.getUriCustomizer(),
-                    profiles,
                     requestContext.getMediaType(),
                     alternateMediaTypes,
+                    profiles,
+                    alternateProfiles,
                     outputFormat.getCollectionMediaType(),
                     canonicalUri,
                     i18n,
@@ -333,7 +361,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .limit(query.getLimit())
             .offset(query.getOffset())
             .maxAllowableOffset(query.getMaxAllowableOffset())
-            .geometryPrecision(query.getGeometryPrecision());
+            .geometryPrecision(query.getGeometryPrecision())
+            .wgs84GeometryPrecision(query.getWgs84GeometryPrecision());
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {

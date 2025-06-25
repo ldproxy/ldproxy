@@ -8,12 +8,14 @@
 package de.ii.ogcapi.features.jsonfg.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
 import de.ii.ogcapi.features.geojson.domain.ProfileSetGeoJson;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -21,9 +23,15 @@ import javax.inject.Singleton;
 @AutoBind
 public class ProfileJsonFgPlus extends ProfileGeoJson {
 
+  private final FeaturesCoreProviders providers;
+
   @Inject
-  ProfileJsonFgPlus(ExtensionRegistry extensionRegistry, ProfileSetGeoJson profileSet) {
+  ProfileJsonFgPlus(
+      ExtensionRegistry extensionRegistry,
+      FeaturesCoreProviders providers,
+      ProfileSetGeoJson profileSet) {
     super(extensionRegistry, profileSet);
+    this.providers = providers;
   }
 
   @Override
@@ -32,12 +40,17 @@ public class ProfileJsonFgPlus extends ProfileGeoJson {
   }
 
   @Override
+  public String getLabel() {
+    return "JSON-FG+";
+  }
+
+  @Override
   public boolean writeJsonFgExtensions() {
     return true;
   }
 
   @Override
-  public boolean forceDefaultCrs() {
+  public boolean writeSecondaryGeometry() {
     return true;
   }
 
@@ -47,7 +60,10 @@ public class ProfileJsonFgPlus extends ProfileGeoJson {
         && apiData
             .getExtension(JsonFgConfiguration.class)
             .map(JsonFgConfiguration::getSupportPlusProfile)
-            .orElse(false);
+            .orElse(false)
+        && apiData.getCollections().values().stream()
+            .map(cd -> providers.getFeatureSchema(apiData, cd))
+            .anyMatch(schema -> schema.flatMap(SchemaBase::getSecondaryGeometry).isPresent());
   }
 
   @Override
@@ -56,6 +72,11 @@ public class ProfileJsonFgPlus extends ProfileGeoJson {
         && apiData
             .getExtension(JsonFgConfiguration.class, collectionId)
             .map(JsonFgConfiguration::getSupportPlusProfile)
+            .orElse(false)
+        && apiData
+            .getCollectionData(collectionId)
+            .flatMap(cd -> providers.getFeatureSchema(apiData, cd))
+            .map(schema -> schema.getSecondaryGeometry().isPresent())
             .orElse(false);
   }
 

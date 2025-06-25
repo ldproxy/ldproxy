@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaBase.Role;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,7 @@ public class SchemaDeriverFeatures extends SchemaDeriverJsonSchema {
 
     builder.properties(properties);
     if (!required.isEmpty()) {
-      if (schema.getRole().isPresent() && schema.getRole().get() == Role.EMBEDDED_FEATURE) {
+      if (schema.isEmbeddedFeature()) {
         builder.required(
             required.stream()
                 .map(this::getNameWithoutRole)

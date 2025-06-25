@@ -31,7 +31,17 @@ public class ProfileRfc7946 extends ProfileGeoJson {
   }
 
   @Override
+  public String getLabel() {
+    return "GeoJSON";
+  }
+
+  @Override
   public boolean isDefault() {
+    return true;
+  }
+
+  @Override
+  public boolean includeAlternateLinks() {
     return true;
   }
 

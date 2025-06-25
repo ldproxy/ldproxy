@@ -31,12 +31,17 @@ public class ProfileJsonFg extends ProfileGeoJson {
   }
 
   @Override
-  public boolean writeJsonFgExtensions() {
+  public String getLabel() {
+    return "JSON-FG";
+  }
+
+  @Override
+  public boolean includeAlternateLinks() {
     return true;
   }
 
   @Override
-  public boolean suppressPrimaryGeometry() {
+  public boolean writeJsonFgExtensions() {
     return true;
   }
 

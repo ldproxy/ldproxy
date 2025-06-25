@@ -10,19 +10,35 @@ package de.ii.ogcapi.features.geojson.domain;
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeatureWriter;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zahnen
  */
 @AutoMultiBind
 public interface GeoJsonWriter extends FeatureWriter<EncodingAwareContextGeoJson> {
+  Logger LOGGER = LoggerFactory.getLogger(GeoJsonWriter.class);
+
   GeoJsonWriter create();
 
-  default boolean writeJsonFgExtensions(FeatureTransformationContext transformationContext) {
+  default Optional<ProfileGeoJson> getProfile(FeatureTransformationContext transformationContext) {
     return transformationContext.getProfiles().stream()
-        .anyMatch(
-            profile ->
-                profile instanceof ProfileGeoJson
-                    && ((ProfileGeoJson) profile).writeJsonFgExtensions());
+        .filter(profile -> profile instanceof ProfileGeoJson)
+        .map(profile -> (ProfileGeoJson) profile)
+        .findFirst();
+  }
+
+  default boolean writeJsonFgExtensions(FeatureTransformationContext transformationContext) {
+    return getProfile(transformationContext)
+        .map(ProfileGeoJson::writeJsonFgExtensions)
+        .orElse(false);
+  }
+
+  default boolean writeSecondaryGeometry(FeatureTransformationContext transformationContext) {
+    return getProfile(transformationContext)
+        .map(ProfileGeoJson::writeSecondaryGeometry)
+        .orElse(false);
   }
 }
