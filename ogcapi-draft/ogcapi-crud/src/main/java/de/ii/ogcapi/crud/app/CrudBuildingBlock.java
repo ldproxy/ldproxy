@@ -9,9 +9,11 @@ package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.crud.app.ImmutableCrudConfiguration.Builder;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -21,13 +23,10 @@ import javax.inject.Singleton;
  * @title CRUD
  * @langEn Create, replace, update and delete features.
  * @langDe Erzeugen, Ersetzen, Aktualisieren und Löschen von Features.
- * @limitationsEn Only feature types from an SQL feature provider with `dialect` `PGIS`, sourced
- *     from a single table and with auto-incrementing primary keys are supported. See also [issue
- *     #411](https://github.com/interactive-instruments/ldproxy/issues/411).
- * @limitationsDe Es werden nur Objektarten von einem SQL-Feature-Provider mit `dialect` `PGIS`
- *     unterstützt, die aus einer einzigen Tabelle stammen und automatisch inkrementierende
- *     Primärschlüssel verwenden. Siehe auch [Ticket
- *     #411](https://github.com/interactive-instruments/ldproxy/issues/411).
+ * @limitationsEn Only feature types from an SQL feature provider with `dialect` `PGIS` and
+ *     `datasetChanges.mode` `CRUD` are supported.
+ * @limitationsDe Es werden nur Objektarten von einem SQL-Feature-Provider mit `dialect` `PGIS` und
+ *     `datasetChanges.mode` `CRUD` unterstützt.
  * @conformanceEn The building block is based on the specifications of the conformance classes
  *     "Create/Replace/Delete" and "Features" from the [Draft OGC API - Features - Part 4: Create,
  *     Replace, Update and Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). The implementation
@@ -55,8 +54,23 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
               "https://docs.ogc.org/DRAFTS/20-002r1.html",
               "OGC API - Features - Part 4: Create, Replace, Update and Delete (DRAFT)"));
 
+  private final FeaturesCoreProviders providers;
+
   @Inject
-  public CrudBuildingBlock() {}
+  public CrudBuildingBlock(FeaturesCoreProviders providers) {
+    this.providers = providers;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return isProviderSupportsMutations(apiData) && ApiBuildingBlock.super.isEnabledForApi(apiData);
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return isProviderSupportsMutations(apiData)
+        && ApiBuildingBlock.super.isEnabledForApi(apiData, collectionId);
+  }
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
@@ -65,5 +79,12 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
         .optimisticLockingETag(false)
         .optimisticLockingLastModified(false)
         .build();
+  }
+
+  private boolean isProviderSupportsMutations(OgcApiDataV2 apiData) {
+    return providers
+        .getFeatureProvider(apiData)
+        .filter(provider -> provider.mutations().isSupported())
+        .isPresent();
   }
 }
