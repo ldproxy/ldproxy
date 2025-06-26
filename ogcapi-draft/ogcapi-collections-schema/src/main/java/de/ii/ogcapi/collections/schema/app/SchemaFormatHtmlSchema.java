@@ -83,6 +83,8 @@ public class SchemaFormatHtmlSchema implements SchemaFormatExtension {
             .orElse(null);
 
     return new ImmutableSchemaView.Builder()
+        .title(schema.getTitle().orElse("Schema for " + collectionId))
+        .description(schema.getDescription().orElse("No description found"))
         .apiData(api.getData())
         .collectionId(collectionId)
         .schemaCollectionProperties(schema)

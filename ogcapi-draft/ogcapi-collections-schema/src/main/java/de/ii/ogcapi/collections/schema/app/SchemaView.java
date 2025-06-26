@@ -8,7 +8,6 @@
 package de.ii.ogcapi.collections.schema.app;
 
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesType;
 import de.ii.ogcapi.features.core.domain.CollectionProperty;
 import de.ii.ogcapi.features.core.domain.ImmutableCollectionProperty;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
@@ -44,24 +43,16 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
 
   public abstract String collectionId();
 
-  @Value.Derived
   @Override
-  public String title() {
-    return i18n().get(type() + "Title", language());
-  }
+  public abstract String title();
 
-  @Value.Derived
   @Override
-  public String description() {
-    return i18n().get(type() + "Description", language());
-  }
+  public abstract String description();
 
-  @Value.Derived
   @Override
   public List<NavigationDTO> breadCrumbs() {
     String rootTitle = i18n().get("root", language());
     String collectionsTitle = i18n().get("collectionsTitle", language());
-    String collectionPropertiesTitle = i18n().get(type().toString() + "Title", language());
     URICustomizer resourceUri = uriCustomizer().copy().clearParameters();
 
     return new ImmutableList.Builder<NavigationDTO>()
@@ -84,7 +75,7 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
             new NavigationDTO(
                 apiData().getCollections().get(collectionId()).getLabel(),
                 resourceUri.copy().removeLastPathSegments(1).toString()))
-        .add(new NavigationDTO(collectionPropertiesTitle))
+        .add(new NavigationDTO("Schema"))
         .build();
   }
 
@@ -189,12 +180,6 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
   // public abstract CollectionPropertiesType type();
 
   public abstract URICustomizer uriCustomizer();
-
-  @Value.Derived
-  public CollectionPropertiesType type() {
-    // Logic to determine type automatically
-    return CollectionPropertiesType.QUERYABLES;
-  }
 
   public abstract I18n i18n();
 
