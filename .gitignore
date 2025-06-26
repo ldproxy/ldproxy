@@ -19,6 +19,7 @@ gradle.properties
 .project
 .settings/
 bin/
+*.sh
 
 # yarn v2
 .yarn/*
