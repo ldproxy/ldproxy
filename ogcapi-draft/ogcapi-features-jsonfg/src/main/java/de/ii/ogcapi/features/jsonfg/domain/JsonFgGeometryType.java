@@ -18,8 +18,7 @@ public enum JsonFgGeometryType {
   POLYGON("Polygon", SimpleFeatureGeometry.POLYGON, 2),
   MULTI_POLYGON("MultiPolygon", SimpleFeatureGeometry.MULTI_POLYGON, 2),
   POLYHEDRON("Polyhedron", SimpleFeatureGeometry.MULTI_POLYGON, 3, true, true),
-  GEOMETRY_COLLECTION("GeometryCollection", SimpleFeatureGeometry.NONE, null),
-  GENERIC("", SimpleFeatureGeometry.NONE, null),
+  GEOMETRY_COLLECTION("GeometryCollection", SimpleFeatureGeometry.GEOMETRY_COLLECTION, null),
   NONE("", SimpleFeatureGeometry.NONE, null);
 
   private final String stringRepresentation;
@@ -97,5 +96,9 @@ public enum JsonFgGeometryType {
 
   public boolean isValid() {
     return this != NONE;
+  }
+
+  public boolean isSupported() {
+    return isValid() && this != GEOMETRY_COLLECTION;
   }
 }
