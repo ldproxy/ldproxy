@@ -49,7 +49,7 @@ public abstract class ProfileSet implements ProfileExtension {
     return extensionRegistry.getExtensionsForType(Profile.class).stream()
         .filter(
             profile ->
-                profile.getProfileSet().equals(this)
+                getId().equals(profile.getProfileSet())
                     && collectionId
                         .map(cid -> profile.isEnabledForApi(apiData, cid))
                         .orElse(profile.isEnabledForApi(apiData)))

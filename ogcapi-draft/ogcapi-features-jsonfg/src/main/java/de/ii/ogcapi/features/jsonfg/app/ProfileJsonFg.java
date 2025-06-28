@@ -9,7 +9,6 @@ package de.ii.ogcapi.features.jsonfg.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
-import de.ii.ogcapi.features.geojson.domain.ProfileSetGeoJson;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -21,8 +20,8 @@ import javax.inject.Singleton;
 public class ProfileJsonFg extends ProfileGeoJson {
 
   @Inject
-  ProfileJsonFg(ExtensionRegistry extensionRegistry, ProfileSetGeoJson profileSet) {
-    super(extensionRegistry, profileSet);
+  ProfileJsonFg(ExtensionRegistry extensionRegistry) {
+    super(extensionRegistry);
   }
 
   @Override

@@ -28,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 @AutoBind
 public class ProfileSetVal extends ProfileSet {
 
+  public static final String ID = "val";
   private final FeaturesCoreProviders providers;
 
   @Inject
@@ -63,7 +64,7 @@ public class ProfileSetVal extends ProfileSet {
 
   @Override
   public String getId() {
-    return "val";
+    return ID;
   }
 
   @Override

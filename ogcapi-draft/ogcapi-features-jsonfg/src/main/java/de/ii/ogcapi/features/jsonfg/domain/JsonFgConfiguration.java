@@ -100,7 +100,7 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
    *     "geometry" im Koordinatenreferenzsystem WGS 84. Andernfalls ist "geometry" eines
    *     JSON-FG-Features `null`, wenn "place" vorhanden ist.
    * @default true
-   * @since v4.4
+   * @since v4.5
    */
   @Nullable
   Boolean getSupportPlusProfile();
@@ -111,7 +111,7 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
    * @default true
    * @since v3.3
    */
-  @Deprecated(since = "4.4", forRemoval = true)
+  @Deprecated(since = "4.5", forRemoval = true)
   @Nullable
   Boolean getGeojsonCompatibility();
 
@@ -181,15 +181,18 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
-    ImmutableJsonFgConfiguration.Builder builder =
-        new ImmutableJsonFgConfiguration.Builder().from(source).from(this);
-
-    ImmutableJsonFgConfiguration src = (ImmutableJsonFgConfiguration) source;
-
-    if (Objects.nonNull(getFeatureType())) builder.featureType(getFeatureType());
-    else if (Objects.nonNull(src.getFeatureType())) builder.featureType(src.getFeatureType());
-
-    return builder.build();
+    return new ImmutableJsonFgConfiguration.Builder()
+        .from(source)
+        .from(this)
+        .defaultProfiles(
+            this.getDefaultProfiles().isEmpty()
+                ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
+                : this.getDefaultProfiles())
+        .featureType(
+            Objects.isNull(this.getFeatureType())
+                ? ((JsonFgConfiguration) source).getFeatureType()
+                : this.getFeatureType())
+        .build();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}

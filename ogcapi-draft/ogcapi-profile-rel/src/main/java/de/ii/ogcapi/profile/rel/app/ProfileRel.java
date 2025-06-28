@@ -10,7 +10,6 @@ package de.ii.ogcapi.profile.rel.app;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
-import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.rel.domain.ProfileRelConfiguration;
 import de.ii.ogcapi.profile.rel.domain.ProfileSetRel;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -19,11 +18,11 @@ import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 
 public abstract class ProfileRel extends ProfileGeneric {
 
-  protected final ProfileSet profileSet;
+  protected final String profileSet;
 
-  ProfileRel(ExtensionRegistry extensionRegistry, ProfileSetRel profileSet) {
+  ProfileRel(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
-    this.profileSet = profileSet;
+    this.profileSet = ProfileSetRel.ID;
   }
 
   public boolean isDefault() {
@@ -45,7 +44,7 @@ public abstract class ProfileRel extends ProfileGeneric {
   }
 
   @Override
-  public ProfileSet getProfileSet() {
+  public String getProfileSet() {
     return profileSet;
   }
 }

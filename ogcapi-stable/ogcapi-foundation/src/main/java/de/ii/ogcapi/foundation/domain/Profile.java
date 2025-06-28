@@ -23,7 +23,7 @@ public interface Profile extends ApiExtension {
         .toList();
   }
 
-  ProfileSet getProfileSet();
+  String getProfileSet();
 
   String getId();
 

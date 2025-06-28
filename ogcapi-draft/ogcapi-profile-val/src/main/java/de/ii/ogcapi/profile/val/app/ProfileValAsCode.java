@@ -9,7 +9,6 @@ package de.ii.ogcapi.profile.val.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -19,8 +18,8 @@ import javax.inject.Singleton;
 public class ProfileValAsCode extends ProfileVal {
 
   @Inject
-  ProfileValAsCode(ExtensionRegistry extensionRegistry, ProfileSetVal profileSet) {
-    super(extensionRegistry, profileSet);
+  ProfileValAsCode(ExtensionRegistry extensionRegistry) {
+    super(extensionRegistry);
   }
 
   @Override

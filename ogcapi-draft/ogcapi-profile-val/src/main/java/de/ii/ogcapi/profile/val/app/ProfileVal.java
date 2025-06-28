@@ -10,7 +10,6 @@ package de.ii.ogcapi.profile.val.app;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
-import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
 import de.ii.ogcapi.profile.val.domain.ProfileValConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -19,11 +18,11 @@ import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 
 public abstract class ProfileVal extends ProfileGeneric {
 
-  protected final ProfileSet profileSet;
+  protected final String profileSet;
 
-  ProfileVal(ExtensionRegistry extensionRegistry, ProfileSetVal profileSet) {
+  ProfileVal(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
-    this.profileSet = profileSet;
+    this.profileSet = ProfileSetVal.ID;
   }
 
   public boolean isDefault() {
@@ -40,7 +39,7 @@ public abstract class ProfileVal extends ProfileGeneric {
   }
 
   @Override
-  public ProfileSet getProfileSet() {
+  public String getProfileSet() {
     return profileSet;
   }
 

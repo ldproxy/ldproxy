@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 @AutoBind
 public class ProfileSetRel extends ProfileSet implements ConformanceClass {
 
+  public static final String ID = "rel";
   private final FeaturesCoreProviders providers;
 
   @Inject
@@ -70,7 +71,7 @@ public class ProfileSetRel extends ProfileSet implements ConformanceClass {
 
   @Override
   public String getId() {
-    return "rel";
+    return ID;
   }
 
   @Override

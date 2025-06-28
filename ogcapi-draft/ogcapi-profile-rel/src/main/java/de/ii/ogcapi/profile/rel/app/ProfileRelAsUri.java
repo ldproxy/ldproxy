@@ -9,7 +9,6 @@ package de.ii.ogcapi.profile.rel.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.profile.rel.domain.ProfileSetRel;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -19,8 +18,8 @@ import javax.inject.Singleton;
 public class ProfileRelAsUri extends ProfileRel {
 
   @Inject
-  ProfileRelAsUri(ExtensionRegistry extensionRegistry, ProfileSetRel profileSet) {
-    super(extensionRegistry, profileSet);
+  ProfileRelAsUri(ExtensionRegistry extensionRegistry) {
+    super(extensionRegistry);
   }
 
   @Override

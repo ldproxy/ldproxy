@@ -29,16 +29,10 @@ class JsonFgWriterSetupUtil {
 
     static EncodingAwareContextGeoJson createTransformationContext(OutputStream outputStream, boolean isCollection, CrsTransformer crsTransformer = null) throws URISyntaxException {
 
-        ProfileSetGeoJson profileSet = new ProfileSetGeoJson(null) {
-            @Override
-            String getId() {
-                return "geojson"
-            }
-        }
         FeatureTransformationContextGeoJson transformationContext =  ImmutableFeatureTransformationContextGeoJson.builder()
                 .crsTransformer(Optional.ofNullable(crsTransformer))
                 .defaultCrs(OgcCrs.CRS84)
-                .addProfiles(new ProfileJsonFg(null, profileSet) {
+                .addProfiles(new ProfileJsonFg(null) {
                     @Override
                     String getId() {
                         return "jsonfg"

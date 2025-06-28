@@ -9,19 +9,18 @@ package de.ii.ogcapi.features.geojson.domain;
 
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
-import de.ii.ogcapi.foundation.domain.ProfileSet;
 
 public abstract class ProfileGeoJson extends ProfileGeneric {
 
-  protected final ProfileSet profileSet;
+  protected final String profileSet;
 
-  protected ProfileGeoJson(ExtensionRegistry extensionRegistry, ProfileSetGeoJson profileSet) {
+  protected ProfileGeoJson(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
-    this.profileSet = profileSet;
+    this.profileSet = ProfileSetGeoJson.ID;
   }
 
   @Override
-  public ProfileSet getProfileSet() {
+  public String getProfileSet() {
     return profileSet;
   }
 
