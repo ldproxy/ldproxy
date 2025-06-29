@@ -19,16 +19,23 @@ import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
+import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind
 public class JsonFgWriterPlace implements GeoJsonWriter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonFgWriterPlace.class);
 
   public static String JSON_KEY = "place";
 
@@ -48,6 +55,8 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
   private boolean hasSecondaryGeometry;
   private boolean suppressPlace;
   private TokenBuffer json;
+  private boolean skippingUnsupportedGeometry;
+  private Set<SimpleFeatureGeometry> unsupportedGeometries;
 
   @Override
   public int getSortPriority() {
@@ -58,6 +67,7 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
     this.geometryOpen = false;
     this.hasPlaceGeometry = false;
     this.additionalArray = false;
+    this.skippingUnsupportedGeometry = false;
     this.json = new TokenBuffer(new ObjectMapper(), false);
     if (context.encoding().getPrettify()) {
       json.useDefaultPrettyPrinter();
@@ -69,6 +79,7 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     collectionMap = getCollectionMap(context.encoding());
+    unsupportedGeometries = new HashSet<>();
 
     next.accept(context);
   }
@@ -108,30 +119,43 @@ public class JsonFgWriterPlace implements GeoJsonWriter {
         && context.schema().filter(SchemaBase::isSpatial).isPresent()
         && context.geometryType().isPresent()
         && isPlaceGeometry(context.schema().get())) {
-      String type =
+
+      SimpleFeatureGeometry sfGeometryType = context.geometryType().get();
+      JsonFgGeometryType jsonFgGeometryType =
           JsonFgGeometryType.forSimpleFeatureType(
-                  context.geometryType().get(),
-                  context
-                      .schema()
-                      .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getComposite))
-                      .orElse(false),
-                  context
-                      .schema()
-                      .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getClosed))
-                      .orElse(false))
-              .toString();
+              context.geometryType().get(),
+              context
+                  .schema()
+                  .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getComposite))
+                  .orElse(false),
+              context
+                  .schema()
+                  .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getClosed))
+                  .orElse(false));
+      if (!jsonFgGeometryType.isSupported()) {
+        if (LOGGER.isWarnEnabled() && !this.unsupportedGeometries.contains(sfGeometryType)) {
+          LOGGER.warn(
+              "Ignoring one or more JSON-FG geometries in 'place' since an unsupported geometry type was provided: '{}'. Writing a null geometry.",
+              sfGeometryType);
+          this.unsupportedGeometries.add(sfGeometryType);
+        }
+        json.writeFieldName(JSON_KEY);
+        json.writeNull();
+        this.skippingUnsupportedGeometry = true;
+      } else {
+        json.writeFieldName(JSON_KEY);
+        json.writeStartObject();
+        json.writeStringField("type", jsonFgGeometryType.toString());
+        json.writeFieldName("coordinates");
 
-      json.writeFieldName(JSON_KEY);
-      json.writeStartObject();
-      json.writeStringField("type", type);
-      json.writeFieldName("coordinates");
+        if (jsonFgGeometryType.equals(JsonFgGeometryType.POLYHEDRON)) {
+          json.writeStartArray();
+          additionalArray = true;
+        }
 
-      if (type.equals("Polyhedron")) {
-        json.writeStartArray();
-        additionalArray = true;
+        geometryOpen = true;
       }
 
-      geometryOpen = true;
       hasPlaceGeometry = true;
     }
 
