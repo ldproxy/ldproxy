@@ -8,7 +8,7 @@
 package de.ii.ogcapi.collections.schema.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
+import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -36,7 +36,7 @@ public interface SchemaFormatExtension extends FormatExtension {
   }
 
   Object getEntity(
-      JsonSchemaObject schema,
+      JsonSchemaDocument schema,
       List<Link> links,
       String collectionId,
       OgcApi api,

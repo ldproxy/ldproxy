@@ -220,6 +220,14 @@ public abstract class CollectionProperty {
     return !getValues().isEmpty();
   }
 
+  @JsonIgnore
+  @Value.Derived
+  public int getMargin() {
+    int depth = (int) getId().chars().filter(c -> c == '.').count();
+    int marginSize = depth * 8;
+    return marginSize;
+  }
+
   public abstract Optional<String> getDefaultValue();
 
   public abstract List<String> getDefaultValues();

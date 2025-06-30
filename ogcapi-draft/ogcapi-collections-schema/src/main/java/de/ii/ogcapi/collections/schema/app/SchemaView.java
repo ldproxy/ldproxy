@@ -85,55 +85,74 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
     ImmutableList.Builder<CollectionProperty> builder = ImmutableList.builder();
     properties.forEach(
         (key, value) -> {
-          ImmutableCollectionProperty.Builder builder2 =
-              ImmutableCollectionProperty.builder().id(key);
-          builder2.title(value.getTitle()).description(value.getDescription());
-
-          if (value instanceof JsonSchemaArray) {
-            builder2.isArray(true);
-            value = ((JsonSchemaArray) value).getItems();
-          } else {
-            builder2.isArray(false);
-          }
-
-          if (value instanceof JsonSchemaString) {
-            Optional<String> format = ((JsonSchemaString) value).getFormat();
-            if (format.isPresent()) {
-              if (format.get().equals("date-time")) {
-                builder2.type("date-time");
-              } else if (format.get().equals("date")) {
-                builder2.type("date");
-              } else {
-                builder2.type("string");
-              }
-            } else {
-              builder2.type("string");
-            }
-            builder2.values(((JsonSchemaString) value).getEnums());
-          } else if (value instanceof JsonSchemaNumber) {
-            builder2.type("number");
-          } else if (value instanceof JsonSchemaInteger) {
-            builder2.type("integer");
-            builder2.values(
-                ((JsonSchemaInteger) value)
-                    .getEnums().stream().map(String::valueOf).collect(Collectors.toList()));
-          } else if (value instanceof JsonSchemaBoolean) {
-            builder2.type("boolean");
-          } else if (value instanceof JsonSchemaGeometry) {
-            builder2.type(
-                ((JsonSchemaGeometry) value).getFormat().replace("geometry-", "geometry (") + ")");
-          } else if (value instanceof JsonSchemaRef) {
-            builder2.type(
-                ((JsonSchemaRef) value)
-                    .getRef()
-                    .replace("https://geojson.org/schema/", "")
-                    .replace(".json", ""));
-          } else {
-            builder2.type("string");
-          }
-          builder.add(builder2.build());
+          build(builder, "", key, value);
         });
     return builder.build();
+  }
+
+  private void build(
+      ImmutableList.Builder<CollectionProperty> builder,
+      String path,
+      String key,
+      JsonSchema value) {
+    String fullPath = path.isEmpty() ? key : path + "." + key;
+    ImmutableCollectionProperty.Builder builder2 =
+        ImmutableCollectionProperty.builder().id(fullPath);
+    builder2.title(value.getTitle()).description(value.getDescription());
+
+    if (value instanceof JsonSchemaArray) {
+      builder2.isArray(true);
+      value = ((JsonSchemaArray) value).getItems();
+    } else {
+      builder2.isArray(false);
+    }
+
+    if (value instanceof JsonSchemaString) {
+      Optional<String> format = ((JsonSchemaString) value).getFormat();
+      if (format.isPresent()) {
+        if (format.get().equals("date-time")) {
+          builder2.type("date-time");
+        } else if (format.get().equals("date")) {
+          builder2.type("date");
+        } else {
+          builder2.type("string");
+        }
+      } else {
+        builder2.type("string");
+      }
+      builder2.values(((JsonSchemaString) value).getEnums());
+    } else if (value instanceof JsonSchemaNumber) {
+      builder2.type("number");
+    } else if (value instanceof JsonSchemaInteger) {
+      builder2.type("integer");
+      builder2.values(
+          ((JsonSchemaInteger) value)
+              .getEnums().stream().map(String::valueOf).collect(Collectors.toList()));
+    } else if (value instanceof JsonSchemaBoolean) {
+      builder2.type("boolean");
+    } else if (value instanceof JsonSchemaGeometry) {
+      builder2.type(
+          ((JsonSchemaGeometry) value).getFormat().replace("geometry-", "geometry (") + ")");
+    } else if (value instanceof JsonSchemaRef) {
+      JsonSchemaObject def = (JsonSchemaObject) ((JsonSchemaRef) value).getDef();
+
+      ImmutableCollectionProperty.Builder group =
+          ImmutableCollectionProperty.builder()
+              .id(fullPath)
+              .title(def.getTitle())
+              .description(def.getDescription())
+              .type("object")
+              .isArray(false);
+      builder.add(group.build());
+
+      def.getProperties()
+          .forEach((childKey, childVal) -> build(builder, fullPath, childKey, childVal));
+
+      return;
+    } else {
+      builder2.type("string");
+    }
+    builder.add(builder2.build());
   }
 
   @Value.Derived

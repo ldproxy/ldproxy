@@ -9,7 +9,7 @@ package de.ii.ogcapi.collections.schema.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
+import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -63,17 +63,11 @@ public class SchemaFormatHtmlSchema implements SchemaFormatExtension {
 
   @Override
   public Object getEntity(
-      JsonSchemaObject schema,
+      JsonSchemaDocument schema,
       List<Link> links,
       String collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
-    String test =
-        "<html><head><title>Schema</title></head><body><h1>Schema for collection: "
-            + collectionId
-            + "</h1><pre>"
-            + schema.toString() // or format your schema nicely here
-            + "</pre></body></html>";
 
     HtmlConfiguration htmlConfig =
         api.getData()

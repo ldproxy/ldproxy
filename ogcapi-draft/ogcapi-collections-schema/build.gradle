@@ -16,4 +16,5 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided 'de.interactive_instruments:ogcapi-html'
+
 }

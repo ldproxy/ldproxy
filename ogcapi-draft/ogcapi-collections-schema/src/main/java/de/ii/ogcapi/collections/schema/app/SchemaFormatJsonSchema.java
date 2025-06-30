@@ -10,8 +10,8 @@ package de.ii.ogcapi.collections.schema.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -61,7 +61,7 @@ public class SchemaFormatJsonSchema implements SchemaFormatExtension {
 
   // @Override
   public Object getEntity(
-      JsonSchemaObject schema,
+      JsonSchemaDocument schema,
       List<Link> links,
       String collectionId,
       OgcApi api,
