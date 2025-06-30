@@ -7,8 +7,9 @@
     <br/>
 
     {{#collectionProperties}}
-    <div class="row my-3" style="margin-left: {{getMargin}}em;">
-        <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}} font-weight-bold">{{id}}</div>
+      <div class="row my-3" style="{{^isNested}}border-top: 1px solid #ccc;{{/isNested}} padding-left: {{margin}}px;">
+
+      <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}} font-weight-bold">{{id}}</div>
         <div class="col-md-{{#descCols}}{{.}}{{/descCols}}{{^descCols}}9{{/descCols}}">
             <ul class="list-unstyled">
                 {{#title}}<li>{{.}}{{#description}}: {{{.}}}{{/description}}</li>{{/title}}</li>

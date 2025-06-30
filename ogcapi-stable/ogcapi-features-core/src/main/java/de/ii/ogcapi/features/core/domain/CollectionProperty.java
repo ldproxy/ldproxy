@@ -224,8 +224,14 @@ public abstract class CollectionProperty {
   @Value.Derived
   public int getMargin() {
     int depth = (int) getId().chars().filter(c -> c == '.').count();
-    int marginSize = depth * 8;
+    int marginSize = depth * 48;
     return marginSize;
+  }
+
+  @JsonIgnore
+  @Value.Derived
+  public boolean isNested() {
+    return getMargin() > 0;
   }
 
   public abstract Optional<String> getDefaultValue();
