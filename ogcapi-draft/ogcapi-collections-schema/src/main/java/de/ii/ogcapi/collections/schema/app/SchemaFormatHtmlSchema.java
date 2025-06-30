@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.collections.schema.app;
 
+import static de.ii.ogcapi.foundation.domain.ApiMediaType.HTML_MEDIA_TYPE;
+
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
@@ -14,16 +16,12 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.I18n;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import io.swagger.v3.oas.models.media.ObjectSchema;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
 
 @Singleton
 @AutoBind
@@ -35,21 +33,6 @@ public class SchemaFormatHtmlSchema implements SchemaFormatExtension {
   public SchemaFormatHtmlSchema(I18n i18n) {
     this.i18n = i18n;
   }
-
-  static final ApiMediaType HTML_MEDIA_TYPE =
-      new ImmutableApiMediaType.Builder()
-          .type(MediaType.TEXT_HTML_TYPE)
-          .label("HTML")
-          .parameter("html")
-          .fileExtension("html")
-          .build();
-
-  static final ApiMediaTypeContent HTML_CONTENT =
-      new ImmutableApiMediaTypeContent.Builder()
-          .schema(new ObjectSchema())
-          .schemaRef("#/components/schemas/HTMLSchema")
-          .ogcApiMediaType(HTML_MEDIA_TYPE)
-          .build();
 
   @Override
   public ApiMediaType getMediaType() {

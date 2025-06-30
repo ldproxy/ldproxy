@@ -182,7 +182,7 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
             .mapToInt(String::length)
             .max()
             .orElse(0);
-    return Math.min(Math.max(2, 1 + maxIdLength / 10), 6);
+    return Math.min(Math.max(2, 1 + maxIdLength / 8), 6);
   }
 
   @Value.Derived
