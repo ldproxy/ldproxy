@@ -100,12 +100,13 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
         ImmutableCollectionProperty.builder().id(fullPath);
     builder2.title(value.getTitle()).description(value.getDescription());
 
+    boolean isArray = false;
+
     if (value instanceof JsonSchemaArray) {
-      builder2.isArray(true);
+      isArray = true;
       value = ((JsonSchemaArray) value).getItems();
-    } else {
-      builder2.isArray(false);
     }
+    builder2.isArray(isArray);
 
     if (value instanceof JsonSchemaString) {
       Optional<String> format = ((JsonSchemaString) value).getFormat();
@@ -142,7 +143,7 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
               .title(def.getTitle())
               .description(def.getDescription())
               .type("object")
-              .isArray(false);
+              .isArray(isArray);
       builder.add(group.build());
 
       def.getProperties()
