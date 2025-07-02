@@ -11,7 +11,6 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.profile.rel.domain.ProfileRelConfiguration;
-import de.ii.ogcapi.profile.rel.domain.ProfileSetRel;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
@@ -23,14 +22,6 @@ public abstract class ProfileRel extends ProfileGeneric {
   ProfileRel(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
     this.profileSet = ProfileSetRel.ID;
-  }
-
-  public boolean isDefault() {
-    return false;
-  }
-
-  public boolean isDefaultForComplex() {
-    return false;
   }
 
   @Override

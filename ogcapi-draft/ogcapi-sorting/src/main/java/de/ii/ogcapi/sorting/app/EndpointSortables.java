@@ -33,6 +33,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
@@ -44,6 +45,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -180,6 +182,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
 
   @GET
   @Path("/{collectionId}/sortables")
+  @Produces({"application/schema+json", "text/html"})
   public Response getSortables(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
@@ -187,12 +190,36 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId) {
 
+    String definitionPath = "/collections/{collectionId}/sortables";
+    checkPathParameter(
+        extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
+
+    SortingConfiguration configuration =
+        api.getData()
+            .getExtension(SortingConfiguration.class, collectionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Sorting configuration not found for collection: " + collectionId));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
     CollectionPropertiesQueriesHandler.QueryInputCollectionProperties queryInput =
         new ImmutableQueryInputCollectionProperties.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .type(CollectionPropertiesType.SORTABLES)
             .schemaCache(schemaCache)
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
     return queryHandler.handle(

@@ -58,11 +58,14 @@ public abstract class ProfileSet implements ProfileExtension {
 
   public Optional<Profile> negotiateProfile(
       @NotNull List<Profile> requestedProfiles,
+      @NotNull List<Profile> defaultProfilesResource,
       FormatExtension outputFormat,
       ResourceType resourceType,
       OgcApiDataV2 apiData,
       Optional<String> collectionId) {
-    if ((Objects.nonNull(mediaType) && !mediaType.isCompatible(outputFormat.getMediaType().type()))
+    MediaType responseMediaType =
+        outputFormat != null ? outputFormat.getMediaType().type() : MediaType.WILDCARD_TYPE;
+    if ((Objects.nonNull(mediaType) && !mediaType.isCompatible(responseMediaType))
         || !getResourceType().equals(resourceType)
         || !collectionId
             .map(cid -> isEnabledForApi(apiData, cid))
@@ -70,52 +73,73 @@ public abstract class ProfileSet implements ProfileExtension {
       return Optional.empty();
     }
 
-    if (requestedProfiles.isEmpty()) {
-      // TODO find a way to avoid using reflection
-      Optional<? extends ExtensionConfiguration> cfg =
-          collectionId.flatMap(
-              cid -> apiData.getExtension(outputFormat.getBuildingBlockConfigurationType(), cid));
-      if (cfg.isEmpty()) {
-        cfg = apiData.getExtension(outputFormat.getBuildingBlockConfigurationType());
-      }
+    Optional<Profile> selectedProfile =
+        requestedProfiles.stream()
+            .filter(profile -> profile.getProfileSet().equals(getId()))
+            .findFirst();
 
-      Map<String, String> defaultsFromConfig =
-          cfg.map(
-                  cfg2 -> {
-                    try {
-                      Method method = cfg2.getClass().getMethod("getDefaultProfiles");
-                      if (Map.class.isAssignableFrom(method.getReturnType())) {
-                        Type genericReturnType = method.getGenericReturnType();
-                        if (genericReturnType instanceof ParameterizedType parameterizedType) {
-                          Type[] typeArguments = parameterizedType.getActualTypeArguments();
-                          if (typeArguments.length == 2
-                              && typeArguments[0].equals(String.class)
-                              && typeArguments[1].equals(String.class)) {
-                            return (Map<String, String>) method.invoke(cfg2);
-                          }
-                        }
-                      }
-                    } catch (Exception ignore) {
-                      // not found, return empty map
-                    }
-                    return Map.<String, String>of();
-                  })
-              .orElse(Map.of());
-
-      if (defaultsFromConfig.containsKey(getId())) {
-        Optional<Profile> fromConfig =
-            getProfiles(apiData, collectionId).stream()
-                .filter(profile -> profile.getId().equals(defaultsFromConfig.get(getId())))
-                .findFirst();
-        if (fromConfig.isPresent()) {
-          return fromConfig;
+    if (selectedProfile.isEmpty()) {
+      final Map<String, String> defaultsFromConfig;
+      if (outputFormat != null) {
+        Optional<? extends ExtensionConfiguration> formatConfiguration =
+            collectionId.flatMap(
+                cid -> apiData.getExtension(outputFormat.getBuildingBlockConfigurationType(), cid));
+        if (formatConfiguration.isEmpty()) {
+          formatConfiguration =
+              apiData.getExtension(outputFormat.getBuildingBlockConfigurationType());
         }
+        defaultsFromConfig = getDefaultProfiles(formatConfiguration);
+      } else {
+        defaultsFromConfig = Map.of();
       }
+
+      List<Profile> defaultProfilesFormat =
+          extensionRegistry.getExtensionsForType(Profile.class).stream()
+              .filter(
+                  profile ->
+                      defaultsFromConfig.containsKey(profile.getProfileSet())
+                          && profile
+                              .getId()
+                              .equals(defaultsFromConfig.get(profile.getProfileSet())))
+              .toList();
+
+      selectedProfile =
+          defaultProfilesFormat.stream()
+              .filter(profile -> profile.getProfileSet().equals(getId()))
+              .findFirst()
+              .or(
+                  () ->
+                      defaultProfilesResource.stream()
+                          .filter(profile -> profile.getProfileSet().equals(getId()))
+                          .findFirst());
     }
 
-    return getProfiles(apiData, collectionId).stream()
-        .filter(requestedProfiles::contains)
-        .findFirst()
-        .or(() -> getDefault(apiData, collectionId, outputFormat));
+    return selectedProfile;
+  }
+
+  private static Map<String, String> getDefaultProfiles(
+      Optional<? extends ExtensionConfiguration> cfg) {
+    // TODO avoid using reflection
+    return cfg.map(
+            cfg2 -> {
+              try {
+                Method method = cfg2.getClass().getMethod("getDefaultProfiles");
+                if (Map.class.isAssignableFrom(method.getReturnType())) {
+                  Type genericReturnType = method.getGenericReturnType();
+                  if (genericReturnType instanceof ParameterizedType parameterizedType) {
+                    Type[] typeArguments = parameterizedType.getActualTypeArguments();
+                    if (typeArguments.length == 2
+                        && typeArguments[0].equals(String.class)
+                        && typeArguments[1].equals(String.class)) {
+                      return (Map<String, String>) method.invoke(cfg2);
+                    }
+                  }
+                }
+              } catch (Exception ignore) {
+                // not found, return empty map
+              }
+              return Map.<String, String>of();
+            })
+        .orElse(Map.of());
   }
 }

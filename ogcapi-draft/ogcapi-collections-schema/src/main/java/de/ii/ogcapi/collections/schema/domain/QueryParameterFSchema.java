@@ -9,6 +9,7 @@ package de.ii.ogcapi.collections.schema.domain;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.QueryParameterF;
+import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -48,7 +49,7 @@ public class QueryParameterFSchema extends QueryParameterF {
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return SchemaFormatExtension.class;
+    return CollectionPropertiesFormat.class;
   }
 
   @Override

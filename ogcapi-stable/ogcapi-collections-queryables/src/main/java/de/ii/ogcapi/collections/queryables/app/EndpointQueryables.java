@@ -35,6 +35,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.codelists.domain.Codelist;
@@ -49,6 +50,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -199,6 +201,7 @@ public class EndpointQueryables extends EndpointSubCollection
 
   @GET
   @Path("/{collectionId}/queryables")
+  @Produces({"application/schema+json", "text/html"})
   public Response getQueryables(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
@@ -206,12 +209,36 @@ public class EndpointQueryables extends EndpointSubCollection
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId) {
 
+    String definitionPath = "/collections/{collectionId}/queryables";
+    checkPathParameter(
+        extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
+
+    QueryablesConfiguration configuration =
+        api.getData()
+            .getExtension(QueryablesConfiguration.class, collectionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Queryables configuration not found for collection: " + collectionId));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
     final CollectionPropertiesQueriesHandler.QueryInputCollectionProperties queryInput =
         new ImmutableQueryInputCollectionProperties.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .type(CollectionPropertiesType.QUERYABLES)
             .schemaCache(schemaCache)
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
     return queryHandler.handle(

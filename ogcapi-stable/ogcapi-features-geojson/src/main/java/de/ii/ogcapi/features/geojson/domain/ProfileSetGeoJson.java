@@ -10,9 +10,7 @@ package de.ii.ogcapi.features.geojson.domain;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -51,16 +49,6 @@ public class ProfileSetGeoJson extends ProfileSet {
   @Override
   public String getId() {
     return ID;
-  }
-
-  @Override
-  public Optional<Profile> getDefault(
-      OgcApiDataV2 apiData, Optional<String> collectionId, FormatExtension outputFormat) {
-
-    return getProfiles(apiData, collectionId).stream()
-        .filter(profile -> ((ProfileGeoJson) profile).isDefault())
-        .findFirst()
-        .or(() -> getProfiles(apiData, collectionId).stream().findFirst());
   }
 
   @Override

@@ -10,7 +10,6 @@ package de.ii.ogcapi.profile.val.app;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
-import de.ii.ogcapi.profile.val.domain.ProfileSetVal;
 import de.ii.ogcapi.profile.val.domain.ProfileValConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations.Builder;
@@ -23,14 +22,6 @@ public abstract class ProfileVal extends ProfileGeneric {
   ProfileVal(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
     this.profileSet = ProfileSetVal.ID;
-  }
-
-  public boolean isDefault() {
-    return false;
-  }
-
-  public boolean isDefaultForHumanReadable() {
-    return false;
   }
 
   @Override

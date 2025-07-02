@@ -17,11 +17,13 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.features.core.domain.SchemaDeriverCollectionProperties;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation.Builder;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import java.util.List;
 import java.util.Optional;
 
 class SchemaCacheSortables extends JsonSchemaCache {
@@ -38,6 +40,7 @@ class SchemaCacheSortables extends JsonSchemaCache {
       FeatureSchema schema,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
+      List<Profile> profiles,
       Optional<String> schemaUri,
       VERSION version) {
 

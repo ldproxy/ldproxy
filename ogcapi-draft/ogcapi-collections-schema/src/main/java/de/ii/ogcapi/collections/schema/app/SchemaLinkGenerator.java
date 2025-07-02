@@ -29,7 +29,7 @@ public class SchemaLinkGenerator {
    */
   public List<Link> generateCollectionLinks(
       URICustomizer uriBuilder, String label, I18n i18n, Optional<Locale> language) {
-
+    // FIXME
     return ImmutableList.<Link>builder()
         .add(
             new ImmutableLink.Builder()

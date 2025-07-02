@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -26,13 +27,18 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.values.domain.ValueStore;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -59,7 +65,11 @@ public class CollectionPropertiesQueriesHandlerImpl implements CollectionPropert
 
   @Inject
   public CollectionPropertiesQueriesHandlerImpl(
-      ExtensionRegistry extensionRegistry, I18n i18n, FeaturesCoreProviders providers) {
+      ExtensionRegistry extensionRegistry,
+      I18n i18n,
+      FeaturesCoreProviders providers,
+      ValueStore valueStore,
+      VolatileRegistry volatileRegistry) {
     this.extensionRegistry = extensionRegistry;
     this.i18n = i18n;
     this.providers = providers;
@@ -88,14 +98,11 @@ public class CollectionPropertiesQueriesHandlerImpl implements CollectionPropert
     final OgcApi api = requestContext.getApi();
     final OgcApiDataV2 apiData = api.getData();
     final String collectionId = queryInput.getCollectionId();
+    checkCollectionId(api.getData(), collectionId);
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+
     final CollectionPropertiesType type = queryInput.getType();
     final JsonSchemaCache schemaCache = queryInput.getSchemaCache();
-
-    if (!apiData.isCollectionEnabled(collectionId)) {
-      throw new NotFoundException(
-          MessageFormat.format("The collection ''{0}'' does not exist in this API.", collectionId));
-    }
-    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
 
     CollectionPropertiesFormat outputFormat =
         api.getOutputFormat(
@@ -109,9 +116,28 @@ public class CollectionPropertiesQueriesHandlerImpl implements CollectionPropert
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    checkCollectionId(api.getData(), collectionId);
+    List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
 
-    List<Link> links = getLinks(requestContext, i18n);
+    List<Profile> profiles =
+        negotiateProfiles(
+            allProfileSets,
+            outputFormat,
+            ResourceType.SCHEMA,
+            apiData,
+            Optional.of(collectionId),
+            queryInput.getProfiles(),
+            queryInput.getDefaultProfilesResource());
+
+    Map<ApiMediaType, List<Profile>> alternateProfiles =
+        getAlternateProfiles(
+            allProfileSets,
+            apiData,
+            collectionId,
+            requestContext.getMediaType(),
+            requestContext.getAlternateMediaTypes(),
+            profiles);
+
+    List<Link> links = getLinks(requestContext, profiles, alternateProfiles, i18n);
 
     Optional<String> schemaUri =
         links.stream()
@@ -136,7 +162,7 @@ public class CollectionPropertiesQueriesHandlerImpl implements CollectionPropert
 
     JsonSchemaDocument schema =
         schemaCache.getSchema(
-            featureSchema, apiData, collectionData, schemaUri, jsonSchemaExtensions);
+            featureSchema, apiData, collectionData, profiles, schemaUri, jsonSchemaExtensions);
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =

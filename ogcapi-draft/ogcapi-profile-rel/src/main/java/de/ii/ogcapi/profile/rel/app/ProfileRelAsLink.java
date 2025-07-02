@@ -26,9 +26,4 @@ public class ProfileRelAsLink extends ProfileRel {
   public String getId() {
     return ProfileTransformations.REL_AS_LINK;
   }
-
-  @Override
-  public boolean isDefaultForComplex() {
-    return true;
-  }
 }

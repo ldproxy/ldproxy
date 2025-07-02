@@ -9,8 +9,8 @@ package de.ii.ogcapi.features.gltf.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.Map;
@@ -58,7 +58,8 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new", deepImmutablesDetection = true, attributeBuilderDetection = true)
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "GLTF")
 @JsonDeserialize(builder = ImmutableGltfConfiguration.Builder.class)
-public interface GltfConfiguration extends ExtensionConfiguration, FeatureFormatConfiguration {
+public interface GltfConfiguration
+    extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
 
   /**
    * @langEn Enables support for the glTF 2.0 extension
@@ -188,6 +189,23 @@ public interface GltfConfiguration extends ExtensionConfiguration, FeatureFormat
   @Nullable
   Integer getMaxMultiplicity();
 
+  /**
+   * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
+   *     this feature format. The value is an object where the key is the id of a profile set, such
+   *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.
+   *     These defaults override the defaults specified in the [Features](features.md) building
+   *     block.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
+   *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `rel`, und der Wert das Standardprofil für den Profilsatz, z. B. `rel-as-key`. Diese
+   *     Vorgaben haben Vorrang vor den im [Features](features.md)-Baustein angegebenen
+   *     Standardprofilen.
+   * @since v4.2
+   * @default {}
+   */
+  @Override
+  Map<String, String> getDefaultProfiles();
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override
@@ -201,13 +219,13 @@ public interface GltfConfiguration extends ExtensionConfiguration, FeatureFormat
         .from(source)
         .from(this)
         .transformations(
-            FeatureFormatConfiguration.super
+            PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
                 .getTransformations())
         .defaultProfiles(
-            this.getDefaultProfiles().isEmpty()
-                ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
-                : this.getDefaultProfiles())
+            ProfilesConfiguration.super
+                .mergeInto((ProfilesConfiguration) source)
+                .getDefaultProfiles())
         .build();
   }
 }

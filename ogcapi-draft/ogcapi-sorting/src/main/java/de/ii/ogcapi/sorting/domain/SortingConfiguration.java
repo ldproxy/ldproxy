@@ -14,6 +14,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
@@ -44,7 +45,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "SORTING")
 @JsonDeserialize(builder = ImmutableSortingConfiguration.Builder.class)
-public interface SortingConfiguration extends ExtensionConfiguration {
+public interface SortingConfiguration extends ExtensionConfiguration, ProfilesConfiguration {
 
   /**
    * @langEn Controls which of the attributes in queries can be used for sorting data. Only direct
@@ -83,6 +84,24 @@ public interface SortingConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   PathSeparator getPathSeparator();
+
+  /**
+   * @langEn Change the default value of the [profile parameter](schemas.md#query-parameters) for
+   *     schema resources. The value is an object where the key is the id of a profile set, such as
+   *     `codelist`, and the value is the default profile for the profile set, e.g.,
+   *     `codelists-inline`. In addition, format-specific default profiles can be specified in the
+   *     building block of each schema format. Those defaults have a higher priority.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](schemas.md#query-parameter) für
+   *     Schemas. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `codelist`, und der Wert das Standardprofil für den Profilsatz, z. B.
+   *     `codelists-inline`. Darüber hinaus können für jedes Schema-Format im entsprechenden
+   *     Baustein formatspezifische Standardprofile konfiguriert werden. Diese Standardprofile haben
+   *     eine höhere Priorität.
+   * @since v4.5
+   * @default {"codelist": "codelists-ref"}
+   */
+  @Override
+  Map<String, String> getDefaultProfiles();
 
   default Map<String, FeatureSchema> getSortables(
       OgcApiDataV2 apiData,

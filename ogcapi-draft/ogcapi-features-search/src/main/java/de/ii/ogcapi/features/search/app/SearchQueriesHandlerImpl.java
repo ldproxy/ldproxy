@@ -803,6 +803,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 profileSet
                                     .negotiateProfile(
                                         requestedProfiles,
+                                        List.of(), // FIXME
                                         outputFormat,
                                         ResourceType.FEATURE,
                                         api.getData(),

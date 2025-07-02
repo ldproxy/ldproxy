@@ -22,9 +22,11 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.tiles.app.TilesBuildingBlock;
 import de.ii.ogcapi.tiles.domain.ImmutableQueryInputTileSet.Builder;
 import de.ii.ogcapi.tiles.domain.TileSetFormatExtension;
+import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesQueriesHandler;
 import java.util.List;
@@ -105,12 +107,30 @@ public abstract class AbstractEndpointTileSetDataset extends Endpoint {
     checkPathParameter(
         extensionRegistry, apiData, definitionPath, "tileMatrixSetId", tileMatrixSetId);
 
+    TilesConfiguration configuration =
+        apiData
+            .getExtension(TilesConfiguration.class)
+            .orElseThrow(
+                () -> new IllegalStateException("Tiles configuration not found for the dataset."));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
     TilesQueriesHandler.QueryInputTileSet queryInput =
         new Builder()
             .from(getGenericQueryInput(apiData))
             .styleId(styleId)
             .tileMatrixSetId(tileMatrixSetId)
             .path(definitionPath)
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
     return queryHandler.handle(TilesQueriesHandler.Query.TILE_SET, queryInput, requestContext);

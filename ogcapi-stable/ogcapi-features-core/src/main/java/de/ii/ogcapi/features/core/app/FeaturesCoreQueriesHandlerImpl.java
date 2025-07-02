@@ -271,6 +271,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                     profileSet
                         .negotiateProfile(
                             queryInput.getProfiles(),
+                            queryInput.getDefaultProfilesResource(),
                             outputFormat,
                             ResourceType.FEATURE,
                             api.getData(),

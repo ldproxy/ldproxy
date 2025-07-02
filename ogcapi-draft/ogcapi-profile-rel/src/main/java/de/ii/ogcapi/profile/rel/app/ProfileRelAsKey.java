@@ -26,9 +26,4 @@ public class ProfileRelAsKey extends ProfileRel {
   public String getId() {
     return ProfileTransformations.REL_AS_KEY;
   }
-
-  @Override
-  public boolean isDefault() {
-    return true;
-  }
 }

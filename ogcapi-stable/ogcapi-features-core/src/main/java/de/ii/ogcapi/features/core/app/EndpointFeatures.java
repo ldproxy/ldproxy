@@ -274,11 +274,25 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
 
+    @SuppressWarnings("unchecked")
     List<Profile> requestedProfiles =
         (List<Profile>)
             Objects.requireNonNullElse(
                 queryParameterSet.getTypedValues().get(QueryParameterProfileFeatures.PROFILE),
                 List.of());
+
+    List<Profile> defaultProfilesFeaturesCore =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                coreConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
 
     FeatureQuery query =
         ogcApiFeaturesQuery.requestToFeatureQuery(
@@ -294,6 +308,7 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
             .collectionId(collectionId)
             .query(query)
             .profiles(requestedProfiles)
+            .defaultProfilesResource(defaultProfilesFeaturesCore)
             .featureProvider(providers.getFeatureProviderOrThrow(api.getData(), collectionData))
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .defaultPageSize(Optional.of(defaultPageSize))

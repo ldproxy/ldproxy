@@ -5,11 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.features.core.app;
+package de.ii.ogcapi.collections.schema.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.common.domain.QueryParameterProfile;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -24,40 +24,36 @@ import javax.inject.Singleton;
 
 /**
  * @title profile
- * @endpoints Features, Feature
+ * @endpoints Schema
  * @langEn This query parameter supports requesting variations in the representation of data in the
- *     same format, depending on the intended use of the data. The supported profiles depend on the
- *     provider schema of the feature collection. If a format does not support the requested
- *     profile, the best match for the requested profile is used depending on the format. The
- *     negotiated profiles are returned in links with `rel` set to `profile`.
+ *     same format, depending on the intended use of the data. If a format does not support the
+ *     requested profile, the best match for the requested profile is used depending on the format.
+ *     The negotiated profiles are returned in links with `rel` set to `profile`.
  * @langDe Dieser Abfrageparameter unterstützt die Abfrage von Variationen in der Darstellung von
- *     Daten im gleichen Format, je nach der beabsichtigten Verwendung der Daten. Die unterstützten
- *     Profile hängen vom Provider-Schema der Feature Collection ab. Wenn ein Format das
- *     angeforderte Profil nicht unterstützt, wird je nach Format die beste Übereinstimmung für das
- *     angeforderte Profil verwendet. Die ausgehandelten Profile werden in Links zurückgegeben,
+ *     Daten im gleichen Format, je nach der beabsichtigten Verwendung der Daten. Wenn ein Format
+ *     das angeforderte Profil nicht unterstützt, wird je nach Format die beste Übereinstimmung für
+ *     das angeforderte Profil verwendet. Die ausgehandelten Profile werden in Links zurückgegeben,
  *     wobei `rel` auf `profile` gesetzt ist.
  * @default []
  */
 @Singleton
 @AutoBind
-public class QueryParameterProfileFeatures extends QueryParameterProfile
-    implements ConformanceClass {
+public class QueryParameterProfileSchema extends QueryParameterProfile implements ConformanceClass {
 
   @Inject
-  public QueryParameterProfileFeatures(
+  public QueryParameterProfileSchema(
       ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
     super(extensionRegistry, schemaValidator);
   }
 
   @Override
   public String getId(String collectionId) {
-    return "profileFeatures_" + collectionId;
+    return "profileSchema_" + collectionId;
   }
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/collections/{collectionId}/items/{featureId}");
+    return definitionPath.equals("/collections/{collectionId}/schema");
   }
 
   @Override
@@ -67,12 +63,12 @@ public class QueryParameterProfileFeatures extends QueryParameterProfile
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return FeaturesCoreConfiguration.class;
+    return SchemaConfiguration.class;
   }
 
   @Override
   public ResourceType getResourceType() {
-    return ResourceType.FEATURE;
+    return ResourceType.SCHEMA;
   }
 
   @Override

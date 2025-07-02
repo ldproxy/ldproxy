@@ -11,36 +11,36 @@ import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocumentV7;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocumentV7;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class WithCodelistUri implements JsonSchemaVisitor {
+public class WithCodelist implements JsonSchemaVisitor {
 
   private final URI serviceUri;
   private final OgcApiDataV2 apiData;
+  private final List<Profile> profiles;
 
-  public WithCodelistUri(URI serviceUri, OgcApiDataV2 apiData) {
+  public WithCodelist(URI serviceUri, OgcApiDataV2 apiData, List<Profile> profiles) {
     this.serviceUri = serviceUri;
     this.apiData = apiData;
+    this.profiles = profiles;
   }
 
   @Override
@@ -150,24 +150,19 @@ public class WithCodelistUri implements JsonSchemaVisitor {
 
     if (schema.getCodelistId().isPresent()) {
       try {
+        String codelistId = schema.getCodelistId().get();
         String codelistUri =
             new URICustomizer(serviceUri)
                 .ensureNoTrailingSlash()
                 .ensureLastPathSegments(apiData.getSubPath().toArray(new String[0]))
-                .ensureLastPathSegments("codelists", schema.getCodelistId().get())
+                .ensureLastPathSegments("codelists", codelistId)
                 .build()
                 .toString();
-        if (schema instanceof JsonSchemaString) {
-          return new ImmutableJsonSchemaString.Builder()
-              .from((JsonSchemaString) schema)
-              .codelistUri(codelistUri)
-              .build();
-        } else if (schema instanceof JsonSchemaInteger) {
-          return new ImmutableJsonSchemaInteger.Builder()
-              .from((JsonSchemaInteger) schema)
-              .codelistUri(codelistUri)
-              .build();
-        }
+        return profiles.stream()
+            .filter(profile -> profile instanceof ProfileCodelist)
+            .findFirst()
+            .map(p -> ((ProfileCodelist) p).process(schema, codelistId, codelistUri))
+            .orElse(schema);
       } catch (URISyntaxException e) {
         // ignore
       }

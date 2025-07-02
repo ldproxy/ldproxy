@@ -9,16 +9,15 @@ package de.ii.ogcapi.features.core.domain;
 
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
-import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.foundation.domain.WithProfiles;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -41,12 +40,10 @@ public interface FeaturesCoreQueriesHandler
     FEATURE
   }
 
-  interface QueryInputFeaturesBase extends QueryInput {
+  interface QueryInputFeaturesBase extends QueryInput, WithProfiles {
     String getCollectionId();
 
     FeatureQuery getQuery();
-
-    List<Profile> getProfiles();
 
     FeatureProvider getFeatureProvider();
 

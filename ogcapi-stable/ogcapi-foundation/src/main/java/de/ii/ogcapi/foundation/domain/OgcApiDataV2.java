@@ -43,6 +43,25 @@ import org.immutables.value.Value;
  *     parameter `f`, which allows to explicitly choose the encoding and override the result of the
  *     content negotiation. The supported encodings depend on the affected resource and the
  *     configuration.
+ *     <p>### Response profiles
+ *     <p>Some resources may be represented in with variations in the same format (media type),
+ *     depending on the intended use of the representation.
+ *     <p>These variations are called "profiles". A profile is defined not to alter the semantics of
+ *     the resource representation itself, but to allow clients to learn about additional semantics
+ *     (constraints, conventions, extensions) that are associated with the resource representation,
+ *     in addition to those defined by the media type and possibly other mechanisms. See [IETF RFC
+ *     6906](https://www.rfc-editor.org/rfc/rfc6906.html) for details.
+ *     <p>To request one or more profiles, a query parameter "profile" can be used on resources that
+ *     are associated with profiles (currently: feature and schema resources).
+ *     <p>The supported profiles depend on the resource type and, in some cases, on the media type.
+ *     <p>Profiles are organized in profile sets. Whether a profile set applies to a resource
+ *     representation, depends on the resource and potentially the media type of the represenation.
+ *     From each applicable profile set, at most one profile applies to the resource representation.
+ *     <p>The profiles are negotiated as follows:
+ *     <p><code>
+ * - If a profile is specified via the "profile" query parameter and the profile is applicable to the resource, the profile is selected for the specific profile set;
+ * - If no profile is explicitly requested for an applicable profile set, a default profile from the profile set is selected. Depending on the nature of the profile set, the default profiles can be specified either in the building block of the resource and/or in the building block of the format via the `defaultProfiles` option. A default specified for a format overrides the default profile specified for the resource.
+ * </code>
  *     <p>### Response language
  *     <p>For operations that return a response, the language for linguistic texts is chosen using
  *     standard HTTP content negotiation with `Accept-Language` headers.
@@ -75,6 +94,29 @@ import org.immutables.value.Value;
  *     ausgewählt werden. Wenn kein Wert angegeben wird, gelten die Standard-HTTP-Regeln, d.h. der
  *     `Accept`-Header wird zur Bestimmung des Formats verwendet. Die unterstützten Formate hängen
  *     von der Ressource und von der API-Konfiguration ab.
+ *     <p>### Auswahl von Profilen
+ *     <p>Einige Ressourcen können in verschiedenen Varianten desselben Formats (Media Types)
+ *     repräsentiert werden, je nach Verwendungszweck der Antwort.
+ *     <p>Diese Variationen werden als „Profile“ bezeichnet. Ein Profil wird nicht definiert, um die
+ *     Semantik der Ressourcendarstellung selbst zu ändern, sondern um es den Clients zu
+ *     ermöglichen, zusätzliche Semantiken (Einschränkungen, Konventionen, Erweiterungen) zu
+ *     erfahren, die mit der Ressourcendarstellung verbunden sind, zusätzlich zu denen, die durch
+ *     den Medientyp und möglicherweise andere Mechanismen definiert sind. Siehe [IETF RFC
+ *     6906](https://www.rfc-editor.org/rfc/rfc6906.html) für Details.
+ *     <p>Um ein oder mehrere Profile anzufordern, kann ein Abfrageparameter „profile“ für
+ *     Ressourcen verwendet werden, die mit Profilen verbunden sind (derzeit: Feature- und
+ *     Schemaressourcen).
+ *     <p>Die unterstützten Profile hängen vom Ressourcentyp und in einigen Fällen auch vom Media
+ *     Type ab.
+ *     <p>Profile sind in Profilsätzen organisiert. Ob ein Profilsatz für eine Ressourcendarstellung
+ *     gilt, hängt von der Ressource und möglicherweise vom Medientyp der Repräsentierung ab. Von
+ *     jedem anwendbaren Profilsatz wird maximal ein Profil bei der Repräsentierung der Ressource
+ *     angewendet.
+ *     <p>Die Profile werden wie folgt ausgehandelt:
+ *     <p><code>
+ * - Wenn ein Profil über den Abfrageparameter „profile“ angegeben wird und das Profil auf die Ressource anwendbar ist, wird das Profil für das spezifische Profilset ausgewählt;
+ * - Wird für einen anwendbaren Profilsatz kein Profil explizit angefordert, wird das Standardprofil für dem Profilsatz ausgewählt. Je nach Art des Profilsatzes wird das Standardprofile entweder im Baustein der Ressource und/oder im Baustein des Formats über die Option `defaultProfiles` angegeben. Ein für ein Format angegebenes Standardprofil hat Vorrang vor dem für die Ressource angegebenen Standardprofil.
+ * </code>
  *     <p>### Auswahl der Antwortsprache
  *     <p>Bei Operationen, die eine Antwort zurückliefern, wird die verwendete Sprache bei
  *     linguistischen Texten nach den Standard-HTTP-Regeln standardmäßig über Content-Negotiation

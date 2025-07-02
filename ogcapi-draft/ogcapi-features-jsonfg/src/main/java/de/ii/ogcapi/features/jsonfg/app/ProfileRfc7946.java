@@ -35,11 +35,6 @@ public class ProfileRfc7946 extends ProfileGeoJson {
   }
 
   @Override
-  public boolean isDefault() {
-    return true;
-  }
-
-  @Override
   public boolean includeAlternateLinks() {
     return true;
   }

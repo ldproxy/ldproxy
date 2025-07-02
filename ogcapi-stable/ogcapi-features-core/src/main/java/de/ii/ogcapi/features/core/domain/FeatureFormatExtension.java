@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
@@ -195,10 +196,10 @@ public abstract class FeatureFormatExtension implements FormatExtension {
         .getExtension(getBuildingBlockConfigurationType(), collectionId)
         .filter(
             buildingBlockConfiguration ->
-                buildingBlockConfiguration instanceof FeatureFormatConfiguration)
+                buildingBlockConfiguration instanceof ProfilesConfiguration)
         .map(
             buildingBlockConfiguration ->
-                ((FeatureFormatConfiguration) buildingBlockConfiguration).getDefaultProfiles())
+                ((ProfilesConfiguration) buildingBlockConfiguration).getDefaultProfiles())
         .orElse(Map.of());
   }
 

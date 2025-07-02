@@ -5,18 +5,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.features.geojson.domain;
+package de.ii.ogcapi.codelists.app;
 
+import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 
-public abstract class ProfileGeoJson extends ProfileGeneric {
+public abstract class ProfileCodelist extends ProfileGeneric {
 
   protected final String profileSet;
 
-  protected ProfileGeoJson(ExtensionRegistry extensionRegistry) {
+  protected ProfileCodelist(ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
-    this.profileSet = ProfileSetGeoJson.ID;
+    this.profileSet = ProfileSetCodelist.ID;
   }
 
   @Override
@@ -24,11 +25,5 @@ public abstract class ProfileGeoJson extends ProfileGeneric {
     return profileSet;
   }
 
-  public boolean writeJsonFgExtensions() {
-    return false;
-  }
-
-  public boolean writeSecondaryGeometry() {
-    return false;
-  }
+  public abstract JsonSchema process(JsonSchema jsonSchema, String codelistId, String codelistUri);
 }

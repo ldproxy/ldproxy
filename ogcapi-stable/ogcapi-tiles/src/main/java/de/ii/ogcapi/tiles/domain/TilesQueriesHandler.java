@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.ogcapi.foundation.domain.WithProfiles;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration.WmtsScope;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.tiles.domain.TileCoordinates;
@@ -46,7 +47,7 @@ public interface TilesQueriesHandler extends QueriesHandler<TilesQueriesHandler.
   }
 
   @Value.Immutable
-  interface QueryInputTileSets extends QueryInput {
+  interface QueryInputTileSets extends QueryInput, WithProfiles {
 
     Optional<String> getCollectionId();
 
@@ -62,7 +63,7 @@ public interface TilesQueriesHandler extends QueriesHandler<TilesQueriesHandler.
   }
 
   @Value.Immutable
-  interface QueryInputTileSet extends QueryInput {
+  interface QueryInputTileSet extends QueryInput, WithProfiles {
 
     Optional<String> getCollectionId();
 

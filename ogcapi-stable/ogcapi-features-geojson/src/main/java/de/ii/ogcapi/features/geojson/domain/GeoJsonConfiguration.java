@@ -9,10 +9,11 @@ package de.ii.ogcapi.features.geojson.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -171,7 +172,8 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new", deepImmutablesDetection = true, attributeBuilderDetection = true)
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "GEO_JSON")
 @JsonDeserialize(builder = ImmutableGeoJsonConfiguration.Builder.class)
-public interface GeoJsonConfiguration extends ExtensionConfiguration, FeatureFormatConfiguration {
+public interface GeoJsonConfiguration
+    extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
 
   enum NESTED_OBJECTS {
     NEST,
@@ -201,6 +203,23 @@ public interface GeoJsonConfiguration extends ExtensionConfiguration, FeatureFor
         transformation -> transformation.getFlatten().isPresent());
   }
 
+  /**
+   * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
+   *     this feature format. The value is an object where the key is the id of a profile set, such
+   *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.
+   *     These defaults override the defaults specified in the [Features](features.md) building
+   *     block.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
+   *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `rel`, und der Wert das Standardprofil für den Profilsatz, z. B. `rel-as-key`. Diese
+   *     Vorgaben haben Vorrang vor den im [Features](features.md)-Baustein angegebenen
+   *     Standardprofilen.
+   * @since v4.2
+   * @default {"rel": "rel-as-link", "geojson": "rfc7946"}
+   */
+  @Override
+  Map<String, String> getDefaultProfiles();
+
   @Override
   default Builder getBuilder() {
     return new ImmutableGeoJsonConfiguration.Builder();
@@ -212,13 +231,13 @@ public interface GeoJsonConfiguration extends ExtensionConfiguration, FeatureFor
         .from(source)
         .from(this)
         .transformations(
-            FeatureFormatConfiguration.super
+            PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
                 .getTransformations())
         .defaultProfiles(
-            this.getDefaultProfiles().isEmpty()
-                ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
-                : this.getDefaultProfiles())
+            ProfilesConfiguration.super
+                .mergeInto((ProfilesConfiguration) source)
+                .getDefaultProfiles())
         .build();
   }
 }

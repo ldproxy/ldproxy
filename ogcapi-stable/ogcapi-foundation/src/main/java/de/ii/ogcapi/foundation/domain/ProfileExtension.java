@@ -57,14 +57,6 @@ public interface ProfileExtension extends ApiExtension {
    */
   List<Profile> getProfiles(OgcApiDataV2 apiData, Optional<String> collectionId);
 
-  /**
-   * @return a default value
-   */
-  default Optional<Profile> getDefault(
-      OgcApiDataV2 apiData, Optional<String> collectionId, FormatExtension outputFormat) {
-    return Optional.empty();
-  }
-
   default boolean includeAlternateLinks() {
     return false;
   }

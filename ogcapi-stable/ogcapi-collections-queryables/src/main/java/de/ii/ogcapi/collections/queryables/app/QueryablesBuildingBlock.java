@@ -133,6 +133,7 @@ public class QueryablesBuildingBlock implements ApiBuildingBlock {
         .pathSeparator(PathSeparator.DOT)
         .enableEndpoint(true)
         .asQueryParameters(true)
+        .defaultProfiles(Map.of("codelist", "codelists-ref"))
         .build();
   }
 

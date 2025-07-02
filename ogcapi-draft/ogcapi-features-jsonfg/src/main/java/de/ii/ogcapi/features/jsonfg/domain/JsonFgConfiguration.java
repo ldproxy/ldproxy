@@ -8,12 +8,12 @@
 package de.ii.ogcapi.features.jsonfg.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.features.jsonfg.domain.ImmutableJsonFgConfiguration.Builder;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -88,7 +88,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new", deepImmutablesDetection = true)
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "JSON_FG")
 @JsonDeserialize(builder = Builder.class)
-public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureFormatConfiguration {
+public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTransformations {
 
   /**
    * @langEn Activates support for the "jsonfg-plus" profile. In that profile, JSON-FG features with
@@ -184,10 +184,10 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
     return new ImmutableJsonFgConfiguration.Builder()
         .from(source)
         .from(this)
-        .defaultProfiles(
-            this.getDefaultProfiles().isEmpty()
-                ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
-                : this.getDefaultProfiles())
+        .transformations(
+            PropertyTransformations.super
+                .mergeInto((PropertyTransformations) source)
+                .getTransformations())
         .featureType(
             Objects.isNull(this.getFeatureType())
                 ? ((JsonFgConfiguration) source).getFeatureType()

@@ -11,6 +11,7 @@ import de.ii.ogcapi.features.core.app.CollectionPropertiesQueriesHandlerImpl;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.foundation.domain.WithProfiles;
 import org.immutables.value.Value;
 
 public interface CollectionPropertiesQueriesHandler
@@ -21,7 +22,7 @@ public interface CollectionPropertiesQueriesHandler
   }
 
   @Value.Immutable
-  interface QueryInputCollectionProperties extends QueryInput {
+  interface QueryInputCollectionProperties extends QueryInput, WithProfiles {
     String getCollectionId();
 
     CollectionPropertiesType getType();

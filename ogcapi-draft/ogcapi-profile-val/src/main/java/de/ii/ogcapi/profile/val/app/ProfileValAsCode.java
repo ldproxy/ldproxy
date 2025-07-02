@@ -26,9 +26,4 @@ public class ProfileValAsCode extends ProfileVal {
   public String getId() {
     return ProfileTransformations.VAL_AS_CODE;
   }
-
-  @Override
-  public boolean isDefault() {
-    return true;
-  }
 }

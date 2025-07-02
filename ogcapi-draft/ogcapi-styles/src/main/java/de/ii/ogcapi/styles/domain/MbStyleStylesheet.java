@@ -128,6 +128,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                           schema.get(),
                           apiData,
                           apiData.getCollections().get(collectionId),
+                          List.of(), // FIXME default profiles ok?
                           Optional.empty(),
                           jsonSchemaExtensions));
                 })

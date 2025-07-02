@@ -26,9 +26,4 @@ public class ProfileValAsTitle extends ProfileVal {
   public String getId() {
     return ProfileTransformations.VAL_AS_TITLE;
   }
-
-  @Override
-  public boolean isDefaultForHumanReadable() {
-    return true;
-  }
 }
