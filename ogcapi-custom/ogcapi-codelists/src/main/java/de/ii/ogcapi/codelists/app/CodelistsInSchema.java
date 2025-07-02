@@ -18,6 +18,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -34,7 +35,12 @@ public class CodelistsInSchema implements JsonSchemaExtension {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return JsonSchemaExtension.super.isEnabledForApi(apiData);
+    return true;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return true;
   }
 
   @Override
@@ -49,6 +55,13 @@ public class CodelistsInSchema implements JsonSchemaExtension {
       OgcApiDataV2 apiData,
       String collectionId,
       List<Profile> profiles) {
-    return jsonSchema.accept(new WithCodelist(serviceUri, apiData, profiles));
+    // do not write codelist URI, if the codelists are not published as a resource
+    return jsonSchema.accept(
+        new WithCodelist(
+            JsonSchemaExtension.super.isEnabledForApi(apiData)
+                ? Optional.of(serviceUri)
+                : Optional.empty(),
+            apiData,
+            profiles));
   }
 }

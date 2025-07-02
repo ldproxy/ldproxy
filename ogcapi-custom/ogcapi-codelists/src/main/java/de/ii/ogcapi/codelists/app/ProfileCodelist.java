@@ -10,6 +10,7 @@ package de.ii.ogcapi.codelists.app;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
+import java.util.Optional;
 
 public abstract class ProfileCodelist extends ProfileGeneric {
 
@@ -25,5 +26,6 @@ public abstract class ProfileCodelist extends ProfileGeneric {
     return profileSet;
   }
 
-  public abstract JsonSchema process(JsonSchema jsonSchema, String codelistId, String codelistUri);
+  public abstract JsonSchema process(
+      JsonSchema jsonSchema, String codelistId, Optional<String> codelistUri);
 }

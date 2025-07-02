@@ -16,6 +16,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
+import de.ii.ogcapi.features.core.domain.JsonSchemaGeometry;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -32,9 +33,11 @@ import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore.FormatAlias;
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -128,7 +131,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                           schema.get(),
                           apiData,
                           apiData.getCollections().get(collectionId),
-                          List.of(), // FIXME default profiles ok?
+                          List.of(),
                           Optional.empty(),
                           jsonSchemaExtensions));
                 })
@@ -151,15 +154,8 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                       && apiId.get().equals(apiData.getId())
                       && collectionId.isPresent()
                       && schemaMap.containsKey(collectionId.get());
-              final JsonSchema geometry =
-                  knownSource
-                      ? schemaMap.get(collectionId.get()).getProperties().get("geometry")
-                      : null;
               final JsonSchemaObject properties =
-                  knownSource
-                      ? (JsonSchemaObject)
-                          schemaMap.get(collectionId.get()).getProperties().get("properties")
-                      : null;
+                  knownSource ? schemaMap.get(collectionId.get()) : null;
 
               ImmutableSet.Builder<String> attNamesBuilder = ImmutableSet.builder();
               attNamesBuilder.addAll(getAttributes(layer.getFilter()));
@@ -180,34 +176,44 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                           attName -> {
                             if (Objects.nonNull(properties)) {
                               if (properties.getProperties().containsKey(attName))
-                                return new AbstractMap.SimpleImmutableEntry<>(
+                                return new SimpleImmutableEntry<>(
                                     attName, properties.getProperties().get(attName));
                               return properties.getPatternProperties().entrySet().stream()
                                   .filter(entry -> attName.matches(entry.getKey()))
                                   .map(
                                       entry ->
-                                          new AbstractMap.SimpleImmutableEntry<>(
-                                              attName, entry.getValue()))
+                                          new SimpleImmutableEntry<>(attName, entry.getValue()))
                                   .findAny()
                                   .orElse(null);
                             }
                             return null;
                           })
                       .filter(Objects::nonNull)
-                      .collect(
-                          ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)));
+                      .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue)));
 
-              if (Objects.nonNull(geometry)) {
-                String geomAsString = geometry.toString();
+              JsonSchema geometry =
+                  properties != null
+                      ? properties.getProperties().values().stream()
+                          .filter(
+                              property ->
+                                  property.getRole().filter("primary-geometry"::equals).isPresent())
+                          .findFirst()
+                          .orElse(null)
+                      : null;
+              if (Objects.nonNull(geometry) && geometry instanceof JsonSchemaGeometry) {
+                String geomAsString = ((JsonSchemaGeometry) geometry).getFormat();
                 boolean point =
-                    geomAsString.contains("GeoJSON Point")
-                        || geomAsString.contains("GeoJSON MultiPoint");
+                    "geometry-point".equals(geomAsString)
+                        || "geometry-multipoint".equals(geomAsString)
+                        || "geometry-point-or-multipoint".equals(geomAsString);
                 boolean line =
-                    geomAsString.contains("GeoJSON LineString")
-                        || geomAsString.contains("GeoJSON MultiLineString");
+                    "geometry-linestring".equals(geomAsString)
+                        || "geometry-multilinestring".equals(geomAsString)
+                        || "geometry-linestring-or-multilinestring".equals(geomAsString);
                 boolean polygon =
-                    geomAsString.contains("GeoJSON Polygon")
-                        || geomAsString.contains("GeoJSON MultiPolygon");
+                    "geometry-polygon".equals(geomAsString)
+                        || "geometry-multipolygon".equals(geomAsString)
+                        || "geometry-polygon-or-multipolygon".equals(geomAsString);
                 if (point && !line && !polygon) builder.type("point");
                 else if (!point && line && !polygon) builder.type("line");
                 else if (!point && !line && polygon) builder.type("polygon");
@@ -248,7 +254,8 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
       if (it.hasNext()) {
         Object obj = it.next();
         if (obj instanceof String
-            && ImmutableList.of("get", "has", "in").contains((String) obj)
+            && ImmutableList.of("get", "has", "in", "==", "!=", "<", ">", "<=", ">=")
+                .contains((String) obj)
             && it.hasNext()) {
           obj = it.next();
           if (obj instanceof String) {

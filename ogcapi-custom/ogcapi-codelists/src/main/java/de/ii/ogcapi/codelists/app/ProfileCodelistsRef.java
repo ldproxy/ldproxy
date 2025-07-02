@@ -16,6 +16,7 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -34,7 +35,11 @@ public class ProfileCodelistsRef extends ProfileCodelist {
   }
 
   @Override
-  public JsonSchema process(JsonSchema schema, String codelistId, String codelistUri) {
+  public JsonSchema process(JsonSchema schema, String codelistId, Optional<String> codelistUri) {
+    if (codelistUri.isEmpty()) {
+      return schema;
+    }
+
     if (schema instanceof JsonSchemaString) {
       return new ImmutableJsonSchemaString.Builder()
           .from((JsonSchemaString) schema)

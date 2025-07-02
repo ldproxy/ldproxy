@@ -36,6 +36,7 @@ import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
@@ -791,6 +792,29 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         extensionRegistry.getExtensionsForType(Profile.class).stream()
             .filter(profile -> queryExpression.getProfiles().contains(profile.getId()))
             .toList();
+    FeaturesCoreConfiguration coreConfiguration =
+        requestContext
+            .getApi()
+            .getData()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .filter(
+                cfg ->
+                    cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
+                        != FeaturesCoreConfiguration.ItemType.unknown)
+            .orElseThrow(() -> new NotFoundException("Features are not supported for this API."));
+    List<Profile> defaultProfilesFeaturesCore =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                coreConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
     List<Profile> profiles =
         collectionIds.stream()
             .flatMap(
@@ -803,7 +827,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 profileSet
                                     .negotiateProfile(
                                         requestedProfiles,
-                                        List.of(), // FIXME
+                                        defaultProfilesFeaturesCore,
                                         outputFormat,
                                         ResourceType.FEATURE,
                                         api.getData(),

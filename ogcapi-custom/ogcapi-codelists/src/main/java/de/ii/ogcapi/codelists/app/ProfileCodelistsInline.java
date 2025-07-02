@@ -16,10 +16,12 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -45,12 +47,22 @@ public class ProfileCodelistsInline extends ProfileCodelist {
   }
 
   @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return codelists.isAvailable();
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return codelists.isAvailable();
+  }
+
+  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return CodelistsConfiguration.class;
   }
 
   @Override
-  public JsonSchema process(JsonSchema schema, String codelistId, String codelistUri) {
+  public JsonSchema process(JsonSchema schema, String codelistId, Optional<String> codelistUri) {
     Codelist codelist = codelists.get(Identifier.from(codelistId));
     if (codelist == null) {
       if (LOGGER.isWarnEnabled()) {

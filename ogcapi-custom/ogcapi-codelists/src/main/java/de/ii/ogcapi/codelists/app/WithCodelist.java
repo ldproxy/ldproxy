@@ -29,15 +29,16 @@ import java.net.URISyntaxException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class WithCodelist implements JsonSchemaVisitor {
 
-  private final URI serviceUri;
+  private final Optional<URI> serviceUri;
   private final OgcApiDataV2 apiData;
   private final List<Profile> profiles;
 
-  public WithCodelist(URI serviceUri, OgcApiDataV2 apiData, List<Profile> profiles) {
+  public WithCodelist(Optional<URI> serviceUri, OgcApiDataV2 apiData, List<Profile> profiles) {
     this.serviceUri = serviceUri;
     this.apiData = apiData;
     this.profiles = profiles;
@@ -149,23 +150,27 @@ public class WithCodelist implements JsonSchemaVisitor {
     }
 
     if (schema.getCodelistId().isPresent()) {
-      try {
-        String codelistId = schema.getCodelistId().get();
-        String codelistUri =
-            new URICustomizer(serviceUri)
-                .ensureNoTrailingSlash()
-                .ensureLastPathSegments(apiData.getSubPath().toArray(new String[0]))
-                .ensureLastPathSegments("codelists", codelistId)
-                .build()
-                .toString();
-        return profiles.stream()
-            .filter(profile -> profile instanceof ProfileCodelist)
-            .findFirst()
-            .map(p -> ((ProfileCodelist) p).process(schema, codelistId, codelistUri))
-            .orElse(schema);
-      } catch (URISyntaxException e) {
-        // ignore
-      }
+      String codelistId = schema.getCodelistId().get();
+      Optional<String> codelistUri =
+          serviceUri.map(
+              uri -> {
+                try {
+                  return new URICustomizer(uri)
+                      .ensureNoTrailingSlash()
+                      .ensureLastPathSegments(apiData.getSubPath().toArray(new String[0]))
+                      .ensureLastPathSegments("codelists", codelistId)
+                      .build()
+                      .toString();
+                } catch (URISyntaxException e) {
+                  // ignore
+                }
+                return null;
+              });
+      return profiles.stream()
+          .filter(profile -> profile instanceof ProfileCodelist)
+          .findFirst()
+          .map(p -> ((ProfileCodelist) p).process(schema, codelistId, codelistUri))
+          .orElse(schema);
     }
 
     return schema;
