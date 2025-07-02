@@ -1,0 +1,32 @@
+{{> header}}
+
+<div>
+    <h1>{{title}}</h1>
+    <span>{{{description}}}</span>
+    <br/>
+    <br/>
+
+    {{#collectionProperties}}
+      <div class="row my-3" >
+
+        <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}}">
+          <div class="font-weight-bold" style="padding-left: {{margin}}rem;">{{lastId}}</div>
+        </div>
+        <div class="col-md-{{#descCols}}{{.}}{{/descCols}}{{^descCols}}9{{/descCols}}">
+            <ul class="list-unstyled">
+                {{#title}}<li>{{.}}{{#description}}: {{{.}}}{{/description}}</li>{{/title}}</li>
+                <li>{{typeTitle}}: {{#isArray}}[{{/isArray}} {{type}} {{#isArray}}]{{/isArray}}</li>
+                {{#valueList}}
+                    <li>{{enumTitle}}: {{.}}</li>
+                {{/valueList}}
+            </ul>
+        </div>
+    </div>
+    {{/collectionProperties}}
+    {{^collectionProperties}}
+    <div>{{none}}</div>
+    {{/collectionProperties}}
+</div>
+
+{{> footer}}
+

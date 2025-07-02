@@ -16,6 +16,7 @@ import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.collections.schema.app.SchemaBuildingBlock;
 import de.ii.ogcapi.collections.schema.domain.ImmutableQueryInputSchema;
 import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema.Query;
 import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema.QueryInputSchema;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
@@ -158,7 +159,7 @@ public class EndpointSchema extends EndpointSubCollection
 
   @GET
   @Path("/{collectionId}/schema")
-  @Produces("application/schema+json")
+  @Produces({"text/html", "application/schema+json"})
   public Response getSchema(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
@@ -166,17 +167,13 @@ public class EndpointSchema extends EndpointSubCollection
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId) {
 
-    String definitionPath = "/collections/{collectionId}/schema";
-    checkPathParameter(
-        extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
-
-    QueryInputSchema queryInput =
+    final QueryInputSchema queryInput =
         new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
+            // .type(CollectionPropertiesType.QUERYABLES)
             .build();
-
-    return queryHandler.handle(QueriesHandlerSchema.Query.SCHEMA, queryInput, requestContext);
+    return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
   }
 
   @Override

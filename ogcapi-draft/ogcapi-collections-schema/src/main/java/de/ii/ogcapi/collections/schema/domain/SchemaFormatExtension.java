@@ -8,12 +8,14 @@
 package de.ii.ogcapi.collections.schema.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
+import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import java.util.List;
 
 @AutoMultiBind
 public interface SchemaFormatExtension extends FormatExtension {
@@ -33,8 +35,10 @@ public interface SchemaFormatExtension extends FormatExtension {
     return FormatExtension.super.isEnabledForApi(apiData, collectionId);
   }
 
-  default Object getEntity(
-      JsonSchemaObject schema, String collectionId, OgcApi api, ApiRequestContext requestContext) {
-    return schema;
-  }
+  Object getEntity(
+      JsonSchemaDocument schema,
+      List<Link> links,
+      String collectionId,
+      OgcApi api,
+      ApiRequestContext requestContext);
 }
