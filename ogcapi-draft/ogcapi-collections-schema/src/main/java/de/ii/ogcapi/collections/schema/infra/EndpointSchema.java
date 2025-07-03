@@ -19,7 +19,6 @@ import de.ii.ogcapi.collections.schema.app.SchemaCacheFeatures;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
 import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler.Query;
 import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler.QueryInputCollectionProperties;
 import de.ii.ogcapi.features.core.domain.CollectionPropertiesType;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputCollectionProperties;
@@ -227,7 +226,17 @@ public class EndpointSchema extends EndpointSubCollection
             .schemaCache(this.schemaCache)
             .build();
 
-    return queryHandler.handle(Query.COLLECTION_PROPERTIES, queryInput, requestContext);
+    return queryHandler.handle(CollectionPropertiesQueriesHandler.Query.COLLECTION_PROPERTIES, queryInput, requestContext);
+
+    /* FIXME
+    final QueryInputSchema queryInput =
+        new ImmutableQueryInputSchema.Builder()
+            .from(getGenericQueryInput(api.getData()))
+            .collectionId(collectionId)
+            // .type(CollectionPropertiesType.QUERYABLES)
+            .build();
+    return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
+     */
   }
 
   @Override

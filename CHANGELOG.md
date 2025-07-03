@@ -1,5 +1,37 @@
 # Changelog
 
+## v4.4.0 (30/06/2025)
+#### Implemented enhancements
+
+-  Advanced CRUD [#1408](https://github.com/ldproxy/ldproxy/issues/1408)
+-  support vector tile generation with ST_AsMVT from PostGIS [#1390](https://github.com/ldproxy/ldproxy/issues/1390)
+-  configurable YAML file size limit [#1389](https://github.com/ldproxy/ldproxy/issues/1389)
+-  CQL2: Predicate to filter array values with LIKE [#1375](https://github.com/ldproxy/ldproxy/issues/1375)
+
+#### Improvements
+
+-  In MapLibre popups, render HTTP URLs as clickable links [#1367](https://github.com/ldproxy/ldproxy/issues/1367)
+-  Improve 3D Tiles / glTF performance [#1358](https://github.com/ldproxy/ldproxy/issues/1358)
+
+#### Fixed bugs
+
+-  Features HTML: map is not shown when primary geometry is nested [#1406](https://github.com/ldproxy/ldproxy/issues/1406)
+-  OIDC login redirect may return http 400 [#1404](https://github.com/ldproxy/ldproxy/issues/1404)
+-  http 500 when using filter obligation [#1400](https://github.com/ldproxy/ldproxy/issues/1400)
+-  Features HTML: No filter editor for feature types without geometry [#1395](https://github.com/ldproxy/ldproxy/issues/1395)
+
+#### Dependency updates
+
+* Update jackson to v2.18.3 (master) by @renovate in https://github.com/ldproxy/xtraplatform/pull/223
+* Update dropwizard to v3.0.14 (master) by @renovate in https://github.com/ldproxy/xtraplatform/pull/232
+* Update swagger to v2.2.34 (master) by @renovate in https://github.com/ldproxy/xtraplatform/pull/237
+* Update dependency com.zaxxer:HikariCP to v6.3.0 (master) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/334
+* Update dependency com.github.jsqlparser:jsqlparser to v5.3 (master) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/339
+* Update schemacrawler to v16.26.1 (master) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/352
+* Update dependency org.postgresql:postgresql to v42.7.7 (master) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/355
+* Update dependency org.xerial:sqlite-jdbc to v3.50.2.0 (master) by @renovate in https://github.com/ldproxy/xtraplatform-spatial/pull/364
+---
+
 ## v4.3.2 (28/05/2025)
 #### Fixed bugs
 
