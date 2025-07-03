@@ -8,8 +8,8 @@
 package de.ii.ogcapi.features.jsonfg.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
 import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
+import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import javax.inject.Inject;
@@ -41,6 +41,6 @@ public class ProfileRfc7946 extends ProfileGeoJson {
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return GeoJsonConfiguration.class;
+    return JsonFgConfiguration.class;
   }
 }

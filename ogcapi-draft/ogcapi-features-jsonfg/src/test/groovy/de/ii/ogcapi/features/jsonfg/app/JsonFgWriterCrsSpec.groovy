@@ -13,7 +13,6 @@ import de.ii.ogcapi.features.geojson.domain.FeatureEncoderGeoJson
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 

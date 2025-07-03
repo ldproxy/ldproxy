@@ -23,6 +23,7 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.profile.codelist.domain.ProfileCodelist;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;

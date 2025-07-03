@@ -5,15 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.codelists.app;
+package de.ii.ogcapi.profile.codelist.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.codelists.domain.CodelistsConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
+import de.ii.ogcapi.profile.codelist.domain.ProfileCodelistConfiguration;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -61,7 +61,7 @@ public class ProfileSetCodelist extends ProfileSet {
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return CodelistsConfiguration.class;
+    return ProfileCodelistConfiguration.class;
   }
 
   private boolean usesCodedValue(OgcApiDataV2 apiData) {

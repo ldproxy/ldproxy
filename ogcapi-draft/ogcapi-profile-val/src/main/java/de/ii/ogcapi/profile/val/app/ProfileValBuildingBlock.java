@@ -18,9 +18,9 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * @title Profile - Codelist Values
- * @langEn Profiles for feature properties with enumerated values.
- * @langDe Profile für Objekteigenschaften mit Aufzählungswerten.
+ * @title Profile - Codelist Values (Features)
+ * @langEn Profiles for feature properties with enumerated values. Applicable to features.
+ * @langDe Profile für Objekteigenschaften mit Aufzählungswerten. Auf Features anwendbar.
  * @scopeEn If the feature schema includes at least one property with a "codelist" constraint, two
  *     profiles can be used to select the representation of coded values in the response. Supported
  *     are "val-as-code" (the code) and "val-as-title" (the label associated with the code). HTML
