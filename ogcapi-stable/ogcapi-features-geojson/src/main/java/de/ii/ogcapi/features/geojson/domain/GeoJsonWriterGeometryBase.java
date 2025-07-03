@@ -48,20 +48,26 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
         if (isGeom) {
           FeatureState featureState = context.encoding().getBuffer().get();
           featureState.hasGeometry = true;
-          featureState.geometryState = geometryState();
           context.encoding().pauseBuffering();
 
           context.encoding().getJson().writeFieldName(geomPropertyName());
 
-          context.encoding().getJson().writeStartObject();
-
           String type = getGeometryType(context);
-          context.encoding().getJson().writeStringField("type", type);
-          context.encoding().getJson().writeFieldName("coordinates");
+          if (type == null || type.isEmpty()) {
+            context.encoding().getJson().writeNull();
+            context.encoding().getJson().flush();
+            context.encoding().continueBuffering();
+          } else {
+            featureState.geometryState = geometryState();
 
-          if (type.equals("Polyhedron")) {
-            context.encoding().getJson().writeStartArray();
-            featureState.isPolyhedron = true;
+            context.encoding().getJson().writeStartObject();
+            context.encoding().getJson().writeStringField("type", type);
+            context.encoding().getJson().writeFieldName("coordinates");
+
+            if (type.equals("Polyhedron")) {
+              context.encoding().getJson().writeStartArray();
+              featureState.isPolyhedron = true;
+            }
           }
         }
       }
@@ -120,7 +126,7 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
         context.encoding().pauseBuffering();
 
         if (!featureState.hasGeometry && writeNull()) {
-          // write null geometry if none was written for this feature
+          // write null geometry if none was written for this embedded feature
           context.encoding().getJson().writeFieldName(geomPropertyName());
           context.encoding().getJson().writeNull();
         }
@@ -151,7 +157,7 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
       context.encoding().pauseBuffering();
 
       if (!context.encoding().getBuffer().get().hasGeometry && writeNull()) {
-        // write null geometry if none was written for this embedded feature
+        // write null geometry if none was written for this feature
         context.encoding().getJson().writeFieldName(geomPropertyName());
         context.encoding().getJson().writeNull();
       }
