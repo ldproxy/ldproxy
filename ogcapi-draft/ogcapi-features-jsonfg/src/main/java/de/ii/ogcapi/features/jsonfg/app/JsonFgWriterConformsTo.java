@@ -32,6 +32,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
   public static String URI_CORE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/core";
   public static String URI_POLYHEDRA = "http://www.opengis.net/spec/json-fg-1/0.3/conf/polyhedra";
   public static String URI_TYPE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/types-schemas";
+  public static String URI_PROFILES = "http://www.opengis.net/spec/json-fg-1/0.3/conf/profiles";
 
   boolean isEnabled;
   boolean has3d;
@@ -81,6 +82,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
   private void writeConformsTo(JsonGenerator json) throws IOException {
     json.writeArrayFieldStart(JSON_KEY);
     json.writeString(URI_CORE);
+    json.writeString(URI_PROFILES);
     if (has3d) {
       json.writeString(URI_POLYHEDRA);
     }
