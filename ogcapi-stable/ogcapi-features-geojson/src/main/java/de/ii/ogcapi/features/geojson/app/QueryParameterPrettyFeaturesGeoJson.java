@@ -67,7 +67,7 @@ public class QueryParameterPrettyFeaturesGeoJson extends OgcApiQueryParameterBas
 
   @Override
   public String getDescription() {
-    return "Debug option in development environments: Pretty print the GeoJSON output.";
+    return "Controls whether the response content should be pretty-printed. Only applicable for JSON outputs. False by default";
   }
 
   @Override
@@ -93,12 +93,12 @@ public class QueryParameterPrettyFeaturesGeoJson extends OgcApiQueryParameterBas
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return super.isEnabledForApi(apiData) && allowDebug;
+    return super.isEnabledForApi(apiData);
   }
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return super.isEnabledForApi(apiData, collectionId) && allowDebug;
+    return super.isEnabledForApi(apiData, collectionId);
   }
 
   @Override
