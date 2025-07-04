@@ -26,12 +26,10 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -39,12 +37,10 @@ public class WithCodelistUri implements JsonSchemaVisitor {
 
   private final URI serviceUri;
   private final OgcApiDataV2 apiData;
-  private final List<Profile> profiles;
 
-  public WithCodelistUri(URI serviceUri, OgcApiDataV2 apiData, List<Profile> profiles) {
+  public WithCodelistUri(URI serviceUri, OgcApiDataV2 apiData) {
     this.serviceUri = serviceUri;
     this.apiData = apiData;
-    this.profiles = profiles;
   }
 
   @Override

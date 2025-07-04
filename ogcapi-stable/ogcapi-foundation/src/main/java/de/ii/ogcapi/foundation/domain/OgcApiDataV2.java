@@ -55,7 +55,7 @@ import org.immutables.value.Value;
  *     are associated with profiles (currently: feature and schema resources).
  *     <p>The supported profiles depend on the resource type and, in some cases, on the media type.
  *     <p>Profiles are organized in profile sets. Whether a profile set applies to a resource
- *     representation, depends on the resource and potentially the media type of the represenation.
+ *     representation, depends on the resource and potentially the media type of the representation.
  *     From each applicable profile set, at most one profile applies to the resource representation.
  *     <p>The profiles are negotiated as follows:
  *     <p><code>

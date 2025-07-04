@@ -24,8 +24,7 @@ public interface QueriesHandlerCodelists
 
   enum Query implements QueryIdentifier {
     CODELISTS,
-    CODELIST,
-    CODELIST_BARE
+    CODELIST
   }
 
   @Value.Immutable
