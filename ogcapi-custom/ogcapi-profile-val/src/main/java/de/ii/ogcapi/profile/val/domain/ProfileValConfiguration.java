@@ -10,6 +10,7 @@ package de.ii.ogcapi.profile.val.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 /**
@@ -26,6 +27,13 @@ import org.immutables.value.Value;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "PROFILE_VAL")
 @JsonDeserialize(builder = ImmutableProfileValConfiguration.Builder.class)
 public interface ProfileValConfiguration extends ExtensionConfiguration {
+
+  /**
+   * @default true
+   */
+  @Nullable
+  @Override
+  Boolean getEnabled();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

@@ -35,11 +35,13 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -195,6 +197,15 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
     checkPathParameter(
         extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
 
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+
+    @SuppressWarnings("unchecked")
+    List<Profile> requestedProfiles =
+        (List<Profile>)
+            Objects.requireNonNullElse(
+                queryParameterSet.getTypedValues().get(QueryParameterProfileSortables.PROFILE),
+                List.of());
+
     SortingConfiguration configuration =
         api.getData()
             .getExtension(SortingConfiguration.class, collectionId)
@@ -220,6 +231,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
             .collectionId(collectionId)
             .type(SchemaType.SORTABLES)
             .schemaCache(schemaCache)
+            .profiles(requestedProfiles)
             .defaultProfilesResource(defaultProfiles)
             .build();
 

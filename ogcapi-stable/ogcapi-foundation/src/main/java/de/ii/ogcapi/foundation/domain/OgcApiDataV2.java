@@ -97,24 +97,23 @@ import org.immutables.value.Value;
  *     <p>### Auswahl von Profilen
  *     <p>Einige Ressourcen können in verschiedenen Varianten desselben Formats (Media Types)
  *     repräsentiert werden, je nach Verwendungszweck der Antwort.
- *     <p>Diese Variationen werden als „Profile“ bezeichnet. Ein Profil wird nicht definiert, um die
- *     Semantik der Ressourcendarstellung selbst zu ändern, sondern um es den Clients zu
- *     ermöglichen, zusätzliche Semantiken (Einschränkungen, Konventionen, Erweiterungen) zu
- *     erfahren, die mit der Ressourcendarstellung verbunden sind, zusätzlich zu denen, die durch
- *     den Medientyp und möglicherweise andere Mechanismen definiert sind. Siehe [IETF RFC
+ *     <p>Diese Variationen werden als "Profile" bezeichnet. Ein Profil ändert nicht die Semantik
+ *     der Ressourcedarstellung ansich, sondern ermöglicht den Clients zusätzliche Semantiken
+ *     (Einschränkungen, Konventionen, Erweiterungen) zu erfahren, die mit der Ressourcendarstellung
+ *     verbunden sind, zusätzlich zu denen, die durch den Medientyp und möglicherweise andere
+ *     Mechanismen definiert sind. Siehe [IETF RFC
  *     6906](https://www.rfc-editor.org/rfc/rfc6906.html) für Details.
- *     <p>Um ein oder mehrere Profile anzufordern, kann ein Abfrageparameter „profile“ für
+ *     <p>Um ein oder mehrere Profile anzufordern, kann ein Abfrageparameter "profile" für
  *     Ressourcen verwendet werden, die mit Profilen verbunden sind (derzeit: Feature- und
  *     Schemaressourcen).
- *     <p>Die unterstützten Profile hängen vom Ressourcentyp und in einigen Fällen auch vom Media
- *     Type ab.
+ *     <p>Die unterstützten Profile hängen vom Ressourcentyp und in einigen Fällen auch vom
+ *     Media-Type ab.
  *     <p>Profile sind in Profilsätzen organisiert. Ob ein Profilsatz für eine Ressourcendarstellung
- *     gilt, hängt von der Ressource und möglicherweise vom Medientyp der Repräsentierung ab. Von
- *     jedem anwendbaren Profilsatz wird maximal ein Profil bei der Repräsentierung der Ressource
- *     angewendet.
+ *     gilt, hängt von der Ressource und möglicherweise vom Media-Type der Darstellung ab. Von jedem
+ *     anwendbaren Profilsatz wird maximal ein Profil bei der Darstellung der Ressource angewendet.
  *     <p>Die Profile werden wie folgt ausgehandelt:
  *     <p><code>
- * - Wenn ein Profil über den Abfrageparameter „profile“ angegeben wird und das Profil auf die Ressource anwendbar ist, wird das Profil für das spezifische Profilset ausgewählt;
+ * - Wenn ein Profil über den Abfrageparameter "profile" angegeben wird und das Profil auf die Ressource anwendbar ist, wird das Profil für das spezifische Profilset ausgewählt;
  * - Wird für einen anwendbaren Profilsatz kein Profil explizit angefordert, wird das Standardprofil für dem Profilsatz ausgewählt. Je nach Art des Profilsatzes wird das Standardprofile entweder im Baustein der Ressource und/oder im Baustein des Formats über die Option `defaultProfiles` angegeben. Ein für ein Format angegebenes Standardprofil hat Vorrang vor dem für die Ressource angegebenen Standardprofil.
  * </code>
  *     <p>### Auswahl der Antwortsprache

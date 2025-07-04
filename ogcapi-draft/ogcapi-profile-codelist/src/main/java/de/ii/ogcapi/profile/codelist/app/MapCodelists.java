@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.codelists.app;
+package de.ii.ogcapi.profile.codelist.app;
 
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
@@ -21,27 +21,17 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaDocumentV7;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
-import de.ii.ogcapi.profile.codelist.domain.ProfileCodelist;
-import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class WithCodelist implements JsonSchemaVisitor {
+public class MapCodelists implements JsonSchemaVisitor {
 
-  private final Optional<URI> serviceUri;
-  private final OgcApiDataV2 apiData;
   private final List<Profile> profiles;
 
-  public WithCodelist(Optional<URI> serviceUri, OgcApiDataV2 apiData, List<Profile> profiles) {
-    this.serviceUri = serviceUri;
-    this.apiData = apiData;
+  public MapCodelists(List<Profile> profiles) {
     this.profiles = profiles;
   }
 
@@ -152,25 +142,10 @@ public class WithCodelist implements JsonSchemaVisitor {
 
     if (schema.getCodelistId().isPresent()) {
       String codelistId = schema.getCodelistId().get();
-      Optional<String> codelistUri =
-          serviceUri.map(
-              uri -> {
-                try {
-                  return new URICustomizer(uri)
-                      .ensureNoTrailingSlash()
-                      .ensureLastPathSegments(apiData.getSubPath().toArray(new String[0]))
-                      .ensureLastPathSegments("codelists", codelistId)
-                      .build()
-                      .toString();
-                } catch (URISyntaxException e) {
-                  // ignore
-                }
-                return null;
-              });
       return profiles.stream()
           .filter(profile -> profile instanceof ProfileCodelist)
           .findFirst()
-          .map(p -> ((ProfileCodelist) p).process(schema, codelistId, codelistUri))
+          .map(p -> ((ProfileCodelist) p).process(schema, codelistId))
           .orElse(schema);
     }
 

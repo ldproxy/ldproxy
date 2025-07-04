@@ -19,24 +19,24 @@ import javax.inject.Singleton;
 
 /**
  * @title Profile - References
- * @langEn Profiles for feature properties that reference other resources. Applicable to features.
- * @langDe Profile für Objekteigenschaften, die andere Ressourcen referenzieren. Auf Features
- *     anwendbar.
+ * @langEn Profiles for feature properties that reference other resources.
+ * @langDe Profile für Objekteigenschaften, die andere Ressourcen referenzieren.
  * @scopeEn If the feature schema includes at least one property of type `FEATURE_REF` or
  *     `FEATURE_REF_ARRAY`, three profiles can be used to select the encoding of object references
- *     in the response. Supported are "rel-as-link" (a link with URI and a title), "rel-as-key" (the
- *     `featureId` of the referenced feature) and "rel-as-uri" (the URI of the referenced feature).
- *     Formats that only support simple values will typically not support "rel-as-link" and use
+ *     in the response. Supported are "rel-as-link" (a link with URI and an optional title),
+ *     "rel-as-key" (the `featureId` of the referenced feature) and "rel-as-uri" (the URI of the
+ *     referenced feature).
+ *     <p>Formats that only support simple values will typically not support "rel-as-link" and use
  *     "rel-as-key" as the default. HTML, GeoJSON, JSON-FG and GML use "rel-as-link" as the default.
  *     GML only supports "rel-as-link".
  * @scopeDe Enthält das Feature-Schema mindestens eine Eigenschaft vom Typ `FEATURE_REF` oder
- *     `FEATURE_REF_ARRAY`, können drei Profile verwendet werden, um die Kodierung der
+ *     `FEATURE_REF_ARRAY`, können alternativ drei Profile verwendet werden, um die Kodierung der
  *     Objektreferenzen in der Antwort auszuwählen. Unterstützt werden "rel-as-link" (ein Link mit
- *     URI und einem Titel), "rel-as-key" (die `featureId` des referenzierten Features) und
- *     "rel-as-uri" (die URI des referenzierten Features). Formate, die nur einfache Werte
- *     unterstützen, unterstützen typischerweise "rel-as-link" nicht und verwenden "rel-as-key" als
- *     Default. HTML, GeoJSON, JSON-FG und GML verwenden "rel-as-link" als der Default. GML
- *     unterstützt nur "rel-as-link".
+ *     URI und einem optionalen Titel), "rel-as-key" (die `featureId` des referenzierten Features)
+ *     und "rel-as-uri" (die URI des referenzierten Features).
+ *     <p>Formate, die nur einfache Werte unterstützen, unterstützen typischerweise "rel-as-link"
+ *     nicht und verwenden "rel-as-key" als Default. HTML, GeoJSON, JSON-FG und GML verwenden
+ *     "rel-as-link" als Default. GML unterstützt nur "rel-as-link".
  * @conformanceEn *Profile - References* implements the Requirements Class "Profiles for references"
  *     [draft of OGC API - Features - Part 5: Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html).
  * @conformanceDe Der Baustein implementiert die Requirements Class "Profiles for references"

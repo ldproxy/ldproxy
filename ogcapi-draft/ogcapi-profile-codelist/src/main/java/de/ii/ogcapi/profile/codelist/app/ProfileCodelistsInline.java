@@ -14,12 +14,11 @@ import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.profile.codelist.domain.ProfileCodelist;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
-import java.util.Optional;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.slf4j.Logger;
@@ -45,36 +44,55 @@ public class ProfileCodelistsInline extends ProfileCodelist {
   }
 
   @Override
-  public JsonSchema process(JsonSchema schema, String codelistId, Optional<String> codelistUri) {
-    Codelist codelist = codelists.get(Identifier.from(codelistId));
-    if (codelist == null) {
+  public JsonSchema process(JsonSchema schema, String codelistId) {
+    if (schema instanceof JsonSchemaString || schema instanceof JsonSchemaInteger) {
+      Codelist codelist = codelists.get(Identifier.from(codelistId));
+      if (codelist == null) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Codelist with ID '{}' not found, returning schema without codelist information.",
+              codelistId);
+        }
+        return schema;
+      }
+
+      final List<String> enums =
+          schema instanceof JsonSchemaString
+              ? ((JsonSchemaString) schema).getEnums()
+              : ((JsonSchemaInteger) schema).getEnums().stream().map(String::valueOf).toList();
+      final boolean allValues = enums.isEmpty();
+
+      ImmutableJsonSchemaOneOf.Builder builder =
+          new ImmutableJsonSchemaOneOf.Builder().from(schema);
+
+      codelist
+          .getEntries()
+          .forEach(
+              (code, title) -> {
+                if (allValues || enums.contains(code)) {
+                  if (schema instanceof JsonSchemaString) {
+                    builder.addOneOf(
+                        new ImmutableJsonSchemaConstant.Builder()
+                            .constant(code)
+                            .title(title)
+                            .build());
+                  } else {
+                    builder.addOneOf(
+                        new ImmutableJsonSchemaConstant.Builder()
+                            .constant(Integer.parseInt(code))
+                            .title(title)
+                            .build());
+                  }
+                }
+              });
+
+      return builder.build();
+    } else {
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn(
-            "Codelist with ID '{}' not found, returning schema without codelist information.",
-            codelistId);
+            "Codelist processing is only supported for string or integer schemas, returning original schema.");
       }
       return schema;
     }
-
-    ImmutableJsonSchemaOneOf.Builder builder =
-        new ImmutableJsonSchemaOneOf.Builder().from(schema).codelistUri(codelistUri);
-
-    codelist
-        .getEntries()
-        .forEach(
-            (code, title) -> {
-              if (schema instanceof JsonSchemaString) {
-                builder.addOneOf(
-                    new ImmutableJsonSchemaConstant.Builder().constant(code).title(title).build());
-              } else if (schema instanceof JsonSchemaInteger) {
-                builder.addOneOf(
-                    new ImmutableJsonSchemaConstant.Builder()
-                        .constant(Integer.parseInt(code))
-                        .title(title)
-                        .build());
-              }
-            });
-
-    return builder.build();
   }
 }

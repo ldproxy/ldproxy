@@ -6,6 +6,7 @@ descriptionDe = 'Profile für die Darstellung von Codelistwerten in Schemas.'
 
 
 dependencies {
+    provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-codelists'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:ogcapi-features-core'

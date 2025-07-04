@@ -37,6 +37,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.codelists.domain.Codelist;
@@ -44,6 +45,7 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import io.dropwizard.auth.Auth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -214,6 +216,15 @@ public class EndpointQueryables extends EndpointSubCollection
     checkPathParameter(
         extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
 
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+
+    @SuppressWarnings("unchecked")
+    List<Profile> requestedProfiles =
+        (List<Profile>)
+            Objects.requireNonNullElse(
+                queryParameterSet.getTypedValues().get(QueryParameterProfileQueryables.PROFILE),
+                List.of());
+
     QueryablesConfiguration configuration =
         api.getData()
             .getExtension(QueryablesConfiguration.class, collectionId)
@@ -239,6 +250,7 @@ public class EndpointQueryables extends EndpointSubCollection
             .collectionId(collectionId)
             .type(SchemaType.QUERYABLES)
             .schemaCache(schemaCache)
+            .profiles(requestedProfiles)
             .defaultProfilesResource(defaultProfiles)
             .build();
 

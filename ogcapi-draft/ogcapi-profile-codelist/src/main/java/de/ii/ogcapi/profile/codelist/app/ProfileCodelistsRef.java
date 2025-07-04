@@ -8,14 +8,7 @@
 package de.ii.ogcapi.profile.codelist.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.profile.codelist.domain.ProfileCodelist;
-import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -33,23 +26,6 @@ public class ProfileCodelistsRef extends ProfileCodelist {
     return "codelists-ref";
   }
 
-  @Override
-  public JsonSchema process(JsonSchema schema, String codelistId, Optional<String> codelistUri) {
-    if (codelistUri.isEmpty()) {
-      return schema;
-    }
-
-    if (schema instanceof JsonSchemaString) {
-      return new ImmutableJsonSchemaString.Builder()
-          .from((JsonSchemaString) schema)
-          .codelistUri(codelistUri)
-          .build();
-    } else if (schema instanceof JsonSchemaInteger) {
-      return new ImmutableJsonSchemaInteger.Builder()
-          .from((JsonSchemaInteger) schema)
-          .codelistUri(codelistUri)
-          .build();
-    }
-    return schema;
-  }
+  // Nothing to process, the codelist URI is always added to the schema, if the codelist building
+  // block is enabled.
 }

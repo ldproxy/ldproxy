@@ -154,6 +154,10 @@ public interface SortingConfiguration extends ExtensionConfiguration, ProfilesCo
                     ((SortingConfiguration) source).getExcluded().stream(), getExcluded().stream())
                 .distinct()
                 .collect(Collectors.toList()))
+        .defaultProfiles(
+            ProfilesConfiguration.super
+                .mergeInto((ProfilesConfiguration) source)
+                .getDefaultProfiles())
         .build();
   }
 }
