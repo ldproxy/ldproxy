@@ -17,12 +17,13 @@ import de.ii.ogcapi.collections.schema.app.QueryParameterProfileSchema;
 import de.ii.ogcapi.collections.schema.app.SchemaBuildingBlock;
 import de.ii.ogcapi.collections.schema.app.SchemaCacheFeatures;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler.QueryInputCollectionProperties;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesType;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputCollectionProperties;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.Query;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.QueryInputSchema;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -68,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * @path collections/{collectionId}/schema
  * @langEn JSON Schema of the features of the collection `collectionId`.
  * @langDe JSON Schema der Features der Collection `collectionId`.
- * @ref:formats {@link de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat}
+ * @ref:formats {@link de.ii.ogcapi.features.core.domain.SchemaFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -79,14 +80,14 @@ public class EndpointSchema extends EndpointSubCollection
 
   private static final List<String> TAGS = ImmutableList.of("Discover data collections");
 
-  private final CollectionPropertiesQueriesHandler queryHandler;
+  private final QueriesHandlerSchema queryHandler;
   private final ValueStore valueStore;
   private final JsonSchemaCache schemaCache;
 
   @Inject
   public EndpointSchema(
       ExtensionRegistry extensionRegistry,
-      CollectionPropertiesQueriesHandler queryHandler,
+      QueriesHandlerSchema queryHandler,
       ValueStore valueStore) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
@@ -111,7 +112,7 @@ public class EndpointSchema extends EndpointSubCollection
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(CollectionPropertiesFormat.class);
+      formats = extensionRegistry.getExtensionsForType(SchemaFormatExtension.class);
     return formats;
   }
 
@@ -216,27 +217,17 @@ public class EndpointSchema extends EndpointSubCollection
                                     .get(profile.getProfileSet())))
             .toList();
 
-    QueryInputCollectionProperties queryInput =
-        new ImmutableQueryInputCollectionProperties.Builder()
+    QueryInputSchema queryInput =
+        new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .profiles(requestedProfiles)
             .defaultProfilesResource(defaultProfilesSchema)
-            .type(CollectionPropertiesType.RETURNABLES_AND_RECEIVABLES)
+            .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
             .schemaCache(this.schemaCache)
             .build();
 
-    return queryHandler.handle(CollectionPropertiesQueriesHandler.Query.COLLECTION_PROPERTIES, queryInput, requestContext);
-
-    /* FIXME
-    final QueryInputSchema queryInput =
-        new ImmutableQueryInputSchema.Builder()
-            .from(getGenericQueryInput(api.getData()))
-            .collectionId(collectionId)
-            // .type(CollectionPropertiesType.QUERYABLES)
-            .build();
     return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
-     */
   }
 
   @Override

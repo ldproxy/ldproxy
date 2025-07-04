@@ -63,7 +63,7 @@ class SchemaCacheSortables extends JsonSchemaCache {
                 PropertyTransformations.WILDCARD,
                 new Builder().flatten(flatteningSeparator).build()));
 
-    SchemaDeriverCollectionProperties schemaDeriverCollectionProperties =
+    SchemaDeriverCollectionProperties schemaDeriver =
         new SchemaDeriverCollectionProperties(
             version,
             schemaUri,
@@ -72,7 +72,6 @@ class SchemaCacheSortables extends JsonSchemaCache {
             ImmutableMap.of(),
             ImmutableList.of("*"));
 
-    return (JsonSchemaDocument)
-        sortablesSchema.accept(schemaFlattener).accept(schemaDeriverCollectionProperties);
+    return (JsonSchemaDocument) sortablesSchema.accept(schemaFlattener).accept(schemaDeriver);
   }
 }

@@ -22,8 +22,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-@JsonDeserialize(as = ImmutableCollectionProperty.class)
-public abstract class CollectionProperty {
+@JsonDeserialize(as = ImmutableSchemaProperty.class)
+public abstract class SchemaProperty {
 
   private static final String STRING = "String";
   private static final String NUMBER = "Number";
@@ -34,8 +34,8 @@ public abstract class CollectionProperty {
   private static final String URI = "URI";
   private static final String OBJECT = "Object";
 
-  public static CollectionProperty of(String name, ObjectNode schema) {
-    ImmutableCollectionProperty.Builder builder = ImmutableCollectionProperty.builder().id(name);
+  public static SchemaProperty of(String name, ObjectNode schema, SchemaType schemaType) {
+    ImmutableSchemaProperty.Builder builder = ImmutableSchemaProperty.builder().id(name);
     if (schema.has("title")) {
       builder.title(schema.get("title").textValue());
     }
@@ -50,7 +50,7 @@ public abstract class CollectionProperty {
         Iterable<JsonNode> iterable = defaultValue::elements;
         StreamSupport.stream(iterable.spliterator(), false)
             .map(element -> element.isTextual() ? element.textValue() : element.toString())
-            .forEach(element -> builder.addDefaultValues(element));
+            .forEach(builder::addDefaultValues);
       } else {
         builder.defaultValue(defaultValue.toString());
       }
@@ -124,7 +124,7 @@ public abstract class CollectionProperty {
     } else {
       builder.type(STRING);
     }
-    return builder.build();
+    return builder.inSchemaType(schemaType).build();
   }
 
   public abstract String getId();
@@ -193,6 +193,8 @@ public abstract class CollectionProperty {
 
   public abstract List<String> getValues();
 
+  public abstract SchemaType inSchemaType();
+
   @JsonIgnore
   @Value.Derived
   public Optional<String> getValueList() {
@@ -222,9 +224,18 @@ public abstract class CollectionProperty {
 
   @JsonIgnore
   @Value.Derived
+  public boolean isReturnablesReceivables() {
+    return inSchemaType() == SchemaType.RETURNABLES_AND_RECEIVABLES;
+  }
+
+  @JsonIgnore
+  @Value.Derived
   public int getMargin() {
-    int depth = (int) getId().chars().filter(c -> c == '.').count();
-    return depth * 2;
+    if (inSchemaType() == SchemaType.RETURNABLES_AND_RECEIVABLES) {
+      int depth = (int) getId().chars().filter(c -> c == '.').count();
+      return depth * 2;
+    }
+    return 0;
   }
 
   @JsonIgnore

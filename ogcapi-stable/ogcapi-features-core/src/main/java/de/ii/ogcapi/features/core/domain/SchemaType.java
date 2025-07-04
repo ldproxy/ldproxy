@@ -7,10 +7,11 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
-public enum CollectionPropertiesType {
+public enum SchemaType {
   QUERYABLES,
   SORTABLES,
-  RETURNABLES_AND_RECEIVABLES;
+  RETURNABLES_AND_RECEIVABLES,
+  STORED_QUERY_PARAMETER;
 
   @Override
   public String toString() {

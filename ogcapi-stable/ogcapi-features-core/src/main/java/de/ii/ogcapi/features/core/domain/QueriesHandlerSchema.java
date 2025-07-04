@@ -7,25 +7,25 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
-import de.ii.ogcapi.features.core.app.CollectionPropertiesQueriesHandlerImpl;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.Query;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.WithProfiles;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import org.immutables.value.Value;
 
-public interface CollectionPropertiesQueriesHandler
-    extends QueriesHandler<CollectionPropertiesQueriesHandlerImpl.Query> {
+public interface QueriesHandlerSchema extends QueriesHandler<Query>, Volatile2 {
 
   enum Query implements QueryIdentifier {
-    COLLECTION_PROPERTIES
+    SCHEMA
   }
 
   @Value.Immutable
-  interface QueryInputCollectionProperties extends QueryInput, WithProfiles {
+  interface QueryInputSchema extends QueryInput, WithProfiles {
     String getCollectionId();
 
-    CollectionPropertiesType getType();
+    SchemaType getType();
 
     JsonSchemaCache getSchemaCache();
   }

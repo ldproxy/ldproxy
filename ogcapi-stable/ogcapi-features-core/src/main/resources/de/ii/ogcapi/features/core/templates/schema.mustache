@@ -5,12 +5,18 @@
     <span>{{{description}}}</span>
     <br/>
     <br/>
+    {{#typeLabel}}
+    <h2>{{.}}</h2>
+    <span>{{{typeDescription}}}</span>
+    {{/typeLabel}}
+    <br/>
+    <br/>
 
-    {{#collectionProperties}}
-      <div class="row my-3" >
-
+    <h3>{{propertiesTitle}}</h3>
+    {{#schemaProperties}}
+    <div class="row my-3" >
         <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}}">
-          <div class="font-weight-bold" style="padding-left: {{margin}}rem;">{{lastId}}</div>
+          <div class="font-weight-bold" style="padding-left: {{margin}}rem;">{{#isReturnablesReceivables}}{{lastId}}{{/isReturnablesReceivables}}{{^isReturnablesReceivables}}{{id}}{{/isReturnablesReceivables}}</div>
         </div>
         <div class="col-md-{{#descCols}}{{.}}{{/descCols}}{{^descCols}}9{{/descCols}}">
             <ul class="list-unstyled">
@@ -22,10 +28,10 @@
             </ul>
         </div>
     </div>
-    {{/collectionProperties}}
-    {{^collectionProperties}}
+    {{/schemaProperties}}
+    {{^schemaProperties}}
     <div>{{none}}</div>
-    {{/collectionProperties}}
+    {{/schemaProperties}}
 </div>
 
 {{> footer}}

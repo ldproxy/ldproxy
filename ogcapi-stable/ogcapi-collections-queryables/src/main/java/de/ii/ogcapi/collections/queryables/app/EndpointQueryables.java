@@ -14,12 +14,13 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesType;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputCollectionProperties;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.Query;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -68,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * @langDe Die Ressource Queryables identifiziert und beschreibt die Eigenschaften, auf die in
  *     Filterausdrücken verwiesen werden kann. Die Antwort ist ein JSON-Schema-Dokument, das ein
  *     einzelnes JSON-Objekt beschreibt, bei dem jede Eigenschaft eine abfragbare Eigenschaft ist.
- * @ref:formats {@link de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat}
+ * @ref:formats {@link de.ii.ogcapi.features.core.domain.SchemaFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -80,14 +81,14 @@ public class EndpointQueryables extends EndpointSubCollection
 
   private static final List<String> TAGS = ImmutableList.of("Discover data collections");
 
-  private final CollectionPropertiesQueriesHandler queryHandler;
+  private final QueriesHandlerSchema queryHandler;
   private final FeaturesCoreProviders providers;
   private final JsonSchemaCache schemaCache;
 
   @Inject
   public EndpointQueryables(
       ExtensionRegistry extensionRegistry,
-      CollectionPropertiesQueriesHandler queryHandler,
+      QueriesHandlerSchema queryHandler,
       ValueStore valueStore,
       FeaturesCoreProviders featuresCoreProviders) {
     super(extensionRegistry);
@@ -128,7 +129,7 @@ public class EndpointQueryables extends EndpointSubCollection
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(CollectionPropertiesFormat.class);
+      formats = extensionRegistry.getExtensionsForType(SchemaFormatExtension.class);
     }
     return formats;
   }
@@ -232,17 +233,16 @@ public class EndpointQueryables extends EndpointSubCollection
                                 configuration.getDefaultProfiles().get(profile.getProfileSet())))
             .toList();
 
-    final CollectionPropertiesQueriesHandler.QueryInputCollectionProperties queryInput =
-        new ImmutableQueryInputCollectionProperties.Builder()
+    final QueriesHandlerSchema.QueryInputSchema queryInput =
+        new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
-            .type(CollectionPropertiesType.QUERYABLES)
+            .type(SchemaType.QUERYABLES)
             .schemaCache(schemaCache)
             .defaultProfilesResource(defaultProfiles)
             .build();
 
-    return queryHandler.handle(
-        CollectionPropertiesQueriesHandler.Query.COLLECTION_PROPERTIES, queryInput, requestContext);
+    return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
   }
 
   @Override

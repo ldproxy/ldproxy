@@ -71,7 +71,7 @@ class SchemaCacheQueryables extends JsonSchemaCache {
                 PropertyTransformations.WILDCARD,
                 new Builder().flatten(flatteningSeparator).build()));
 
-    SchemaDeriverCollectionProperties schemaDeriverCollectionProperties =
+    SchemaDeriverCollectionProperties schemaDeriver =
         new SchemaDeriverCollectionProperties(
             version,
             schemaUri,
@@ -80,7 +80,6 @@ class SchemaCacheQueryables extends JsonSchemaCache {
             codelistSupplier.get(),
             ImmutableList.of("*"));
 
-    return (JsonSchemaDocument)
-        queryablesSchema.accept(schemaFlattener).accept(schemaDeriverCollectionProperties);
+    return (JsonSchemaDocument) queryablesSchema.accept(schemaFlattener).accept(schemaDeriver);
   }
 }

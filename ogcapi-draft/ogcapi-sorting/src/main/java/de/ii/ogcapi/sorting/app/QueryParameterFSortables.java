@@ -9,7 +9,7 @@ package de.ii.ogcapi.sorting.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.QueryParameterF;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -50,7 +50,7 @@ public class QueryParameterFSortables extends QueryParameterF {
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return CollectionPropertiesFormat.class;
+    return SchemaFormatExtension.class;
   }
 
   @Override

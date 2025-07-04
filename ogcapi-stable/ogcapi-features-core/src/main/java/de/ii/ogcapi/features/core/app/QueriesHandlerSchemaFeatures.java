@@ -5,18 +5,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.collections.schema.app;
+package de.ii.ogcapi.features.core.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema;
-import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.SchemaType;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -26,14 +27,15 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
-import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
-import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -48,6 +50,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -60,7 +63,6 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
   private final FeaturesCoreProviders providers;
   private final I18n i18n;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
-  private JsonSchemaCache schemaCache;
   private final ExtensionRegistry extensionRegistry;
 
   @Inject
@@ -82,13 +84,6 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
 
     addSubcomponent(valueStore);
 
-    volatileRegistry
-        .onAvailable(valueStore)
-        .thenRun(
-            () ->
-                this.schemaCache =
-                    new SchemaCacheFeatures(valueStore.forType(Codelist.class)::asMap));
-
     onVolatileStarted();
   }
 
@@ -97,13 +92,23 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
     return queryHandlers;
   }
 
+  public static void checkCollectionId(OgcApiDataV2 apiData, String collectionId) {
+    if (!apiData.isCollectionEnabled(collectionId)) {
+      throw new NotFoundException(
+          MessageFormat.format("The collection ''{0}'' does not exist in this API.", collectionId));
+    }
+  }
+
   private Response getSchemaResponse(
       QueryInputSchema queryInput, ApiRequestContext requestContext) {
     final OgcApi api = requestContext.getApi();
     final OgcApiDataV2 apiData = api.getData();
-
     final String collectionId = queryInput.getCollectionId();
+    checkCollectionId(api.getData(), collectionId);
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+
+    final SchemaType type = queryInput.getType();
+    final JsonSchemaCache schemaCache = queryInput.getSchemaCache();
 
     SchemaFormatExtension outputFormat =
         api.getOutputFormat(
@@ -117,8 +122,28 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // return getResponse(queryInput, requestContext, providers, i18n);
-    List<Link> links = getLinks(requestContext, i18n);
+    List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
+
+    List<Profile> profiles =
+        negotiateProfiles(
+            allProfileSets,
+            outputFormat,
+            ResourceType.SCHEMA,
+            apiData,
+            Optional.of(collectionId),
+            queryInput.getProfiles(),
+            queryInput.getDefaultProfilesResource());
+
+    Map<ApiMediaType, List<Profile>> alternateProfiles =
+        getAlternateProfiles(
+            allProfileSets,
+            apiData,
+            collectionId,
+            requestContext.getMediaType(),
+            requestContext.getAlternateMediaTypes(),
+            profiles);
+
+    List<Link> links = getLinks(requestContext, profiles, alternateProfiles, i18n);
 
     Optional<String> schemaUri =
         links.stream()
@@ -143,7 +168,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
 
     JsonSchemaDocument schema =
         schemaCache.getSchema(
-            featureSchema, apiData, collectionData, schemaUri, jsonSchemaExtensions);
+            featureSchema, apiData, collectionData, profiles, schemaUri, jsonSchemaExtensions);
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -164,27 +189,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
             null,
             HeaderContentDisposition.of(
                 String.format("%s.%s", collectionId, outputFormat.getMediaType().fileExtension())))
-        .entity(outputFormat.getEntity(schema, links, collectionId, api, requestContext))
+        .entity(outputFormat.getEntity(schema, type, links, collectionId, api, requestContext))
         .build();
-  }
-
-  @Override
-  public JsonSchemaDocument getJsonSchema(
-      FeatureSchema featureSchema,
-      OgcApiDataV2 apiData,
-      FeatureTypeConfigurationOgcApi collectionData,
-      Optional<String> schemaUri,
-      VERSION version) {
-    if (Objects.isNull(schemaCache)) {
-      throw new VolatileUnavailableException("JsonSchemaCache not available");
-    }
-
-    List<JsonSchemaExtension> jsonSchemaExtensions =
-        extensionRegistry.getExtensionsForType(JsonSchemaExtension.class).stream()
-            .filter(e -> e.isEnabledForApi(apiData, collectionData.getId()))
-            .collect(Collectors.toList());
-
-    return schemaCache.getSchema(
-        featureSchema, apiData, collectionData, schemaUri, jsonSchemaExtensions, version);
   }
 }
