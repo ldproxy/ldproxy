@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.geojson.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import java.io.IOException;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -79,6 +80,8 @@ public class GeoJsonWriterSkeleton implements GeoJsonWriter {
     context.encoding().getJson().writeStartObject();
     context.encoding().getJson().writeStringField("type", "Feature");
 
+    context.encoding().pushBuffer(context.schema().get(), false);
+
     // next chain for extensions
     next.accept(context);
   }
@@ -91,7 +94,37 @@ public class GeoJsonWriterSkeleton implements GeoJsonWriter {
     // next chain for extensions
     next.accept(context);
 
+    context.encoding().popBuffer();
+
     // end of feature
     context.encoding().getJson().writeEndObject();
+
+    context.encoding().getJson().flush();
+  }
+
+  @Override
+  public void onObjectStart(
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
+    // next chain for extensions
+    next.accept(context);
+
+    if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)) {
+      context.encoding().getJson().writeStringField("type", "Feature");
+
+      context.encoding().pushBuffer(context.schema().get(), true);
+    }
+  }
+
+  @Override
+  public void onObjectEnd(
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
+    // next chain for extensions
+    next.accept(context);
+
+    if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)) {
+      context.encoding().popBuffer();
+    }
   }
 }

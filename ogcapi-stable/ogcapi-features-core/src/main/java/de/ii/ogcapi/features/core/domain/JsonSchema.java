@@ -80,6 +80,10 @@ public abstract class JsonSchema {
   @JsonProperty("x-ogc-uriTemplate")
   public abstract Optional<String> getRefUriTemplate();
 
+  // TODO add support
+  @JsonProperty("x-ogc-propertySeq")
+  public abstract Optional<Integer> getPropertySeq();
+
   @JsonIgnore
   @Value.Auxiliary
   public abstract Optional<String> getName();

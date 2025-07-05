@@ -54,6 +54,7 @@ import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -198,6 +199,7 @@ public class FeaturesCoreBuildingBlock
         .enabled(true)
         .itemType(FeaturesCoreConfiguration.ItemType.feature)
         .defaultCrs(FeaturesCoreConfiguration.DefaultCrs.CRS84)
+        .defaultProfiles(Map.of("rel", "rel-as-key", "val", "val-as-code"))
         .minimumPageSize(MINIMUM_PAGE_SIZE)
         .defaultPageSize(DEFAULT_PAGE_SIZE)
         .maximumPageSize(MAX_PAGE_SIZE)

@@ -27,6 +27,9 @@ import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
@@ -267,7 +270,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
                                     tileFormats,
                                     i18n,
                                     requestContext.getLanguage()),
-                                queryInput.getStyleId()))
+                                queryInput.getStyleId(),
+                                queryInput.getDefaultProfilesResource()))
                     .collect(Collectors.toUnmodifiableList())));
 
     TileSets tileSets = builder.build();
@@ -358,7 +362,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             collectionId,
             dataType,
             links,
-            queryInput.getStyleId());
+            queryInput.getStyleId(),
+            queryInput.getDefaultProfilesResource());
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -876,7 +881,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
       Optional<String> collectionId,
       TileSet.DataType dataType,
       List<Link> links,
-      Optional<String> styleId) {
+      Optional<String> styleId,
+      List<Profile> defaultProfiles) {
     OgcApiDataV2 apiData = api.getData();
     Optional<TilesetMetadata> tilesetMetadata =
         styleId
@@ -962,6 +968,18 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     if (tilesetMetadata.isPresent() && dataType == DataType.vector) {
       JsonSchemaCache schemaCache = new SchemaCacheTileSet(codelistStore::asMap);
 
+      List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
+
+      List<Profile> profiles =
+          negotiateProfiles(
+              allProfileSets,
+              null,
+              ResourceType.SCHEMA,
+              apiData,
+              collectionId,
+              List.of(),
+              defaultProfiles);
+
       List<FeatureSchema> vectorSchemas = tilesetMetadata.get().getVectorSchemas();
 
       vectorSchemas.forEach(
@@ -987,7 +1005,12 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
 
             JsonSchemaDocument jsonSchema =
                 schemaCache.getSchema(
-                    vectorSchema, apiData, collectionData, Optional.empty(), jsonSchemaExtensions);
+                    vectorSchema,
+                    apiData,
+                    collectionData,
+                    profiles,
+                    Optional.empty(),
+                    jsonSchemaExtensions);
 
             ImmutableTileLayer.Builder builder2 =
                 ImmutableTileLayer.builder()

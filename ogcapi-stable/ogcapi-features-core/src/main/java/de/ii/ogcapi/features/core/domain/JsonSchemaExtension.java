@@ -10,7 +10,9 @@ package de.ii.ogcapi.features.core.domain;
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.foundation.domain.ApiExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import java.util.List;
 
 @AutoMultiBind
 public interface JsonSchemaExtension extends ApiExtension {
@@ -19,5 +21,6 @@ public interface JsonSchemaExtension extends ApiExtension {
       JsonSchema jsonSchema,
       FeatureSchema featureSchema,
       OgcApiDataV2 apiData,
-      String collectionId);
+      String collectionId,
+      List<Profile> profiles);
 }

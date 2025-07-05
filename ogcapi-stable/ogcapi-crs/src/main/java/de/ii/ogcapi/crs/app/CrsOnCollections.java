@@ -18,10 +18,11 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -62,7 +63,10 @@ public class CrsOnCollections implements CollectionsExtension {
                   .orElse(false)
               ? ImmutableList.of()
               : crsSupport.getSupportedCrsList(api.getData()).stream()
-                  .map(EpsgCrs::toUriString)
+                  .flatMap(
+                      crs ->
+                          Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
+                  .filter(Objects::nonNull)
                   .collect(ImmutableList.toImmutableList());
 
       collectionsBuilder.crs(crsList);

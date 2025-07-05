@@ -13,9 +13,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlTransient;
@@ -26,19 +28,16 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDeserialize(builder = ImmutableLink.Builder.class)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-@XmlType(propOrder = {"rel", "type", "title", "href", "hreflang", "length", "templated"})
+@XmlType(propOrder = {"rel", "type", "profile", "title", "href", "hreflang", "length", "templated"})
 public abstract class Link {
 
+  // TODO remove once mediaType is set instead of type in all builders
   private static final Map<String, String> LABEL_MAP =
       new ImmutableMap.Builder<String, String>()
           .put("application/geo+json", "GeoJSON")
-          .put("application/fg+json", "JSON-FG")
-          .put("application/vnd.ogc.fg+json", "JSON-FG")
           .put("application/schema+json", "JSON Schema")
           .put("application/city+json", "CityJSON")
-          .put("application/vnd.ogc.city+json", "CityJSON") // legacy, can be removed
           .put("application/city+json-seq", "CityJSON-Seq")
-          .put("application/vnd.ogc.city+json-seq", "CityJSON-Seq") // legacy, can be removed
           .put("application/json", "JSON")
           .put("application/ld+json", "JSON-LD")
           .put("model/gltf-binary", "glTF")
@@ -48,8 +47,6 @@ public abstract class Link {
           .put("application/gml+xml", "GML")
           .put("application/xml", "XML")
           .put("application/vnd.oai.openapi", "YAML")
-          // TODO: this should be removed, I think typeLabel should be settable instead so that it
-          // could receive ApiMediaType.label e.g. in FeaturesLinksGenerator
           .put("text/plain", "Debug Tokens")
           .build();
 
@@ -61,7 +58,31 @@ public abstract class Link {
 
   @Nullable
   @XmlAttribute
-  public abstract String getType();
+  @Value.Default
+  public String getType() {
+    if (getMediaType() != null) {
+      return getMediaType().type().toString();
+    }
+    return null;
+  }
+
+  @Nullable
+  @JsonIgnore
+  @XmlTransient
+  public abstract ApiMediaType getMediaType();
+
+  @Nullable
+  @XmlAttribute
+  @Value.Default
+  public String getProfile() {
+    return getProfiles().isEmpty()
+        ? null
+        : getProfiles().stream().map(ProfileExtension::getUri).collect(Collectors.joining(" "));
+  }
+
+  @JsonIgnore
+  @XmlTransient
+  public abstract List<Profile> getProfiles();
 
   @Nullable
   @XmlAttribute
@@ -106,6 +127,21 @@ public abstract class Link {
     if (getType() != null && !getType().isEmpty()) {
       link.type(getType());
     }
+    if (getProfile() != null && !getProfile().isEmpty()) {
+      link.param("profile", getProfile());
+    }
+    if (getHreflang() != null && !getHreflang().isEmpty()) {
+      link.param("hreflang", getHreflang());
+    }
+    if (getAnchor() != null && !getAnchor().isEmpty()) {
+      link.param("anchor", getAnchor());
+    }
+    if (getVarBase() != null && !getVarBase().isEmpty()) {
+      link.param("var-base", getVarBase());
+    }
+    if (getLength() != null) {
+      link.param("length", String.valueOf(getLength()));
+    }
 
     return link.build();
   }
@@ -114,9 +150,11 @@ public abstract class Link {
   @XmlTransient
   @Value.Derived
   public String getTypeLabel() {
-    if ("application/vnd.ogc.fg+json;compatibility=geojson".equals(getType())) {
-      // hide JSON-FG GeoJSON compatibility
-      return "";
+    if (!getProfiles().isEmpty()) {
+      return getProfiles().stream().map(Profile::getLabel).collect(Collectors.joining("/"));
+    }
+    if (getMediaType() != null) {
+      return getMediaType().label();
     }
     String mediaType =
         Objects.requireNonNullElse(getType(), "").toLowerCase(Locale.ROOT).split(";")[0];
