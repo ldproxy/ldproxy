@@ -13,6 +13,7 @@ import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocumentV7;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
+import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaArray;
@@ -20,6 +21,7 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocumentV7;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
+import de.ii.ogcapi.features.core.domain.JsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.Profile;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -138,6 +140,15 @@ public class MapCodelists implements JsonSchemaVisitor {
           .additionalProperties(
               ((JsonSchemaObject) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .build();
+    } else if (schema instanceof JsonSchemaRef) {
+      JsonSchema def = ((JsonSchemaRef) schema).getDef();
+      if (def != null) {
+        return new ImmutableJsonSchemaRef.Builder()
+            .from((JsonSchemaRef) schema)
+            .def(def.accept(this))
+            .build();
+      }
+      return schema;
     }
 
     if (schema.getCodelistId().isPresent()) {

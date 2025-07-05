@@ -25,6 +25,9 @@ import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.html.domain.OgcApiView;
+import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -155,6 +158,57 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
     } else {
       builder2.type("string");
     }
+
+    Optional<String> role = value.getRole().or(value::getEmbeddedRole);
+
+    if (role.filter("id"::equals).isPresent()) {
+      builder2.role(i18n().get("idTitle", language()));
+    } else if (role.filter("primary-geometry"::equals).isPresent()) {
+      builder2.role(i18n().get("primaryGeometryTitle", language()));
+    } else if (role.filter("secondary-geometry"::equals).isPresent()) {
+      builder2.role(i18n().get("secondaryGeometryTitle", language()));
+    } else if (role.filter("primary-instant"::equals).isPresent()) {
+      builder2.role(i18n().get("primaryInstantTitle", language()));
+    } else if (role.filter("primary-interval-start"::equals).isPresent()) {
+      builder2.role(i18n().get("primaryIntervalStartTitle", language()));
+    } else if (role.filter("primary-interval-end"::equals).isPresent()) {
+      builder2.role(i18n().get("primaryIntervalEndTitle", language()));
+    } else if (role.filter("reference"::equals).isPresent()) {
+      value
+          .getRefCollectionId()
+          .filter(collectionId -> apiData().isCollectionEnabled(collectionId))
+          .ifPresent(
+              collectionId -> {
+                String text;
+                String label =
+                    apiData()
+                        .getCollectionData(collectionId)
+                        .map(FeatureTypeConfiguration::getLabel)
+                        .orElse(collectionId);
+                try {
+                  URI uri =
+                      uriCustomizer()
+                          .copy()
+                          .setPathSegments(apiData().getSubPath().toArray(new String[0]))
+                          .appendPathSegments("collections", collectionId)
+                          .clearParameters()
+                          .build();
+                  text =
+                      String.format(
+                          "<a href=\"%s\" target=\"_blank\">%s</a>", uri.toString(), label);
+                } catch (URISyntaxException ignore) {
+                  // ignore
+                  text = label;
+                }
+                builder2.addRefCollectionIds(text);
+              });
+    }
+
+    if (value.getCodelistId().isPresent()) {
+      builder2.codelistId(value.getCodelistId().get());
+      value.getCodelistUri().ifPresent(builder2::codelistUri);
+    }
+
     builder.add(builder2.inSchemaType(type()).build());
   }
 
@@ -171,6 +225,21 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
   @Value.Derived
   public Optional<String> enumTitle() {
     return Optional.of(i18n().get("enumTitle", language()));
+  }
+
+  @Value.Derived
+  public Optional<String> referenceTitle() {
+    return Optional.of(i18n().get("referenceTitle", language()));
+  }
+
+  @Value.Derived
+  public Optional<String> codelistTitle() {
+    return Optional.of(i18n().get("codelistTitle", language()).replace(" '{{codelist}}'", ""));
+  }
+
+  @Value.Derived
+  public Optional<String> roleTitle() {
+    return Optional.of(i18n().get("roleTitle", language()));
   }
 
   public abstract Optional<Boolean> hasEnum();

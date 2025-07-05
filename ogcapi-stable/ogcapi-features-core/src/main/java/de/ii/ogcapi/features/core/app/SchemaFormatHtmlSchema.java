@@ -88,15 +88,15 @@ public class SchemaFormatHtmlSchema implements SchemaFormatExtension {
             .getExtension(HtmlConfiguration.class)
             .orElse(null);
 
-    String schemaTitle = i18n.get(type.toString() + "Title", requestContext.getLanguage());
-    String schemaDescription =
+    String typeTitle = i18n.get(type.toString() + "Title", requestContext.getLanguage());
+    String typeDescription =
         i18n.get(type.toString() + "Description", requestContext.getLanguage());
 
     return new ImmutableSchemaView.Builder()
-        .title(schemaTitle)
-        .description(schemaDescription)
-        .typeLabel(schema.getTitle())
-        .typeDescription(schema.getDescription())
+        .title(schema.getTitle().orElse(collectionId))
+        .description(schema.getDescription().orElse(""))
+        .typeLabel(typeTitle)
+        .typeDescription(typeDescription)
         .apiData(api.getData())
         .collectionId(collectionId)
         .schema(schema)

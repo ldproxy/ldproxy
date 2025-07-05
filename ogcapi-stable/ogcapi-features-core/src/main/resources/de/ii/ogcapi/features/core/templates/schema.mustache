@@ -12,7 +12,6 @@
     <br/>
     <br/>
 
-    <h3>{{propertiesTitle}}</h3>
     {{#schemaProperties}}
     <div class="row my-3" >
         <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}}">
@@ -21,7 +20,10 @@
         <div class="col-md-{{#descCols}}{{.}}{{/descCols}}{{^descCols}}9{{/descCols}}">
             <ul class="list-unstyled">
                 {{#title}}<li>{{.}}{{#description}}: {{{.}}}{{/description}}</li>{{/title}}</li>
+                {{#role}}<li>{{roleTitle}}: {{.}}</li>{{/role}}
                 <li>{{typeTitle}}: {{#isArray}}[{{/isArray}} {{type}} {{#isArray}}]{{/isArray}}</li>
+                {{#refCollectionIdsList}}<li>{{referenceTitle}}: {{{.}}}</li>{{/refCollectionIdsList}}
+                {{#codelistText}}<li>{{codelistTitle}}: {{{.}}}</li>{{/codelistText}}
                 {{#valueList}}
                     <li>{{enumTitle}}: {{.}}</li>
                 {{/valueList}}

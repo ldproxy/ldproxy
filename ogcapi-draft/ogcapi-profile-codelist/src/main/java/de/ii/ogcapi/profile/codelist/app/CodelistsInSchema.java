@@ -15,8 +15,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.profile.codelist.domain.ProfileCodelistConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.services.domain.ServicesContext;
-import java.net.URI;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,12 +23,8 @@ import javax.inject.Singleton;
 @AutoBind
 public class CodelistsInSchema implements JsonSchemaExtension {
 
-  private final URI serviceUri;
-
   @Inject
-  public CodelistsInSchema(ServicesContext servicesContext) {
-    this.serviceUri = servicesContext.getUri();
-  }
+  public CodelistsInSchema() {}
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {

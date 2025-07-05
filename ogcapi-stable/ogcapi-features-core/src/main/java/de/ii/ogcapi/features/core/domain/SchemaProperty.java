@@ -191,9 +191,39 @@ public abstract class SchemaProperty {
 
   public abstract Optional<Number> getMaximum();
 
+  public abstract Optional<String> getRole();
+
+  public abstract Optional<String> getCodelistId();
+
+  public abstract Optional<String> getCodelistUri();
+
+  public abstract List<String> getRefCollectionIds();
+
   public abstract List<String> getValues();
 
   public abstract SchemaType inSchemaType();
+
+  @JsonIgnore
+  @Value.Derived
+  public Optional<String> getCodelistText() {
+    if (getCodelistId().isEmpty()) {
+      return Optional.empty();
+    }
+    return getCodelistUri()
+        .map(
+            uri ->
+                String.format(
+                    "<a href=\"%s\" target=\"_blank\">%s</a>", uri, getCodelistId().get()))
+        .or(this::getCodelistId);
+  }
+
+  @JsonIgnore
+  @Value.Derived
+  public Optional<String> getRefCollectionIdsList() {
+    return !getRefCollectionIds().isEmpty()
+        ? Optional.of(String.join("; ", getRefCollectionIds()))
+        : Optional.empty();
+  }
 
   @JsonIgnore
   @Value.Derived
