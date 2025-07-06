@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.Collections;
 import de.ii.ogcapi.collections.domain.CollectionsFormatExtension;
+import de.ii.ogcapi.collections.domain.OgcApiCollection;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -23,6 +24,7 @@ import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -107,6 +109,20 @@ public class CollectionsFormatHtml
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
 
+    List<String> globalCrsList = collections.getCrs();
+    if (globalCrsList.isEmpty()) {
+      globalCrsList =
+          collections.getCollections().stream()
+              .map(OgcApiCollection::getCrs)
+              .flatMap(Collection::stream)
+              .distinct()
+              .filter(
+                  crs ->
+                      collections.getCollections().stream()
+                          .allMatch(c -> c.getCrs().isEmpty() || c.getCrs().contains(crs)))
+              .toList();
+    }
+
     return new ImmutableOgcApiCollectionsView.Builder()
         .apiData(api.getData())
         .breadCrumbs(breadCrumbs)
@@ -126,7 +142,7 @@ public class CollectionsFormatHtml
                 : collections.getCollections())
         .spatialExtent(api.getSpatialExtent())
         .showCollectionDescriptions(showCollectionDescriptionsInOverview(api.getData()))
-        .crs(collections.getCrs())
+        .crs(globalCrsList)
         .dataSourceUrl(Optional.empty())
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .user(requestContext.getUser())
