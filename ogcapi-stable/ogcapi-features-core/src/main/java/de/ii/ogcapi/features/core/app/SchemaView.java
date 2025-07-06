@@ -28,6 +28,7 @@ import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -92,10 +93,9 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
   public List<SchemaProperty> schemaProperties() {
     Map<String, JsonSchema> properties = schema().getProperties();
     ImmutableList.Builder<SchemaProperty> builder = ImmutableList.builder();
-    properties.forEach(
-        (key, value) -> {
-          build(builder, "", key, value);
-        });
+    properties.entrySet().stream()
+        .sorted(Comparator.comparingInt(entry -> entry.getValue().getPropertySeq().orElse(0)))
+        .forEach(entry -> build(builder, "", entry.getKey(), entry.getValue()));
     return builder.build();
   }
 
@@ -103,7 +103,11 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
       ImmutableList.Builder<SchemaProperty> builder, String path, String key, JsonSchema value) {
     String fullPath = path.isEmpty() ? key : path + "." + key;
     ImmutableSchemaProperty.Builder builder2 = ImmutableSchemaProperty.builder().id(fullPath);
-    builder2.title(value.getTitle()).description(value.getDescription());
+    builder2
+        .title(value.getTitle())
+        .description(value.getDescription())
+        .readOnly(value.isReadOnly())
+        .writeOnly(value.isWriteOnly());
 
     boolean isArray = false;
 
@@ -148,11 +152,15 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
               .title(def.getTitle())
               .description(def.getDescription())
               .type("object")
-              .isArray(isArray);
+              .isArray(isArray)
+              .readOnly(def.isReadOnly())
+              .writeOnly(def.isWriteOnly());
       builder.add(group.inSchemaType(type()).build());
 
-      def.getProperties()
-          .forEach((childKey, childVal) -> build(builder, fullPath, childKey, childVal));
+      def.getProperties().entrySet().stream()
+          .sorted(Comparator.comparingInt(entry -> entry.getValue().getPropertySeq().orElse(0)))
+          .forEach(
+              childEntry -> build(builder, fullPath, childEntry.getKey(), childEntry.getValue()));
 
       return;
     } else {

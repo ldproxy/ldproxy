@@ -21,6 +21,7 @@
             <ul class="list-unstyled">
                 {{#title}}<li>{{.}}{{#description}}: {{{.}}}{{/description}}</li>{{/title}}</li>
                 {{#role}}<li>{{roleTitle}}: {{.}}</li>{{/role}}
+                {{#readOnly}}Returnable{{/readOnly}}{{#writeOnly}}Receivable{{/writeOnly}}
                 <li>{{typeTitle}}: {{#isArray}}[{{/isArray}} {{type}} {{#isArray}}]{{/isArray}}</li>
                 {{#refCollectionIdsList}}<li>{{referenceTitle}}: {{{.}}}</li>{{/refCollectionIdsList}}
                 {{#codelistText}}<li>{{codelistTitle}}: {{{.}}}</li>{{/codelistText}}

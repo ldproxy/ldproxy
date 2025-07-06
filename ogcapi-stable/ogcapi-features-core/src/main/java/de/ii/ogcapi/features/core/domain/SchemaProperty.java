@@ -203,6 +203,16 @@ public abstract class SchemaProperty {
 
   public abstract SchemaType inSchemaType();
 
+  @Value.Default
+  public boolean getWriteOnly() {
+    return false;
+  }
+
+  @Value.Default
+  public boolean getReadOnly() {
+    return false;
+  }
+
   @JsonIgnore
   @Value.Derived
   public Optional<String> getCodelistText() {
