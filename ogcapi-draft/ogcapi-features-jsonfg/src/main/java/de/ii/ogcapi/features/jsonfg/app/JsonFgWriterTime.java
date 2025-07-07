@@ -121,6 +121,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
     final FeatureSchema schema = context.schema().get();
     final FeatureState featureState = context.encoding().getBuffer().get();
     if (isEnabled
+        && !featureState.hasTime
         && (!featureState.instantProperty.isEmpty()
             || !featureState.intervalStartProperty.isEmpty()
             || !featureState.intervalEndProperty.isEmpty())
