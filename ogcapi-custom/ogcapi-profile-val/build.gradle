@@ -1,0 +1,11 @@
+
+maturity = 'CANDIDATE'
+maintenance = 'LOW'
+description = 'Profiles for feature properties with enumerated values.'
+descriptionDe = 'Profile für Objekteigenschaften mit Aufzählungswerten.'
+
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:ogcapi-features-core'
+}

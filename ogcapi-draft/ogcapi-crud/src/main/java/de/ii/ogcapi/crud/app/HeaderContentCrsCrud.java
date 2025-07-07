@@ -25,9 +25,11 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -79,7 +81,9 @@ public class HeaderContentCrsCrud extends ApiExtensionCache implements ApiHeader
     if (!schemaMap.containsKey(apiHashCode)) {
       List<String> crsList =
           crsSupport.getSupportedCrsList(apiData).stream()
-              .map(EpsgCrs::toUriString)
+              .flatMap(
+                  crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
+              .filter(Objects::nonNull)
               .map(this::toUriInHeader)
               .collect(ImmutableList.toImmutableList());
       String defaultCrs =

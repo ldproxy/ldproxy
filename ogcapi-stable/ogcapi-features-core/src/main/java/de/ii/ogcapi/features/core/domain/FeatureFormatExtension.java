@@ -14,6 +14,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
@@ -143,26 +145,19 @@ public abstract class FeatureFormatExtension implements FormatExtension {
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
       Optional<FeatureSchema> schema,
-      List<String> profiles) {
+      List<Profile> profiles) {
     if (profiles.isEmpty() || schema.isEmpty()) {
       return getPropertyTransformations(collectionData);
     }
 
     ImmutableProfileTransformations.Builder builder = new ImmutableProfileTransformations.Builder();
 
-    List<ProfileExtensionFeatures> profileExtensions =
-        extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class);
-
     schema.ifPresent(
         s ->
             profiles.forEach(
                 profile ->
-                    profileExtensions.stream()
-                        .filter(pe -> pe.isEnabledForApi(apiData, collectionData.getId()))
-                        .forEach(
-                            pe ->
-                                pe.addPropertyTransformations(
-                                    profile, s, getMediaType().type().toString(), builder))));
+                    profile.addPropertyTransformations(
+                        s, getMediaType().type().toString(), builder)));
 
     ProfileTransformations profileTransformations = builder.build();
 
@@ -201,10 +196,10 @@ public abstract class FeatureFormatExtension implements FormatExtension {
         .getExtension(getBuildingBlockConfigurationType(), collectionId)
         .filter(
             buildingBlockConfiguration ->
-                buildingBlockConfiguration instanceof FeatureFormatConfiguration)
+                buildingBlockConfiguration instanceof ProfilesConfiguration)
         .map(
             buildingBlockConfiguration ->
-                ((FeatureFormatConfiguration) buildingBlockConfiguration).getDefaultProfiles())
+                ((ProfilesConfiguration) buildingBlockConfiguration).getDefaultProfiles())
         .orElse(Map.of());
   }
 

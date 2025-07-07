@@ -18,6 +18,7 @@ import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
@@ -471,7 +472,8 @@ import org.immutables.value.Value;
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "TILES")
 @JsonDeserialize(builder = ImmutableTilesConfiguration.Builder.class)
-public interface TilesConfiguration extends SfFlatConfiguration, CachingConfiguration {
+public interface TilesConfiguration
+    extends SfFlatConfiguration, CachingConfiguration, ProfilesConfiguration {
 
   enum WmtsScope {
     NONE,
@@ -689,7 +691,11 @@ public interface TilesConfiguration extends SfFlatConfiguration, CachingConfigur
             .transformations(
                 SfFlatConfiguration.super
                     .mergeInto((PropertyTransformations) source)
-                    .getTransformations());
+                    .getTransformations())
+            .defaultProfiles(
+                SfFlatConfiguration.super
+                    .mergeInto((ProfilesConfiguration) source)
+                    .getDefaultProfiles());
 
     TilesConfiguration src = (TilesConfiguration) source;
 

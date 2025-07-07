@@ -13,12 +13,13 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesQueriesHandler;
-import de.ii.ogcapi.features.core.domain.CollectionPropertiesType;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputCollectionProperties;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.Query;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -33,17 +34,21 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -69,7 +74,7 @@ import org.slf4j.LoggerFactory;
  *     verwendet, um einen konsistenten Ansatz für die Beschreibung von Schemainformationen zu
  *     haben. JSON Schema wird in anderen Teilen der API außerdem dazu verwendet, um das Schema für
  *     JSON-Antwortdokumente zu beschreiben, einschließlich in OpenAPI-Dokumenten.
- * @ref:formats {@link de.ii.ogcapi.features.core.domain.CollectionPropertiesFormat}
+ * @ref:formats {@link de.ii.ogcapi.features.core.domain.SchemaFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -80,13 +85,13 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
 
   private static final List<String> TAGS = ImmutableList.of("Discover data collections");
 
-  private final CollectionPropertiesQueriesHandler queryHandler;
+  private final QueriesHandlerSchema queryHandler;
   private final JsonSchemaCache schemaCache;
 
   @Inject
   public EndpointSortables(
       ExtensionRegistry extensionRegistry,
-      CollectionPropertiesQueriesHandler queryHandler,
+      QueriesHandlerSchema queryHandler,
       FeaturesCoreProviders featuresCoreProviders) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
@@ -96,7 +101,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
     return List.of(
-        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schema",
+        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schemas",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/sortables",
         "http://www.opengis.net/spec/ogcapi-features-8/0.0/conf/sortables");
   }
@@ -109,7 +114,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(CollectionPropertiesFormat.class);
+      formats = extensionRegistry.getExtensionsForType(SchemaFormatExtension.class);
     }
     return formats;
   }
@@ -180,6 +185,7 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
 
   @GET
   @Path("/{collectionId}/sortables")
+  @Produces({"application/schema+json", "text/html"})
   public Response getSortables(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
@@ -187,15 +193,48 @@ public class EndpointSortables extends EndpointSubCollection implements Conforma
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId) {
 
-    CollectionPropertiesQueriesHandler.QueryInputCollectionProperties queryInput =
-        new ImmutableQueryInputCollectionProperties.Builder()
+    String definitionPath = "/collections/{collectionId}/sortables";
+    checkPathParameter(
+        extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
+
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+
+    @SuppressWarnings("unchecked")
+    List<Profile> requestedProfiles =
+        (List<Profile>)
+            Objects.requireNonNullElse(
+                queryParameterSet.getTypedValues().get(QueryParameterProfileSortables.PROFILE),
+                List.of());
+
+    SortingConfiguration configuration =
+        api.getData()
+            .getExtension(SortingConfiguration.class, collectionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Sorting configuration not found for collection: " + collectionId));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
+    QueriesHandlerSchema.QueryInputSchema queryInput =
+        new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
-            .type(CollectionPropertiesType.SORTABLES)
+            .type(SchemaType.SORTABLES)
             .schemaCache(schemaCache)
+            .profiles(requestedProfiles)
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
-    return queryHandler.handle(
-        CollectionPropertiesQueriesHandler.Query.COLLECTION_PROPERTIES, queryInput, requestContext);
+    return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
   }
 }

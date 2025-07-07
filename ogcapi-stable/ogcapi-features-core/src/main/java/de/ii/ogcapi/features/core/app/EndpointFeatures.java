@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -273,11 +274,25 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
 
-    List<String> requestedProfiles =
-        (List<String>)
+    @SuppressWarnings("unchecked")
+    List<Profile> requestedProfiles =
+        (List<Profile>)
             Objects.requireNonNullElse(
                 queryParameterSet.getTypedValues().get(QueryParameterProfileFeatures.PROFILE),
                 List.of());
+
+    List<Profile> defaultProfilesFeaturesCore =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                coreConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
 
     FeatureQuery query =
         ogcApiFeaturesQuery.requestToFeatureQuery(
@@ -293,6 +308,7 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
             .collectionId(collectionId)
             .query(query)
             .profiles(requestedProfiles)
+            .defaultProfilesResource(defaultProfilesFeaturesCore)
             .featureProvider(providers.getFeatureProviderOrThrow(api.getData(), collectionData))
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .defaultPageSize(Optional.of(defaultPageSize))

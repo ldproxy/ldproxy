@@ -8,11 +8,12 @@
 package de.ii.ogcapi.features.csv.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.features.core.domain.SfFlatConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import java.util.Map;
 import org.immutables.value.Value;
 
 /**
@@ -85,6 +86,23 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableCsvConfiguration.Builder.class)
 public interface CsvConfiguration extends SfFlatConfiguration {
 
+  /**
+   * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
+   *     this feature format. The value is an object where the key is the id of a profile set, such
+   *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.
+   *     These defaults override the defaults specified in the [Features](features.md) building
+   *     block.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
+   *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `rel`, und der Wert das Standardprofil für den Profilsatz, z. B. `rel-as-key`. Diese
+   *     Vorgaben haben Vorrang vor den im [Features](features.md)-Baustein angegebenen
+   *     Standardprofilen.
+   * @since v4.2
+   * @default {}
+   */
+  @Override
+  Map<String, String> getDefaultProfiles();
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override
@@ -94,19 +112,17 @@ public interface CsvConfiguration extends SfFlatConfiguration {
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
-    ImmutableCsvConfiguration.Builder builder =
-        ((ImmutableCsvConfiguration.Builder) source.getBuilder())
-            .from(source)
-            .from(this)
-            .transformations(
-                SfFlatConfiguration.super
-                    .mergeInto((PropertyTransformations) source)
-                    .getTransformations())
-            .defaultProfiles(
-                this.getDefaultProfiles().isEmpty()
-                    ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
-                    : this.getDefaultProfiles());
-
-    return builder.build();
+    return ((ImmutableCsvConfiguration.Builder) source.getBuilder())
+        .from(source)
+        .from(this)
+        .transformations(
+            SfFlatConfiguration.super
+                .mergeInto((PropertyTransformations) source)
+                .getTransformations())
+        .defaultProfiles(
+            SfFlatConfiguration.super
+                .mergeInto((ProfilesConfiguration) source)
+                .getDefaultProfiles())
+        .build();
   }
 }
