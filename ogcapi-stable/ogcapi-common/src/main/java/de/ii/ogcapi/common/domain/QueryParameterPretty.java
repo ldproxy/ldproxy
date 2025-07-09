@@ -71,7 +71,7 @@ public class QueryParameterPretty extends OgcApiQueryParameterBase
   public void applyTo(ContainerRequestContext requestContext, QueryParameterSet parameters) {
     if (parameters.getTypedValues().containsKey(getName())) {
       Boolean value = (Boolean) parameters.getTypedValues().get(getName());
-      requestContext.getHeaders().putSingle(JsonPretty.JSON_PRETTY_HEADER, value.toString());
+      requestContext.setProperty(JsonPretty.JSON_PRETTY_HEADER, value.toString());
     }
   }
 
