@@ -318,6 +318,7 @@ class OgcApiCoreSpecCollections extends Specification {
         return new ImmutableFeatureSchema.Builder()
                 .name("featureType1")
                 .type(SchemaBase.Type.OBJECT)
+                .sourcePath("/table1")
                 .putProperties2("geo",
                         new ImmutableFeatureSchema.Builder()
                                 .type(SchemaBase.Type.GEOMETRY)
