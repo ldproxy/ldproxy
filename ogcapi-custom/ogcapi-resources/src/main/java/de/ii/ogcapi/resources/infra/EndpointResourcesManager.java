@@ -29,16 +29,21 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.resources.app.ResourcesBuildingBlock;
+import de.ii.ogcapi.resources.domain.QueriesHandlerResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.Blob;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
+import de.ii.xtraplatform.web.domain.LastModified;
 import io.dropwizard.auth.Auth;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,11 +52,14 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -62,7 +70,7 @@ import org.slf4j.LoggerFactory;
  * @path resources/{resourceId}
  * @langEn Create, update or delete a file resource.
  * @langDe Erzeugen, Aktualisieren oder Löschen einer Dateiressource.
- * @ref:formats {@link de.ii.ogcapi.resources.domain.ResourceFormatExtension}
+ * @ref:formats {@link ResourceFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -73,12 +81,17 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
       ImmutableList.of("Create, update and delete other resources");
 
   private final ResourceStore resourcesStore;
+  private final QueriesHandlerResources queriesHandlerResources;
 
   @Inject
-  public EndpointResourcesManager(ResourceStore blobStore, ExtensionRegistry extensionRegistry) {
+  public EndpointResourcesManager(
+      ResourceStore blobStore,
+      ExtensionRegistry extensionRegistry,
+      QueriesHandlerResources queriesHandlerResources) {
     super(extensionRegistry);
 
     this.resourcesStore = blobStore.with(ResourcesBuildingBlock.STORE_RESOURCE_TYPE);
+    this.queriesHandlerResources = queriesHandlerResources;
   }
 
   @Override
@@ -193,6 +206,29 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
       byte[] requestBody)
       throws IOException {
 
+    final String apiId = api.getId();
+    final java.nio.file.Path resourcePath = java.nio.file.Path.of(apiId).resolve(resourceId);
+
+    try {
+      Optional<Blob> resourceBlob = resourcesStore.get(resourcePath);
+
+      if (resourceBlob.isEmpty()) {
+        throw new NotFoundException(
+            MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
+      }
+
+      Blob blob = resourceBlob.get();
+      Date lastModified = LastModified.from(blob.lastModified());
+      EntityTag eTag = blob.eTag();
+      Response.ResponseBuilder response =
+          queriesHandlerResources.evaluatePreconditions(requestContext, lastModified, eTag);
+
+      if (Objects.nonNull(response)) return response.build();
+
+    } catch (IOException e) {
+      throw new ServerErrorException("resource could not be read: " + resourceId, 500);
+    }
+
     return getResourceFormats().stream()
         .filter(format -> requestContext.getMediaType().matches(format.getMediaType().type()))
         .findAny()
@@ -217,7 +253,32 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
   public Response deleteResource(
       @Auth Optional<User> optionalUser,
       @PathParam("resourceId") String resourceId,
+      @Context OgcApi api,
+      @Context ApiRequestContext requestContext,
       @Context OgcApi dataset) {
+
+    final String apiId = api.getId();
+    final java.nio.file.Path resourcePath = java.nio.file.Path.of(apiId).resolve(resourceId);
+
+    try {
+      Optional<Blob> resourceBlob = resourcesStore.get(resourcePath);
+
+      if (resourceBlob.isEmpty()) {
+        throw new NotFoundException(
+            MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
+      }
+
+      Blob blob = resourceBlob.get();
+      Date lastModified = LastModified.from(blob.lastModified());
+      EntityTag eTag = blob.eTag();
+      Response.ResponseBuilder response =
+          queriesHandlerResources.evaluatePreconditions(requestContext, lastModified, eTag);
+
+      if (Objects.nonNull(response)) return response.build();
+
+    } catch (IOException e) {
+      throw new ServerErrorException("resource could not be read: " + resourceId, 500);
+    }
 
     try {
       resourcesStore.delete(java.nio.file.Path.of(dataset.getId(), resourceId));
