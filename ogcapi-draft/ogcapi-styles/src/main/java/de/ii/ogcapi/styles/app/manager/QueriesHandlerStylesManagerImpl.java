@@ -192,7 +192,6 @@ public class QueriesHandlerStylesManagerImpl extends AbstractVolatileComposed
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
 
-    System.out.println(contentType);
     if (Objects.nonNull(response)) return response.build(); // Preconditions failed
 
     // PUT
