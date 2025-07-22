@@ -78,7 +78,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
 
   default Response.ResponseBuilder evaluatePreconditions(
       ApiRequestContext requestContext, Date lastModified, EntityTag etag) {
-    System.out.println();
+
     if (requestContext.getRequest().isPresent()) {
       Request request = requestContext.getRequest().get();
       try {
