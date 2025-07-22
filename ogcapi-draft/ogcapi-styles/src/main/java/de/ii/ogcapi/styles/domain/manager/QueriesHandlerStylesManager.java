@@ -38,6 +38,12 @@ public interface QueriesHandlerStylesManager
     byte[] getRequestBody();
 
     boolean getStrict();
+
+    // temp
+    @Value.Default
+    default boolean getDryRun() {
+      return false;
+    }
   }
 
   @Value.Immutable
