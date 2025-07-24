@@ -7,8 +7,7 @@
  */
 package de.ii.ogcapi.common.domain;
 
-import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HttpRequestOverrideQueryParameter;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -23,28 +22,16 @@ import io.swagger.v3.oas.models.media.Schema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.container.ContainerRequestContext;
 
-/**
- * @title lang
- * @endpoints *
- * @langEn Select the language of the response. If no value is provided, the standard HTTP rules
- *     apply, i.e., the "Accept-Language" header will be used to determine the language.
- * @langDe Wählt die Sprache der Antwort. Wenn kein Wert angegeben wird, gelten die Standard-HTTP
- *     Regeln, d.h. der "Accept-Language"-Header wird zur Bestimmung der Sprache verwendet.
- */
-@Singleton
-@AutoBind
-public class QueryParameterPretty extends OgcApiQueryParameterBase
+public abstract class QueryParameterPretty extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Boolean>, HttpRequestOverrideQueryParameter {
 
   private Schema<?> schema = null;
   private final SchemaValidator schemaValidator;
 
-  @Inject
-  public QueryParameterPretty(SchemaValidator schemaValidator) {
+  public QueryParameterPretty(
+      ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
@@ -81,12 +68,6 @@ public class QueryParameterPretty extends OgcApiQueryParameterBase
   }
 
   @Override
-  public boolean matchesPath(String definitionPath) {
-    return !definitionPath.equals("/collections/{collectionId}/items")
-        && !definitionPath.equals("/collections/{collectionId}/items/{featureId}");
-  }
-
-  @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     if (schema == null) {
       schema = new BooleanSchema();
@@ -97,10 +78,5 @@ public class QueryParameterPretty extends OgcApiQueryParameterBase
   @Override
   public SchemaValidator getSchemaValidator() {
     return schemaValidator;
-  }
-
-  @Override
-  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return CommonConfiguration.class;
   }
 }

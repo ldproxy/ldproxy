@@ -8,14 +8,15 @@
 package de.ii.ogcapi.features.geojson.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.common.domain.QueryParameterPretty;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationQueryParameter;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric.Builder;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
@@ -37,23 +38,17 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class QueryParameterPrettyFeaturesGeoJson extends OgcApiQueryParameterBase
+public class QueryParameterPrettyFeaturesGeoJson extends QueryParameterPretty
     implements TypedQueryParameter<Boolean>, FeatureTransformationQueryParameter {
 
   private final Schema<?> schema = new BooleanSchema()._default(false);
   private final boolean allowDebug;
-  private final SchemaValidator schemaValidator;
 
   @Inject
   public QueryParameterPrettyFeaturesGeoJson(
-      AppContext appContext, SchemaValidator schemaValidator) {
+      AppContext appContext, SchemaValidator schemaValidator, ExtensionRegistry extensionRegistry) {
+    super(extensionRegistry, schemaValidator);
     this.allowDebug = appContext.isDevEnv();
-    this.schemaValidator = schemaValidator;
-  }
-
-  @Override
-  public String getName() {
-    return "pretty";
   }
 
   @Override
@@ -66,29 +61,14 @@ public class QueryParameterPrettyFeaturesGeoJson extends OgcApiQueryParameterBas
   }
 
   @Override
-  public String getDescription() {
-    return "Controls whether the response content should be pretty-printed. Only applicable for JSON outputs. False by default";
-  }
-
-  @Override
   public boolean matchesPath(String definitionPath) {
     return definitionPath.equals("/collections/{collectionId}/items")
         || definitionPath.equals("/collections/{collectionId}/items/{featureId}");
   }
 
   @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return schema;
-  }
-
-  @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
     return schema;
-  }
-
-  @Override
-  public SchemaValidator getSchemaValidator() {
-    return schemaValidator;
   }
 
   @Override
