@@ -7,14 +7,6 @@
  */
 package de.ii.ogcapi.collections.app.json;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.Collections;
@@ -42,20 +34,11 @@ public class CollectionsFormatJson implements CollectionsFormatExtension, Confor
 
   private final Schema<?> schemaCollections;
   private final Map<String, Schema<?>> referencedSchemasCollections;
-  private final ObjectMapper mapper;
 
   @Inject
   public CollectionsFormatJson(ClassSchemaCache classSchemaCache) {
     schemaCollections = classSchemaCache.getSchema(Collections.class);
     referencedSchemasCollections = classSchemaCache.getReferencedSchemas(Collections.class);
-    mapper =
-        new ObjectMapper()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .setSerializationInclusion(JsonInclude.Include.NON_ABSENT)
-            .registerModule(new Jdk8Module())
-            .registerModule(new GuavaModule())
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Override
@@ -80,10 +63,6 @@ public class CollectionsFormatJson implements CollectionsFormatExtension, Confor
 
   @Override
   public Object getEntity(Collections collections, OgcApi api, ApiRequestContext requestContext) {
-    try {
-      return mapper.writeValueAsBytes(collections);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    return collections;
   }
 }
