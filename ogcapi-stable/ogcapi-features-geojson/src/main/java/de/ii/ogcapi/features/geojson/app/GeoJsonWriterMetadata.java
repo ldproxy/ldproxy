@@ -35,7 +35,7 @@ public class GeoJsonWriterMetadata implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 20;
+    return 15;
   }
 
   @Override

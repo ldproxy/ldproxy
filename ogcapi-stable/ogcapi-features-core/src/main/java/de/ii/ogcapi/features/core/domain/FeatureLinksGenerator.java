@@ -13,19 +13,21 @@ import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
-import de.ii.ogcapi.foundation.domain.ProfileExtension;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 public class FeatureLinksGenerator extends DefaultLinksGenerator {
 
   public List<Link> generateLinks(
       URICustomizer uriBuilder,
-      List<String> profiles,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
+      List<Profile> profiles,
+      Map<ApiMediaType, List<Profile>> alternateProfiles,
       ApiMediaType collectionMediaType,
       String canonicalUri,
       I18n i18n,
@@ -33,51 +35,14 @@ public class FeatureLinksGenerator extends DefaultLinksGenerator {
     final ImmutableList.Builder<Link> builder =
         new ImmutableList.Builder<Link>()
             .addAll(
-                super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language));
-
-    if (canonicalUri != null)
-      builder.add(
-          new ImmutableLink.Builder()
-              .href(canonicalUri)
-              .rel("canonical")
-              .title(i18n.get("persistentLink", language))
-              .build());
-
-    builder.add(
-        new ImmutableLink.Builder()
-            .href(
-                uriBuilder
-                    .copy()
-                    .clearParameters()
-                    .ensureParameter("f", collectionMediaType.parameter())
-                    .removeLastPathSegments(2)
-                    .toString())
-            .rel("collection")
-            .type(collectionMediaType.type().toString())
-            .title(i18n.get("collectionLink", language))
-            .build());
-
-    profiles.forEach(
-        p ->
-            builder.add(
-                new ImmutableLink.Builder()
-                    .href(ProfileExtension.getUri(p))
-                    .rel("profile")
-                    .title(i18n.get("profileLink", language))
-                    .build()));
-
-    return builder.build();
-  }
-
-  public List<Link> generateLinksReduced(
-      URICustomizer uriBuilder,
-      ApiMediaType mediaType,
-      List<ApiMediaType> alternateMediaTypes,
-      ApiMediaType collectionMediaType,
-      String canonicalUri,
-      I18n i18n,
-      Optional<Locale> language) {
-    final ImmutableList.Builder<Link> builder = new ImmutableList.Builder<Link>();
+                super.generateLinks(
+                    uriBuilder,
+                    mediaType,
+                    alternateMediaTypes,
+                    profiles,
+                    alternateProfiles,
+                    i18n,
+                    language));
 
     if (canonicalUri != null)
       builder.add(

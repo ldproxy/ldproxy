@@ -17,7 +17,6 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
-import de.ii.ogcapi.features.core.domain.ProfileExtensionFeatures;
 import de.ii.ogcapi.features.search.domain.ImmutableParameter;
 import de.ii.ogcapi.features.search.domain.ImmutableParameters;
 import de.ii.ogcapi.features.search.domain.ImmutableStoredQueries;
@@ -37,6 +36,7 @@ import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
@@ -44,6 +44,9 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
@@ -64,6 +67,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
@@ -584,21 +588,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // negotiate profiles
-    List<String> profiles =
-        extensionRegistry.getExtensionsForType(ProfileExtensionFeatures.class).stream()
-            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData()))
-            .map(
-                p ->
-                    p.negotiateProfile(
-                        queryExpression.getProfiles(),
-                        outputFormat,
-                        requestContext.getApi().getData(),
-                        null))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toList());
-
     StreamingOutput streamingOutput =
         getStreamingOutput(
             requestContext,
@@ -608,7 +597,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             collectionIds,
             featureProvider,
             outputFormat,
-            profiles,
             queryInput.getDefaultCrs(),
             targetCrs,
             links);
@@ -685,6 +673,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               List<Integer> precisionList = crsInfo.getPrecisionList(crs, coordinatePrecision);
               if (!precisionList.isEmpty()) {
                 finalQueryBuilder.geometryPrecision(precisionList);
+              }
+              precisionList = crsInfo.getPrecisionList(OgcCrs.CRS84h, coordinatePrecision);
+              if (!precisionList.isEmpty()) {
+                finalQueryBuilder.wgs84GeometryPrecision(precisionList);
               }
             });
 
@@ -784,7 +776,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       List<String> collectionIds,
       FeatureProvider featureProvider,
       FeatureFormatExtension outputFormat,
-      List<String> profiles,
       EpsgCrs defaultCrs,
       EpsgCrs targetCrs,
       List<Link> links) {
@@ -795,6 +786,56 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       sourceCrs = featureProvider.crs().get().getNativeCrs();
       crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
     }
+
+    // negotiate profiles
+    List<Profile> requestedProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(profile -> queryExpression.getProfiles().contains(profile.getId()))
+            .toList();
+    FeaturesCoreConfiguration coreConfiguration =
+        requestContext
+            .getApi()
+            .getData()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .filter(
+                cfg ->
+                    cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
+                        != FeaturesCoreConfiguration.ItemType.unknown)
+            .orElseThrow(() -> new NotFoundException("Features are not supported for this API."));
+    List<Profile> defaultProfilesFeaturesCore =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                coreConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
+    List<Profile> profiles =
+        collectionIds.stream()
+            .flatMap(
+                collectionId ->
+                    extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+                        .filter(
+                            p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
+                        .map(
+                            profileSet ->
+                                profileSet
+                                    .negotiateProfile(
+                                        requestedProfiles,
+                                        defaultProfilesFeaturesCore,
+                                        outputFormat,
+                                        ResourceType.FEATURE,
+                                        api.getData(),
+                                        Optional.of(collectionId))
+                                    .orElse(null))
+                        .filter(Objects::nonNull))
+            .distinct()
+            .toList();
 
     Map<String, Optional<FeatureSchema>> schemas =
         query.getQueries().stream()
@@ -813,6 +854,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .featureSchemas(schemas)
             .ogcApiRequest(requestContext)
             .crsTransformer(crsTransformer)
+            .profiles(profiles)
             .codelists(codelistStore.asMap())
             .defaultCrs(defaultCrs)
             .sourceCrs(Optional.ofNullable(sourceCrs))
@@ -822,6 +864,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .offset(query.getOffset())
             .maxAllowableOffset(query.getMaxAllowableOffset())
             .geometryPrecision(query.getGeometryPrecision())
+            .wgs84GeometryPrecision(query.getWgs84GeometryPrecision())
             .fields(fields)
             .allLinksAreLocal(allLinksAreLocal)
             .idsIncludeCollectionId(collectionIds.size() > 1)
@@ -868,7 +911,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       List<String> collectionIds,
       FeatureProvider featureProvider,
       FeatureFormatExtension outputFormat,
-      List<String> profiles,
+      List<Profile> profiles,
       String serviceUrl) {
     return IntStream.range(0, collectionIds.size())
         .boxed()

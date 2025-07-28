@@ -13,7 +13,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.hash.Funnel;
-import de.ii.ogcapi.features.core.domain.CollectionProperty;
+import de.ii.ogcapi.features.core.domain.SchemaProperty;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -45,13 +46,17 @@ public abstract class StoredQuery extends PageRepresentationWithId {
 
   @JsonIgnore
   @Value.Derived
-  public List<CollectionProperty> getParameterList() {
-    ImmutableList.Builder<CollectionProperty> builder = ImmutableList.builder();
+  public List<SchemaProperty> getParameterList() {
+    ImmutableList.Builder<SchemaProperty> builder = ImmutableList.builder();
     getParameters().entrySet().stream()
         .sorted(Map.Entry.comparingByKey())
         .forEachOrdered(
             entry ->
-                builder.add(CollectionProperty.of(entry.getKey(), (ObjectNode) entry.getValue())));
+                builder.add(
+                    SchemaProperty.of(
+                        entry.getKey(),
+                        (ObjectNode) entry.getValue(),
+                        SchemaType.STORED_QUERY_PARAMETER)));
     return builder.build();
   }
 

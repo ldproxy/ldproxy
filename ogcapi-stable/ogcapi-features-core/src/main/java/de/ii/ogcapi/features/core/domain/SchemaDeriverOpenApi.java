@@ -222,6 +222,11 @@ public abstract class SchemaDeriverOpenApi extends SchemaDeriver<Schema<?>> {
   }
 
   @Override
+  protected Schema<?> withPropertySeq(Schema<?> schema, int propertySeq) {
+    return schema; // x-ogc-propertySeq will for now not be included in OpenAPI schemas
+  }
+
+  @Override
   protected Schema<?> withName(Schema<?> oapiSchema, String propertyName) {
     oapiSchema.setName(propertyName);
     return oapiSchema;

@@ -13,11 +13,11 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.foundation.domain.WithProfiles;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -40,21 +40,24 @@ public interface FeaturesCoreQueriesHandler
     FEATURE
   }
 
-  @Value.Immutable
-  interface QueryInputFeatures extends QueryInput {
+  interface QueryInputFeaturesBase extends QueryInput, WithProfiles {
     String getCollectionId();
 
     FeatureQuery getQuery();
-
-    List<String> getProfiles();
 
     FeatureProvider getFeatureProvider();
 
     EpsgCrs getDefaultCrs();
 
+    boolean sendResponseAsStream();
+  }
+
+  @Value.Immutable
+  interface QueryInputFeatures extends QueryInputFeaturesBase {
     Optional<Integer> getDefaultPageSize();
 
     @Value.Default
+    @Override
     default boolean sendResponseAsStream() {
       return !getQuery().hitsOnly();
     }
@@ -66,20 +69,11 @@ public interface FeaturesCoreQueriesHandler
   }
 
   @Value.Immutable
-  interface QueryInputFeature extends QueryInput {
-    String getCollectionId();
-
+  interface QueryInputFeature extends QueryInputFeaturesBase {
     String getFeatureId();
 
-    FeatureQuery getQuery();
-
-    List<String> getProfiles();
-
-    FeatureProvider getFeatureProvider();
-
-    EpsgCrs getDefaultCrs();
-
     @Value.Default
+    @Override
     default boolean sendResponseAsStream() {
       return false;
     }

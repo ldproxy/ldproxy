@@ -22,9 +22,11 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceSet;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.tiles.app.TilesBuildingBlock;
 import de.ii.ogcapi.tiles.domain.ImmutableQueryInputTileSets.Builder;
 import de.ii.ogcapi.tiles.domain.TileSetsFormatExtension;
+import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesQueriesHandler;
 import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
@@ -114,6 +116,23 @@ public abstract class AbstractEndpointTileSetsDataset extends Endpoint {
     styleId.ifPresent(
         id -> checkPathParameter(extensionRegistry, apiData, definitionPath, "styleId", id));
 
+    TilesConfiguration configuration =
+        apiData
+            .getExtension(TilesConfiguration.class)
+            .orElseThrow(
+                () -> new IllegalStateException("Tiles configuration not found for the dataset."));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
     TilesQueriesHandler.QueryInputTileSets queryInput =
         new Builder()
             .from(getGenericQueryInput(apiData))
@@ -122,6 +141,7 @@ public abstract class AbstractEndpointTileSetsDataset extends Endpoint {
             .styleId(styleId)
             .onlyWebMercatorQuad(onlyWebMercatorQuad)
             .tileEncodings(tilesetMetadata.getEncodings())
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
     return queryHandler.handle(TilesQueriesHandler.Query.TILE_SETS, queryInput, requestContext);

@@ -20,11 +20,12 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.URICustomizer;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -75,7 +76,9 @@ public class CrsOnCollection implements CollectionExtension {
         // this is just the collection resource, so no default to reference; include all CRSs
         crsList =
             crsSupport.getSupportedCrsList(api.getData(), featureTypeConfiguration).stream()
-                .map(EpsgCrs::toUriString)
+                .flatMap(
+                    crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
+                .filter(Objects::nonNull)
                 .collect(ImmutableList.toImmutableList());
       }
       collection.crs(crsList);

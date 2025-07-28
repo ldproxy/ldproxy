@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -128,7 +129,9 @@ public class QueryParameterCrsRoutes extends OgcApiQueryParameterBase
     if (!schemaMap.containsKey(apiHashCode)) {
       List<String> crsList =
           crsSupport.getSupportedCrsList(apiData).stream()
-              .map(EpsgCrs::toUriString)
+              .flatMap(
+                  crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
+              .filter(Objects::nonNull)
               .collect(ImmutableList.toImmutableList());
       String defaultCrs =
           apiData

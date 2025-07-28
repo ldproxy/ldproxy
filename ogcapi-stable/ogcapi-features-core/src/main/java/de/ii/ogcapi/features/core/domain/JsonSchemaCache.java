@@ -10,16 +10,19 @@ package de.ii.ogcapi.features.core.domain;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 public abstract class JsonSchemaCache {
 
   private final ConcurrentMap<
-          Integer, ConcurrentMap<String, ConcurrentMap<VERSION, JsonSchemaDocument>>>
+          Integer,
+          ConcurrentMap<String, ConcurrentMap<String, ConcurrentMap<VERSION, JsonSchemaDocument>>>>
       cache;
 
   protected JsonSchemaCache() {
@@ -30,16 +33,24 @@ public abstract class JsonSchemaCache {
       FeatureSchema featureSchema,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
+      List<Profile> profiles,
       Optional<String> schemaUri,
       List<JsonSchemaExtension> jsonSchemaExtensions) {
     return getSchema(
-        featureSchema, apiData, collectionData, schemaUri, jsonSchemaExtensions, VERSION.current());
+        featureSchema,
+        apiData,
+        collectionData,
+        profiles,
+        schemaUri,
+        jsonSchemaExtensions,
+        VERSION.current());
   }
 
   public final JsonSchemaDocument getSchema(
       FeatureSchema featureSchema,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
+      List<Profile> profiles,
       Optional<String> schemaUri,
       List<JsonSchemaExtension> jsonSchemaExtensions,
       VERSION version) {
@@ -50,26 +61,32 @@ public abstract class JsonSchemaCache {
     if (!cache.get(apiHashCode).containsKey(collectionData.getId())) {
       cache.get(apiHashCode).put(collectionData.getId(), new ConcurrentHashMap<>());
     }
-    if (!cache.get(apiHashCode).get(collectionData.getId()).containsKey(version)) {
+    String profileKey =
+        profiles.stream().map(Profile::getId).sorted().collect(Collectors.joining("#"));
+    if (!cache.get(apiHashCode).get(collectionData.getId()).containsKey(profileKey)) {
+      cache.get(apiHashCode).get(collectionData.getId()).put(profileKey, new ConcurrentHashMap<>());
+    }
+    if (!cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).containsKey(version)) {
       JsonSchemaDocument schema =
-          deriveSchema(featureSchema, apiData, collectionData, schemaUri, version);
+          deriveSchema(featureSchema, apiData, collectionData, profiles, schemaUri, version);
 
       for (JsonSchemaExtension extension : jsonSchemaExtensions) {
         schema =
             (JsonSchemaDocument)
-                extension.process(schema, featureSchema, apiData, collectionData.getId());
+                extension.process(schema, featureSchema, apiData, collectionData.getId(), profiles);
       }
 
-      cache.get(apiHashCode).get(collectionData.getId()).put(version, schema);
+      cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).put(version, schema);
     }
 
-    return cache.get(apiHashCode).get(collectionData.getId()).get(version);
+    return cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).get(version);
   }
 
   protected abstract JsonSchemaDocument deriveSchema(
       FeatureSchema schema,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
+      List<Profile> profiles,
       Optional<String> schemaUri,
       VERSION version);
 }

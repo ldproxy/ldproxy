@@ -11,8 +11,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.util.StdConverter;
 import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
@@ -127,7 +127,7 @@ import org.immutables.value.Value;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "FEATURES_HTML")
 @JsonDeserialize(builder = ImmutableFeaturesHtmlConfiguration.Builder.class)
 public interface FeaturesHtmlConfiguration
-    extends ExtensionConfiguration, FeatureFormatConfiguration {
+    extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
@@ -267,6 +267,19 @@ public interface FeaturesHtmlConfiguration
   @Nullable
   Boolean getPropertyTooltipsOnItems();
 
+  /**
+   * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
+   *     this feature format. The value is an object where the key is the id of a profile set, such
+   *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.
+   *     These defaults override the defaults specified in the resource-specific building block.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
+   *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `rel`, und der Wert das Standardprofil für den Profilsatz, z. B. `rel-as-key`. Diese
+   *     Vorgaben haben Vorrang vor den im ressourcenspezifischen Baustein angegebenen
+   *     Standardprofilen.
+   * @since v4.2
+   * @default {"rel": "rel-as-link", "val": "val-as-title"}
+   */
   @Override
   Map<String, String> getDefaultProfiles();
 
@@ -328,13 +341,13 @@ public interface FeaturesHtmlConfiguration
         .from(source)
         .from(this)
         .transformations(
-            FeatureFormatConfiguration.super
+            PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
                 .getTransformations())
         .defaultProfiles(
-            this.getDefaultProfiles().isEmpty()
-                ? ((FeatureFormatConfiguration) source).getDefaultProfiles()
-                : this.getDefaultProfiles())
+            ProfilesConfiguration.super
+                .mergeInto((ProfilesConfiguration) source)
+                .getDefaultProfiles())
         .build();
   }
 }

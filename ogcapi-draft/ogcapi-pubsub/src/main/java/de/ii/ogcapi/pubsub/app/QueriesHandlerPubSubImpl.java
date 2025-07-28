@@ -379,7 +379,7 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
 
   private JsonSchema getSchema(Optional<FeatureSchema> schema, String propertyName) {
     if (schema.isPresent()) {
-      SchemaDeriverCollectionProperties schemaDeriverCollectionProperties =
+      SchemaDeriverCollectionProperties schemaDeriver =
           new SchemaDeriverCollectionProperties(
               VERSION.V7,
               Optional.empty(),
@@ -389,7 +389,7 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
               ImmutableList.of(propertyName));
 
       JsonSchema result =
-          ((JsonSchemaDocument) schema.get().accept(schemaDeriverCollectionProperties))
+          ((JsonSchemaDocument) schema.get().accept(schemaDeriver))
               .getProperties()
               .get(propertyName);
 
