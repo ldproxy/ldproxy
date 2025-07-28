@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.4.1 (18/07/2025)
+#### Fixed bugs
+
+-  tile seeding fails when using `startup: SYNC` [#1432](https://github.com/ldproxy/ldproxy/issues/1432)
+-  Oracle provider cannot connect when using GSS [#1431](https://github.com/ldproxy/ldproxy/issues/1431)
+-  computation of spatial extents does not work [#1428](https://github.com/ldproxy/ldproxy/issues/1428)
+-  feature provider does not start when using combination of `concat` and `embed` [#1427](https://github.com/ldproxy/ldproxy/issues/1427)
+-  CQL2: using properties of type `VALUE_ARRAY` does not work [#1426](https://github.com/ldproxy/ldproxy/issues/1426)
+-  CQL2: function `ALIKE` does not work [#1425](https://github.com/ldproxy/ldproxy/issues/1425)
+
+---
+
 ## v4.4.0 (30/06/2025)
 #### Implemented enhancements
 
