@@ -194,7 +194,7 @@ public class QueryParameterBbox extends OgcApiQueryParameterBase
                         String.format(
                             "The parameter '%s' could not be processed, no feature schema provided.",
                             getName())))
-            .getPrimaryGeometry();
+            .getFilterGeometry();
     if (primaryGeometry.isEmpty()) {
       // no spatial property, matches all features
       return BooleanValue2.of(true);

@@ -228,7 +228,7 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
                 providers
                     .getFeatureSchema(
                         api.getData(), api.getData().getCollectionData(collectionId).orElseThrow())
-                    .flatMap(SchemaBase::getPrimaryGeometry)
+                    .flatMap(SchemaBase::getFilterGeometry)
                     .map(SchemaBase::getFullPathAsString)
                     .orElseThrow())
             .servicesUri(servicesUri)

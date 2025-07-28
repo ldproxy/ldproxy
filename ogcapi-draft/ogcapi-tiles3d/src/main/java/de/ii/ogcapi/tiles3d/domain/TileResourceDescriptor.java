@@ -130,7 +130,7 @@ public abstract class TileResourceDescriptor {
         .filter(
             providers
                 .getFeatureSchema(getApiData(), collectionData)
-                .flatMap(SchemaBase::getPrimaryGeometry)
+                .flatMap(SchemaBase::getFilterGeometry)
                 .map(
                     property ->
                         (computeExclusionPolygon()

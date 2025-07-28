@@ -135,7 +135,7 @@ public class QueryParameterIntersects extends OgcApiQueryParameterBase
       wkt = value;
     }
 
-    Optional<FeatureSchema> primaryGeometry =
+    Optional<FeatureSchema> filterGeometry =
         providers
             .getQueryablesSchema(api.getData(), collectionData)
             .orElseThrow(
@@ -144,15 +144,15 @@ public class QueryParameterIntersects extends OgcApiQueryParameterBase
                         String.format(
                             "The parameter '%s' could not be processed, no feature schema provided.",
                             getName())))
-            .getPrimaryGeometry();
-    if (primaryGeometry.isEmpty()) {
+            .getFilterGeometry();
+    if (filterGeometry.isEmpty()) {
       // no spatial property, matches all features
       return BooleanValue2.of(true);
     }
 
-    String property = primaryGeometry.get().getFullPathAsString();
+    String property = filterGeometry.get().getFullPathAsString();
     String isNull =
-        primaryGeometry.map(SchemaBase::isRequired).orElse(false)
+        filterGeometry.map(SchemaBase::isRequired).orElse(false)
             ? ""
             : String.format(" OR \"%s\" IS NULL", property);
     return cql.read(String.format("S_INTERSECTS(\"%s\",%s)%s", property, wkt, isNull), Format.TEXT);
