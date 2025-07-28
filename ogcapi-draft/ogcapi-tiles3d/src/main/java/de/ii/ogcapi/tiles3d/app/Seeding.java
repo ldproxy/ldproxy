@@ -388,7 +388,7 @@ public class Seeding implements OgcApiBackgroundTask {
                             .getApiData()
                             .getCollectionData(descriptor.getCollectionId())
                             .orElseThrow())
-                    .flatMap(SchemaBase::getPrimaryGeometry)
+                    .flatMap(SchemaBase::getFilterGeometry)
                     .map(SchemaBase::getFullPathAsString)
                     .orElseThrow())
             .servicesUri(servicesUri)
