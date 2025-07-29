@@ -109,7 +109,7 @@ public class FeatureEncoderGml extends FeatureTokenEncoderDefault<EncodingAwareC
 
   @Override
   public void onArrayStart(EncodingAwareContextGml context) {
-    if (LOGGER.isTraceEnabled() && !context.inGeometry()) {
+    if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("GML - Array Start: {}", context.schema().orElseThrow().getName());
     }
     transformationContext.getState().setEvent(Event.ARRAY_START);
@@ -118,7 +118,7 @@ public class FeatureEncoderGml extends FeatureTokenEncoderDefault<EncodingAwareC
 
   @Override
   public void onArrayEnd(EncodingAwareContextGml context) {
-    if (LOGGER.isTraceEnabled() && !context.inGeometry()) {
+    if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("GML - Array End: {}", context.schema().orElseThrow().getName());
     }
     transformationContext.getState().setEvent(Event.ARRAY_END);
@@ -126,9 +126,19 @@ public class FeatureEncoderGml extends FeatureTokenEncoderDefault<EncodingAwareC
   }
 
   @Override
+  public void onGeometry(EncodingAwareContextGml context) {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace(
+          "GML - Geometry: {} {}", context.schema().orElseThrow().getName(), context.geometry());
+    }
+    transformationContext.getState().setEvent(Event.GEOMETRY);
+    executePipeline(featureWriters.iterator()).accept(context);
+  }
+
+  @Override
   public void onValue(EncodingAwareContextGml context) {
-    if (LOGGER.isTraceEnabled() && !context.inGeometry()) {
-      LOGGER.trace("GML - Value: {}", context.schema().orElseThrow().getName());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("GML - Value: {} {}", context.schema().orElseThrow().getName(), context.value());
     }
     transformationContext.getState().setEvent(Event.PROPERTY);
     executePipeline(featureWriters.iterator()).accept(context);

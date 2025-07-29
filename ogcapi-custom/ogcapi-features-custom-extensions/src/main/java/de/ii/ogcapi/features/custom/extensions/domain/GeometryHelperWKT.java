@@ -8,7 +8,6 @@
 package de.ii.ogcapi.features.custom.extensions.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import de.ii.ogcapi.features.html.domain.Geometry;
 
 public interface GeometryHelperWKT {
 

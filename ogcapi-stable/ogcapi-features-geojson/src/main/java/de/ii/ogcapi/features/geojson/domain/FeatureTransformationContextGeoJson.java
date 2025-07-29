@@ -21,8 +21,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
-import de.ii.xtraplatform.geometries.domain.ImmutableCoordinatesTransformer;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -72,7 +71,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
 
   @Value.Default
   protected JsonGenerator getJsonGenerator() {
-    JsonGenerator json = null;
+    JsonGenerator json;
     try {
       json = new JsonFactory().createGenerator(getOutputStream());
     } catch (IOException e) {
@@ -83,7 +82,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     if (getPrettify()) {
       json.useDefaultPrettyPrinter();
     }
-    if (getDebug()) {
+    if (getDebug() || false) {
       // Zum JSON debuggen hier einschalten.
       json = new JsonGeneratorDebug(json);
     }
@@ -100,8 +99,6 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     public boolean hasProperties;
     public boolean hasGeometry;
     public boolean hasTime;
-    public GeometryState geometryState;
-    public boolean isPolyhedron;
     // Note that there can be multiple matching properties in embedded features in case of concat
     // or coalesce, so a set is used
     public Set<FeatureSchema> primaryGeometryProperty;
@@ -121,8 +118,6 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
       hasProperties = false;
       hasGeometry = false;
       hasTime = false;
-      geometryState = GeometryState.NOT_IN_GEOMETRY;
-      isPolyhedron = false;
       currentInstant = null;
       currentIntervalStart = null;
       currentIntervalEnd = null;
@@ -154,9 +149,11 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
         secondaryGeometryProperty =
             schema.getSecondaryGeometry().stream().collect(Collectors.toSet());
         instantProperty = schema.getPrimaryInstant().stream().collect(Collectors.toSet());
+        //noinspection ConstantValue
         intervalStartProperty =
             schema.getPrimaryInterval().map(Tuple::first).filter(Objects::nonNull).stream()
                 .collect(Collectors.toSet());
+        //noinspection ConstantValue
         intervalEndProperty =
             schema.getPrimaryInterval().map(Tuple::second).filter(Objects::nonNull).stream()
                 .collect(Collectors.toSet());
@@ -192,11 +189,11 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     return json;
   }
 
-  public Optional<FeatureState> getBuffer() {
+  public Optional<FeatureState> getFeatureState() {
     return featuresStates.isEmpty() ? Optional.empty() : Optional.of(featuresStates.getLast());
   }
 
-  private Optional<FeatureState> getBufferingBuffer() {
+  private Optional<FeatureState> getBufferingFeatureState() {
     Iterator<FeatureState> it = featuresStates.descendingIterator();
     while (it.hasNext()) {
       FeatureState buffer = it.next();
@@ -207,28 +204,15 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     return Optional.empty();
   }
 
-  private Optional<FeatureState> getNextBuffer(FeatureState currentBuffer) {
-    Iterator<FeatureState> it = featuresStates.descendingIterator();
-    boolean found = false;
-    while (it.hasNext()) {
-      FeatureState buffer = it.next();
-      if (found && buffer.bufferingState != BufferingState.FLUSHED) {
-        return Optional.of(buffer);
-      }
-      found = found || buffer == currentBuffer;
-    }
-    return Optional.empty();
-  }
-
   public JsonGenerator getJson() {
-    return getBufferingBuffer()
+    return getBufferingFeatureState()
         .map(buffer -> (JsonGenerator) buffer.tokenBuffer)
         .orElse(getJsonGenerator());
   }
 
   public final void continueBuffering() throws IOException {
     FeatureState buffer =
-        getBuffer()
+        getFeatureState()
             .orElseThrow(
                 () -> new IllegalStateException("Cannot restart buffering, no buffer available."));
     if (buffer.bufferingState == BufferingState.PAUSED) {
@@ -238,7 +222,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
 
   public final void pauseBuffering() throws IOException {
     FeatureState buffer =
-        getBuffer()
+        getFeatureState()
             .orElseThrow(
                 () -> new IllegalStateException("Cannot stop buffering, no buffer available."));
     if (buffer.bufferingState == BufferingState.BUFFERING) {
@@ -256,7 +240,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
       // flush the current buffer to the next one, if necessary
       buffer.tokenBuffer.close();
       buffer.tokenBuffer.serialize(
-          getBuffer()
+          getFeatureState()
               .map(buffer1 -> (JsonGenerator) buffer1.tokenBuffer)
               .orElse(getJsonGenerator()));
       buffer.tokenBuffer.flush();
@@ -271,13 +255,6 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
   public abstract static class StateGeoJson extends State {
 
     public abstract Optional<GeoJsonGeometryType> getCurrentGeometryType();
-
-    public abstract Optional<ImmutableCoordinatesTransformer.Builder> getCoordinatesWriterBuilder();
-
-    @Value.Default
-    public int getCurrentGeometryNestingChange() {
-      return 0;
-    }
 
     @Value.Default
     public boolean isBuffering() {
@@ -300,7 +277,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     }
 
     @Value.Default
-    public Set<SimpleFeatureGeometry> getUnsupportedGeometries() {
+    public Set<GeometryType> getUnsupportedGeometries() {
       return ImmutableSet.of();
     }
   }

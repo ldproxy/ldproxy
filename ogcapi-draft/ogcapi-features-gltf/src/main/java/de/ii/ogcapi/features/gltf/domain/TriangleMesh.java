@@ -9,16 +9,19 @@ package de.ii.ogcapi.features.gltf.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.html.domain.Geometry;
-import de.ii.ogcapi.features.html.domain.Geometry.Coordinate;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
+import de.ii.xtraplatform.geometries.domain.LineString;
+import de.ii.xtraplatform.geometries.domain.Polygon;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
+import de.ii.xtraplatform.geometries.domain.PositionList;
+import de.ii.xtraplatform.geometries.domain.transform.ClampToEllipsoid;
+import de.ii.xtraplatform.geometries.domain.transform.GeometryVisitor;
 import earcut4j.Earcut;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -53,6 +56,8 @@ public interface TriangleMesh {
 
   List<Integer> getOutlineIndices();
 
+  // TODO move to GeometryVisitor?
+
   @SuppressWarnings({
     "PMD.ExcessiveMethodLength",
     "PMD.NcssCount",
@@ -60,7 +65,7 @@ public interface TriangleMesh {
     "PMD.UnusedLocalVariable"
   })
   static TriangleMesh of(
-      Geometry.MultiPolygon multiPolygon,
+      PolyhedralSurface polyhedralSurface,
       double minZ,
       boolean clampToEllipsoid,
       boolean withNormals,
@@ -68,6 +73,9 @@ public interface TriangleMesh {
       int startIndex,
       Optional<CrsTransformer> crsTransformer,
       String featureName) {
+
+    Optional<GeometryVisitor<?>> clampToEllipsoidVisitor =
+        clampToEllipsoid ? Optional.of(new ClampToEllipsoid(minZ)) : Optional.empty();
 
     ImmutableTriangleMesh.Builder builder = ImmutableTriangleMesh.builder();
 
@@ -81,8 +89,8 @@ public interface TriangleMesh {
     List<Double> normals = new ArrayList<>();
     List<Integer> outlineIndices = new ArrayList<>();
     double area;
-    Geometry.Coordinate normal = null;
-    for (Geometry.Polygon polygon : multiPolygon.getCoordinates()) {
+    double[] normal = null;
+    for (Polygon polygon : polyhedralSurface.getValue()) {
       numRing = 0;
       data.clear();
       normals.clear();
@@ -90,33 +98,53 @@ public interface TriangleMesh {
       outlineIndices.clear();
 
       // change axis order, if we have a vertical polygon; ensure we still have a right-handed CRS
-      for (Geometry.LineString ring : polygon.getCoordinates()) {
-        List<Coordinate> coordsRing = ring.getCoordinates();
-
+      for (LineString ring : polygon.getValue()) {
+        if (clampToEllipsoidVisitor.isPresent()) {
+          ring = (LineString) ring.accept(clampToEllipsoidVisitor.get());
+        }
+        PositionList posList = ring.getValue();
+        double[] coordinates = posList.getCoordinates();
         // remove consecutive duplicate points
-        List<Coordinate> coordList =
-            IntStream.range(0, coordsRing.size())
-                .filter(
-                    n ->
-                        n == 0
-                            || !Objects.equals(
-                                coordsRing.get(n).get(0), coordsRing.get(n - 1).get(0))
-                            || !Objects.equals(
-                                coordsRing.get(n).get(1), coordsRing.get(n - 1).get(1))
-                            || !Objects.equals(
-                                coordsRing.get(n).get(2), coordsRing.get(n - 1).get(2)))
-                .mapToObj(coordsRing::get)
-                .collect(Collectors.toUnmodifiableList());
+        int removed = 0;
+        for (int i = 0; i < posList.getNumPositions() - 1; i++) {
+          boolean done = false;
+          while (!done) {
+            if (coordinates[i * 3] == coordinates[(i + 1) * 3]
+                && coordinates[i * 3 + 1] == coordinates[(i + 1) * 3 + 1]
+                && coordinates[i * 3 + 2] == coordinates[(i + 1) * 3 + 2]) {
+              // remove position i+1
+              if ((posList.getNumPositions() - removed - i - 2) > 0) {
+                System.arraycopy(
+                    coordinates,
+                    (i + 2) * 3,
+                    coordinates,
+                    (i + 1) * 3,
+                    (posList.getNumPositions() - removed - i - 2) * 3);
+              }
+              removed++;
+              break;
+            } else {
+              done = true;
+            }
+          }
+        }
+
+        if (removed > 0) {
+          posList =
+              PositionList.of(
+                  posList.getAxes(),
+                  Arrays.copyOf(coordinates, (posList.getNumPositions() - removed) * 3));
+        }
 
         // skip a degenerated or colinear polygon (no area)
-        if (coordList.size() < 4 || find3rdPoint(coordList)[1] == -1) {
+        if (posList.getNumPositions() < 4 || find3rdPoint(posList.getCoordinates())[1] == -1) {
           if (numRing == 0) {
             // skip polygon, if exterior boundary
             if (LOGGER.isTraceEnabled()) {
               LOGGER.trace(
                   "Skipping polygon of feature '{}', exterior ring has no effective area: {}",
                   featureName,
-                  coordList);
+                  posList.getCoordinates());
             }
             break;
           } else {
@@ -125,27 +153,20 @@ public interface TriangleMesh {
               LOGGER.trace(
                   "Skipping hole of feature '{}', interior ring has no effective area: {}",
                   featureName,
-                  coordList);
+                  posList.getCoordinates());
             }
             continue;
           }
         }
 
-        // do not copy the last point, same as first point
-        double[] coords = new double[(coordList.size() - 1) * 3];
-        for (int n = 0; n < coordList.size() - 1; n++) {
-          coords[n * 3] = coordList.get(n).get(0);
-          coords[n * 3 + 1] = coordList.get(n).get(1);
-          coords[n * 3 + 2] =
-              clampToEllipsoid ? coordList.get(n).get(2) - minZ : coordList.get(n).get(2);
-        }
+        double[] coords = posList.getCoordinates();
 
         // transform coordinates?
         if (crsTransformer.isPresent()) {
           coords = crsTransformer.get().transform(coords, coords.length / 3, 3);
         }
 
-        if (LOGGER.isTraceEnabled() && !isCoplanar(coordList)) {
+        if (LOGGER.isTraceEnabled() && !isCoplanar(posList)) {
           LOGGER.trace(
               "Feature '{}' has a ring that is not coplanar. The glTF mesh may be invalid. Coordinates: {}",
               featureName,
@@ -186,7 +207,7 @@ public interface TriangleMesh {
           holeIndices.add(data.size() / 3);
         }
 
-        data.addAll(Arrays.stream(coords).boxed().collect(Collectors.toUnmodifiableList()));
+        data.addAll(Arrays.stream(coords).boxed().toList());
 
         if (withNormals) {
           if (Objects.isNull(normal)) {
@@ -195,12 +216,14 @@ public interface TriangleMesh {
               LOGGER.debug(
                   "Skipping polygon of feature '{}', could not compute normal for exterior ring: {}",
                   featureName,
-                  coordList);
+                  posList.getCoordinates());
             }
             break;
           }
           for (int i = 0; i < coords.length / 3; i++) {
-            normals.addAll(normal);
+            normals.add(normal[0]);
+            normals.add(normal[1]);
+            normals.add(normal[2]);
           }
         }
 
@@ -344,11 +367,18 @@ public interface TriangleMesh {
       Integer p0 = triangles.get(i * 3);
       Integer p1 = triangles.get(i * 3 + 1);
       Integer p2 = triangles.get(i * 3 + 2);
-      ImmutableList<Coordinate> triangle =
-          ImmutableList.of(
-              Coordinate.of(data.get(p0 * 3), data.get(p0 * 3 + 1), data.get(p0 * 3 + 2)),
-              Coordinate.of(data.get(p1 * 3), data.get(p1 * 3 + 1), data.get(p1 * 3 + 2)),
-              Coordinate.of(data.get(p2 * 3), data.get(p2 * 3 + 1), data.get(p2 * 3 + 2)));
+      double[] triangle =
+          new double[] {
+            data.get(p0 * 3),
+            data.get(p0 * 3 + 1),
+            data.get(p0 * 3 + 2),
+            data.get(p1 * 3),
+            data.get(p1 * 3 + 1),
+            data.get(p1 * 3 + 2),
+            data.get(p2 * 3),
+            data.get(p2 * 3 + 1),
+            data.get(p2 * 3 + 2)
+          };
       boolean ccwTriangle =
           axes == AXES.XYZ
               ? computeAreaTriangle(triangle, 0, 1) > 0
@@ -396,19 +426,17 @@ public interface TriangleMesh {
             - IntStream.range(0, ring.length / 3)
                 .mapToDouble(n -> ring[((n + 1) % len) * 3 + axis1] * ring[n * 3 + axis2])
                 .sum())
-        / 2;
-  }
-
-  private static double computeAreaTriangle(
-      List<Geometry.Coordinate> triangle, int axis1, int axis2) {
-    return (triangle.get(0).get(axis1) * (triangle.get(1).get(axis2) - triangle.get(2).get(axis2))
-            + triangle.get(1).get(axis1) * (triangle.get(2).get(axis2) - triangle.get(0).get(axis2))
-            + triangle.get(2).get(axis1)
-                * (triangle.get(0).get(axis2) - triangle.get(1).get(axis2)))
         / 2.0d;
   }
 
-  private static Geometry.Coordinate computeNormal(double... ring) {
+  private static double computeAreaTriangle(double[] triangle, int axis1, int axis2) {
+    return (triangle[axis1] * (triangle[3 + axis2] - triangle[6 + axis2])
+            + triangle[3 + axis1] * (triangle[6 + axis2] - triangle[axis2])
+            + triangle[6 + axis1] * (triangle[axis2] - triangle[3 + axis2]))
+        / 2.0d;
+  }
+
+  private static double[] computeNormal(double... ring) {
     if (ring.length < 9) {
       throw new IllegalStateException(
           String.format("Ring with less than 3 coordinates: %s", Arrays.toString(ring)));
@@ -444,46 +472,47 @@ public interface TriangleMesh {
       }
       return null;
     }
-    return Geometry.Coordinate.of(x / length, y / length, z / length);
+    return new double[] {x / length, y / length, z / length};
   }
 
-  private static boolean isCoplanar(List<Geometry.Coordinate> coords) {
-    if (coords.size() < 4) {
+  private static boolean isCoplanar(PositionList posList) {
+    if (posList.getNumPositions() < 4) {
       return true;
     }
 
     // find three points on the ring that are not collinear
-    int[] n = find3rdPoint(coords);
+    int[] n = find3rdPoint(posList.getCoordinates());
 
     if (n[1] == -1) {
       return true;
     }
 
+    double[] coordinates = posList.getCoordinates();
+
     // establish plane from points A, B, C
-    Coordinate ab =
-        Coordinate.of(
-            coords.get(n[0]).get(0) - coords.get(0).get(0),
-            coords.get(n[0]).get(1) - coords.get(0).get(1),
-            coords.get(n[0]).get(2) - coords.get(0).get(2));
-    Coordinate ac =
-        Coordinate.of(
-            coords.get(n[1]).get(0) - coords.get(0).get(0),
-            coords.get(n[1]).get(1) - coords.get(0).get(1),
-            coords.get(n[1]).get(2) - coords.get(0).get(2));
+    double[] ab =
+        new double[] {
+          coordinates[n[0] * 3] - coordinates[0],
+          coordinates[n[0] * 3 + 1] - coordinates[1],
+          coordinates[n[0] * 3 + 2] - coordinates[2]
+        };
+    double[] ac =
+        new double[] {
+          coordinates[n[1] * 3] - coordinates[0],
+          coordinates[n[1] * 3 + 1] - coordinates[1],
+          coordinates[n[1] * 3 + 2] - coordinates[2]
+        };
 
-    Coordinate x = crossProduct(ab, ac);
+    double[] x = crossProduct(ab, ac);
 
-    double d =
-        x.get(0) * coords.get(0).get(0)
-            + x.get(1) * coords.get(0).get(1)
-            + x.get(2) * coords.get(0).get(2);
+    double d = x[0] * coordinates[0] + x[1] * coordinates[1] + x[2] * coordinates[2];
 
     // check for all other points that they are on the plane
-    for (int i = 3; i < coords.size(); i++) {
+    for (int i = 3; i < coordinates.length / 3; i++) {
       if (Math.abs(
-              x.get(0) * coords.get(i).get(0)
-                  + x.get(1) * coords.get(i).get(1)
-                  + x.get(2) * coords.get(i).get(2)
+              x[0] * coordinates[i * 3]
+                  + x[1] * coordinates[i * 3 + 1]
+                  + x[2] * coordinates[i * 3 + 2]
                   - d)
           > EPSILON) {
         return false;
@@ -492,12 +521,12 @@ public interface TriangleMesh {
     return true;
   }
 
-  private static int[] find3rdPoint(List<Geometry.Coordinate> coords) {
+  private static int[] find3rdPoint(double[] coordinates) {
     // find three points on the ring that are not collinear
     int k = 1;
     boolean found = false;
-    while (!found && k < coords.size()) {
-      if (length(sub(coords.get(k), coords.get(0))) > EPSILON) {
+    while (!found && k < coordinates.length / 3) {
+      if (length(sub(coordinates, k, 0)) > EPSILON) {
         found = true;
       } else {
         k++;
@@ -508,8 +537,8 @@ public interface TriangleMesh {
     }
     int n = k + 1;
     found = false;
-    while (!found && n < coords.size()) {
-      if (colinear(coords.get(0), coords.get(k), coords.get(n))) {
+    while (!found && n < coordinates.length / 3) {
+      if (colinear(coordinates, 0, k, n)) {
         n++;
       } else {
         found = true;
@@ -523,38 +552,57 @@ public interface TriangleMesh {
     return new int[] {k, n};
   }
 
-  private static boolean colinear(
-      Geometry.Coordinate v1, Geometry.Coordinate v2, Geometry.Coordinate v3) {
-    Coordinate ab =
-        Coordinate.of(v2.get(0) - v1.get(0), v2.get(1) - v1.get(1), v2.get(2) - v1.get(2));
-    Coordinate ac =
-        Coordinate.of(v3.get(0) - v1.get(0), v3.get(1) - v1.get(1), v3.get(2) - v1.get(2));
+  private static boolean colinear(double[] coordinates, int i, int j, int k) {
+    double[] ab =
+        new double[] {
+          coordinates[j * 3] - coordinates[i * 3],
+          coordinates[j * 3 + 1] - coordinates[i * 3 + 1],
+          coordinates[j * 3 + 2] - coordinates[i * 3 + 2]
+        };
+    double[] ac =
+        new double[] {
+          coordinates[k * 3] - coordinates[i * 3],
+          coordinates[k * 3 + 1] - coordinates[i * 3 + 1],
+          coordinates[k * 3 + 2] - coordinates[i * 3 + 2]
+        };
 
     return length(crossProduct(normalize(ab), normalize(ac))) < EPSILON;
   }
 
-  private static Geometry.Coordinate crossProduct(Geometry.Coordinate v1, Geometry.Coordinate v2) {
-    return Coordinate.of(
-        v1.get(1) * v2.get(2) - v2.get(1) * v1.get(2),
-        v2.get(0) * v1.get(2) - v1.get(0) * v2.get(2),
-        v1.get(0) * v2.get(1) - v1.get(1) * v2.get(0));
+  private static boolean colinear(double[] v1, double[] v2, double[] v3) {
+    double[] ab = new double[] {v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]};
+    double[] ac = new double[] {v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2]};
+
+    return length(crossProduct(normalize(ab), normalize(ac))) < EPSILON;
   }
 
-  private static Geometry.Coordinate sub(Geometry.Coordinate v1, Geometry.Coordinate v2) {
-    return Coordinate.of(v1.get(0) - v2.get(0), v1.get(1) - v2.get(1), v1.get(1) - v2.get(1));
+  private static double[] crossProduct(double[] v1, double[] v2) {
+    return new double[] {
+      v1[1] * v2[2] - v2[1] * v1[2], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]
+    };
   }
 
-  private static double length(Geometry.Coordinate v) {
+  private static double[] sub(double[] coordinates, int i, int j) {
+    return new double[] {
+      coordinates[i * 3] - coordinates[j * 3],
+      coordinates[i * 3 + 1] - coordinates[j * 3 + 1],
+      coordinates[i * 3 + 2] - coordinates[j * 3 + 2]
+    };
+  }
+
+  private static double[] sub(double[] v1, double[] v2) {
+    return new double[] {v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]};
+  }
+
+  private static double length(double[] v) {
     return Math.sqrt(
-        v.size() == 2
-            ? v.get(0) * v.get(0) + v.get(1) * v.get(1)
-            : v.get(0) * v.get(0) + v.get(1) * v.get(1) + v.get(2) * v.get(2));
+        v.length == 2 ? v[0] * v[0] + v[1] * v[1] : v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
-  private static Geometry.Coordinate normalize(Geometry.Coordinate v) {
+  private static double[] normalize(double[] v) {
     double length = length(v);
-    return v.size() == 2
-        ? new Geometry.Coordinate(v.get(0) / length, v.get(1) / length)
-        : new Geometry.Coordinate(v.get(0) / length, v.get(1) / length, v.get(2) / length);
+    return v.length == 2
+        ? new double[] {v[0] / length, v[1] / length}
+        : new double[] {v[0] / length, v[1] / length, v[2] / length};
   }
 }

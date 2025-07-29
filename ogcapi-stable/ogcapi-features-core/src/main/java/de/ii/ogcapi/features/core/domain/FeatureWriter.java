@@ -35,12 +35,6 @@ public interface FeatureWriter<T extends EncodingAwareContext<?>> {
       case PROPERTY:
         onValue(context, next);
         break;
-      case COORDINATES:
-        onCoordinates(context, next);
-        break;
-      case GEOMETRY_END:
-        onGeometryEnd(context, next);
-        break;
       case ARRAY_START:
         onArrayStart(context, next);
         break;
@@ -52,6 +46,9 @@ public interface FeatureWriter<T extends EncodingAwareContext<?>> {
         break;
       case ARRAY_END:
         onArrayEnd(context, next);
+        break;
+      case GEOMETRY:
+        onGeometry(context, next);
         break;
     }
   }
@@ -96,11 +93,7 @@ public interface FeatureWriter<T extends EncodingAwareContext<?>> {
     next.accept(context);
   }
 
-  default void onCoordinates(T context, Consumer<T> next) throws IOException {
-    next.accept(context);
-  }
-
-  default void onGeometryEnd(T context, Consumer<T> next) throws IOException {
+  default void onGeometry(T context, Consumer<T> next) throws IOException {
     next.accept(context);
   }
 }

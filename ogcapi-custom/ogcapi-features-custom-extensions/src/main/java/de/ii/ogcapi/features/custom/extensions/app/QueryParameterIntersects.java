@@ -28,6 +28,8 @@ import de.ii.xtraplatform.cql.domain.Cql.Format;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.transcode.wktwkb.GeometryDecoderWkt;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import io.swagger.v3.oas.models.media.Schema;
@@ -40,8 +42,6 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
 
 /**
  * @title intersects
@@ -60,6 +60,7 @@ public class QueryParameterIntersects extends OgcApiQueryParameterBase
 
   private final FeaturesCoreProviders providers;
   private final GeometryHelperWKT geometryHelper;
+  private final GeometryDecoderWkt wktDecoder;
   private final HttpClient httpClient;
   private final SchemaValidator schemaValidator;
   private final Cql cql;
@@ -73,6 +74,7 @@ public class QueryParameterIntersects extends OgcApiQueryParameterBase
       Cql cql) {
     this.providers = providers;
     this.geometryHelper = geometryHelper;
+    this.wktDecoder = new GeometryDecoderWkt();
     this.httpClient = http.getDefaultClient();
     this.schemaValidator = schemaValidator;
     this.cql = cql;
@@ -194,10 +196,19 @@ public class QueryParameterIntersects extends OgcApiQueryParameterBase
 
   private Optional<String> validateWkt(String wkt) {
     try {
-      // TODO: centralize WKT handling
-      // use JTS to validate the WKT text
-      new WKTReader().read(wkt);
-    } catch (ParseException e) {
+      Geometry<?> geom = new GeometryDecoderWkt().decodeSimpleFeature(wkt, Optional.empty());
+      if (geom == null) {
+        return Optional.of(
+            String.format(
+                "The WKT geometry '%s' results in no geometry. Please check the input.", wkt));
+      }
+      if (geom.isEmpty()) {
+        return Optional.of(
+            String.format(
+                "The WKT geometry '%s' results in an empty geometry. Please check the input.",
+                wkt));
+      }
+    } catch (IOException | IllegalStateException e) {
       return Optional.of(e.getMessage());
     }
     return Optional.empty();

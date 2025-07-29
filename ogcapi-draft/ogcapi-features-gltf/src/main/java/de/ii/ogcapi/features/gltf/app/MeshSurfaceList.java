@@ -8,10 +8,15 @@
 package de.ii.ogcapi.features.gltf.app;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.html.domain.Geometry.Coordinate;
-import de.ii.ogcapi.features.html.domain.Geometry.MultiPolygon;
 import de.ii.xtraplatform.features.domain.PropertyBase;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.GeometryCollection;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.MultiPolygon;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
+import de.ii.xtraplatform.geometries.domain.transform.MinMaxDeriver;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -62,27 +67,12 @@ interface MeshSurfaceList {
   default double[][] getMinMax() {
     // determine the bounding box; eventually we will translate vertices to the center of the
     // feature to have smaller values (glTF uses float)
-    List<Coordinate> coordList =
-        getMeshSurfaces().stream()
-            .map(MeshSurface::getGeometry)
-            .map(MultiPolygon::getCoordinatesFlat)
-            .flatMap(List::stream)
-            .collect(Collectors.toUnmodifiableList());
-    if (coordList.isEmpty()) {
-      return null;
-    }
-    return new double[][] {
-      new double[] {
-        coordList.stream().mapToDouble(coord -> coord.get(0)).min().orElseThrow(),
-        coordList.stream().mapToDouble(coord -> coord.get(1)).min().orElseThrow(),
-        coordList.stream().mapToDouble(coord -> coord.get(2)).min().orElseThrow()
-      },
-      new double[] {
-        coordList.stream().mapToDouble(coord -> coord.get(0)).max().orElseThrow(),
-        coordList.stream().mapToDouble(coord -> coord.get(1)).max().orElseThrow(),
-        coordList.stream().mapToDouble(coord -> coord.get(2)).max().orElseThrow()
-      }
-    };
+    MinMaxDeriver visitor = new MinMaxDeriver();
+    GeometryCollection geom =
+        GeometryCollection.of(
+            (List<Geometry<?>>)
+                (List<?>) getMeshSurfaces().stream().map(MeshSurface::getGeometry).toList());
+    return geom.accept(visitor);
   }
 
   private static void collectSolidSurfaces(
@@ -101,12 +91,12 @@ interface MeshSurfaceList {
         .filter(p -> LOD_2_SOLID.equals(p.getLastPathSegment()))
         .findFirst()
         .ifPresentOrElse(
-            p -> addMultiPolygon(meshSurfaceBuilder, p),
+            p -> addPolyhedralSurface(meshSurfaceBuilder, p),
             () ->
                 properties.stream()
                     .filter(p -> LOD_1_SOLID.equals(p.getLastPathSegment()))
                     .findFirst()
-                    .ifPresent(p -> addMultiPolygon(meshSurfaceBuilder, p)));
+                    .ifPresent(p -> addPolyhedralSurface(meshSurfaceBuilder, p)));
   }
 
   private static void addSurfaces(
@@ -125,7 +115,7 @@ interface MeshSurfaceList {
             (key, value) ->
                 meshSurfaceBuilder.addMeshSurfaces(
                     MeshSurface.of(
-                        MultiPolygon.of(
+                        PolyhedralSurface.of(
                             value.stream()
                                 .map(
                                     surface ->
@@ -134,32 +124,23 @@ interface MeshSurfaceList {
                                                 p ->
                                                     LOD_2_MULTI_SURFACE.equals(
                                                         p.getLastPathSegment()))
-                                            .collect(Collectors.toUnmodifiableList()))
+                                            .toList())
                                 .flatMap(List::stream)
-                                .map(PropertyGltf::getMultiPolygon)
-                                .flatMap(Optional::stream)
-                                .map(MultiPolygon::getCoordinates)
+                                .map(PropertyGltf::getGeometry)
+                                .filter(Objects::nonNull)
+                                .filter(g -> g.getType() == GeometryType.MULTI_POLYGON)
+                                .map(MultiPolygon.class::cast)
+                                .map(MultiPolygon::getValue)
                                 .flatMap(List::stream)
-                                .collect(Collectors.toUnmodifiableList())),
+                                .toList()),
                         "unknown".equals(key) ? Optional.empty() : Optional.of(key))));
   }
 
-  private static void addMultiPolygon(
+  private static void addPolyhedralSurface(
       ImmutableMeshSurfaceList.Builder meshSurfaceBuilder, PropertyGltf geometryProperty) {
-    geometryProperty
-        .getMultiPolygon()
-        .ifPresent(
-            multiPolygon -> meshSurfaceBuilder.addMeshSurfaces(MeshSurface.of(multiPolygon)));
-  }
-
-  private static void addMultiPolygon(
-      ImmutableMeshSurfaceList.Builder meshSurfaceBuilder,
-      PropertyGltf geometryProperty,
-      Optional<String> surfaceType) {
-    geometryProperty
-        .getMultiPolygon()
-        .ifPresent(
-            multiPolygon ->
-                meshSurfaceBuilder.addMeshSurfaces(MeshSurface.of(multiPolygon, surfaceType)));
+    Geometry<?> geometry = geometryProperty.getGeometry();
+    if (geometry != null && geometry.getType() == GeometryType.POLYHEDRAL_SURFACE) {
+      meshSurfaceBuilder.addMeshSurfaces(MeshSurface.of((PolyhedralSurface) geometry));
+    }
   }
 }

@@ -13,11 +13,11 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.features.json.domain.JsonFgGeometryType;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -97,7 +97,7 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
                 .map(
                     p ->
                         JsonFgGeometryType.getGeometryDimension(
-                            p.getGeometryType().orElse(SimpleFeatureGeometry.NONE),
+                            p.getGeometryType().orElse(GeometryType.ANY_EXTENDED),
                             p.getConstraints().map(SchemaConstraints::isComposite).orElse(false),
                             p.getConstraints().map(SchemaConstraints::isClosed).orElse(false)))
                 .flatMap(Optional::stream)

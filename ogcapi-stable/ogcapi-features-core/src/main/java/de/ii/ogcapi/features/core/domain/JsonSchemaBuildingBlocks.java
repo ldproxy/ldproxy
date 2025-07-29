@@ -21,18 +21,34 @@ public interface JsonSchemaBuildingBlocks {
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-point-or-multipoint").build();
   JsonSchemaGeometry LINE_STRING =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-linestring").build();
+  JsonSchemaGeometry CIRCULAR_STRING =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-circularstring").build();
+  JsonSchemaGeometry COMPOUND_CURVE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-compoundcurve").build();
+  JsonSchemaGeometry CURVE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-curve").build();
   JsonSchemaGeometry MULTI_LINE_STRING =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-multilinestring").build();
   JsonSchemaGeometry LINE_STRING_OR_MULTI_LINE_STRING =
       new ImmutableJsonSchemaGeometry.Builder()
           .format("geometry-linestring-or-multilinestring")
           .build();
+  JsonSchemaGeometry MULTI_CURVE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-multicurve").build();
   JsonSchemaGeometry POLYGON =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-polygon").build();
+  JsonSchemaGeometry CURVE_POLYGON =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-curvepoylgon").build();
+  JsonSchemaGeometry SURFACE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-surface").build();
+  JsonSchemaGeometry POLYHEDRAL_SURFACE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-polyhedralsurface").build();
   JsonSchemaGeometry MULTI_POLYGON =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-multipolygon").build();
   JsonSchemaGeometry POLYGON_OR_MULTI_POLYGON =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-polygon-or-multipolygon").build();
+  JsonSchemaGeometry MULTI_SURFACE =
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-multisurface").build();
   JsonSchemaGeometry POLYHEDRON =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-polyhedron").build();
   JsonSchemaGeometry MULTI_POLYHEDRON =

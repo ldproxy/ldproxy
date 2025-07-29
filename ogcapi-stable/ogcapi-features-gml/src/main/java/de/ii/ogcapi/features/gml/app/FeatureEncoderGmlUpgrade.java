@@ -20,19 +20,23 @@ import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGmlUpgrade;
 import de.ii.ogcapi.features.gml.domain.ModifiableEncodingAwareContextGmlUpgrade;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoderDefault;
-import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.XMLNamespaceNormalizer;
-import de.ii.xtraplatform.geometries.domain.ImmutableCoordinatesTransformer;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.transform.CoordinatesTransformation;
+import de.ii.xtraplatform.geometries.domain.transform.CoordinatesTransformer;
+import de.ii.xtraplatform.geometries.domain.transform.ImmutableCrsTransform;
+import de.ii.xtraplatform.geometries.domain.transform.ImmutableSimplifyLine;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,12 +212,7 @@ public class FeatureEncoderGmlUpgrade
   @Override
   public void onObjectStart(EncodingAwareContextGmlUpgrade context) {
     if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace(
-          "START {} {} {} {}",
-          context.path(),
-          getLocalName(context.path()),
-          context.inGeometry(),
-          context.schema().map(SchemaBase::isSpatial).isPresent());
+      LOGGER.trace("START {} {}", context.path(), getLocalName(context.path()));
     }
     try {
       if (inCurrentFeatureStart) {
@@ -361,42 +360,49 @@ public class FeatureEncoderGmlUpgrade
   }
 
   @Override
+  public void onGeometry(EncodingAwareContextGmlUpgrade context) {
+    // TODO test
+    Geometry<?> geometry = context.geometry();
+
+    CoordinatesTransformation next = null;
+    if (crsTransformer != null) {
+      next = ImmutableCrsTransform.of(Optional.empty(), crsTransformer);
+    }
+
+    if (maxAllowableOffset > 0) {
+      next = ImmutableSimplifyLine.of(Optional.ofNullable(next), maxAllowableOffset);
+    }
+
+    if (next != null && geometry != null) {
+      geometry = geometry.accept(new CoordinatesTransformer(next));
+    }
+
+    if (geometry != null) {
+      StringBuilder builder = new StringBuilder();
+      GeometryEncoderGml encoder =
+          new GeometryEncoderGml(
+              builder,
+              Set.of(),
+              Optional.of("gml"),
+              Optional.empty(),
+              transformationContext.getGeometryPrecision());
+      geometry.accept(encoder);
+      try {
+        writer.append(builder.toString());
+      } catch (IOException e) {
+        throw new IllegalStateException(IO_ERROR_MESSAGE, e);
+      }
+    }
+  }
+
+  @Override
   public void onValue(EncodingAwareContextGmlUpgrade context) {
     try {
       if (inCurrentPropertyStart) {
         writer.append(">");
         inCurrentPropertyStart = false;
       }
-
-      if (inCoordinates) {
-        ImmutableCoordinatesTransformer.Builder coordinatesTransformerBuilder =
-            ImmutableCoordinatesTransformer.builder();
-        coordinatesTransformerBuilder.coordinatesWriter(
-            ImmutableCoordinatesWriterGml.of(
-                writer, Optional.ofNullable(currentDimension).orElse(2)));
-
-        if (crsTransformer != null) {
-          coordinatesTransformerBuilder.crsTransformer(crsTransformer);
-        }
-
-        if (currentDimension != null) {
-          coordinatesTransformerBuilder.sourceDimension(currentDimension);
-          coordinatesTransformerBuilder.targetDimension(currentDimension);
-        } else {
-          coordinatesTransformerBuilder.sourceDimension(2);
-          coordinatesTransformerBuilder.targetDimension(2);
-        }
-
-        if (maxAllowableOffset > 0) {
-          coordinatesTransformerBuilder.maxAllowableOffset(maxAllowableOffset);
-        }
-
-        try (Writer coordinatesWriter = coordinatesTransformerBuilder.build()) {
-          coordinatesWriter.write(Objects.requireNonNull(context.value()));
-        }
-      } else {
-        writer.append(escaper.escape(Objects.requireNonNull(context.value())));
-      }
+      writer.append(escaper.escape(Objects.requireNonNull(context.value())));
       inCurrentPropertyText = true;
     } catch (IOException e) {
       throw new IllegalStateException(IO_ERROR_MESSAGE, e);

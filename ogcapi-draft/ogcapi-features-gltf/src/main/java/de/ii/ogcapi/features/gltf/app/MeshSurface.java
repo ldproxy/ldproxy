@@ -8,7 +8,7 @@
 package de.ii.ogcapi.features.gltf.app;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.features.html.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -17,19 +17,19 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableMeshSurface.Builder.class)
 interface MeshSurface {
 
-  Geometry.MultiPolygon getGeometry();
+  PolyhedralSurface getGeometry();
 
   Optional<String> getSurfaceType();
 
-  static MeshSurface of(Geometry.MultiPolygon geometry) {
+  static MeshSurface of(PolyhedralSurface geometry) {
     return ImmutableMeshSurface.builder().geometry(geometry).build();
   }
 
-  static MeshSurface of(Geometry.MultiPolygon geometry, String surfaceType) {
+  static MeshSurface of(PolyhedralSurface geometry, String surfaceType) {
     return ImmutableMeshSurface.builder().geometry(geometry).surfaceType(surfaceType).build();
   }
 
-  static MeshSurface of(Geometry.MultiPolygon geometry, Optional<String> surfaceType) {
+  static MeshSurface of(PolyhedralSurface geometry, Optional<String> surfaceType) {
     return ImmutableMeshSurface.builder().geometry(geometry).surfaceType(surfaceType).build();
   }
 }

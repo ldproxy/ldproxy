@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.features.gml.app;
 
-import static de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion.GML32;
+import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +33,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
@@ -306,6 +307,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     }
 
     return builder.build();
+  }
+
+  @Override
+  public boolean isRestrictedToSimpleFeaturesGeometries(List<Profile> profiles) {
+    return false;
   }
 
   @Override
