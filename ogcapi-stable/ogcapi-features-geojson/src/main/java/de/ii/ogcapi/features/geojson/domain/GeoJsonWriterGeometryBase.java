@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.json.domain.GeometryEncoderJson;
 import de.ii.xtraplatform.geometries.domain.Geometry;
 import java.io.IOException;
@@ -66,6 +67,20 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
         if (writeNull()) {
           context.encoding().getFeatureState().get().hasGeometry = true;
         }
+      }
+    }
+
+    next.accept(context);
+  }
+
+  @Override
+  public void onObjectEnd(
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
+    if (isEnabled(context)) {
+      if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)
+          && !context.encoding().getFeatureState().get().hasGeometry) {
+        writeNullIfNecessary(context);
       }
     }
 
