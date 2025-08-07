@@ -82,7 +82,7 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     if (getPrettify()) {
       json.useDefaultPrettyPrinter();
     }
-    if (getDebug() || false) {
+    if (getDebug()) {
       // Zum JSON debuggen hier einschalten.
       json = new JsonGeneratorDebug(json);
     }

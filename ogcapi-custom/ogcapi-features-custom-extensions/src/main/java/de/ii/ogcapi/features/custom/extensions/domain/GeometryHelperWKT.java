@@ -11,8 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface GeometryHelperWKT {
 
-  // TODO: centralize WKT handling
-
   String getPointRegex();
 
   String getMultiPointRegex();
