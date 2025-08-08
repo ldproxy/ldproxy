@@ -285,6 +285,10 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .filter(ProfileExtension::includeAlternateLinks)
             .filter(
                 profileSet ->
+                    profiles.stream()
+                        .anyMatch(profile -> profile.getProfileSet().equals(profileSet.getId())))
+            .filter(
+                profileSet ->
                     requestContext.getMediaType().type().equals(profileSet.getMediaType())
                         || alternateMediaTypes.stream()
                             .anyMatch(mt -> mt.type().equals(profileSet.getMediaType())))
