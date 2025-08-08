@@ -139,17 +139,19 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
-        .anyMatch(
-            profile ->
-                apiData.getCollections().keySet().stream()
-                    .anyMatch(collectionId -> profile.isEnabledForApi(apiData, collectionId)));
+    return super.isEnabledForApi(apiData)
+        || extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
+            .anyMatch(
+                profile ->
+                    apiData.getCollections().keySet().stream()
+                        .anyMatch(collectionId -> profile.isEnabledForApi(apiData, collectionId)));
   }
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
-        .anyMatch(profile -> profile.isEnabledForApi(apiData, collectionId));
+    return super.isEnabledForApi(apiData, collectionId)
+        || extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
+            .anyMatch(profile -> profile.isEnabledForApi(apiData, collectionId));
   }
 
   @Override
