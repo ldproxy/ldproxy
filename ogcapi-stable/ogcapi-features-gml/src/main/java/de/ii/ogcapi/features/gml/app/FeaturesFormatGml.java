@@ -22,7 +22,6 @@ import de.ii.ogcapi.features.gml.domain.GmlConfiguration.Conformance;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
-import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGmlUpgrade;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
@@ -38,12 +37,9 @@ import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
-import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
-import de.ii.xtraplatform.features.domain.WithConnectionInfo;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
-import de.ii.xtraplatform.features.gml.domain.ConnectionInfoWfsHttp;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import java.text.MessageFormat;
@@ -312,31 +308,6 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   @Override
   public boolean isRestrictedToSimpleFeaturesGeometries(List<Profile> profiles) {
     return false;
-  }
-
-  @Override
-  public boolean canPassThroughFeatures() {
-    return true;
-  }
-
-  @Override
-  public Optional<FeatureTokenEncoder<?>> getFeatureEncoderPassThrough(
-      FeatureTransformationContext transformationContext, Optional<Locale> language) {
-    return Optional.of(
-        new FeatureEncoderGmlUpgrade(
-            ImmutableFeatureTransformationContextGmlUpgrade.builder()
-                .from(transformationContext)
-                .namespaces(
-                    ((ConnectionInfoWfsHttp)
-                            ((WithConnectionInfo<?>)
-                                    ((FeatureProviderEntity)
-                                            providers.getFeatureProviderOrThrow(
-                                                transformationContext.getApiData(),
-                                                transformationContext.getCollection().get()))
-                                        .getData())
-                                .getConnectionInfo())
-                        .getNamespaces())
-                .build()));
   }
 
   @Override
