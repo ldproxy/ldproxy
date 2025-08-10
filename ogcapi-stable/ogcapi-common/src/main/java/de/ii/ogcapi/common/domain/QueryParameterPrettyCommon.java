@@ -9,7 +9,6 @@ package de.ii.ogcapi.common.domain;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
-import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -17,17 +16,16 @@ import javax.inject.Singleton;
 /**
  * @title pretty
  * @endpoints *
- * @langEn Selects whether the json-response should be pretty-printed or not. False by default
- * @langDe Bestimmt, ob die Json-Antwort formatiert wird, oder nicht. Der Standartwert ist false.
+ * @langEn Selects whether a JSON response should be pretty-printed or not.
+ * @langDe Bestimmt, ob eine JSON-Antwort formatiert wird, oder nicht.
  */
 @Singleton
 @AutoBind
 public class QueryParameterPrettyCommon extends QueryParameterPretty {
 
   @Inject
-  public QueryParameterPrettyCommon(
-      ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
-    super(extensionRegistry, schemaValidator);
+  public QueryParameterPrettyCommon(SchemaValidator schemaValidator) {
+    super(schemaValidator);
   }
 
   @Override
