@@ -68,7 +68,7 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
 
   Map<String, Optional<FeatureSchema>> getFeatureSchemas();
 
-  // TODO remove
+  // TODO remove, see https://github.com/ldproxy/ldproxy/issues/818
   OutputStream getOutputStream();
 
   List<Profile> getProfiles();
