@@ -56,8 +56,6 @@ public interface TriangleMesh {
 
   List<Integer> getOutlineIndices();
 
-  // TODO move to GeometryVisitor?
-
   @SuppressWarnings({
     "PMD.ExcessiveMethodLength",
     "PMD.NcssCount",
