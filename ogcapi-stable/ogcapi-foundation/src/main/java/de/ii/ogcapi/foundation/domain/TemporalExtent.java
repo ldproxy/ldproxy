@@ -48,7 +48,7 @@ public interface TemporalExtent {
   }
 
   default String humanReadable(Locale locale) {
-    DateFormat df = DateFormat.getDateInstance(DateFormat.SHORT, locale);
+    DateFormat df = DateFormat.getDateInstance(DateFormat.MEDIUM, locale);
 
     return String.format(
         "%s - %s",

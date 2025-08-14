@@ -21,7 +21,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getFull() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .featureType("foo")
+                .featureTypeV1("foo")
                 .supportPlusProfile(true)
                 .build()
     }
@@ -41,7 +41,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getSimple() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .featureType("bar")
+                .featureTypeV1("bar")
                 .build()
     }
 
@@ -49,7 +49,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getSimpleFullMerged() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .featureType("bar")
+                .featureTypeV1("bar")
                 .supportPlusProfile(true)
                 .build()
     }
@@ -76,7 +76,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getNestedFullMerged() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .featureType("foo")
+                .featureTypeV1("foo")
                 .supportPlusProfile(false)
                 .build()
     }

@@ -18,6 +18,7 @@ import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import java.nio.file.Path;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -46,12 +47,10 @@ public class ProfileCodelistsInline extends ProfileCodelist {
   @Override
   public JsonSchema process(JsonSchema schema, String codelistId) {
     if (schema instanceof JsonSchemaString || schema instanceof JsonSchemaInteger) {
-      Codelist codelist = codelists.get(Identifier.from(codelistId));
+      Codelist codelist = codelists.get(Identifier.from(Path.of(codelistId)));
       if (codelist == null) {
         if (LOGGER.isWarnEnabled()) {
-          LOGGER.warn(
-              "Codelist with ID '{}' not found, returning schema without codelist information.",
-              codelistId);
+          LOGGER.warn("Codelist with ID '{}' not found, returning original schema.", codelistId);
         }
         return schema;
       }

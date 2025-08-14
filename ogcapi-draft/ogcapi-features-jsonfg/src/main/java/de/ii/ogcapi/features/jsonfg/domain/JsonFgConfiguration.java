@@ -116,7 +116,19 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTra
   Boolean getGeojsonCompatibility();
 
   /**
-   * @langEn Features are often categorized by type. Typically, all features of the same type have
+   * @langEn *Deprecated* (replaced by `featureTypeV1`). Only the first value of the list is used.
+   * @langDe *Deprecated* (ersetzt durch `featureTypeV1`). Nur der erste Wert der Liste wird
+   *     verwendet.
+   * @default []
+   * @since v3.1
+   */
+  @Deprecated(since = "4.5", forRemoval = true)
+  @Nullable
+  List<String> getFeatureType();
+
+  /**
+   * @langEn *Replaces* `featureType`, will be renamed in v5.0 to `featureType`.
+   *     <p>Features are often categorized by type. Typically, all features of the same type have
    *     the same schema and the same properties.
    *     <p>Many GIS clients depend on knowledge about the feature type when processing feature
    *     data. For example, when associating a style to a feature in order to render that feature on
@@ -127,7 +139,8 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTra
    *     collection. The property must be of type `STRING`.
    *     <p>If the feature type in the provider schema includes an `objectType` value, the value
    *     will be used as the default. Otherwise, the default is `null`.
-   * @langDe Features werden oft nach der Objektart kategorisiert. In der Regel haben alle Features
+   * @langDe *Ersetzt* `featureType`, wird in v5.0 zu `featureType` umbenannt.
+   *     <p>Features werden oft nach der Objektart kategorisiert. In der Regel haben alle Features
    *     derselben Art dasselbe Schema und dieselben Eigenschaften.
    *     <p>Viele GIS-Clients sind bei der Verarbeitung von Features auf das Wissen über den
    *     Objektart angewiesen. Zum Beispiel, wenn einem Feature ein Stil zugeordnet wird, um das
@@ -143,24 +156,15 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTra
    * @since v3.1
    */
   @Nullable
-  Object getFeatureType();
+  String getFeatureTypeV1();
 
   default String getEffectiveFeatureType(Optional<FeatureSchema> schema) {
-    Object value = getFeatureType();
-    if (value instanceof List) {
-      if (!((List<?>) value).isEmpty()) {
-        value = ((List<?>) value).get(0);
-      } else {
-        value = null;
-      }
+    String value = getFeatureTypeV1();
+    if (Objects.nonNull(value)) {
+      return value;
     }
-    if (value instanceof String) {
-      return (String) value;
-    }
-    if (Objects.isNull(value)) {
-      return schema.flatMap(FeatureSchema::getObjectType).orElse(null);
-    }
-    return null;
+
+    return schema.flatMap(FeatureSchema::getObjectType).orElse(null);
   }
 
   /**
@@ -199,10 +203,24 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTra
 
   @Value.Check
   default JsonFgConfiguration migrateGeojsonCompatibility() {
-    if (Objects.nonNull(getGeojsonCompatibility())) {
+    if (Objects.nonNull(getGeojsonCompatibility()) && Objects.isNull(getSupportPlusProfile())) {
       return new ImmutableJsonFgConfiguration.Builder()
           .from(this)
           .supportPlusProfile(getGeojsonCompatibility())
+          .geojsonCompatibility(null)
+          .build();
+    }
+
+    return this;
+  }
+
+  @Value.Check
+  default JsonFgConfiguration migrateFeatureType() {
+    if (Objects.nonNull(getFeatureType()) && !getFeatureType().isEmpty()) {
+      return new ImmutableJsonFgConfiguration.Builder()
+          .from(this)
+          .featureTypeV1(getFeatureType().get(0))
+          .featureType(List.of())
           .build();
     }
 
