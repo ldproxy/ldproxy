@@ -173,7 +173,6 @@ public class EndpointStoredQueryDefinition extends EndpointRequiresFeatures
             .from(getGenericQueryInput(api.getData()))
             .queryId(queryId)
             .query(query)
-            .lastModified(repository.getLastModified(apiData, queryId))
             .build();
 
     return queryHandler.handle(Query.DEFINITION, queryInput, requestContext);

@@ -43,6 +43,26 @@ public interface SearchConfiguration extends ExtensionConfiguration, CachingConf
   @Nullable
   Boolean getManagerEnabled();
 
+  @Nullable
+  Boolean getOptimisticLockingLastModified();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsLastModified() {
+    return Objects.equals(getOptimisticLockingLastModified(), true);
+  }
+
+  @Nullable
+  Boolean getOptimisticLockingETag();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsEtag() {
+    return Objects.equals(getOptimisticLockingETag(), true);
+  }
+
   @JsonIgnore
   @Value.Derived
   @Value.Auxiliary

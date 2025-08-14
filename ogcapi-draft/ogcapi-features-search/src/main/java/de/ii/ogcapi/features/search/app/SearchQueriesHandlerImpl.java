@@ -195,6 +195,40 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   @SuppressWarnings("PMD.ConfusingTernary")
   private Response writeStoredQuery(
       QueryInputStoredQueryCreateReplace queryInput, ApiRequestContext requestContext) {
+
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+    StoredQueryFormat format =
+        repository
+            .getStoredQueryFormatStream(apiData)
+            .filter(f -> requestContext.getMediaType().matches(f.getMediaType().type()))
+            .findAny()
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            MEDIA_TYPE_NOT_SUPPORTED,
+                            requestContext.getMediaType(),
+                            repository
+                                .getStoredQueryFormatStream(apiData)
+                                .map(f -> f.getMediaType().type().toString())
+                                .collect(Collectors.joining(", ")))));
+
+    String queryId = queryInput.getQueryId();
+
+    Date lastModified = repository.getLastModified(apiData, queryId);
+
+    @SuppressWarnings("UnstableApiUsage")
+    EntityTag etag =
+        sendEtag(format.getMediaType(), apiData)
+            ? ETag.from(
+                queryInput.getQuery(), StoredQueryExpression.FUNNEL, format.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
+
     if (queryInput.getStrict()) {
       StoredQueryExpression query = queryInput.getQuery();
 
@@ -245,6 +279,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
   private Response deleteStoredQuery(
       QueryInputStoredQueryDelete queryInput, ApiRequestContext requestContext) {
+
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+
+    String queryId = queryInput.getQueryId();
+    Date lastModified = repository.getLastModified(apiData, queryId);
+    @SuppressWarnings("UnstableApiUsage")
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, null);
+
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
+
     try {
       repository.deleteStoredQuery(requestContext.getApi().getData(), queryInput.getQueryId());
     } catch (IOException e) {
@@ -493,7 +539,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .map(f -> f.getMediaType().type().toString())
                                 .collect(Collectors.joining(", ")))));
 
-    Date lastModified = getLastModified(queryInput);
+    String queryId = queryInput.getQueryId();
+    Date lastModified = repository.getLastModified(apiData, queryId);
     @SuppressWarnings("UnstableApiUsage")
     EntityTag etag =
         sendEtag(format.getMediaType(), apiData)
@@ -501,6 +548,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                 queryInput.getQuery(), StoredQueryExpression.FUNNEL, format.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
     if (Objects.nonNull(response)) {
       return response.build();
     }
