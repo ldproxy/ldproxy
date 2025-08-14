@@ -13,9 +13,13 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.FeaturesFormatJsonFgBase;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
+import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.SchemaConstraints;
+import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,7 +44,7 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 160;
+    return 28;
   }
 
   @Override
@@ -67,31 +71,11 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
         .getFeatureSchemas()
         .forEach(
             (collectionId, schema) ->
-                transformationContext
-                    .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
-                        cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && schema
-                                      .flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
-                                      .isPresent()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.geometryDimension)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
-                          builder.put(
-                              collectionId,
-                              enabled
-                                  ? schema.flatMap(FeaturesFormatJsonFgBase::getGeometryDimension)
-                                  : Optional.empty());
-                        },
-                        () -> builder.put(collectionId, Optional.empty())));
+                builder.put(
+                    collectionId,
+                    writeJsonFgExtensions(transformationContext)
+                        ? getGeometryDimension(schema)
+                        : Optional.empty()));
     return builder.build();
   }
 
@@ -103,5 +87,20 @@ public class JsonFgWriterGeometryDimension implements GeoJsonWriter {
       JsonGenerator json = transformationContext.getJson();
       json.writeNumberField(JSON_KEY, geometryDimension.get());
     }
+  }
+
+  public static Optional<Integer> getGeometryDimension(Optional<FeatureSchema> schema) {
+    return schema.flatMap(
+        s ->
+            s.getProperties().stream()
+                .filter(SchemaBase::isPrimaryGeometry)
+                .map(
+                    p ->
+                        JsonFgGeometryType.getGeometryDimension(
+                            p.getGeometryType().orElse(SimpleFeatureGeometry.NONE),
+                            p.getConstraints().map(SchemaConstraints::isComposite).orElse(false),
+                            p.getConstraints().map(SchemaConstraints::isClosed).orElse(false)))
+                .flatMap(Optional::stream)
+                .max(Comparator.naturalOrder()));
   }
 }

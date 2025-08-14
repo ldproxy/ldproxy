@@ -18,11 +18,13 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.features.core.domain.SchemaDeriverCollectionProperties;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation.Builder;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -47,6 +49,7 @@ class SchemaCacheQueryables extends JsonSchemaCache {
       FeatureSchema schema,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
+      List<Profile> profiles,
       Optional<String> schemaUri,
       VERSION version) {
     FeatureSchema queryablesSchema =
@@ -68,7 +71,7 @@ class SchemaCacheQueryables extends JsonSchemaCache {
                 PropertyTransformations.WILDCARD,
                 new Builder().flatten(flatteningSeparator).build()));
 
-    SchemaDeriverCollectionProperties schemaDeriverCollectionProperties =
+    SchemaDeriverCollectionProperties schemaDeriver =
         new SchemaDeriverCollectionProperties(
             version,
             schemaUri,
@@ -77,7 +80,6 @@ class SchemaCacheQueryables extends JsonSchemaCache {
             codelistSupplier.get(),
             ImmutableList.of("*"));
 
-    return (JsonSchemaDocument)
-        queryablesSchema.accept(schemaFlattener).accept(schemaDeriverCollectionProperties);
+    return (JsonSchemaDocument) queryablesSchema.accept(schemaFlattener).accept(schemaDeriver);
   }
 }

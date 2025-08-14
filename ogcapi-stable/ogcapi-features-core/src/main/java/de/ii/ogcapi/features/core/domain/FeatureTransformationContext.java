@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -67,7 +68,10 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
 
   Map<String, Optional<FeatureSchema>> getFeatureSchemas();
 
+  // TODO remove, see https://github.com/ldproxy/ldproxy/issues/818
   OutputStream getOutputStream();
+
+  List<Profile> getProfiles();
 
   Optional<CrsTransformer> getCrsTransformer();
 
@@ -163,6 +167,11 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
 
   @Value.Default
   default List<Integer> getGeometryPrecision() {
+    return ImmutableList.of(0, 0, 0);
+  }
+
+  @Value.Default
+  default List<Integer> getWgs84GeometryPrecision() {
     return ImmutableList.of(0, 0, 0);
   }
 

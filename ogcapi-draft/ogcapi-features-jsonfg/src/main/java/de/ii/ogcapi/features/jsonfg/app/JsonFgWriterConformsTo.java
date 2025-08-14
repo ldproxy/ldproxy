@@ -9,7 +9,6 @@ package de.ii.ogcapi.features.jsonfg.app;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
@@ -18,7 +17,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -31,18 +29,14 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
 
   public static String JSON_KEY = "conformsTo";
 
-  public static String CURIE_CORE = "[ogc-json-fg-1-0.2:core]";
-  public static String CURIE_3D = "[ogc-json-fg-1-0.2:3d]";
-  public static String CURIE_TYPE = "[ogc-json-fg-1-0.2:types-schemas]";
-  public static String URI_CORE = "http://www.opengis.net/spec/json-fg-1/0.2/conf/core";
-  public static String URI_3D = "http://www.opengis.net/spec/json-fg-1/0.2/conf/3d";
-  public static String URI_TYPE = "http://www.opengis.net/spec/json-fg-1/0.2/conf/types-schemas";
+  public static String URI_CORE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/core";
+  public static String URI_POLYHEDRA = "http://www.opengis.net/spec/json-fg-1/0.3/conf/polyhedra";
+  public static String URI_TYPE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/types-schemas";
+  public static String URI_PROFILES = "http://www.opengis.net/spec/json-fg-1/0.3/conf/profiles";
 
-  Map<String, Boolean> collectionMap;
   boolean isEnabled;
   boolean has3d;
   boolean hasFeatureType;
-  boolean useCuries;
 
   @Inject
   JsonFgWriterConformsTo() {}
@@ -54,7 +48,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 135;
+    return 10;
   }
 
   @Override
@@ -64,13 +58,6 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
     isEnabled = isEnabled(context.encoding());
     has3d = has3d(context.encoding());
     hasFeatureType = hasFeatureType(context.encoding());
-    useCuries =
-        context
-            .encoding()
-            .getApiData()
-            .getExtension(JsonFgConfiguration.class, context.encoding().getCollectionId())
-            .map(cfg -> Objects.equals(cfg.getUseCuries(), Boolean.TRUE))
-            .orElse(false);
 
     if (isEnabled && context.encoding().isFeatureCollection()) {
       writeConformsTo(context.encoding().getJson());
@@ -94,28 +81,19 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
 
   private void writeConformsTo(JsonGenerator json) throws IOException {
     json.writeArrayFieldStart(JSON_KEY);
-    json.writeString(useCuries ? CURIE_CORE : URI_CORE);
+    json.writeString(URI_CORE);
+    json.writeString(URI_PROFILES);
     if (has3d) {
-      json.writeString(useCuries ? CURIE_3D : URI_3D);
+      json.writeString(URI_POLYHEDRA);
     }
     if (hasFeatureType) {
-      json.writeString(useCuries ? CURIE_TYPE : URI_TYPE);
+      json.writeString(URI_TYPE);
     }
     json.writeEndArray();
   }
 
   private boolean isEnabled(FeatureTransformationContextGeoJson transformationContext) {
-    return transformationContext
-        .getApiData()
-        .getExtension(JsonFgConfiguration.class, transformationContext.getCollectionId())
-        .map(
-            cfg ->
-                cfg.isEnabled()
-                    && (transformationContext.getMediaType().equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                        || transformationContext
-                            .getMediaType()
-                            .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE)))
-        .orElse(false);
+    return writeJsonFgExtensions(transformationContext);
   }
 
   private boolean has3d(FeatureTransformationContextGeoJson transformationContext) {
@@ -136,7 +114,13 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
     return transformationContext
         .getApiData()
         .getExtension(JsonFgConfiguration.class, transformationContext.getCollectionId())
-        .map(cfg -> !Objects.requireNonNullElse(cfg.getFeatureType(), ImmutableList.of()).isEmpty())
+        .map(
+            cfg ->
+                Objects.nonNull(
+                    cfg.getEffectiveFeatureType(
+                        transformationContext
+                            .getFeatureSchemas()
+                            .get(transformationContext.getCollectionId()))))
         .orElse(false);
   }
 }

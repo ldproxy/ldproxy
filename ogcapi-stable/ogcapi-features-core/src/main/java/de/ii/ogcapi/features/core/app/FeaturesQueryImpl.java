@@ -24,6 +24,7 @@ import de.ii.xtraplatform.cql.domain.In;
 import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
@@ -189,6 +190,10 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
           crsInfo.getPrecisionList(query.getCrs().get(), coordinatePrecision);
       if (!precisionList.isEmpty()) {
         queryBuilder.geometryPrecision(precisionList);
+      }
+      precisionList = crsInfo.getPrecisionList(OgcCrs.CRS84h, coordinatePrecision);
+      if (!precisionList.isEmpty()) {
+        queryBuilder.wgs84GeometryPrecision(precisionList);
       }
     }
   }

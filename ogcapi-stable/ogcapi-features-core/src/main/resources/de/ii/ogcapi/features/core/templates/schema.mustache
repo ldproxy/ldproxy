@@ -1,0 +1,41 @@
+{{> header}}
+
+<div>
+    <h1>{{title}}</h1>
+    <span>{{{description}}}</span>
+    <br/>
+    <br/>
+    {{#typeLabel}}
+    <h2>{{.}}</h2>
+    <span>{{{typeDescription}}}</span>
+    {{/typeLabel}}
+    <br/>
+    <br/>
+
+    {{#schemaProperties}}
+    <div class="row my-3" >
+        <div class="col-md-{{#idCols}}{{.}}{{/idCols}}{{^idCols}}3{{/idCols}}">
+          <div class="font-weight-bold" style="padding-left: {{margin}}rem;">{{#isReturnablesReceivables}}{{lastId}}{{/isReturnablesReceivables}}{{^isReturnablesReceivables}}{{id}}{{/isReturnablesReceivables}}</div>
+        </div>
+        <div class="col-md-{{#descCols}}{{.}}{{/descCols}}{{^descCols}}9{{/descCols}}">
+            <ul class="list-unstyled">
+                {{#title}}<li>{{.}}{{#description}}: {{{.}}}{{/description}}</li>{{/title}}</li>
+                {{#role}}<li>{{roleTitle}}: {{.}}</li>{{/role}}
+                {{#readOnly}}Returnable{{/readOnly}}{{#writeOnly}}Receivable{{/writeOnly}}
+                <li>{{typeTitle}}: {{#isArray}}[{{/isArray}} {{type}} {{#isArray}}]{{/isArray}}</li>
+                {{#refCollectionIdsList}}<li>{{referenceTitle}}: {{{.}}}</li>{{/refCollectionIdsList}}
+                {{#codelistText}}<li>{{codelistTitle}}: {{{.}}}</li>{{/codelistText}}
+                {{#valueList}}
+                    <li>{{enumTitle}}: {{.}}</li>
+                {{/valueList}}
+            </ul>
+        </div>
+    </div>
+    {{/schemaProperties}}
+    {{^schemaProperties}}
+    <div>{{none}}</div>
+    {{/schemaProperties}}
+</div>
+
+{{> footer}}
+

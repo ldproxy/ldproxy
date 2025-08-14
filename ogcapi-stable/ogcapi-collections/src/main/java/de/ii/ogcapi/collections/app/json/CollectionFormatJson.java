@@ -7,14 +7,6 @@
  */
 package de.ii.ogcapi.collections.app.json;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.CollectionFormatExtension;
@@ -42,20 +34,11 @@ public class CollectionFormatJson implements CollectionFormatExtension, Conforma
 
   private final Schema<?> schemaCollection;
   private final Map<String, Schema<?>> referencedSchemasCollection;
-  private final ObjectMapper mapper;
 
   @Inject
   public CollectionFormatJson(ClassSchemaCache classSchemaCache) {
     schemaCollection = classSchemaCache.getSchema(OgcApiCollection.class);
     referencedSchemasCollection = classSchemaCache.getReferencedSchemas(OgcApiCollection.class);
-    mapper =
-        new ObjectMapper()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .setSerializationInclusion(JsonInclude.Include.NON_ABSENT)
-            .registerModule(new Jdk8Module())
-            .registerModule(new GuavaModule())
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   }
 
   @Override
@@ -81,10 +64,6 @@ public class CollectionFormatJson implements CollectionFormatExtension, Conforma
   @Override
   public Object getEntity(
       OgcApiCollection ogcApiCollection, OgcApi api, ApiRequestContext requestContext) {
-    try {
-      return mapper.writeValueAsBytes(ogcApiCollection);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
+    return ogcApiCollection;
   }
 }

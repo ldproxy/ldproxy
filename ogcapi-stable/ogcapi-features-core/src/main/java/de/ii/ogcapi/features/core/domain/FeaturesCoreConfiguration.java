@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
@@ -116,7 +117,10 @@ import org.immutables.value.Value;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "FEATURES_CORE")
 @JsonDeserialize(builder = ImmutableFeaturesCoreConfiguration.Builder.class)
 public interface FeaturesCoreConfiguration
-    extends ExtensionConfiguration, PropertyTransformations, CachingConfiguration {
+    extends ExtensionConfiguration,
+        PropertyTransformations,
+        CachingConfiguration,
+        ProfilesConfiguration {
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
@@ -248,6 +252,23 @@ public interface FeaturesCoreConfiguration
         getDefaultCrs() == DefaultCrs.CRS84h ? OgcCrs.CRS84h : OgcCrs.CRS84);
   }
 
+  /**
+   * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
+   *     feature resources. The value is an object where the key is the id of a profile set, such as
+   *     `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`. In
+   *     addition, format-specific default profiles can be specified in the building block of each
+   *     feature format. Those defaults have a higher priority.
+   * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
+   *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist, z.
+   *     B. `rel`, und der Wert das Standardprofil für den Profilsatz, z. B. `rel-as-key`. Darüber
+   *     hinaus können für jedes Feature-Format im entsprechenden Baustein formatspezifische
+   *     Standardprofile konfiguriert werden. Diese Standardprofile haben eine höhere Priorität.
+   * @since v4.5
+   * @default {"rel": "rel-as-link", "val": "val-as-code"}
+   */
+  @Override
+  Map<String, String> getDefaultProfiles();
+
   @Override
   default Builder getBuilder() {
     return new ImmutableFeaturesCoreConfiguration.Builder().from(this);
@@ -262,7 +283,11 @@ public interface FeaturesCoreConfiguration
             .transformations(
                 PropertyTransformations.super
                     .mergeInto((PropertyTransformations) source)
-                    .getTransformations());
+                    .getTransformations())
+            .defaultProfiles(
+                ProfilesConfiguration.super
+                    .mergeInto((ProfilesConfiguration) source)
+                    .getDefaultProfiles());
 
     Map<String, Integer> mergedCoordinatePrecision =
         new LinkedHashMap<>(((FeaturesCoreConfiguration) source).getCoordinatePrecision());

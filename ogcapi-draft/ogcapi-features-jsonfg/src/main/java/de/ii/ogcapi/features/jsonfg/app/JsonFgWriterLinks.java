@@ -37,7 +37,6 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
 
   Map<String, List<Link>> collectionMap;
   boolean isEnabled;
-  List<Link> links;
   List<Link> currentLinks;
   Map<String, String> currentMap = new HashMap<>();
 
@@ -51,7 +50,7 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 150;
+    return 60;
   }
 
   @Override
@@ -148,26 +147,16 @@ public class JsonFgWriterLinks implements GeoJsonWriter {
         .keySet()
         .forEach(
             collectionId ->
-                transformationContext
-                    .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
-                        cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && !Objects.requireNonNullElse(cfg.getLinks(), ImmutableList.of())
-                                      .isEmpty()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.links)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
-                          builder.put(collectionId, enabled ? cfg.getLinks() : ImmutableList.of());
-                        },
-                        () -> builder.put(collectionId, ImmutableList.of())));
+                builder.put(
+                    collectionId,
+                    writeJsonFgExtensions(transformationContext)
+                        ? transformationContext
+                            .getApiData()
+                            .getExtension(JsonFgConfiguration.class, collectionId)
+                            .map(JsonFgConfiguration::getLinks)
+                            .orElse(List.of())
+                        : List.of()));
+
     return builder.build();
   }
 }
