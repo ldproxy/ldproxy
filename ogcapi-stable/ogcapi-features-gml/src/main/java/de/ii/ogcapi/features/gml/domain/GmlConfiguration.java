@@ -63,12 +63,6 @@ import org.immutables.value.Value;
 public interface GmlConfiguration
     extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
 
-  enum GmlVersion {
-    GML21,
-    GML31,
-    GML32
-  }
-
   enum Conformance {
     NONE,
     GMLSF0,
