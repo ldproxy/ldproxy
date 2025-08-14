@@ -8,13 +8,12 @@
 package de.ii.ogcapi.features.jsonfg.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.core.domain.FeatureFormatConfiguration;
 import de.ii.ogcapi.features.jsonfg.domain.ImmutableJsonFgConfiguration.Builder;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -89,149 +88,84 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new", deepImmutablesDetection = true)
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "JSON_FG")
 @JsonDeserialize(builder = Builder.class)
-public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureFormatConfiguration {
-
-  enum OPTION {
-    featureType,
-    featureSchema,
-    time,
-    place,
-    coordRefSys,
-    links,
-    geometryDimension
-  }
+public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTransformations {
 
   /**
-   * @langEn *Partially Deprecated* For schemas specific to the feature type, use `schemaCollection`
-   *     and `schemaFeature`. Enables that links to the generic JSON-FG and GeoJSON JSON Schema
-   *     documents are added to the JSON-FG response document. The links have the link relation type
-   *     "describedby". The schemas can be used to validate the JSON document.
-   * @langDe *Teilweise Deprecated* Für Objektart-spezifische Schemas siehe `schemaCollection` and
-   *     `schemaFeature`. Aktiviert, dass Links zu den generischen JSON-FG und GeoJSON
-   *     JSON-Schema-Dokumenten in das JSON-FG-Antwortdokument eingefügt werden. Die Links haben den
-   *     Relationstyp "describedby". Die Schemas können zur Validierung des JSON-Dokuments verwendet
-   *     werden.
-   * @default false
-   * @since v3.1
-   */
-  @Nullable
-  Boolean getDescribedby();
-
-  /**
-   * @langEn The URI of a JSON Schema document describing a feature collection with the features of
-   *     the collection/dataset. The schema will be referenced from JSON-FG feature collection
-   *     responses by a link with the link relation type "describedby". The schemas can be used to
-   *     validate the JSON document.
-   * @langDe Die URI eines JSON-Schema-Dokuments, das eine Feature Collection mit den Features der
-   *     Collection/des Datensatzes beschreibt. Das Schema wird von JSON-FG
-   *     Feature-Collection-Responses durch einen Link mit dem Relationstyp "describedby"
-   *     referenziert. Die Schemas können zur Validierung des JSON-Dokuments verwendet werden.
-   * @default null
-   * @since v3.5
-   */
-  @Nullable
-  String getSchemaCollection();
-
-  /**
-   * @langEn The URI of a JSON Schema document describing a feature of the collection/dataset. The
-   *     schema will be referenced from JSON-FG feature responses by a link with the link relation
-   *     type "describedby". The schemas can be used to validate the JSON document.
-   * @langDe Die URI eines JSON-Schema-Dokuments, das ein Feature der Collection/des Datensatzes
-   *     beschreibt. Das Schema wird von JSON-FG Feature-Responses durch einen Link mit dem
-   *     Relationstyp "describedby" referenziert. Die Schemas können zur Validierung des
-   *     JSON-Dokuments verwendet werden.
-   * @default null
-   * @since v3.5
-   */
-  @Nullable
-  String getSchemaFeature();
-
-  /**
-   * @langEn Activates the output of the coordinate reference system in a JSON member "coordRefSys"
-   *     for features and feature collections. The coordinate reference system is identified by its
-   *     OGC URI, for example, `http://www.opengis.net/def/crs/EPSG/0/25832` for ETRS89 / UTM 32N.
-   * @langDe Aktiviert die Ausgabe des Koordinatenreferenzsystems in einem JSON-Member "coordRefSys"
-   *     bei Features und Feature Collections. Das Koordinatenreferenzsystem wird identifiziert
-   *     durch seine OGC URI, zum Beispiel `http://www.opengis.net/def/crs/EPSG/0/25832` für ETRS89
-   *     / UTM 32N.
+   * @langEn Activates support for the "jsonfg-plus" profile. In that profile, JSON-FG features with
+   *     a "place" member will also include a GeoJSON geometry in the "geometry" member in WGS 84.
+   *     Otherwise, the "geometry" member of a JSON-FG feature will be `null`, if the "place" member
+   *     is present.
+   * @langDe Aktiviert die Unterstützung für das "jsonfg-plus"-Profil. In diesem Profil enthalten
+   *     JSON-FG-Features mit einem JSON-Member "place" auch eine GeoJSON-Geometrie im JSON-Member
+   *     "geometry" im Koordinatenreferenzsystem WGS 84. Andernfalls ist "geometry" eines
+   *     JSON-FG-Features `null`, wenn "place" vorhanden ist.
    * @default true
-   * @since v3.1
+   * @since v4.5
    */
   @Nullable
-  Boolean getCoordRefSys();
+  Boolean getSupportPlusProfile();
 
   /**
-   * @langEn Activates support for the "compatibility=geojson" media type parameter. If the
-   *     parameter is provided, JSON-FG features with a "place" member that is not `null` will also
-   *     include a GeoJSON geometry in the "geometry" member in WGS 84. If the parameter is missing,
-   *     the "geometry" member of a JSON-FG feature will be `null`, if the "place" member is not
-   *     `null`.
-   * @langDe Aktiviert die Unterstützung für den "compatibility=geojson" Media-Type-Parameter. Wenn
-   *     der Parameter angegeben wird, enthalten JSON-FG-Features mit einem JSON-Member "place", das
-   *     nicht `null` ist, auch eine GeoJSON-Geometrie im JSON-Member "geometry" im
-   *     Koordinatenreferenzsystem WGS 84. Fehlt der Parameter, so ist "geometry" eines
-   *     JSON-FG-Features `null`, wenn "place" nicht `null` ist.
+   * @langEn *Deprecated* (replaced by `supportPlusProfile`).
+   * @langDe *Deprecated* (ersetzt durch `supportPlusProfile`).
    * @default true
    * @since v3.3
    */
+  @Deprecated(since = "4.5", forRemoval = true)
   @Nullable
   Boolean getGeojsonCompatibility();
 
   /**
-   * @langEn Features are often categorized by type. Typically, all features of the same type have
+   * @langEn *Deprecated* (replaced by `featureTypeV1`). Only the first value of the list is used.
+   * @langDe *Deprecated* (ersetzt durch `featureTypeV1`). Nur der erste Wert der Liste wird
+   *     verwendet.
+   * @default []
+   * @since v3.1
+   */
+  @Deprecated(since = "4.5", forRemoval = true)
+  @Nullable
+  List<String> getFeatureType();
+
+  /**
+   * @langEn *Replaces* `featureType`, will be renamed in v5.0 to `featureType`.
+   *     <p>Features are often categorized by type. Typically, all features of the same type have
    *     the same schema and the same properties.
    *     <p>Many GIS clients depend on knowledge about the feature type when processing feature
    *     data. For example, when associating a style to a feature in order to render that feature on
    *     a map.
-   *     <p>This option adds a "featureType" member with the specified values. If a single value is
-   *     specified, then a string is added, otherwise an array of strings.
+   *     <p>This option adds a "featureType" member with the specified value.
    *     <p>A value can include a template `{{type}}`, which will be replaced with the value of the
    *     feature property with `role: TYPE` in the provider schema of the feature type of the
    *     collection. The property must be of type `STRING`.
    *     <p>If the feature type in the provider schema includes an `objectType` value, the value
-   *     will be used as the default. Otherwise, the default is an empty array.
-   * @langDe Features werden oft nach der Objektart kategorisiert. In der Regel haben alle Features
+   *     will be used as the default. Otherwise, the default is `null`.
+   * @langDe *Ersetzt* `featureType`, wird in v5.0 zu `featureType` umbenannt.
+   *     <p>Features werden oft nach der Objektart kategorisiert. In der Regel haben alle Features
    *     derselben Art dasselbe Schema und dieselben Eigenschaften.
    *     <p>Viele GIS-Clients sind bei der Verarbeitung von Features auf das Wissen über den
    *     Objektart angewiesen. Zum Beispiel, wenn einem Feature ein Stil zugeordnet wird, um das
    *     Feature auf einer Karte darzustellen.
-   *     <p>Diese Option fügt ein JSON-Member "featureType" mit den angegebenen Werten hinzu. Wenn
-   *     ein einzelner Wert angegeben wird, wird ein String hinzugefügt, andernfalls ein Array von
-   *     Strings.
-   *     <p>Ein Wert kann ein Template `{{type}}` enthalten, das durch den Wert der
+   *     <p>Diese Option fügt ein JSON-Member "featureType" mit dem angegebenen Wert hinzu.
+   *     <p>Der Wert kann ein Template `{{type}}` enthalten, das durch den Wert der
    *     Objekteigenschaft mit `role: TYPE` im Provider-Schema der Objektart der Collection ersetzt
    *     wird. Die Eigenschaft muss vom Typ `STRING` sein.
    *     <p>Wenn der Objekttyp im Provider-Schema einen Wert für `objectType` hat, dann ist dieser
-   *     Wert der Default. Ansonsten ist der Default ein leeres Array.
+   *     Wert der Default. Ansonsten ist der Default `null`.
    * @default see description
-   * @examplesAll [ 'Building' ]
+   * @examplesAll 'Building'
    * @since v3.1
    */
   @Nullable
-  List<String> getFeatureType();
+  String getFeatureTypeV1();
 
-  default List<String> getEffectiveFeatureType(Optional<FeatureSchema> schema) {
-    List<String> value = getFeatureType();
-    if (Objects.isNull(value) || value.isEmpty()) {
-      value =
-          schema
-              .flatMap(FeatureSchema::getObjectType)
-              .map(ImmutableList::of)
-              .orElse(ImmutableList.of());
+  default String getEffectiveFeatureType(Optional<FeatureSchema> schema) {
+    String value = getFeatureTypeV1();
+    if (Objects.nonNull(value)) {
+      return value;
     }
-    return value;
-  }
 
-  /**
-   * @langEn If `true`, values in "conformsTo" and "coordRefSys" will be Safe CURIEs, not HTTP URIs.
-   *     For example, `[EPSG:25832]` instead of `http://www.opengis.net/def/crs/EPSG/0/25832`.
-   * @langDe Bei `true` sind die Werte in "conformsTo" und "coordRefSys" Safe CURIEs, keine HTTP
-   *     URIs. Beispiel: `[EPSG:25832]` statt `http://www.opengis.net/def/crs/EPSG/0/25832`.
-   * @default false
-   * @since v3.6
-   */
-  @Nullable
-  Boolean getUseCuries();
+    return schema.flatMap(FeatureSchema::getObjectType).orElse(null);
+  }
 
   /**
    * @langEn Adds the specified links to the `links` array of features. All values of the array must
@@ -244,18 +178,6 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
   @Nullable
   List<Link> getLinks();
 
-  /**
-   * @langEn The option allows selected JSON-FG extensions to be included in the GeoJSON encoding as
-   *     well. Allowed values are: `describedby`, `featureType`, `featureSchema`, `time`, `place`,
-   *     `coordRefSys`, `links`. `conformsTo` is only used in JSON-FG responses.
-   * @langDe Die Option ermöglicht, dass ausgewählte JSON-FG-Erweiterungen auch im GeoJSON-Encoding
-   *     berücksichtigt werden. Erlaubte Werte sind: `describedby`, `featureType`, `featureSchema`,
-   *     `time`, `place`, `coordRefSys`, `links`. `conformsTo` wird nur in JSON-FG unterstützt.
-   * @default []
-   * @since v3.1
-   */
-  List<OPTION> getIncludeInGeoJson();
-
   @Override
   default Builder getBuilder() {
     return new ImmutableJsonFgConfiguration.Builder();
@@ -263,16 +185,45 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, FeatureForm
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
-    ImmutableJsonFgConfiguration.Builder builder =
-        new ImmutableJsonFgConfiguration.Builder().from(source).from(this);
-
-    ImmutableJsonFgConfiguration src = (ImmutableJsonFgConfiguration) source;
-
-    if (Objects.nonNull(getFeatureType())) builder.featureType(getFeatureType());
-    else if (Objects.nonNull(src.getFeatureType())) builder.featureType(src.getFeatureType());
-
-    return builder.build();
+    return new ImmutableJsonFgConfiguration.Builder()
+        .from(source)
+        .from(this)
+        .transformations(
+            PropertyTransformations.super
+                .mergeInto((PropertyTransformations) source)
+                .getTransformations())
+        .featureType(
+            Objects.isNull(this.getFeatureType())
+                ? ((JsonFgConfiguration) source).getFeatureType()
+                : this.getFeatureType())
+        .build();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
+
+  @Value.Check
+  default JsonFgConfiguration migrateGeojsonCompatibility() {
+    if (Objects.nonNull(getGeojsonCompatibility()) && Objects.isNull(getSupportPlusProfile())) {
+      return new ImmutableJsonFgConfiguration.Builder()
+          .from(this)
+          .supportPlusProfile(getGeojsonCompatibility())
+          .geojsonCompatibility(null)
+          .build();
+    }
+
+    return this;
+  }
+
+  @Value.Check
+  default JsonFgConfiguration migrateFeatureType() {
+    if (Objects.nonNull(getFeatureType()) && !getFeatureType().isEmpty()) {
+      return new ImmutableJsonFgConfiguration.Builder()
+          .from(this)
+          .featureTypeV1(getFeatureType().get(0))
+          .featureType(List.of())
+          .build();
+    }
+
+    return this;
+  }
 }

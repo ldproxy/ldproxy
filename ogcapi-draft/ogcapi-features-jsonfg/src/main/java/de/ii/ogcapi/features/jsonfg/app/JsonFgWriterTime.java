@@ -12,9 +12,10 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
+import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +31,6 @@ public class JsonFgWriterTime implements GeoJsonWriter {
 
   Map<String, Boolean> collectionMap;
   boolean isEnabled;
-  String currentIntervalStart;
-  String currentIntervalEnd;
-  String currentInstant;
 
   @Inject
   JsonFgWriterTime() {}
@@ -44,7 +42,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
 
   @Override
   public int getSortPriority() {
-    return 100;
+    return 40;
   }
 
   @Override
@@ -60,15 +58,36 @@ public class JsonFgWriterTime implements GeoJsonWriter {
 
   @Override
   public void onFeatureStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next) {
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
     isEnabled = Objects.requireNonNullElse(collectionMap.get(context.type()), false);
-    if (isEnabled) {
-      currentIntervalStart = null;
-      currentIntervalEnd = null;
-      currentInstant = null;
-    }
 
     // next chain for extensions
+    next.accept(context);
+  }
+
+  @Override
+  public void onObjectEnd(
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
+    if (isEnabled) {
+      if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)) {
+        FeatureState featureState = context.encoding().getBuffer().get();
+        if ((!featureState.instantProperty.isEmpty()
+                || !featureState.intervalStartProperty.isEmpty()
+                || !featureState.intervalEndProperty.isEmpty())
+            && !featureState.hasTime) {
+          context.encoding().pauseBuffering();
+          writeTime(
+              context,
+              featureState.currentInstant,
+              featureState.currentIntervalStart,
+              featureState.currentIntervalEnd);
+          context.encoding().continueBuffering();
+        }
+      }
+    }
+
     next.accept(context);
   }
 
@@ -76,46 +95,85 @@ public class JsonFgWriterTime implements GeoJsonWriter {
   public void onFeatureEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    next.accept(context);
-
     if (isEnabled) {
-      JsonGenerator json = context.encoding().getJson();
-      if (Objects.nonNull(currentInstant)) {
-        json.writeFieldName(JSON_KEY);
-        json.writeStartObject();
-        json.writeStringField("instant", currentInstant);
-        json.writeEndObject();
-      } else if (Objects.nonNull(currentIntervalStart) || Objects.nonNull(currentIntervalEnd)) {
-        json.writeFieldName(JSON_KEY);
-        json.writeStartObject();
-        json.writeArrayFieldStart("interval");
-        if (Objects.nonNull(currentIntervalStart)) json.writeString(currentIntervalStart);
-        else json.writeNull();
-        if (Objects.nonNull(currentIntervalEnd)) json.writeString(currentIntervalEnd);
-        else json.writeNull();
-        json.writeEndArray();
-        json.writeEndObject();
-      } else {
-        json.writeFieldName(JSON_KEY);
-        json.writeNull();
+      FeatureState featureState = context.encoding().getBuffer().get();
+      if ((!featureState.instantProperty.isEmpty()
+              || !featureState.intervalStartProperty.isEmpty()
+              || !featureState.intervalEndProperty.isEmpty())
+          && !featureState.hasTime) {
+        context.encoding().pauseBuffering();
+        writeTime(
+            context,
+            featureState.currentInstant,
+            featureState.currentIntervalStart,
+            featureState.currentIntervalEnd);
+        context.encoding().continueBuffering();
       }
     }
+
+    next.accept(context);
   }
 
   @Override
   public void onValue(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
+    final FeatureSchema schema = context.schema().get();
+    final FeatureState featureState = context.encoding().getBuffer().get();
     if (isEnabled
-        && context.schema().filter(FeatureSchema::isValue).isPresent()
+        && !featureState.hasTime
+        && (!featureState.instantProperty.isEmpty()
+            || !featureState.intervalStartProperty.isEmpty()
+            || !featureState.intervalEndProperty.isEmpty())
+        && schema.isTemporal()
         && Objects.nonNull(context.value())) {
-      final FeatureSchema schema = context.schema().get();
-      if (schema.isPrimaryInstant()) currentInstant = context.value();
-      else if (schema.isPrimaryIntervalStart()) currentIntervalStart = context.value();
-      else if (schema.isPrimaryIntervalEnd()) currentIntervalEnd = context.value();
+      featureState.setTimeValue(schema, context.value());
+      if (featureState.timeIsComplete()) {
+        context.encoding().pauseBuffering();
+        writeTime(
+            context,
+            featureState.currentInstant,
+            featureState.currentIntervalStart,
+            featureState.currentIntervalEnd);
+        featureState.hasTime = true;
+        context.encoding().continueBuffering();
+      }
     }
 
     next.accept(context);
+  }
+
+  private void writeTime(
+      EncodingAwareContextGeoJson context,
+      String currentInstant,
+      String currentIntervalStart,
+      String currentIntervalEnd)
+      throws IOException {
+    JsonGenerator json = context.encoding().getJson();
+    if (Objects.nonNull(currentInstant)
+        || Objects.nonNull(currentIntervalStart)
+        || Objects.nonNull(currentIntervalEnd)) {
+      json.writeFieldName(JSON_KEY);
+      json.writeStartObject();
+      if (Objects.nonNull(currentInstant)) {
+        json.writeStringField("instant", currentInstant);
+      }
+      if (Objects.nonNull(currentIntervalStart) || Objects.nonNull(currentIntervalEnd)) {
+        json.writeArrayFieldStart("interval");
+        if (Objects.nonNull(currentIntervalStart)) {
+          json.writeString(currentIntervalStart);
+        } else {
+          json.writeString("..");
+        }
+        if (Objects.nonNull(currentIntervalEnd)) {
+          json.writeString(currentIntervalEnd);
+        } else {
+          json.writeString("..");
+        }
+        json.writeEndArray();
+      }
+      json.writeEndObject();
+    }
   }
 
   private Map<String, Boolean> getCollectionMap(
@@ -126,24 +184,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
         .keySet()
         .forEach(
             collectionId ->
-                transformationContext
-                    .getApiData()
-                    .getExtension(JsonFgConfiguration.class, collectionId)
-                    .ifPresentOrElse(
-                        cfg -> {
-                          boolean enabled =
-                              cfg.isEnabled()
-                                  && (cfg.getIncludeInGeoJson()
-                                          .contains(JsonFgConfiguration.OPTION.time)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFg.MEDIA_TYPE)
-                                      || transformationContext
-                                          .getMediaType()
-                                          .equals(FeaturesFormatJsonFgCompatibility.MEDIA_TYPE));
-                          builder.put(collectionId, enabled);
-                        },
-                        () -> builder.put(collectionId, false)));
+                builder.put(collectionId, writeJsonFgExtensions(transformationContext)));
     return builder.build();
   }
 }

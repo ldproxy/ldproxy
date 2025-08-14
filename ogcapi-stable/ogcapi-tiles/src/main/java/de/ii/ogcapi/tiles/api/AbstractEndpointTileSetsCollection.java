@@ -23,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceSet;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.tiles.app.TilesBuildingBlock;
 import de.ii.ogcapi.tiles.domain.ImmutableQueryInputTileSets.Builder;
 import de.ii.ogcapi.tiles.domain.TileSetsFormatExtension;
@@ -156,6 +157,25 @@ public abstract class AbstractEndpointTileSetsCollection extends EndpointSubColl
     TilesetMetadata tilesetMetadata =
         tilesProviders.getTilesetMetadataOrThrow(apiData, apiData.getCollectionData(collectionId));
 
+    TilesConfiguration configuration =
+        apiData
+            .getExtension(TilesConfiguration.class, collectionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Tiles configuration not found for collection: " + collectionId));
+
+    List<Profile> defaultProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    configuration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                configuration.getDefaultProfiles().get(profile.getProfileSet())))
+            .toList();
+
     TilesQueriesHandler.QueryInputTileSets queryInput =
         new Builder()
             .from(getGenericQueryInput(apiData))
@@ -165,6 +185,7 @@ public abstract class AbstractEndpointTileSetsCollection extends EndpointSubColl
             .path(definitionPath)
             .onlyWebMercatorQuad(onlyWebMercatorQuad)
             .tileEncodings(tilesetMetadata.getEncodings())
+            .defaultProfilesResource(defaultProfiles)
             .build();
 
     return queryHandler.handle(TilesQueriesHandler.Query.TILE_SETS, queryInput, requestContext);

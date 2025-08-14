@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -118,6 +119,7 @@ public class GmlBuildingBlock implements ApiBuildingBlock {
         .featureCollectionElementName("sf:FeatureCollection")
         .featureMemberElementName("sf:featureMember")
         .supportsStandardResponseParameters(false)
+        .defaultProfiles(Map.of("rel", "rel-as-link"))
         .build();
   }
 }

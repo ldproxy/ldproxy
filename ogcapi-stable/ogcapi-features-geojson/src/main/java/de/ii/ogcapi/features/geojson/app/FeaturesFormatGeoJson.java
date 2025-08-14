@@ -27,6 +27,7 @@ import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriterRegistry;
 import de.ii.ogcapi.features.geojson.domain.ImmutableFeatureTransformationContextGeoJson;
+import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -124,6 +125,23 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return GeoJsonConfiguration.class;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return super.isEnabledForApi(apiData)
+        || extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
+            .anyMatch(
+                profile ->
+                    apiData.getCollections().keySet().stream()
+                        .anyMatch(collectionId -> profile.isEnabledForApi(apiData, collectionId)));
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return super.isEnabledForApi(apiData, collectionId)
+        || extensionRegistry.getExtensionsForType(ProfileGeoJson.class).stream()
+            .anyMatch(profile -> profile.isEnabledForApi(apiData, collectionId));
   }
 
   @Override

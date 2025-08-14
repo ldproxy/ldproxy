@@ -39,6 +39,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.ETag.Type;
@@ -46,6 +47,8 @@ import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.entities.domain.ValidationResult;
+import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
@@ -95,7 +98,7 @@ public class EndpointCrud extends EndpointSubCollection
   private final CommandHandlerCrud commandHandler;
   private final CrsInfo crsInfo;
   private final FeaturesQuery queryParser;
-  private final List<String> crudProfiles;
+  private List<Profile> crudProfiles;
 
   @Inject
   public EndpointCrud(
@@ -109,7 +112,13 @@ public class EndpointCrud extends EndpointSubCollection
     this.commandHandler = commandHandler;
     this.crsInfo = crsInfo;
     this.queryParser = queryParser;
-    this.crudProfiles = ImmutableList.of("rel-as-key", "val-as-code");
+  }
+
+  @Override
+  public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
+    this.crudProfiles = Profile.of(extensionRegistry, "rel-as-key", "val-as-code");
+
+    return super.onStartup(api, apiValidation);
   }
 
   @Override

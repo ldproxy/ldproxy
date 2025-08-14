@@ -21,10 +21,8 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getFull() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .addFeatureType("foo")
-                .describedby(true)
-                .coordRefSys(true)
-                .geojsonCompatibility(true)
+                .featureTypeV1("foo")
+                .supportPlusProfile(true)
                 .build()
     }
 
@@ -43,7 +41,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getSimple() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .addFeatureType("bar")
+                .featureTypeV1("bar")
                 .build()
     }
 
@@ -51,10 +49,8 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getSimpleFullMerged() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .addFeatureType("bar")
-                .describedby(true)
-                .geojsonCompatibility(true)
-                .coordRefSys(true)
+                .featureTypeV1("bar")
+                .supportPlusProfile(true)
                 .build()
     }
 
@@ -72,7 +68,7 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     @Override
     JsonFgConfiguration getNested() {
         return new ImmutableJsonFgConfiguration.Builder()
-                .geojsonCompatibility(false)
+                .supportPlusProfile(false)
                 .build()
     }
 
@@ -80,10 +76,8 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
     JsonFgConfiguration getNestedFullMerged() {
         return new ImmutableJsonFgConfiguration.Builder()
                 .enabled(true)
-                .addFeatureType("foo")
-                .describedby(true)
-                .coordRefSys(true)
-                .geojsonCompatibility(false)
+                .featureTypeV1("foo")
+                .supportPlusProfile(false)
                 .build()
     }
 }
