@@ -276,6 +276,7 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
             .offset(query.getOffset())
             .maxAllowableOffset(query.getMaxAllowableOffset())
             .geometryPrecision(query.getGeometryPrecision())
+            .wgs84GeometryPrecision(query.getWgs84GeometryPrecision())
             .name(inputs.getName())
             .format(outputFormat)
             .outputStream(new OutputStreamToByteConsumer())

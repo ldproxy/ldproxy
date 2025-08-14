@@ -13,13 +13,17 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.collections.schema.app.QueryParameterProfileSchema;
 import de.ii.ogcapi.collections.schema.app.SchemaBuildingBlock;
-import de.ii.ogcapi.collections.schema.domain.ImmutableQueryInputSchema;
-import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema;
-import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema.Query;
-import de.ii.ogcapi.collections.schema.domain.QueriesHandlerSchema.QueryInputSchema;
+import de.ii.ogcapi.collections.schema.app.SchemaCacheFeatures;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
-import de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
+import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.Query;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.QueryInputSchema;
+import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -35,11 +39,16 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.values.domain.ValueStore;
 import io.dropwizard.auth.Auth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -60,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * @path collections/{collectionId}/schema
  * @langEn JSON Schema of the features of the collection `collectionId`.
  * @langDe JSON Schema der Features der Collection `collectionId`.
- * @ref:formats {@link de.ii.ogcapi.collections.schema.domain.SchemaFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.features.core.domain.SchemaFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -72,17 +81,24 @@ public class EndpointSchema extends EndpointSubCollection
   private static final List<String> TAGS = ImmutableList.of("Discover data collections");
 
   private final QueriesHandlerSchema queryHandler;
+  private final ValueStore valueStore;
+  private final JsonSchemaCache schemaCache;
 
   @Inject
-  public EndpointSchema(ExtensionRegistry extensionRegistry, QueriesHandlerSchema queryHandler) {
+  public EndpointSchema(
+      ExtensionRegistry extensionRegistry,
+      QueriesHandlerSchema queryHandler,
+      ValueStore valueStore) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+    this.valueStore = valueStore;
+    this.schemaCache = new SchemaCacheFeatures(valueStore.forType(Codelist.class)::asMap);
   }
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
     return List.of(
-        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schema",
+        "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/schemas",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/core-roles-features",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/feature-references",
         "http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/returnables-and-receivables");
@@ -159,7 +175,7 @@ public class EndpointSchema extends EndpointSubCollection
 
   @GET
   @Path("/{collectionId}/schema")
-  @Produces({"text/html", "application/schema+json"})
+  @Produces({"application/schema+json", "text/html"})
   public Response getSchema(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
@@ -167,16 +183,55 @@ public class EndpointSchema extends EndpointSubCollection
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId) {
 
-    final QueryInputSchema queryInput =
+    String definitionPath = "/collections/{collectionId}/schema";
+    checkPathParameter(
+        extensionRegistry, api.getData(), definitionPath, "collectionId", collectionId);
+
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+
+    @SuppressWarnings("unchecked")
+    List<Profile> requestedProfiles =
+        (List<Profile>)
+            Objects.requireNonNullElse(
+                queryParameterSet.getTypedValues().get(QueryParameterProfileSchema.PROFILE),
+                List.of());
+
+    SchemaConfiguration schemaConfiguration =
+        api.getData()
+            .getExtension(SchemaConfiguration.class, collectionId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Schema configuration not found for collection: " + collectionId));
+
+    List<Profile> defaultProfilesSchema =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    schemaConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                schemaConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
+
+    QueryInputSchema queryInput =
         new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
+            .profiles(requestedProfiles)
+            .defaultProfilesResource(defaultProfilesSchema)
+            .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
+            .schemaCache(this.schemaCache)
             .build();
+
     return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
   }
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler);
+    return Set.of(valueStore);
   }
 }

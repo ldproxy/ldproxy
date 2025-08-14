@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -54,6 +55,9 @@ public class SchemaBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new Builder().enabled(false).build();
+    return new Builder()
+        .enabled(false)
+        .defaultProfiles(Map.of("codelist", "codelists-ref"))
+        .build();
   }
 }

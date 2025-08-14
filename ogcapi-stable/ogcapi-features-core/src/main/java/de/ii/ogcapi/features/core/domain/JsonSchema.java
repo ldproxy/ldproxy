@@ -63,9 +63,21 @@ public abstract class JsonSchema {
   public abstract Optional<Boolean> getReadOnly();
 
   @JsonIgnore
+  @Value.Derived
+  public boolean isWriteOnly() {
+    return getWriteOnly().orElse(false);
+  }
+
+  @JsonIgnore
+  @Value.Derived
+  public boolean isReadOnly() {
+    return getReadOnly().orElse(false);
+  }
+
+  @JsonIgnore
   public abstract Optional<String> getCodelistId();
 
-  @JsonProperty("x-ldproxy-codelistUri")
+  @JsonProperty("x-ogc-codelistUri")
   public abstract Optional<String> getCodelistUri();
 
   @JsonProperty("x-ogc-role")
@@ -79,6 +91,9 @@ public abstract class JsonSchema {
 
   @JsonProperty("x-ogc-uriTemplate")
   public abstract Optional<String> getRefUriTemplate();
+
+  @JsonProperty("x-ogc-propertySeq")
+  public abstract Optional<Integer> getPropertySeq();
 
   @JsonIgnore
   @Value.Auxiliary
@@ -115,6 +130,10 @@ public abstract class JsonSchema {
     public abstract Builder readOnly(Optional<Boolean> readOnly);
 
     public abstract Builder writeOnly(Optional<Boolean> writeOnly);
+
+    public abstract Builder propertySeq(int propertySeq);
+
+    public abstract Builder propertySeq(Optional<Integer> propertySeq);
 
     public abstract JsonSchema build();
   }

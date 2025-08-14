@@ -294,6 +294,11 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
   }
 
   @Override
+  protected JsonSchema withPropertySeq(JsonSchema jsonSchema, int propertySeq) {
+    return modify(jsonSchema, builder -> builder.propertySeq(propertySeq));
+  }
+
+  @Override
   protected JsonSchema withName(JsonSchema jsonSchema, String propertyName) {
     return modify(jsonSchema, builder -> builder.name(propertyName));
   }

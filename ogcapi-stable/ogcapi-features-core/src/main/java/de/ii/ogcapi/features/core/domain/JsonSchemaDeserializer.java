@@ -97,6 +97,8 @@ public class JsonSchemaDeserializer extends StdDeserializer<JsonSchema> {
         }
         return ImmutableJsonSchemaFalse.builder().build();
       }
+    } else if (schemaNode.hasNonNull("constant")) {
+      return mapper.treeToValue(schemaNode, JsonSchemaConstant.class);
     } else if (schemaNode.hasNonNull("$ref")) {
       return mapper.treeToValue(schemaNode, JsonSchemaRef.class);
     } else if (schemaNode.hasNonNull("oneOf")) {

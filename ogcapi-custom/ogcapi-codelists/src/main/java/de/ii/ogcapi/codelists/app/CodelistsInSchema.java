@@ -13,9 +13,11 @@ import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import java.net.URI;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -31,11 +33,6 @@ public class CodelistsInSchema implements JsonSchemaExtension {
   }
 
   @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return JsonSchemaExtension.super.isEnabledForApi(apiData);
-  }
-
-  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return CodelistsConfiguration.class;
   }
@@ -45,7 +42,8 @@ public class CodelistsInSchema implements JsonSchemaExtension {
       JsonSchema jsonSchema,
       FeatureSchema featureSchema,
       OgcApiDataV2 apiData,
-      String collectionId) {
+      String collectionId,
+      List<Profile> profiles) {
     return jsonSchema.accept(new WithCodelistUri(serviceUri, apiData));
   }
 }

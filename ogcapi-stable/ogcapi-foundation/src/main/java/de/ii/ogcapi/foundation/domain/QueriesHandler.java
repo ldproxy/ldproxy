@@ -9,9 +9,11 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import java.text.MessageFormat;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.EntityTag;
@@ -233,5 +236,77 @@ public interface QueriesHandler<T extends QueryIdentifier> {
             requestContext.getAlternateMediaTypes(),
             i18n,
             requestContext.getLanguage());
+  }
+
+  default List<Link> getLinks(
+      ApiRequestContext requestContext,
+      List<Profile> profiles,
+      Map<ApiMediaType, List<Profile>> alternateProfiles,
+      I18n i18n) {
+    return new DefaultLinksGenerator()
+        .generateLinks(
+            requestContext.getUriCustomizer(),
+            requestContext.getMediaType(),
+            requestContext.getAlternateMediaTypes(),
+            profiles,
+            alternateProfiles,
+            i18n,
+            requestContext.getLanguage());
+  }
+
+  default Map<ApiMediaType, List<Profile>> getAlternateProfiles(
+      List<ProfileSet> allProfileSets,
+      OgcApiDataV2 apiData,
+      String collectionId,
+      ApiMediaType mediaType,
+      List<ApiMediaType> alternateMediaTypes,
+      List<Profile> profiles) {
+    return allProfileSets.stream()
+        .filter(ProfileExtension::includeAlternateLinks)
+        .filter(
+            profileSet ->
+                mediaType.type().equals(profileSet.getMediaType())
+                    || alternateMediaTypes.stream()
+                        .anyMatch(mt -> mt.type().equals(profileSet.getMediaType())))
+        .map(
+            profileSet ->
+                new SimpleImmutableEntry<>(
+                    Stream.concat(alternateMediaTypes.stream(), Stream.of(mediaType))
+                        .filter(mt -> mt.type().equals(profileSet.getMediaType()))
+                        .findFirst()
+                        .get(),
+                    profileSet.getProfiles(apiData, Optional.of(collectionId)).stream()
+                        .filter(profile -> !profiles.contains(profile))
+                        .toList()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  default List<Profile> negotiateProfiles(
+      List<ProfileSet> allProfileSets,
+      FormatExtension outputFormat,
+      ResourceType resourceType,
+      OgcApiDataV2 apiData,
+      Optional<String> collectionId,
+      List<Profile> profiles,
+      List<Profile> defaultProfilesResource) {
+    return allProfileSets.stream()
+        .filter(
+            p ->
+                collectionId
+                    .map(cid -> p.isEnabledForApi(apiData, cid))
+                    .orElse(p.isEnabledForApi(apiData)))
+        .map(
+            profileSet ->
+                profileSet
+                    .negotiateProfile(
+                        profiles,
+                        defaultProfilesResource,
+                        outputFormat,
+                        resourceType,
+                        apiData,
+                        collectionId)
+                    .orElse(null))
+        .filter(Objects::nonNull)
+        .toList();
   }
 }

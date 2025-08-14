@@ -10,6 +10,11 @@ package de.ii.ogcapi.features.geojson.app
 import com.google.common.collect.ImmutableList
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson
 import de.ii.ogcapi.features.geojson.domain.FeatureEncoderGeoJson
+import de.ii.xtraplatform.features.domain.FeatureSchema
+import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema
+import de.ii.xtraplatform.features.domain.SchemaBase
+import de.ii.xtraplatform.features.domain.SchemaMapping
+import spock.lang.Ignore
 import spock.lang.Specification
 
 class GeoJsonWriterSkeletonSpec extends Specification {
@@ -51,10 +56,16 @@ class GeoJsonWriterSkeletonSpec extends Specification {
     }
 
 
-    private void writeFeature(ByteArrayOutputStream outputStream,
-                              boolean isCollection) throws IOException, URISyntaxException {
+    private static void writeFeature(ByteArrayOutputStream outputStream,
+                                     boolean isCollection) throws IOException, URISyntaxException {
         EncodingAwareContextGeoJson context = GeoJsonWriterSetupUtil.createTransformationContext(outputStream, isCollection)
         FeatureEncoderGeoJson encoder = new FeatureEncoderGeoJson(context.encoding(), ImmutableList.of(new GeoJsonWriterSkeleton()));
+        FeatureSchema featureSchema = new ImmutableFeatureSchema.Builder().name("test")
+                .type(SchemaBase.Type.OBJECT)
+                .build();
+        context.setIsUseTargetPaths(true)
+                .setType("test")
+                .setMappings(Map.of("test", SchemaMapping.of(featureSchema)))
 
         encoder.onStart(context)
         encoder.onFeatureStart(context)
