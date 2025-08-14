@@ -158,9 +158,9 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
     MbStyleStylesheet stylesheet =
         stylesheetContent
             .getMbStyle()
+            .map(mbs -> mbs.adjustForTileMatrixSetIfNecessary(tileMatrixSet, serviceUrl))
             .map(mbs -> mbs.replaceParameters(serviceUrl))
-            .orElseThrow(NotFoundException::new)
-            .adjustForTileMatrixSetIfNecessary(tileMatrixSet);
+            .orElseThrow(NotFoundException::new);
 
     if (collectionId
         .map(s -> api.getData().getExtension(StylesConfiguration.class, s))

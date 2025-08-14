@@ -310,7 +310,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
 
   @JsonIgnore
   public MbStyleStylesheet adjustForTileMatrixSetIfNecessary(
-      Optional<TileMatrixSet> tileMatrixSet) {
+      Optional<TileMatrixSet> tileMatrixSet, String serviceUrl) {
     if (tileMatrixSet.isEmpty() || "WebMercatorQuad".equals(tileMatrixSet.get().getId())) {
       return this;
     }
@@ -354,11 +354,11 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                 .withUrl(
                                     ((MbStyleVectorSource) source)
                                         .getUrl()
-                                        .map(url -> adjustUrl(url, tmsId)))
+                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
                                 .withTiles(
                                     ((MbStyleVectorSource) source)
                                         .getTiles().orElse(List.of()).stream()
-                                            .map(tileUri -> adjustUrl(tileUri, tmsId))
+                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
                                             .collect(Collectors.toList()))
                                 .withMinzoom(
                                     ((MbStyleVectorSource) source)
@@ -375,11 +375,11 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                 .withUrl(
                                     ((MbStyleRasterSource) source)
                                         .getUrl()
-                                        .map(url -> adjustUrl(url, tmsId)))
+                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
                                 .withTiles(
                                     ((MbStyleRasterSource) source)
                                         .getTiles().orElse(ImmutableList.of()).stream()
-                                            .map(tileUri -> adjustUrl(tileUri, tmsId))
+                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
                                             .collect(Collectors.toList()))
                                 .withMinzoom(
                                     ((MbStyleRasterSource) source)
@@ -425,9 +425,9 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
         .build();
   }
 
-  private static String adjustUrl(String url, String tmsId) {
+  private static String adjustUrl(String url, String tmsId, String serviceUrl) {
     // includes special handling for some commonly used basemap WMTS sources in Germany
-    if (url.startsWith("{serviceUrl}")) {
+    if (url.startsWith("{serviceUrl}") || url.startsWith(serviceUrl)) {
       return url.replace("WebMercatorQuad", tmsId);
     } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
         && tmsId.equals("AdV_25832")) {
@@ -435,7 +435,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
     } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
         && tmsId.equals("AdV_25833")) {
       return url.replace("GLOBAL_WEBMERCATOR", "DE_EPSG_25833_ADV");
-    } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_topplus_open")
+    } else if (url.startsWith("https://sg.geodatenzentrum.de/wmts_topplus_open")
         && tmsId.equals("EU_25832")) {
       return url.replace("GLOBAL_WEBMERCATOR", "EU_EPSG_25832_TOPPLUS");
     }
