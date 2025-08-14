@@ -171,7 +171,6 @@ public class EndpointSchema extends EndpointSubCollection
         new ImmutableQueryInputSchema.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
-            // .type(CollectionPropertiesType.QUERYABLES)
             .build();
     return queryHandler.handle(Query.SCHEMA, queryInput, requestContext);
   }

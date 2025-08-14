@@ -8,6 +8,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-web'
     provided project(":ogcapi-foundation")
     provided project(":ogcapi-html")
     provided project(":ogcapi-json")
