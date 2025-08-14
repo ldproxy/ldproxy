@@ -77,7 +77,7 @@ public abstract class JsonSchema {
   @JsonIgnore
   public abstract Optional<String> getCodelistId();
 
-  @JsonProperty("x-ldproxy-codelistUri")
+  @JsonProperty("x-ogc-codelistUri")
   public abstract Optional<String> getCodelistUri();
 
   @JsonProperty("x-ogc-role")
