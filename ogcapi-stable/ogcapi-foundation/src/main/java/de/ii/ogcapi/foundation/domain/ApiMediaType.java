@@ -68,9 +68,6 @@ public interface ApiMediaType {
         : type().getSubtype();
   }
 
-  // TODO Add support for f=jsonfg/jsonfgc and the former draft JSON-FG media types?
-  //      Probably not necessary as JSON-FG is still a draft.
-
   @Value.Default
   default String fileExtension() {
     return parameter();
