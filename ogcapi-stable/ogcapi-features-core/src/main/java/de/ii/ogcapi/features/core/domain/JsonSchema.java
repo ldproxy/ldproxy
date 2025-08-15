@@ -8,7 +8,9 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +18,8 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @JsonDeserialize(using = JsonSchemaDeserializer.class)
+@JsonPropertyOrder({"title", "description", "type"})
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public abstract class JsonSchema {
 
   @SuppressWarnings("UnstableApiUsage")

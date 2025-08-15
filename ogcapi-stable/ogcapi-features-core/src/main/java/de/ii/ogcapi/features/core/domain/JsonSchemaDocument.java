@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -17,6 +18,19 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
+@JsonPropertyOrder({
+  "$schema",
+  "$id",
+  "title",
+  "description",
+  "type",
+  "required",
+  "properties",
+  "patternProperties",
+  "additionalProperties",
+  "anyOf",
+  "$defs"
+})
 public abstract class JsonSchemaDocument extends JsonSchemaObject {
   @JsonProperty("$schema")
   @Value.Default

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +19,15 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableJsonSchemaObject.Builder.class)
+@JsonPropertyOrder({
+  "title",
+  "description",
+  "type",
+  "required",
+  "properties",
+  "patternProperties",
+  "additionalProperties"
+})
 public abstract class JsonSchemaObject extends JsonSchema {
 
   @Value.Derived
