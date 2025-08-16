@@ -36,6 +36,7 @@ import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.blobs.domain.Blob;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.web.domain.LastModified;
 import java.text.MessageFormat;
 import java.util.Date;
@@ -152,6 +153,7 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
     OgcApiDataV2 apiData = api.getData();
     Optional<String> collectionId = queryInput.getCollectionId();
     String styleId = queryInput.getStyleId();
+    Optional<TileMatrixSet> tileMatrixSet = queryInput.getTileMatrixSet();
 
     StyleFormatExtension format =
         styleRepository
@@ -214,7 +216,8 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
             null,
             HeaderContentDisposition.of(String.format("%s.%s", styleId, format.getFileExtension())))
         .entity(
-            format.getStyleEntity(stylesheetContent, api, collectionId, styleId, requestContext))
+            format.getStyleEntity(
+                stylesheetContent, api, collectionId, styleId, tileMatrixSet, requestContext))
         .build();
   }
 
