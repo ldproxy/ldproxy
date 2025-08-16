@@ -16,7 +16,10 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -36,11 +39,11 @@ public class GeoJsonWriterGeometry extends GeoJsonWriterGeometryBase {
 
   @Override
   public int getSortPriority() {
-    return 32;
+    return 35;
   }
 
   @Override
-  protected String geomPropertyName() {
+  protected String geomPropertyName(Optional<FeatureSchema> schema) {
     return "geometry";
   }
 
@@ -61,63 +64,76 @@ public class GeoJsonWriterGeometry extends GeoJsonWriterGeometryBase {
 
   @Override
   protected Set<FeatureSchema> getProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry) {
+    if (!geometry.getType().isSimpleFeature()) {
+      return Set.of();
+    }
+
     if (writeJsonFgExtensions
-        && !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
-            || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
+        && ((geometry.getType() == GeometryType.POLYHEDRAL_SURFACE
+                && ((PolyhedralSurface) geometry).isClosed())
+            || !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+                || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h)))) {
       return writeSecondaryGeometry
           ? schema.getAllNestedProperties().stream()
               .filter(SchemaBase::isSecondaryGeometry)
-              .filter(SchemaBase::isSimpleFeatureGeometry)
               .collect(Collectors.toSet())
           : Set.of();
     }
 
     return schema.getAllNestedProperties().stream()
         .filter(SchemaBase::isPrimaryGeometry)
-        .filter(SchemaBase::isSimpleFeatureGeometry)
         .collect(Collectors.toSet());
   }
 
   @Override
   protected Set<FeatureSchema> getEmbeddedFeatureProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry) {
+    if (!geometry.getType().isSimpleFeature()) {
+      return Set.of();
+    }
+
     if (writeJsonFgExtensions
-        && !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
-            || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
+        && ((geometry.getType() == GeometryType.POLYHEDRAL_SURFACE
+                && ((PolyhedralSurface) geometry).isClosed())
+            || !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+                || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h)))) {
       return schema.getAllNestedProperties().stream()
           .filter(SchemaBase::isEmbeddedSecondaryGeometry)
-          .filter(SchemaBase::isSimpleFeatureGeometry)
           .collect(Collectors.toSet());
     }
 
     Set<FeatureSchema> set =
         schema.getAllNestedProperties().stream()
             .filter(SchemaBase::isEmbeddedPrimaryGeometry)
-            .filter(SchemaBase::isSimpleFeatureGeometry)
             .collect(Collectors.toSet());
     if (set.isEmpty()) {
       set =
           schema.getAllNestedProperties().stream()
               .filter(SchemaBase::isEmbeddedSecondaryGeometry)
-              .filter(SchemaBase::isSimpleFeatureGeometry)
               .collect(Collectors.toSet());
     }
     return set;
   }
 
   @Override
-  protected String getGeometryType(EncodingAwareContextGeoJson context) {
-    SimpleFeatureGeometry sfGeometryType = context.geometryType().get();
-    GeoJsonGeometryType geoJsonGeometryType =
-        GeoJsonGeometryType.forSimpleFeatureType(sfGeometryType);
+  protected String getGeometryType(EncodingAwareContextGeoJson context, Geometry<?> geometry) {
+    GeoJsonGeometryType geoJsonGeometryType = GeoJsonGeometryType.forGeometry(geometry);
     if (!geoJsonGeometryType.isSupported()) {
       if (LOGGER.isWarnEnabled()
-          && !context.encoding().getState().getUnsupportedGeometries().contains(sfGeometryType)) {
+          && !context
+              .encoding()
+              .getState()
+              .getUnsupportedGeometries()
+              .contains(geometry.getType())) {
         LOGGER.warn(
             "Ignoring one or more GeoJSON geometries since an unsupported geometry type was provided: '{}'. Writing a null geometry.",
-            sfGeometryType);
-        context.encoding().getState().addUnsupportedGeometries(sfGeometryType);
+            geometry.getType());
+        context.encoding().getState().addUnsupportedGeometries(geometry.getType());
       }
       return null;
     }

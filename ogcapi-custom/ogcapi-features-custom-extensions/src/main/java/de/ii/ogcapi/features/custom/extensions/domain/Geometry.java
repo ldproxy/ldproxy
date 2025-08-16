@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.features.html.domain;
+package de.ii.ogcapi.features.custom.extensions.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,10 +15,12 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public interface Geometry<T> {
+
+  // This will not be migrated to new Geometry interface, since the whole building block is
+  // deprecated and will be removed in v5.0.
 
   enum Type {
     Point,
@@ -45,11 +47,11 @@ public interface Geometry<T> {
   interface Point extends Geometry<Coordinate> {
 
     static Point of(double x, double y) {
-      return new ImmutablePoint.Builder().addCoordinates(Coordinate.of(x, y)).build();
+      return ImmutablePoint.builder().addCoordinates(Coordinate.of(x, y)).build();
     }
 
     static Point of(double x, double y, double z) {
-      return new ImmutablePoint.Builder().addCoordinates(Coordinate.of(x, y, z)).build();
+      return ImmutablePoint.builder().addCoordinates(Coordinate.of(x, y, z)).build();
     }
 
     static Point of(List<Double> xyz) {
@@ -60,7 +62,7 @@ public interface Geometry<T> {
     }
 
     static Point of(Coordinate coordinate) {
-      return new ImmutablePoint.Builder().addCoordinates(coordinate).build();
+      return ImmutablePoint.builder().addCoordinates(coordinate).build();
     }
 
     @Override
@@ -98,11 +100,11 @@ public interface Geometry<T> {
   interface LineString extends Geometry<Coordinate> {
 
     static LineString of(Coordinate... coordinates) {
-      return new ImmutableLineString.Builder().addCoordinates(coordinates).build();
+      return ImmutableLineString.builder().addCoordinates(coordinates).build();
     }
 
     static LineString of(List<Coordinate> coordinates) {
-      return new ImmutableLineString.Builder().addAllCoordinates(coordinates).build();
+      return ImmutableLineString.builder().addAllCoordinates(coordinates).build();
     }
 
     @Override
@@ -145,19 +147,19 @@ public interface Geometry<T> {
   interface Polygon extends Geometry<LineString> {
 
     static Polygon of(LineString... rings) {
-      return new ImmutablePolygon.Builder().addCoordinates(rings).build();
+      return ImmutablePolygon.builder().addCoordinates(rings).build();
     }
 
     static Polygon of(EpsgCrs crs, LineString... rings) {
-      return new ImmutablePolygon.Builder().crs(crs).addCoordinates(rings).build();
+      return ImmutablePolygon.builder().crs(crs).addCoordinates(rings).build();
     }
 
     static Polygon of(List<LineString> rings) {
-      return new ImmutablePolygon.Builder().addAllCoordinates(rings).build();
+      return ImmutablePolygon.builder().addAllCoordinates(rings).build();
     }
 
     static Polygon of(EpsgCrs crs, List<LineString> rings) {
-      return new ImmutablePolygon.Builder().crs(crs).addAllCoordinates(rings).build();
+      return ImmutablePolygon.builder().crs(crs).addAllCoordinates(rings).build();
     }
 
     @Override
@@ -165,10 +167,7 @@ public interface Geometry<T> {
     @Value.Derived
     @Value.Auxiliary
     default List<Coordinate> getCoordinatesFlat() {
-      return getCoordinates().stream()
-          .map(Geometry::getCoordinates)
-          .flatMap(List::stream)
-          .collect(Collectors.toUnmodifiableList());
+      return getCoordinates().stream().map(Geometry::getCoordinates).flatMap(List::stream).toList();
     }
 
     @Override
@@ -209,11 +208,11 @@ public interface Geometry<T> {
   interface MultiPoint extends Geometry<Point> {
 
     static MultiPoint of(Point... points) {
-      return new ImmutableMultiPoint.Builder().addCoordinates(points).build();
+      return ImmutableMultiPoint.builder().addCoordinates(points).build();
     }
 
     static MultiPoint of(List<Point> points) {
-      return new ImmutableMultiPoint.Builder().addAllCoordinates(points).build();
+      return ImmutableMultiPoint.builder().addAllCoordinates(points).build();
     }
 
     @Override
@@ -221,10 +220,7 @@ public interface Geometry<T> {
     @Value.Derived
     @Value.Auxiliary
     default List<Coordinate> getCoordinatesFlat() {
-      return getCoordinates().stream()
-          .map(Geometry::getCoordinates)
-          .flatMap(List::stream)
-          .collect(Collectors.toUnmodifiableList());
+      return getCoordinates().stream().map(Geometry::getCoordinates).flatMap(List::stream).toList();
     }
 
     @Override
@@ -255,11 +251,11 @@ public interface Geometry<T> {
   interface MultiLineString extends Geometry<LineString> {
 
     static MultiLineString of(LineString... lineStrings) {
-      return new ImmutableMultiLineString.Builder().addCoordinates(lineStrings).build();
+      return ImmutableMultiLineString.builder().addCoordinates(lineStrings).build();
     }
 
     static MultiLineString of(List<LineString> lineStrings) {
-      return new ImmutableMultiLineString.Builder().addAllCoordinates(lineStrings).build();
+      return ImmutableMultiLineString.builder().addAllCoordinates(lineStrings).build();
     }
 
     @Override
@@ -267,10 +263,7 @@ public interface Geometry<T> {
     @Value.Derived
     @Value.Auxiliary
     default List<Coordinate> getCoordinatesFlat() {
-      return getCoordinates().stream()
-          .map(Geometry::getCoordinates)
-          .flatMap(List::stream)
-          .collect(Collectors.toUnmodifiableList());
+      return getCoordinates().stream().map(Geometry::getCoordinates).flatMap(List::stream).toList();
     }
 
     @Override
@@ -301,11 +294,11 @@ public interface Geometry<T> {
   interface MultiPolygon extends Geometry<Polygon> {
 
     static MultiPolygon of(Polygon... polygons) {
-      return new ImmutableMultiPolygon.Builder().addCoordinates(polygons).build();
+      return ImmutableMultiPolygon.builder().addCoordinates(polygons).build();
     }
 
     static MultiPolygon of(List<Polygon> polygons) {
-      return new ImmutableMultiPolygon.Builder().addAllCoordinates(polygons).build();
+      return ImmutableMultiPolygon.builder().addAllCoordinates(polygons).build();
     }
 
     @Override
@@ -318,7 +311,7 @@ public interface Geometry<T> {
           .flatMap(List::stream)
           .map(Geometry::getCoordinates)
           .flatMap(List::stream)
-          .collect(Collectors.toUnmodifiableList());
+          .toList();
     }
 
     @Override

@@ -16,7 +16,6 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.features.domain.transform.FeatureEncoderSfFlat;
 import de.ii.xtraplatform.features.domain.transform.FeatureSfFlat;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -182,29 +181,28 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
         // Flatgeobuf can handle only one geometry; ignore all geometries except the primary
         // geometry
         if (schema.isPrimaryGeometry()) {
-          switch (schema.getGeometryType().orElse(SimpleFeatureGeometry.ANY)) {
-            case POINT:
-              geometryType = GeometryConversions.toGeometryType(Point.class);
-              break;
-            case MULTI_POINT:
-              geometryType = GeometryConversions.toGeometryType(MultiPoint.class);
-              break;
-            case LINE_STRING:
-              geometryType = GeometryConversions.toGeometryType(LineString.class);
-              break;
-            case MULTI_LINE_STRING:
-              geometryType = GeometryConversions.toGeometryType(MultiLineString.class);
-              break;
-            case POLYGON:
-              geometryType = GeometryConversions.toGeometryType(Polygon.class);
-              break;
-            case MULTI_POLYGON:
-              geometryType = GeometryConversions.toGeometryType(MultiPolygon.class);
-              break;
-            case GEOMETRY_COLLECTION:
-              geometryType = GeometryConversions.toGeometryType(GeometryCollection.class);
-              break;
-          }
+          geometryType =
+              schema
+                  .getGeometryType()
+                  .map(
+                      t ->
+                          (byte)
+                              switch (t) {
+                                case POINT -> GeometryConversions.toGeometryType(Point.class);
+                                case MULTI_POINT -> GeometryConversions.toGeometryType(
+                                    MultiPoint.class);
+                                case LINE_STRING -> GeometryConversions.toGeometryType(
+                                    LineString.class);
+                                case MULTI_LINE_STRING -> GeometryConversions.toGeometryType(
+                                    MultiLineString.class);
+                                case POLYGON -> GeometryConversions.toGeometryType(Polygon.class);
+                                case MULTI_POLYGON -> GeometryConversions.toGeometryType(
+                                    MultiPolygon.class);
+                                case GEOMETRY_COLLECTION -> GeometryConversions.toGeometryType(
+                                    GeometryCollection.class);
+                                default -> GeometryType.Unknown;
+                              })
+                  .orElse((byte) GeometryType.Unknown);
           headerMeta.srid = this.srid;
           headerMeta.hasZ = this.is3d;
         }

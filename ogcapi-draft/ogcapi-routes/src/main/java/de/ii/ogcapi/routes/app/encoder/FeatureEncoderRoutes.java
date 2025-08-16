@@ -13,8 +13,6 @@ import static java.lang.Math.sqrt;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import de.ii.ogcapi.features.core.domain.Geometry;
 import de.ii.ogcapi.foundation.domain.UnprocessableEntity;
 import de.ii.ogcapi.routes.domain.FeatureTransformationContextRoutes;
 import de.ii.ogcapi.routes.domain.ImmutableRoute;
@@ -27,10 +25,17 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.PropertyBase;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaMapping;
-import de.ii.xtraplatform.geometries.domain.DouglasPeuckerLineSimplifier;
+import de.ii.xtraplatform.geometries.domain.LineString;
+import de.ii.xtraplatform.geometries.domain.MultiPoint;
+import de.ii.xtraplatform.geometries.domain.Point;
+import de.ii.xtraplatform.geometries.domain.Position;
+import de.ii.xtraplatform.geometries.domain.PositionList;
+import de.ii.xtraplatform.geometries.domain.transform.DouglasPeuckerLineSimplifier;
+import de.ii.xtraplatform.geometries.domain.transform.MinMaxDeriver;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -49,17 +54,17 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
 
   private final FeatureTransformationContextRoutes transformationContext;
   private final ImmutableRoute.Builder builder;
-  private RouteComponent<Geometry.Point> start;
-  private Geometry.Point lastPoint;
+  private RouteComponent<Point> start;
+  private Point lastPoint;
   private Double lastAngle;
-  private List<Geometry.Coordinate> overviewGeometry;
-  private List<RouteComponent<Geometry.Point>> segments;
+  private List<Position> overviewGeometry;
+  private List<RouteComponent<Point>> segments;
   private Double aggCost;
   private Double aggDuration;
   private Double aggLength;
   private Double aggAscent;
   private Double aggDescent;
-  private ImmutableRouteComponent.Builder<Geometry.Point> segmentBuilder;
+  private ImmutableRouteComponent.Builder<Point> segmentBuilder;
   private boolean firstSegment;
   private boolean is3d;
   private boolean isReverse;
@@ -104,20 +109,20 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
   public void onFeature(FeatureRoutes feature) {
     String id = feature.getIdValue();
 
-    List<Geometry.Coordinate> coordinates =
+    PositionList coordinates =
         feature
-            .parseGeometry()
+            .getGeometry()
             .orElseThrow(
                 () ->
                     new IllegalStateException(
                         String.format(
                             "Route segment with sequence number '%s' is without a geometry. Cannot construct route.",
                             id)))
-            .getCoordinates();
+            .getValue();
 
     AtomicReference<ImmutableMap.Builder<String, Object>> propertyBuilder =
         new AtomicReference<>(ImmutableMap.builder());
-    int coordCount = coordinates.size();
+    int coordCount = coordinates.getNumPositions();
 
     // swap curve, if necessary
     int node =
@@ -133,7 +138,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
             .map(Integer::parseInt)
             .orElse(Integer.MIN_VALUE);
     if (node != Integer.MIN_VALUE && target != Integer.MIN_VALUE && node == target) {
-      coordinates = Lists.reverse(coordinates);
+      coordinates = coordinates.reverse();
       isReverse = true;
     } else {
       isReverse = false;
@@ -141,11 +146,11 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
 
     if (firstSegment) {
       firstSegment = false;
-      Geometry.Coordinate firstCoord = coordinates.get(0);
+      Position firstCoord = coordinates.get(0);
       start =
-          ImmutableRouteComponent.<Geometry.Point>builder()
+          ImmutableRouteComponent.<Point>builder()
               .id(2)
-              .geometry(Geometry.Point.of(firstCoord))
+              .geometry(Point.of(firstCoord))
               .putProperties("featureType", "start")
               .build();
       overviewGeometry.add(firstCoord);
@@ -161,14 +166,16 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
               .build());
     }
 
-    overviewGeometry.addAll(coordinates.subList(1, coordCount));
+    for (int i = 1; i < coordinates.getNumPositions(); i++) {
+      overviewGeometry.add(coordinates.get(i));
+    }
 
     if (is3d) {
       AtomicReference<Double> segAscent = new AtomicReference<>(0.0);
       AtomicReference<Double> segDescent = new AtomicReference<>(0.0);
-      List<Geometry.Coordinate> finalCoordinates = coordinates;
+      PositionList finalCoordinates = coordinates;
       IntStream.range(1, coordCount)
-          .mapToDouble(i -> finalCoordinates.get(i).z - finalCoordinates.get(i - 1).z)
+          .mapToDouble(i -> finalCoordinates.get(i).z() - finalCoordinates.get(i - 1).z())
           .forEach(
               deltaZ -> {
                 if (deltaZ > 0) segAscent.updateAndGet(v -> v + deltaZ);
@@ -180,7 +187,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
       propertyBuilder.get().put("descent_m", String.format(Locale.US, "%.1f", segDescent.get()));
     }
 
-    lastPoint = Geometry.Point.of(coordinates.get(coordCount - 1));
+    lastPoint = Point.of(coordinates.get(coordCount - 1));
     lastAngle = computeAngle(coordinates.get(coordCount - 2), coordinates.get(coordCount - 1));
 
     feature
@@ -199,7 +206,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
               propertyBuilder.set(processProperty(id, p, propertyBuilder.get()));
             });
     segmentBuilder =
-        ImmutableRouteComponent.<Geometry.Point>builder()
+        ImmutableRouteComponent.<Point>builder()
             .geometry(lastPoint)
             .id(Integer.parseInt(id) + 3)
             .putProperties("featureType", "segment")
@@ -285,14 +292,14 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
     propertyBuilder.put("processingTime", Instant.now().truncatedTo(ChronoUnit.SECONDS).toString());
     propertyBuilder.put("processingDuration_ms", round(processingDuration));
     builder.addFeatures(
-        ImmutableRouteComponent.<Geometry.LineString>builder()
+        ImmutableRouteComponent.<LineString>builder()
             .id(1)
-            .geometry(Geometry.LineString.of(overviewGeometry))
+            .geometry(LineString.of(overviewGeometry))
             .putProperties("featureType", "overview")
             .putAllProperties(propertyBuilder.build())
             .build(),
         start,
-        ImmutableRouteComponent.<Geometry.Point>builder()
+        ImmutableRouteComponent.<Point>builder()
             .id(3)
             .geometry(lastPoint)
             .putProperties("featureType", "end")
@@ -319,27 +326,35 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
     boolean latAxisY = false;
     if (degree) {
       List<String> axesAbbrev = crsInfo.getAxisAbbreviations(crs);
-      if (axesAbbrev.get(0).equalsIgnoreCase("lat")) latAxisY = false;
-      else if (axesAbbrev.get(1).equalsIgnoreCase("lat")) latAxisY = true;
-      else degree = false;
+      if (axesAbbrev.get(0).equalsIgnoreCase("lat")) {
+        latAxisY = false;
+      } else if (axesAbbrev.get(1).equalsIgnoreCase("lat")) {
+        latAxisY = true;
+      } else {
+        degree = false;
+      }
     }
     double[] profile = new double[2 * overviewGeometry.size()];
     double d = 0.0;
-    Geometry.Coordinate previous = overviewGeometry.get(0);
+    Position previous = overviewGeometry.get(0);
     profile[0] = d;
-    profile[1] = previous.z;
+    profile[1] = previous.z();
     for (int i = 1; i < overviewGeometry.size(); i++) {
-      Geometry.Coordinate current = overviewGeometry.get(i);
-      double dx = current.x - previous.x;
-      double dy = current.y - previous.y;
-      double dz = current.z - previous.z;
+      Position current = overviewGeometry.get(i);
+      double dx = current.x() - previous.x();
+      double dy = current.y() - previous.y();
+      double dz = current.z() - previous.z();
       d +=
           degree
               ? computeDistanceInMeter(
-                  dx, dy, dz, latAxisY ? previous.y : previous.x, latAxisY ? current.y : current.x)
+                  dx,
+                  dy,
+                  dz,
+                  latAxisY ? previous.y() : previous.x(),
+                  latAxisY ? current.y() : current.x())
               : sqrt(dx * dx + dy * dy + dz * dz);
       profile[i * 2] = d;
-      profile[i * 2 + 1] = current.z;
+      profile[i * 2 + 1] = current.z();
       previous = current;
     }
     DouglasPeuckerLineSimplifier simplifier = new DouglasPeuckerLineSimplifier(tolerance, 2);
@@ -378,8 +393,10 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
     return sqrt(dxy * dxy + dz * dz);
   }
 
-  private double computeAngle(Geometry.Coordinate p1, Geometry.Coordinate p2) {
-    return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+  private double computeAngle(Position p1, Position p2) {
+    return Math.atan2(
+        p2.getCoordinates()[1] - p1.getCoordinates()[1],
+        p2.getCoordinates()[0] - p1.getCoordinates()[0]);
   }
 
   private double deltaAngle(double angle1, double angle2) {
@@ -394,43 +411,9 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
   }
 
   private List<Double> computeBbox() {
-    if (is3d) {
-      Geometry.Coordinate swCorner =
-          overviewGeometry.stream()
-              .reduce(
-                  (coord, coord2) ->
-                      Geometry.Coordinate.of(
-                          Math.min(coord.x, coord2.x),
-                          Math.min(coord.y, coord2.y),
-                          Math.min(coord.z, coord2.z)))
-              .orElseThrow();
-      Geometry.Coordinate neCorner =
-          overviewGeometry.stream()
-              .reduce(
-                  (coord, coord2) ->
-                      Geometry.Coordinate.of(
-                          Math.max(coord.x, coord2.x),
-                          Math.max(coord.y, coord2.y),
-                          Math.max(coord.z, coord2.z)))
-              .orElseThrow();
-      return ImmutableList.of(
-          swCorner.x, swCorner.y, swCorner.z, neCorner.x, neCorner.y, neCorner.z);
-    } else {
-      Geometry.Coordinate swCorner =
-          overviewGeometry.stream()
-              .reduce(
-                  (coord, coord2) ->
-                      Geometry.Coordinate.of(
-                          Math.min(coord.x, coord2.x), Math.min(coord.y, coord2.y)))
-              .orElseThrow();
-      Geometry.Coordinate neCorner =
-          overviewGeometry.stream()
-              .reduce(
-                  (coord, coord2) ->
-                      Geometry.Coordinate.of(
-                          Math.max(coord.x, coord2.x), Math.max(coord.y, coord2.y)))
-              .orElseThrow();
-      return ImmutableList.of(swCorner.x, swCorner.y, neCorner.x, neCorner.y);
-    }
+    double[][] minMax =
+        MultiPoint.of(overviewGeometry.stream().map(Point::of).toList())
+            .accept(new MinMaxDeriver());
+    return Arrays.stream(minMax).map(Arrays::stream).flatMapToDouble(v -> v).boxed().toList();
   }
 }

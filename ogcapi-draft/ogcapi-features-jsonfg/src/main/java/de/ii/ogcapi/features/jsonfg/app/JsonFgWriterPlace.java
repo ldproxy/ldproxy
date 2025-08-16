@@ -10,16 +10,16 @@ package de.ii.ogcapi.features.jsonfg.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
-import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriterGeometryBase;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgGeometryType;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.features.json.domain.JsonFgGeometryType;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -45,30 +45,17 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
 
   @Override
   public int getSortPriority() {
-    return 35;
+    return 32;
   }
 
   @Override
-  protected String geomPropertyName() {
+  protected String geomPropertyName(Optional<FeatureSchema> schema) {
     return JSON_KEY;
   }
 
   @Override
   protected boolean isEnabled(EncodingAwareContextGeoJson context) {
-    return writeJsonFgExtensions
-        && (geometryIsNotSimpleFeature(context.encoding().getBuffer().get())
-            || targetCrsIsNotWgs84(context.encoding().getTargetCrs()));
-  }
-
-  private static boolean geometryIsNotSimpleFeature(FeatureState featureState) {
-    return !featureState.primaryGeometryProperty.stream()
-        .findFirst()
-        .map(SchemaBase::isSimpleFeatureGeometry)
-        .orElse(false);
-  }
-
-  private static boolean targetCrsIsNotWgs84(EpsgCrs targetCrs) {
-    return !(targetCrs.equals(OgcCrs.CRS84) || targetCrs.equals(OgcCrs.CRS84h));
+    return writeJsonFgExtensions;
   }
 
   @Override
@@ -78,14 +65,16 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
 
   @Override
   protected Set<FeatureSchema> getProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry) {
     if (!writeJsonFgExtensions) {
       return Set.of();
     }
 
-    if (schema.getAllNestedProperties().stream()
-            .filter(SchemaBase::isPrimaryGeometry)
-            .allMatch(SchemaBase::isSimpleFeatureGeometry)
+    if (geometry.getType().isSimpleFeature()
+        && (geometry.getType() != GeometryType.POLYHEDRAL_SURFACE
+            || !((PolyhedralSurface) geometry).isClosed())
         && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
             || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
       return Set.of();
@@ -98,12 +87,16 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
 
   @Override
   protected Set<FeatureSchema> getEmbeddedFeatureProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext) {
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry) {
     if (!writeJsonFgExtensions) {
       return Set.of();
     }
 
-    if (schema.getEmbeddedPrimaryGeometry().map(SchemaBase::isSimpleFeatureGeometry).orElse(false)
+    if (geometry.getType().isSimpleFeature()
+        && (geometry.getType() != GeometryType.POLYHEDRAL_SURFACE
+            || !((PolyhedralSurface) geometry).isClosed())
         && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
             || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
       return Set.of();
@@ -115,26 +108,21 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
   }
 
   @Override
-  protected String getGeometryType(EncodingAwareContextGeoJson context) {
-    SimpleFeatureGeometry sfGeometryType = context.geometryType().get();
-    JsonFgGeometryType jsonFgGeometryType =
-        JsonFgGeometryType.forSimpleFeatureType(
-            sfGeometryType,
-            context
-                .schema()
-                .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getComposite))
-                .orElse(false),
-            context
-                .schema()
-                .flatMap(s -> s.getConstraints().flatMap(SchemaConstraints::getClosed))
-                .orElse(false));
+  protected String getGeometryType(EncodingAwareContextGeoJson context, Geometry<?> geometry) {
+    JsonFgGeometryType jsonFgGeometryType = JsonFgGeometryType.forGeometry(geometry);
     if (!jsonFgGeometryType.isSupported()) {
+      //noinspection DataFlowIssue
       if (LOGGER.isWarnEnabled()
-          && !context.encoding().getState().getUnsupportedGeometries().contains(sfGeometryType)) {
+          && !context
+              .encoding()
+              .getState()
+              .getUnsupportedGeometries()
+              .contains(geometry.getType())) {
         LOGGER.warn(
             "Ignoring one or more JSON-FG geometries in 'place' since an unsupported geometry type was provided: '{}'. Writing a null geometry.",
-            sfGeometryType);
-        context.encoding().getState().addUnsupportedGeometries(sfGeometryType);
+            geometry.getType());
+        //noinspection DataFlowIssue
+        context.encoding().getState().addUnsupportedGeometries(geometry.getType());
       }
       return null;
     }

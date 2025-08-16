@@ -14,7 +14,6 @@ import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema
 import de.ii.xtraplatform.features.domain.SchemaBase
 import de.ii.xtraplatform.features.domain.SchemaMapping
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 
