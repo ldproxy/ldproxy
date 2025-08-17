@@ -205,7 +205,8 @@ public interface ApiOperation {
       PermissionGroup permissionGroup,
       List<String> tags,
       Optional<SpecificationMaturity> specMaturity,
-      Optional<ExternalDocumentation> spec) {
+      Optional<ExternalDocumentation> spec,
+      boolean putAllowsCreate) {
     if ((method == HttpMethods.POST || method == HttpMethods.PUT || method == HttpMethods.PATCH)
         && requestContent.isEmpty()) {
       if (LOGGER.isErrorEnabled()) {
@@ -247,8 +248,10 @@ public interface ApiOperation {
               .content(requestContent)
               .description(
                   method == HttpMethods.POST
-                      ? "The new resource to be added."
-                      : "The resource to be updated.")
+                      ? "The new resource to be created."
+                      : method == HttpMethods.PUT && putAllowsCreate
+                          ? "The resource to be created or updated."
+                          : "The resource to be updated.")
               .build());
     }
     return Optional.of(operationBuilder.build());
