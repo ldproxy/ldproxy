@@ -14,7 +14,7 @@ import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
-import de.ii.xtraplatform.features.json.domain.GeometryEncoderJson;
+import de.ii.xtraplatform.geometries.domain.transcode.json.GeometryEncoderJson;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
