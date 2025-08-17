@@ -347,7 +347,9 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
                             .collect(Collectors.toList())))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
 
-    JobSet jobSet = TileSeedingJobSet.of(tileProvider.getId(), tilesets, reseed);
+    int priority = tileProvider.seeding().get().getOptions().getEffectivePriority();
+
+    JobSet jobSet = TileSeedingJobSet.of(tileProvider.getId(), tilesets, reseed, priority);
 
     Map<String, TileGenerationParameters> rasterTilesets =
         tilesets.entrySet().stream()
@@ -357,11 +359,13 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
                         .map(rts -> Map.entry(rts, ts.getValue())))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     if (!rasterTilesets.isEmpty()) {
-      jobSet = jobSet.with(TileSeedingJobSet.of(tileProvider.getId(), rasterTilesets, reseed));
+      jobSet =
+          jobSet.with(TileSeedingJobSet.of(tileProvider.getId(), rasterTilesets, reseed, priority));
     }
 
     if (!combinedTilesets.isEmpty()) {
-      JobSet combinedJobSet = TileSeedingJobSet.of(tileProvider.getId(), combinedTilesets, reseed);
+      JobSet combinedJobSet =
+          TileSeedingJobSet.of(tileProvider.getId(), combinedTilesets, reseed, priority);
 
       Map<String, TileGenerationParameters> rasterCombinedTilesets =
           combinedTilesets.entrySet().stream()
@@ -373,7 +377,8 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       if (!rasterCombinedTilesets.isEmpty()) {
         combinedJobSet =
             combinedJobSet.with(
-                TileSeedingJobSet.of(tileProvider.getId(), rasterCombinedTilesets, reseed));
+                TileSeedingJobSet.of(
+                    tileProvider.getId(), rasterCombinedTilesets, reseed, priority));
       }
 
       jobSet = jobSet.with(combinedJobSet);
