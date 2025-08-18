@@ -14,7 +14,8 @@ import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.features.domain.SchemaConstraints;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
@@ -102,12 +103,16 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
         .map(Optional::get)
         .map(FeatureSchema::getPrimaryGeometries)
         .flatMap(Collection::stream)
-        .filter(
+        .anyMatch(
             s ->
-                s.getGeometryType()
-                    .map(t -> t.equals(SimpleFeatureGeometry.MULTI_POLYGON))
-                    .orElse(false))
-        .anyMatch(s -> s.getConstraints().map(c -> c.isClosed() && c.isComposite()).orElse(false));
+                (s.getGeometryType().map(t -> t.equals(GeometryType.MULTI_POLYGON)).orElse(false)
+                        && s.getConstraints()
+                            .map(c -> c.isClosed() && c.isComposite())
+                            .orElse(false))
+                    || (s.getGeometryType()
+                            .map(t -> t.equals(GeometryType.POLYHEDRAL_SURFACE))
+                            .orElse(false)
+                        && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)));
   }
 
   private boolean hasFeatureType(FeatureTransformationContextGeoJson transformationContext) {

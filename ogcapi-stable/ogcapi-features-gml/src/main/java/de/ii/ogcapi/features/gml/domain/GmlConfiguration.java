@@ -7,13 +7,14 @@
  */
 package de.ii.ogcapi.features.gml.domain;
 
-import static de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion.GML32;
+import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import de.ii.xtraplatform.features.gml.domain.GmlVersion;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -61,12 +62,6 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableGmlConfiguration.Builder.class)
 public interface GmlConfiguration
     extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
-
-  enum GmlVersion {
-    GML21,
-    GML31,
-    GML32
-  }
 
   enum Conformance {
     NONE,

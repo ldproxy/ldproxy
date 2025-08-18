@@ -45,6 +45,11 @@ public class ProfileJsonFg extends ProfileGeoJson {
   }
 
   @Override
+  public boolean isRestrictedToSimpleFeaturesGeometries() {
+    return false;
+  }
+
+  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return JsonFgConfiguration.class;
   }

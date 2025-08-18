@@ -51,6 +51,11 @@ public class ProfileJsonFgPlus extends ProfileGeoJson {
   }
 
   @Override
+  public boolean isRestrictedToSimpleFeaturesGeometries() {
+    return false;
+  }
+
+  @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
     return super.isEnabledForApi(apiData)
         && apiData

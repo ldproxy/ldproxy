@@ -9,7 +9,6 @@ package de.ii.ogcapi.routes.app.encoder;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.core.domain.Geometry;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.PropertyBase;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -54,20 +53,6 @@ public interface PropertyRoutes extends PropertyBase<PropertyRoutes, FeatureSche
     return hasValues() ? getValues().get(0).getValue() : null;
   }
 
-  @Value.Lazy
-  default Optional<PropertyRoutes> getGeometry() {
-    return getNestedProperties().stream()
-        .filter(property -> property.getSchema().filter(SchemaBase::isSpatial).isPresent())
-        .findFirst()
-        .or(
-            () ->
-                getNestedProperties().stream()
-                    .map(PropertyRoutes::getGeometry)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .findFirst());
-  }
-
   Splitter PATH_SPLITTER = Splitter.on('.').omitEmptyStrings();
 
   default Optional<PropertyRoutes> findPropertyByPath(String pathString) {
@@ -87,36 +72,5 @@ public interface PropertyRoutes extends PropertyBase<PropertyRoutes, FeatureSche
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .findFirst());
-  }
-
-  @Value.Lazy
-  default Geometry.LineString parseGeometry() {
-    if (getSchema().filter(SchemaBase::isSpatial).isEmpty() || getGeometryType().isEmpty())
-      throw new IllegalStateException(
-          String.format(
-              "Feature property with path '%s' is not a geometry: '%s'",
-              getPropertyPath(), getSchema()));
-
-    List<PropertyRoutes> coordinatesProperties = getNestedProperties().get(0).getNestedProperties();
-    switch (getGeometryType().get()) {
-      case LINE_STRING:
-        return Geometry.LineString.of(getCoordinates(coordinatesProperties));
-      default:
-        throw new IllegalStateException("Unsupported geometry type: " + getGeometryType());
-    }
-  }
-
-  private Geometry.Coordinate getCoordinate(List<PropertyRoutes> coordList) {
-    return Geometry.Coordinate.of(
-        coordList.stream()
-            .map(PropertyBase::getValue)
-            .map(Double::parseDouble)
-            .collect(Collectors.toUnmodifiableList()));
-  }
-
-  private List<Geometry.Coordinate> getCoordinates(List<PropertyRoutes> coordsList) {
-    return coordsList.stream()
-        .map(coord -> getCoordinate(coord.getNestedProperties()))
-        .collect(Collectors.toUnmodifiableList());
   }
 }

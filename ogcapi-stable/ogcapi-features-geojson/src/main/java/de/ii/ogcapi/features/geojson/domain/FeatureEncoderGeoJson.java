@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableCollection;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext.Event;
 import de.ii.xtraplatform.base.domain.LogContext;
-import de.ii.xtraplatform.features.domain.FeatureProperty;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoderDefault;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import java.io.IOException;
@@ -29,16 +28,12 @@ public class FeatureEncoderGeoJson extends FeatureTokenEncoderDefault<EncodingAw
 
   private final ImmutableCollection<GeoJsonWriter> featureWriters;
   private final FeatureTransformationContextGeoJson transformationContext;
-  private final StringBuilder stringBuilder;
-  private FeatureProperty currentProperty;
-  private boolean combineCurrentPropertyValues;
 
   public FeatureEncoderGeoJson(
       FeatureTransformationContextGeoJson transformationContext,
       ImmutableCollection<GeoJsonWriter> featureWriters) {
     this.transformationContext = transformationContext;
     this.featureWriters = featureWriters;
-    this.stringBuilder = new StringBuilder();
   }
 
   private Consumer<EncodingAwareContextGeoJson> executePipeline(
@@ -122,6 +117,12 @@ public class FeatureEncoderGeoJson extends FeatureTokenEncoderDefault<EncodingAw
   @Override
   public void onArrayEnd(EncodingAwareContextGeoJson context) {
     transformationContext.getState().setEvent(Event.ARRAY_END);
+    executePipeline(featureWriters.iterator()).accept(context);
+  }
+
+  @Override
+  public void onGeometry(EncodingAwareContextGeoJson context) {
+    transformationContext.getState().setEvent(Event.GEOMETRY);
     executePipeline(featureWriters.iterator()).accept(context);
   }
 

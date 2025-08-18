@@ -8,21 +8,27 @@
 package de.ii.ogcapi.features.html.app;
 
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.html.domain.Geometry;
 import de.ii.xtraplatform.features.domain.FeatureBase;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.PropertyBase;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.PositionList;
+import de.ii.xtraplatform.geometries.domain.transform.FirstCoordinates;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.immutables.value.Value;
 
 @Value.Modifiable
 @Value.Style(set = "*")
 public interface FeatureHtml extends FeatureBase<PropertyHtml, FeatureSchema> {
+
+  FirstCoordinates FIRST_COORDINATES = new FirstCoordinates();
 
   Optional<String> getItemType();
 
@@ -80,64 +86,48 @@ public interface FeatureHtml extends FeatureBase<PropertyHtml, FeatureSchema> {
   }
 
   @Value.Lazy
-  default Optional<PropertyHtml> getGeometry() {
+  default Optional<Geometry<?>> getGeometry() {
     return getProperties().stream()
-        .filter(property -> property.getSchema().filter(SchemaBase::isSpatial).isPresent())
+        .filter(
+            property ->
+                property
+                    .getSchema()
+                    .filter(SchemaBase::isSpatial)
+                    .filter(SchemaBase::isPrimaryGeometry)
+                    .isPresent())
         .findFirst()
-        .or(
-            () ->
-                getProperties().stream()
-                    .map(property -> property.getGeometry())
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .findFirst());
+        .map(PropertyBase::getGeometry);
   }
 
   @Value.Lazy
   default String getGeoAsString() {
-    Optional<PropertyHtml> geometry = getGeometry();
+    Optional<Geometry<?>> geometry = getGeometry();
     return geometry
         .flatMap(
             geo -> {
-              Optional<SimpleFeatureGeometry> geometryType =
-                  geo.getSchema().flatMap(FeatureSchema::getGeometryType);
-              List<PropertyHtml> coordinates = getFirstCoordinates();
-              if (geometryType.isPresent() && !coordinates.isEmpty()) {
+              GeometryType geometryType = geo.getType();
+              PositionList coordinates = geo.accept(FIRST_COORDINATES);
+              if (!coordinates.isEmpty()) {
 
-                if ((geometryType.get() == SimpleFeatureGeometry.POINT
-                    || geometryType.get() == SimpleFeatureGeometry.MULTI_POINT)) {
-                  PropertyHtml point = coordinates.get(0);
-                  if (point.getValues().size() > 1) {
-                    String latitude = point.getValues().get(0).getValue();
-                    String longitude = point.getValues().get(1).getValue();
-
-                    return Optional.of(
-                        String.format(
-                            "{ \"@type\": \"GeoCoordinates\", \"latitude\": \"%s\", \"longitude\": \"%s\" }",
-                            latitude, longitude));
-                  }
-                } else if (geometryType.get() != SimpleFeatureGeometry.ANY) {
-                  String geomType;
-                  switch (geometryType.get()) {
-                    case POLYGON:
-                    case MULTI_POLYGON:
-                      geomType = "polygon";
-                      break;
-                    default:
-                      geomType = "line";
-                      break;
-                  }
+                if (coordinates.getNumPositions() == 1) {
+                  return Optional.of(
+                      String.format(
+                          "{ \"@type\": \"GeoCoordinates\", \"latitude\": \"%f\", \"longitude\": \"%f\" }",
+                          coordinates.getCoordinates()[1], coordinates.getCoordinates()[0]));
+                } else {
+                  String geomType =
+                      (geometryType.getGeometryDimension().filter(dim -> dim == 2).isPresent())
+                          ? "polygon"
+                          : "line";
+                  int dimension = coordinates.getAxes().size();
                   String coords =
-                      coordinates.stream()
-                          .map(
-                              coord ->
-                                  coord.getValues().size() > 1
-                                      ? coord.getValues().get(1).getValue()
-                                          + " "
-                                          + coord.getValues().get(0).getValue()
-                                      : "")
+                      IntStream.range(0, coordinates.getNumPositions())
+                          .mapToObj(
+                              i ->
+                                  coordinates.getCoordinates()[i * dimension + 1]
+                                      + " "
+                                      + coordinates.getCoordinates()[i * dimension])
                           .collect(Collectors.joining(" "));
-
                   return Optional.of(
                       String.format(
                           "{ \"@type\": \"GeoShape\", \"%s\": \"%s\" }", geomType, coords));
@@ -147,33 +137,6 @@ public interface FeatureHtml extends FeatureBase<PropertyHtml, FeatureSchema> {
               return Optional.empty();
             })
         .orElse(null);
-  }
-
-  @Value.Lazy
-  default Optional<Geometry<?>> parseGeometry() {
-    return getGeometry().map(PropertyHtml::parseGeometry);
-  }
-
-  @Value.Lazy
-  default List<PropertyHtml> getFirstCoordinates() {
-    return getGeometry()
-        .flatMap(
-            geometry -> {
-              PropertyHtml current = geometry;
-
-              while (!current.getNestedProperties().isEmpty() && !current.hasValues()) {
-                PropertyHtml next = current.getNestedProperties().get(0);
-
-                if (next.hasValues()) {
-                  return Optional.of(current.getNestedProperties());
-                }
-
-                current = next;
-              }
-
-              return Optional.empty();
-            })
-        .orElse(ImmutableList.of());
   }
 
   default Optional<PropertyHtml> findPropertyByPath(String pathString) {

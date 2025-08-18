@@ -19,7 +19,12 @@ import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.LineString;
+import de.ii.xtraplatform.geometries.domain.MultiPolygon;
+import de.ii.xtraplatform.geometries.domain.Polygon;
+import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,12 +44,9 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
 
   private final CrsTransformerFactory crsTransformerFactory;
 
-  private int arrayLevel = -1;
   private final List<String> currentLod2Solid = new ArrayList<>();
-  private String currentPolygon = null;
   private final List<String> currentSemanticSurfacePolygons = new ArrayList<>();
   private List<Integer> semanticSurfaceValues = new ArrayList<>();
-  private boolean semanticSurfaceGeometryTypeIsMulti;
   private final List<String> semanticSurfaceTypes = new ArrayList<>();
   private int currentSemanticSurfaceId = -1;
 
@@ -106,17 +108,15 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
     context.encoding().getJson().writeFieldName(CityJsonWriter.TRANSFORM);
     context.encoding().getJson().writeStartObject();
     context.encoding().getJson().writeFieldName(CityJsonWriter.SCALE);
-    context.encoding().getJson().writeStartArray(3);
-    context.encoding().getJson().writeNumber(currentScale.get(0));
-    context.encoding().getJson().writeNumber(currentScale.get(1));
-    context.encoding().getJson().writeNumber(currentScale.get(2));
-    context.encoding().getJson().writeEndArray();
+    context
+        .encoding()
+        .getJson()
+        .writeArray(currentScale.stream().mapToDouble(Double::doubleValue).toArray(), 0, 3);
     context.encoding().getJson().writeFieldName(CityJsonWriter.TRANSLATE);
-    context.encoding().getJson().writeStartArray(3);
-    context.encoding().getJson().writeNumber(currentTranslate.get(0));
-    context.encoding().getJson().writeNumber(currentTranslate.get(1));
-    context.encoding().getJson().writeNumber(currentTranslate.get(2));
-    context.encoding().getJson().writeEndArray();
+    context
+        .encoding()
+        .getJson()
+        .writeArray(currentTranslate.stream().mapToDouble(Double::doubleValue).toArray(), 0, 3);
     context.encoding().getJson().writeEndObject();
 
     if (!context.encoding().getTextSequences()) {
@@ -192,55 +192,6 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
       } else if (context.getState().inSection()
           == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES) {
         currentSemanticSurfacePolygons.clear();
-        currentPolygon = "";
-      }
-    } else if (context.schema().isPresent()
-        && context.schema().get().isSpatial()
-        && context.geometryType().isPresent()
-        && context.getState().inSection()
-            != FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS) {
-      FeatureSchema schema = context.schema().get();
-      if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES) {
-        semanticSurfaceGeometryTypeIsMulti =
-            context.geometryType().get().equals(SimpleFeatureGeometry.MULTI_POLYGON);
-        context
-            .encoding()
-            .changeSection(
-                FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY);
-      } else if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY) {
-        // nothing to do
-      } else if (context.getState().inSection()
-              == FeatureTransformationContextCityJson.StateCityJson.Section.IN_BUILDING
-          && schema.getName().matches("^lod[12]Solid$")) {
-        String lod = "lod2Solid".equals(schema.getName()) ? "2" : "1";
-        arrayLevel = -1;
-
-        TokenBuffer buffer = context.getState().getGeometryBuffer().orElseThrow();
-        buffer.writeStartObject();
-        buffer.writeStringField(TYPE, CityJsonWriter.SOLID);
-        buffer.writeStringField(CityJsonWriter.LOD, lod);
-        buffer.writeFieldName(CityJsonWriter.BOUNDARIES);
-
-        if (lod.equals("2")) {
-          context
-              .encoding()
-              .changeSection(
-                  FeatureTransformationContextCityJson.StateCityJson.Section
-                      .IN_GEOMETRY_WITH_SURFACES);
-          currentLod2Solid.clear();
-        } else {
-          context
-              .encoding()
-              .changeSection(
-                  FeatureTransformationContextCityJson.StateCityJson.Section.IN_GEOMETRY);
-        }
-      } else {
-        context
-            .encoding()
-            .changeSection(
-                FeatureTransformationContextCityJson.StateCityJson.Section.IN_GEOMETRY_IGNORE);
       }
     }
 
@@ -259,10 +210,6 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
         context.encoding().stopAndFlushGeometry();
       } else if (context.getState().inSection()
           == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES) {
-        if (LOGGER.isTraceEnabled()) {
-          LOGGER.trace(
-              "{}: {}", semanticSurfaceTypes.get(currentSemanticSurfaceId), currentPolygon);
-        }
         for (int i = 0; i < currentLod2Solid.size(); i++) {
           for (String currentSemanticSurfacePolygon : currentSemanticSurfacePolygons) {
             if (currentSemanticSurfacePolygon.equals(currentLod2Solid.get(i))) {
@@ -271,32 +218,6 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
           }
         }
         currentSemanticSurfaceId++;
-      }
-    } else if (context.schema().isPresent()
-        && context.schema().get().isSpatial()
-        && context.getState().getGeometryBuffer().isPresent()) {
-      if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_GEOMETRY) {
-        // close geometry object
-        context.getState().getGeometryBuffer().get().writeEndObject();
-        context
-            .encoding()
-            .changeSection(FeatureTransformationContextCityJson.StateCityJson.Section.IN_BUILDING);
-      } else if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_GEOMETRY_WITH_SURFACES) {
-        // keep geometry object open for semantic surface information
-        context
-            .encoding()
-            .changeSection(
-                FeatureTransformationContextCityJson.StateCityJson.Section.WAITING_FOR_SURFACES);
-      } else if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY) {
-        context
-            .encoding()
-            .changeSection(FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES);
-      } else if (context.getState().inSection()
-          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_GEOMETRY_IGNORE) {
-        context.encoding().returnToPreviousSection();
       }
     }
   }
@@ -327,36 +248,6 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
               .encoding()
               .changeSection(
                   FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES_IGNORE);
-        }
-      }
-    } else if (context.getState().inActiveGeometry()) {
-      arrayLevel++;
-      if (arrayLevel == 0 && context.getState().getGeometryBuffer().isPresent()) {
-        // cast MultiPolygon to Solid, wrap in additional array
-        context.getState().getGeometryBuffer().get().writeStartArray();
-      }
-      if (arrayLevel != 3 && context.getState().getGeometryBuffer().isPresent()) {
-        context.getState().getGeometryBuffer().get().writeStartArray();
-        if (context.getState().inSection()
-            == FeatureTransformationContextCityJson.StateCityJson.Section
-                .IN_GEOMETRY_WITH_SURFACES) {
-          if (arrayLevel == 1) {
-            currentPolygon = "";
-          } else if (arrayLevel == 2 && !currentPolygon.isEmpty()) {
-            // this is a hole
-            currentPolygon += "_";
-          }
-        }
-      }
-    } else if (context.getState().inSection()
-        == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY) {
-      arrayLevel++;
-      if (arrayLevel != 3) {
-        if (arrayLevel == 1) {
-          currentPolygon = "";
-        } else if (arrayLevel == 2 && !currentPolygon.isEmpty()) {
-          // this is a hole
-          currentPolygon += "_";
         }
       }
     }
@@ -410,32 +301,101 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
             .encoding()
             .changeSection(FeatureTransformationContextCityJson.StateCityJson.Section.IN_BUILDING);
       }
-    } else if (context.getState().inActiveGeometry()
-        && context.getState().getGeometryBuffer().isPresent()) {
-      TokenBuffer buffer = context.getState().getGeometryBuffer().get();
-      if (arrayLevel != 3) {
-        buffer.writeEndArray();
-        if (context.getState().inSection()
-                == FeatureTransformationContextCityJson.StateCityJson.Section
-                    .IN_GEOMETRY_WITH_SURFACES
-            && arrayLevel == 1) {
-          currentLod2Solid.add(currentPolygon);
+    }
+  }
+
+  @Override
+  public void onGeometry(
+      EncodingAwareContextCityJson context, Consumer<EncodingAwareContextCityJson> next)
+      throws IOException {
+
+    Geometry<?> geometry = context.geometry();
+    checkGeometry(geometry);
+    @SuppressWarnings("DataFlowIssue")
+    int dimension = geometry.getAxes().size();
+    StringBuilder builder = new StringBuilder();
+
+    if (context.schema().isPresent()
+        && context.getState().inSection()
+            != FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS) {
+      FeatureSchema schema = context.schema().get();
+      if (context.getState().inSection()
+          == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACES) {
+
+        if (geometry.getType() == GeometryType.POLYGON) {
+          geometry = MultiPolygon.of(List.of((Polygon) geometry));
         }
-      }
-      if (arrayLevel == 0) {
-        // cast MultiPolygon to Solid
-        buffer.writeEndArray();
-      }
-      arrayLevel--;
-    } else if (context.getState().inSection()
-        == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY) {
-      if (arrayLevel != 3) {
-        if ((arrayLevel == 1 && semanticSurfaceGeometryTypeIsMulti)
-            || (arrayLevel == 0 && !semanticSurfaceGeometryTypeIsMulti)) {
-          currentSemanticSurfacePolygons.add(currentPolygon);
+
+        MultiPolygon surfaces = (MultiPolygon) geometry;
+        for (Polygon patch : surfaces.getValue()) {
+          builder.setLength(0);
+          boolean innerRing = false;
+          for (LineString ring : patch.getValue()) {
+            if (innerRing) {
+              builder.append('_');
+            }
+            double[] coordinates = ring.getValue().getCoordinates();
+            for (int i = 0; i < ring.getNumPoints(); i++) {
+              if (!builder.isEmpty()) {
+                builder.append('_');
+              }
+              builder.append(addVertex(context, coordinates, i * dimension));
+            }
+            innerRing = true;
+          }
+          currentSemanticSurfacePolygons.add(builder.toString());
         }
+
+      } else if (context.getState().inSection()
+              == FeatureTransformationContextCityJson.StateCityJson.Section.IN_BUILDING
+          && schema.getName().matches("^lod[12]Solid$")
+          && geometry.getType() == GeometryType.POLYHEDRAL_SURFACE) {
+
+        String lod = "lod2Solid".equals(schema.getName()) ? "2" : "1";
+        currentLod2Solid.clear();
+
+        TokenBuffer buffer = context.getState().getGeometryBuffer().get();
+        buffer.writeStartObject();
+        buffer.writeStringField(TYPE, CityJsonWriter.SOLID);
+        buffer.writeStringField(CityJsonWriter.LOD, lod);
+        buffer.writeFieldName(CityJsonWriter.BOUNDARIES);
+
+        PolyhedralSurface solid = (PolyhedralSurface) geometry;
+        context.getState().getGeometryBuffer().get().writeStartArray();
+        context.getState().getGeometryBuffer().get().writeStartArray();
+        for (Polygon patch : solid.getValue()) {
+          context.getState().getGeometryBuffer().get().writeStartArray();
+          builder.setLength(0);
+          boolean innerRing = false;
+          for (LineString ring : patch.getValue()) {
+            if (innerRing) {
+              builder.append('_');
+            }
+            context.getState().getGeometryBuffer().get().writeStartArray();
+            double[] coordinates = ring.getValue().getCoordinates();
+            for (int i = 0; i < ring.getNumPoints(); i++) {
+              int index = addVertex(context, coordinates, i * dimension);
+              context.getState().getGeometryBuffer().get().writeNumber(index);
+              if (!builder.isEmpty()) {
+                builder.append('_');
+              }
+              builder.append(index);
+            }
+            context.getState().getGeometryBuffer().get().writeEndArray();
+            innerRing = true;
+          }
+          context.getState().getGeometryBuffer().get().writeEndArray();
+          currentLod2Solid.add(builder.toString());
+        }
+        context.getState().getGeometryBuffer().get().writeEndArray();
+        context.getState().getGeometryBuffer().get().writeEndArray();
+
+        // keep geometry object open for semantic surface information
+        context
+            .encoding()
+            .changeSection(
+                FeatureTransformationContextCityJson.StateCityJson.Section.WAITING_FOR_SURFACES);
       }
-      arrayLevel--;
     }
   }
 
@@ -496,21 +456,6 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
           default:
             throw new IllegalStateException(
                 String.format("Unknown semantic surface type: %s", context.value()));
-        }
-      }
-    } else if (context.getState().inSection()
-        == FeatureTransformationContextCityJson.StateCityJson.Section.IN_SURFACE_GEOMETRY) {
-      Optional<Integer> optionalIndex = context.encoding().processOrdinate(context.value());
-      optionalIndex.ifPresent(
-          integer -> currentPolygon += (currentPolygon.isEmpty() ? "" : "_") + integer);
-    } else if (context.getState().inActiveGeometry()) {
-      Optional<Integer> optionalIndex = context.encoding().processOrdinate(context.value());
-      if (optionalIndex.isPresent()) {
-        context.getState().getGeometryBuffer().orElseThrow().writeNumber(optionalIndex.get());
-        if (context.getState().inSection()
-            == FeatureTransformationContextCityJson.StateCityJson.Section
-                .IN_GEOMETRY_WITH_SURFACES) {
-          currentPolygon += (currentPolygon.isEmpty() ? "" : "_") + optionalIndex.get();
         }
       }
     }

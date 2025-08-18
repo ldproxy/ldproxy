@@ -11,12 +11,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
-import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
-import de.ii.xtraplatform.features.json.domain.GeoJsonGeometryType;
+import de.ii.xtraplatform.geometries.domain.transcode.json.GeometryEncoderJson;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -59,12 +57,6 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
     if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
       startIfNecessary(context);
       context.encoding().getJson().writeArrayFieldStart(context.schema().get().getName());
-    } else if (context
-        .encoding()
-        .getBuffer()
-        .map(b -> b.geometryState == GeometryState.IN_OTHER_GEOMETRY)
-        .orElse(false)) {
-      context.encoding().getJson().writeStartArray();
     }
 
     next.accept(context);
@@ -77,40 +69,6 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       startIfNecessary(context);
       openObject(context, context.schema().get());
-    } else if (context.schema().map(SchemaBase::isSpatial).orElse(false)
-        && !context
-            .schema()
-            .map(
-                p ->
-                    context
-                        .encoding()
-                        .getBuffer()
-                        .map(s -> s.primaryGeometryProperty.stream().anyMatch(p::equals))
-                        .orElse(false))
-            .orElse(false)
-        && !context
-            .schema()
-            .map(
-                p ->
-                    context
-                        .encoding()
-                        .getBuffer()
-                        .map(s -> s.secondaryGeometryProperty.stream().anyMatch(p::equals))
-                        .orElse(false))
-            .orElse(false)
-        && context.geometryType().isPresent()) {
-
-      context.encoding().getJson().writeFieldName(context.schema().get().getName());
-      context.encoding().getJson().writeStartObject();
-      String type = getGeometryType(context);
-      context.encoding().getJson().writeStringField("type", type);
-      context.encoding().getJson().writeFieldName("coordinates");
-      context.encoding().getBuffer().get().geometryState = GeometryState.IN_OTHER_GEOMETRY;
-
-      if (type.equals("Polyhedron")) {
-        context.encoding().getJson().writeStartArray();
-        context.encoding().getBuffer().get().isPolyhedron = true;
-      }
     }
 
     next.accept(context);
@@ -122,20 +80,9 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       throws IOException {
     next.accept(context);
 
-    FeatureState featureState = context.encoding().getBuffer().get();
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       FeatureSchema schema = context.schema().get();
-
       closeObject(context, schema);
-
-    } else if (featureState.geometryState == GeometryState.IN_OTHER_GEOMETRY
-        && context.schema().map(SchemaBase::isSpatial).orElse(false)) {
-      if (featureState.isPolyhedron) {
-        context.encoding().getJson().writeEndArray();
-      }
-      context.encoding().getJson().writeEndObject();
-      featureState.geometryState = GeometryState.NOT_IN_GEOMETRY;
-      featureState.isPolyhedron = false;
     }
   }
 
@@ -147,10 +94,43 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
 
     if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
       context.encoding().getJson().writeEndArray();
-    } else if (context.encoding().getBuffer().get().geometryState
-        == GeometryState.IN_OTHER_GEOMETRY) {
-      context.encoding().getJson().writeEndArray();
     }
+  }
+
+  @Override
+  public void onGeometry(
+      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
+      throws IOException {
+    if (!context
+            .schema()
+            .map(
+                p ->
+                    context
+                        .encoding()
+                        .getFeatureState()
+                        .map(s -> s.primaryGeometryProperty.stream().anyMatch(p::equals))
+                        .orElse(false))
+            .orElse(false)
+        && !context
+            .schema()
+            .map(
+                p ->
+                    context
+                        .encoding()
+                        .getFeatureState()
+                        .map(s -> s.secondaryGeometryProperty.stream().anyMatch(p::equals))
+                        .orElse(false))
+            .orElse(false)
+        && context.geometry() != null) {
+      context.encoding().getJson().writeFieldName(context.schema().get().getName());
+      context
+          .geometry()
+          .accept(
+              new GeometryEncoderJson(
+                  context.encoding().getJson(), false, context.encoding().getGeometryPrecision()));
+    }
+
+    next.accept(context);
   }
 
   @Override
@@ -174,16 +154,13 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
                 : getValueType(schema, context.valueType());
         writeValue(context.encoding().getJson(), value, valueType);
       }
-    } else if (context.encoding().getBuffer().get().geometryState
-        == GeometryState.IN_OTHER_GEOMETRY) {
-      context.encoding().getJson().writeRawValue(context.value());
     }
 
     next.accept(context);
   }
 
   private void startIfNecessary(EncodingAwareContextGeoJson context) throws IOException {
-    FeatureState featureState = context.encoding().getBuffer().get();
+    FeatureState featureState = context.encoding().getFeatureState().get();
     if (!featureState.hasProperties) {
       featureState.hasProperties = true;
 
@@ -198,20 +175,13 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
         .orElse(Objects.requireNonNullElse(fromValue, Type.STRING));
   }
 
-  // TODO: support for other geometry types
-  private String getGeometryType(EncodingAwareContextGeoJson context) {
-    return GeoJsonGeometryType.forSimpleFeatureType(context.geometryType().get()).toString();
-  }
-
   protected String getPropertiesFieldName() {
     return "properties";
   }
 
   protected boolean shouldSkipProperty(EncodingAwareContextGeoJson context) {
     return !hasMapping(context)
-        || (context.schema().get().isId()
-            || context.schema().get().isEmbeddedId()
-            || context.inGeometry());
+        || (context.schema().get().isId() || context.schema().get().isEmbeddedId());
   }
 
   protected boolean hasMapping(EncodingAwareContextGeoJson context) {
@@ -269,7 +239,7 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
   }
 
   private void finalizeCurrent(EncodingAwareContextGeoJson context) throws IOException {
-    if (context.encoding().getBuffer().get().hasProperties) {
+    if (context.encoding().getFeatureState().get().hasProperties) {
 
       // end of "properties"
       context.encoding().getJson().writeEndObject();

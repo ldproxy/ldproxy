@@ -155,6 +155,12 @@ public class FeatureEncoderCityJson
   }
 
   @Override
+  public void onGeometry(EncodingAwareContextCityJson context) {
+    getState().setEvent(Event.GEOMETRY);
+    executePipeline(featureWriters.iterator()).accept(context);
+  }
+
+  @Override
   public void onValue(EncodingAwareContextCityJson context) {
     getState().setEvent(Event.PROPERTY);
     executePipeline(featureWriters.iterator()).accept(context);

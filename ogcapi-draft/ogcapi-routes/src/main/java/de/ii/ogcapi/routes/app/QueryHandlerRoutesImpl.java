@@ -44,7 +44,6 @@ import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
-import de.ii.xtraplatform.cql.domain.Geometry;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
@@ -54,6 +53,7 @@ import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.geometries.domain.MultiPolygon;
 import de.ii.xtraplatform.routes.sql.domain.ImmutableRouteQuery;
 import de.ii.xtraplatform.routes.sql.domain.Preference;
 import de.ii.xtraplatform.routes.sql.domain.RouteQuery;
@@ -200,7 +200,7 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
     }
     routeQueryBuilder.height(inputs.getHeight());
 
-    Optional<Geometry.MultiPolygon> obstacles = routeDefinition.getObstacles();
+    Optional<MultiPolygon> obstacles = routeDefinition.getObstacles();
     if (!obstacles.isEmpty() && !config.supportsObstacles()) {
       throw new IllegalArgumentException(
           "This API does not support obstacles as part of the definition of a route.");
@@ -220,7 +220,7 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
           String.format(
               "This API does not support waypoints in addition to the start and end location. The following waypoints were provided: %s",
               routeDefinition.getWaypoints().stream()
-                  .map(p -> p.getCoordinates().get(0).toString())
+                  .map(Object::toString)
                   .collect(Collectors.joining(","))));
     }
 

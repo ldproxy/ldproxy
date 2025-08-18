@@ -14,11 +14,11 @@ import de.ii.ogcapi.features.cityjson.domain.CityJsonWriter;
 import de.ii.ogcapi.features.cityjson.domain.EncodingAwareContextCityJson;
 import de.ii.ogcapi.features.cityjson.domain.FeatureTransformationContextCityJson;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.MultiPoint;
+import de.ii.xtraplatform.geometries.domain.Point;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -29,7 +29,6 @@ public class CityJsonWriterAddress implements CityJsonWriter {
 
   private boolean addressSeen;
   private boolean onlyFirstAddress;
-  private boolean inMultiPoint;
 
   @Inject
   CityJsonWriterAddress() {}
@@ -68,7 +67,6 @@ public class CityJsonWriterAddress implements CityJsonWriter {
           .encoding()
           .changeSection(FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS);
       context.encoding().startAddress();
-      inMultiPoint = false;
       addressSeen = false;
       onlyFirstAddress = context.encoding().getVersion().equals(CityJsonConfiguration.Version.V10);
     }
@@ -106,24 +104,45 @@ public class CityJsonWriterAddress implements CityJsonWriter {
       } else {
         addressSeen = true;
       }
-    } else if (context.getState().inSection()
+    }
+
+    next.accept(context);
+  }
+
+  @Override
+  public void onGeometry(
+      EncodingAwareContextCityJson context, Consumer<EncodingAwareContextCityJson> next)
+      throws IOException {
+    if (context.getState().inSection()
             == FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS
-        && context.schema().map(SchemaBase::isSpatial).orElse(false)
-        && context
-            .geometryType()
-            .filter(type -> type == SimpleFeatureGeometry.MULTI_POINT)
-            .isPresent()
+        && context.geometry() != null
+        && context.geometry().getType() == GeometryType.MULTI_POINT
         && context.getState().getAddressBuffer().isPresent()
         && !(addressSeen && onlyFirstAddress)) {
+
+      checkGeometry(context.geometry());
+
       TokenBuffer addressBuffer = context.getState().getAddressBuffer().get();
       addressBuffer.writeObjectFieldStart(CityJsonWriter.LOCATION);
       addressBuffer.writeStringField(TYPE, CityJsonWriter.MULTI_POINT);
       addressBuffer.writeStringField(LOD, "1");
       addressBuffer.writeArrayFieldStart(BOUNDARIES);
-      inMultiPoint = true;
-    }
 
-    next.accept(context);
+      boolean pointSeen = false;
+      for (Point point : ((MultiPoint) context.geometry()).getValue()) {
+        if (!point.isEmpty()) {
+          double[] coordinates = point.getValue().getCoordinates();
+          addressBuffer.writeNumber(addVertex(context, coordinates, 0));
+          pointSeen = true;
+        }
+      }
+      if (!pointSeen) {
+        addressBuffer.writeNull();
+      }
+
+      addressBuffer.writeEndArray();
+      addressBuffer.writeEndObject();
+    }
   }
 
   @Override
@@ -142,13 +161,6 @@ public class CityJsonWriterAddress implements CityJsonWriter {
           && context.encoding().buildingPartHasAddress()) {
         context.encoding().flushAddress();
       }
-    } else if (inMultiPoint
-        && context.schema().map(FeatureSchema::isSpatial).orElse(false)
-        && context.getState().getAddressBuffer().isPresent()) {
-      TokenBuffer addressBuffer = context.getState().getAddressBuffer().get();
-      addressBuffer.writeEndArray();
-      addressBuffer.writeEndObject();
-      inMultiPoint = false;
     }
   }
 
@@ -157,13 +169,7 @@ public class CityJsonWriterAddress implements CityJsonWriter {
       EncodingAwareContextCityJson context, Consumer<EncodingAwareContextCityJson> next)
       throws IOException {
 
-    if (inMultiPoint) {
-      Optional<Integer> optionalIndex = context.encoding().processOrdinate(context.value());
-      if (context.getState().getAddressBuffer().isPresent() && optionalIndex.isPresent()) {
-        context.getState().getAddressBuffer().get().writeNumber(optionalIndex.get());
-      }
-
-    } else if (context.getState().inSection()
+    if (context.getState().inSection()
             == FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS
         && hasMappingAndValue(context)
         && context.schema().isPresent()

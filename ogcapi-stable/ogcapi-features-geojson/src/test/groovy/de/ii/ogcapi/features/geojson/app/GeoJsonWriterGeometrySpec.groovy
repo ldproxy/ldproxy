@@ -15,7 +15,7 @@ import de.ii.xtraplatform.features.domain.FeatureProperty
 import de.ii.xtraplatform.features.domain.FeatureType
 import de.ii.xtraplatform.features.domain.ImmutableFeatureProperty
 import de.ii.xtraplatform.features.domain.ImmutableFeatureType
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry
+import de.ii.xtraplatform.geometries.domain.GeometryType
 import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
@@ -88,7 +88,7 @@ class GeoJsonWriterGeometrySpec extends Specification {
         encoder.onPropertyStart(propertyMapping, ImmutableList.of())
         encoder.onPropertyText(value1)
         encoder.onPropertyEnd()
-        encoder.onGeometryStart(geometryMapping, SimpleFeatureGeometry.MULTI_POLYGON, 2)
+        encoder.onGeometryStart(geometryMapping, GeometryType.MULTI_POLYGON, 2)
 
         for (Integer depth : nestingPattern) {
             for (int i = 0; i < depth; i++) {
