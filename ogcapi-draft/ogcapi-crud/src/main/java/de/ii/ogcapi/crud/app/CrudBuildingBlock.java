@@ -40,7 +40,6 @@ import javax.inject.Singleton;
  * @ref:cfgProperties {@link de.ii.ogcapi.crud.app.ImmutableCrudConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.crud.app.EndpointCrud}
  * @ref:pathParameters {@link de.ii.ogcapi.features.core.domain.PathParameterCollectionIdFeatures}
- * @ref:queryParameters {@link de.ii.ogcapi.crud.app.QueryParameterSchemaFeatures}
  */
 @Singleton
 @AutoBind

@@ -18,6 +18,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
+import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -374,6 +375,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       if (parameter instanceof FeatureTransformationQueryParameter) {
         ((FeatureTransformationQueryParameter) parameter)
             .applyTo(transformationContext, queryParameterSet);
+      }
+    }
+
+    for (Profile profile : profiles) {
+      if (profile instanceof ProfileFeatureQuery) {
+        query = ((ProfileFeatureQuery) profile).transformFeatureQuery(query);
       }
     }
 
