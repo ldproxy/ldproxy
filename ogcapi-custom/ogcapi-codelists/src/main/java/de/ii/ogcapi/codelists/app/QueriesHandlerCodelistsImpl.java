@@ -42,6 +42,7 @@ import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.LastModified;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Comparator;
@@ -257,7 +258,7 @@ public class QueriesHandlerCodelistsImpl extends AbstractVolatileComposed
     Date lastModified = LastModified.from(codelistStore.lastModified(identifier));
 
     String hash = codelist.getStableHash();
-    EntityTag eTag = hash != null ? EntityTag.valueOf(hash) : null;
+    EntityTag eTag = hash != null ? ETag.from(hash.getBytes(StandardCharsets.UTF_8)) : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, eTag);
     if (Objects.nonNull(response)) return response.build();
 
