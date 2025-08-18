@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
  * @path resources/{resourceId}
  * @langEn Create, update or delete a file resource.
  * @langDe Erzeugen, Aktualisieren oder Löschen einer Dateiressource.
- * @ref:formats {@link ResourceFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.resources.domain.ResourceFormatExtension}
  */
 @Singleton
 @AutoBind
