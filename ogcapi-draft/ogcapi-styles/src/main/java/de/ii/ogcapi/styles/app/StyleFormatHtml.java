@@ -33,6 +33,7 @@ import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
@@ -177,6 +178,7 @@ public class StyleFormatHtml implements StyleFormatExtension {
       OgcApi api,
       Optional<String> collectionId,
       String styleId,
+      Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     OgcApiDataV2 apiData = api.getData();
     URICustomizer uriCustomizer =
