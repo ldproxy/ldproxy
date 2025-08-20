@@ -126,7 +126,8 @@ public class EndpointRouteDelete extends Endpoint implements ApiExtensionHealth 
               GROUP_ROUTES_WRITE,
               TAGS,
               RoutingBuildingBlock.MATURITY,
-              RoutingBuildingBlock.SPEC)
+              RoutingBuildingBlock.SPEC,
+              false)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }

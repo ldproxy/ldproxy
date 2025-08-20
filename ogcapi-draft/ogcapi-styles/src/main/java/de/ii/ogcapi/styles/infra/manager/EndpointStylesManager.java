@@ -164,7 +164,8 @@ public class EndpointStylesManager extends Endpoint
             GROUP_STYLES_WRITE,
             TAGS,
             StylesBuildingBlock.MATURITY,
-            StylesBuildingBlock.SPEC)
+            StylesBuildingBlock.SPEC,
+            false)
         .ifPresent(
             operation -> resourceBuilderCreate.putOperations(HttpMethods.POST.name(), operation));
     definitionBuilder.putResources(path, resourceBuilderCreate.build());
@@ -201,7 +202,8 @@ public class EndpointStylesManager extends Endpoint
             GROUP_STYLES_WRITE,
             TAGS,
             StylesBuildingBlock.MATURITY,
-            StylesBuildingBlock.SPEC)
+            StylesBuildingBlock.SPEC,
+            false)
         .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
     queryParameters = getQueryParameters(extensionRegistry, apiData, path, HttpMethods.DELETE);
     headers = getHeaders(extensionRegistry, apiData, path, HttpMethods.DELETE);
@@ -223,7 +225,8 @@ public class EndpointStylesManager extends Endpoint
             GROUP_STYLES_WRITE,
             TAGS,
             StylesBuildingBlock.MATURITY,
-            StylesBuildingBlock.SPEC)
+            StylesBuildingBlock.SPEC,
+            false)
         .ifPresent(
             operation -> resourceBuilderCreate.putOperations(HttpMethods.DELETE.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());

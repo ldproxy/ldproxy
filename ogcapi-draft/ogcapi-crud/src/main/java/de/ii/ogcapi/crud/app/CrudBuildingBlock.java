@@ -40,7 +40,6 @@ import javax.inject.Singleton;
  * @ref:cfgProperties {@link de.ii.ogcapi.crud.app.ImmutableCrudConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.crud.app.EndpointCrud}
  * @ref:pathParameters {@link de.ii.ogcapi.features.core.domain.PathParameterCollectionIdFeatures}
- * @ref:queryParameters {@link de.ii.ogcapi.crud.app.QueryParameterSchemaFeatures}
  */
 @Singleton
 @AutoBind
@@ -74,11 +73,7 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new Builder()
-        .enabled(false)
-        .optimisticLockingETag(false)
-        .optimisticLockingLastModified(false)
-        .build();
+    return new Builder().enabled(false).optimisticLockingLastModified(false).build();
   }
 
   private boolean isProviderSupportsMutations(OgcApiDataV2 apiData) {

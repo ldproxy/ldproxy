@@ -3,6 +3,7 @@ schema-validator = '1.5.8'
 earcut4j = '2.2.2'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.27.1'
+json-patch = '2.0.2'
 
 [libraries]
 # foundation
@@ -14,5 +15,8 @@ earcut4j = { module = "io.github.earcut4j:earcut4j", version.ref = "earcut4j" }
 # flatgeobuf
 flatbuffers = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }
 flatgeobuf = { module = "org.wololo:flatgeobuf", version.ref = "flatgeobuf" }
+
+# crud
+json-patch = { module = "com.gravity9:json-patch-path", version.ref = "json-patch" }
 
 [bundles]

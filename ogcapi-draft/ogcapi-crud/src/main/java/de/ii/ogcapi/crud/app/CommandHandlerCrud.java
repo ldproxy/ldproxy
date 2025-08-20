@@ -14,7 +14,6 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import java.io.InputStream;
-import java.util.Optional;
 import javax.ws.rs.core.Response;
 import org.immutables.value.Value;
 
@@ -35,7 +34,7 @@ public interface CommandHandlerCrud extends Volatile2 {
 
     String getFeatureType();
 
-    Optional<EpsgCrs> getCrs();
+    EpsgCrs getCrs();
 
     EpsgCrs getDefaultCrs();
 
@@ -44,19 +43,17 @@ public interface CommandHandlerCrud extends Volatile2 {
     InputStream getRequestBody();
   }
 
-  interface QueryInputFeatureWithQueryParameterSet extends QueryInputFeature {
+  interface QueryInputFeatureCrud extends QueryInputFeature {
 
     QueryParameterSet getQueryParameterSet();
   }
 
   @Value.Immutable
-  interface QueryInputFeatureReplace extends QueryInputFeatureWithQueryParameterSet {
+  interface QueryInputFeatureReplace extends QueryInputFeatureCrud, QueryInputFeatureCreate {
 
-    String getFeatureType();
-
-    InputStream getRequestBody();
+    boolean isAllowCreate();
   }
 
   @Value.Immutable
-  interface QueryInputFeatureDelete extends QueryInputFeatureWithQueryParameterSet {}
+  interface QueryInputFeatureDelete extends QueryInputFeatureCrud {}
 }

@@ -17,5 +17,12 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided project(':ogcapi-collections-schema')
 
+    embedded (libCatalog.json.patch) {
+        exclude module: 'jackson-databind'
+        exclude module: 'json-path'
+        exclude module: 'jsr305'
+        exclude module: 'slf4j-api'
+    }
+
     testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }

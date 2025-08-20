@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.profile.codelist.app;
 
+import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
@@ -68,7 +69,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
               ((JsonSchemaDocumentV7) schema)
                   .getPatternProperties().entrySet().stream()
@@ -76,7 +77,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaDocumentV7) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .definitions(
@@ -86,7 +87,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .build();
     } else if (schema instanceof JsonSchemaDocument) {
       return ImmutableJsonSchemaDocument.builder()
@@ -98,7 +99,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
               ((JsonSchemaDocument) schema)
                   .getPatternProperties().entrySet().stream()
@@ -106,7 +107,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaDocument) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .definitions(
@@ -116,7 +117,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .build();
     } else if (schema instanceof JsonSchemaObject) {
       return new ImmutableJsonSchemaObject.Builder()
@@ -128,7 +129,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
               ((JsonSchemaObject) schema)
                   .getPatternProperties().entrySet().stream()
@@ -136,7 +137,7 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaObject) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .build();
