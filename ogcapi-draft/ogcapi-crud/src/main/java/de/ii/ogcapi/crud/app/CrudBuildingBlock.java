@@ -73,11 +73,7 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new Builder()
-        .enabled(false)
-        .optimisticLockingETag(false)
-        .optimisticLockingLastModified(false)
-        .build();
+    return new Builder().enabled(false).optimisticLockingLastModified(false).build();
   }
 
   private boolean isProviderSupportsMutations(OgcApiDataV2 apiData) {

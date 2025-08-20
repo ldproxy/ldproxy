@@ -42,7 +42,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
-import de.ii.xtraplatform.base.domain.ETag.Type;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
@@ -152,9 +151,9 @@ public class EndpointCrud extends EndpointSubCollection
     ImmutableList.Builder<String> builder =
         new ImmutableList.Builder<String>()
             .add(
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/create-replace-delete",
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/update",
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/features");
+                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/create-replace-delete",
+                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/update",
+                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/features");
 
     if (apiData.getCollections().values().stream()
         .anyMatch(
@@ -163,17 +162,7 @@ public class EndpointCrud extends EndpointSubCollection
                     .map(CrudConfiguration::supportsLastModified)
                     .orElse(false))) {
       builder.add(
-          "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-timestamps");
-    }
-
-    if (apiData.getCollections().values().stream()
-        .anyMatch(
-            cd ->
-                cd.getExtension(CrudConfiguration.class)
-                    .map(CrudConfiguration::supportsEtag)
-                    .orElse(false))) {
-      builder.add(
-          "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-etags");
+          "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/optimistic-locking-timestamps");
     }
 
     return builder.build();
@@ -489,7 +478,7 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
     QueryInputFeatureReplace queryInput =
@@ -563,7 +552,7 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
     QueryInputFeatureReplace queryInput =
@@ -626,7 +615,7 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
     QueryInputFeatureDelete queryInput =
@@ -663,11 +652,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   private static void checkHeader(
       Optional<CrudConfiguration> crudConfiguration, String ifMatch, String ifUnmodifiedSince) {
-    if (crudConfiguration.map(CrudConfiguration::supportsEtag).orElse(false)
-        && Objects.isNull(ifMatch)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
-    } else if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
+    if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
         && Objects.isNull(ifUnmodifiedSince)) {
       throw new BadRequestException(
           "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");

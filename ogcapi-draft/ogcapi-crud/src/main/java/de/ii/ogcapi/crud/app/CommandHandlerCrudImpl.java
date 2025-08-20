@@ -50,7 +50,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -169,11 +168,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
           Optional.ofNullable(queryInput.getFeatureId()));
     }
 
-    EntityTag eTag = previousFeature.getEntityTag();
     Date lastModified = previousFeature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
 
     if (Objects.nonNull(response)) {
       return response.build();
@@ -223,11 +221,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
 
     Response feature = getCurrentFeature(queryInput, requestContext);
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
@@ -283,11 +280,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     Response feature = getCurrentFeature(queryInput, requestContext);
 
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) {
       return response.build();
     }
