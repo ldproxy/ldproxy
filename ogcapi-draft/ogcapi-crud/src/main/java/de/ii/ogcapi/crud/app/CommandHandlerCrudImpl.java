@@ -7,7 +7,10 @@
  */
 package de.ii.ogcapi.crud.app;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
@@ -33,7 +36,6 @@ import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
@@ -229,8 +231,19 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
-    InputStream merged =
-        new SequenceInputStream(new ByteArrayInputStream(prev), queryInput.getRequestBody());
+    final ObjectMapper mapper = new ObjectMapper();
+    InputStream merged;
+
+    try {
+      final JsonMergePatch patch =
+          mapper.readValue(queryInput.getRequestBody(), JsonMergePatch.class);
+      JsonNode orig = mapper.readTree(prev);
+      JsonNode mergedNode = patch.apply(orig);
+      merged = new ByteArrayInputStream(mapper.writeValueAsBytes(mergedNode));
+    } catch (Throwable e) {
+      throw new IllegalArgumentException(
+          "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
+    }
 
     FeatureTokenSource mergedSource =
         getFeatureSource(

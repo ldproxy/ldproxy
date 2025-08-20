@@ -55,6 +55,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -326,8 +327,12 @@ public class EndpointCrud extends EndpointSubCollection
       operationSummary = "update a feature in the feature collection '" + collectionId + "'";
       operationDescription =
           Optional.of(
-              "The content of the request is a partial feature in one of the supported encodings. The id of updated feature is `{featureId}`.");
-      requestContent = getRequestContent(apiData);
+              "The content of the request is a JSON merge patch document (RFC 7396). The id of the updated feature is `{featureId}`.");
+      requestContent = new LinkedHashMap<>();
+      requestContent.put(
+          FeatureFormatJsonMergePatch.MEDIA_TYPE.type(),
+          FeatureFormatJsonMergePatch.MEDIA_TYPE_CONTENT);
+      requestContent.putAll(getRequestContent(apiData));
 
       ApiOperation.of(
               resourcePath,
@@ -508,7 +513,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   @Path("/{collectionId}/items/{featureId}")
   @PATCH
-  @Consumes("application/geo+json")
+  @Consumes({"application/merge-patch+json", "application/geo+json"})
   public Response patchItem(
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
@@ -543,6 +548,12 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    EpsgCrs contentCrs =
+        Optional.ofNullable(crs)
+            .map(s -> s.substring(1, s.length() - 1))
+            .map(EpsgCrs::fromString)
+            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+
     QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
@@ -561,12 +572,14 @@ public class EndpointCrud extends EndpointSubCollection
             .collectionId(collectionId)
             .featureType(featureType)
             .featureId(featureId)
+            .crs(contentCrs)
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
             .profiles(crudProfiles)
+            .isAllowCreate(false)
             .build();
 
     return commandHandler.patchItemResponse(queryInput, apiRequestContext);
