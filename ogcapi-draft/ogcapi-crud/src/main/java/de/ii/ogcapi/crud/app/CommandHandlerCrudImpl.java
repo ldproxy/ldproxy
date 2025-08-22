@@ -273,7 +273,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       ApiRequestContext requestContextGeoJson =
           new Builder()
               .from(requestContext)
-              .request(Optional.empty())
+              .requestContext(Optional.empty())
               .requestUri(
                   requestContext
                       .getUriCustomizer()

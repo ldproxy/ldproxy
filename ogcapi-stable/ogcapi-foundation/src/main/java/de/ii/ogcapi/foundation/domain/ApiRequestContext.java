@@ -9,7 +9,6 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.google.common.base.Splitter;
 import de.ii.xtraplatform.auth.domain.User;
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -23,8 +22,6 @@ public interface ApiRequestContext {
 
   Splitter PATH_SPLITTER = Splitter.on('/').trimResults().omitEmptyStrings();
 
-  URI getExternalUri();
-
   ApiMediaType getMediaType();
 
   List<ApiMediaType> getAlternateMediaTypes();
@@ -34,6 +31,8 @@ public interface ApiRequestContext {
   OgcApi getApi();
 
   URICustomizer getUriCustomizer();
+
+  URICustomizer getBaseUriCustomizer();
 
   String getStaticUrlPrefix();
 
@@ -50,10 +49,7 @@ public interface ApiRequestContext {
     return 2048;
   }
 
-  @Value.Derived
-  default List<String> getExternalUriPath() {
-    return PATH_SPLITTER.splitToList(getExternalUri().getPath());
-  }
+  List<String> getExternalUriPath();
 
   @Value.Derived
   default String getApiUri() {

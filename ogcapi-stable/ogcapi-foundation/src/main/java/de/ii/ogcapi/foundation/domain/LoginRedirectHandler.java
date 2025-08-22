@@ -42,7 +42,8 @@ public interface LoginRedirectHandler extends ApiExtension {
 
   default URI getLoginUri(ApiRequestContext requestContext, Set<String> activeScopes) {
     URIBuilder uriBuilder =
-        new URICustomizer(requestContext.getExternalUri())
+        requestContext
+            .getBaseUriCustomizer()
             .appendPath(LoginHandler.PATH_LOGIN)
             .addParameter(
                 LoginHandler.PARAM_LOGIN_REDIRECT_URI,

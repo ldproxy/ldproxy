@@ -541,7 +541,7 @@ public class PubSubBuildingBlock
       ApiRequestContext requestContextGeoJson =
           new ImmutableRequestContext.Builder()
               .api(api)
-              .request(Optional.empty())
+              .requestContext(Optional.empty())
               .externalUri(uri)
               .requestUri(uri)
               .mediaType(

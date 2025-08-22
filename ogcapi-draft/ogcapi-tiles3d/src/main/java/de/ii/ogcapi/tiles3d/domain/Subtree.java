@@ -493,7 +493,7 @@ public interface Subtree {
             .alternateMediaTypes(ImmutableList.of())
             .language(Locale.ENGLISH)
             .api(queryInput.getApi())
-            .request(Optional.empty())
+            .requestContext(Optional.empty())
             .requestUri(
                 queryInput
                     .getServicesUri()

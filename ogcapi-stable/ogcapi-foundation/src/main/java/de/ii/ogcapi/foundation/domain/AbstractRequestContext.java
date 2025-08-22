@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Request;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -23,9 +24,14 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractRequestContext implements ApiRequestContext {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRequestContext.class);
+  private static final String X_FORWARDED_PREFIX = "X-Forwarded-Prefix";
   public static final String STATIC_PATH = "___static___";
 
   abstract URI getRequestUri();
+
+  abstract Optional<ContainerRequestContext> getRequestContext();
+
+  abstract URI getExternalUri();
 
   @Override
   public abstract ApiMediaType getMediaType();
@@ -36,33 +42,43 @@ public abstract class AbstractRequestContext implements ApiRequestContext {
   @Override
   public abstract Optional<Locale> getLanguage();
 
+  @Value.Derived
   @Override
-  public abstract Optional<Request> getRequest();
+  public Optional<Request> getRequest() {
+    return getRequestContext().map(ContainerRequestContext::getRequest);
+  }
+
+  @Value.Derived
+  @Override
+  public List<String> getExternalUriPath() {
+    if (getRequestContext().isPresent()
+        && getRequestContext().get().getHeaders().containsKey(X_FORWARDED_PREFIX)) {
+      return PATH_SPLITTER.splitToList(
+          getRequestContext().get().getHeaderString(X_FORWARDED_PREFIX));
+    }
+
+    return PATH_SPLITTER.splitToList(getExternalUri().getPath());
+  }
 
   @Value.Derived
   @Override
   public URICustomizer getUriCustomizer() {
-    URICustomizer uriCustomizer = new URICustomizer(getRequestUri());
+    return new URICustomizer(getRequestUri()).prependPathSegments(getExternalUriPath());
+  }
 
-    uriCustomizer.setScheme(getExternalUri().getScheme());
-    uriCustomizer.prependPathSegments(getExternalUriPath());
-
-    return uriCustomizer;
+  @Value.Derived
+  @Override
+  public URICustomizer getBaseUriCustomizer() {
+    return new URICustomizer(getRequestUri())
+        .setPathSegments(getExternalUriPath())
+        .ensureNoTrailingSlash()
+        .clearParameters();
   }
 
   @Value.Derived
   @Override
   public String getStaticUrlPrefix() {
-    String staticUrlPrefix = "";
-
-    staticUrlPrefix =
-        new URICustomizer(getRequestUri())
-            .setPathSegments(getExternalUriPath())
-            .ensureLastPathSegment(STATIC_PATH)
-            .ensureNoTrailingSlash()
-            .getPath();
-
-    return staticUrlPrefix;
+    return getBaseUriCustomizer().ensureLastPathSegment(STATIC_PATH).getPath();
   }
 
   @Value.Default

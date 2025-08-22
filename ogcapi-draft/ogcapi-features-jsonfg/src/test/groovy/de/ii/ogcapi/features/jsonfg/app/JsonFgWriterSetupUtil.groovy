@@ -50,7 +50,12 @@ class JsonFgWriterSetupUtil {
                 .isFeatureCollection(isCollection)
                 .ogcApiRequest(new ApiRequestContext() {
                     @Override
-                    URI getExternalUri() {
+                    URICustomizer getBaseUriCustomizer() {
+                        return null
+                    }
+
+                    @Override
+                    List<String> getExternalUriPath() {
                         return null
                     }
 

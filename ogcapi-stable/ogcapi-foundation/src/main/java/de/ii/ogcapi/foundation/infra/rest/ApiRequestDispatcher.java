@@ -196,7 +196,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     ApiRequestContext apiRequestContext =
         new Builder()
             .requestUri(requestContext.getUriInfo().getRequestUri())
-            .request(request)
+            .requestContext(requestContext)
             .externalUri(servicesUri)
             .queryParameterSet(queryParameterSet)
             .mediaType(selectedMediaType)
