@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
@@ -20,6 +21,9 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.resources.domain.QueriesHandlerResources;
+import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResource;
+import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResourceCreateReplace;
+import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
 import de.ii.xtraplatform.base.domain.ETag;
@@ -42,6 +46,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
@@ -56,6 +61,7 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
   private final ExtensionRegistry extensionRegistry;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
   private final ResourceStore resourcesStore;
+  protected List<? extends FormatExtension> formats;
 
   @Inject
   public QueriesHandlerResourcesImpl(
@@ -70,14 +76,116 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
     this.queryHandlers =
         ImmutableMap.of(
             Query.RESOURCES,
-                QueryHandler.with(QueryInputResources.class, this::getResourcesResponse),
-            Query.RESOURCE, QueryHandler.with(QueryInputResource.class, this::getResourceResponse));
+            QueryHandler.with(QueryInputResources.class, this::getResourcesResponse),
+            Query.RESOURCE,
+            QueryHandler.with(QueryInputResource.class, this::getResourceResponse),
+            Query.CREATE_REPLACE,
+            QueryHandler.with(
+                QueriesHandlerResources.QueryInputResourceCreateReplace.class, this::writeResource),
+            Query.DELETE,
+            QueryHandler.with(QueryInputResourceDelete.class, this::deleteResource));
 
     onVolatileStart();
 
     addSubcomponent(resourcesStore);
 
     onVolatileStarted();
+  }
+
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (formats == null)
+      formats =
+          extensionRegistry.getExtensionsForType(ResourceFormatExtension.class).stream()
+              .filter(ResourceFormatExtension::canSupportTransactions)
+              .collect(Collectors.toList());
+    return formats;
+  }
+
+  private Response deleteResource(
+      QueryInputResourceDelete queryInput, ApiRequestContext requestContext) {
+
+    OgcApi api = requestContext.getApi();
+    String resourceId = queryInput.getResourceId();
+    OgcApi dataset = queryInput.getDataset();
+
+    final String apiId = api.getId();
+    final java.nio.file.Path resourcePath = java.nio.file.Path.of(apiId).resolve(resourceId);
+
+    try {
+      Optional<Blob> resourceBlob = resourcesStore.get(resourcePath);
+
+      if (resourceBlob.isEmpty()) {
+        throw new NotFoundException(
+            MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
+      }
+
+      Blob blob = resourceBlob.get();
+      Date lastModified = LastModified.from(blob.lastModified());
+      EntityTag eTag = blob.eTag();
+      Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, eTag);
+
+      if (Objects.nonNull(response)) return response.build();
+
+    } catch (IOException e) {
+      throw new ServerErrorException("resource could not be read: " + resourceId, 500);
+    }
+
+    try {
+      resourcesStore.delete(java.nio.file.Path.of(dataset.getId(), resourceId));
+    } catch (IOException e) {
+      // ignore
+    }
+
+    return Response.noContent().build();
+  }
+
+  @SuppressWarnings("PMD.ConfusingTernary")
+  private Response writeResource(
+      QueryInputResourceCreateReplace queryInput, ApiRequestContext requestContext) {
+
+    OgcApi api = requestContext.getApi();
+    String resourceId = queryInput.getResourceId();
+
+    final String apiId = api.getId();
+    final java.nio.file.Path resourcePath = java.nio.file.Path.of(apiId).resolve(resourceId);
+    byte[] requestBody;
+    try {
+      requestBody = queryInput.getRequestBody().readAllBytes();
+    } catch (IOException e) {
+      throw new ServerErrorException(
+          "Failed to read request body for resource " + resourceId, 500, e);
+    }
+
+    try {
+      Optional<Blob> resourceBlob = resourcesStore.get(resourcePath);
+
+      if (resourceBlob.isEmpty()) {
+        throw new NotFoundException(
+            MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
+      }
+
+      Blob blob = resourceBlob.get();
+      Date lastModified = LastModified.from(blob.lastModified());
+      EntityTag eTag = blob.eTag();
+      Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, eTag);
+
+      if (Objects.nonNull(response)) return response.build();
+
+    } catch (IOException e) {
+      throw new ServerErrorException("resource could not be read: " + resourceId, 500);
+    }
+
+    return getResourceFormats().stream()
+        .filter(format -> requestContext.getMediaType().matches(format.getMediaType().type()))
+        .findAny()
+        .map(ResourceFormatExtension.class::cast)
+        .orElseThrow(
+            () ->
+                new NotSupportedException(
+                    MessageFormat.format(
+                        "The provided media type ''{0}'' is not supported for this resource.",
+                        requestContext.getMediaType())))
+        .putResource(requestBody, resourceId, api.getData(), requestContext);
   }
 
   @Override

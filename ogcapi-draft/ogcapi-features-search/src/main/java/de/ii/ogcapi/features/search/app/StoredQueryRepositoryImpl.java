@@ -68,11 +68,6 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public void hashStoredQueryDocument(StoredQueryExpression query) {
-    queriesStore.hash(query);
-  }
-
-  @Override
   public Stream<StoredQueriesFormat> getStoredQueriesFormatStream(OgcApiDataV2 apiData) {
     return extensionRegistry.getExtensionsForType(StoredQueriesFormat.class).stream()
         .filter(format -> format.isEnabledForApi(apiData));
