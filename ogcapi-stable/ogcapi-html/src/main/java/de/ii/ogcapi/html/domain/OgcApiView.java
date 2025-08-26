@@ -7,15 +7,14 @@
  */
 package de.ii.ogcapi.html.domain;
 
-import static de.ii.ogcapi.foundation.domain.AbstractRequestContext.STATIC_PATH;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiSecurity;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.xtraplatform.web.domain.LoginHandler;
+import de.ii.xtraplatform.web.domain.StaticResourceHandler;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.dropwizard.views.common.View;
 import java.security.Principal;
 import java.util.Comparator;
@@ -33,7 +32,14 @@ public abstract class OgcApiView extends View {
   @Nullable
   public abstract HtmlConfiguration htmlConfig();
 
-  public abstract String urlPrefix();
+  public abstract String basePath();
+
+  public abstract String apiPath();
+
+  @Value.Derived
+  public String assetsPrefix() {
+    return apiPath() + StaticResourceHandler.PREFIX;
+  }
 
   @Value.Default
   public boolean noIndex() {
@@ -84,16 +90,14 @@ public abstract class OgcApiView extends View {
   public Optional<String> logoutUri() {
     return hasLoginProvider() && user().isPresent()
         ? Optional.of(
-            ((URICustomizer) uriCustomizer().copy().setPath(urlPrefix()))
-                .replaceInPath("/" + STATIC_PATH, LoginHandler.PATH_LOGOUT)
+            uriCustomizer()
+                .copy()
+                .setPath(basePath())
+                .appendPath(LoginHandler.PATH_LOGOUT)
                 .clearParameters()
                 .addParameter(
                     LoginHandler.PARAM_LOGOUT_REDIRECT_URI,
-                    uriCustomizer()
-                        .copy()
-                        .cutPathAfterSegments(apiData().getSubPath().toArray(new String[0]))
-                        .clearParameters()
-                        .toString())
+                    uriCustomizer().copy().setPath(apiPath()).clearParameters().toString())
                 .toString())
         : Optional.empty();
   }
@@ -104,8 +108,10 @@ public abstract class OgcApiView extends View {
     // needed here
     return hasLoginProvider() && user().isEmpty() && hasEmptyScopes()
         ? Optional.of(
-            ((URICustomizer) uriCustomizer().copy().setPath(urlPrefix()))
-                .replaceInPath("/" + STATIC_PATH, LoginHandler.PATH_LOGIN)
+            uriCustomizer()
+                .copy()
+                .setPath(basePath())
+                .appendPath(LoginHandler.PATH_LOGIN)
                 .clearParameters()
                 .addParameter(LoginHandler.PARAM_LOGIN_REDIRECT_URI, uriCustomizer().toString())
                 .toString())

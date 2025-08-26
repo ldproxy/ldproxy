@@ -44,6 +44,7 @@ public interface LoginRedirectHandler extends ApiExtension {
     URIBuilder uriBuilder =
         requestContext
             .getBaseUriCustomizer()
+            .copy()
             .appendPath(LoginHandler.PATH_LOGIN)
             .addParameter(
                 LoginHandler.PARAM_LOGIN_REDIRECT_URI,
