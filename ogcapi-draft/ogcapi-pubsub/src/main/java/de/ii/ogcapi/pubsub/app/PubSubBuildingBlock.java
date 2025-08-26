@@ -36,13 +36,12 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.ParameterExtension;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.LogContext.MARKER;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -56,6 +55,7 @@ import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -539,10 +539,8 @@ public class PubSubBuildingBlock
               .sorted(Comparator.comparing(ParameterExtension::getName))
               .collect(ImmutableList.toImmutableList());
       ApiRequestContext requestContextGeoJson =
-          new ImmutableRequestContext.Builder()
+          new ImmutableStaticRequestContext.Builder()
               .api(api)
-              .requestContext(Optional.empty())
-              .externalUri(uri)
               .requestUri(uri)
               .mediaType(
                   new ImmutableApiMediaType.Builder()

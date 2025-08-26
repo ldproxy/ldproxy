@@ -20,7 +20,7 @@ import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HttpRequestOverrideQueryParameter;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -31,13 +31,11 @@ import de.ii.ogcapi.foundation.domain.RequestInjectableContext;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.dropwizard.auth.Auth;
 import io.dropwizard.jetty.HttpConnectorFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.net.URI;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
@@ -75,7 +73,6 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
   private final ExtensionRegistry extensionRegistry;
   private final RequestInjectableContext ogcApiInjectableContext;
-  private final URI servicesUri;
   private final ContentNegotiationMediaType contentNegotiationMediaType;
   private final ContentNegotiationLanguage contentNegotiationLanguage;
   private final ApiRequestAuthorizer apiRequestAuthorizer;
@@ -86,13 +83,11 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       AppContext appContext,
       ExtensionRegistry extensionRegistry,
       RequestInjectableContext ogcApiInjectableContext,
-      ServicesContext servicesContext,
       ContentNegotiationMediaType contentNegotiationMediaType,
       ContentNegotiationLanguage contentNegotiationLanguage,
       ApiRequestAuthorizer apiRequestAuthorizer) {
     this.extensionRegistry = extensionRegistry;
     this.ogcApiInjectableContext = ogcApiInjectableContext;
-    this.servicesUri = servicesContext.getUri();
     this.contentNegotiationMediaType = contentNegotiationMediaType;
     this.contentNegotiationLanguage = contentNegotiationLanguage;
     this.apiRequestAuthorizer = apiRequestAuthorizer;
@@ -194,10 +189,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
         contentNegotiationLanguage.negotiateLanguage(requestContext).orElse(Locale.ENGLISH);
 
     ApiRequestContext apiRequestContext =
-        new Builder()
-            .requestUri(requestContext.getUriInfo().getRequestUri())
+        new ImmutableRequestContext.Builder()
             .requestContext(requestContext)
-            .externalUri(servicesUri)
             .queryParameterSet(queryParameterSet)
             .mediaType(selectedMediaType)
             .alternateMediaTypes(getAlternateMediaTypes(selectedMediaType, supportedMediaTypes))
