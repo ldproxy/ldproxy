@@ -46,13 +46,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -195,6 +198,19 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
     return definitionBuilder.build();
   }
 
+  private static void checkHeader(
+      Optional<SearchConfiguration> searchConfiguration, String ifMatch, String ifUnmodifiedSince) {
+    if (searchConfiguration.map(SearchConfiguration::supportsEtag).orElse(false)
+        && Objects.isNull(ifMatch)) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Match' header.");
+    } else if (searchConfiguration.map(SearchConfiguration::supportsLastModified).orElse(false)
+        && Objects.isNull(ifUnmodifiedSince)) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
+    }
+  }
+
   /**
    * creates or updates a stored query
    *
@@ -206,12 +222,19 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
   public Response putStoredQuery(
       @Auth Optional<User> optionalUser,
       @PathParam("queryId") String queryId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
     OgcApiDataV2 apiData = api.getData();
+
+    Optional<SearchConfiguration> SearchConfiguration =
+        api.getData().getExtension(SearchConfiguration.class);
+    checkHeader(SearchConfiguration, ifMatch, ifUnmodifiedSince);
+
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
@@ -258,10 +281,17 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
   public Response deleteStoredQuery(
       @Auth Optional<User> optionalUser,
       @PathParam("queryId") String queryId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     OgcApiDataV2 apiData = api.getData();
+
+    Optional<SearchConfiguration> SearchConfiguration =
+        api.getData().getExtension(SearchConfiguration.class);
+    checkHeader(SearchConfiguration, ifMatch, ifUnmodifiedSince);
+
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
     // TODO recompute API definition of EndpointStoredQuery

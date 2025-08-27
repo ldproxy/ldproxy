@@ -43,13 +43,16 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -231,6 +234,19 @@ public class EndpointStylesManager extends Endpoint
     return definitionBuilder.build();
   }
 
+  private static void checkHeader(
+      Optional<StylesConfiguration> stylesConfiguration, String ifMatch, String ifUnmodifiedSince) {
+    if (stylesConfiguration.map(StylesConfiguration::supportsEtag).orElse(false)
+        && Objects.isNull(ifMatch)) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Match' header.");
+    } else if (stylesConfiguration.map(StylesConfiguration::supportsLastModified).orElse(false)
+        && Objects.isNull(ifUnmodifiedSince)) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
+    }
+  }
+
   /**
    * creates a new style
    *
@@ -239,12 +255,16 @@ public class EndpointStylesManager extends Endpoint
   @POST
   public Response postStyle(
       @Auth Optional<User> optionalUser,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       byte[] requestBody) {
 
-    OgcApiDataV2 apiData = api.getData();
+    Optional<StylesConfiguration> StylesConfiguration =
+        api.getData().getExtension(StylesConfiguration.class);
+    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     ImmutableQueryInputStyleCreateReplace.Builder builder =
         new ImmutableQueryInputStyleCreateReplace.Builder()
@@ -269,6 +289,8 @@ public class EndpointStylesManager extends Endpoint
   public Response putStyle(
       @Auth Optional<User> optionalUser,
       @PathParam("styleId") String styleId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
@@ -276,6 +298,10 @@ public class EndpointStylesManager extends Endpoint
 
     OgcApiDataV2 apiData = api.getData();
     checkPathParameter(extensionRegistry, apiData, "/styles/{styleId}", "styleId", styleId);
+
+    Optional<StylesConfiguration> StylesConfiguration =
+        api.getData().getExtension(StylesConfiguration.class);
+    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     ImmutableQueryInputStyleCreateReplace.Builder builder =
         new ImmutableQueryInputStyleCreateReplace.Builder()
@@ -301,11 +327,17 @@ public class EndpointStylesManager extends Endpoint
   public Response deleteStyle(
       @Auth Optional<User> optionalUser,
       @PathParam("styleId") String styleId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     OgcApiDataV2 apiData = api.getData();
     checkPathParameter(extensionRegistry, apiData, "/styles/{styleId}", "styleId", styleId);
+
+    Optional<StylesConfiguration> StylesConfiguration =
+        api.getData().getExtension(StylesConfiguration.class);
+    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     QueriesHandlerStylesManager.QueryInputStyleDelete queryInput =
         new ImmutableQueryInputStyleDelete.Builder().styleId(styleId).build();
