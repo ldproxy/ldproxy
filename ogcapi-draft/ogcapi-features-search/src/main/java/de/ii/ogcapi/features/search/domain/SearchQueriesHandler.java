@@ -72,8 +72,6 @@ public interface SearchQueriesHandler
   @Value.Immutable
   interface QueryInputQueryDefinition extends QueryInput {
     String getQueryId();
-
-    StoredQueryExpression getQuery();
   }
 
   @Value.Immutable

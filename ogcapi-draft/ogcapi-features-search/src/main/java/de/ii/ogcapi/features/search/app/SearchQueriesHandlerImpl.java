@@ -88,6 +88,7 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Date;
@@ -199,9 +200,23 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   @SuppressWarnings("PMD.ConfusingTernary")
   private Response writeStoredQuery(
       QueryInputStoredQueryCreateReplace queryInput, ApiRequestContext requestContext) {
-    if (queryInput.getStrict()) {
-      StoredQueryExpression query = queryInput.getQuery();
 
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+
+    String queryId = queryInput.getQueryId();
+
+    Date lastModified = repository.getLastModified(apiData, queryId);
+
+    @SuppressWarnings("UnstableApiUsage")
+    StoredQueryExpression query = repository.get(apiData, queryId);
+    EntityTag etag = ETag.from(query.getStableHash().getBytes(StandardCharsets.UTF_8));
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
+
+    if (queryInput.getStrict()) {
       // check collections
       query
           .getQueries()
@@ -236,8 +251,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     if (!queryInput.getDryRun()) {
       try {
-        repository.writeStoredQueryDocument(
-            requestContext.getApi().getData(), queryInput.getQueryId(), queryInput.getQuery());
+        repository.writeStoredQueryDocument(requestContext.getApi().getData(), queryId, query);
       } catch (IOException e) {
         throw new IllegalStateException(
             MessageFormat.format("Error while storing query '{0}'.", queryInput.getQueryId()), e);
@@ -249,6 +263,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
   private Response deleteStoredQuery(
       QueryInputStoredQueryDelete queryInput, ApiRequestContext requestContext) {
+
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+
+    String queryId = queryInput.getQueryId();
+    Date lastModified = repository.getLastModified(apiData, queryId);
+    @SuppressWarnings("UnstableApiUsage")
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, null);
+
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
+
     try {
       repository.deleteStoredQuery(requestContext.getApi().getData(), queryInput.getQueryId());
     } catch (IOException e) {
@@ -497,14 +523,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .map(f -> f.getMediaType().type().toString())
                                 .collect(Collectors.joining(", ")))));
 
-    Date lastModified = getLastModified(queryInput);
+    String queryId = queryInput.getQueryId();
+    Date lastModified = repository.getLastModified(apiData, queryId);
     @SuppressWarnings("UnstableApiUsage")
-    EntityTag etag =
-        sendEtag(format.getMediaType(), apiData)
-            ? ETag.from(
-                queryInput.getQuery(), StoredQueryExpression.FUNNEL, format.getMediaType().label())
-            : null;
+    StoredQueryExpression query = repository.get(apiData, queryId);
+    EntityTag etag = ETag.from(query.getStableHash().getBytes(StandardCharsets.UTF_8));
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
     if (Objects.nonNull(response)) {
       return response.build();
     }
@@ -519,7 +544,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format(
                     "%s.%s", queryInput.getQueryId(), format.getMediaType().fileExtension())))
-        .entity(format.getEntity(queryInput.getQuery(), apiData, requestContext))
+        .entity(format.getEntity(query, apiData, requestContext))
         .build();
   }
 
