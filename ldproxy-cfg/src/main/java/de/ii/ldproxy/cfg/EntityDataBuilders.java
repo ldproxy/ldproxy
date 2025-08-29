@@ -12,6 +12,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.sql.domain.FeatureProviderSql;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
+import de.ii.xtraplatform.tiles.domain.ImmutableTileProviderFeaturesData;
+import de.ii.xtraplatform.tiles.domain.TileProviderData;
+import de.ii.xtraplatform.tiles.domain.TileProviderFeaturesData;
 
 public interface EntityDataBuilders {
 
@@ -26,5 +29,11 @@ public interface EntityDataBuilders {
         .entityStorageVersion(2)
         .providerType(FeatureProvider.PROVIDER_TYPE)
         .providerSubType(FeatureProviderSql.PROVIDER_SUB_TYPE);
+  }
+
+  default ImmutableTileProviderFeaturesData.Builder tiles() {
+    return new ImmutableTileProviderFeaturesData.Builder()
+        .providerType(TileProviderData.PROVIDER_TYPE)
+        .providerSubType(TileProviderFeaturesData.PROVIDER_SUBTYPE);
   }
 }
