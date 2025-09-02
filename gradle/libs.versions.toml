@@ -2,7 +2,7 @@
 schema-validator = '1.5.8'
 earcut4j = '2.2.2'
 flatbuffers = '25.2.10'
-flatgeobuf = '3.27.1'
+flatgeobuf = '3.28.1'
 
 [libraries]
 # foundation
