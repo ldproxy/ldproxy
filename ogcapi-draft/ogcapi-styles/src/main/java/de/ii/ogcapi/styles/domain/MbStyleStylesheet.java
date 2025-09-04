@@ -20,11 +20,13 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaGeometry;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.styles.app.AdjustZoomLevels;
 import de.ii.ogcapi.styles.app.SchemaCacheStyleLayer;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.values.domain.AutoValue;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
@@ -32,6 +34,9 @@ import de.ii.xtraplatform.values.domain.ValueEncoding.FORMAT;
 import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore.FormatAlias;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
@@ -301,6 +306,140 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                             .build())
                                     .build()))
         .orElse(this);
+  }
+
+  @JsonIgnore
+  public MbStyleStylesheet adjustForTileMatrixSetIfNecessary(
+      Optional<TileMatrixSet> tileMatrixSet, String serviceUrl) {
+    if (tileMatrixSet.isEmpty() || "WebMercatorQuad".equals(tileMatrixSet.get().getId())) {
+      return this;
+    }
+
+    if (!tileMatrixSet.get().isQuadTree()) {
+      throw new IllegalArgumentException(
+          "This operation is not supported for the tile matrix set: "
+              + tileMatrixSet.get().getId());
+    }
+
+    String tmsId = tileMatrixSet.get().getId();
+    BigDecimal scaleDenominatorLevel0WebMercatorQuad = BigDecimal.valueOf(559082264.028717);
+    BigDecimal scaleDenominatorLevel0Target =
+        BigDecimal.valueOf(tileMatrixSet.get().getInitialScaleDenominator());
+    BigDecimal ratio =
+        scaleDenominatorLevel0WebMercatorQuad
+            .divide(scaleDenominatorLevel0Target, MathContext.DECIMAL128)
+            .setScale(5, RoundingMode.HALF_UP);
+    double adjust = Math.log(ratio.doubleValue()) / Math.log(2);
+    AdjustZoomLevels adjustZoomLevels = new AdjustZoomLevels(adjust);
+
+    return new ImmutableMbStyleStylesheet.Builder()
+        .from(this)
+        .zoom(getZoom().map(v -> Math.max(0, v - adjust)))
+        .metadata(
+            getMetadata()
+                .map(
+                    md ->
+                        md.entrySet().stream()
+                            .filter(entry -> !entry.getKey().equals("ldproxy:layerControl"))
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))))
+        .sources(
+            getSources().entrySet().stream()
+                .map(
+                    entry -> {
+                      MbStyleSource source = entry.getValue();
+                      if (source instanceof MbStyleVectorSource) {
+                        return Map.entry(
+                            entry.getKey(),
+                            ImmutableMbStyleVectorSource.copyOf((MbStyleVectorSource) source)
+                                .withUrl(
+                                    ((MbStyleVectorSource) source)
+                                        .getUrl()
+                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
+                                .withTiles(
+                                    ((MbStyleVectorSource) source)
+                                        .getTiles().orElse(List.of()).stream()
+                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
+                                            .collect(Collectors.toList()))
+                                .withMinzoom(
+                                    ((MbStyleVectorSource) source)
+                                        .getMinzoom()
+                                        .map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                .withMaxzoom(
+                                    ((MbStyleVectorSource) source)
+                                        .getMaxzoom()
+                                        .map(v -> Math.max(0, v.doubleValue() - adjust))));
+                      } else if (source instanceof MbStyleRasterSource) {
+                        return Map.entry(
+                            entry.getKey(),
+                            ImmutableMbStyleRasterSource.copyOf((MbStyleRasterSource) source)
+                                .withUrl(
+                                    ((MbStyleRasterSource) source)
+                                        .getUrl()
+                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
+                                .withTiles(
+                                    ((MbStyleRasterSource) source)
+                                        .getTiles().orElse(ImmutableList.of()).stream()
+                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
+                                            .collect(Collectors.toList()))
+                                .withMinzoom(
+                                    ((MbStyleRasterSource) source)
+                                        .getMinzoom()
+                                        .map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                .withMaxzoom(
+                                    ((MbStyleRasterSource) source)
+                                        .getMaxzoom()
+                                        .map(v -> Math.max(0, v.doubleValue() - adjust))));
+                      }
+                      return Map.entry(entry.getKey(), entry.getValue());
+                    })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+        .layers(
+            getLayers().stream()
+                .map(
+                    l ->
+                        ImmutableMbStyleLayer.copyOf(l)
+                            .withMinzoom(
+                                l.getMinzoom().map(v -> Math.max(0, v.doubleValue() - adjust)))
+                            .withMaxzoom(
+                                l.getMaxzoom().map(v -> Math.max(0, v.doubleValue() - adjust)))
+                            .withLayout(
+                                l.getLayout().entrySet().stream()
+                                    .map(
+                                        entry ->
+                                            Map.entry(
+                                                entry.getKey(),
+                                                entry.getValue().accept(adjustZoomLevels)))
+                                    .collect(
+                                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                            .withPaint(
+                                l.getPaint().entrySet().stream()
+                                    .map(
+                                        entry ->
+                                            Map.entry(
+                                                entry.getKey(),
+                                                entry.getValue().accept(adjustZoomLevels)))
+                                    .collect(
+                                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                            .withFilter(l.getFilter().map(f -> f.accept(adjustZoomLevels))))
+                .toList())
+        .build();
+  }
+
+  private static String adjustUrl(String url, String tmsId, String serviceUrl) {
+    // includes special handling for some commonly used basemap WMTS sources in Germany
+    if (url.startsWith("{serviceUrl}") || url.startsWith(serviceUrl)) {
+      return url.replace("WebMercatorQuad", tmsId);
+    } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
+        && tmsId.equals("AdV_25832")) {
+      return url.replace("GLOBAL_WEBMERCATOR", "DE_EPSG_25832_ADV");
+    } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
+        && tmsId.equals("AdV_25833")) {
+      return url.replace("GLOBAL_WEBMERCATOR", "DE_EPSG_25833_ADV");
+    } else if (url.startsWith("https://sg.geodatenzentrum.de/wmts_topplus_open")
+        && tmsId.equals("EU_25832")) {
+      return url.replace("GLOBAL_WEBMERCATOR", "EU_EPSG_25832_TOPPLUS");
+    }
+    return url;
   }
 
   private static List<Double> computeCenter(BoundingBox bbox) {

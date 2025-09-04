@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.values.domain.Values;
 import java.util.List;
 import java.util.Optional;
@@ -133,6 +134,7 @@ public interface StyleFormatExtension extends FormatExtension {
   /**
    * @param stylesheetContent the stylesheet content
    * @param api
+   * @param tileMatrixSet
    * @param requestContext
    * @return the response
    */
@@ -141,6 +143,7 @@ public interface StyleFormatExtension extends FormatExtension {
       OgcApi api,
       Optional<String> collectionId,
       String styleId,
+      Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     return stylesheetContent.getContent();
   }
