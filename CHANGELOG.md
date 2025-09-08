@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.4.2 (30/08/2025)
+#### Fixed bugs
+
+-  index out of bounds error for complex mapping [#1439](https://github.com/ldproxy/ldproxy/issues/1439)
+-  object arrays contain at most one entry [#1438](https://github.com/ldproxy/ldproxy/issues/1438)
+-  CRUD: custom primary keys are ignored [#1437](https://github.com/ldproxy/ldproxy/issues/1437)
+-  S3 store source do not work anymore [#1436](https://github.com/ldproxy/ldproxy/issues/1436)
+
+#### Dependency updates
+
+* Update dropwizard to v3.0.15 by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/250
+* Update dependency io.reactivex.rxjava3:rxjava to v3.1.11 by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/247
+* Update swagger to v2.2.36 by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/264
+* Update dependency io.github.classgraph:classgraph to v4.8.181 by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/246
+* Update dependency org.xerial:sqlite-jdbc to v3.50.3.0 by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/373
+* Update schemacrawler to v16.26.3 by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/369
+* Update dependency com.zaxxer:HikariCP to v6.3.2 by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/375
+
+---
+
 ## v4.4.1 (18/07/2025)
 #### Fixed bugs
 
