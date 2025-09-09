@@ -56,6 +56,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import de.ii.xtraplatform.streams.domain.Reactive.Sink;
 import de.ii.xtraplatform.streams.domain.Reactive.SinkReduced;
@@ -72,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -368,6 +370,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .maxAllowableOffset(query.getMaxAllowableOffset())
             .geometryPrecision(query.getGeometryPrecision())
             .wgs84GeometryPrecision(query.getWgs84GeometryPrecision());
+
+    if (outputFormat.isRestrictedToSimpleFeaturesGeometries(profiles)) {
+      Set<GeometryType> geometryTypes = featureProvider.info().getGeometryTypes();
+      if (!GeometryType.onlySimpleFeatureGeometries(geometryTypes)) {
+        query =
+            ImmutableFeatureQuery.builder().from(query).forceSimpleFeatureGeometry(true).build();
+      }
+    }
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {

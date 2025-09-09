@@ -15,7 +15,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.features.domain.SchemaDeriver;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -250,41 +250,27 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
 
   @Override
   protected JsonSchema getSchemaForGeometry(
-      SimpleFeatureGeometry geometryType,
+      GeometryType geometryType,
       Optional<String> title,
       Optional<String> description,
       Optional<String> role) {
-    JsonSchema jsonSchema;
-    switch (geometryType) {
-      case POINT:
-        jsonSchema = JsonSchemaBuildingBlocks.POINT;
-        break;
-      case MULTI_POINT:
-        jsonSchema = JsonSchemaBuildingBlocks.MULTI_POINT;
-        break;
-      case LINE_STRING:
-        jsonSchema = JsonSchemaBuildingBlocks.LINE_STRING;
-        break;
-      case MULTI_LINE_STRING:
-        jsonSchema = JsonSchemaBuildingBlocks.MULTI_LINE_STRING;
-        break;
-      case POLYGON:
-        jsonSchema = JsonSchemaBuildingBlocks.POLYGON;
-        break;
-      case MULTI_POLYGON:
-        jsonSchema = JsonSchemaBuildingBlocks.MULTI_POLYGON;
-        break;
-      case GEOMETRY_COLLECTION:
-        jsonSchema = JsonSchemaBuildingBlocks.GEOMETRY_COLLECTION;
-        break;
-      case NONE:
-        jsonSchema = JsonSchemaBuildingBlocks.NULL;
-        break;
-      case ANY:
-      default:
-        jsonSchema = JsonSchemaBuildingBlocks.GEOMETRY;
-        break;
-    }
+    JsonSchema jsonSchema =
+        switch (geometryType) {
+          case POINT -> JsonSchemaBuildingBlocks.POINT;
+          case MULTI_POINT -> JsonSchemaBuildingBlocks.MULTI_POINT;
+          case LINE_STRING -> JsonSchemaBuildingBlocks.LINE_STRING;
+          case MULTI_LINE_STRING -> JsonSchemaBuildingBlocks.MULTI_LINE_STRING;
+          case POLYGON -> JsonSchemaBuildingBlocks.POLYGON;
+          case MULTI_POLYGON -> JsonSchemaBuildingBlocks.MULTI_POLYGON;
+          case GEOMETRY_COLLECTION -> JsonSchemaBuildingBlocks.GEOMETRY_COLLECTION;
+          case CIRCULAR_STRING -> JsonSchemaBuildingBlocks.CIRCULAR_STRING;
+          case COMPOUND_CURVE -> JsonSchemaBuildingBlocks.COMPOUND_CURVE;
+          case MULTI_CURVE -> JsonSchemaBuildingBlocks.MULTI_CURVE;
+          case CURVE_POLYGON -> JsonSchemaBuildingBlocks.CURVE_POLYGON;
+          case POLYHEDRAL_SURFACE -> JsonSchemaBuildingBlocks.POLYHEDRAL_SURFACE;
+          case MULTI_SURFACE -> JsonSchemaBuildingBlocks.MULTI_SURFACE;
+          default -> JsonSchemaBuildingBlocks.GEOMETRY;
+        };
     return new ImmutableJsonSchemaGeometry.Builder()
         .from(jsonSchema)
         .title(title)
