@@ -92,7 +92,7 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
       String type = collectionMap.get(context.type());
       if (Objects.nonNull(type)) {
         if (type.contains(OPEN_TEMPLATE)) {
-          context.encoding().getBuffer().get().typeTemplate = type;
+          context.encoding().getFeatureState().get().typeTemplate = type;
         } else {
           writeType(context, type);
           if (schemaMap.containsKey(context.type())) {
@@ -114,7 +114,7 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled
-        && Objects.nonNull(context.encoding().getBuffer().get().typeTemplate)
+        && Objects.nonNull(context.encoding().getFeatureState().get().typeTemplate)
         && context.schema().filter(FeatureSchema::isValue).isPresent()
         && Objects.nonNull(context.value())
         && !context.value().isEmpty()) {
@@ -122,11 +122,16 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
       FeatureSchema schema = context.schema().get();
       if (schema.isType()) {
         String type =
-            context.encoding().getBuffer().get().typeTemplate.replace("{{type}}", context.value());
+            context
+                .encoding()
+                .getFeatureState()
+                .get()
+                .typeTemplate
+                .replace("{{type}}", context.value());
         context.encoding().pauseBuffering();
         writeType(context, type);
         context.encoding().continueBuffering();
-        context.encoding().getBuffer().get().typeTemplate = null;
+        context.encoding().getFeatureState().get().typeTemplate = null;
 
         if (schemaMap.containsKey(context.type())) {
           effectiveSchemas.putIfAbsent(type, schemaMap.get(context.type()));
@@ -170,7 +175,7 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
         String type = typeMap.get(context.schema().get().getName());
         if (Objects.nonNull(type)) {
           if (type.contains(OPEN_TEMPLATE)) {
-            context.encoding().getBuffer().get().typeTemplate = type;
+            context.encoding().getFeatureState().get().typeTemplate = type;
           } else {
             context.encoding().pauseBuffering();
             writeType(context, type);

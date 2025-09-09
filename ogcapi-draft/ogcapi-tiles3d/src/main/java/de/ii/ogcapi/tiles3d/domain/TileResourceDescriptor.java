@@ -14,11 +14,9 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.cql.domain.And;
+import de.ii.xtraplatform.cql.domain.Bbox;
 import de.ii.xtraplatform.cql.domain.BooleanValue2;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.cql.domain.Geometry;
-import de.ii.xtraplatform.cql.domain.Geometry.Bbox;
-import de.ii.xtraplatform.cql.domain.Geometry.Polygon;
 import de.ii.xtraplatform.cql.domain.Not;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.SIntersects;
@@ -28,6 +26,9 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.geometries.domain.Axes;
+import de.ii.xtraplatform.geometries.domain.Polygon;
+import de.ii.xtraplatform.geometries.domain.PositionList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -259,29 +260,13 @@ public abstract class TileResourceDescriptor {
       double xmax = xmin + dx / factor;
       double ymin = bbox.getYmin() + dy / factor * (getY() + 1);
       double ymax = ymin + dy / factor;
-      return Optional.of(
-          Polygon.of(
-              OgcCrs.CRS84,
-              List.of(
-                  Geometry.Coordinate.of(xmin, ymin),
-                  Geometry.Coordinate.of(xmax, ymin),
-                  Geometry.Coordinate.of(xmax, ymax),
-                  Geometry.Coordinate.of(xmin, ymax),
-                  Geometry.Coordinate.of(xmin, ymin))));
+      return Optional.of(Polygon.ofBbox(xmin, ymin, xmax, ymax, OgcCrs.CRS84));
     } else if (getY() == (factor - 1)) {
       double xmin = bbox.getXmin() + dx / factor * (getX() - 1);
       double xmax = xmin + dx / factor;
       double ymin = bbox.getYmin() + dy / factor * getY();
       double ymax = ymin + dy / factor;
-      return Optional.of(
-          Polygon.of(
-              OgcCrs.CRS84,
-              List.of(
-                  Geometry.Coordinate.of(xmin, ymin),
-                  Geometry.Coordinate.of(xmax, ymin),
-                  Geometry.Coordinate.of(xmax, ymax),
-                  Geometry.Coordinate.of(xmin, ymax),
-                  Geometry.Coordinate.of(xmin, ymin))));
+      return Optional.of(Polygon.ofBbox(xmin, ymin, xmax, ymax, OgcCrs.CRS84));
     }
 
     double x0 = bbox.getXmin() + dx / factor * (getX() - 1);
@@ -292,15 +277,11 @@ public abstract class TileResourceDescriptor {
     double y2 = y0 + 2 * dy / factor;
     return Optional.of(
         Polygon.of(
-            OgcCrs.CRS84,
             List.of(
-                Geometry.Coordinate.of(x0, y0),
-                Geometry.Coordinate.of(x1, y0),
-                Geometry.Coordinate.of(x1, y1),
-                Geometry.Coordinate.of(x2, y1),
-                Geometry.Coordinate.of(x2, y2),
-                Geometry.Coordinate.of(x0, y2),
-                Geometry.Coordinate.of(x0, y0))));
+                PositionList.of(
+                    Axes.XY,
+                    new double[] {x0, y0, x1, y0, x1, y1, x2, y1, x2, y2, x0, y2, x0, y0})),
+            Optional.of(OgcCrs.CRS84)));
   }
 
   @Override

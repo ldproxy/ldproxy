@@ -7,10 +7,11 @@
  */
 package de.ii.ogcapi.routes.app.encoder;
 
-import de.ii.ogcapi.features.core.domain.Geometry;
 import de.ii.xtraplatform.features.domain.FeatureBase;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
+import de.ii.xtraplatform.geometries.domain.LineString;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,22 +42,24 @@ public interface FeatureRoutes extends FeatureBase<PropertyRoutes, FeatureSchema
   }
 
   @Value.Lazy
-  default Optional<PropertyRoutes> getGeometry() {
+  default Optional<PropertyRoutes> getGeometryProperty() {
     return getProperties().stream()
-        .filter(property -> property.getSchema().filter(SchemaBase::isSpatial).isPresent())
-        .findFirst()
-        .or(
-            () ->
-                getProperties().stream()
-                    .map(property -> property.getGeometry())
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .findFirst());
+        .filter(
+            property ->
+                property
+                    .getSchema()
+                    .filter(SchemaBase::isSpatial)
+                    .filter(SchemaBase::isPrimaryGeometry)
+                    .isPresent())
+        .findFirst();
   }
 
   @Value.Lazy
-  default Optional<Geometry.LineString> parseGeometry() {
-    return getGeometry().map(PropertyRoutes::parseGeometry);
+  default Optional<LineString> getGeometry() {
+    return getGeometryProperty()
+        .map(PropertyRoutes::getGeometry)
+        .filter(g -> g.getType() == GeometryType.LINE_STRING)
+        .map(LineString.class::cast);
   }
 
   default Optional<PropertyRoutes> findPropertyByPath(String pathString) {
