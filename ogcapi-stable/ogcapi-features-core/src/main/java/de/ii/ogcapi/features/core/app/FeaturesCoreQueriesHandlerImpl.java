@@ -29,7 +29,6 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
-import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
@@ -66,7 +65,6 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -76,8 +74,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
@@ -265,8 +261,10 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     List<ApiMediaType> alternateMediaTypes = requestContext.getAlternateMediaTypes();
 
+    List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
+
     List<Profile> profiles =
-        extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+        allProfileSets.stream()
             .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
             .map(
                 profileSet ->
@@ -283,30 +281,13 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .toList();
 
     Map<ApiMediaType, List<Profile>> alternateProfiles =
-        extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
-            .filter(ProfileExtension::includeAlternateLinks)
-            .filter(
-                profileSet ->
-                    profiles.stream()
-                        .anyMatch(profile -> profile.getProfileSet().equals(profileSet.getId())))
-            .filter(
-                profileSet ->
-                    requestContext.getMediaType().type().equals(profileSet.getMediaType())
-                        || alternateMediaTypes.stream()
-                            .anyMatch(mt -> mt.type().equals(profileSet.getMediaType())))
-            .map(
-                profileSet ->
-                    new SimpleImmutableEntry<>(
-                        Stream.concat(
-                                alternateMediaTypes.stream(),
-                                Stream.of(requestContext.getMediaType()))
-                            .filter(mt -> mt.type().equals(profileSet.getMediaType()))
-                            .findFirst()
-                            .get(),
-                        profileSet.getProfiles(api.getData(), Optional.of(collectionId)).stream()
-                            .filter(profile -> !profiles.contains(profile))
-                            .toList()))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        getAlternateProfiles(
+            allProfileSets,
+            api.getData(),
+            collectionId,
+            requestContext.getMediaType(),
+            requestContext.getAlternateMediaTypes(),
+            queryInput.getProfiles());
 
     List<Link> links =
         Objects.isNull(featureId)
