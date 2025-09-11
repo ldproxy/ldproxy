@@ -518,8 +518,6 @@ public interface TilesConfiguration
   List<String> getTileSetEncodings();
 
   /**
-   * TODO add style support in OpenLayers via ol-mapbox-style
-   *
    * @langEn Selection of the map client to be used in the HTML output. The default is MapLibre GL
    *     JS, only the "WebMercatorQuad" tiling scheme is supported. Alternatively 'OPEN_LAYERS' is
    *     supported as well (OpenLayers). The support of Open Layers only makes sense if other of the
