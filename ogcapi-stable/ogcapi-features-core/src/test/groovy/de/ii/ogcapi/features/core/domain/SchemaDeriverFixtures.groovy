@@ -57,7 +57,7 @@ class SchemaDeriverFixtures {
                             .objectType("Link")
                             .label("foo")
                             .description("bar")
-                            .constraints(new ImmutableSchemaConstraints.Builder().minOccurrence(1).maxOccurrence(5).build())
+                            .constraints(new ImmutableSchemaConstraints.Builder().minOccurrence(0).maxOccurrence(5).build())
                             .putPropertyMap("title", new ImmutableFeatureSchema.Builder()
                                     .name("title")
                                     .description("bar")

@@ -34,7 +34,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Style.ImplementationVisibility;
 
@@ -130,14 +129,14 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
       } else {
         builder2.type("string");
       }
-      builder2.values(((JsonSchemaString) value).getEnums());
+      ((JsonSchemaString) value).getEnums().ifPresent(builder2::values);
     } else if (value instanceof JsonSchemaNumber) {
       builder2.type("number");
     } else if (value instanceof JsonSchemaInteger) {
       builder2.type("integer");
-      builder2.values(
-          ((JsonSchemaInteger) value)
-              .getEnums().stream().map(String::valueOf).collect(Collectors.toList()));
+      ((JsonSchemaInteger) value)
+          .getEnums()
+          .ifPresent(enums -> builder2.values(enums.stream().map(String::valueOf).toList()));
     } else if (value instanceof JsonSchemaBoolean) {
       builder2.type("boolean");
     } else if (value instanceof JsonSchemaGeometry) {

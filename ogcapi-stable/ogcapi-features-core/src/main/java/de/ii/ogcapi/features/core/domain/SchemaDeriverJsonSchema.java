@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.ImmutableSchemaConstraints;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
@@ -342,17 +343,32 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
       SchemaConstraints constraints,
       FeatureSchema property,
       Map<String, Codelist> codelists) {
+    JsonSchema result = schema;
     if (schema instanceof JsonSchemaArray) {
-      return new ImmutableJsonSchemaArray.Builder()
-          .from(schema)
-          .minItems(constraints.getMinOccurrence())
-          .maxItems(constraints.getMaxOccurrence())
-          .build();
+      result =
+          new ImmutableJsonSchemaArray.Builder()
+              .from(schema)
+              .items(
+                  withConstraints(
+                      ((JsonSchemaArray) schema).getItems(),
+                      new ImmutableSchemaConstraints.Builder()
+                          .from(constraints)
+                          .required(false)
+                          .build(),
+                      property,
+                      codelists))
+              .minItems(constraints.getMinOccurrence())
+              .maxItems(constraints.getMaxOccurrence())
+              .build();
+
+      if (constraints.getRequired().orElse(false) || constraints.getMinOccurrence().orElse(0) > 0) {
+        result = withRequired(result);
+      }
+
+      return result;
     }
 
-    JsonSchema result = schema;
-
-    if (constraints.getRequired().isPresent() && constraints.getRequired().get()) {
+    if (constraints.getRequired().orElse(false)) {
       result = withRequired(result);
     }
 
@@ -389,21 +405,27 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
                 : codelist.get().getEntries().values();
         result =
             string
-                ? new ImmutableJsonSchemaString.Builder().from(result).enums(values).build()
+                ? new ImmutableJsonSchemaString.Builder()
+                    .from(result)
+                    .enums(Optional.of(values.stream().toList()))
+                    .build()
                 : new ImmutableJsonSchemaInteger.Builder()
                     .from(result)
                     .enums(
-                        values.stream()
-                            .flatMap(
-                                val -> {
-                                  try {
-                                    return Stream.of(Integer.valueOf(val));
-                                  } catch (Throwable e) {
-                                    return Stream.empty();
-                                  }
-                                })
-                            .sorted()
-                            .collect(Collectors.toList()))
+                        values.isEmpty()
+                            ? Optional.empty()
+                            : Optional.of(
+                                values.stream()
+                                    .flatMap(
+                                        val -> {
+                                          try {
+                                            return Stream.of(Integer.valueOf(val));
+                                          } catch (Throwable e) {
+                                            return Stream.empty();
+                                          }
+                                        })
+                                    .sorted()
+                                    .collect(Collectors.toList())))
                     .build();
       }
     }
