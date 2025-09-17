@@ -57,7 +57,7 @@ public class ProfileCodelistsInline extends ProfileCodelist {
 
       final List<String> enums =
           schema instanceof JsonSchemaString
-              ? ((JsonSchemaString) schema).getEnums()
+              ? ((JsonSchemaString) schema).getEnums().orElse(List.of())
               : ((JsonSchemaInteger) schema).getEnums().stream().map(String::valueOf).toList();
       final boolean allValues = enums.isEmpty();
 

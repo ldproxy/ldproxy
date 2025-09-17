@@ -72,7 +72,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
       throws IOException {
     if (isEnabled) {
       if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)) {
-        FeatureState featureState = context.encoding().getBuffer().get();
+        FeatureState featureState = context.encoding().getFeatureState().get();
         if ((!featureState.instantProperty.isEmpty()
                 || !featureState.intervalStartProperty.isEmpty()
                 || !featureState.intervalEndProperty.isEmpty())
@@ -96,7 +96,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled) {
-      FeatureState featureState = context.encoding().getBuffer().get();
+      FeatureState featureState = context.encoding().getFeatureState().get();
       if ((!featureState.instantProperty.isEmpty()
               || !featureState.intervalStartProperty.isEmpty()
               || !featureState.intervalEndProperty.isEmpty())
@@ -119,7 +119,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     final FeatureSchema schema = context.schema().get();
-    final FeatureState featureState = context.encoding().getBuffer().get();
+    final FeatureState featureState = context.encoding().getFeatureState().get();
     if (isEnabled
         && !featureState.hasTime
         && (!featureState.instantProperty.isEmpty()

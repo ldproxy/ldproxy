@@ -43,7 +43,7 @@ import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
@@ -272,7 +272,7 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
             && solid.isSpatial()
             && solid
                 .getGeometryType()
-                .filter(gt -> gt.equals(SimpleFeatureGeometry.MULTI_POLYGON))
+                .filter(gt -> gt.equals(GeometryType.MULTI_POLYGON))
                 .isPresent();
     if (!valid) {
       builder.addErrors(
@@ -306,7 +306,7 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
                 .getPropertyMap()
                 .get("lod2MultiSurface")
                 .getGeometryType()
-                .filter(gt -> gt.equals(SimpleFeatureGeometry.MULTI_POLYGON))
+                .filter(gt -> gt.equals(GeometryType.MULTI_POLYGON))
                 .isPresent();
     if (!valid) {
       builder.addErrors(

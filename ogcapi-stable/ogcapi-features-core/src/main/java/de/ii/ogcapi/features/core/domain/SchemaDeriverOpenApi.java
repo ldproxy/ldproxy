@@ -12,7 +12,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.features.domain.SchemaDeriver;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
@@ -162,60 +162,35 @@ public abstract class SchemaDeriverOpenApi extends SchemaDeriver<Schema<?>> {
 
   @Override
   protected Schema<?> getSchemaForGeometry(
-      SimpleFeatureGeometry geometryType,
+      GeometryType geometryType,
       Optional<String> title,
       Optional<String> description,
       Optional<String> role) {
-    Schema<?> oapiSchema;
-    switch (geometryType) {
-      case POINT:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/pointGeoJSON");
-        break;
-      case MULTI_POINT:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multipointGeoJSON");
-        break;
-      case LINE_STRING:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/linestringGeoJSON");
-        break;
-      case MULTI_LINE_STRING:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multilinestringGeoJSON");
-        break;
-      case POLYGON:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/polygonGeoJSON");
-        break;
-      case MULTI_POLYGON:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multipolygonGeoJSON");
-        break;
-      case GEOMETRY_COLLECTION:
-      case ANY:
-      default:
-        oapiSchema =
-            new Schema<>()
-                .$ref(
-                    "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON");
-        break;
-      case NONE:
-        oapiSchema = null;
-        break;
-    }
+    Schema<?> oapiSchema =
+        switch (geometryType) {
+          case POINT -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/pointGeoJSON");
+          case MULTI_POINT -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multipointGeoJSON");
+          case LINE_STRING -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/linestringGeoJSON");
+          case MULTI_LINE_STRING -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multilinestringGeoJSON");
+          case POLYGON -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/polygonGeoJSON");
+          case MULTI_POLYGON -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/multipolygonGeoJSON");
+          case ANY -> new Schema<>()
+              .$ref(
+                  "https://raw.githubusercontent.com/opengeospatial/ogcapi-features/master/core/openapi/ogcapi-features-1.yaml#/components/schemas/geometryGeoJSON");
+          default -> new ObjectSchema();
+        };
     // NOTE OpenAPI 3.0 does not expect other members next to '$ref',
     // so title and description are not added
     return oapiSchema;

@@ -31,4 +31,8 @@ public abstract class ProfileGeoJson extends ProfileGeneric {
   public boolean writeSecondaryGeometry() {
     return false;
   }
+
+  public boolean isRestrictedToSimpleFeaturesGeometries() {
+    return true;
+  }
 }

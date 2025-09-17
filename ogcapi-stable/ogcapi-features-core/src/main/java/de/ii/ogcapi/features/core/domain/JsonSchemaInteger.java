@@ -29,7 +29,7 @@ public abstract class JsonSchemaInteger extends JsonSchema {
   public abstract Optional<Long> getMaximum();
 
   @JsonProperty("enum")
-  public abstract List<Integer> getEnums();
+  public abstract Optional<List<Integer>> getEnums();
 
   @JsonProperty("x-ogc-unit")
   public abstract Optional<String> getUnit();
@@ -40,9 +40,9 @@ public abstract class JsonSchemaInteger extends JsonSchema {
   public static final Funnel<JsonSchemaInteger> FUNNEL =
       (from, into) -> {
         into.putString(from.getType(), StandardCharsets.UTF_8);
-        from.getMinimum().ifPresent(val -> into.putLong(val));
-        from.getMaximum().ifPresent(val -> into.putLong(val));
-        from.getEnums().stream().sorted().forEachOrdered(val -> into.putInt(val));
+        from.getMinimum().ifPresent(into::putLong);
+        from.getMaximum().ifPresent(into::putLong);
+        from.getEnums().ifPresent(enums -> enums.stream().sorted().forEachOrdered(into::putInt));
         from.getUnit().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
       };
 }
