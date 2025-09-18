@@ -151,9 +151,9 @@ public class EndpointCrud extends EndpointSubCollection
     ImmutableList.Builder<String> builder =
         new ImmutableList.Builder<String>()
             .add(
-                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/create-replace-delete",
-                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/update",
-                "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/features");
+                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/create-replace-delete",
+                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/update",
+                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/features");
 
     if (apiData.getCollections().values().stream()
         .anyMatch(
@@ -162,7 +162,7 @@ public class EndpointCrud extends EndpointSubCollection
                     .map(CrudConfiguration::supportsLastModified)
                     .orElse(false))) {
       builder.add(
-          "http://www.opengis.net/spec/ogcapi-features-4/1.0/req/optimistic-locking-timestamps");
+          "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-timestamps");
     }
 
     return builder.build();
