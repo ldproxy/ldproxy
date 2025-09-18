@@ -39,7 +39,7 @@ public interface ProfileExtension extends ApiExtension {
    * @return the URI of the profile
    */
   static String getUri(Profile profile) {
-    if (profile.getId().startsWith("val-")) {
+    if (profile.getId().startsWith("val-") || profile.getId().startsWith("all-")) {
       return String.format("https://def.ldproxy.net/profile/%s", profile.getId());
     }
     return String.format("http://www.opengis.net/def/profile/ogc/0/%s", profile.getId());
