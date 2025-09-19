@@ -146,7 +146,8 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
             GROUP_RESOURCES_WRITE,
             TAGS,
             ResourcesBuildingBlock.MATURITY,
-            ResourcesBuildingBlock.SPEC)
+            ResourcesBuildingBlock.SPEC,
+            false)
         .ifPresent(operation -> resourceBuilder.putOperations(methodReplace.name(), operation));
     HttpMethods methodDelete = HttpMethods.DELETE;
     queryParameters = getQueryParameters(extensionRegistry, apiData, path, methodDelete);
@@ -168,7 +169,8 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
             GROUP_RESOURCES_WRITE,
             TAGS,
             ResourcesBuildingBlock.MATURITY,
-            ResourcesBuildingBlock.SPEC)
+            ResourcesBuildingBlock.SPEC,
+            false)
         .ifPresent(operation -> resourceBuilder.putOperations(methodDelete.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 

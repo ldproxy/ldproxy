@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.profile.codelist.app;
 
+import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
@@ -25,10 +26,8 @@ import de.ii.ogcapi.features.core.domain.JsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.Profile;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 public class MapCodelists implements JsonSchemaVisitor {
@@ -64,27 +63,21 @@ public class MapCodelists implements JsonSchemaVisitor {
       return ImmutableJsonSchemaDocumentV7.builder()
           .from((JsonSchemaDocumentV7) schema)
           .properties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaDocumentV7) schema)
-                      .getProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaDocumentV7) schema)
+                  .getProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaDocumentV7) schema)
-                      .getPatternProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaDocumentV7) schema)
+                  .getPatternProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaDocumentV7) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .definitions(
@@ -94,33 +87,27 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .build();
     } else if (schema instanceof JsonSchemaDocument) {
       return ImmutableJsonSchemaDocument.builder()
           .from((JsonSchemaDocument) schema)
           .properties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaDocument) schema)
-                      .getProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaDocument) schema)
+                  .getProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaDocument) schema)
-                      .getPatternProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaDocument) schema)
+                  .getPatternProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaDocument) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .definitions(
@@ -130,33 +117,27 @@ public class MapCodelists implements JsonSchemaVisitor {
                           entry ->
                               new SimpleImmutableEntry<>(
                                   entry.getKey(), entry.getValue().accept(this)))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .build();
     } else if (schema instanceof JsonSchemaObject) {
       return new ImmutableJsonSchemaObject.Builder()
           .from((JsonSchemaObject) schema)
           .properties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaObject) schema)
-                      .getProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaObject) schema)
+                  .getProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .patternProperties(
-              (Map<String, ? extends JsonSchema>)
-                  ((JsonSchemaObject) schema)
-                      .getPatternProperties().entrySet().stream()
-                          .map(
-                              entry ->
-                                  new SimpleImmutableEntry<>(
-                                      entry.getKey(), entry.getValue().accept(this)))
-                          .collect(
-                              Collectors.toMap(
-                                  Entry::getKey, Entry::getValue, (u, v) -> u, LinkedHashMap::new)))
+              ((JsonSchemaObject) schema)
+                  .getPatternProperties().entrySet().stream()
+                      .map(
+                          entry ->
+                              new SimpleImmutableEntry<>(
+                                  entry.getKey(), entry.getValue().accept(this)))
+                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .additionalProperties(
               ((JsonSchemaObject) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
           .build();

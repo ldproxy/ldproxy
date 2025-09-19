@@ -82,6 +82,7 @@ class SchemaDeriverJsonSpec extends Specification {
                             .description("bar")
                             .role("id")
                             .propertySeq(0)
+                            .readOnly(true)
                             .build())
                     .addRequired("string")
                     .putProperties("string", new ImmutableJsonSchemaString.Builder()

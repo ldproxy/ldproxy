@@ -166,7 +166,8 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
               GROUP_SEARCH_WRITE,
               TAGS,
               SearchBuildingBlock.MATURITY,
-              SearchBuildingBlock.SPEC)
+              SearchBuildingBlock.SPEC,
+              false)
           .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
 
       queryParameters = getQueryParameters(extensionRegistry, apiData, path, HttpMethods.DELETE);
@@ -186,7 +187,8 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
               GROUP_SEARCH_WRITE,
               TAGS,
               SearchBuildingBlock.MATURITY,
-              SearchBuildingBlock.SPEC)
+              SearchBuildingBlock.SPEC,
+              false)
           .ifPresent(
               operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());

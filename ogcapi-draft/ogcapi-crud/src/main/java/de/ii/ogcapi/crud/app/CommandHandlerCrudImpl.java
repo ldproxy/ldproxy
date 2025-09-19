@@ -7,7 +7,10 @@
  */
 package de.ii.ogcapi.crud.app;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
@@ -35,7 +38,6 @@ import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
@@ -49,7 +51,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -89,7 +91,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   public Response postItemsResponse(
       QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
 
-    EpsgCrs crs = queryInput.getCrs().orElseGet(queryInput::getDefaultCrs);
+    EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     FeatureTokenSource featureTokenSource =
@@ -100,26 +102,46 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             crs,
             axes);
 
+    return createFeature(queryInput, featureTokenSource, requestContext, Optional.empty());
+  }
+
+  private Response createFeature(
+      QueryInputFeatureCreate queryInput,
+      FeatureTokenSource featureTokenSource,
+      ApiRequestContext requestContext,
+      Optional<String> featureId) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
             .mutations()
             .get()
-            .createFeatures(queryInput.getFeatureType(), featureTokenSource, crs);
+            .createFeatures(
+                queryInput.getFeatureType(), featureTokenSource, queryInput.getCrs(), featureId);
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
-    List<String> ids = result.getIds();
+    List<String> ids;
+    Response response;
+
+    if (featureId.isPresent()) {
+      ids = List.of(featureId.get());
+      response = Response.noContent().build();
+    } else {
+      ids = result.getIds();
+
+      URI firstFeature = null;
+      try {
+        firstFeature =
+            requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
+      } catch (URISyntaxException e) {
+        // ignore
+      }
+
+      response = Response.created(firstFeature).build();
+    }
 
     if (ids.isEmpty()) {
       throw new IllegalArgumentException("No features found in input");
-    }
-    URI firstFeature = null;
-    try {
-      firstFeature =
-          requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
-    } catch (URISyntaxException e) {
-      // ignore
     }
 
     handleChange(
@@ -132,23 +154,14 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.CREATE);
 
-    return Response.created(firstFeature).build();
+    return response;
   }
 
   @Override
   public Response putItemResponse(
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
-
-    EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
+    EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
-
-    Response feature = getCurrentFeature(queryInput, requestContext);
-    EntityTag eTag = feature.getEntityTag();
-    Date lastModified = feature.getLastModified();
-
-    Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
-    if (Objects.nonNull(response)) return response.build();
 
     FeatureTokenSource featureTokenSource =
         getFeatureSource(
@@ -157,7 +170,40 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             Optional.empty(),
             crs,
             axes);
+    Response previousFeature = null;
 
+    try {
+      previousFeature = getCurrentFeature(queryInput, requestContext);
+    } catch (NotFoundException e) {
+      if (!queryInput.isAllowCreate()) {
+        throw e;
+      }
+    }
+
+    if (Objects.isNull(previousFeature) && queryInput.isAllowCreate()) {
+      return createFeature(
+          queryInput,
+          featureTokenSource,
+          requestContext,
+          Optional.ofNullable(queryInput.getFeatureId()));
+    }
+
+    Date lastModified = previousFeature.getLastModified();
+
+    Response.ResponseBuilder response =
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
+
+    return updateFeature(queryInput, featureTokenSource, previousFeature);
+  }
+
+  private Response updateFeature(
+      QueryInputFeatureReplace queryInput,
+      FeatureTokenSource featureTokenSource,
+      Response previousFeature) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
@@ -167,13 +213,13 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                 queryInput.getFeatureType(),
                 queryInput.getFeatureId(),
                 featureTokenSource,
-                crs,
+                queryInput.getCrs(),
                 false);
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
-    Optional<BoundingBox> currentBbox = parseBboxHeader(feature);
-    Optional<Tuple<Long, Long>> currentTime = parseTimeHeader(feature);
+    Optional<BoundingBox> currentBbox = parseBboxHeader(previousFeature);
+    Optional<Tuple<Long, Long>> currentTime = parseTimeHeader(previousFeature);
 
     handleChange(
         queryInput.getFeatureProvider(),
@@ -196,16 +242,26 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
-    InputStream merged =
-        new SequenceInputStream(new ByteArrayInputStream(prev), queryInput.getRequestBody());
+    final ObjectMapper mapper = new ObjectMapper();
+    InputStream merged;
+
+    try {
+      final JsonMergePatch patch =
+          mapper.readValue(queryInput.getRequestBody(), JsonMergePatch.class);
+      JsonNode orig = mapper.readTree(prev);
+      JsonNode mergedNode = patch.apply(orig);
+      merged = new ByteArrayInputStream(mapper.writeValueAsBytes(mergedNode));
+    } catch (Throwable e) {
+      throw new IllegalArgumentException(
+          "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
+    }
 
     FeatureTokenSource mergedSource =
         getFeatureSource(
@@ -247,11 +303,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     Response feature = getCurrentFeature(queryInput, requestContext);
 
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) {
       return response.build();
     }
@@ -282,7 +337,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   }
 
   private @NotNull Response getCurrentFeature(
-      QueryInputFeatureWithQueryParameterSet queryInput, ApiRequestContext requestContext) {
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
     try {
       if (formats == null) {
         formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
