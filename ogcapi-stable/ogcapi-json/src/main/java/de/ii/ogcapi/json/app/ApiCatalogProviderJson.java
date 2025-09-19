@@ -16,7 +16,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.services.domain.ServicesContext;
-import java.net.URI;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
@@ -40,9 +40,6 @@ public class ApiCatalogProviderJson extends ApiCatalogProvider {
     super(servicesContext, i18n, defaultsStore, extensionRegistry);
   }
 
-  // TODO: move externalUri handling to XtraplatformRequestContext in ServicesResource
-  // TODO: derive Wfs3Request from injected XtraplatformRequest
-
   @Override
   public ApiMediaType getApiMediaType() {
     return ApiMediaType.JSON_MEDIA_TYPE;
@@ -56,11 +53,13 @@ public class ApiCatalogProviderJson extends ApiCatalogProvider {
   // TODO: add locale parameter in ServiceListing.getServiceListing() in xtraplatform
   @Override
   public Response getServiceListing(
-      List<ServiceData> apis, URI uri, Optional<Principal> user, Optional<Locale> language)
+      List<ServiceData> apis,
+      URICustomizer uriCustomizer,
+      Optional<Principal> user,
+      Optional<Locale> language)
       throws URISyntaxException {
-    ApiCatalog apiCatalog = getCatalog(apis, uri, language);
+    ApiCatalog apiCatalog = getCatalog(apis, uriCustomizer, language);
 
-    // TODO: map in caller
     return Response.ok().entity(apiCatalog).build();
   }
 }

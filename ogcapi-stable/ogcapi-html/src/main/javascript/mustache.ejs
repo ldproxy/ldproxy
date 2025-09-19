@@ -1,7 +1,18 @@
-<% if (htmlWebpackPlugin.files.favicon) { %><link rel="shortcut icon" type="image/x-icon" href="<%=htmlWebpackPlugin.files.favicon%>"><% } %>
+<% if (htmlWebpackPlugin.files.favicon) { %><link rel="shortcut icon" type="image/x-icon" href="{{assetsPrefix}}<%=htmlWebpackPlugin.files.favicon%>"><% } %>
 
-<%= htmlWebpackPlugin.tags.headTags.filter((tag) => 
-(tag.tagName === 'link' && tag.attributes.rel && tag.attributes.rel === 'stylesheet') ||
-(tag.tagName === 'script' && tag.attributes.src &&
-tag.attributes.src.indexOf(`assets/${htmlWebpackPlugin.options.name}.`) > -1 &&
-tag.attributes.src.indexOf('assets/style-') === -1) ).join('\n') %>
+<%= htmlWebpackPlugin.tags.headTags
+.filter((tag) =>
+  (tag.tagName === 'link' && tag.attributes.rel && tag.attributes.rel === 'stylesheet') ||
+  (tag.tagName === 'script' && tag.attributes.src &&
+    tag.attributes.src.indexOf(`assets/${htmlWebpackPlugin.options.name}.`) > -1 &&
+    tag.attributes.src.indexOf('assets/style-') === -1) )
+.map((tag) => {
+  if (tag.tagName === 'link' && tag.attributes.href) {
+    tag.attributes.href = `{{assetsPrefix}}${tag.attributes.href}`;
+  }
+  if (tag.tagName === 'script' && tag.attributes.src) {
+    tag.attributes.src = `{{assetsPrefix}}${tag.attributes.src}`;
+  }
+  return tag;
+})
+.join('\n') %>

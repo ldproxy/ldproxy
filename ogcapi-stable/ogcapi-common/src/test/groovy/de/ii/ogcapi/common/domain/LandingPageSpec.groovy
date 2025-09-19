@@ -8,29 +8,12 @@
 package de.ii.ogcapi.common.domain
 
 import com.google.common.collect.ImmutableList
-import de.ii.ogcapi.foundation.app.I18nDefault
-import de.ii.ogcapi.foundation.app.OgcApiEntity
 import de.ii.ogcapi.common.app.ImmutableQueryInputConformance
 import de.ii.ogcapi.common.app.ImmutableQueryInputLandingPage
 import de.ii.ogcapi.common.app.QueriesHandlerCommonImpl
-import de.ii.ogcapi.foundation.domain.ApiExtension
-import de.ii.ogcapi.foundation.domain.ApiMediaType
-import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent
-import de.ii.ogcapi.foundation.domain.ApiRequestContext
-import de.ii.ogcapi.foundation.domain.AppContextTest
-import de.ii.ogcapi.foundation.domain.CacheTest
-import de.ii.ogcapi.foundation.domain.ConformanceClass
-import de.ii.ogcapi.foundation.domain.ExtensionRegistry
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent
-import de.ii.ogcapi.foundation.domain.ImmutableCollectionExtent
-import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi
-import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext
-import de.ii.ogcapi.foundation.domain.ImmutableTemporalExtent
-import de.ii.ogcapi.foundation.domain.OgcApi
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2
-import de.ii.ogcapi.foundation.domain.QueryParameterSet
+import de.ii.ogcapi.foundation.app.I18nDefault
+import de.ii.ogcapi.foundation.app.OgcApiEntity
+import de.ii.ogcapi.foundation.domain.*
 import de.ii.xtraplatform.crs.domain.BoundingBox
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import io.swagger.v3.oas.models.media.ObjectSchema
@@ -133,8 +116,7 @@ class LandingPageSpec extends Specification {
     }
 
     static def createRequestContext(String uri = 'http://example.com') {
-        new ImmutableRequestContext.Builder()
-                .externalUri(new URI(uri))
+        new ImmutableStaticRequestContext.Builder()
                 .mediaType(new ImmutableApiMediaType.Builder()
                         .type(MediaType.APPLICATION_JSON_TYPE)
                         .build())
@@ -168,10 +150,10 @@ class LandingPageSpec extends Specification {
                         @Override
                         ApiMediaTypeContent getContent() {
                             return new ImmutableApiMediaTypeContent.Builder()
-                            .ogcApiMediaType(getMediaType())
-                            .schema(new ObjectSchema())
-                            .schemaRef("#/")
-                            .build()
+                                    .ogcApiMediaType(getMediaType())
+                                    .schema(new ObjectSchema())
+                                    .schemaRef("#/")
+                                    .build()
                         }
 
                         @Override

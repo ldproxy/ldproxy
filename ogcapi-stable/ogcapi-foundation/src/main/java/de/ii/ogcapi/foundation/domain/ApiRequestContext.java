@@ -8,8 +8,9 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.auth.domain.User;
-import java.net.URI;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -23,8 +24,6 @@ public interface ApiRequestContext {
 
   Splitter PATH_SPLITTER = Splitter.on('/').trimResults().omitEmptyStrings();
 
-  URI getExternalUri();
-
   ApiMediaType getMediaType();
 
   List<ApiMediaType> getAlternateMediaTypes();
@@ -35,9 +34,7 @@ public interface ApiRequestContext {
 
   URICustomizer getUriCustomizer();
 
-  String getStaticUrlPrefix();
-
-  Map<String, String> getParameters();
+  URICustomizer getBaseUriCustomizer();
 
   Optional<Request> getRequest();
 
@@ -46,13 +43,26 @@ public interface ApiRequestContext {
   QueryParameterSet getQueryParameterSet();
 
   @Value.Default
+  default Map<String, String> getParameters() {
+    return getUriCustomizer().getQueryParams().stream()
+        .map(nameValuePair -> Map.entry(nameValuePair.getName(), nameValuePair.getValue()))
+        // Currently, the OGC API standards do not make use of query parameters with explode=true.
+        // If that changes in the future, this method needs to return a multimap instead
+        .collect(
+            ImmutableMap.toImmutableMap(
+                Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
+  }
+
+  @Value.Default
   default int getMaxResponseLinkHeaderSize() {
     return 2048;
   }
 
+  List<String> getBasePathSegments();
+
   @Value.Derived
-  default List<String> getExternalUriPath() {
-    return PATH_SPLITTER.splitToList(getExternalUri().getPath());
+  default String getBasePath() {
+    return Objects.requireNonNullElse(getBaseUriCustomizer().getPath(), "");
   }
 
   @Value.Derived
@@ -65,15 +75,17 @@ public interface ApiRequestContext {
   }
 
   @Value.Derived
-  default String getPath() {
-    String apiPath =
-        getUriCustomizer()
-            .copy()
-            .cutPathAfterSegments(getApi().getData().getSubPath().toArray(new String[0]))
-            .getPath();
+  default String getApiPath() {
+    return getUriCustomizer()
+        .copy()
+        .cutPathAfterSegments(getApi().getData().getSubPath().toArray(new String[0]))
+        .getPath();
+  }
 
+  @Value.Derived
+  default String getPath() {
     return Objects.requireNonNullElse(
-        getUriCustomizer().copy().replaceInPath(apiPath, "").getPath(), "");
+        getUriCustomizer().copy().replaceInPath(getApiPath(), "").getPath(), "");
   }
 
   @Value.Derived

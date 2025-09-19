@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.*
 import de.ii.xtraplatform.auth.domain.User
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.web.domain.URICustomizer
 
 import javax.ws.rs.core.Request
 import java.nio.charset.StandardCharsets
@@ -29,7 +30,7 @@ class JsonFgWriterSetupUtil {
 
     static EncodingAwareContextGeoJson createTransformationContext(OutputStream outputStream, boolean isCollection, CrsTransformer crsTransformer = null) throws URISyntaxException {
 
-        FeatureTransformationContextGeoJson transformationContext =  ImmutableFeatureTransformationContextGeoJson.builder()
+        FeatureTransformationContextGeoJson transformationContext = ImmutableFeatureTransformationContextGeoJson.builder()
                 .crsTransformer(Optional.ofNullable(crsTransformer))
                 .defaultCrs(OgcCrs.CRS84)
                 .addProfiles(new ProfileJsonFg(null) {
@@ -44,13 +45,18 @@ class JsonFgWriterSetupUtil {
                         .serviceType("OGC_API")
                         .addExtensions(new ImmutableJsonFgConfiguration.Builder().enabled(true).build())
                         .build())
-                .featureSchemas(ImmutableMap.of("xyz",Optional.empty()))
+                .featureSchemas(ImmutableMap.of("xyz", Optional.empty()))
                 .outputStream(outputStream)
                 .links(ImmutableList.of())
                 .isFeatureCollection(isCollection)
                 .ogcApiRequest(new ApiRequestContext() {
                     @Override
-                    URI getExternalUri() {
+                    URICustomizer getBaseUriCustomizer() {
+                        return null
+                    }
+
+                    @Override
+                    List<String> getBasePathSegments() {
                         return null
                     }
 
@@ -78,11 +84,6 @@ class JsonFgWriterSetupUtil {
                     @Override
                     URICustomizer getUriCustomizer() {
                         return new URICustomizer()
-                    }
-
-                    @Override
-                    String getStaticUrlPrefix() {
-                        return null
                     }
 
                     @Override

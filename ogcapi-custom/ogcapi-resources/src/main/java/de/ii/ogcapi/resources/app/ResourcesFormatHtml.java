@@ -15,11 +15,11 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -86,7 +86,8 @@ public class ResourcesFormatHtml implements ResourcesFormatExtension, FormatHtml
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(apiData))
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .rawLinks(resources.getLinks())
         .title(i18n.get("resourcesTitle", requestContext.getLanguage()))
         .description(i18n.get("resourcesDescription", requestContext.getLanguage()))

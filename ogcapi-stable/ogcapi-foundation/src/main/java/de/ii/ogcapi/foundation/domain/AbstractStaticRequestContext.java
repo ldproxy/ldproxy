@@ -7,42 +7,40 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import de.ii.xtraplatform.web.domain.ForwardedUri;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.Request;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class AbstractRequestContext implements ApiRequestContext {
+public abstract class AbstractStaticRequestContext implements ApiRequestContext {
 
-  abstract ContainerRequestContext getRequestContext();
+  abstract URI getRequestUri();
 
   @Value.Derived
   @Override
   public Optional<Request> getRequest() {
-    return Optional.ofNullable(getRequestContext().getRequest());
+    return Optional.empty();
   }
 
   @Value.Derived
   @Override
   public List<String> getBasePathSegments() {
-    return ForwardedUri.prefix(getRequestContext());
+    return List.of();
   }
 
   @Value.Derived
   @Override
   public URICustomizer getUriCustomizer() {
-    return new URICustomizer(getRequestContext().getUriInfo().getRequestUri())
-        .prependPathSegments(getBasePathSegments());
+    return new URICustomizer(getRequestUri()).prependPathSegments(getBasePathSegments());
   }
 
   @Value.Derived
   @Override
   public URICustomizer getBaseUriCustomizer() {
-    return new URICustomizer(getRequestContext().getUriInfo().getRequestUri())
+    return new URICustomizer(getRequestUri())
         .setPathSegments(getBasePathSegments())
         .ensureNoTrailingSlash()
         .clearParameters();

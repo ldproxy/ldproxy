@@ -16,7 +16,6 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
@@ -29,6 +28,7 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -298,7 +298,8 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
         .tileMatrixSets(tileMatrixSets)
         .breadCrumbs(breadCrumbs)
         .rawLinks(tiles.getLinks())
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .mapClientType(mapClientType)
         .styleUrl(styleUrl)
         .removeZoomLevelConstraints(removeZoomLevelConstraints)

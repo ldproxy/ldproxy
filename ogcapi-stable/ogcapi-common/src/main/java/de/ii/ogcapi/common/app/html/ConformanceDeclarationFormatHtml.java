@@ -18,10 +18,10 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -90,7 +90,8 @@ public class ConformanceDeclarationFormatHtml
     OgcApiConformanceDeclarationView ogcApiConformanceDeclarationView =
         new ImmutableOgcApiConformanceDeclarationView.Builder()
             .conformanceDeclaration(conformanceDeclaration)
-            .urlPrefix(requestContext.getStaticUrlPrefix())
+            .basePath(requestContext.getBasePath())
+            .apiPath(requestContext.getApiPath())
             .htmlConfig(htmlConfig)
             .noIndex(isNoIndexEnabledForApi(api.getData()))
             .i18n(i18n)

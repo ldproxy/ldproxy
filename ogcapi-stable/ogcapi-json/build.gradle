@@ -5,5 +5,7 @@ description = 'JSON encoding for every supported resource.'
 descriptionDe = 'JSON-Kodierung für alle unterstützten Ressourcen.'
 
 dependencies {
+    provided 'de.interactive_instruments:xtraplatform-web'
+
     provided project(":ogcapi-foundation")
 }

@@ -8,7 +8,7 @@
 package de.ii.ogcapi.oas30.app;
 
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import javax.ws.rs.core.Response;
 
 public interface ExtendableOpenApiDefinition {

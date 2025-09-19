@@ -17,7 +17,6 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.ImmutableHtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
@@ -27,7 +26,7 @@ import de.ii.xtraplatform.services.domain.Service;
 import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.values.domain.Identifier;
-import java.net.URI;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
@@ -75,9 +74,6 @@ public class ApiCatalogProviderHtml extends ApiCatalogProvider {
     return new ImmutableHtmlConfiguration.Builder().build();
   }
 
-  // TODO: move externalUri handling to XtraplatformRequestContext in ServicesResource
-  // TODO: derive Wfs3Request from injected XtraplatformRequest
-
   @Override
   public ApiMediaType getApiMediaType() {
     return MEDIA_TYPE;
@@ -91,16 +87,18 @@ public class ApiCatalogProviderHtml extends ApiCatalogProvider {
   // TODO: add locale parameter in ServiceListing.getServiceListing() in xtraplatform
   @Override
   public Response getServiceListing(
-      List<ServiceData> apis, URI uri, Optional<Principal> user, Optional<Locale> language)
+      List<ServiceData> apis,
+      URICustomizer uriCustomizer,
+      Optional<Principal> user,
+      Optional<Locale> language)
       throws URISyntaxException {
-    ApiCatalog apiCatalog = getCatalog(apis, uri, language);
+    ApiCatalog apiCatalog = getCatalog(apis, uriCustomizer, language);
 
     // TODO: map in caller
     return Response.ok()
         .entity(
             new ImmutableServiceOverviewView.Builder()
-                .uri(uri)
-                .uriCustomizer(new URICustomizer(uri))
+                .uriCustomizer(uriCustomizer)
                 .apiCatalog(apiCatalog)
                 .htmlConfig(getHtmlConfigurationDefaults())
                 .i18n(i18n)
@@ -111,7 +109,8 @@ public class ApiCatalogProviderHtml extends ApiCatalogProvider {
                         .add(new NavigationDTO(i18n.get("root", Optional.of(language.get())), true))
                         .build())
                 .noIndex(getHtmlConfigurationDefaults().getNoIndexEnabled())
-                .urlPrefix(apiCatalog.getUrlPrefix())
+                .basePath(apiCatalog.basePath())
+                .apiPath(apiCatalog.basePath())
                 .rawLinks(apiCatalog.getLinks())
                 .title(
                     apiCatalog

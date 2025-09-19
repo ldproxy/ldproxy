@@ -151,7 +151,8 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
       if (isNoUser(optionalUser, redirectHandler, requestContext, activeScopes)
           || isAudienceMismatch(apiSecurity, optionalUser)
           || isScopeMismatch(optionalUser, requiredScopes)
-          || !hasUserPermission(apiSecurity, optionalUser, requiredPermissions)) {
+          || !hasUserPermission(
+              apiSecurity, optionalUser, requiredPermissions, requestContext.getApi().getId())) {
         return true;
       }
     }
@@ -280,13 +281,16 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
   }
 
   private static boolean hasUserPermission(
-      ApiSecurity apiSecurity, Optional<User> optionalUser, Set<String> requiredPermissions) {
+      ApiSecurity apiSecurity,
+      Optional<User> optionalUser,
+      Set<String> requiredPermissions,
+      String apiId) {
     Set<String> validPermissions =
         Sets.union(requiredPermissions, apiSecurity.getGroupsWith(requiredPermissions));
 
     boolean hasUserPermission =
         optionalUser
-            .filter(u -> intersects(validPermissions, new HashSet<>(u.getPermissions())))
+            .filter(u -> intersects(validPermissions, new HashSet<>(u.getPermissions(apiId))))
             .isPresent();
 
     if (!hasUserPermission && LOGGER.isDebugEnabled()) {
@@ -320,7 +324,7 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
                 attributes.get(Category.RESOURCE).put("ldproxy:collection:id", collection));
     attributes
         .get(Category.ACTION)
-        .put("ldproxy:request:host", requestContext.getExternalUri().getHost());
+        .put("ldproxy:request:host", requestContext.getUriCustomizer().getHost());
     attributes.get(Category.ACTION).put("ldproxy:request:method", requestContext.getMethod());
     attributes
         .get(Category.ACTION)

@@ -17,11 +17,11 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Comparator;
 import java.util.List;
@@ -121,7 +121,8 @@ public class CodelistFormatHtml implements CodelistFormatExtension, FormatHtml {
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(apiData))
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .rawLinks(links)
         .title(
             i18n.get("codelistTitle", requestContext.getLanguage()).replace("{{codelist}}", label))

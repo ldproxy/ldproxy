@@ -11,7 +11,6 @@ import de.ii.ogcapi.foundation.domain.ApiCatalog;
 import de.ii.ogcapi.foundation.domain.ApiCatalogEntry;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import java.net.URI;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -29,8 +28,6 @@ import org.immutables.value.Value.Style.ImplementationVisibility;
 public abstract class ServiceOverviewView extends OgcApiView {
 
   public abstract ApiCatalog apiCatalog();
-
-  public abstract URI uri();
 
   public abstract I18n i18n();
 
