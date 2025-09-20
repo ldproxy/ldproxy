@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocumentV7;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
@@ -21,7 +20,6 @@ import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaAllOf;
 import de.ii.ogcapi.features.core.domain.JsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocumentV7;
 import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
@@ -66,36 +64,6 @@ public class WithCodelistUri implements JsonSchemaVisitor {
       return new ImmutableJsonSchemaArray.Builder()
           .from((JsonSchemaArray) schema)
           .items(((JsonSchemaArray) schema).getItems().accept(this))
-          .build();
-    } else if (schema instanceof JsonSchemaDocumentV7) {
-      return ImmutableJsonSchemaDocumentV7.builder()
-          .from((JsonSchemaDocumentV7) schema)
-          .properties(
-              ((JsonSchemaDocumentV7) schema)
-                  .getProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .patternProperties(
-              ((JsonSchemaDocumentV7) schema)
-                  .getPatternProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .additionalProperties(
-              ((JsonSchemaDocumentV7) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
-          .definitions(
-              ((JsonSchemaDocumentV7) schema)
-                  .getDefinitions().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
           .build();
     } else if (schema instanceof JsonSchemaDocument) {
       return ImmutableJsonSchemaDocument.builder()

@@ -76,9 +76,7 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
       List<String> requiredProperties) {
 
     JsonSchemaDocument.Builder builder =
-        version == VERSION.V7
-            ? ImmutableJsonSchemaDocumentV7.builder()
-            : ImmutableJsonSchemaDocument.builder().schema(version.url());
+        ImmutableJsonSchemaDocument.builder().schema(version.url());
 
     builder
         .id(schemaUri)
@@ -93,9 +91,7 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
   @Override
   protected JsonSchema mergeRootSchemas(List<JsonSchema> rootSchemas) {
     JsonSchemaDocument.Builder builder =
-        version == VERSION.V7
-            ? ImmutableJsonSchemaDocumentV7.builder()
-            : ImmutableJsonSchemaDocument.builder().schema(version.url());
+        ImmutableJsonSchemaDocument.builder().schema(version.url());
 
     builder.id(schemaUri).title(label).description(description.orElse(""));
 
@@ -461,7 +457,7 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
   protected JsonSchema withRefWrapper(JsonSchema schema, String objectType) {
     return new ImmutableJsonSchemaRef.Builder()
         .name(schema.getName())
-        .ref(String.format("#/%s/%s", version == VERSION.V7 ? "definitions" : "$defs", objectType))
+        .ref(String.format("#/$defs/%s", objectType))
         .def(new ImmutableJsonSchemaObject.Builder().from(schema).name(objectType).build())
         .build();
   }

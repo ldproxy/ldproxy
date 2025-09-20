@@ -35,7 +35,7 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
   @JsonProperty("$schema")
   @Value.Default
   public String getSchema() {
-    return VERSION.V201909.url();
+    return VERSION.V202012.url();
   }
 
   @JsonProperty("$id")
@@ -48,9 +48,7 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
   public abstract Map<String, JsonSchema> getDefinitions();
 
   public enum VERSION {
-    V202012("https://json-schema.org/draft/2020-12/schema", "$defs"),
-    V201909("https://json-schema.org/draft/2019-09/schema", "$defs"),
-    V7("http://json-schema.org/draft-07/schema#", "definitions");
+    V202012("https://json-schema.org/draft/2020-12/schema", "$defs");
 
     public static VERSION current() {
       return V202012;
