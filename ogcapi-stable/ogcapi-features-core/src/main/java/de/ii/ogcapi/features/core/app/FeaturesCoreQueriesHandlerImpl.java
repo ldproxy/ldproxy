@@ -31,6 +31,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
+import de.ii.ogcapi.foundation.domain.ProfileFilter;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
@@ -264,7 +265,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
 
-    List<Profile> profiles =
+    List<Profile> givenProfiles =
         allProfileSets.stream()
             .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
             .map(
@@ -280,6 +281,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                         .orElse(null))
             .filter(Objects::nonNull)
             .toList();
+
+    List<Profile> profiles = List.copyOf(givenProfiles);
+
+    for (Profile profile : givenProfiles) {
+      if (profile instanceof ProfileFilter) {
+        profiles = ((ProfileFilter) profile).filterProfiles(profiles);
+      }
+    }
 
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(
