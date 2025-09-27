@@ -11,17 +11,21 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileFilter;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class ProfileAllAsReceivable extends ProfileFeatureQuery {
+public class ProfileAllAsReceivable extends ProfileFeatureQuery implements ProfileFilter {
 
   private static final String ID = "all-as-receivable";
+  private static final List<String> IGNORE_SETS = List.of("rel", "val");
 
   @Inject
   ProfileAllAsReceivable(ExtensionRegistry extensionRegistry) {
@@ -46,5 +50,12 @@ public class ProfileAllAsReceivable extends ProfileFeatureQuery {
   @Override
   public FeatureQuery transformFeatureQuery(FeatureQuery query) {
     return ImmutableFeatureQuery.builder().from(query).schemaScope(Scope.RECEIVABLE).build();
+  }
+
+  @Override
+  public List<Profile> filterProfiles(List<Profile> profiles) {
+    return profiles.stream()
+        .filter(profile -> !IGNORE_SETS.contains(profile.getProfileSet()))
+        .toList();
   }
 }

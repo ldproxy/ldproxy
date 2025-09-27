@@ -52,25 +52,27 @@ import javax.inject.Singleton;
  *     submitted feature is ignored in all requests.
  *     <p>TODO:<code>
  * - flags in `sourcePath`
- * - explain pre-condition checks
+ * - explain pre-condition checks (set "isLastModified" to true in a property in the configuration)
  * - explain "Prefer" header and property validation
  * </code>
  * @scopeDe TODO after finalizing the English description
  * @limitationsEn Only feature types from an SQL feature provider with `dialect` `PGIS` and
- *     `datasetChanges.mode` `CRUD` are supported. The features may only have a single geometry
- *     property with scope `RECEIVABLES`.
+ *     `datasetChanges.mode` `CRUD` are supported.
+ *     <p>The features may only have a single geometry property with scope `RECEIVABLES`.
  * @limitationsDe Es werden nur Objektarten von einem SQL-Feature-Provider mit `dialect` `PGIS` und
- *     `datasetChanges.mode` `CRUD` unterstützt. Die Features dürfen nur eine einzige
- *     Geometrieeigenschaft mit dem Geltungsbereich `RECEIVABLES` haben.
+ *     `datasetChanges.mode` `CRUD` unterstützt.
+ *     <p>Die Features dürfen nur eine einzige Geometrieeigenschaft mit dem Geltungsbereich
+ *     `RECEIVABLES` haben.
  * @conformanceEn The building block is based on the specifications of the conformance classes
- *     "Create/Replace/Delete" and "Features" from the [Draft OGC API - Features - Part 4: Create,
- *     Replace, Update and Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). The implementation
- *     will change as the draft will evolve during the standardization process.
+ *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps" and "Features" from
+ *     the [Draft OGC API - Features - Part 4: Create, Replace, Update and
+ *     Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). The implementation will change as the
+ *     draft will evolve during the standardization process.
  * @conformanceDe Der Baustein basiert auf den Vorgaben der Konformitätsklassen
- *     "Create/Replace/Delete" und "Features" aus dem [Entwurf von OGC API - Features - Part 4:
- *     Create, Replace, Update and Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). Die
- *     Implementierung wird sich im Zuge der weiteren Standardisierung der Spezifikation noch
- *     ändern.
+ *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps" und "Features" aus
+ *     dem [Entwurf von OGC API - Features - Part 4: Create, Replace, Update and
+ *     Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). Die Implementierung wird sich im Zuge der
+ *     weiteren Standardisierung der Spezifikation noch ändern.
  * @ref:cfg {@link de.ii.ogcapi.crud.app.CrudConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.crud.app.ImmutableCrudConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.crud.app.EndpointCrud}

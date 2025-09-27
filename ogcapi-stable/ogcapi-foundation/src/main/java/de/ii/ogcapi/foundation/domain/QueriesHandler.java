@@ -287,26 +287,37 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       ResourceType resourceType,
       OgcApiDataV2 apiData,
       Optional<String> collectionId,
-      List<Profile> profiles,
+      List<Profile> requestedProfiles,
       List<Profile> defaultProfilesResource) {
-    return allProfileSets.stream()
-        .filter(
-            p ->
-                collectionId
-                    .map(cid -> p.isEnabledForApi(apiData, cid))
-                    .orElse(p.isEnabledForApi(apiData)))
-        .map(
-            profileSet ->
-                profileSet
-                    .negotiateProfile(
-                        profiles,
-                        defaultProfilesResource,
-                        outputFormat,
-                        resourceType,
-                        apiData,
-                        collectionId)
-                    .orElse(null))
-        .filter(Objects::nonNull)
-        .toList();
+    List<Profile> givenProfiles =
+        allProfileSets.stream()
+            .filter(
+                p ->
+                    collectionId
+                        .map(cid -> p.isEnabledForApi(apiData, cid))
+                        .orElse(p.isEnabledForApi(apiData)))
+            .map(
+                profileSet ->
+                    profileSet
+                        .negotiateProfile(
+                            requestedProfiles,
+                            defaultProfilesResource,
+                            outputFormat,
+                            resourceType,
+                            apiData,
+                            collectionId)
+                        .orElse(null))
+            .filter(Objects::nonNull)
+            .toList();
+
+    List<Profile> profiles = List.copyOf(givenProfiles);
+
+    for (Profile profile : givenProfiles) {
+      if (profile instanceof ProfileFilter) {
+        profiles = ((ProfileFilter) profile).filterProfiles(profiles);
+      }
+    }
+
+    return profiles;
   }
 }

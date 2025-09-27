@@ -265,21 +265,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
 
     List<Profile> profiles =
-        allProfileSets.stream()
-            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
-            .map(
-                profileSet ->
-                    profileSet
-                        .negotiateProfile(
-                            queryInput.getProfiles(),
-                            queryInput.getDefaultProfilesResource(),
-                            outputFormat,
-                            ResourceType.FEATURE,
-                            api.getData(),
-                            Optional.of(collectionId))
-                        .orElse(null))
-            .filter(Objects::nonNull)
-            .toList();
+        negotiateProfiles(
+            allProfileSets,
+            outputFormat,
+            ResourceType.FEATURE,
+            api.getData(),
+            Optional.of(collectionId),
+            queryInput.getProfiles(),
+            queryInput.getDefaultProfilesResource());
 
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(
