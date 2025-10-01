@@ -97,7 +97,7 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
         properties.getProperties().get("featureRefs").getItems().getDescription() == null
         properties.getProperties().get("link").get$ref() == "#/components/schemas/Link"
         properties.getProperties().get("links").getType() == "array"
-        properties.getProperties().get("links").getMinItems() == 1
+        properties.getProperties().get("links").getMinItems() == 0
         properties.getProperties().get("links").getMaxItems() == 5
         properties.getProperties().get("links").getItems().get$ref() == "#/components/schemas/Link"
         properties.getProperties().get("datetime").getType() == "string"

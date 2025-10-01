@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public interface JsonSchemaBuildingBlocks {
 
@@ -73,7 +74,7 @@ public interface JsonSchemaBuildingBlocks {
           .build();
 
   static JsonSchemaString getEnum(String value) {
-    return new ImmutableJsonSchemaString.Builder().addEnums(value).build();
+    return new ImmutableJsonSchemaString.Builder().enums(List.of(value)).build();
   }
 
   static JsonSchemaOneOf nullable(JsonSchema schema) {
