@@ -386,7 +386,7 @@ class OgcApiCoreRestApiSpec extends Specification {
 
     def getCollection(collectionId, collections) {
         for (collection in collections) {
-            if (collectionId == collection.id) {
+            if (collectionId == collection.getName) {
                 return collection
             }
         }

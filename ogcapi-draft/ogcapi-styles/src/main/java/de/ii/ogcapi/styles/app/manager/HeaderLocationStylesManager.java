@@ -38,6 +38,11 @@ public class HeaderLocationStylesManager extends ApiExtensionCache implements Ap
 
   @Override
   public String getId() {
+    return "LocationCrudStyle";
+  }
+
+  @Override
+  public String getName() {
     return "Location";
   }
 

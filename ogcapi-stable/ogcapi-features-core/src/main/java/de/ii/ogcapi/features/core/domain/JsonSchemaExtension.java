@@ -17,6 +17,8 @@ import java.util.List;
 @AutoMultiBind
 public interface JsonSchemaExtension extends ApiExtension {
 
+  int getPriority();
+
   JsonSchema process(
       JsonSchema jsonSchema,
       FeatureSchema featureSchema,

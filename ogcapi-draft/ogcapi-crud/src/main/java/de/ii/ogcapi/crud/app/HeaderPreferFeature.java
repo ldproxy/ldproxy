@@ -8,50 +8,35 @@
 package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
-import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
-
-  private final Schema<?> schema = new StringSchema().format("uri");
-  private final SchemaValidator schemaValidator;
+public class HeaderPreferFeature extends HeaderPrefer {
 
   @Inject
-  HeaderLocationCrud(SchemaValidator schemaValidator) {
-    this.schemaValidator = schemaValidator;
+  HeaderPreferFeature(SchemaValidator schemaValidator) {
+    super(schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "LocationCrudFeature";
-  }
-
-  @Override
-  public String getName() {
-    return "Location";
+    return "PreferCrudFeature";
   }
 
   @Override
   public String getDescription() {
-    return "The URI of the feature that has been created.";
-  }
-
-  @Override
-  public boolean isResponseHeader() {
-    return true;
+    return "'handling=strict' creates or replaces the feature after successful validation. Status 400 is returned, "
+        + "if validation fails. 'handling=lenient' (the default) creates or replaces the feature without validation.";
   }
 
   @Override
@@ -60,23 +45,10 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
-                && method == HttpMethods.POST
-                && definitionPath.endsWith("/items"));
-  }
-
-  @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return schema;
-  }
-
-  @Override
-  public SchemaValidator getSchemaValidator() {
-    return schemaValidator;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return isExtensionEnabled(apiData, CrudConfiguration.class);
+                && ((method == HttpMethods.PUT
+                        && definitionPath.equals("/collections/{collectionId}/items/{featureId}"))
+                    || (method == HttpMethods.POST
+                        && definitionPath.equals("/collections/{collectionId}/items"))));
   }
 
   @Override

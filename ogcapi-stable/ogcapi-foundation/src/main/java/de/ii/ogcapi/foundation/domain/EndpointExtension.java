@@ -135,7 +135,7 @@ public interface EndpointExtension extends ApiExtension {
       HttpMethods method) {
     return extensionRegistry.getExtensionsForType(ApiHeader.class).stream()
         .filter(param -> param.isApplicable(apiData, definitionPath, method))
-        .sorted(Comparator.comparing(ApiHeader::getId))
+        .sorted(Comparator.comparing(ApiHeader::getName))
         .collect(ImmutableList.toImmutableList());
   }
 

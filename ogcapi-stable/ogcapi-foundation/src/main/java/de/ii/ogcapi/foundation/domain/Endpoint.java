@@ -191,6 +191,10 @@ public abstract class Endpoint implements EndpointExtension {
   }
 
   protected boolean strictHandling(Enumeration<String> prefer) {
+    return strictHandling(prefer, true);
+  }
+
+  protected boolean strictHandling(Enumeration<String> prefer, boolean lenientIsDefault) {
     var hints =
         new Object() {
           boolean strict;
@@ -199,14 +203,14 @@ public abstract class Endpoint implements EndpointExtension {
     Collections.list(prefer)
         .forEach(
             header -> {
-              hints.strict = hints.strict || header.contains("handling=strict");
-              hints.lenient = hints.lenient || header.contains("handling=lenient");
+              hints.strict = hints.strict || header.matches("^handling\\s*=\\s*strict$");
+              hints.lenient = hints.lenient || header.matches("^handling\\s*=\\s*lenient$");
             });
     if (hints.strict && hints.lenient) {
-      throw new IllegalArgumentException(
-          "The request contains preferences for both strict and lenient processing. Both preferences are incompatible with each other.");
+      // use default (see RFC 7940)
+      return !lenientIsDefault;
     }
-    return hints.strict;
+    return hints.strict || (!hints.lenient && !lenientIsDefault);
   }
 
   /**

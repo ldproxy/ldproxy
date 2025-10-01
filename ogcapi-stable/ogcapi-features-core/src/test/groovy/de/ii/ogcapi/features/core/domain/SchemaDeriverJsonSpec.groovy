@@ -94,7 +94,6 @@ class SchemaDeriverJsonSpec extends Specification {
                             .items(new ImmutableJsonSchemaRef.Builder()
                                     .ref("#/\$defs/Link")
                                     .build())
-                            .minItems(0)
                             .maxItems(5)
                             .propertySeq(3)
                             .build())

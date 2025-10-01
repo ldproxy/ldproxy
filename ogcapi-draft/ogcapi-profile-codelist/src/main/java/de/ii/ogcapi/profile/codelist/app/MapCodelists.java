@@ -7,26 +7,10 @@
  */
 package de.ii.ogcapi.profile.codelist.app;
 
-import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaAllOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaArray;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaRef;
 import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.Profile;
-import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class MapCodelists implements JsonSchemaVisitor {
 
@@ -38,88 +22,6 @@ public class MapCodelists implements JsonSchemaVisitor {
 
   @Override
   public JsonSchema visit(JsonSchema schema) {
-    if (schema instanceof JsonSchemaAllOf) {
-      return new ImmutableJsonSchemaAllOf.Builder()
-          .from((JsonSchemaAllOf) schema)
-          .allOf(
-              ((JsonSchemaAllOf) schema)
-                  .getAllOf().stream().map(this::visit).collect(Collectors.toList()))
-          .build();
-    } else if (schema instanceof JsonSchemaOneOf) {
-      return new ImmutableJsonSchemaOneOf.Builder()
-          .from((JsonSchemaOneOf) schema)
-          .oneOf(
-              ((JsonSchemaOneOf) schema)
-                  .getOneOf().stream().map(this::visit).collect(Collectors.toList()))
-          .build();
-    } else if (schema instanceof JsonSchemaArray) {
-      return new ImmutableJsonSchemaArray.Builder()
-          .from((JsonSchemaArray) schema)
-          .items(((JsonSchemaArray) schema).getItems().accept(this))
-          .build();
-    } else if (schema instanceof JsonSchemaDocument) {
-      return ImmutableJsonSchemaDocument.builder()
-          .from((JsonSchemaDocument) schema)
-          .properties(
-              ((JsonSchemaDocument) schema)
-                  .getProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .patternProperties(
-              ((JsonSchemaDocument) schema)
-                  .getPatternProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .additionalProperties(
-              ((JsonSchemaDocument) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
-          .definitions(
-              ((JsonSchemaDocument) schema)
-                  .getDefinitions().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .build();
-    } else if (schema instanceof JsonSchemaObject) {
-      return new ImmutableJsonSchemaObject.Builder()
-          .from((JsonSchemaObject) schema)
-          .properties(
-              ((JsonSchemaObject) schema)
-                  .getProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .patternProperties(
-              ((JsonSchemaObject) schema)
-                  .getPatternProperties().entrySet().stream()
-                      .map(
-                          entry ->
-                              new SimpleImmutableEntry<>(
-                                  entry.getKey(), entry.getValue().accept(this)))
-                      .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue)))
-          .additionalProperties(
-              ((JsonSchemaObject) schema).getAdditionalProperties().map(ap -> ap.accept(this)))
-          .build();
-    } else if (schema instanceof JsonSchemaRef) {
-      JsonSchema def = ((JsonSchemaRef) schema).getDef();
-      if (def != null) {
-        return new ImmutableJsonSchemaRef.Builder()
-            .from((JsonSchemaRef) schema)
-            .def(def.accept(this))
-            .build();
-      }
-      return schema;
-    }
-
     if (schema.getCodelistId().isPresent()) {
       String codelistId = schema.getCodelistId().get();
       return profiles.stream()
@@ -129,6 +31,6 @@ public class MapCodelists implements JsonSchemaVisitor {
           .orElse(schema);
     }
 
-    return schema;
+    return visitProperties(schema);
   }
 }

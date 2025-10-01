@@ -49,6 +49,11 @@ public class HeaderContentCrsCrud extends ApiExtensionCache implements ApiHeader
 
   @Override
   public String getId() {
+    return "ContentCrsCrudFeature";
+  }
+
+  @Override
+  public String getName() {
     return "Content-Crs";
   }
 

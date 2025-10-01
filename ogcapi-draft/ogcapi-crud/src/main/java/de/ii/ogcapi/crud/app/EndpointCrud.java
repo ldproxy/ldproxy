@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureCreate;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureDelete;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureReplace;
@@ -22,6 +23,8 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
+import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
+import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
@@ -54,6 +57,8 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +121,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   @Override
   public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
-    this.crudProfiles = Profile.of(extensionRegistry, "rel-as-key", "val-as-code");
+    this.crudProfiles = Profile.of(extensionRegistry, "all-as-receivable");
 
     return super.onStartup(api, apiValidation);
   }
@@ -384,6 +389,8 @@ public class EndpointCrud extends EndpointSubCollection
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Prefer") List<String> prefer,
+      @HeaderParam("Link") List<String> links,
       @Context OgcApi api,
       @Context ApiRequestContext apiRequestContext,
       @Context HttpServletRequest request,
@@ -413,6 +420,15 @@ public class EndpointCrud extends EndpointSubCollection
             .map(EpsgCrs::fromString)
             .orElseGet(coreConfiguration::getDefaultEpsgCrs);
 
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+
+    final boolean validate =
+        strictHandling(Collections.enumeration(prefer))
+            && collectionData
+                .getExtension(SchemaConfiguration.class)
+                .filter(ExtensionConfiguration::isEnabled)
+                .isPresent();
+
     QueryInputFeatureCreate queryInput =
         ImmutableQueryInputFeatureCreate.builder()
             .collectionId(collectionId)
@@ -421,9 +437,38 @@ public class EndpointCrud extends EndpointSubCollection
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(validate)
             .build();
 
     return commandHandler.postItemsResponse(queryInput, apiRequestContext);
+  }
+
+  private static boolean determineGeoJsonProfile(
+      List<String> links, FeatureTypeConfigurationOgcApi collectionData) {
+    boolean jsonfg =
+        links.stream()
+            .flatMap(s -> Arrays.stream(s.split(",")))
+            .filter(link -> link.contains("rel=\"profile\"") || link.contains("rel=profile"))
+            .map(link -> link.substring(link.indexOf("<") + 1, link.indexOf(">")))
+            .anyMatch("http://www.opengis.net/def/profile/OGC/0/jsonfg"::equals);
+
+    if (jsonfg
+        && collectionData
+            .getExtension(JsonFgConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .isEmpty()) {
+      throw new IllegalArgumentException(
+          "The content is declared as JSON-FG, but JSON-FG is not enabled for this collection.");
+    } else if (!jsonfg
+        && collectionData
+            .getExtension(GeoJsonConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .isEmpty()) {
+      throw new IllegalArgumentException(
+          "The content is declared as GeoJSON, but GeoJSON is not enabled for this collection.");
+    }
+    return jsonfg;
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -434,6 +479,8 @@ public class EndpointCrud extends EndpointSubCollection
       @PathParam("collectionId") String collectionId,
       @PathParam("featureId") final String featureId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Prefer") List<String> prefer,
+      @HeaderParam("Link") List<String> links,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
@@ -481,6 +528,15 @@ public class EndpointCrud extends EndpointSubCollection
             Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+
+    final boolean validate =
+        strictHandling(Collections.enumeration(prefer))
+            && collectionData
+                .getExtension(SchemaConfiguration.class)
+                .filter(ExtensionConfiguration::isEnabled)
+                .isPresent();
+
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
             .from(getGenericQueryInput(api.getData()))
@@ -493,6 +549,8 @@ public class EndpointCrud extends EndpointSubCollection
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(validate)
             .profiles(crudProfiles)
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
@@ -508,6 +566,7 @@ public class EndpointCrud extends EndpointSubCollection
       @PathParam("collectionId") String collectionId,
       @PathParam("featureId") final String featureId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Link") List<String> links,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
@@ -555,6 +614,8 @@ public class EndpointCrud extends EndpointSubCollection
             Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
             .from(getGenericQueryInput(api.getData()))
@@ -567,6 +628,8 @@ public class EndpointCrud extends EndpointSubCollection
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(false)
             .profiles(crudProfiles)
             .isAllowCreate(false)
             .build();

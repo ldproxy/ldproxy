@@ -5,12 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.crud.app;
+package de.ii.ogcapi.foundation.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
-import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -24,29 +23,29 @@ import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
+public class HeaderLinkResponse extends ApiExtensionCache implements ApiHeader {
 
-  private final Schema<?> schema = new StringSchema().format("uri");
+  private final Schema<?> schema = new StringSchema();
   private final SchemaValidator schemaValidator;
 
   @Inject
-  HeaderLocationCrud(SchemaValidator schemaValidator) {
+  HeaderLinkResponse(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
   @Override
   public String getId() {
-    return "LocationCrudFeature";
+    return "LinkInResponse";
   }
 
   @Override
   public String getName() {
-    return "Location";
+    return "Link";
   }
 
   @Override
   public String getDescription() {
-    return "The URI of the feature that has been created.";
+    return "Links associated with the resource in the response. See RFC 8288 for the syntax.";
   }
 
   @Override
@@ -58,10 +57,7 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, HttpMethods method) {
     return computeIfAbsent(
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
-        () ->
-            isEnabledForApi(apiData)
-                && method == HttpMethods.POST
-                && definitionPath.endsWith("/items"));
+        () -> isEnabledForApi(apiData) && method == HttpMethods.GET);
   }
 
   @Override
@@ -75,22 +71,14 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
   }
 
   @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return isExtensionEnabled(apiData, CrudConfiguration.class);
-  }
-
-  @Override
-  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return CrudConfiguration.class;
-  }
-
-  @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return CrudBuildingBlock.MATURITY;
+    return Optional.of(SpecificationMaturity.STABLE_IETF);
   }
 
   @Override
   public Optional<ExternalDocumentation> getSpecificationRef() {
-    return CrudBuildingBlock.SPEC;
+    return Optional.of(
+        ExternalDocumentation.of(
+            "https://www.rfc-editor.org/rfc/rfc8288.html", "IETF RFC 8288: Web Linking"));
   }
 }

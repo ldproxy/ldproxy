@@ -78,10 +78,9 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
     JsonSchemaDocument.Builder builder =
         ImmutableJsonSchemaDocument.builder().schema(version.url());
 
-    builder
-        .id(schemaUri)
-        .title(label)
-        .description(description.orElse(schema.getDescription().orElse("")));
+    builder.id(schemaUri).title(label);
+
+    description.or(schema::getDescription).ifPresent(builder::description);
 
     adjustRootSchema(schema, properties, definitions, requiredProperties, builder);
 
@@ -132,13 +131,11 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
         .filter(property -> Objects.nonNull(property) && property.getName().isPresent())
         .map(
             property ->
-                property instanceof JsonSchemaArray
-                    ? ((JsonSchemaArray) property).getItems()
-                    : property)
+                property instanceof JsonSchemaArray array ? array.getItemSchema() : property)
         .flatMap(
             property ->
-                property instanceof JsonSchemaOneOf
-                    ? ((JsonSchemaOneOf) property).getOneOf().stream()
+                property instanceof JsonSchemaOneOf oneOf
+                    ? oneOf.getOneOf().stream()
                     : Stream.of(property))
         .filter(property -> property instanceof JsonSchemaRef && property.getName().isPresent())
         .filter(
@@ -340,19 +337,45 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
       FeatureSchema property,
       Map<String, Codelist> codelists) {
     JsonSchema result = schema;
-    if (schema instanceof JsonSchemaArray) {
+    if (schema instanceof JsonSchemaArray array && array.getItems().isPresent()) {
       result =
           new ImmutableJsonSchemaArray.Builder()
-              .from(schema)
+              .from(array)
               .items(
                   withConstraints(
-                      ((JsonSchemaArray) schema).getItems(),
+                      array.getItemSchema(),
                       new ImmutableSchemaConstraints.Builder()
                           .from(constraints)
                           .required(false)
                           .build(),
                       property,
                       codelists))
+              .minItems(constraints.getMinOccurrence().filter(minItems -> minItems > 0))
+              .maxItems(constraints.getMaxOccurrence())
+              .build();
+
+      if (constraints.getRequired().orElse(false) || constraints.getMinOccurrence().orElse(0) > 0) {
+        result = withRequired(result);
+      }
+
+      return result;
+    } else if (schema instanceof JsonSchemaArray array && !array.getPrefixItems().isEmpty()) {
+      result =
+          new ImmutableJsonSchemaArray.Builder()
+              .from(array)
+              .prefixItems(
+                  array.getPrefixItems().stream()
+                      .map(
+                          item ->
+                              withConstraints(
+                                  item,
+                                  new ImmutableSchemaConstraints.Builder()
+                                      .from(constraints)
+                                      .required(false)
+                                      .build(),
+                                  property,
+                                  codelists))
+                      .toList())
               .minItems(constraints.getMinOccurrence())
               .maxItems(constraints.getMaxOccurrence())
               .build();

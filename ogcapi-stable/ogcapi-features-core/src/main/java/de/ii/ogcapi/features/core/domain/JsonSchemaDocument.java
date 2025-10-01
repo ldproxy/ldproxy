@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -29,6 +28,9 @@ import org.immutables.value.Value;
   "patternProperties",
   "additionalProperties",
   "anyOf",
+  "oneOf",
+  "allOf",
+  "not",
   "$defs"
 })
 public abstract class JsonSchemaDocument extends JsonSchemaObject {
@@ -40,9 +42,6 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
 
   @JsonProperty("$id")
   public abstract Optional<String> getId();
-
-  @JsonProperty("anyOf")
-  public abstract List<JsonSchema> getAnyOf();
 
   @JsonProperty("$defs")
   public abstract Map<String, JsonSchema> getDefinitions();
@@ -101,6 +100,12 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
     public abstract Builder additionalProperties(JsonSchema value);
 
     public abstract Builder anyOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder oneOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder allOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder not(JsonSchema value);
 
     public abstract JsonSchemaDocument build();
   }

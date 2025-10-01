@@ -42,6 +42,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -238,6 +239,7 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
     List<JsonSchemaExtension> jsonSchemaExtensions =
         extensionRegistry.getExtensionsForType(JsonSchemaExtension.class).stream()
             .filter(e -> e.isEnabledForApi(apiData))
+            .sorted(Comparator.comparing(JsonSchemaExtension::getPriority))
             .collect(Collectors.toList());
 
     return mbStyle.get().getLayerMetadata(apiData, providers, codelistStore, jsonSchemaExtensions);
