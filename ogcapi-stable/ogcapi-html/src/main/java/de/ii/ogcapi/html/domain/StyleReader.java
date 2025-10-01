@@ -66,6 +66,7 @@ public interface StyleReader {
     StyleFormat f =
         switch (mapClientType) {
           case MAP_LIBRE -> StyleFormat.MBS;
+          case OPEN_LAYERS -> StyleFormat.MBS;
           case CESIUM -> StyleFormat._3DTILES;
           default -> null;
         };
