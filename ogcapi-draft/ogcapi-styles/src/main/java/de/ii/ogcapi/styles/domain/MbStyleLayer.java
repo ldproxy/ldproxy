@@ -27,7 +27,9 @@ public abstract class MbStyleLayer {
     @JsonProperty("fill-extrusion")
     fillExtrusion("fill-extrusion"),
     heatmap("heatmap"),
-    hillshade("hillshade");
+    hillshade("hillshade"),
+    @JsonProperty("color-relief")
+    colorRelief("color-relief");
 
     public final String label;
 
@@ -56,9 +58,9 @@ public abstract class MbStyleLayer {
 
   public abstract Optional<Number> getMaxzoom();
 
-  public abstract Optional<Object> getFilter();
+  public abstract Optional<MbStyleExpression> getFilter();
 
-  public abstract Map<String, Object> getLayout();
+  public abstract Map<String, MbStyleExpression> getLayout();
 
-  public abstract Map<String, Object> getPaint();
+  public abstract Map<String, MbStyleExpression> getPaint();
 }

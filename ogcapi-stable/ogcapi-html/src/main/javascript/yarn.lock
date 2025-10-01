@@ -2942,6 +2942,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mapbox/mapbox-gl-style-spec@npm:^13.23.1":
+  version: 13.28.0
+  resolution: "@mapbox/mapbox-gl-style-spec@npm:13.28.0"
+  dependencies:
+    "@mapbox/jsonlint-lines-primitives": ~2.0.2
+    "@mapbox/point-geometry": ^0.1.0
+    "@mapbox/unitbezier": ^0.0.0
+    csscolorparser: ~1.0.2
+    json-stringify-pretty-compact: ^2.0.0
+    minimist: ^1.2.6
+    rw: ^1.3.3
+    sort-object: ^0.3.2
+  bin:
+    gl-style-composite: bin/gl-style-composite.js
+    gl-style-format: bin/gl-style-format.js
+    gl-style-migrate: bin/gl-style-migrate.js
+    gl-style-validate: bin/gl-style-validate.js
+  checksum: 17246a849cbdb5062e077760a6e71aa7339299b965523ecd6f414926de11568e2070b3f3a792c34745715c53ce8c7b87d7df5f448d9152fffe8c74a111239f34
+  languageName: node
+  linkType: hard
+
 "@mapbox/point-geometry@npm:0.1.0, @mapbox/point-geometry@npm:^0.1.0, @mapbox/point-geometry@npm:~0.1.0":
   version: 0.1.0
   resolution: "@mapbox/point-geometry@npm:0.1.0"
@@ -3369,6 +3390,7 @@ __metadata:
     moment: ^2.29.1
     neutrino: ^9.3.0
     ol: ^6.9.0
+    ol-mapbox-style: 8.2.1
     pnp-webpack-plugin: ^1.6.4
     popper.js: ^1.16.1
     proj4: ^2.7.5
@@ -12038,6 +12060,13 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
+"mapbox-to-css-font@npm:^2.4.1":
+  version: 2.4.5
+  resolution: "mapbox-to-css-font@npm:2.4.5"
+  checksum: 8a36114cbe0f5d7f56daae17ddbf11534e06d2f64d665ba53c772f698e5bac11aea1d6760635314a309db8d910682a28f7f70fbd33b6975305e2cd1bb5e10748
+  languageName: node
+  linkType: hard
+
 "maplibre-gl@npm:3.2.1":
   version: 3.2.1
   resolution: "maplibre-gl@npm:3.2.1"
@@ -13150,6 +13179,16 @@ fsevents@^1.2.7:
   version: 1.1.2
   resolution: "obuf@npm:1.1.2"
   checksum: 41a2ba310e7b6f6c3b905af82c275bf8854896e2e4c5752966d64cbcd2f599cfffd5932006bcf3b8b419dfdacebb3a3912d5d94e10f1d0acab59876c8757f27f
+  languageName: node
+  linkType: hard
+
+"ol-mapbox-style@npm:8.2.1":
+  version: 8.2.1
+  resolution: "ol-mapbox-style@npm:8.2.1"
+  dependencies:
+    "@mapbox/mapbox-gl-style-spec": ^13.23.1
+    mapbox-to-css-font: ^2.4.1
+  checksum: eeb9d010bec66f7832b3b6b9d20cdf7275ee2856ba5c0c37e502b3235de568a1ff22f603d906adf6233f54a9c6098abfb55d0b1d116e7eee56800b1bca8a451f
   languageName: node
   linkType: hard
 

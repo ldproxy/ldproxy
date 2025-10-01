@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -44,6 +45,8 @@ public interface QueriesHandlerStyles
     Optional<String> getCollectionId();
 
     String getStyleId();
+
+    Optional<TileMatrixSet> getTileMatrixSet();
 
     boolean getIncludeLinkHeader();
   }
