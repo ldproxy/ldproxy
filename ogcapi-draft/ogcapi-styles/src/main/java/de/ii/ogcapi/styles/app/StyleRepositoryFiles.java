@@ -52,6 +52,7 @@ import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
+import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.ValueStore;
@@ -1065,15 +1066,21 @@ public class StyleRepositoryFiles extends AbstractVolatile
   }
 
   private List<String> getAdditionalTileMatrixSets(OgcApiDataV2 apiData) {
-    return tilesProviders.getTilesetMetadataOrThrow(apiData).getTileMatrixSets().stream()
-        .filter(
-            tmsId ->
-                !Objects.equals(tmsId, "WebMercatorQuad")
-                    && tileMatrixSetRepository
-                        .get(tmsId)
-                        .filter(TileMatrixSet::isQuadTree)
-                        .isPresent())
-        .sorted()
-        .toList();
+    return tilesProviders
+        .getTilesetMetadata(apiData)
+        .map(TilesetMetadata::getTileMatrixSets)
+        .map(
+            tms ->
+                tms.stream()
+                    .filter(
+                        tmsId ->
+                            !Objects.equals(tmsId, "WebMercatorQuad")
+                                && tileMatrixSetRepository
+                                    .get(tmsId)
+                                    .filter(TileMatrixSet::isQuadTree)
+                                    .isPresent())
+                    .sorted()
+                    .toList())
+        .orElse(List.of());
   }
 }
