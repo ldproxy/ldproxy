@@ -10,10 +10,6 @@ allprojects {
 
 apply from: 'version.gradle'
 
-cyclonedxBom {
-    skipProjects = ["ldproxy-cfg"]
-}
-
 tasks.check {
     dependsOn project.gradle.includedBuild('ogcapi-stable').task(':checkAll')
     dependsOn project.gradle.includedBuild('ogcapi-draft').task(':checkAll')

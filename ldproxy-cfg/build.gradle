@@ -10,6 +10,8 @@ dependencies {
     api(group: 'org.slf4j', name: 'slf4j-api', version: '2.0.16')
 }
 
+tasks.cyclonedxDirectBom.enabled = false
+
 // add all modules from all layers with all transitive dependencies to provided
 parent.configurations.layerModules.resolvedConfiguration.firstLevelModuleDependencies.each({
     it.children.each { module ->
