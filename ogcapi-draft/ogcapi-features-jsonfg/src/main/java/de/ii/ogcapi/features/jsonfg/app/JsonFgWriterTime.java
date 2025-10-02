@@ -156,7 +156,7 @@ public class JsonFgWriterTime implements GeoJsonWriter {
       json.writeFieldName(JSON_KEY);
       json.writeStartObject();
       if (Objects.nonNull(currentInstant)) {
-        json.writeStringField("instant", currentInstant);
+        json.writeStringField(currentInstant.length() == 10 ? "date" : "timestamp", currentInstant);
       }
       if (Objects.nonNull(currentIntervalStart) || Objects.nonNull(currentIntervalEnd)) {
         json.writeArrayFieldStart("interval");
