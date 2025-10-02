@@ -44,18 +44,18 @@ public interface SearchConfiguration extends ExtensionConfiguration, CachingConf
   Boolean getManagerEnabled();
 
   /**
-   * @langEn Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,
-   *     based on the time when the feature was last updated. Such requests must include an
-   *     `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be
-   *     changed, if the feature was not changed since the timestamp in the header (or if no last
-   *     modification time is known for the feature).
+   * @langEn Option to enable support for conditional processing of PUT and DELETE requests, based
+   *     on the time when the stored query was last updated. Such requests must include an
+   *     `If-Unmodified-Since` header, otherwise they will be rejected. A stored query will only be
+   *     changed, if the stored query was not changed since the timestamp in the header (or if no
+   *     last modification time is known for the stored query).
    *     <p>The setting is ignored, if `optimisticLockingETag` is enabled.
-   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
-   *     und DELETE-Anfragen, basierend auf der Zeit, zu der das Feature zuletzt aktualisiert wurde.
-   *     Solche Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
-   *     zurückgewiesen. Ein Feature wird nur dann geändert, wenn das Feature seit dem Zeitstempel
-   *     im Header nicht geändert wurde (oder wenn kein letzter Änderungszeitpunkt für das Feature
-   *     bekannt ist).
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT- und
+   *     DELETE-Anfragen, basierend auf der Zeit, zu der die Stored Query zuletzt aktualisiert
+   *     wurde. Solche Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls
+   *     werden sie zurückgewiesen. Eine Stored Query wird nur dann geändert, wenn die Stored Query
+   *     seit dem Zeitstempel im Header nicht geändert wurde (oder wenn kein letzter
+   *     Änderungszeitpunkt für die Stored Query bekannt ist).
    *     <p>Die Option wird ignoriert, wenn `optimisticLockingETag` aktiviert ist.
    * @default false
    * @since v3.5
@@ -71,15 +71,15 @@ public interface SearchConfiguration extends ExtensionConfiguration, CachingConf
   }
 
   /**
-   * @langEn Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,
-   *     based on a strong Entity Tag (ETag) of the feature. Such requests must include an
-   *     `If-Match` header, otherwise they will be rejected. A feature will only be changed, if the
-   *     feature matches the Etag(s) in the header.
-   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
-   *     und DELETE-Anfragen, basierend auf einem starken Entity Tag (ETag) des Features. Solche
+   * @langEn Option to enable support for conditional processing of PUT and DELETE requests, based
+   *     on a strong Entity Tag (ETag) of the stored query. Such requests must include an `If-Match`
+   *     header, otherwise they will be rejected. A stored query will only be changed, if the stored
+   *     query matches the Etag(s) in the header.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT- und
+   *     DELETE-Anfragen, basierend auf einem starken Entity Tag (ETag) der Stored Query. Solche
    *     Anfragen müssen einen `If-Match`-Header enthalten, andernfalls werden sie zurückgewiesen.
-   *     Ein Feature wird nur dann geändert, wenn der aktuelle ETag des Features zu den ETag(s) im
-   *     Header passt.
+   *     Eine Stored Query wird nur dann geändert, wenn der aktuelle ETag der Stored Query zu den
+   *     ETag(s) im Header passt.
    * @default false
    * @since v3.5
    */
