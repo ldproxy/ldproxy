@@ -1593,19 +1593,23 @@ public interface StylesConfiguration extends ExtensionConfiguration, CachingConf
   Boolean getLegendEnabled();
 
   /**
-   * @langEn Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,
-   *     based on the time when the style was last updated. Such requests must include an
-   *     `If-Unmodified-Since` header, otherwise they will be rejected. A style will only be
-   *     changed, if the style was not changed since the timestamp in the header (or if no last
-   *     modification time is known for the style).
+   * @langEn Option to enable support for conditional processing of PUT requests, based on the time
+   *     when the style was last updated. Such requests must include an `If-Unmodified-Since`
+   *     header, otherwise they will be rejected. A style will only be changed, if the style was not
+   *     changed since the timestamp in the header (or if no last modification time is known for the
+   *     style).
    *     <p>The setting is ignored, if `optimisticLockingETag` is enabled.
-   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
-   *     und DELETE-Anfragen, basierend auf der Zeit, zu der der Style zuletzt aktualisiert wurde.
-   *     Solche Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
+   *     <p>The option does not affect DELETE requests as each stylesheet of a style will have its
+   *     own modification timestamp.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von
+   *     PUT-Anfragen, basierend auf der Zeit, zu der der Style zuletzt aktualisiert wurde. Solche
+   *     Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
    *     zurückgewiesen. Ein Style wird nur dann geändert, wenn der Style seit dem Zeitstempel im
    *     Header nicht geändert wurde (oder wenn kein letzter Änderungszeitpunkt für den Style
    *     bekannt ist).
    *     <p>Die Option wird ignoriert, wenn `optimisticLockingETag` aktiviert ist.
+   *     <p>Diese Option betrifft keine DELETE-Anfragen, da jedes Stylesheet eines Styles einen
+   *     Änderungszeitpunkt hat.
    * @default false
    * @since v3.5
    */
@@ -1620,15 +1624,18 @@ public interface StylesConfiguration extends ExtensionConfiguration, CachingConf
   }
 
   /**
-   * @langEn Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,
-   *     based on a strong Entity Tag (ETag) of the style. Such requests must include an `If-Match`
-   *     header, otherwise they will be rejected. A style will only be changed, if the style matches
-   *     the Etag(s) in the header.
-   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
-   *     und DELETE-Anfragen, basierend auf einem starken Entity Tag (ETag) des Styles. Solche
-   *     Anfragen müssen einen `If-Match`-Header enthalten, andernfalls werden sie zurückgewiesen.
-   *     Ein Style wird nur dann geändert, wenn der aktuelle ETag des Styles zu den ETag(s) im
-   *     Header passt.
+   * @langEn Option to enable support for conditional processing of PUT requests, based on a strong
+   *     Entity Tag (ETag) of the style. Such requests must include an `If-Match` header, otherwise
+   *     they will be rejected. A style will only be changed, if the style matches the Etag(s) in
+   *     the header.
+   *     <p>The option does not affect DELETE requests as each stylesheet of a style will have its
+   *     own ETag.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von
+   *     PUT-Anfragen, basierend auf einem starken Entity Tag (ETag) des Styles. Solche Anfragen
+   *     müssen einen `If-Match`-Header enthalten, andernfalls werden sie zurückgewiesen. Ein Style
+   *     wird nur dann geändert, wenn der aktuelle ETag des Styles zu den ETag(s) im Header passt.
+   *     <p>Diese Option betrifft keine DELETE-Anfragen, da jedes Stylesheet eines Styles einen
+   *     eigenen ETag hat.
    * @default false
    * @since v3.5
    */

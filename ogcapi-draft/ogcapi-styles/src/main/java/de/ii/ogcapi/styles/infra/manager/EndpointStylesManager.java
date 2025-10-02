@@ -255,16 +255,10 @@ public class EndpointStylesManager extends Endpoint
   @POST
   public Response postStyle(
       @Auth Optional<User> optionalUser,
-      @HeaderParam("If-Match") String ifMatch,
-      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       byte[] requestBody) {
-
-    Optional<StylesConfiguration> StylesConfiguration =
-        api.getData().getExtension(StylesConfiguration.class);
-    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     ImmutableQueryInputStyleCreateReplace.Builder builder =
         new ImmutableQueryInputStyleCreateReplace.Builder()
@@ -327,17 +321,11 @@ public class EndpointStylesManager extends Endpoint
   public Response deleteStyle(
       @Auth Optional<User> optionalUser,
       @PathParam("styleId") String styleId,
-      @HeaderParam("If-Match") String ifMatch,
-      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     OgcApiDataV2 apiData = api.getData();
     checkPathParameter(extensionRegistry, apiData, "/styles/{styleId}", "styleId", styleId);
-
-    Optional<StylesConfiguration> StylesConfiguration =
-        api.getData().getExtension(StylesConfiguration.class);
-    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     QueriesHandlerStylesManager.QueryInputStyleDelete queryInput =
         new ImmutableQueryInputStyleDelete.Builder().styleId(styleId).build();

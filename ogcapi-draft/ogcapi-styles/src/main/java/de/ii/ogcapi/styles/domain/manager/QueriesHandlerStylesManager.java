@@ -22,9 +22,7 @@ public interface QueriesHandlerStylesManager
   enum Query implements QueryIdentifier {
     CREATE_STYLE,
     REPLACE_STYLE,
-    DELETE_STYLE,
-    REPLACE_STYLE_METADATA,
-    UPDATE_STYLE_METADATA
+    DELETE_STYLE
   }
 
   @Value.Immutable
@@ -51,18 +49,5 @@ public interface QueriesHandlerStylesManager
     Optional<String> getCollectionId();
 
     String getStyleId();
-  }
-
-  @Value.Immutable
-  interface QueryInputStyleMetadata extends QueryInput, WithDryRun {
-    Optional<String> getCollectionId();
-
-    String getStyleId();
-
-    MediaType getContentType();
-
-    byte[] getRequestBody();
-
-    boolean getStrict();
   }
 }

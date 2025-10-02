@@ -306,18 +306,12 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
   public Response postStyle(
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
-      @HeaderParam("If-Match") String ifMatch,
-      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       byte[] requestBody) {
 
     OgcApiDataV2 apiData = api.getData();
-
-    Optional<StylesConfiguration> StylesConfiguration =
-        api.getData().getExtension(StylesConfiguration.class);
-    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     checkPathParameter(
         extensionRegistry,
@@ -403,14 +397,8 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
       @PathParam("styleId") String styleId,
-      @HeaderParam("If-Match") String ifMatch,
-      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-
-    Optional<StylesConfiguration> StylesConfiguration =
-        api.getData().getExtension(StylesConfiguration.class);
-    checkHeader(StylesConfiguration, ifMatch, ifUnmodifiedSince);
 
     OgcApiDataV2 apiData = api.getData();
     checkPathParameter(

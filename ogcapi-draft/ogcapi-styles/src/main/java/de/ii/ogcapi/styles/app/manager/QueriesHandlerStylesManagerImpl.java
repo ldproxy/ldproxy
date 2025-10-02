@@ -141,6 +141,27 @@ public class QueriesHandlerStylesManagerImpl extends AbstractVolatileComposed
       }
     }
 
+    if (optionalStyleId.isPresent()) {
+      StylesheetContent stylesheetContent =
+          styleRepository.getStylesheet(
+              apiData, collectionId, styleId, format, requestContext, true);
+
+      Date lastModified =
+          styleRepository.getStylesheetLastModified(apiData, collectionId, styleId, format, true);
+      EntityTag etag =
+          !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+                  || (collectionId.isEmpty()
+                          ? apiData.getExtension(HtmlConfiguration.class)
+                          : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
+                      .map(HtmlConfiguration::getSendEtags)
+                      .orElse(false)
+              ? ETag.from(stylesheetContent.getContent())
+              : null;
+      Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
+      if (Objects.nonNull(response)) return response.build(); // Preconditions failed
+    }
+
     if (dryRun) return Response.noContent().build();
 
     try {
@@ -175,24 +196,6 @@ public class QueriesHandlerStylesManagerImpl extends AbstractVolatileComposed
 
       return Response.created(newURI).build();
     }
-
-    StylesheetContent stylesheetContent =
-        styleRepository.getStylesheet(apiData, collectionId, styleId, format, requestContext, true);
-
-    Date lastModified =
-        styleRepository.getStylesheetLastModified(apiData, collectionId, styleId, format, true);
-    EntityTag etag =
-        !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
-                || (collectionId.isEmpty()
-                        ? apiData.getExtension(HtmlConfiguration.class)
-                        : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
-                    .map(HtmlConfiguration::getSendEtags)
-                    .orElse(false)
-            ? ETag.from(stylesheetContent.getContent())
-            : null;
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
-
-    if (Objects.nonNull(response)) return response.build(); // Preconditions failed
 
     // PUT
     return Response.noContent().build();
