@@ -478,9 +478,7 @@ public class ForValidation implements JsonSchemaVisitor {
       return new ImmutableJsonSchemaObject.Builder()
           .putProperties(
               "date",
-              new ImmutableJsonSchemaString.Builder()
-                  .pattern("^\\\\d{4}-\\\\d{2}-\\\\d{2}$")
-                  .build())
+              new ImmutableJsonSchemaString.Builder().pattern("^\\d{4}-\\d{2}-\\d{2}$").build())
           .required(List.of("date"))
           .build();
     }
@@ -488,7 +486,7 @@ public class ForValidation implements JsonSchemaVisitor {
         .putProperties(
             "timestamp",
             new ImmutableJsonSchemaString.Builder()
-                .pattern("^\\\\d{4}-\\\\d{2}-\\\\d{2}T\\\\d{2}:\\\\d{2}:\\\\d{2}(?:\\\\.\\\\d+)?Z$")
+                .pattern("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$")
                 .build())
         .required(List.of("timestamp"))
         .build();
