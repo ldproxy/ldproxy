@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.ProfileJsonSchemaForValidation;
 import de.ii.ogcapi.crud.app.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaConstant;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
@@ -42,9 +43,22 @@ public abstract class ProfileValidationReceivables extends ProfileJsonSchemaForV
   public JsonSchema getReference(JsonSchema property) {
     return new ImmutableJsonSchemaObject.Builder()
         .putProperties("id", property)
-        .putProperties("type", new ImmutableJsonSchemaString.Builder().build())
+        .putProperties(
+            "type",
+            property
+                .getRefCollectionId()
+                .map(
+                    collectionId ->
+                        (JsonSchema)
+                            new ImmutableJsonSchemaConstant.Builder()
+                                .constant(collectionId)
+                                .build())
+                .orElse((JsonSchema) new ImmutableJsonSchemaString.Builder().build()))
         .putProperties("title", new ImmutableJsonSchemaString.Builder().build())
-        .required(ImmutableList.of("id", "type", "title"))
+        .required(
+            property.getRefCollectionId().isPresent()
+                ? ImmutableList.of("id", "title")
+                : ImmutableList.of("id", "type", "title"))
         .build();
   }
 
