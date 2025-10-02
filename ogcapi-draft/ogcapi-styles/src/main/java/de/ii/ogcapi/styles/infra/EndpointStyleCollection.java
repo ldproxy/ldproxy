@@ -27,10 +27,12 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.styles.app.StylesBuildingBlock;
 import de.ii.ogcapi.styles.domain.ImmutableQueryInputStyle;
 import de.ii.ogcapi.styles.domain.QueriesHandlerStyles;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
+import de.ii.ogcapi.styles.domain.StyleQueryParameter;
 import de.ii.ogcapi.styles.domain.StyleRepository;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -200,14 +202,20 @@ public class EndpointStyleCollection extends EndpointSubCollection implements Ap
         styleId);
     checkCollectionExists(apiData, collectionId);
 
-    QueriesHandlerStyles.QueryInputStyle queryInput =
+    ImmutableQueryInputStyle.Builder builder =
         new ImmutableQueryInputStyle.Builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
-            .styleId(styleId)
-            .build();
+            .styleId(styleId);
 
-    return queryHandler.handle(QueriesHandlerStyles.Query.STYLE, queryInput, requestContext);
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+    for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
+      if (parameter instanceof StyleQueryParameter) {
+        ((StyleQueryParameter) parameter).applyTo(builder, queryParameterSet);
+      }
+    }
+
+    return queryHandler.handle(QueriesHandlerStyles.Query.STYLE, builder.build(), requestContext);
   }
 
   @Override

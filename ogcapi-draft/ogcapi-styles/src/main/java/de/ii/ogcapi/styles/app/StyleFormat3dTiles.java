@@ -23,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.ogcapi.styles.domain.Tiles3dStylesheet;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import io.swagger.v3.oas.models.media.Schema;
 import java.io.IOException;
 import java.util.Map;
@@ -116,6 +117,7 @@ public class StyleFormat3dTiles implements StyleFormatExtension {
       OgcApi api,
       Optional<String> collectionId,
       String styleId,
+      Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     return stylesheetContent.get3dTilesStyle();
   }

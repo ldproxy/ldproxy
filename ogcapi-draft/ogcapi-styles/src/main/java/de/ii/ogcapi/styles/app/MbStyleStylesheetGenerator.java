@@ -8,10 +8,13 @@
 package de.ii.ogcapi.styles.app;
 
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.styles.domain.ImmutableArrayValue;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleLayer;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleRasterSource;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleStylesheet.Builder;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleVectorSource;
+import de.ii.ogcapi.styles.domain.ImmutableNumberValue;
+import de.ii.ogcapi.styles.domain.ImmutableStringValue;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
 import de.ii.ogcapi.styles.domain.MbStyleStylesheet;
 import de.ii.xtraplatform.entities.domain.EntityData;
@@ -120,29 +123,44 @@ public class MbStyleStylesheetGenerator
               .type(LayerType.fill)
               .source(apiId)
               .sourceLayer(collectionName)
-              .putPaint("fill-color", color)
-              .filter(List.of("==", List.of("geometry-type"), "Polygon"))
+              .putPaint("fill-color", ImmutableStringValue.of(color))
+              .filter(
+                  ImmutableArrayValue.of(
+                      List.of(
+                          ImmutableStringValue.of("=="),
+                          ImmutableArrayValue.of(List.of(ImmutableStringValue.of("geometry-type"))),
+                          ImmutableStringValue.of("Polygon"))))
               .build(),
           ImmutableMbStyleLayer.builder()
               .id(collectionName + ".line")
               .type(LayerType.line)
               .source(apiId)
               .sourceLayer(collectionName)
-              .putPaint("line-color", color)
-              .putPaint("line-width", 2)
-              .filter(List.of("==", List.of("geometry-type"), "LineString"))
+              .putPaint("line-color", ImmutableStringValue.of(color))
+              .putPaint("line-width", ImmutableNumberValue.of(2))
+              .filter(
+                  ImmutableArrayValue.of(
+                      List.of(
+                          ImmutableStringValue.of("=="),
+                          ImmutableArrayValue.of(List.of(ImmutableStringValue.of("geometry-type"))),
+                          ImmutableStringValue.of("LineString"))))
               .build(),
           ImmutableMbStyleLayer.builder()
               .id(collectionName + ".circle")
               .type(LayerType.circle)
               .source(apiId)
               .sourceLayer(collectionName)
-              .putPaint("circle-radius", 3)
-              .putPaint("circle-opacity", 0.5)
-              .putPaint("circle-stroke-color", color)
-              .putPaint("circle-stroke-width", 1)
-              .putPaint("circle-color", color)
-              .filter(List.of("==", List.of("geometry-type"), "Point"))
+              .putPaint("circle-radius", ImmutableNumberValue.of(3))
+              .putPaint("circle-opacity", ImmutableNumberValue.of(0.5))
+              .putPaint("circle-stroke-color", ImmutableStringValue.of(color))
+              .putPaint("circle-stroke-width", ImmutableNumberValue.of(1))
+              .putPaint("circle-color", ImmutableStringValue.of(color))
+              .filter(
+                  ImmutableArrayValue.of(
+                      List.of(
+                          ImmutableStringValue.of("=="),
+                          ImmutableArrayValue.of(List.of(ImmutableStringValue.of("geometry-type"))),
+                          ImmutableStringValue.of("Point"))))
               .build());
     }
 
