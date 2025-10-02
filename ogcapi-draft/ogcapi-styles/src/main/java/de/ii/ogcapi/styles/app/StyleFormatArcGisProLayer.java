@@ -30,7 +30,7 @@ public class StyleFormatArcGisProLayer implements StyleFormatExtension {
 
   static final ApiMediaType MEDIA_TYPE =
       new ImmutableApiMediaType.Builder()
-          .type(new MediaType("application", "vnd.esri.lyr"))
+          .type(new MediaType("application", "vnd.esri.lyrx"))
           .label("ArcGIS Pro")
           .parameter("lyrx")
           .build();
