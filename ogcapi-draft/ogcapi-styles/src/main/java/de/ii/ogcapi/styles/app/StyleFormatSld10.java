@@ -24,6 +24,7 @@ import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -140,6 +141,7 @@ public class StyleFormatSld10 implements ConformanceClass, StyleFormatExtension,
       OgcApi api,
       Optional<String> collectionId,
       String styleId,
+      Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     return stylesheetContent.getContent();
   }

@@ -7,15 +7,11 @@
  */
 package de.ii.ogcapi.features.gltf.app;
 
-import static de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry.MULTI_POLYGON;
-
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.features.html.domain.Geometry;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.PropertyBase;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -93,20 +89,6 @@ public interface PropertyGltf extends PropertyBase<PropertyGltf, FeatureSchema> 
   }
 
   @Value.Lazy
-  default Optional<PropertyGltf> getGeometry() {
-    return getNestedProperties().stream()
-        .filter(property -> property.getSchema().filter(SchemaBase::isSpatial).isPresent())
-        .findFirst()
-        .or(
-            () ->
-                getNestedProperties().stream()
-                    .map(PropertyGltf::getGeometry)
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .findFirst());
-  }
-
-  @Value.Lazy
   default String getLastPathSegment() {
     return getPropertyPath().get(getPropertyPath().size() - 1);
   }
@@ -124,45 +106,5 @@ public interface PropertyGltf extends PropertyBase<PropertyGltf, FeatureSchema> 
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .findFirst());
-  }
-
-  default Optional<Geometry.MultiPolygon> getMultiPolygon() {
-    if (getGeometryType().isEmpty()) {
-      return Optional.empty();
-    } else if (getGeometryType().orElse(SimpleFeatureGeometry.ANY) != MULTI_POLYGON) {
-      throw new IllegalStateException(
-          "Unexpected geometry type for property '"
-              + getName()
-              + "', MultiPolygon required: "
-              + getGeometryType());
-    }
-    return Optional.of(
-        Geometry.MultiPolygon.of(
-            getNestedProperties().get(0).getNestedProperties().stream()
-                .map(
-                    polygon ->
-                        Geometry.Polygon.of(
-                            polygon.getNestedProperties().stream()
-                                .map(
-                                    ring ->
-                                        Geometry.LineString.of(
-                                            getCoordinates(ring.getNestedProperties())))
-                                .collect(Collectors.toUnmodifiableList())))
-                .collect(Collectors.toUnmodifiableList())));
-  }
-
-  private static Geometry.Coordinate getCoordinate(List<PropertyGltf> coordList) {
-    return Geometry.Coordinate.of(
-        coordList.stream()
-            .map(PropertyBase::getValue)
-            .filter(Objects::nonNull)
-            .map(Double::parseDouble)
-            .collect(Collectors.toUnmodifiableList()));
-  }
-
-  private static List<Geometry.Coordinate> getCoordinates(List<PropertyGltf> coordsList) {
-    return coordsList.stream()
-        .map(coord -> Geometry.Coordinate.of(getCoordinate(coord.getNestedProperties())))
-        .collect(Collectors.toUnmodifiableList());
   }
 }

@@ -7,10 +7,10 @@
  */
 package de.ii.ogcapi.features.gml.app;
 
-import static de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion.GML21;
-import static de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion.GML31;
-import static de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion.GML32;
 import static de.ii.xtraplatform.base.domain.util.LambdaWithException.consumerMayThrow;
+import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML21;
+import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML31;
+import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Strings;

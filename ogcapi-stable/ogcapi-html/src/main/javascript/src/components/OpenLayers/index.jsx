@@ -21,7 +21,10 @@ const OpenLayers = ({
   dataUrl,
   dataType,
   tileMatrixSets,
+  styleUrl,
 }) => {
+  const effectiveStyleUrl = styleUrl && styleUrl.trim() ? styleUrl : null;
+
   const [currentFeature, setCurrentFeature] = React.useState(null);
   const [currentTileMatrixSet, setCurrentTileMatrixSet] = React.useState(
     tileMatrixSets[0] ? tileMatrixSets[0].tileMatrixSet : null
@@ -41,9 +44,7 @@ const OpenLayers = ({
   let initial = null;
   let extent = null;
 
-  const tms = tileMatrixSets.find(
-    (tms1) => tms1.tileMatrixSet === currentTileMatrixSet
-  );
+  const tms = tileMatrixSets.find((tms1) => tms1.tileMatrixSet === currentTileMatrixSet);
 
   if (tms) {
     initial = {
@@ -58,52 +59,41 @@ const OpenLayers = ({
   return (
     <>
       <RMap width="100%" height="100%" initial={initial} noDefaultControls>
-        <DynamicView
-          tileMatrixSet={tms}
-          update={previousTileMatrixSet !== currentTileMatrixSet}
-        />
-        <RLayerTile
-          properties={{ label: "Base map" }}
-          url={baseUrl}
-          attributions={attribution}
-        />
-        {dataType === "raster" &&
-        <RLayerTile
-          properties={{ label: "Vector tiles" }}
-          url={dataUrl}
-        >
-          <DynamicSource
-            tileMatrixSet={tms}
-            dataUrl={dataUrl}
-            dataType={dataType}
-            update={previousTileMatrixSet !== currentTileMatrixSet}
-          />
-        </RLayerTile>
-        }
-        {dataType === "vector" &&
-        <RLayerVectorTile
-          properties={{ label: "Vector tiles" }}
-          url={dataUrl}
-          format={new MVT()}
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          onPointerEnter={useCallback(
-            (e) => setCurrentFeature(e.target),
-            [setCurrentFeature]
-          )}
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          onPointerLeave={useCallback(
-            (e) => currentFeature === e.target && setCurrentFeature(null),
-            [currentFeature, setCurrentFeature]
-          )}
-        >
-          <DynamicSource
-            tileMatrixSet={tms}
-            dataUrl={dataUrl}
-            dataType={dataType}
-            update={previousTileMatrixSet !== currentTileMatrixSet}
-          />
-        </RLayerVectorTile>
-        }
+        <DynamicView tileMatrixSet={tms} update={previousTileMatrixSet !== currentTileMatrixSet} />
+        <RLayerTile properties={{ label: "Base map" }} url={baseUrl} attributions={attribution} />
+        {dataType === "raster" && (
+          <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
+            <DynamicSource
+              tileMatrixSet={tms}
+              dataUrl={dataUrl}
+              dataType={dataType}
+              styleUrl={effectiveStyleUrl}
+              update={previousTileMatrixSet !== currentTileMatrixSet}
+            />
+          </RLayerTile>
+        )}
+        {dataType === "vector" && (
+          <RLayerVectorTile
+            properties={{ label: "Vector tiles" }}
+            url={dataUrl}
+            format={new MVT()}
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            onPointerEnter={useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature])}
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            onPointerLeave={useCallback(
+              (e) => currentFeature === e.target && setCurrentFeature(null),
+              [currentFeature, setCurrentFeature]
+            )}
+          >
+            <DynamicSource
+              tileMatrixSet={tms}
+              dataUrl={dataUrl}
+              dataType={dataType}
+              styleUrl={effectiveStyleUrl}
+              update={previousTileMatrixSet !== currentTileMatrixSet}
+            />
+          </RLayerVectorTile>
+        )}
         <RControl.RZoom />
         <RControl.RAttribution collapsible={false} />
       </RMap>
@@ -131,16 +121,17 @@ OpenLayers.propTypes = {
   dataUrl: PropTypes.string,
   dataType: PropTypes.string,
   tileMatrixSets: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.string)),
+  styleUrl: PropTypes.string,
 };
 
 OpenLayers.defaultProps = {
   backgroundUrl: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution:
-    '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+  attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
   bounds: null,
   dataUrl: null,
   dataType: null,
   tileMatrixSets: [],
+  styleUrl: null,
 };
 
 export default OpenLayers;

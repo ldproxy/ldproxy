@@ -61,6 +61,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -235,8 +236,9 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
                                                       .putProperties(
                                                           "$operation",
                                                           new ImmutableJsonSchemaString.Builder()
-                                                              .addEnums(
-                                                                  "create", "update", "delete")
+                                                              .enums(
+                                                                  List.of(
+                                                                      "create", "update", "delete"))
                                                               .build())
                                                       .build()))
                                           .build())

@@ -9,10 +9,11 @@ package de.ii.ogcapi.features.geojson.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
-import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.FeatureState;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.transcode.json.GeometryEncoderJson;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
@@ -38,63 +39,35 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
   }
 
   @Override
-  public void onObjectStart(
+  public void onGeometry(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled(context)) {
-      if (context.schema().map(SchemaBase::isSpatial).orElse(false)
-          && context.geometryType().isPresent()) {
-        boolean isGeom = isGeomProperty(context.schema(), context.encoding());
-        if (isGeom) {
-          FeatureState featureState = context.encoding().getBuffer().get();
-          featureState.hasGeometry = true;
-          context.encoding().pauseBuffering();
-
-          context.encoding().getJson().writeFieldName(geomPropertyName());
-
-          String type = getGeometryType(context);
+      Geometry<?> geometry = context.geometry();
+      boolean isGeom = isGeomProperty(context.schema(), context.encoding(), geometry);
+      if (isGeom) {
+        if (geometry != null) {
+          String type = getGeometryType(context, geometry);
           if (type == null || type.isEmpty()) {
-            context.encoding().getJson().writeNull();
+            writeNullIfNecessary(context);
+          } else {
+            context.encoding().pauseBuffering();
+            context.encoding().getJson().writeFieldName(geomPropertyName(context.schema()));
+            geometry.accept(
+                new GeometryEncoderJson(
+                    context.encoding().getJson(),
+                    !writeJsonFgExtensions,
+                    context.encoding().getGeometryPrecision()));
             context.encoding().getJson().flush();
             context.encoding().continueBuffering();
-          } else {
-            featureState.geometryState = geometryState();
-
-            context.encoding().getJson().writeStartObject();
-            context.encoding().getJson().writeStringField("type", type);
-            context.encoding().getJson().writeFieldName("coordinates");
-
-            if (type.equals("Polyhedron")) {
-              context.encoding().getJson().writeStartArray();
-              featureState.isPolyhedron = true;
-            }
           }
+        } else {
+          writeNullIfNecessary(context);
+        }
+        if (writeNull()) {
+          context.encoding().getFeatureState().get().hasGeometry = true;
         }
       }
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onArrayStart(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    if (isEnabled(context)
-        && context.encoding().getBuffer().get().geometryState == geometryState()) {
-      context.encoding().getJson().writeStartArray();
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onArrayEnd(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    if (isEnabled(context)
-        && context.encoding().getBuffer().get().geometryState == geometryState()) {
-      context.encoding().getJson().writeEndArray();
     }
 
     next.accept(context);
@@ -105,45 +78,10 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled(context)) {
-      FeatureState featureState = context.encoding().getBuffer().get();
-      if (featureState.geometryState == geometryState()
-          && context.schema().map(SchemaBase::isSpatial).orElse(false)) {
-        featureState.geometryState = GeometryState.NOT_IN_GEOMETRY;
-
-        if (featureState.isPolyhedron) {
-          featureState.isPolyhedron = false;
-          context.encoding().getJson().writeEndArray();
-        }
-
-        // close geometry object
-        context.encoding().getJson().writeEndObject();
-        context.encoding().getJson().flush();
-
-        context.encoding().continueBuffering();
-      } else if (context.encoding().inEmbeddedFeature()
-          && context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)) {
-
-        context.encoding().pauseBuffering();
-
-        if (!featureState.hasGeometry && writeNull()) {
-          // write null geometry if none was written for this embedded feature
-          context.encoding().getJson().writeFieldName(geomPropertyName());
-          context.encoding().getJson().writeNull();
-        }
-        context.encoding().continueBuffering();
+      if (context.schema().map(SchemaBase::isEmbeddedFeature).orElse(false)
+          && !context.encoding().getFeatureState().get().hasGeometry) {
+        writeNullIfNecessary(context);
       }
-    }
-
-    next.accept(context);
-  }
-
-  @Override
-  public void onValue(
-      EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
-      throws IOException {
-    if (isEnabled(context)
-        && context.encoding().getBuffer().get().geometryState == geometryState()) {
-      context.encoding().getJson().writeRawValue(context.value());
     }
 
     next.accept(context);
@@ -154,29 +92,26 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (isEnabled(context)) {
-      context.encoding().pauseBuffering();
-
-      if (!context.encoding().getBuffer().get().hasGeometry && writeNull()) {
-        // write null geometry if none was written for this feature
-        context.encoding().getJson().writeFieldName(geomPropertyName());
-        context.encoding().getJson().writeNull();
+      if (!context.encoding().getFeatureState().get().hasGeometry) {
+        writeNullIfNecessary(context);
       }
-      context.encoding().continueBuffering();
-
-      context.encoding().getJson().flush();
     }
 
     next.accept(context);
   }
 
   private boolean isGeomProperty(
-      Optional<FeatureSchema> property, FeatureTransformationContextGeoJson transformationContext) {
+      Optional<FeatureSchema> property,
+      FeatureTransformationContextGeoJson transformationContext,
+      Geometry<?> geometry) {
     return transformationContext.inEmbeddedFeature()
         ? property
             .map(
                 p1 ->
                     getEmbeddedFeatureProperty(
-                            transformationContext.getBuffer().get().schema, transformationContext)
+                            transformationContext.getFeatureState().get().schema,
+                            transformationContext,
+                            geometry)
                         .stream()
                         .anyMatch(p1::equals))
             .orElse(false)
@@ -184,7 +119,9 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
             .map(
                 p1 ->
                     getProperty(
-                            transformationContext.getBuffer().get().schema, transformationContext)
+                            transformationContext.getFeatureState().get().schema,
+                            transformationContext,
+                            geometry)
                         .stream()
                         .anyMatch(p1::equals))
             .orElse(false);
@@ -198,13 +135,28 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
 
   protected abstract GeometryState geometryState();
 
-  protected abstract String geomPropertyName();
+  protected abstract String geomPropertyName(Optional<FeatureSchema> schema);
 
   protected abstract Set<FeatureSchema> getProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext);
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry);
 
   protected abstract Set<FeatureSchema> getEmbeddedFeatureProperty(
-      FeatureSchema schema, FeatureTransformationContext transformationContext);
+      FeatureSchema schema,
+      FeatureTransformationContext transformationContext,
+      Geometry<?> geometry);
 
-  protected abstract String getGeometryType(EncodingAwareContextGeoJson context);
+  protected abstract String getGeometryType(
+      EncodingAwareContextGeoJson context, Geometry<?> geometry);
+
+  private void writeNullIfNecessary(EncodingAwareContextGeoJson context) throws IOException {
+    if (writeNull()) {
+      context.encoding().pauseBuffering();
+      context.encoding().getJson().writeFieldName(geomPropertyName(context.schema()));
+      context.encoding().getJson().writeNull();
+      context.encoding().getJson().flush();
+      context.encoding().continueBuffering();
+    }
+  }
 }

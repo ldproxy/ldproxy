@@ -10,9 +10,9 @@ package de.ii.ogcapi.features.gml.domain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
-import de.ii.ogcapi.features.gml.domain.GmlConfiguration.GmlVersion;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry;
+import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +81,12 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract Optional<String> getGmlIdPrefix();
 
+  @Value.Derived
+  @Value.Auxiliary
+  public StringBuilder getWriter() {
+    return buffer;
+  }
+
   /**
    * Add a string to the response.
    *
@@ -116,7 +122,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
    * @throws IOException the buffer could not be written to the stream
    */
   public void flush() throws IOException {
-    if (buffer.length() > 0) {
+    if (!buffer.isEmpty()) {
       // replace placeholders
       getState()
           .getPlaceholders()
@@ -190,97 +196,6 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     }
 
     return elementName;
-  }
-
-  /**
-   * Geometries are represented by coordinate arrays. We need to maintain a stack with the current
-   * level of nesting and for each level the position in the coordinate arrays in order to create
-   * the proper GML element names.
-   *
-   * <p>This method determines the current nesting level.
-   *
-   * @return the current level
-   */
-  @Value.Auxiliary
-  public int getGeometryArrayLevel() {
-    return getState().getCurrentGeometryNesting().size() - 1;
-  }
-
-  /**
-   * Geometries are represented by coordinate arrays. We need to maintain a stack with the current
-   * level of nesting and for each level the position in the coordinate arrays in order to create
-   * the proper GML element names.
-   *
-   * <p>This method adds a new array level at the first position in the array on the new level.
-   *
-   * @return the new nesting level
-   */
-  @Value.Auxiliary
-  public int openGeometryArray() {
-    getState().addCurrentGeometryNesting(0);
-    return getState().getCurrentGeometryNesting().size() - 1;
-  }
-
-  /**
-   * Geometries are represented by coordinate arrays. We need to maintain a stack with the current
-   * level of nesting and for each level the position in the coordinate arrays in order to create
-   * the proper GML element names.
-   *
-   * <p>This method advances to the next item on the top array.
-   *
-   * @return the new position in the top array
-   */
-  public int nextGeometryItem() {
-    List<Integer> nesting = getState().getCurrentGeometryNesting();
-    assert !nesting.isEmpty();
-    int idx = nesting.get(nesting.size() - 1) + 1;
-    if (nesting.size() > 1) {
-      getState()
-          .setCurrentGeometryNesting(
-              ImmutableList.<Integer>builder()
-                  .addAll(ImmutableList.copyOf(nesting.subList(0, nesting.size() - 1)))
-                  .add(idx)
-                  .build());
-    } else {
-      getState().setCurrentGeometryNesting(ImmutableList.of(idx));
-    }
-    return idx;
-  }
-
-  /**
-   * Geometries are represented by coordinate arrays. We need to maintain a stack with the current
-   * level of nesting and for each level the position in the coordinate arrays in order to create
-   * the proper GML element names.
-   *
-   * <p>This method removes the top array, the nesting level is reduced by one.
-   *
-   * @return the new nesting level
-   */
-  public int closeGeometryArray() {
-    List<Integer> nesting = getState().getCurrentGeometryNesting();
-    assert !nesting.isEmpty();
-    int level = nesting.size() - 1;
-    if (level > 0) {
-      getState().setCurrentGeometryNesting(ImmutableList.copyOf(nesting.subList(0, level)));
-    } else {
-      getState().unsetCurrentGeometryNesting();
-    }
-    return level - 1;
-  }
-
-  /**
-   * Geometries are represented by coordinate arrays. We need to maintain a stack with the current
-   * level of nesting and for each level the position in the coordinate arrays in order to create
-   * the proper GML element names.
-   *
-   * <p>This method fetches the current position in the array at the specified level.
-   *
-   * @return the level of the array for which the current position is retrieved
-   */
-  public int getGeometryItem(int level) {
-    List<Integer> nesting = getState().getCurrentGeometryNesting();
-    assert nesting.size() > level;
-    return nesting.get(level);
   }
 
   /**
@@ -521,7 +436,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
       return 0;
     }
 
-    public abstract Optional<SimpleFeatureGeometry> getCurrentGeometryType();
+    public abstract Optional<GeometryType> getCurrentGeometryType();
 
     @Value.Default
     public List<Integer> getCurrentGeometryNesting() {

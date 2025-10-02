@@ -12,8 +12,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema
 import de.ii.xtraplatform.features.domain.ImmutableSchemaConstraints
 import de.ii.xtraplatform.features.domain.SchemaBase
-import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation
-import de.ii.xtraplatform.geometries.domain.SimpleFeatureGeometry
+import de.ii.xtraplatform.geometries.domain.GeometryType
 
 class SchemaDeriverFixtures {
     static final FeatureSchema FEATURE_SCHEMA =
@@ -58,7 +57,7 @@ class SchemaDeriverFixtures {
                             .objectType("Link")
                             .label("foo")
                             .description("bar")
-                            .constraints(new ImmutableSchemaConstraints.Builder().minOccurrence(1).maxOccurrence(5).build())
+                            .constraints(new ImmutableSchemaConstraints.Builder().minOccurrence(0).maxOccurrence(5).build())
                             .putPropertyMap("title", new ImmutableFeatureSchema.Builder()
                                     .name("title")
                                     .description("bar")
@@ -126,7 +125,7 @@ class SchemaDeriverFixtures {
                     .putPropertyMap("geometry", new ImmutableFeatureSchema.Builder()
                             .name("geometry")
                             .type(SchemaBase.Type.GEOMETRY)
-                            .geometryType(SimpleFeatureGeometry.MULTI_POLYGON)
+                            .geometryType(GeometryType.MULTI_POLYGON)
                             .role(SchemaBase.Role.PRIMARY_GEOMETRY)
                             .label("foo")
                             .description("bar")

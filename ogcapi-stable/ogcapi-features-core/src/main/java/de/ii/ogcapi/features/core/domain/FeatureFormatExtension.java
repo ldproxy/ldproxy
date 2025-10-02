@@ -96,6 +96,10 @@ public abstract class FeatureFormatExtension implements FormatExtension {
     return getContent();
   }
 
+  public boolean isRestrictedToSimpleFeaturesGeometries(List<Profile> profiles) {
+    return true;
+  }
+
   public boolean canPassThroughFeatures() {
     return false;
   }

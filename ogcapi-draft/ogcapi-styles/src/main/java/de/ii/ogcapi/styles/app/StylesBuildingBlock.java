@@ -10,14 +10,22 @@ package de.ii.ogcapi.styles.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration.Builder;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
+import de.ii.ogcapi.styles.domain.StylesConfiguration;
+import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
+import de.ii.xtraplatform.entities.domain.ValidationResult;
+import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -160,5 +168,35 @@ public class StylesBuildingBlock implements ApiBuildingBlock {
         .addBoundsToVectorSource(true)
         .legendEnabled(false)
         .build();
+  }
+
+  @Override
+  public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
+    if (apiValidation == MODE.NONE) return ValidationResult.of();
+
+    ImmutableValidationResult.Builder builder =
+        ImmutableValidationResult.builder().mode(apiValidation);
+
+    StylesConfiguration cfg = api.getData().getExtension(StylesConfiguration.class).get();
+
+    if (cfg.isEnabled() && !cfg.getStyleEncodings().isEmpty()) {
+      Set<String> supported =
+          extensionRegistry.getExtensionsForType(StyleFormatExtension.class).stream()
+              .map(StyleFormatExtension::getMediaType)
+              .map(ApiMediaType::label)
+              .collect(Collectors.toSet());
+      String unsupported =
+          cfg.getStyleEncodings().stream()
+              .filter(enc -> !supported.contains(enc))
+              .collect(Collectors.joining(", "));
+      if (!unsupported.isEmpty()) {
+        builder.addWarnings(
+            "Unsupported style encoding(s) '{}'. Supported are: {}",
+            unsupported,
+            String.join(", ", supported));
+      }
+    }
+
+    return builder.build();
   }
 }
