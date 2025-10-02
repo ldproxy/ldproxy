@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.WithDryRun;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.io.InputStream;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface QueriesHandlerResources
@@ -52,6 +53,10 @@ public interface QueriesHandlerResources
     InputStream getRequestBody();
 
     boolean getStrict();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
   }
 
   @Value.Immutable
@@ -60,5 +65,9 @@ public interface QueriesHandlerResources
     String getResourceId();
 
     OgcApi getDataset();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
   }
 }

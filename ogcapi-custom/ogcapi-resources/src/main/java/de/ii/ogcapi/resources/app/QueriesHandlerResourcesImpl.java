@@ -25,6 +25,7 @@ import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResource;
 import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResourceCreateReplace;
 import de.ii.ogcapi.resources.domain.QueriesHandlerResources.QueryInputResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
+import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
@@ -44,6 +45,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotAcceptableException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
@@ -119,6 +121,11 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
             MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
       }
 
+      checkHeader(
+          api.getData().getExtension(ResourcesConfiguration.class),
+          queryInput.getIfMatch(),
+          queryInput.getIfUnmodifiedSince());
+
       Blob blob = resourceBlob.get();
       Date lastModified = LastModified.from(blob.lastModified());
       EntityTag eTag = blob.eTag();
@@ -159,18 +166,21 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
     try {
       Optional<Blob> resourceBlob = resourcesStore.get(resourcePath);
 
-      if (resourceBlob.isEmpty()) {
-        throw new NotFoundException(
-            MessageFormat.format("The resource ''{0}'' does not exist.", resourceId));
+      Date lastModified = null;
+      EntityTag eTag = null;
+      if (resourceBlob.isPresent()) {
+        checkHeader(
+            api.getData().getExtension(ResourcesConfiguration.class),
+            queryInput.getIfMatch(),
+            queryInput.getIfUnmodifiedSince());
+
+        Blob blob = resourceBlob.get();
+        lastModified = LastModified.from(blob.lastModified());
+        eTag = blob.eTag();
       }
 
-      Blob blob = resourceBlob.get();
-      Date lastModified = LastModified.from(blob.lastModified());
-      EntityTag eTag = blob.eTag();
       Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, eTag);
-
       if (Objects.nonNull(response)) return response.build();
-
     } catch (IOException e) {
       throw new ServerErrorException("resource could not be read: " + resourceId, 500);
     }
@@ -278,7 +288,6 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
         extensionRegistry.getExtensionsForType(ResourceFormatExtension.class).stream()
             .filter(f -> requestContext.getMediaType().matches(f.getMediaType().type()))
             .findAny()
-            .map(ResourceFormatExtension.class::cast)
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -295,7 +304,6 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
       }
 
       Blob blob = resourceBlob.get();
-      // TODO
       Date lastModified = LastModified.from(blob.lastModified());
       EntityTag eTag = blob.eTag();
       Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, eTag);
@@ -313,6 +321,23 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
 
     } catch (IOException e) {
       throw new ServerErrorException("resource could not be read: " + resourceId, 500);
+    }
+  }
+
+  private static void checkHeader(
+      Optional<ResourcesConfiguration> resourcesConfiguration,
+      Optional<String> ifMatch,
+      Optional<String> ifUnmodifiedSince) {
+    if (resourcesConfiguration.map(ResourcesConfiguration::supportsEtag).orElse(false)
+        && ifMatch.isEmpty()) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Match' header.");
+    } else if (resourcesConfiguration
+            .map(ResourcesConfiguration::supportsLastModified)
+            .orElse(false)
+        && ifUnmodifiedSince.isEmpty()) {
+      throw new BadRequestException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
     }
   }
 }

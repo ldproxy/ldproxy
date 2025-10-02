@@ -40,16 +40,14 @@ import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import io.dropwizard.auth.Auth;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.HeaderParam;
@@ -89,23 +87,6 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
 
     this.resourcesStore = blobStore.with(ResourcesBuildingBlock.STORE_RESOURCE_TYPE);
     this.queriesHandlerResources = queriesHandlerResources;
-  }
-
-  private static void checkHeader(
-      Optional<ResourcesConfiguration> resourcesConfiguration,
-      String ifMatch,
-      String ifUnmodifiedSince) {
-    if (resourcesConfiguration.map(ResourcesConfiguration::supportsEtag).orElse(false)
-        && Objects.isNull(ifMatch)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
-    } else if (resourcesConfiguration
-            .map(ResourcesConfiguration::supportsLastModified)
-            .orElse(false)
-        && Objects.isNull(ifUnmodifiedSince)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
-    }
   }
 
   @Override
@@ -214,23 +195,21 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
   public Response putResource(
       @Auth Optional<User> optionalUser,
       @PathParam("resourceId") String resourceId,
+      @HeaderParam("Prefer") List<String> prefer,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
-      @Context HttpServletRequest request,
       InputStream requestBody)
       throws IOException {
-
-    Optional<ResourcesConfiguration> resourcesConfiguration =
-        api.getData().getExtension(ResourcesConfiguration.class);
-    checkHeader(resourcesConfiguration, ifMatch, ifUnmodifiedSince);
 
     ImmutableQueryInputResourceCreateReplace.Builder builder =
         new ImmutableQueryInputResourceCreateReplace.Builder()
             .requestBody(requestBody)
             .resourceId(resourceId)
-            .strict(strictHandling(request.getHeaders("Prefer")));
+            .strict(strictHandling(Collections.enumeration(prefer)))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
     return queriesHandlerResources.handle(
         QueriesHandlerResources.Query.CREATE_REPLACE, builder.build(), requestContext);
@@ -253,12 +232,12 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
       @Context ApiRequestContext requestContext,
       @Context OgcApi dataset) {
 
-    Optional<ResourcesConfiguration> resourcesConfiguration =
-        api.getData().getExtension(ResourcesConfiguration.class);
-    checkHeader(resourcesConfiguration, ifMatch, ifUnmodifiedSince);
-
     ImmutableQueryInputResourceDelete.Builder builder =
-        new ImmutableQueryInputResourceDelete.Builder().resourceId(resourceId).dataset(dataset);
+        new ImmutableQueryInputResourceDelete.Builder()
+            .resourceId(resourceId)
+            .dataset(dataset)
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
     return queriesHandlerResources.handle(
         QueriesHandlerResources.Query.DELETE, builder.build(), requestContext);
