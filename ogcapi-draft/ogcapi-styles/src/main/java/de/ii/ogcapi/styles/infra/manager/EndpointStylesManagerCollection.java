@@ -288,11 +288,11 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
     if (stylesConfiguration.map(StylesConfiguration::supportsEtag).orElse(false)
         && Objects.isNull(ifMatch)) {
       throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
+          "Requests to change a style for this collection must include an 'If-Match' header.");
     } else if (stylesConfiguration.map(StylesConfiguration::supportsLastModified).orElse(false)
         && Objects.isNull(ifUnmodifiedSince)) {
       throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
+          "Requests to change a style for this collection must include an 'If-Unmodified-Since' header.");
     }
   }
 

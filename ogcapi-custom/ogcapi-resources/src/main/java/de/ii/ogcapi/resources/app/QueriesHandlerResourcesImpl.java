@@ -331,13 +331,13 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
     if (resourcesConfiguration.map(ResourcesConfiguration::supportsEtag).orElse(false)
         && ifMatch.isEmpty()) {
       throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
+          "Requests to change a resource must include an 'If-Match' header.");
     } else if (resourcesConfiguration
             .map(ResourcesConfiguration::supportsLastModified)
             .orElse(false)
         && ifUnmodifiedSince.isEmpty()) {
       throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
+          "Requests to change a resource must include an 'If-Unmodified-Since' header.");
     }
   }
 }
