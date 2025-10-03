@@ -46,14 +46,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
@@ -198,19 +196,6 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
     return definitionBuilder.build();
   }
 
-  private static void checkHeader(
-      Optional<SearchConfiguration> searchConfiguration, String ifMatch, String ifUnmodifiedSince) {
-    if (searchConfiguration.map(SearchConfiguration::supportsEtag).orElse(false)
-        && Objects.isNull(ifMatch)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
-    } else if (searchConfiguration.map(SearchConfiguration::supportsLastModified).orElse(false)
-        && Objects.isNull(ifUnmodifiedSince)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
-    }
-  }
-
   /**
    * creates or updates a stored query
    *
@@ -230,10 +215,6 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
       InputStream requestBody) {
 
     OgcApiDataV2 apiData = api.getData();
-
-    Optional<SearchConfiguration> SearchConfiguration =
-        api.getData().getExtension(SearchConfiguration.class);
-    checkHeader(SearchConfiguration, ifMatch, ifUnmodifiedSince);
 
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
@@ -257,7 +238,9 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
         new ImmutableQueryInputStoredQueryCreateReplace.Builder()
             .queryId(queryId)
             .query(query)
-            .strict(strictHandling(request.getHeaders("Prefer")));
+            .strict(strictHandling(request.getHeaders("Prefer")))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
@@ -288,16 +271,16 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
 
     OgcApiDataV2 apiData = api.getData();
 
-    Optional<SearchConfiguration> SearchConfiguration =
-        api.getData().getExtension(SearchConfiguration.class);
-    checkHeader(SearchConfiguration, ifMatch, ifUnmodifiedSince);
-
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
     // TODO recompute API definition of EndpointStoredQuery
 
     SearchQueriesHandler.QueryInputStoredQueryDelete queryInput =
-        new ImmutableQueryInputStoredQueryDelete.Builder().queryId(queryId).build();
+        new ImmutableQueryInputStoredQueryDelete.Builder()
+            .queryId(queryId)
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince))
+            .build();
 
     return queryHandler.handle(SearchQueriesHandler.Query.DELETE, queryInput, requestContext);
   }

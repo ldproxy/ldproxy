@@ -18,8 +18,6 @@ import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputParameters;
-import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
-import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -62,16 +60,12 @@ public class EndpointParameters extends EndpointRequiresFeatures implements ApiE
 
   private static final List<String> TAGS = ImmutableList.of("Discover and execute queries");
 
-  private final StoredQueryRepository repository;
   private final SearchQueriesHandler queryHandler;
 
   @Inject
   public EndpointParameters(
-      ExtensionRegistry extensionRegistry,
-      StoredQueryRepository repository,
-      SearchQueriesHandler queryHandler) {
+      ExtensionRegistry extensionRegistry, SearchQueriesHandler queryHandler) {
     super(extensionRegistry);
-    this.repository = repository;
     this.queryHandler = queryHandler;
   }
 
@@ -147,13 +141,10 @@ public class EndpointParameters extends EndpointRequiresFeatures implements ApiE
     checkPathParameter(
         extensionRegistry, apiData, "/search/{queryId}/parameters", "queryId", queryId);
 
-    StoredQueryExpression query = repository.get(apiData, queryId);
-
     QueryInputParameters queryInput =
         new ImmutableQueryInputParameters.Builder()
             .from(getGenericQueryInput(api.getData()))
             .queryId(queryId)
-            .query(query)
             .build();
 
     return queryHandler.handle(Query.PARAMETERS, queryInput, requestContext);
@@ -161,6 +152,6 @@ public class EndpointParameters extends EndpointRequiresFeatures implements ApiE
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler, repository);
+    return Set.of(queryHandler);
   }
 }

@@ -13,7 +13,6 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.foundation.domain.WithDryRun;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
@@ -77,30 +76,39 @@ public interface SearchQueriesHandler
   @Value.Immutable
   interface QueryInputParameters extends QueryInput {
     String getQueryId();
-
-    StoredQueryExpression getQuery();
   }
 
   @Value.Immutable
   interface QueryInputParameter extends QueryInput {
     String getQueryId();
 
-    StoredQueryExpression getQuery();
-
     String getParameterName();
   }
 
   @Value.Immutable
-  interface QueryInputStoredQueryCreateReplace extends QueryInput, WithDryRun {
+  interface QueryInputStoredQueryCreateReplace extends QueryInput {
     String getQueryId();
 
     StoredQueryExpression getQuery();
 
     boolean getStrict();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
+
+    @Value.Default
+    default boolean getDryRun() {
+      return false;
+    }
   }
 
   @Value.Immutable
   interface QueryInputStoredQueryDelete extends QueryInput {
     String getQueryId();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
   }
 }

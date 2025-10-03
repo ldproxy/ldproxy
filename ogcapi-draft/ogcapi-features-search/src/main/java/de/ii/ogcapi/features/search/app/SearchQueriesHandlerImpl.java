@@ -197,6 +197,21 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     }
   }
 
+  private static void checkHeader(
+      Optional<SearchConfiguration> searchConfiguration,
+      Optional<String> ifMatch,
+      Optional<String> ifUnmodifiedSince) {
+    if (searchConfiguration.map(SearchConfiguration::supportsEtag).orElse(false)
+        && ifMatch.isEmpty()) {
+      throw new BadRequestException(
+          "Requests to change a stored query must include an 'If-Match' header.");
+    } else if (searchConfiguration.map(SearchConfiguration::supportsLastModified).orElse(false)
+        && ifUnmodifiedSince.isEmpty()) {
+      throw new BadRequestException(
+          "Requests to change a stored query must include an 'If-Unmodified-Since' header.");
+    }
+  }
+
   @SuppressWarnings("PMD.ConfusingTernary")
   private Response writeStoredQuery(
       QueryInputStoredQueryCreateReplace queryInput, ApiRequestContext requestContext) {
@@ -205,16 +220,19 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     String queryId = queryInput.getQueryId();
 
-    Date lastModified = repository.getLastModified(apiData, queryId);
-
-    @SuppressWarnings("UnstableApiUsage")
-    StoredQueryExpression query = repository.get(apiData, queryId);
-    EntityTag etag = ETag.from(query.getStableHash().getBytes(StandardCharsets.UTF_8));
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    final Response.ResponseBuilder response =
+        preConditionChecks(
+            requestContext,
+            apiData,
+            queryId,
+            queryInput.getIfMatch(),
+            queryInput.getIfUnmodifiedSince());
 
     if (Objects.nonNull(response)) {
       return response.build();
     }
+
+    StoredQueryExpression query = queryInput.getQuery();
 
     if (queryInput.getStrict()) {
       // check collections
@@ -251,10 +269,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     if (!queryInput.getDryRun()) {
       try {
-        repository.writeStoredQueryDocument(requestContext.getApi().getData(), queryId, query);
+        repository.writeStoredQueryDocument(apiData, queryId, query);
       } catch (IOException e) {
         throw new IllegalStateException(
-            MessageFormat.format("Error while storing query '{0}'.", queryInput.getQueryId()), e);
+            MessageFormat.format("Error while storing query ''{0}''.", queryId), e);
       }
     }
 
@@ -267,22 +285,47 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApiDataV2 apiData = requestContext.getApi().getData();
 
     String queryId = queryInput.getQueryId();
-    Date lastModified = repository.getLastModified(apiData, queryId);
-    @SuppressWarnings("UnstableApiUsage")
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, null);
+
+    final Response.ResponseBuilder response =
+        preConditionChecks(
+            requestContext,
+            apiData,
+            queryId,
+            queryInput.getIfMatch(),
+            queryInput.getIfUnmodifiedSince());
 
     if (Objects.nonNull(response)) {
       return response.build();
     }
 
     try {
-      repository.deleteStoredQuery(requestContext.getApi().getData(), queryInput.getQueryId());
+      repository.deleteStoredQuery(apiData, queryId);
     } catch (IOException e) {
       throw new IllegalStateException(
-          MessageFormat.format("Error while deleting stored query '{0}'.", queryInput.getQueryId()),
-          e);
+          MessageFormat.format("Error while deleting stored query ''{0}''.", queryId), e);
     }
     return Response.noContent().build();
+  }
+
+  private Response.ResponseBuilder preConditionChecks(
+      ApiRequestContext requestContext,
+      OgcApiDataV2 apiData,
+      String queryId,
+      Optional<String> ifMatch,
+      Optional<String> ifUnmodifiedSince) {
+    Date lastModified = null;
+    EntityTag etag = null;
+    try {
+      StoredQueryExpression currentQuery = repository.get(apiData, queryId);
+
+      checkHeader(apiData.getExtension(SearchConfiguration.class), ifMatch, ifUnmodifiedSince);
+      lastModified = repository.getLastModified(apiData, queryId);
+      etag = ETag.from(currentQuery.getStableHash().getBytes(StandardCharsets.UTF_8));
+    } catch (Exception e) {
+      // ignore, no current query
+    }
+
+    return evaluatePreconditions(requestContext, lastModified, etag);
   }
 
   private Response getParameters(
@@ -291,8 +334,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcApiDataV2 apiData = requestContext.getApi().getData();
 
-    queryInput
-        .getQuery()
+    String queryId = queryInput.getQueryId();
+    StoredQueryExpression query = repository.get(apiData, queryId);
+
+    query
         .getParametersAsNodes()
         .forEach(
             (name, schema) -> {
@@ -302,7 +347,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               }
             });
 
-    builder.lastModified(Optional.ofNullable(repository.getLastModified(apiData)));
+    builder.lastModified(Optional.ofNullable(repository.getLastModified(apiData, queryId)));
 
     Parameters parameters = builder.build();
 
@@ -321,7 +366,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .collect(Collectors.joining(", ")))));
 
     Date lastModified = getLastModified(queryInput, parameters);
-    @SuppressWarnings("UnstableApiUsage")
     EntityTag etag =
         sendEtag(format.getMediaType(), apiData)
             ? ETag.from(parameters, Parameters.FUNNEL, format.getMediaType().label())
@@ -349,7 +393,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcApiDataV2 apiData = requestContext.getApi().getData();
 
-    queryInput.getQuery().getParametersAsNodes().entrySet().stream()
+    String queryId = queryInput.getQueryId();
+    StoredQueryExpression query = repository.get(apiData, queryId);
+
+    query.getParametersAsNodes().entrySet().stream()
         .filter(e -> e.getKey().equals(queryInput.getParameterName()))
         .map(Entry::getValue)
         .findFirst()
@@ -361,7 +408,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     builder.links(linkGenerator.generateLinks(requestContext, i18n));
 
-    builder.lastModified(Optional.ofNullable(repository.getLastModified(apiData)));
+    builder.lastModified(Optional.ofNullable(repository.getLastModified(apiData, queryId)));
 
     Parameter parameter = builder.build();
 
@@ -380,7 +427,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .collect(Collectors.joining(", ")))));
 
     Date lastModified = getLastModified(queryInput, parameter);
-    @SuppressWarnings("UnstableApiUsage")
     EntityTag etag =
         sendEtag(format.getMediaType(), apiData)
             ? ETag.from(parameter, Parameter.FUNNEL, format.getMediaType().label())
@@ -475,7 +521,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .collect(Collectors.joining(", ")))));
 
     Date lastModified = getLastModified(queryInput, storedQueries);
-    @SuppressWarnings("UnstableApiUsage")
     EntityTag etag =
         sendEtag(format.getMediaType(), apiData)
             ? ETag.from(storedQueries, StoredQueries.FUNNEL, format.getMediaType().label())
@@ -524,9 +569,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                 .collect(Collectors.joining(", ")))));
 
     String queryId = queryInput.getQueryId();
-    Date lastModified = repository.getLastModified(apiData, queryId);
-    @SuppressWarnings("UnstableApiUsage")
     StoredQueryExpression query = repository.get(apiData, queryId);
+
+    Date lastModified = repository.getLastModified(apiData, queryId);
     EntityTag etag = ETag.from(query.getStableHash().getBytes(StandardCharsets.UTF_8));
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
 
