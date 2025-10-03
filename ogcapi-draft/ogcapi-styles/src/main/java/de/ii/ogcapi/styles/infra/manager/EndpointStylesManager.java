@@ -228,7 +228,7 @@ public class EndpointStylesManager extends Endpoint
             StylesBuildingBlock.MATURITY,
             StylesBuildingBlock.SPEC)
         .ifPresent(
-            operation -> resourceBuilderCreate.putOperations(HttpMethods.DELETE.name(), operation));
+            operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
     return definitionBuilder.build();
