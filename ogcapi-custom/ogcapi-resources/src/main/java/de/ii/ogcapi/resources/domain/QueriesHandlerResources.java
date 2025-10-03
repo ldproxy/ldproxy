@@ -13,7 +13,6 @@ import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.foundation.domain.WithDryRun;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.io.InputStream;
 import java.util.Optional;
@@ -47,7 +46,7 @@ public interface QueriesHandlerResources
 
   @Value.Immutable
   @Value.Style(builder = "new")
-  interface QueryInputResourceCreateReplace extends QueryInput, WithDryRun {
+  interface QueryInputResourceCreateReplace extends QueryInput {
     String getResourceId();
 
     InputStream getRequestBody();
@@ -57,6 +56,11 @@ public interface QueriesHandlerResources
     Optional<String> getIfMatch();
 
     Optional<String> getIfUnmodifiedSince();
+
+    @Value.Default
+    default boolean getDryRun() {
+      return false;
+    }
   }
 
   @Value.Immutable
