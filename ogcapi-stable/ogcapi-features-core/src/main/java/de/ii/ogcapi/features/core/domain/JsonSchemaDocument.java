@@ -70,7 +70,7 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
     }
   }
 
-  public abstract static class Builder {
+  public abstract static class Builder extends JsonSchema.Builder {
     public abstract Builder id(Optional<String> id);
 
     public abstract Builder definitions(Map<String, ? extends JsonSchema> entries);

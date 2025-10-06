@@ -24,6 +24,8 @@ public abstract class JsonSchemaFalse extends JsonSchema {
     return false;
   }
 
+  public abstract static class Builder extends JsonSchema.Builder {}
+
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<JsonSchemaFalse> FUNNEL = (from, into) -> {};
 }

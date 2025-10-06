@@ -43,224 +43,58 @@ import java.util.Optional;
 
 public class CleanupForValidation implements JsonSchemaVisitor {
 
-  // TODO find a cleaner way to do this
-
   @Override
   public JsonSchema visit(JsonSchema schema) {
     JsonSchema newSchema = visitProperties(schema);
+
+    JsonSchema.Builder builder;
+
     if (newSchema instanceof JsonSchemaString string) {
-      return new ImmutableJsonSchemaString.Builder()
-          .from(string)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaString.Builder().from(string);
     } else if (newSchema instanceof JsonSchemaInteger integer) {
-      return new ImmutableJsonSchemaInteger.Builder()
-          .from(integer)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaInteger.Builder().from(integer);
     } else if (newSchema instanceof JsonSchemaNumber number) {
-      return new ImmutableJsonSchemaNumber.Builder()
-          .from(number)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaNumber.Builder().from(number);
     } else if (newSchema instanceof JsonSchemaBoolean bool) {
-      return new ImmutableJsonSchemaBoolean.Builder()
-          .from(bool)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaBoolean.Builder().from(bool);
     } else if (newSchema instanceof JsonSchemaAllOf allOf) {
-      return new ImmutableJsonSchemaAllOf.Builder()
-          .from(allOf)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaAllOf.Builder().from(allOf);
     } else if (newSchema instanceof JsonSchemaOneOf oneOf) {
-      return new ImmutableJsonSchemaOneOf.Builder()
-          .from(oneOf)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaOneOf.Builder().from(oneOf);
     } else if (newSchema instanceof JsonSchemaConstant constant) {
-      return new ImmutableJsonSchemaConstant.Builder()
-          .from(constant)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaConstant.Builder().from(constant);
     } else if (newSchema instanceof JsonSchemaArray array) {
-      return new ImmutableJsonSchemaArray.Builder()
-          .from(array)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaArray.Builder().from(array);
     } else if (newSchema instanceof JsonSchemaDocument document) {
-      return ImmutableJsonSchemaDocument.builder()
-          .from(document)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = ImmutableJsonSchemaDocument.builder().from(document);
     } else if (newSchema instanceof JsonSchemaObject object) {
-      return new ImmutableJsonSchemaObject.Builder()
-          .from(object)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaObject.Builder().from(object);
     } else if (newSchema instanceof JsonSchemaNull nil) {
-      return new ImmutableJsonSchemaNull.Builder()
-          .from(nil)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaNull.Builder().from(nil);
     } else if (newSchema instanceof JsonSchemaGeometry geom) {
-      return new ImmutableJsonSchemaGeometry.Builder()
-          .from(geom)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaGeometry.Builder().from(geom);
     } else if (newSchema instanceof JsonSchemaRef ref) {
-      return new ImmutableJsonSchemaRef.Builder()
-          .from(ref)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = new ImmutableJsonSchemaRef.Builder().from(ref);
     } else if (newSchema instanceof JsonSchemaTrue tr) {
-      return ImmutableJsonSchemaTrue.builder()
-          .from(tr)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = ImmutableJsonSchemaTrue.builder().from(tr);
     } else if (newSchema instanceof JsonSchemaFalse fa) {
-      return ImmutableJsonSchemaFalse.builder()
-          .from(fa)
-          .title(Optional.empty())
-          .description(Optional.empty())
-          .readOnly(Optional.empty())
-          .writeOnly(Optional.empty())
-          .codelistUri(Optional.empty())
-          .role(Optional.empty())
-          .embeddedRole(Optional.empty())
-          .propertySeq(Optional.empty())
-          .refCollectionId(Optional.empty())
-          .refUriTemplate(Optional.empty())
-          .build();
+      builder = ImmutableJsonSchemaFalse.builder().from(fa);
+    } else {
+      throw new IllegalStateException(
+          "Unexpected JSON Schema type: " + newSchema.getClass().getSimpleName());
     }
 
-    throw new IllegalStateException(
-        "Unexpected JSON Schema type: " + newSchema.getClass().getSimpleName());
+    return builder
+        .title(Optional.empty())
+        .description(Optional.empty())
+        .readOnly(Optional.empty())
+        .writeOnly(Optional.empty())
+        .codelistUri(Optional.empty())
+        .role(Optional.empty())
+        .embeddedRole(Optional.empty())
+        .propertySeq(Optional.empty())
+        .refCollectionId(Optional.empty())
+        .refUriTemplate(Optional.empty())
+        .build();
   }
 }

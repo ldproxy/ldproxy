@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
+import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf.Builder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -134,6 +135,18 @@ public abstract class JsonSchema {
     public abstract Builder readOnly(Optional<Boolean> readOnly);
 
     public abstract Builder writeOnly(Optional<Boolean> writeOnly);
+
+    public abstract Builder codelistId(Optional<String> codelistId);
+
+    public abstract Builder codelistUri(Optional<String> codelistUri);
+
+    public abstract Builder role(Optional<String> role);
+
+    public abstract Builder embeddedRole(Optional<String> embeddedRole);
+
+    public abstract Builder refCollectionId(Optional<String> refCollectionId);
+
+    public abstract Builder refUriTemplate(Optional<String> refUriTemplate);
 
     public abstract Builder propertySeq(int propertySeq);
 
