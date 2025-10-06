@@ -10,6 +10,7 @@ package de.ii.ogcapi.crud.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiCollection.Builder;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;

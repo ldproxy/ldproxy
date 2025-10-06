@@ -539,8 +539,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .filter(
                 profile ->
                     jsonfg
-                        ? profile instanceof ProfileValidationReceivablesJsonFg
-                        : profile instanceof ProfileValidationReceivablesGeoJson)
+                        ? "validation-receivables-jsonfg".equals(profile.getId())
+                        : "validation-receivables-geojson".equals(profile.getId()))
             .findFirst();
 
     Optional<SchemaConfiguration> schemaConfiguration =

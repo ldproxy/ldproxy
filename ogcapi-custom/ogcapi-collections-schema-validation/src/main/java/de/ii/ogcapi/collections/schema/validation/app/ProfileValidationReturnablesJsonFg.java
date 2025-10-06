@@ -5,12 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.collections.schema.app;
+package de.ii.ogcapi.collections.schema.validation.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.collections.schema.domain.ProfileValidationReturnables;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
+import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -19,10 +18,10 @@ import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class ProfileValidationReturnablesGeoJson extends ProfileValidationReturnables {
+public class ProfileValidationReturnablesJsonFg extends ProfileValidationReturnables {
 
   @Inject
-  ProfileValidationReturnablesGeoJson(
+  ProfileValidationReturnablesJsonFg(
       ExtensionRegistry extensionRegistry, FeaturesCoreProviders providers) {
     super(extensionRegistry, providers);
   }
@@ -31,18 +30,23 @@ public class ProfileValidationReturnablesGeoJson extends ProfileValidationReturn
   public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
     return super.isEnabledForApi(apiData, collectionId)
         && apiData
-            .getExtension(GeoJsonConfiguration.class, collectionId)
+            .getExtension(JsonFgConfiguration.class, collectionId)
             .map(ExtensionConfiguration::isEnabled)
-            .orElse(true);
+            .orElse(false);
   }
 
   @Override
   public String getId() {
-    return "validation-returnables-geojson";
+    return "validation-returnables-jsonfg";
   }
 
   @Override
   public String getLabel() {
-    return "JSON Schema for Validation (Returnables, GeoJSON)";
+    return "JSON Schema for Validation (Returnables, JSON-FG)";
+  }
+
+  @Override
+  public boolean supportJsonFgExtensions() {
+    return true;
   }
 }

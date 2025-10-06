@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.crs.domain.CrsConfiguration;
 import de.ii.ogcapi.crs.domain.CrsSupport;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;

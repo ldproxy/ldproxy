@@ -5,11 +5,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.collections.schema.app;
+package de.ii.ogcapi.collections.schema.validation.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.collections.schema.domain.ProfileJsonSchemaForValidation;
-import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -34,7 +32,7 @@ public class JsonSchemaForValidation implements JsonSchemaExtension {
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return SchemaConfiguration.class;
+    return SchemaValidationConfiguration.class;
   }
 
   @Override

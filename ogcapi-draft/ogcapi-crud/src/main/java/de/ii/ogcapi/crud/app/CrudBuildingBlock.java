@@ -8,7 +8,7 @@
 package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.crud.app.ImmutableCrudConfiguration.Builder;
+import de.ii.ogcapi.crud.domain.ImmutableCrudConfiguration.Builder;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -79,8 +79,8 @@ import javax.inject.Singleton;
  *     dem [Entwurf von OGC API - Features - Part 4: Create, Replace, Update and
  *     Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). Die Implementierung wird sich im Zuge der
  *     weiteren Standardisierung der Spezifikation noch ändern.
- * @ref:cfg {@link de.ii.ogcapi.crud.app.CrudConfiguration}
- * @ref:cfgProperties {@link de.ii.ogcapi.crud.app.ImmutableCrudConfiguration}
+ * @ref:cfg {@link de.ii.ogcapi.crud.domain.CrudConfiguration}
+ * @ref:cfgProperties {@link de.ii.ogcapi.crud.domain.ImmutableCrudConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.crud.app.EndpointCrud}
  * @ref:pathParameters {@link de.ii.ogcapi.features.core.domain.PathParameterCollectionIdFeatures}
  */

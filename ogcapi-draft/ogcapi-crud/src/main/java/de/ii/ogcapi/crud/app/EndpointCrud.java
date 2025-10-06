@@ -18,6 +18,7 @@ import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureCreate;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureDelete;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureReplace;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.EndpointFeaturesDefinition;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;

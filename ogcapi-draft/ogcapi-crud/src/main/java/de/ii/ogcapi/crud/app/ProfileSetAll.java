@@ -8,6 +8,7 @@
 package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
