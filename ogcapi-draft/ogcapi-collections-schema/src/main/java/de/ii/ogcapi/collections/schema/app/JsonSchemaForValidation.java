@@ -8,8 +8,6 @@
 package de.ii.ogcapi.collections.schema.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.collections.schema.domain.CleanupForValidation;
-import de.ii.ogcapi.collections.schema.domain.ForValidation;
 import de.ii.ogcapi.collections.schema.domain.ProfileJsonSchemaForValidation;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.JsonSchema;

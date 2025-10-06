@@ -5,12 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.collections.schema.domain;
+package de.ii.ogcapi.collections.schema.app;
 
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.collections.schema.domain.ProfileJsonSchemaForValidation;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaConstant;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
+import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaFalse;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaNumber;
 import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
@@ -45,6 +47,7 @@ public class ForValidation implements JsonSchemaVisitor {
           .putProperties(
               "type", new ImmutableJsonSchemaConstant.Builder().constant("Point").build())
           .putProperties("coordinates", POSITION)
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject LINESTRING =
       new ImmutableJsonSchemaObject.Builder()
@@ -54,6 +57,7 @@ public class ForValidation implements JsonSchemaVisitor {
           .putProperties(
               "coordinates",
               new ImmutableJsonSchemaArray.Builder().minItems(2).items(POSITION).build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject CIRCULARSTRING =
       new ImmutableJsonSchemaObject.Builder()
@@ -90,6 +94,7 @@ public class ForValidation implements JsonSchemaVisitor {
                           .items(POSITION)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject POLYGON =
       new ImmutableJsonSchemaObject.Builder()
@@ -101,6 +106,7 @@ public class ForValidation implements JsonSchemaVisitor {
               new ImmutableJsonSchemaArray.Builder()
                   .items(new ImmutableJsonSchemaArray.Builder().minItems(4).items(POSITION).build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject MULTIPOINT =
       new ImmutableJsonSchemaObject.Builder()
@@ -109,6 +115,7 @@ public class ForValidation implements JsonSchemaVisitor {
               "type", new ImmutableJsonSchemaConstant.Builder().constant("MultiPoint").build())
           .putProperties(
               "coordinates", new ImmutableJsonSchemaArray.Builder().items(POSITION).build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject MULTILINESTRING =
       new ImmutableJsonSchemaObject.Builder()
@@ -120,6 +127,7 @@ public class ForValidation implements JsonSchemaVisitor {
               new ImmutableJsonSchemaArray.Builder()
                   .items(new ImmutableJsonSchemaArray.Builder().minItems(2).items(POSITION).build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject MULTIPOLYGON =
       new ImmutableJsonSchemaObject.Builder()
@@ -138,6 +146,7 @@ public class ForValidation implements JsonSchemaVisitor {
                                   .build())
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject COMPOUNDCURVE =
       new ImmutableJsonSchemaObject.Builder()
@@ -153,6 +162,7 @@ public class ForValidation implements JsonSchemaVisitor {
                           .addOneOf(LINESTRING, CIRCULARSTRING)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject MULTICURVE =
       new ImmutableJsonSchemaObject.Builder()
@@ -167,6 +177,7 @@ public class ForValidation implements JsonSchemaVisitor {
                           .addOneOf(LINESTRING, CIRCULARSTRING, COMPOUNDCURVE)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject CURVEPOLYGON =
       new ImmutableJsonSchemaObject.Builder()
@@ -182,6 +193,7 @@ public class ForValidation implements JsonSchemaVisitor {
                           .addOneOf(LINESTRING, CIRCULARSTRING, COMPOUNDCURVE)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject MULTISURFACE =
       new ImmutableJsonSchemaObject.Builder()
@@ -196,6 +208,7 @@ public class ForValidation implements JsonSchemaVisitor {
                           .addOneOf(POLYGON, CURVEPOLYGON)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
   private static final JsonSchemaObject GEOMETRYCOLLECTION =
       new ImmutableJsonSchemaObject.Builder()
@@ -212,6 +225,7 @@ public class ForValidation implements JsonSchemaVisitor {
                               POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON)
                           .build())
                   .build())
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
 
   private final ProfileJsonSchemaForValidation profile;
@@ -350,10 +364,7 @@ public class ForValidation implements JsonSchemaVisitor {
               new ImmutableJsonSchemaObject.Builder()
                   .properties(processProperties(document.getProperties()))
                   .patternProperties(processSchemaMap(document.getPatternProperties()))
-                  .additionalProperties(
-                      document
-                          .getAdditionalProperties()
-                          .flatMap(ap -> Optional.ofNullable(ap.accept(this))))
+                  .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
                   .build())
           .definitions(processSchemaMap(document.getDefinitions()));
 
@@ -480,6 +491,7 @@ public class ForValidation implements JsonSchemaVisitor {
               "date",
               new ImmutableJsonSchemaString.Builder().pattern("^\\d{4}-\\d{2}-\\d{2}$").build())
           .required(List.of("date"))
+          .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
           .build();
     }
     return new ImmutableJsonSchemaObject.Builder()
@@ -489,6 +501,7 @@ public class ForValidation implements JsonSchemaVisitor {
                 .pattern("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$")
                 .build())
         .required(List.of("timestamp"))
+        .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
         .build();
   }
 
