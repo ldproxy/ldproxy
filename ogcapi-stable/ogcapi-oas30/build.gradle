@@ -7,6 +7,8 @@ descriptionDe = 'Veröffentlichung von OpenAPI-Definitionen.'
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
     provided 'de.interactive_instruments:xtraplatform-base'
+    provided 'de.interactive_instruments:xtraplatform-web'
+
     provided project(":ogcapi-foundation")
     provided project(":ogcapi-common")
     provided project(":ogcapi-html")

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.google.common.collect.ImmutableList;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;

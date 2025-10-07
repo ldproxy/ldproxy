@@ -8,10 +8,10 @@
 package de.ii.ogcapi.styles.app;
 
 import de.ii.ogcapi.foundation.domain.I18n;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.ogcapi.styles.domain.Styles;
 import de.ii.ogcapi.tiles.domain.StyleEntry;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;

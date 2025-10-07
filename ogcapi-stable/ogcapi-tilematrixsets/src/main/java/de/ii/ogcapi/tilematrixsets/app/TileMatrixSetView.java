@@ -8,9 +8,9 @@
 package de.ii.ogcapi.tilematrixsets.app;
 
 import de.ii.ogcapi.foundation.domain.I18n;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetOgcApi;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
