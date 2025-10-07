@@ -18,9 +18,7 @@ import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQueryDefinition;
-import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
-import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
@@ -66,16 +64,12 @@ public class EndpointStoredQueryDefinition extends EndpointRequiresFeatures
   private static final List<String> TAGS = ImmutableList.of("Manage stored queries");
 
   private final SearchQueriesHandler queryHandler;
-  private final StoredQueryRepository repository;
 
   @Inject
   public EndpointStoredQueryDefinition(
-      ExtensionRegistry extensionRegistry,
-      SearchQueriesHandler queryHandler,
-      StoredQueryRepository repository) {
+      ExtensionRegistry extensionRegistry, SearchQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
-    this.repository = repository;
   }
 
   @Override
@@ -166,14 +160,10 @@ public class EndpointStoredQueryDefinition extends EndpointRequiresFeatures
     checkPathParameter(
         extensionRegistry, apiData, "/search/{queryId}/definition", "queryId", queryId);
 
-    StoredQueryExpression query = repository.get(apiData, queryId);
-
     QueryInputQueryDefinition queryInput =
         new ImmutableQueryInputQueryDefinition.Builder()
             .from(getGenericQueryInput(api.getData()))
             .queryId(queryId)
-            .query(query)
-            .lastModified(repository.getLastModified(apiData, queryId))
             .build();
 
     return queryHandler.handle(Query.DEFINITION, queryInput, requestContext);
@@ -181,6 +171,6 @@ public class EndpointStoredQueryDefinition extends EndpointRequiresFeatures
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler, repository);
+    return Set.of(queryHandler);
   }
 }

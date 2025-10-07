@@ -27,12 +27,12 @@ import de.ii.ogcapi.features.gltf.domain.ImmutableBufferView;
 import de.ii.ogcapi.features.gltf.domain.PropertyTable;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtree;
 import de.ii.xtraplatform.cql.domain.And;
+import de.ii.xtraplatform.cql.domain.Bbox;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.cql.domain.Geometry.Bbox;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.SIntersects;
 import de.ii.xtraplatform.cql.domain.SpatialLiteral;
@@ -483,7 +483,7 @@ public interface Subtree {
             .build();
 
     ApiRequestContext requestContext =
-        new Builder()
+        new ImmutableStaticRequestContext.Builder()
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("model", "gltf-binary"))
@@ -493,7 +493,6 @@ public interface Subtree {
             .alternateMediaTypes(ImmutableList.of())
             .language(Locale.ENGLISH)
             .api(queryInput.getApi())
-            .request(Optional.empty())
             .requestUri(
                 queryInput
                     .getServicesUri()
@@ -502,7 +501,6 @@ public interface Subtree {
                             "/",
                             ImmutableList.of(
                                 "collections", queryInput.getCollectionId(), "items"))))
-            .externalUri(queryInput.getServicesUri())
             .queryParameterSet(QueryParameterSet.of())
             .build();
 

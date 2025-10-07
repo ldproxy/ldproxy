@@ -18,8 +18,6 @@ import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputParameter;
-import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
-import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -62,16 +60,11 @@ public class EndpointParameter extends EndpointRequiresFeatures implements ApiEx
 
   private static final List<String> TAGS = ImmutableList.of("Discover and execute queries");
 
-  private final StoredQueryRepository repository;
   private final SearchQueriesHandler queryHandler;
 
   @Inject
-  public EndpointParameter(
-      ExtensionRegistry extensionRegistry,
-      StoredQueryRepository repository,
-      SearchQueriesHandler queryHandler) {
+  public EndpointParameter(ExtensionRegistry extensionRegistry, SearchQueriesHandler queryHandler) {
     super(extensionRegistry);
-    this.repository = repository;
     this.queryHandler = queryHandler;
   }
 
@@ -156,13 +149,10 @@ public class EndpointParameter extends EndpointRequiresFeatures implements ApiEx
     checkPathParameter(
         extensionRegistry, apiData, "/search/{queryId}/parameters/{name}", "name", name);
 
-    StoredQueryExpression query = repository.get(apiData, queryId);
-
     QueryInputParameter queryInput =
         new ImmutableQueryInputParameter.Builder()
             .from(getGenericQueryInput(api.getData()))
             .queryId(queryId)
-            .query(query)
             .parameterName(name)
             .build();
 
@@ -171,6 +161,6 @@ public class EndpointParameter extends EndpointRequiresFeatures implements ApiEx
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler, repository);
+    return Set.of(queryHandler);
   }
 }

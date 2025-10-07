@@ -14,22 +14,27 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StyleRepository;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.ogcapi.styles.domain.manager.QueriesHandlerStylesManager;
+import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -134,6 +139,27 @@ public class QueriesHandlerStylesManagerImpl extends AbstractVolatileComposed
         // PUT: the id is always taken from the path
         styleId = optionalStyleId.get();
       }
+    }
+
+    if (optionalStyleId.isPresent()) {
+      StylesheetContent stylesheetContent =
+          styleRepository.getStylesheet(
+              apiData, collectionId, styleId, format, requestContext, true);
+
+      Date lastModified =
+          styleRepository.getStylesheetLastModified(apiData, collectionId, styleId, format, true);
+      EntityTag etag =
+          !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+                  || (collectionId.isEmpty()
+                          ? apiData.getExtension(HtmlConfiguration.class)
+                          : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
+                      .map(HtmlConfiguration::getSendEtags)
+                      .orElse(false)
+              ? ETag.from(stylesheetContent.getContent())
+              : null;
+      Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+
+      if (Objects.nonNull(response)) return response.build(); // Preconditions failed
     }
 
     if (dryRun) return Response.noContent().build();

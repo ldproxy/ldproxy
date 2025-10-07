@@ -26,7 +26,6 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleStylesheet;
 import de.ii.ogcapi.styles.domain.MbStyleLayer;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
@@ -37,7 +36,9 @@ import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.values.domain.Values;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import java.io.IOException;
 import java.net.URI;
@@ -51,6 +52,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,19 +149,25 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
       OgcApi api,
       Optional<String> collectionId,
       String styleId,
+      Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     URICustomizer uriCustomizer =
         new URICustomizer(servicesUri)
             .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new));
     String serviceUrl = uriCustomizer.toString();
-    Optional<MbStyleStylesheet> stylesheet =
-        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(serviceUrl));
+    MbStyleStylesheet stylesheet =
+        stylesheetContent
+            .getMbStyle()
+            .map(mbs -> mbs.adjustForTileMatrixSetIfNecessary(tileMatrixSet, serviceUrl))
+            .map(mbs -> mbs.replaceParameters(serviceUrl))
+            .orElseThrow(NotFoundException::new);
+
     if (collectionId
         .map(s -> api.getData().getExtension(StylesConfiguration.class, s))
         .orElse(api.getData().getExtension(StylesConfiguration.class))
         .filter(cfg -> Boolean.TRUE.equals(cfg.getAddBoundsToVectorSource()))
         .isPresent()) {
-      return stylesheet.map(mbs -> mbs.addBounds(api.getSpatialExtent(collectionId)));
+      return stylesheet.addBounds(api.getSpatialExtent(collectionId));
     }
     return stylesheet;
   }

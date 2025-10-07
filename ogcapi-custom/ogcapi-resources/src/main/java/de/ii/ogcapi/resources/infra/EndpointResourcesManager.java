@@ -29,6 +29,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.resources.app.ResourcesBuildingBlock;
+import de.ii.ogcapi.resources.domain.ImmutableQueryInputResourceCreateReplace;
+import de.ii.ogcapi.resources.domain.ImmutableQueryInputResourceDelete;
+import de.ii.ogcapi.resources.domain.QueriesHandlerResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
@@ -36,7 +39,8 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import io.dropwizard.auth.Auth;
 import java.io.IOException;
-import java.text.MessageFormat;
+import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,10 +48,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.NotSupportedException;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -73,12 +76,17 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
       ImmutableList.of("Create, update and delete other resources");
 
   private final ResourceStore resourcesStore;
+  private final QueriesHandlerResources queriesHandlerResources;
 
   @Inject
-  public EndpointResourcesManager(ResourceStore blobStore, ExtensionRegistry extensionRegistry) {
+  public EndpointResourcesManager(
+      ResourceStore blobStore,
+      ExtensionRegistry extensionRegistry,
+      QueriesHandlerResources queriesHandlerResources) {
     super(extensionRegistry);
 
     this.resourcesStore = blobStore.with(ResourcesBuildingBlock.STORE_RESOURCE_TYPE);
+    this.queriesHandlerResources = queriesHandlerResources;
   }
 
   @Override
@@ -187,23 +195,24 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
   public Response putResource(
       @Auth Optional<User> optionalUser,
       @PathParam("resourceId") String resourceId,
+      @HeaderParam("Prefer") List<String> prefer,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
-      @Context HttpServletRequest request,
-      byte[] requestBody)
+      InputStream requestBody)
       throws IOException {
 
-    return getResourceFormats().stream()
-        .filter(format -> requestContext.getMediaType().matches(format.getMediaType().type()))
-        .findAny()
-        .map(ResourceFormatExtension.class::cast)
-        .orElseThrow(
-            () ->
-                new NotSupportedException(
-                    MessageFormat.format(
-                        "The provided media type ''{0}'' is not supported for this resource.",
-                        requestContext.getMediaType())))
-        .putResource(requestBody, resourceId, api.getData(), requestContext);
+    ImmutableQueryInputResourceCreateReplace.Builder builder =
+        new ImmutableQueryInputResourceCreateReplace.Builder()
+            .requestBody(requestBody)
+            .resourceId(resourceId)
+            .strict(strictHandling(Collections.enumeration(prefer)))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
+
+    return queriesHandlerResources.handle(
+        QueriesHandlerResources.Query.CREATE_REPLACE, builder.build(), requestContext);
   }
 
   /**
@@ -217,15 +226,21 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
   public Response deleteResource(
       @Auth Optional<User> optionalUser,
       @PathParam("resourceId") String resourceId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
+      @Context OgcApi api,
+      @Context ApiRequestContext requestContext,
       @Context OgcApi dataset) {
 
-    try {
-      resourcesStore.delete(java.nio.file.Path.of(dataset.getId(), resourceId));
-    } catch (IOException e) {
-      // ignore
-    }
+    ImmutableQueryInputResourceDelete.Builder builder =
+        new ImmutableQueryInputResourceDelete.Builder()
+            .resourceId(resourceId)
+            .dataset(dataset)
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
-    return Response.noContent().build();
+    return queriesHandlerResources.handle(
+        QueriesHandlerResources.Query.DELETE, builder.build(), requestContext);
   }
 
   @Override

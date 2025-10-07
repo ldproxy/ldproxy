@@ -16,10 +16,11 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureChange.Action;
@@ -30,6 +31,7 @@ import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
+import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -63,15 +65,18 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   private final FeaturesCoreQueriesHandler queriesHandler;
   private final ExtensionRegistry extensionRegistry;
   private List<? extends FormatExtension> formats;
+  private CrsInfo crsInfo;
 
   @Inject
   public CommandHandlerCrudImpl(
       FeaturesCoreQueriesHandler queriesHandler,
+      CrsInfo crsInfo,
       ExtensionRegistry extensionRegistry,
       VolatileRegistry volatileRegistry) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
     this.queriesHandler = queriesHandler;
     this.extensionRegistry = extensionRegistry;
+    this.crsInfo = crsInfo;
 
     onVolatileStart();
 
@@ -85,10 +90,15 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
 
     EpsgCrs crs = queryInput.getCrs().orElseGet(queryInput::getDefaultCrs);
+    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     FeatureTokenSource featureTokenSource =
         getFeatureSource(
-            requestContext.getMediaType(), queryInput.getRequestBody(), Optional.empty());
+            requestContext.getMediaType(),
+            queryInput.getRequestBody(),
+            Optional.empty(),
+            crs,
+            axes);
 
     FeatureTransactions.MutationResult result =
         queryInput
@@ -130,6 +140,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
 
     EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
+    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
     EntityTag eTag = feature.getEntityTag();
@@ -141,7 +152,11 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     FeatureTokenSource featureTokenSource =
         getFeatureSource(
-            requestContext.getMediaType(), queryInput.getRequestBody(), Optional.empty());
+            requestContext.getMediaType(),
+            queryInput.getRequestBody(),
+            Optional.empty(),
+            crs,
+            axes);
 
     FeatureTransactions.MutationResult result =
         queryInput
@@ -178,6 +193,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
 
     EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
+    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
     EntityTag eTag = feature.getEntityTag();
@@ -195,7 +211,9 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         getFeatureSource(
             requestContext.getMediaType(),
             merged,
-            Optional.of(FeatureTransactions.PATCH_NULL_VALUE));
+            Optional.of(FeatureTransactions.PATCH_NULL_VALUE),
+            crs,
+            axes);
 
     FeatureTransactions.MutationResult result =
         queryInput
@@ -271,9 +289,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       }
 
       ApiRequestContext requestContextGeoJson =
-          new Builder()
+          new ImmutableStaticRequestContext.Builder()
               .from(requestContext)
-              .request(Optional.empty())
               .requestUri(
                   requestContext
                       .getUriCustomizer()
@@ -401,10 +418,14 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
   // TODO: to InputFormat extension matching the mediaType
   private static FeatureTokenSource getFeatureSource(
-      ApiMediaType mediaType, InputStream requestBody, Optional<String> nullValue) {
+      ApiMediaType mediaType,
+      InputStream requestBody,
+      Optional<String> nullValue,
+      EpsgCrs crs,
+      Axes axes) {
 
     FeatureTokenDecoderGeoJson featureTokenDecoderGeoJson =
-        new FeatureTokenDecoderGeoJson(nullValue);
+        new FeatureTokenDecoderGeoJson(nullValue, crs, axes);
 
     return Source.inputStream(requestBody).via(featureTokenDecoderGeoJson);
   }

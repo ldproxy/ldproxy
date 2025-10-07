@@ -1458,21 +1458,23 @@ public interface StylesConfiguration extends ExtensionConfiguration, CachingConf
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   /**
-   * @langEn List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style (`Mapbox`),
-   *     OGC SLD 1.0 (`SLD10`), OGC SLD 1.1 (`SLD11`), QGIS QML ("QML"), ArcGIS Layer ("lyr" und
-   *     "lyrx"), 3D Tiles ("3D Tiles") and HTML (`HTML`). HTML is an output only encoding for web
-   *     maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see conformance
-   *     classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming change**
-   *     Currently there is no way to disable the defaults `Mapbox` and `HTML`. That will be changed
-   *     in v4, you will then have to repeat the defaults if you want to add additional encodings.
+   * @langEn List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style ("Mapbox"),
+   *     OGC SLD 1.0 ("SLD 1.0"), OGC SLD 1.1 ("SLD 1.1"), QGIS QML ("QGIS"), ArcGIS LYR ("ArcGIS"),
+   *     ArcGIS LYRX ("ArcGIS Pro"), 3D Tiles ("3D Tiles") and HTML ("HTML"). HTML is an output only
+   *     encoding for web maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see
+   *     conformance classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming
+   *     change** Currently there is no way to disable the defaults "Mapbox" and "HTML". It is
+   *     planned to change this in v5, then the defaults need to be repeated, if you want to add
+   *     additional encodings.
    * @langDe Steuert, welche Formate für Stylesheets unterstützt werden sollen. Zur Verfügung stehen
-   *     Mapbox/MapLibre Style ("Mapbox"), OGC SLD 1.0 ("SLD10"), OGC SLD 1.1 ("SLD11"), QGIS QML
-   *     ("QML"), ArcGIS Layer ("lyr" und "lyrx"), 3D Tiles ("3D Tiles") und HTML ("HTML"). HTML ist
-   *     ein reines Ausgabeformat im Sinne einer Webmap und wird nur für Styles unterstützt, für die
-   *     ein Stylesheet im Format Mapbox/MapLibre Style verfügbar ist. Siehe die Konformitätsklassen
-   *     "Mapbox Style", "OGC SLD 1.0", "OGC SLD 1.1" und "HTML". **Kommende Änderung** Aktuell gibt
-   *     es keinen Weg die Defaults `Mapbox` und `HTML` zu deaktivieren. Das wird sich in v4 ändern,
-   *     die Defaults müssen dann wiederholt werden, wenn man zusätzliche Encodings angeben will.
+   *     Mapbox/MapLibre Style ("Mapbox"), OGC SLD 1.0 ("SLD 1.0"), OGC SLD 1.1 ("SLD 1.1"), QGIS
+   *     QML ("QGIS"), ArcGIS LYR ("ArcGIS"), ArcGIS LYRX ("ArcGIS Pro"), 3D Tiles ("3D Tiles") und
+   *     HTML ("HTML"). HTML ist ein reines Ausgabeformat im Sinne einer Webmap und wird nur für
+   *     Styles unterstützt, für die ein Stylesheet im Format Mapbox/MapLibre Style verfügbar ist.
+   *     Siehe die Konformitätsklassen "Mapbox Style", "OGC SLD 1.0", "OGC SLD 1.1" und "HTML".
+   *     **Kommende Änderung** Aktuell gibt es keinen Weg die Defaults "Mapbox" und "HTML" zu
+   *     deaktivieren. Es ist geplant, das in v5 zu ändern, die Defaults müssen dann wiederholt
+   *     werden, wenn man zusätzliche Encodings angeben will.
    * @default [ "Mapbox", "HTML" ]
    */
   List<String> getStyleEncodings();
@@ -1589,6 +1591,63 @@ public interface StylesConfiguration extends ExtensionConfiguration, CachingConf
    */
   @Nullable
   Boolean getLegendEnabled();
+
+  /**
+   * @langEn Option to enable support for conditional processing of PUT requests, based on the time
+   *     when the style was last updated. Such requests must include an `If-Unmodified-Since`
+   *     header, otherwise they will be rejected. A style will only be changed, if the style was not
+   *     changed since the timestamp in the header (or if no last modification time is known for the
+   *     style).
+   *     <p>The setting is ignored, if `optimisticLockingETag` is enabled.
+   *     <p>The option does not affect DELETE requests as each stylesheet of a style will have its
+   *     own modification timestamp.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von
+   *     PUT-Anfragen, basierend auf der Zeit, zu der der Style zuletzt aktualisiert wurde. Solche
+   *     Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
+   *     zurückgewiesen. Ein Style wird nur dann geändert, wenn der Style seit dem Zeitstempel im
+   *     Header nicht geändert wurde (oder wenn kein letzter Änderungszeitpunkt für den Style
+   *     bekannt ist).
+   *     <p>Die Option wird ignoriert, wenn `optimisticLockingETag` aktiviert ist.
+   *     <p>Diese Option betrifft keine DELETE-Anfragen, da jedes Stylesheet eines Styles einen
+   *     Änderungszeitpunkt hat.
+   * @default false
+   * @since v3.5
+   */
+  @Nullable
+  Boolean getOptimisticLockingLastModified();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsLastModified() {
+    return Objects.equals(getOptimisticLockingLastModified(), true);
+  }
+
+  /**
+   * @langEn Option to enable support for conditional processing of PUT requests, based on a strong
+   *     Entity Tag (ETag) of the style. Such requests must include an `If-Match` header, otherwise
+   *     they will be rejected. A style will only be changed, if the style matches the Etag(s) in
+   *     the header.
+   *     <p>The option does not affect DELETE requests as each stylesheet of a style will have its
+   *     own ETag.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von
+   *     PUT-Anfragen, basierend auf einem starken Entity Tag (ETag) des Styles. Solche Anfragen
+   *     müssen einen `If-Match`-Header enthalten, andernfalls werden sie zurückgewiesen. Ein Style
+   *     wird nur dann geändert, wenn der aktuelle ETag des Styles zu den ETag(s) im Header passt.
+   *     <p>Diese Option betrifft keine DELETE-Anfragen, da jedes Stylesheet eines Styles einen
+   *     eigenen ETag hat.
+   * @default false
+   * @since v3.5
+   */
+  @Nullable
+  Boolean getOptimisticLockingETag();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsEtag() {
+    return Objects.equals(getOptimisticLockingETag(), true);
+  }
 
   @Override
   default Builder getBuilder() {

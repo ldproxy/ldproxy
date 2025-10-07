@@ -7,9 +7,6 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import static de.ii.ogcapi.foundation.domain.AbstractRequestContext.STATIC_PATH;
-import static de.ii.ogcapi.foundation.domain.ApiRequestContext.PATH_SPLITTER;
-
 import com.google.common.base.Splitter;
 import de.ii.ogcapi.foundation.domain.ImmutableApiCatalog.Builder;
 import de.ii.xtraplatform.entities.domain.EntityDataBuilder;
@@ -19,6 +16,7 @@ import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.services.domain.ServiceListingProvider;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.values.domain.Identifier;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.Principal;
@@ -50,34 +48,23 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
   }
 
   @Override
-  public Response getServiceListing(List<ServiceData> apis, URI uri, Optional<Principal> user) {
+  public Response getServiceListing(
+      List<ServiceData> apis, URICustomizer uriCustomizer, Optional<Principal> user) {
     try {
-      return getServiceListing(apis, uri, user, Optional.of(Locale.ENGLISH));
+      return getServiceListing(apis, uriCustomizer, user, Optional.of(Locale.ENGLISH));
     } catch (URISyntaxException e) {
       throw new IllegalStateException("Could not generate service overview.", e);
     }
   }
 
   public abstract Response getServiceListing(
-      List<ServiceData> services, URI uri, Optional<Principal> user, Optional<Locale> language)
+      List<ServiceData> services,
+      URICustomizer uriCustomizer,
+      Optional<Principal> user,
+      Optional<Locale> language)
       throws URISyntaxException;
 
   public abstract ApiMediaType getApiMediaType();
-
-  private void customizeUri(final URICustomizer uriCustomizer) {
-    uriCustomizer.setScheme(servicesUri.getScheme());
-    uriCustomizer.prependPathSegments(PATH_SPLITTER.splitToList(servicesUri.getPath()));
-    uriCustomizer.ensureNoTrailingSlash();
-  }
-
-  private String getStaticUrlPrefix(final URICustomizer uriCustomizer) {
-    return uriCustomizer
-        .copy()
-        .setPathSegments(PATH_SPLITTER.splitToList(servicesUri.getPath()))
-        .ensureLastPathSegment(STATIC_PATH)
-        .ensureNoTrailingSlash()
-        .getPath();
-  }
 
   private FoundationConfiguration getFoundationConfigurationDefaults() {
     EntityDataBuilder<?> builder =
@@ -96,34 +83,37 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
     return new ImmutableFoundationConfiguration.Builder().build();
   }
 
-  protected URI getApiUrl(URI uri, String apiId, Optional<Integer> apiVersion)
+  protected URI getApiUrl(URICustomizer uriCustomizer, String apiId, Optional<Integer> apiVersion)
       throws URISyntaxException {
     return apiVersion.isPresent()
-        ? new URICustomizer(uri)
+        ? uriCustomizer
+            .copy()
             .clearParameters()
             .ensureLastPathSegments(apiId, "v" + apiVersion.get())
             .ensureNoTrailingSlash()
             .build()
-        : new URICustomizer(uri)
+        : uriCustomizer
+            .copy()
             .clearParameters()
             .ensureLastPathSegment(apiId)
             .ensureNoTrailingSlash()
             .build();
   }
 
-  protected URI getApiUrl(URI uri, List<String> subPathToLandingPage) throws URISyntaxException {
-    return new URICustomizer(uri)
+  protected URI getApiUrl(URICustomizer uriCustomizer, List<String> subPathToLandingPage)
+      throws URISyntaxException {
+    return uriCustomizer
+        .copy()
         .clearParameters()
         .ensureLastPathSegments(subPathToLandingPage.toArray(new String[0]))
         .ensureNoTrailingSlash()
         .build();
   }
 
-  protected ApiCatalog getCatalog(List<ServiceData> services, URI uri, Optional<Locale> language)
+  protected ApiCatalog getCatalog(
+      List<ServiceData> services, URICustomizer uriCustomizer, Optional<Locale> language)
       throws URISyntaxException {
     final DefaultLinksGenerator linksGenerator = new DefaultLinksGenerator();
-    URICustomizer uriCustomizer = new URICustomizer(uri);
-    String urlPrefix = getStaticUrlPrefix(uriCustomizer);
     List<String> tags =
         Splitter.on(',')
             .omitEmptyStrings()
@@ -139,14 +129,6 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
             .filter(param -> "name".equals(param.getName()))
             .map(NameValuePair::getValue)
             .findAny();
-    customizeUri(uriCustomizer);
-    URI catalogUri;
-    try {
-      catalogUri = uriCustomizer.build();
-    } catch (URISyntaxException e) {
-      // ignore, use fallback
-      catalogUri = uri;
-    }
 
     ApiMediaType mediaType = getApiMediaType();
     List<ApiMediaType> alternateMediaTypes =
@@ -157,20 +139,17 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
 
     FoundationConfiguration config = getFoundationConfigurationDefaults();
 
-    URI finalUri = catalogUri;
     ImmutableApiCatalog.Builder builder =
         getCatalogBuilder(
             services,
             language,
             linksGenerator,
             uriCustomizer,
-            urlPrefix,
             tags,
             name,
             mediaType,
             alternateMediaTypes,
-            config,
-            finalUri);
+            config);
 
     if (Objects.nonNull(config.getGoogleSiteVerification())) {
       builder.googleSiteVerification(config.getGoogleSiteVerification());
@@ -195,13 +174,11 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
       Optional<Locale> language,
       DefaultLinksGenerator linksGenerator,
       URICustomizer uriCustomizer,
-      String urlPrefix,
       List<String> tags,
       Optional<String> name,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
-      FoundationConfiguration config,
-      URI finalUri)
+      FoundationConfiguration config)
       throws URISyntaxException {
     return new Builder()
         .title(
@@ -210,8 +187,8 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
         .description(
             Objects.requireNonNullElse(
                 config.getApiCatalogDescription(), i18n.get("rootDescription", language)))
-        .catalogUri(new URICustomizer(finalUri).clearParameters().ensureNoTrailingSlash().build())
-        .urlPrefix(urlPrefix)
+        .catalogUri(uriCustomizer.copy().clearParameters().ensureNoTrailingSlash().build())
+        .basePath(Objects.requireNonNullElse(uriCustomizer.getPath(), ""))
         .links(
             linksGenerator.generateLinks(
                 uriCustomizer, mediaType, alternateMediaTypes, i18n, language))
@@ -237,7 +214,7 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
                               .id(api.getId())
                               .title(api.getLabel())
                               .description(api.getDescription())
-                              .landingPageUri(getApiUrl(finalUri, api.getSubPath()))
+                              .landingPageUri(getApiUrl(uriCustomizer, api.getSubPath()))
                               .tags(((OgcApiDataV2) api).getTags())
                               .isDataset(((OgcApiDataV2) api).isDataset())
                               .build();
@@ -246,7 +223,8 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
                             .id(api.getId())
                             .title(api.getLabel())
                             .description(api.getDescription())
-                            .landingPageUri(getApiUrl(finalUri, api.getId(), api.getApiVersion()))
+                            .landingPageUri(
+                                getApiUrl(uriCustomizer, api.getId(), api.getApiVersion()))
                             .build();
                       } catch (URISyntaxException e) {
                         throw new IllegalStateException(

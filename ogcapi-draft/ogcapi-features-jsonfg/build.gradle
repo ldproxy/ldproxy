@@ -10,6 +10,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-values'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-features-json'
     provided 'de.interactive_instruments:xtraplatform-geometries'
     provided 'de.interactive_instruments:xtraplatform-strings'
     provided 'de.interactive_instruments:ogcapi-features-core'
@@ -19,5 +20,6 @@ dependencies {
     testProvided 'de.interactive_instruments:xtraplatform-auth'
     testProvided 'de.interactive_instruments:xtraplatform-codelists'
     testProvided 'de.interactive_instruments:xtraplatform-features-json'
+    testProvided 'de.interactive_instruments:xtraplatform-web'
     testProvided(testFixtures(group: 'de.interactive_instruments', name: 'ogcapi-foundation'))
 }

@@ -210,10 +210,10 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
     }
   }
 
-  public Optional<Integer> processOrdinate(String value) {
+  public Optional<Integer> processOrdinate(double value) {
     ModifiableStateCityJson state = Objects.requireNonNull(getState());
 
-    state.addCurrentVertex(Double.parseDouble(value));
+    state.addCurrentVertex(value);
     if (getState().getCurrentVertex().size() == 3 && state.getCurrentVertices().isPresent()) {
       long[] transformed = new long[3];
       for (int i = 0; i < 3; i++) {
@@ -257,26 +257,18 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
 
     // Transitions:
     // OUTSIDE -> IN_BUILDING
-    // IN_BUILDING -> IN_ADDRESS | IN_GEOMETRY | IN_GEOMETRY_WITH_SURFACES | IN_GEOMETRY_IGNORE |
+    // IN_BUILDING -> IN_ADDRESS
     // IN_SURFACES_IGNORE | OUTSIDE
     // IN_ADDRESS -> previous
-    // IN_GEOMETRY -> IN_BUILDING
-    // IN_GEOMETRY_IGNORE -> previous
-    // IN_GEOMETRY_WITH_SURFACES -> WAITING_FOR_SURFACES
-    // WAITING_FOR_SURFACES -> IN_SURFACES | IN_ADDRESS | IN_GEOMETRY_IGNORE
-    // IN_SURFACES -> IN_SURFACE_GEOMETRY | IN_BUILDING
-    // IN_SURFACE_GEOMETRY -> IN_SURFACES
+    // WAITING_FOR_SURFACES -> IN_SURFACES | IN_ADDRESS
+    // IN_SURFACES -> IN_BUILDING
     // IN_SURFACES_IGNORE -> IN_BUILDING
     public enum Section {
       OUTSIDE,
       IN_BUILDING,
       IN_ADDRESS,
-      IN_GEOMETRY,
-      IN_GEOMETRY_IGNORE,
-      IN_GEOMETRY_WITH_SURFACES,
       WAITING_FOR_SURFACES,
       IN_SURFACES,
-      IN_SURFACE_GEOMETRY,
       IN_SURFACES_IGNORE
     }
 
@@ -299,12 +291,6 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
     @Value.Auxiliary
     public boolean atTopLevel() {
       return inSection() == Section.IN_BUILDING || inSection() == Section.WAITING_FOR_SURFACES;
-    }
-
-    @Value.Derived
-    @Value.Auxiliary
-    public boolean inActiveGeometry() {
-      return inSection() == Section.IN_GEOMETRY || inSection() == Section.IN_GEOMETRY_WITH_SURFACES;
     }
 
     public abstract Optional<TokenBuffer> getAddressBuffer();

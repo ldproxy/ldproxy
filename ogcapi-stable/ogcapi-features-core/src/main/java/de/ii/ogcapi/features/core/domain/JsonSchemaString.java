@@ -29,7 +29,7 @@ public abstract class JsonSchemaString extends JsonSchema {
   public abstract Optional<String> getPattern();
 
   @JsonProperty("enum")
-  public abstract List<String> getEnums();
+  public abstract Optional<List<String>> getEnums();
 
   @JsonProperty("x-ogc-unit")
   public abstract Optional<String> getUnit();
@@ -42,9 +42,12 @@ public abstract class JsonSchemaString extends JsonSchema {
         into.putString(from.getType(), StandardCharsets.UTF_8);
         from.getFormat().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
         from.getPattern().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
-        from.getEnums().stream()
-            .sorted()
-            .forEachOrdered(val -> into.putString(val, StandardCharsets.UTF_8));
+        from.getEnums()
+            .ifPresent(
+                enums ->
+                    enums.stream()
+                        .sorted()
+                        .forEachOrdered(val -> into.putString(val, StandardCharsets.UTF_8)));
         from.getUnit().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
       };
 }

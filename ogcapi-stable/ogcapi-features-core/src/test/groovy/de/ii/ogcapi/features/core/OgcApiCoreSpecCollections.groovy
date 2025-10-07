@@ -264,7 +264,7 @@ class OgcApiCoreSpecCollections extends Specification {
     }
 
     static def createRequestContext(OgcApiEntity api, String uri = 'http://example.com/collections') {
-        new ImmutableRequestContext.Builder()
+        new ImmutableStaticRequestContext.Builder()
                 .mediaType(new ImmutableApiMediaType.Builder()
                         .type(MediaType.APPLICATION_JSON_TYPE)
                         .build())
@@ -274,7 +274,6 @@ class OgcApiCoreSpecCollections extends Specification {
                 .api(api)
                 .requestUri(new URI(uri))
                 .queryParameterSet(QueryParameterSet.of())
-                .externalUri(new URI('http://example.com'))
                 .language(Locale.GERMAN)
                 .build()
     }

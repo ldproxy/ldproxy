@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.oas30.app;
 
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.xtraplatform.auth.domain.Oidc;
 import de.ii.xtraplatform.openapi.domain.ImmutableSwaggerUi;
@@ -21,8 +20,6 @@ public abstract class OpenApiView extends OgcApiView {
   public OpenApiView() {
     super("openapi.mustache");
   }
-
-  public abstract URICustomizer uriCustomizer();
 
   public abstract Oidc oidc();
 

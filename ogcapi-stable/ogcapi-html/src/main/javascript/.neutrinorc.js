@@ -17,7 +17,7 @@ fs.readdirSync(path.join(__dirname, "src/apps")).forEach(
       minify: false,
       inject: false,
       scriptLoading: "defer",
-      publicPath: "{{urlPrefix}}/ogcapi-html",
+      publicPath: "/ogcapi-html",
     })
 );
 fs.readdirSync(path.join(__dirname, "src/styles")).forEach(
@@ -30,7 +30,7 @@ fs.readdirSync(path.join(__dirname, "src/styles")).forEach(
       minify: false,
       inject: false,
       scriptLoading: "defer",
-      publicPath: "{{urlPrefix}}/ogcapi-html",
+      publicPath: "/ogcapi-html",
       templateParameters: (compilation, assets, assetTags, options) => {
         const favicon = Object.keys(compilation.assets).find(
           (key) => key.indexOf("assets/favicon.") === 0

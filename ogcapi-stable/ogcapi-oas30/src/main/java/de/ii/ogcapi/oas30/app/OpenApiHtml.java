@@ -20,11 +20,12 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
+import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.xtraplatform.auth.domain.Oidc;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -117,7 +118,9 @@ public class OpenApiHtml implements ApiDefinitionFormatExtension, FormatHtml {
         new ImmutableOpenApiView.Builder()
             .breadCrumbs(breadCrumbs)
             .rawLinks(links)
-            .urlPrefix(apiRequestContext.getStaticUrlPrefix())
+            .htmlConfig(apiData.getExtension(HtmlConfiguration.class).orElse(null))
+            .basePath(apiRequestContext.getBasePath())
+            .apiPath(apiRequestContext.getApiPath())
             .uriCustomizer(apiRequestContext.getUriCustomizer().copy())
             .showCommonExtensions(showCommonExtensions)
             .oidc(oidc)
