@@ -36,13 +36,17 @@ public interface CrudConfiguration extends ExtensionConfiguration {
    *     based on the time when the feature was last updated. Such requests must include an
    *     `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be
    *     changed, if the feature was not changed since the timestamp in the header (or if no last
-   *     modification time is known for the feature).
+   *     modification time is known for the feature). The last modification time of a feature is
+   *     determined from a feature property with type `DATETIME` for which `isLastModified` is set
+   *     to true in the schema in the feature provider.
    * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
    *     und DELETE-Anfragen, basierend auf der Zeit, zu der das Feature zuletzt aktualisiert wurde.
    *     Solche Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
    *     zurückgewiesen. Ein Feature wird nur dann geändert, wenn das Feature seit dem Zeitstempel
    *     im Header nicht geändert wurde (oder wenn kein letzter Änderungszeitpunkt für das Feature
-   *     bekannt ist).
+   *     bekannt ist). Der Zeitpunkt der letzten Änderung eines Features wird anhand einer
+   *     Objekteigenschaft mit Datentyp `DATETIME` ermittelt, für die `isLastModified` im Schema des
+   *     Feature Providers auf `true` gesetzt ist.
    * @default false
    * @since v3.5
    */

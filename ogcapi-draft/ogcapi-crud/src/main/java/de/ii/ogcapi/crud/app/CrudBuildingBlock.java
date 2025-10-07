@@ -59,7 +59,6 @@ import javax.inject.Singleton;
  *     "<http://www.opengis.net/def/profile/OGC/0/jsonfg>; rel=profile".
  *     <p>TODO:<code>
  * - flags in `sourcePath`
- * - explain pre-condition checks (set "isLastModified" to true in a property in the configuration)
  * </code>
  * @scopeDe TODO after finalizing the English description
  * @limitationsEn Only feature types from an SQL feature provider with `dialect` `PGIS` and
