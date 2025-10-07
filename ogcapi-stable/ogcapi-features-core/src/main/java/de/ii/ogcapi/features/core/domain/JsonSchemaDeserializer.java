@@ -103,6 +103,12 @@ public class JsonSchemaDeserializer extends StdDeserializer<JsonSchema> {
       return mapper.treeToValue(schemaNode, JsonSchemaRef.class);
     } else if (schemaNode.hasNonNull("oneOf")) {
       return mapper.treeToValue(schemaNode, JsonSchemaOneOf.class);
+    } else if (schemaNode.hasNonNull("allOf")) {
+      return mapper.treeToValue(schemaNode, JsonSchemaAllOf.class);
+    } else if (schemaNode.hasNonNull("anyOf")) {
+      return mapper.treeToValue(schemaNode, JsonSchemaAnyOf.class);
+    } else if (schemaNode.hasNonNull("not")) {
+      return mapper.treeToValue(schemaNode, JsonSchemaNot.class);
     } else if (schemaNode.hasNonNull("format")) {
       return mapper.treeToValue(schemaNode, JsonSchemaGeometry.class);
     }

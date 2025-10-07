@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -29,28 +28,26 @@ import org.immutables.value.Value;
   "patternProperties",
   "additionalProperties",
   "anyOf",
+  "oneOf",
+  "allOf",
+  "not",
   "$defs"
 })
 public abstract class JsonSchemaDocument extends JsonSchemaObject {
   @JsonProperty("$schema")
   @Value.Default
   public String getSchema() {
-    return VERSION.V201909.url();
+    return VERSION.V202012.url();
   }
 
   @JsonProperty("$id")
   public abstract Optional<String> getId();
 
-  @JsonProperty("anyOf")
-  public abstract List<JsonSchema> getAnyOf();
-
   @JsonProperty("$defs")
   public abstract Map<String, JsonSchema> getDefinitions();
 
   public enum VERSION {
-    V202012("https://json-schema.org/draft/2020-12/schema", "$defs"),
-    V201909("https://json-schema.org/draft/2019-09/schema", "$defs"),
-    V7("http://json-schema.org/draft-07/schema#", "definitions");
+    V202012("https://json-schema.org/draft/2020-12/schema", "$defs");
 
     public static VERSION current() {
       return V202012;
@@ -73,7 +70,7 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
     }
   }
 
-  public abstract static class Builder {
+  public abstract static class Builder extends JsonSchema.Builder {
     public abstract Builder id(Optional<String> id);
 
     public abstract Builder definitions(Map<String, ? extends JsonSchema> entries);
@@ -103,6 +100,12 @@ public abstract class JsonSchemaDocument extends JsonSchemaObject {
     public abstract Builder additionalProperties(JsonSchema value);
 
     public abstract Builder anyOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder oneOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder allOf(Iterable<? extends JsonSchema> elements);
+
+    public abstract Builder not(JsonSchema value);
 
     public abstract JsonSchemaDocument build();
   }

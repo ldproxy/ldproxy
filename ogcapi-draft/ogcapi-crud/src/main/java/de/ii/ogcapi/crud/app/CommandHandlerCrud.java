@@ -41,6 +41,10 @@ public interface CommandHandlerCrud extends Volatile2 {
     FeatureProvider getFeatureProvider();
 
     InputStream getRequestBody();
+
+    boolean getJsonFg();
+
+    boolean getValidate();
   }
 
   interface QueryInputFeatureCrud extends QueryInputFeature {

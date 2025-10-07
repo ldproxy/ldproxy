@@ -1001,6 +1001,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             List<JsonSchemaExtension> jsonSchemaExtensions =
                 extensionRegistry.getExtensionsForType(JsonSchemaExtension.class).stream()
                     .filter(e -> e.isEnabledForApi(apiData, collectionData.getId()))
+                    .sorted(Comparator.comparing(JsonSchemaExtension::getPriority))
                     .collect(Collectors.toList());
 
             JsonSchemaDocument jsonSchema =

@@ -110,9 +110,10 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
 
     boolean isArray = false;
 
-    if (value instanceof JsonSchemaArray) {
+    if (value instanceof JsonSchemaArray array) {
       isArray = true;
-      value = ((JsonSchemaArray) value).getItems();
+      // In case of prefixItems, this takes the first item as representative
+      value = array.getItemSchema();
     }
     builder2.isArray(isArray);
 

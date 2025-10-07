@@ -9,6 +9,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-entities'
     provided 'de.interactive_instruments:xtraplatform-streams'
     provided 'de.interactive_instruments:xtraplatform-values'
+    provided 'de.interactive_instruments:xtraplatform-codelists'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-features-json'
@@ -16,7 +17,9 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-crs'
     provided 'de.interactive_instruments:ogcapi-features-core'
+    provided 'de.interactive_instruments:ogcapi-features-geojson'
     provided project(':ogcapi-collections-schema')
+    provided project(':ogcapi-features-jsonfg')
 
     embedded (libCatalog.json.patch) {
         exclude module: 'jackson-databind'

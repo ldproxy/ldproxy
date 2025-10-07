@@ -27,6 +27,11 @@ public class CodelistsInSchema implements JsonSchemaExtension {
   public CodelistsInSchema() {}
 
   @Override
+  public int getPriority() {
+    return 10;
+  }
+
+  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return ProfileCodelistConfiguration.class;
   }

@@ -1,0 +1,15 @@
+
+maturity = 'CANDIDATE'
+maintenance = 'LOW'
+description = 'JSON Schema profiles for GeoJSON with or without the JSON-FG extensions and for the returnables and receivables representations of features.'
+descriptionDe = 'JSON-Schema-Profile für GeoJSON (mit oder ohne JSON-FG-Erweiterungen) und für die Darstellungen von Objekten (bei Antworten auf Queries und für CRUD-Operationen).'
+
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:ogcapi-collections-schema'
+    provided 'de.interactive_instruments:ogcapi-crud'
+    provided 'de.interactive_instruments:ogcapi-features-core'
+    provided 'de.interactive_instruments:ogcapi-features-geojson'
+    provided 'de.interactive_instruments:ogcapi-features-jsonfg'
+}

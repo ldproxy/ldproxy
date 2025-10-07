@@ -11,6 +11,9 @@ public enum SpecificationMaturity {
   STABLE_OGC("Maturity: `STABLE`"),
   DRAFT_OGC(
       "Maturity: `PRELIMINARY` (specified in a draft standard; the %s may change in this API)"),
+  STABLE_IETF("Maturity: `STABLE`"),
+  DRAFT_IETF(
+      "Maturity: `PRELIMINARY` (specified in a draft standard; the %s may change in this API)"),
   STABLE_LDPROXY("Maturity: `STABLE`"),
   DRAFT_LDPROXY("Maturity: `PRELIMINARY` (the %s may change in this API)"),
   DEPRECATED("Maturity: `DEPRECATED` (the %s may be removed in this API)");

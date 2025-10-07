@@ -8,49 +8,35 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
-import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
-import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class HeaderPreferStoredQueriesManager extends ApiExtensionCache implements ApiHeader {
-
-  private final Schema<?> schema =
-      new StringSchema()._enum(ImmutableList.of("handling=strict", "handling=lenient"));
-  private final SchemaValidator schemaValidator;
+public class HeaderPreferStoredQueriesManager extends HeaderPrefer {
 
   @Inject
   HeaderPreferStoredQueriesManager(SchemaValidator schemaValidator) {
-    super();
-    this.schemaValidator = schemaValidator;
+    super(schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "Prefer";
+    return "PreferCrudStoredQuery";
   }
 
   @Override
   public String getDescription() {
-    return "'handling=strict' creates or updates a stored query after successful validation and returns 400, "
-        + "if validation fails. 'handling=lenient' (the default) creates or updates the query without validation.";
-  }
-
-  @Override
-  public boolean isRequestHeader() {
-    return true;
+    return "'handling=strict' creates or replaces the stored query after successful validation. Status 400 is returned, "
+        + "if validation fails. 'handling=lenient' (the default) creates or replaces the stored query without validation.";
   }
 
   @Override
@@ -61,16 +47,6 @@ public class HeaderPreferStoredQueriesManager extends ApiExtensionCache implemen
             isEnabledForApi(apiData)
                 && method == HttpMethods.PUT
                 && "/search/{queryId}".equals(definitionPath));
-  }
-
-  @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return schema;
-  }
-
-  @Override
-  public SchemaValidator getSchemaValidator() {
-    return schemaValidator;
   }
 
   @Override

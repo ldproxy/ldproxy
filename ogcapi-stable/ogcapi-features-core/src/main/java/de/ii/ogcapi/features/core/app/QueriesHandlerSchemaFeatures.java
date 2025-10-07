@@ -41,6 +41,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import java.text.MessageFormat;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -164,6 +165,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
     List<JsonSchemaExtension> jsonSchemaExtensions =
         extensionRegistry.getExtensionsForType(JsonSchemaExtension.class).stream()
             .filter(e -> e.isEnabledForApi(apiData, collectionData.getId()))
+            .sorted(Comparator.comparing(JsonSchemaExtension::getPriority))
             .collect(Collectors.toList());
 
     JsonSchemaDocument schema =
