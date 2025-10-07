@@ -378,6 +378,14 @@ public class ForValidation implements JsonSchemaVisitor {
       return profile.getReference(schema);
     }
 
+    if (schema instanceof JsonSchemaObject obj) {
+      return visitProperties(
+          new ImmutableJsonSchemaObject.Builder()
+              .from(obj)
+              .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
+              .build());
+    }
+
     return visitProperties(schema);
   }
 
