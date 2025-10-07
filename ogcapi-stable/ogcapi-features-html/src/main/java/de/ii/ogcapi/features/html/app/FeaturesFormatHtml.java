@@ -35,7 +35,6 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
@@ -61,6 +60,7 @@ import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.web.domain.MustacheRenderer;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
@@ -264,7 +264,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
     OgcApi api = transformationContext.getApi();
     OgcApiDataV2 apiData = transformationContext.getApiData();
-    String staticUrlPrefix = transformationContext.getOgcApiRequest().getStaticUrlPrefix();
+    String basePath = transformationContext.getOgcApiRequest().getBasePath();
+    String apiPath = transformationContext.getOgcApiRequest().getApiPath();
     URICustomizer uriCustomizer = transformationContext.getOgcApiRequest().getUriCustomizer();
     Optional<User> user = transformationContext.getOgcApiRequest().getUser();
     ModifiableFeatureCollectionView featureTypeDataset;
@@ -283,7 +284,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               transformationContext.getQueryTitle().orElse(queryId),
               transformationContext.getQueryDescription().orElse(null),
               uriCustomizer.copy(),
-              staticUrlPrefix,
+              basePath,
+              apiPath,
               language,
               isNoIndexEnabledForApi(apiData),
               getMapPosition(apiData),
@@ -316,7 +318,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 api,
                 apiData.getCollections().get(collectionName),
                 uriCustomizer.copy(),
-                staticUrlPrefix,
+                basePath,
+                apiPath,
                 language,
                 isNoIndexEnabledForApi(apiData),
                 getMapPosition(apiData, collectionName),
@@ -335,7 +338,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 transformationContext.getLinks(),
                 apiData.getLabel(),
                 uriCustomizer.getLastPathSegment(),
-                staticUrlPrefix,
+                basePath,
+                apiPath,
                 language,
                 isNoIndexEnabledForApi(apiData),
                 apiData.getSubPath(),
@@ -378,7 +382,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       OgcApi api,
       FeatureTypeConfigurationOgcApi featureType,
       URICustomizer uriCustomizer,
-      String staticUrlPrefix,
+      String basePath,
+      String apiPath,
       Optional<Locale> language,
       boolean noIndex,
       POSITION mapPosition,
@@ -440,7 +445,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setTitle(featureType.getLabel())
         .setDescription(featureType.getDescription().orElse(null))
         .setRawAttribution(attribution)
-        .setUrlPrefix(staticUrlPrefix)
+        .setBasePath(basePath)
+        .setApiPath(apiPath)
         .setHtmlConfig(htmlConfig.orElse(null))
         .setPersistentUri(Optional.empty())
         .setNoIndex(noIndex)
@@ -494,7 +500,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       List<Link> links,
       String apiLabel,
       String featureId,
-      String staticUrlPrefix,
+      String basePath,
+      String apiPath,
       Optional<Locale> language,
       boolean noIndex,
       List<String> subPathToLandingPage,
@@ -566,7 +573,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setTitle(featureType.getLabel())
         .setDescription(featureType.getDescription().orElse(featureType.getLabel()))
         .setRawAttribution(attribution)
-        .setUrlPrefix(staticUrlPrefix)
+        .setBasePath(basePath)
+        .setApiPath(apiPath)
         .setHtmlConfig(htmlConfig.orElse(null))
         .setPersistentUri(Optional.ofNullable(persistentUri))
         .setNoIndex(noIndex)
@@ -614,7 +622,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String title,
       String description,
       URICustomizer uriCustomizer,
-      String staticUrlPrefix,
+      String basePath,
+      String apiPath,
       Optional<Locale> language,
       boolean noIndex,
       POSITION mapPosition,
@@ -669,7 +678,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setTitle(title)
         .setDescription(description)
         .setRawAttribution(attribution)
-        .setUrlPrefix(staticUrlPrefix)
+        .setBasePath(basePath)
+        .setApiPath(apiPath)
         .setHtmlConfig(htmlConfig.orElse(null))
         .setPersistentUri(Optional.empty())
         .setNoIndex(noIndex)

@@ -11,7 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ContentExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;

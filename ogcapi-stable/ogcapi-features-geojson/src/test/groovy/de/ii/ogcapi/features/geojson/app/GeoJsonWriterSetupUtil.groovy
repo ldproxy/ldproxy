@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.*
 import de.ii.xtraplatform.auth.domain.User
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.web.domain.URICustomizer
 
 import javax.ws.rs.core.Request
 import java.nio.charset.StandardCharsets
@@ -27,7 +28,7 @@ class GeoJsonWriterSetupUtil {
 
     static EncodingAwareContextGeoJson createTransformationContext(OutputStream outputStream, boolean isCollection, CrsTransformer crsTransformer = null) throws URISyntaxException {
 
-        FeatureTransformationContextGeoJson transformationContext =  ImmutableFeatureTransformationContextGeoJson.builder()
+        FeatureTransformationContextGeoJson transformationContext = ImmutableFeatureTransformationContextGeoJson.builder()
                 .crsTransformer(Optional.ofNullable(crsTransformer))
                 .defaultCrs(OgcCrs.CRS84)
                 .api(new OgcApiEntity(null, null, () -> "", new AppContextTest(), null, new CacheTest(), null))
@@ -46,7 +47,12 @@ class GeoJsonWriterSetupUtil {
                 .isFeatureCollection(isCollection)
                 .ogcApiRequest(new ApiRequestContext() {
                     @Override
-                    URI getExternalUri() {
+                    URICustomizer getBaseUriCustomizer() {
+                        return null
+                    }
+
+                    @Override
+                    List<String> getBasePathSegments() {
                         return null
                     }
 
@@ -74,11 +80,6 @@ class GeoJsonWriterSetupUtil {
                     @Override
                     URICustomizer getUriCustomizer() {
                         return new URICustomizer()
-                    }
-
-                    @Override
-                    String getStaticUrlPrefix() {
-                        return null
                     }
 
                     @Override
