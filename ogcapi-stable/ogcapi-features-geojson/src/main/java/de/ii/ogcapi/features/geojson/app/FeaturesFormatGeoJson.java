@@ -37,6 +37,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
@@ -102,6 +103,15 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     this.schemaGeneratorFeature = schemaGeneratorFeature;
     this.schemaGeneratorFeatureCollection = schemaGeneratorFeatureCollection;
     this.geoJsonWriterRegistry = geoJsonWriterRegistry;
+  }
+
+  @Override
+  public boolean isRestrictedToSimpleFeaturesGeometries(List<Profile> profiles) {
+    return profiles.stream()
+        .filter(p -> p instanceof ProfileGeoJson)
+        .findFirst()
+        .map(profile -> ((ProfileGeoJson) profile).isRestrictedToSimpleFeaturesGeometries())
+        .orElse(true);
   }
 
   @Override

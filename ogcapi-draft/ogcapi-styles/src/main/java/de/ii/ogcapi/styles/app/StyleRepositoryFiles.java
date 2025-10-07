@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
@@ -48,6 +49,9 @@ import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
+import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.ValueStore;
@@ -96,6 +100,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
   private final Values<Codelist> codelistStore;
   private final VolatileRegistry volatileRegistry;
   private final TilesProviders tilesProviders;
+  private final TileMatrixSetRepository tileMatrixSetRepository;
 
   @Inject
   public StyleRepositoryFiles(
@@ -106,7 +111,8 @@ public class StyleRepositoryFiles extends AbstractVolatile
       FeaturesCoreProviders providers,
       ValueStore valueStore,
       VolatileRegistry volatileRegistry,
-      TilesProviders tilesProviders) {
+      TilesProviders tilesProviders,
+      TileMatrixSetRepository tileMatrixSetRepository) {
     super(volatileRegistry, "app/styles");
     this.stylesStore = blobStore.with(StylesBuildingBlock.STORE_RESOURCE_TYPE);
     this.legendsStore = blobStore.with(StylesBuildingBlock.STORE_RESOURCE_TYPE_LEGENDS);
@@ -119,6 +125,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
     this.codelistStore = valueStore.forType(Codelist.class);
     this.volatileRegistry = volatileRegistry;
     this.tilesProviders = tilesProviders;
+    this.tileMatrixSetRepository = tileMatrixSetRepository;
     this.defaultLinkGenerator = new DefaultLinksGenerator();
   }
 
@@ -243,6 +250,8 @@ public class StyleRepositoryFiles extends AbstractVolatile
       OgcApiDataV2 apiData, Optional<String> collectionId, ApiRequestContext requestContext) {
     final StylesLinkGenerator stylesLinkGenerator = new StylesLinkGenerator();
 
+    List<String> additionalTileMatrixSets = getAdditionalTileMatrixSets(apiData);
+
     List<StyleEntry> styleEntries =
         getStyleIds(apiData, collectionId).stream()
             .map(
@@ -259,13 +268,42 @@ public class StyleRepositoryFiles extends AbstractVolatile
 
                   List<ApiMediaType> mediaTypes =
                       getStylesheetMediaTypes(apiData, collectionId, styleId, true, false);
-                  builder.links(
+                  List<Link> links =
                       stylesLinkGenerator.generateStyleLinks(
                           requestContext.getUriCustomizer(),
                           styleId,
                           mediaTypes,
                           i18n,
-                          requestContext.getLanguage()));
+                          requestContext.getLanguage());
+                  if (!additionalTileMatrixSets.isEmpty()) {
+                    links =
+                        links.stream()
+                            .flatMap(
+                                link -> {
+                                  if (Objects.equals(
+                                      link.getType(),
+                                      StyleFormatMbStyle.MEDIA_TYPE.type().toString())) {
+                                    return Stream.concat(
+                                        Stream.of(link),
+                                        additionalTileMatrixSets.stream()
+                                            .map(
+                                                tms ->
+                                                    new ImmutableLink.Builder()
+                                                        .from(link)
+                                                        .href(
+                                                            String.format(
+                                                                "%s&tile-matrix-set=%s",
+                                                                link.getHref(), tms))
+                                                        .title(link.getTitle() + " (" + tms + ")")
+                                                        .build()));
+                                  }
+
+                                  return Stream.of(link);
+                                })
+                            .toList();
+                  }
+
+                  builder.links(links);
                   if (collectionId.isPresent()) {
                     List<ApiMediaType> additionalMediaTypes =
                         getStyleFormatStream(apiData, collectionId)
@@ -1025,5 +1063,24 @@ public class StyleRepositoryFiles extends AbstractVolatile
     }
 
     return getStyleIds(apiData, collectionId);
+  }
+
+  private List<String> getAdditionalTileMatrixSets(OgcApiDataV2 apiData) {
+    return tilesProviders
+        .getTilesetMetadata(apiData)
+        .map(TilesetMetadata::getTileMatrixSets)
+        .map(
+            tms ->
+                tms.stream()
+                    .filter(
+                        tmsId ->
+                            !Objects.equals(tmsId, "WebMercatorQuad")
+                                && tileMatrixSetRepository
+                                    .get(tmsId)
+                                    .filter(TileMatrixSet::isQuadTree)
+                                    .isPresent())
+                    .sorted()
+                    .toList())
+        .orElse(List.of());
   }
 }

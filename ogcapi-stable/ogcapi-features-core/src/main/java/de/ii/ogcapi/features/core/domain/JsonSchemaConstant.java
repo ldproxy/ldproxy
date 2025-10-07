@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,7 @@ import org.immutables.value.Value;
 public abstract class JsonSchemaConstant extends JsonSchema {
 
   // either a string, number, integer, boolean
+  @JsonProperty("const")
   public abstract Object getConstant();
 
   public abstract static class Builder extends JsonSchema.Builder {}

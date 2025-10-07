@@ -9,8 +9,11 @@ package de.ii.ogcapi.features.cityjson.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.xtraplatform.geometries.domain.Axes;
+import de.ii.xtraplatform.geometries.domain.Geometry;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 @AutoMultiBind
@@ -112,11 +115,8 @@ public interface CityJsonWriter {
       case PROPERTY:
         onValue(context, next);
         break;
-      case COORDINATES:
-        onCoordinates(context, next);
-        break;
-      case GEOMETRY_END:
-        onGeometryEnd(context, next);
+      case GEOMETRY:
+        onGeometry(context, next);
         break;
       case ARRAY_START:
         onArrayStart(context, next);
@@ -193,15 +193,36 @@ public interface CityJsonWriter {
     next.accept(context);
   }
 
-  default void onCoordinates(
+  default void onGeometry(
       EncodingAwareContextCityJson context, Consumer<EncodingAwareContextCityJson> next)
       throws IOException {
     next.accept(context);
   }
 
-  default void onGeometryEnd(
-      EncodingAwareContextCityJson context, Consumer<EncodingAwareContextCityJson> next)
-      throws IOException {
-    next.accept(context);
+  default void checkGeometry(Geometry<?> geometry) {
+    if (geometry == null) {
+      throw new IllegalArgumentException("Geometry must not be null.");
+    } else if (geometry.isEmpty()) {
+      throw new IllegalArgumentException("Geometry must not be empty.");
+    } else if (geometry.getAxes() != Axes.XYZ && geometry.getAxes() != Axes.XYZM) {
+      throw new IllegalArgumentException(
+          "Geometry axes must include XYZ, but was: " + geometry.getAxes());
+    }
+  }
+
+  default int addVertex(EncodingAwareContextCityJson context, double[] coordinates, int index) {
+    Optional<Integer> optionalIndex = context.encoding().processOrdinate(coordinates[index]);
+    if (optionalIndex.isPresent()) {
+      throw new IllegalStateException("Vertex already complete after X coordinate.");
+    }
+    optionalIndex = context.encoding().processOrdinate(coordinates[index + 1]);
+    if (optionalIndex.isPresent()) {
+      throw new IllegalStateException("Vertex already complete after Y coordinate.");
+    }
+    optionalIndex = context.encoding().processOrdinate(coordinates[index + 2]);
+    if (optionalIndex.isEmpty()) {
+      throw new IllegalStateException("Vertex not complete after Z coordinate.");
+    }
+    return optionalIndex.get();
   }
 }

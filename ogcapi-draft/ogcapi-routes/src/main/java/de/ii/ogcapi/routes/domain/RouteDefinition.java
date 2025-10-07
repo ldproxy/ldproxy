@@ -12,17 +12,19 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.Link;
-import de.ii.xtraplatform.cql.domain.Geometry;
-import de.ii.xtraplatform.cql.domain.ImmutableMultiPolygon;
-import de.ii.xtraplatform.cql.domain.ImmutablePoint;
-import de.ii.xtraplatform.cql.domain.ImmutablePolygon;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.geometries.domain.ImmutableMultiPolygon;
+import de.ii.xtraplatform.geometries.domain.ImmutablePolygon;
+import de.ii.xtraplatform.geometries.domain.LineString;
+import de.ii.xtraplatform.geometries.domain.MultiPolygon;
+import de.ii.xtraplatform.geometries.domain.Point;
+import de.ii.xtraplatform.geometries.domain.Position;
+import de.ii.xtraplatform.geometries.domain.PositionList;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
 
@@ -59,20 +61,20 @@ public interface RouteDefinition extends StoredValue {
 
   @JsonIgnore
   @Value.Derived
-  default Geometry.Point getStart() {
+  default Point getStart() {
     return processWaypoint(getPoints().get(0), getWaypointsCrs());
   }
 
   @JsonIgnore
   @Value.Derived
-  default Geometry.Point getEnd() {
+  default Point getEnd() {
     List<List<Float>> waypoints = getPoints();
     return processWaypoint(waypoints.get(waypoints.size() - 1), getWaypointsCrs());
   }
 
   @JsonIgnore
   @Value.Derived
-  default List<Geometry.Point> getWaypoints() {
+  default List<Point> getWaypoints() {
     List<List<Float>> waypoints = getPoints();
     EpsgCrs crs = getWaypointsCrs();
 
@@ -82,12 +84,12 @@ public interface RouteDefinition extends StoredValue {
 
     return IntStream.range(1, waypoints.size() - 1)
         .mapToObj(i -> processWaypoint(waypoints.get(i), crs))
-        .collect(Collectors.toUnmodifiableList());
+        .toList();
   }
 
   @JsonIgnore
   @Value.Derived
-  default Optional<Geometry.MultiPolygon> getObstacles() {
+  default Optional<MultiPolygon> getObstacles() {
     Optional<Obstacles> obstacles = getInputs().getObstacles();
     if (obstacles.isEmpty()) return Optional.empty();
 
@@ -101,7 +103,7 @@ public interface RouteDefinition extends StoredValue {
           e);
     }
 
-    ImmutableMultiPolygon.Builder builder = new ImmutableMultiPolygon.Builder().crs(crs);
+    ImmutableMultiPolygon.Builder builder = ImmutableMultiPolygon.builder().crs(crs);
 
     obstacles
         .get()
@@ -109,40 +111,42 @@ public interface RouteDefinition extends StoredValue {
         .getCoordinates()
         .forEach(
             polygon ->
-                builder.addCoordinates(
-                    new ImmutablePolygon.Builder()
+                builder.addValue(
+                    ImmutablePolygon.builder()
                         .crs(crs)
-                        .addAllCoordinates(
+                        .value(
                             polygon.stream()
                                 .map(
                                     ring ->
-                                        ring.stream()
-                                            .map(RouteDefinition::processPosition)
-                                            .collect(Collectors.toUnmodifiableList()))
-                                .collect(Collectors.toUnmodifiableList()))
+                                        PositionList.of(
+                                            ring.stream()
+                                                .map(RouteDefinition::processPosition)
+                                                .toList()))
+                                .map(posList -> LineString.of(posList, Optional.of(crs)))
+                                .toList())
                         .build()));
 
     return Optional.of(builder.build());
   }
 
-  static Geometry.Point processWaypoint(List<Float> coord, EpsgCrs crs) {
-    if (coord.size() == 2) return Geometry.Point.of(coord.get(0), coord.get(1), crs);
-    else
-      return new ImmutablePoint.Builder()
-          .addCoordinates(
-              new Geometry.Coordinate(
-                  coord.get(0).doubleValue(),
-                  coord.get(1).doubleValue(),
-                  coord.get(2).doubleValue()))
-          .crs(crs)
-          .build();
+  static Point processWaypoint(List<Float> coord, EpsgCrs crs) {
+    if (coord.size() == 2) {
+      return Point.of(coord.get(0), coord.get(1), crs);
+    } else {
+      return Point.of(
+          Position.ofXYZ(
+              coord.get(0).doubleValue(), coord.get(1).doubleValue(), coord.get(2).doubleValue()),
+          Optional.of(crs));
+    }
   }
 
-  static Geometry.Coordinate processPosition(List<Float> coord) {
-    if (coord.size() == 2) return Geometry.Coordinate.of(coord.get(0), coord.get(1));
-    else
-      return new Geometry.Coordinate(
+  static Position processPosition(List<Float> coord) {
+    if (coord.size() == 2) {
+      return Position.ofXY(coord.get(0), coord.get(1));
+    } else {
+      return Position.ofXYZ(
           coord.get(0).doubleValue(), coord.get(1).doubleValue(), coord.get(2).doubleValue());
+    }
   }
 
   abstract class Builder implements ValueBuilder<RouteDefinition> {}
