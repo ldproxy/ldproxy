@@ -10,6 +10,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-streams'
     provided 'de.interactive_instruments:xtraplatform-values'
     provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-codelists'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-features-json'
@@ -17,7 +18,16 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-crs'
     provided 'de.interactive_instruments:ogcapi-features-core'
+    provided 'de.interactive_instruments:ogcapi-features-geojson'
     provided project(':ogcapi-collections-schema')
+    provided project(':ogcapi-features-jsonfg')
+
+    embedded (libCatalog.json.patch) {
+        exclude module: 'jackson-databind'
+        exclude module: 'json-path'
+        exclude module: 'jsr305'
+        exclude module: 'slf4j-api'
+    }
 
     testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }

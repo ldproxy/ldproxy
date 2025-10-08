@@ -47,7 +47,7 @@ public class HeaderContentTemporalExtent extends ApiExtensionCache implements Ap
   }
 
   @Override
-  public String getId() {
+  public String getName() {
     return "Content-Temporal-Extent";
   }
 

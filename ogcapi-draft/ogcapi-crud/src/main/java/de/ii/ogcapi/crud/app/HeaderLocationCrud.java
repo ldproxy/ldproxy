@@ -8,6 +8,7 @@
 package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -36,6 +37,11 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
 
   @Override
   public String getId() {
+    return "LocationCrudFeature";
+  }
+
+  @Override
+  public String getName() {
     return "Location";
   }
 

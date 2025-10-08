@@ -1198,7 +1198,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral2)
 
         and: "Returns the feature"
-        propertyAndLiteral2.responseData.features.stream().anyMatch(f -> f.id == idCrv)
+        propertyAndLiteral2.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
 
         when: "5. Data is selected using a filter s_InterSectS(<bbox around first feature>,geometry)"
         def propertyAndLiteral2a = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery( "s_InterSectS(" + envelopeCrv + ",geometry)"))
@@ -1207,7 +1207,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral2a)
 
         and: "Returns the feature"
-        propertyAndLiteral2a.responseData.features.stream().anyMatch(f -> f.id == idCrv)
+        propertyAndLiteral2a.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
 
         when: "6. The same request using EPSG:4326"
         def propertyAndLiteral2b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326( "s_InterSectS(geometry," + envelopeCrv4326 + ")"))
@@ -1225,7 +1225,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral3)
 
         and: "Returns the feature"
-        propertyAndLiteral3.responseData.features.stream().anyMatch(f -> f.id == idCrv)
+        propertyAndLiteral3.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
 
         when: "8. The same request using EPSG:4326"
         def propertyAndLiteral3b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326( "s_InterSectS(geometry," + polygonCrv4326 + ")"))
@@ -1270,7 +1270,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral5.responseData.numberReturned == allAeronauticCrvFeatures.responseData.numberReturned - propertyAndLiteral4Check.responseData.numberReturned
-        propertyAndLiteral5.responseData.features.stream().noneMatch( f -> f.id == idCrv )
+        propertyAndLiteral5.responseData.features.stream().noneMatch( f -> f.getName == idCrv )
 
         when: "4. The same request using EPSG:4326"
         def propertyAndLiteral5b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("s_DisJoinT(geometry," + polygonCrv4326 + ")"))
@@ -1334,7 +1334,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral8.responseData.numberReturned > 0
-        propertyAndLiteral8.responseData.features.stream().anyMatch( f -> f.id == idCrv )
+        propertyAndLiteral8.responseData.features.stream().anyMatch( f -> f.getName == idCrv )
 
         when: "2. The same request using EPSG:4326"
         def propertyAndLiteral8b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("s_WithiN(geometry, " + polygonCrv4326 + ")"))
@@ -1353,7 +1353,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns everything but the feature"
         propertyAndLiteral9.responseData.numberReturned == allAeronauticCrvFeatures.responseData.numberReturned - propertyAndLiteral8.responseData.numberReturned
-        propertyAndLiteral9.responseData.features.stream().noneMatch( f -> f.id == idCrv )
+        propertyAndLiteral9.responseData.features.stream().noneMatch( f -> f.getName == idCrv )
 
         when: "4. The same request using EPSG:4326"
         def propertyAndLiteral9b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("NoT s_WithiN(geometry, " + polygonCrv4326 + ")"))
@@ -1412,7 +1412,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral12.responseData.numberReturned > 0
-        propertyAndLiteral12.responseData.features.stream().anyMatch( f -> f.id == idCrv )
+        propertyAndLiteral12.responseData.features.stream().anyMatch( f -> f.getName == idCrv )
 
         and: "Returns also connected features"
         propertyAndLiteral12.responseData.numberReturned > 1

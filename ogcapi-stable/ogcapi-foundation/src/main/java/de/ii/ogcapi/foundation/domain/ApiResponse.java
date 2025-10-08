@@ -9,7 +9,6 @@ package de.ii.ogcapi.foundation.domain;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponses;
@@ -88,8 +87,7 @@ public interface ApiResponse {
     io.swagger.v3.oas.models.responses.ApiResponse response =
         new io.swagger.v3.oas.models.responses.ApiResponse();
     response.description(getDescription());
-    getHeaders()
-        .forEach(header -> response.addHeaderObject(header.getId(), newHeader(apiData, header)));
+    getHeaders().forEach(header -> header.updateOpenApiDefinition(apiData, openAPI, response));
     Content content = new Content();
     getContent()
         .forEach(
@@ -112,12 +110,6 @@ public interface ApiResponse {
             () -> {
               op.responses(new ApiResponses().addApiResponse(getStatusCode(), response));
             });
-  }
-
-  private Header newHeader(OgcApiDataV2 apiData, ApiHeader header) {
-    Header openApiHeader = new Header().schema(header.getSchema(apiData));
-    header.setOpenApiDescription(apiData, openApiHeader);
-    return openApiHeader;
   }
 
   private io.swagger.v3.oas.models.media.MediaType newMediaType(

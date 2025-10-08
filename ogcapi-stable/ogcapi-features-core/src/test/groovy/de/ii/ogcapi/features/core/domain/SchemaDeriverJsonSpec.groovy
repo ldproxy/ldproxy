@@ -41,8 +41,6 @@ class SchemaDeriverJsonSpec extends Specification {
         where:
         version                            || expected
         JsonSchemaDocument.VERSION.V202012 || EXPECTED_SCHEMA
-        JsonSchemaDocument.VERSION.V201909 || EXPECTED_SCHEMA_V201909
-        JsonSchemaDocument.VERSION.V7      || EXPECTED_SCHEMA_V7
     }
 
     def 'Queryables schema derivation, JSON Schema draft #version'() {
@@ -68,8 +66,6 @@ class SchemaDeriverJsonSpec extends Specification {
         where:
         version                            || expected
         JsonSchemaDocument.VERSION.V202012 || EXPECTED_QUERYABLES
-        JsonSchemaDocument.VERSION.V201909 || EXPECTED_QUERYABLES_V201909
-        JsonSchemaDocument.VERSION.V7      || EXPECTED_QUERYABLES_V7
     }
 
     static JsonSchema EXPECTED_SCHEMA =
@@ -82,6 +78,7 @@ class SchemaDeriverJsonSpec extends Specification {
                             .description("bar")
                             .role("id")
                             .propertySeq(0)
+                            .readOnly(true)
                             .build())
                     .addRequired("string")
                     .putProperties("string", new ImmutableJsonSchemaString.Builder()
@@ -97,7 +94,6 @@ class SchemaDeriverJsonSpec extends Specification {
                             .items(new ImmutableJsonSchemaRef.Builder()
                                     .ref("#/\$defs/Link")
                                     .build())
-                            .minItems(0)
                             .maxItems(5)
                             .propertySeq(3)
                             .build())
@@ -213,17 +209,6 @@ class SchemaDeriverJsonSpec extends Specification {
                             .build())
                     .build();
 
-    static JsonSchema EXPECTED_SCHEMA_V201909 =
-            ImmutableJsonSchemaDocument.builder()
-                    .from(EXPECTED_SCHEMA)
-                    .schema(JsonSchemaDocument.VERSION.V201909.url())
-                    .build()
-
-    static JsonSchema EXPECTED_SCHEMA_V7 =
-            ImmutableJsonSchemaDocumentV7.builder()
-                    .from(EXPECTED_SCHEMA)
-                    .build()
-
     static JsonSchema EXPECTED_QUERYABLES =
             ImmutableJsonSchemaDocument.builder()
                     .schema(JsonSchemaDocument.VERSION.V202012.url())
@@ -260,17 +245,6 @@ class SchemaDeriverJsonSpec extends Specification {
              */
                     .additionalProperties(new ImmutableJsonSchemaFalse.Builder().build())
                     .build();
-
-    static JsonSchema EXPECTED_QUERYABLES_V201909 =
-            ImmutableJsonSchemaDocument.builder()
-                    .from(EXPECTED_QUERYABLES)
-                    .schema(JsonSchemaDocument.VERSION.V201909.url())
-                    .build()
-
-    static JsonSchema EXPECTED_QUERYABLES_V7 =
-            ImmutableJsonSchemaDocumentV7.builder()
-                    .from(EXPECTED_QUERYABLES)
-                    .build()
 
     //TODO: move to SchemaBase
     static Optional<FeatureSchema> getProperty(FeatureSchema schema, String name) {

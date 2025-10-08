@@ -39,7 +39,7 @@ public class HeaderContentBoundingBox extends ApiExtensionCache implements ApiHe
   }
 
   @Override
-  public String getId() {
+  public String getName() {
     return "Content-Bounding-Box";
   }
 

@@ -9,6 +9,7 @@ package de.ii.ogcapi.crud.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableJacksonSubType;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;

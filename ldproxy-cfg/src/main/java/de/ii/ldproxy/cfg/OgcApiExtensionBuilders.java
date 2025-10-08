@@ -13,7 +13,7 @@ import de.ii.ogcapi.collections.queryables.domain.ImmutableQueryablesConfigurati
 import de.ii.ogcapi.collections.schema.domain.ImmutableSchemaConfiguration;
 import de.ii.ogcapi.common.domain.ImmutableCommonConfiguration;
 import de.ii.ogcapi.crs.domain.ImmutableCrsConfiguration;
-import de.ii.ogcapi.crud.app.ImmutableCrudConfiguration;
+import de.ii.ogcapi.crud.domain.ImmutableCrudConfiguration;
 import de.ii.ogcapi.features.cityjson.domain.ImmutableCityJsonConfiguration;
 import de.ii.ogcapi.features.core.domain.ImmutableFeaturesCoreConfiguration;
 import de.ii.ogcapi.features.csv.domain.ImmutableCsvConfiguration;
