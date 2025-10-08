@@ -55,9 +55,7 @@ public class SchemaDeriverCollectionProperties extends SchemaDeriverJsonSchema {
   @Override
   protected JsonSchema mergeRootSchemas(List<JsonSchema> rootSchemas) {
     JsonSchemaDocument.Builder builder =
-        version == VERSION.V7
-            ? ImmutableJsonSchemaDocumentV7.builder()
-            : ImmutableJsonSchemaDocument.builder().schema(version.url());
+        ImmutableJsonSchemaDocument.builder().schema(version.url());
 
     builder.id(schemaUri).title(label).description(description.orElse(""));
 

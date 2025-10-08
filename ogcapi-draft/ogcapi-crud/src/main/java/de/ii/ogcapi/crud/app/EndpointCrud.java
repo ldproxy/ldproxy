@@ -14,14 +14,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureCreate;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureDelete;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureReplace;
+import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.EndpointFeaturesDefinition;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
+import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
+import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
@@ -42,7 +46,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
-import de.ii.xtraplatform.base.domain.ETag.Type;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
@@ -55,6 +58,9 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -116,7 +122,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   @Override
   public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
-    this.crudProfiles = Profile.of(extensionRegistry, "rel-as-key", "val-as-code");
+    this.crudProfiles = Profile.of(extensionRegistry, "all-as-receivable");
 
     return super.onStartup(api, apiValidation);
   }
@@ -165,16 +171,6 @@ public class EndpointCrud extends EndpointSubCollection
           "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-timestamps");
     }
 
-    if (apiData.getCollections().values().stream()
-        .anyMatch(
-            cd ->
-                cd.getExtension(CrudConfiguration.class)
-                    .map(CrudConfiguration::supportsEtag)
-                    .orElse(false))) {
-      builder.add(
-          "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-etags");
-    }
-
     return builder.build();
   }
 
@@ -194,154 +190,197 @@ public class EndpointCrud extends EndpointSubCollection
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("collections")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_FEATURES_TRANSACTION);
+
+    computeDefinitionItems(apiData, definitionBuilder);
+    computeDefinitionItem(apiData, definitionBuilder);
+
+    return definitionBuilder.build();
+  }
+
+  private void computeDefinitionItems(
+      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder builder) {
     String subSubPath = "/items";
     String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     Optional<OgcApiPathParameter> optCollectionIdParam =
         pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+
     if (!optCollectionIdParam.isPresent()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"
               + path
               + "'. The resource will not be available.");
-    } else {
-      final OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
-      final boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
-      final List<String> collectionIds =
-          (explode) ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
-      for (String collectionId : collectionIds) {
-        final List<OgcApiQueryParameter> queryParameters =
-            getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.POST);
-        final List<ApiHeader> headers =
-            getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.POST);
-        final String operationSummary =
-            "add a feature in the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription =
-            Optional.of(
-                "The content of the request is a new feature in one of the supported encodings. The URI of the new feature is returned in the header `Location`.");
-        String resourcePath = "/collections/" + collectionId + subSubPath;
-        ImmutableOgcApiResourceData.Builder resourceBuilder =
-            new ImmutableOgcApiResourceData.Builder()
-                .path(resourcePath)
-                .pathParameters(pathParameters);
-        Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
-        ApiOperation.of(
-                resourcePath,
-                HttpMethods.POST,
-                requestContent,
-                queryParameters,
-                headers,
-                operationSummary,
-                operationDescription,
-                Optional.empty(),
-                getOperationId(EndpointFeaturesDefinition.OP_ID_CREATE_ITEM, collectionId),
-                GROUP_DATA_WRITE,
-                TAGS,
-                CrudBuildingBlock.MATURITY,
-                CrudBuildingBlock.SPEC)
-            .ifPresent(
-                operation -> resourceBuilder.putOperations(HttpMethods.POST.name(), operation));
-        definitionBuilder.putResources(resourcePath, resourceBuilder.build());
-      }
+      return;
     }
-    subSubPath = "/items/{featureId}";
-    path = "/collections/{collectionId}" + subSubPath;
-    pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    optCollectionIdParam =
+
+    final OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
+    final boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
+    final List<String> collectionIds =
+        (explode) ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
+    for (String collectionId : collectionIds) {
+      // POST should only be available if the collection supports auto-generated ids
+      if (!hasGeneratedId(apiData, collectionId)) {
+        continue;
+      }
+
+      final List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.POST);
+      final List<ApiHeader> headers =
+          getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.POST);
+      final String operationSummary =
+          "add a feature in the feature collection '" + collectionId + "'";
+      Optional<String> operationDescription =
+          Optional.of(
+              "The content of the request is a new feature in one of the supported encodings. The URI of the new feature is returned in the header `Location`.");
+      String resourcePath = "/collections/" + collectionId + subSubPath;
+      ImmutableOgcApiResourceData.Builder resourceBuilder =
+          new ImmutableOgcApiResourceData.Builder()
+              .path(resourcePath)
+              .pathParameters(pathParameters);
+      Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
+      ApiOperation.of(
+              resourcePath,
+              HttpMethods.POST,
+              requestContent,
+              queryParameters,
+              headers,
+              operationSummary,
+              operationDescription,
+              Optional.empty(),
+              getOperationId(EndpointFeaturesDefinition.OP_ID_CREATE_ITEM, collectionId),
+              GROUP_DATA_WRITE,
+              TAGS,
+              CrudBuildingBlock.MATURITY,
+              CrudBuildingBlock.SPEC,
+              false)
+          .ifPresent(
+              operation -> resourceBuilder.putOperations(HttpMethods.POST.name(), operation));
+      builder.putResources(resourcePath, resourceBuilder.build());
+    }
+  }
+
+  private void computeDefinitionItem(
+      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder builder) {
+    String subSubPath = "/items/{featureId}";
+    String path = "/collections/{collectionId}" + subSubPath;
+    List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
+    Optional<OgcApiPathParameter> optCollectionIdParam =
         pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+
     if (!optCollectionIdParam.isPresent()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"
               + path
               + "'. The resource will not be available.");
-    } else {
-      final OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
-      final boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
-      final List<String> collectionIds =
-          explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
-      for (String collectionId : collectionIds) {
-        List<OgcApiQueryParameter> queryParameters =
-            getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
-        List<ApiHeader> headers =
-            getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
-        String operationSummary =
-            "add or update a feature in the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription =
-            Optional.of(
-                "The content of the request is a new feature in one of the supported encodings. The id of the new or updated feature is `{featureId}`.");
-        String resourcePath = "/collections/" + collectionId + subSubPath;
-        ImmutableOgcApiResourceData.Builder resourceBuilder =
-            new ImmutableOgcApiResourceData.Builder()
-                .path(resourcePath)
-                .pathParameters(pathParameters);
-        Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
-        ApiOperation.of(
-                resourcePath,
-                HttpMethods.PUT,
-                requestContent,
-                queryParameters,
-                headers,
-                operationSummary,
-                operationDescription,
-                Optional.empty(),
-                getOperationId(EndpointFeaturesDefinition.OP_ID_REPLACE_ITEM, collectionId),
-                GROUP_DATA_WRITE,
-                TAGS,
-                CrudBuildingBlock.MATURITY,
-                CrudBuildingBlock.SPEC)
-            .ifPresent(
-                operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
-
-        queryParameters =
-            getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
-        headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
-        operationSummary = "update a feature in the feature collection '" + collectionId + "'";
-        operationDescription =
-            Optional.of(
-                "The content of the request is a partial feature in one of the supported encodings. The id of updated feature is `{featureId}`.");
-        requestContent = getRequestContent(apiData);
-        ApiOperation.of(
-                resourcePath,
-                HttpMethods.PATCH,
-                requestContent,
-                queryParameters,
-                headers,
-                operationSummary,
-                operationDescription,
-                Optional.empty(),
-                getOperationId(EndpointFeaturesDefinition.OP_ID_UPDATE_ITEM, collectionId),
-                GROUP_DATA_WRITE,
-                TAGS,
-                CrudBuildingBlock.MATURITY,
-                CrudBuildingBlock.SPEC)
-            .ifPresent(
-                operation -> resourceBuilder.putOperations(HttpMethods.PATCH.name(), operation));
-
-        queryParameters =
-            getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
-        headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
-        operationSummary = "delete a feature in the feature collection '" + collectionId + "'";
-        operationDescription = Optional.of("The feature with id `{featureId}` will be deleted.");
-        ApiOperation.of(
-                resourcePath,
-                HttpMethods.DELETE,
-                ImmutableMap.of(),
-                queryParameters,
-                headers,
-                operationSummary,
-                operationDescription,
-                Optional.empty(),
-                getOperationId(EndpointFeaturesDefinition.OP_ID_DELETE_ITEM, collectionId),
-                GROUP_DATA_WRITE,
-                TAGS,
-                CrudBuildingBlock.MATURITY,
-                CrudBuildingBlock.SPEC)
-            .ifPresent(
-                operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
-        definitionBuilder.putResources(resourcePath, resourceBuilder.build());
-      }
+      return;
     }
-    return definitionBuilder.build();
+
+    final OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
+    final boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
+    final List<String> collectionIds =
+        explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
+    for (String collectionId : collectionIds) {
+      boolean hasGeneratedId = hasGeneratedId(apiData, collectionId);
+      List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
+      List<ApiHeader> headers =
+          getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
+      String operationSummary =
+          "%supdate a feature in the feature collection '%s'"
+              .formatted(hasGeneratedId ? "" : "add or ", collectionId);
+      Optional<String> operationDescription =
+          Optional.of(
+              "The content of the request is a feature in one of the supported encodings. The id of the %supdated feature is `{featureId}`."
+                  .formatted(hasGeneratedId ? "" : "new or "));
+      String resourcePath = "/collections/" + collectionId + subSubPath;
+      ImmutableOgcApiResourceData.Builder resourceBuilder =
+          new ImmutableOgcApiResourceData.Builder()
+              .path(resourcePath)
+              .pathParameters(pathParameters);
+      Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
+
+      ApiOperation.of(
+              resourcePath,
+              HttpMethods.PUT,
+              requestContent,
+              queryParameters,
+              headers,
+              operationSummary,
+              operationDescription,
+              Optional.empty(),
+              getOperationId(EndpointFeaturesDefinition.OP_ID_REPLACE_ITEM, collectionId),
+              GROUP_DATA_WRITE,
+              TAGS,
+              CrudBuildingBlock.MATURITY,
+              CrudBuildingBlock.SPEC,
+              !hasGeneratedId)
+          .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
+
+      queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
+      headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
+      operationSummary = "update a feature in the feature collection '" + collectionId + "'";
+      operationDescription =
+          Optional.of(
+              "The content of the request is a JSON merge patch document (RFC 7396). The id of the updated feature is `{featureId}`.");
+      requestContent = new LinkedHashMap<>();
+      requestContent.put(
+          FeatureFormatJsonMergePatch.MEDIA_TYPE.type(),
+          FeatureFormatJsonMergePatch.MEDIA_TYPE_CONTENT);
+      requestContent.putAll(getRequestContent(apiData));
+
+      ApiOperation.of(
+              resourcePath,
+              HttpMethods.PATCH,
+              requestContent,
+              queryParameters,
+              headers,
+              operationSummary,
+              operationDescription,
+              Optional.empty(),
+              getOperationId(EndpointFeaturesDefinition.OP_ID_UPDATE_ITEM, collectionId),
+              GROUP_DATA_WRITE,
+              TAGS,
+              CrudBuildingBlock.MATURITY,
+              CrudBuildingBlock.SPEC,
+              false)
+          .ifPresent(
+              operation -> resourceBuilder.putOperations(HttpMethods.PATCH.name(), operation));
+
+      queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
+      headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
+      operationSummary = "delete a feature in the feature collection '" + collectionId + "'";
+      operationDescription = Optional.of("The feature with id `{featureId}` will be deleted.");
+
+      ApiOperation.of(
+              resourcePath,
+              HttpMethods.DELETE,
+              ImmutableMap.of(),
+              queryParameters,
+              headers,
+              operationSummary,
+              operationDescription,
+              Optional.empty(),
+              getOperationId(EndpointFeaturesDefinition.OP_ID_DELETE_ITEM, collectionId),
+              GROUP_DATA_WRITE,
+              TAGS,
+              CrudBuildingBlock.MATURITY,
+              CrudBuildingBlock.SPEC,
+              false)
+          .ifPresent(
+              operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
+
+      builder.putResources(resourcePath, resourceBuilder.build());
+    }
+  }
+
+  private boolean hasGeneratedId(OgcApiDataV2 apiData, String collectionId) {
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    return providers
+        .getFeatureProviderOrThrow(apiData, collectionData)
+        .info()
+        .hasGeneratedId(providers.getFeatureSchema(apiData, collectionData).get().getName());
   }
 
   @Path("/{collectionId}/items")
@@ -351,6 +390,8 @@ public class EndpointCrud extends EndpointSubCollection
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Prefer") List<String> prefer,
+      @HeaderParam("Link") List<String> links,
       @Context OgcApi api,
       @Context ApiRequestContext apiRequestContext,
       @Context HttpServletRequest request,
@@ -374,21 +415,61 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    EpsgCrs contentCrs =
+        Optional.ofNullable(crs)
+            .map(s -> s.substring(1, s.length() - 1))
+            .map(EpsgCrs::fromString)
+            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+
+    final boolean validate =
+        strictHandling(Collections.enumeration(prefer))
+            && collectionData
+                .getExtension(SchemaConfiguration.class)
+                .filter(ExtensionConfiguration::isEnabled)
+                .isPresent();
+
     QueryInputFeatureCreate queryInput =
         ImmutableQueryInputFeatureCreate.builder()
             .collectionId(collectionId)
             .featureType(featureType)
-            .crs(
-                Optional.ofNullable(crs)
-                    .map(s -> s.substring(1, s.length() - 1))
-                    .map(s -> EpsgCrs.fromString(s))
-                    .orElseGet(coreConfiguration::getDefaultEpsgCrs))
+            .crs(contentCrs)
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(validate)
             .build();
 
     return commandHandler.postItemsResponse(queryInput, apiRequestContext);
+  }
+
+  private static boolean determineGeoJsonProfile(
+      List<String> links, FeatureTypeConfigurationOgcApi collectionData) {
+    boolean jsonfg =
+        links.stream()
+            .flatMap(s -> Arrays.stream(s.split(",")))
+            .filter(link -> link.contains("rel=\"profile\"") || link.contains("rel=profile"))
+            .map(link -> link.substring(link.indexOf("<") + 1, link.indexOf(">")))
+            .anyMatch("http://www.opengis.net/def/profile/OGC/0/jsonfg"::equals);
+
+    if (jsonfg
+        && collectionData
+            .getExtension(JsonFgConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .isEmpty()) {
+      throw new IllegalArgumentException(
+          "The content is declared as JSON-FG, but JSON-FG is not enabled for this collection.");
+    } else if (!jsonfg
+        && collectionData
+            .getExtension(GeoJsonConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .isEmpty()) {
+      throw new IllegalArgumentException(
+          "The content is declared as GeoJSON, but GeoJSON is not enabled for this collection.");
+    }
+    return jsonfg;
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -399,6 +480,8 @@ public class EndpointCrud extends EndpointSubCollection
       @PathParam("collectionId") String collectionId,
       @PathParam("featureId") final String featureId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Prefer") List<String> prefer,
+      @HeaderParam("Link") List<String> links,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
@@ -428,6 +511,12 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    EpsgCrs contentCrs =
+        Optional.ofNullable(crs)
+            .map(s -> s.substring(1, s.length() - 1))
+            .map(EpsgCrs::fromString)
+            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+
     QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
@@ -437,21 +526,34 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
+
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+
+    final boolean validate =
+        strictHandling(Collections.enumeration(prefer))
+            && collectionData
+                .getExtension(SchemaConfiguration.class)
+                .filter(ExtensionConfiguration::isEnabled)
+                .isPresent();
 
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .featureType(featureType)
+            .crs(contentCrs)
             .featureId(featureId)
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(validate)
             .profiles(crudProfiles)
+            .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
 
     return commandHandler.putItemResponse(queryInput, apiRequestContext);
@@ -459,12 +561,13 @@ public class EndpointCrud extends EndpointSubCollection
 
   @Path("/{collectionId}/items/{featureId}")
   @PATCH
-  @Consumes("application/geo+json")
+  @Consumes({"application/merge-patch+json", "application/geo+json"})
   public Response patchItem(
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
       @PathParam("featureId") final String featureId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Link") List<String> links,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
@@ -494,6 +597,12 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    EpsgCrs contentCrs =
+        Optional.ofNullable(crs)
+            .map(s -> s.substring(1, s.length() - 1))
+            .map(EpsgCrs::fromString)
+            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+
     QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
@@ -503,8 +612,10 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
+
+    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
 
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
@@ -512,12 +623,16 @@ public class EndpointCrud extends EndpointSubCollection
             .collectionId(collectionId)
             .featureType(featureType)
             .featureId(featureId)
+            .crs(contentCrs)
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
+            .jsonFg(jsonfg)
+            .validate(false)
             .profiles(crudProfiles)
+            .isAllowCreate(false)
             .build();
 
     return commandHandler.patchItemResponse(queryInput, apiRequestContext);
@@ -564,7 +679,7 @@ public class EndpointCrud extends EndpointSubCollection
             coreConfiguration.getCoordinatePrecision(),
             queryParameterSet,
             featureId,
-            crudConfiguration.filter(CrudConfiguration::supportsEtag).map(ignore -> Type.STRONG),
+            Optional.empty(),
             SchemaBase.Scope.RECEIVABLE);
 
     QueryInputFeatureDelete queryInput =
@@ -601,11 +716,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   private static void checkHeader(
       Optional<CrudConfiguration> crudConfiguration, String ifMatch, String ifUnmodifiedSince) {
-    if (crudConfiguration.map(CrudConfiguration::supportsEtag).orElse(false)
-        && Objects.isNull(ifMatch)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Match' header.");
-    } else if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
+    if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
         && Objects.isNull(ifUnmodifiedSince)) {
       throw new BadRequestException(
           "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");

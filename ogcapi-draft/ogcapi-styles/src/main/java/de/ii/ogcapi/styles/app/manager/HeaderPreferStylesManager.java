@@ -8,20 +8,16 @@
 package de.ii.ogcapi.styles.app.manager;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
-import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.styles.app.StylesBuildingBlock;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -29,31 +25,22 @@ import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class HeaderPreferStylesManager extends ApiExtensionCache implements ApiHeader {
-
-  private final Schema<?> schema =
-      new StringSchema()._enum(ImmutableList.of("handling=strict", "handling=lenient"));
-  private final SchemaValidator schemaValidator;
+public class HeaderPreferStylesManager extends HeaderPrefer {
 
   @Inject
   HeaderPreferStylesManager(SchemaValidator schemaValidator) {
-    this.schemaValidator = schemaValidator;
+    super(schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "Prefer";
+    return "PreferCrudStyle";
   }
 
   @Override
   public String getDescription() {
-    return "'handling=strict' creates or updates a style after successful validation and returns 400, "
-        + "if validation fails. 'handling=lenient' (the default) creates or updates the style without validation.";
-  }
-
-  @Override
-  public boolean isRequestHeader() {
-    return true;
+    return "'handling=strict' creates or replaces the style after successful validation. Status 400 is returned, "
+        + "if validation fails. 'handling=lenient' (the default) creates or replaces the style without validation.";
   }
 
   @Override
@@ -68,16 +55,6 @@ public class HeaderPreferStylesManager extends ApiExtensionCache implements ApiH
                         && definitionPath.endsWith("/styles/{styleId}/metadata"))
                     || (method == HttpMethods.PUT && definitionPath.endsWith("/styles/{styleId}"))
                     || (method == HttpMethods.POST && definitionPath.endsWith("/styles"))));
-  }
-
-  @Override
-  public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return schema;
-  }
-
-  @Override
-  public SchemaValidator getSchemaValidator() {
-    return schemaValidator;
   }
 
   @Override

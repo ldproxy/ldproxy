@@ -38,6 +38,11 @@ public class CodelistsInSchema implements JsonSchemaExtension {
   }
 
   @Override
+  public int getPriority() {
+    return 20;
+  }
+
+  @Override
   public JsonSchema process(
       JsonSchema jsonSchema,
       FeatureSchema featureSchema,

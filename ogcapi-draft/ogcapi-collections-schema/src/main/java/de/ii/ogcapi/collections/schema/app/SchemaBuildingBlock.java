@@ -24,9 +24,9 @@ import javax.inject.Singleton;
  * @langDe Veröffentlichen eines logisches Schema der Feature-Eigenschaften, beschrieben in JSON
  *     Schema.
  * @scopeEn The schema is automatically derived from the type definitions in the feature provider.
- *     Currently, JSON Schema 2020-12, 2019-09 and 07 are supported.
+ *     Currently, schemas are created according to JSON Schema 2020-12.
  * @scopeDe Das Schema wird aus den Schema-Informationen im Feature-Provider abgeleitet. Aktuell
- *     wird JSON Schema 2020-12, 2019-09 und 07 unterstützt.
+ *     wird JSON Schema 2020-12 unterstützt.
  * @conformanceEn *Feature Collections - Schema* is based on the [OGC API - Features - Part 5:
  *     Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html).
  * @conformanceDe Der Baustein basiert auf dem [Entwurf für OGC API - Features - Part 5:

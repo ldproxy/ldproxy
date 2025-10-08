@@ -18,7 +18,6 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import java.util.List;
@@ -205,7 +204,8 @@ public interface ApiOperation {
       PermissionGroup permissionGroup,
       List<String> tags,
       Optional<SpecificationMaturity> specMaturity,
-      Optional<ExternalDocumentation> spec) {
+      Optional<ExternalDocumentation> spec,
+      boolean putAllowsCreate) {
     if ((method == HttpMethods.POST || method == HttpMethods.PUT || method == HttpMethods.PATCH)
         && requestContent.isEmpty()) {
       if (LOGGER.isErrorEnabled()) {
@@ -247,8 +247,10 @@ public interface ApiOperation {
               .content(requestContent)
               .description(
                   method == HttpMethods.POST
-                      ? "The new resource to be added."
-                      : "The resource to be updated.")
+                      ? "The new resource to be created."
+                      : method == HttpMethods.PUT && putAllowsCreate
+                          ? "The resource to be created or updated."
+                          : "The resource to be updated.")
               .build());
     }
     return Optional.of(operationBuilder.build());
@@ -349,13 +351,8 @@ public interface ApiOperation {
     getHeaders()
         .forEach(
             header -> {
-              Parameter param =
-                  new Parameter()
-                      .in("header")
-                      .name(header.getId())
-                      .schema(header.getSchema(apiData));
-              header.setOpenApiDescription(apiData, param);
-              op.addParametersItem(param);
+              header.updateOpenApiDefinition(apiData, openAPI, op);
+              errorCodes.add(400);
             });
 
     getSuccess().ifPresent(success -> success.updateOpenApiDefinition(apiData, openAPI, op));

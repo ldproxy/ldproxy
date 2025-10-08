@@ -11,6 +11,8 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.base.domain.LogContext;
 import io.swagger.v3.core.util.Json;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -28,7 +30,11 @@ public interface ApiHeader extends ApiExtension {
   Schema<String> SCHEMA = new StringSchema();
   String UNUSED = "unused";
 
-  String getId();
+  String getName();
+
+  default String getId() {
+    return getName();
+  }
 
   String getDescription();
 
@@ -53,7 +59,7 @@ public interface ApiHeader extends ApiExtension {
       String schemaContent = Json.mapper().writeValueAsString(getSchema(apiData));
       Optional<String> result = getSchemaValidator().validate(schemaContent, "\"" + value + "\"");
       return result.map(
-          s -> String.format("Value '%s' is invalid for header '%s': %s", value, getId(), s));
+          s -> String.format("Value '%s' is invalid for header '%s': %s", value, getName(), s));
     } catch (Exception e) {
       if (LOGGER.isDebugEnabled(LogContext.MARKER.STACKTRACE)) {
         LOGGER.debug(LogContext.MARKER.STACKTRACE, "Stacktrace: ", e);
@@ -61,11 +67,49 @@ public interface ApiHeader extends ApiExtension {
       return Optional.of(
           String.format(
               "An exception occurred while validating the value '%s' for header '%s'",
-              value, getId()));
+              value, getName()));
     }
   }
 
-  default void setOpenApiDescription(OgcApiDataV2 apiData, Header header) {
+  default void updateOpenApiDefinition(OgcApiDataV2 apiData, OpenAPI openAPI, Operation op) {
+    String id = getId();
+    op.addParametersItem(new Parameter().$ref("#/components/parameters/" + id));
+    if (Objects.isNull(openAPI.getComponents().getParameters())
+        || Objects.isNull(openAPI.getComponents().getParameters().get(id))) {
+      openAPI.getComponents().addParameters(id, newHeaderRequest(apiData));
+    }
+  }
+
+  default void updateOpenApiDefinition(
+      OgcApiDataV2 apiData,
+      OpenAPI openAPI,
+      io.swagger.v3.oas.models.responses.ApiResponse response) {
+    String id = getId();
+    response.addHeaderObject(getName(), new Header().$ref("#/components/headers/" + id));
+    if (Objects.isNull(openAPI.getComponents().getHeaders())
+        || Objects.isNull(openAPI.getComponents().getHeaders().get(id))) {
+      openAPI.getComponents().addHeaders(id, newHeaderResponse(apiData));
+    }
+  }
+
+  private Parameter newHeaderRequest(OgcApiDataV2 apiData) {
+    Parameter header =
+        new Parameter()
+            .in("header")
+            .name(getName())
+            .description(getDescription())
+            .schema(getSchema(apiData));
+    setOpenApiDescription(apiData, header);
+    return header;
+  }
+
+  private Header newHeaderResponse(OgcApiDataV2 apiData) {
+    Header openApiHeader = new Header().schema(getSchema(apiData));
+    setOpenApiDescription(apiData, openApiHeader);
+    return openApiHeader;
+  }
+
+  private void setOpenApiDescription(OgcApiDataV2 apiData, Header header) {
     if (apiData
         .getExtension(FoundationConfiguration.class)
         .map(FoundationConfiguration::includesSpecificationInformation)
@@ -91,7 +135,7 @@ public interface ApiHeader extends ApiExtension {
     }
   }
 
-  default void setOpenApiDescription(OgcApiDataV2 apiData, Parameter param) {
+  private void setOpenApiDescription(OgcApiDataV2 apiData, Parameter param) {
     if (apiData
         .getExtension(FoundationConfiguration.class)
         .map(FoundationConfiguration::includesSpecificationInformation)

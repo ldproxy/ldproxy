@@ -7,18 +7,32 @@
  */
 package de.ii.ogcapi.crud.app;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
+import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.QueryInputSchema;
+import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
+import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -33,14 +47,17 @@ import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
+import de.ii.xtraplatform.values.domain.ValueStore;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -49,7 +66,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -61,22 +78,34 @@ import org.threeten.extra.Interval;
 public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements CommandHandlerCrud {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandlerCrudImpl.class);
+  private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
   private final FeaturesCoreQueriesHandler queriesHandler;
   private final ExtensionRegistry extensionRegistry;
+  private final CrsInfo crsInfo;
+  private final QueriesHandlerSchema schemaHandler;
+  private final JsonSchemaCache schemaCache;
+  private final SchemaValidator schemaValidator;
   private List<? extends FormatExtension> formats;
-  private CrsInfo crsInfo;
 
   @Inject
   public CommandHandlerCrudImpl(
       FeaturesCoreQueriesHandler queriesHandler,
       CrsInfo crsInfo,
+      QueriesHandlerSchema schemaHandler,
+      ValueStore valueStore,
       ExtensionRegistry extensionRegistry,
-      VolatileRegistry volatileRegistry) {
+      VolatileRegistry volatileRegistry,
+      SchemaValidator schemaValidator) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
     this.queriesHandler = queriesHandler;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
+    this.schemaHandler = schemaHandler;
+    // note that we need a separate cache to avoid are circular dependency between the schemas and
+    // crud modules
+    this.schemaCache = new SchemaCacheCrud(valueStore.forType(Codelist.class)::asMap);
+    this.schemaValidator = schemaValidator;
 
     onVolatileStart();
 
@@ -88,38 +117,62 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   @Override
   public Response postItemsResponse(
       QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
+    InputStream contentStream = queryInput.getRequestBody();
 
-    EpsgCrs crs = queryInput.getCrs().orElseGet(queryInput::getDefaultCrs);
+    if (queryInput.getValidate()) {
+      final String requestBody = getAsString(contentStream);
+      validate(requestBody, queryInput.getCollectionId(), queryInput.getJsonFg(), requestContext);
+
+      // "rewind" request body stream
+      contentStream = new ByteArrayInputStream(requestBody.getBytes(StandardCharsets.UTF_8));
+    }
+
+    EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     FeatureTokenSource featureTokenSource =
-        getFeatureSource(
-            requestContext.getMediaType(),
-            queryInput.getRequestBody(),
-            Optional.empty(),
-            crs,
-            axes);
+        getFeatureSource(requestContext.getMediaType(), contentStream, Optional.empty(), crs, axes);
 
+    return createFeature(queryInput, featureTokenSource, requestContext, Optional.empty());
+  }
+
+  private Response createFeature(
+      QueryInputFeatureCreate queryInput,
+      FeatureTokenSource featureTokenSource,
+      ApiRequestContext requestContext,
+      Optional<String> featureId) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
             .mutations()
             .get()
-            .createFeatures(queryInput.getFeatureType(), featureTokenSource, crs);
+            .createFeatures(
+                queryInput.getFeatureType(), featureTokenSource, queryInput.getCrs(), featureId);
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
-    List<String> ids = result.getIds();
+    List<String> ids;
+    Response response;
+
+    if (featureId.isPresent()) {
+      ids = List.of(featureId.get());
+      response = Response.noContent().build();
+    } else {
+      ids = result.getIds();
+
+      URI firstFeature = null;
+      try {
+        firstFeature =
+            requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
+      } catch (URISyntaxException e) {
+        // ignore
+      }
+
+      response = Response.created(firstFeature).build();
+    }
 
     if (ids.isEmpty()) {
       throw new IllegalArgumentException("No features found in input");
-    }
-    URI firstFeature = null;
-    try {
-      firstFeature =
-          requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
-    } catch (URISyntaxException e) {
-      // ignore
     }
 
     handleChange(
@@ -132,32 +185,61 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.CREATE);
 
-    return Response.created(firstFeature).build();
+    return response;
   }
 
   @Override
   public Response putItemResponse(
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
+    InputStream contentStream = queryInput.getRequestBody();
 
-    EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
+    if (queryInput.getValidate()) {
+      final String requestBody = getAsString(contentStream);
+      validate(requestBody, queryInput.getCollectionId(), queryInput.getJsonFg(), requestContext);
+
+      // "rewind" request body stream
+      contentStream = new ByteArrayInputStream(requestBody.getBytes(StandardCharsets.UTF_8));
+    }
+
+    EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
-    Response feature = getCurrentFeature(queryInput, requestContext);
-    EntityTag eTag = feature.getEntityTag();
-    Date lastModified = feature.getLastModified();
+    FeatureTokenSource featureTokenSource =
+        getFeatureSource(requestContext.getMediaType(), contentStream, Optional.empty(), crs, axes);
+    Response previousFeature = null;
+
+    try {
+      previousFeature = getCurrentFeature(queryInput, requestContext);
+    } catch (NotFoundException e) {
+      if (!queryInput.isAllowCreate()) {
+        throw e;
+      }
+    }
+
+    if (Objects.isNull(previousFeature) && queryInput.isAllowCreate()) {
+      return createFeature(
+          queryInput,
+          featureTokenSource,
+          requestContext,
+          Optional.ofNullable(queryInput.getFeatureId()));
+    }
+
+    Date lastModified = previousFeature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
-    if (Objects.nonNull(response)) return response.build();
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
 
-    FeatureTokenSource featureTokenSource =
-        getFeatureSource(
-            requestContext.getMediaType(),
-            queryInput.getRequestBody(),
-            Optional.empty(),
-            crs,
-            axes);
+    if (Objects.nonNull(response)) {
+      return response.build();
+    }
 
+    return updateFeature(queryInput, featureTokenSource, previousFeature);
+  }
+
+  private Response updateFeature(
+      QueryInputFeatureReplace queryInput,
+      FeatureTokenSource featureTokenSource,
+      Response previousFeature) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
@@ -167,13 +249,13 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                 queryInput.getFeatureType(),
                 queryInput.getFeatureId(),
                 featureTokenSource,
-                crs,
+                queryInput.getCrs(),
                 false);
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
-    Optional<BoundingBox> currentBbox = parseBboxHeader(feature);
-    Optional<Tuple<Long, Long>> currentTime = parseTimeHeader(feature);
+    Optional<BoundingBox> currentBbox = parseBboxHeader(previousFeature);
+    Optional<Tuple<Long, Long>> currentTime = parseTimeHeader(previousFeature);
 
     handleChange(
         queryInput.getFeatureProvider(),
@@ -196,16 +278,26 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
-    InputStream merged =
-        new SequenceInputStream(new ByteArrayInputStream(prev), queryInput.getRequestBody());
+    final ObjectMapper mapper = new ObjectMapper();
+    InputStream merged;
+
+    try {
+      final JsonMergePatch patch =
+          mapper.readValue(queryInput.getRequestBody(), JsonMergePatch.class);
+      JsonNode orig = mapper.readTree(prev);
+      JsonNode mergedNode = patch.apply(orig);
+      merged = new ByteArrayInputStream(mapper.writeValueAsBytes(mergedNode));
+    } catch (Throwable e) {
+      throw new IllegalArgumentException(
+          "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
+    }
 
     FeatureTokenSource mergedSource =
         getFeatureSource(
@@ -247,11 +339,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     Response feature = getCurrentFeature(queryInput, requestContext);
 
-    EntityTag eTag = feature.getEntityTag();
     Date lastModified = feature.getLastModified();
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, eTag);
+        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
     if (Objects.nonNull(response)) {
       return response.build();
     }
@@ -282,7 +373,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   }
 
   private @NotNull Response getCurrentFeature(
-      QueryInputFeatureWithQueryParameterSet queryInput, ApiRequestContext requestContext) {
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
     try {
       if (formats == null) {
         formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
@@ -428,5 +519,70 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         new FeatureTokenDecoderGeoJson(nullValue, crs, axes);
 
     return Source.inputStream(requestBody).via(featureTokenDecoderGeoJson);
+  }
+
+  private static String getAsString(InputStream contentStream) {
+    final String requestBody;
+    try {
+      requestBody = new String(contentStream.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not read request body. Reasons: " + e.getMessage(), e);
+    }
+    return requestBody;
+  }
+
+  private void validate(
+      String requestBody, String collectionId, boolean jsonfg, ApiRequestContext requestContext) {
+    Optional<Profile> requestedProfile =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    jsonfg
+                        ? "validation-receivables-jsonfg".equals(profile.getId())
+                        : "validation-receivables-geojson".equals(profile.getId()))
+            .findFirst();
+
+    Optional<SchemaConfiguration> schemaConfiguration =
+        requestContext.getApi().getData().getExtension(SchemaConfiguration.class, collectionId);
+
+    Map<String, String> defaultProfiles =
+        schemaConfiguration.map(SchemaConfiguration::getDefaultProfiles).orElse(Map.of());
+    List<Profile> defaultProfilesSchema =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    defaultProfiles.containsKey(profile.getProfileSet())
+                        && profile.getId().equals(defaultProfiles.get(profile.getProfileSet())))
+            .toList();
+
+    QueryInputSchema queryInputSchema =
+        new ImmutableQueryInputSchema.Builder()
+            .collectionId(collectionId)
+            .profiles(List.of(requestedProfile.get()))
+            .defaultProfilesResource(defaultProfilesSchema)
+            .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
+            .schemaCache(this.schemaCache)
+            .build();
+
+    String schema;
+    try (Response response =
+        schemaHandler.handle(QueriesHandlerSchema.Query.SCHEMA, queryInputSchema, requestContext)) {
+      schema = MAPPER.writeValueAsString(response.getEntity());
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "Could not validate request body against the JSON Schema. Reason: " + e.getMessage());
+    }
+
+    Optional<String> validationResult;
+    try {
+      validationResult = schemaValidator.validate(schema, requestBody);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
+    }
+
+    if (validationResult.isPresent()) {
+      throw new IllegalArgumentException(
+          "Request body is invalid, feature creation is rejected: " + validationResult.get());
+    }
   }
 }

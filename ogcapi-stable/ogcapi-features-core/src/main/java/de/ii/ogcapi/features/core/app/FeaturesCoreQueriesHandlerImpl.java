@@ -18,6 +18,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
+import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -264,21 +265,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
 
     List<Profile> profiles =
-        allProfileSets.stream()
-            .filter(p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
-            .map(
-                profileSet ->
-                    profileSet
-                        .negotiateProfile(
-                            queryInput.getProfiles(),
-                            queryInput.getDefaultProfilesResource(),
-                            outputFormat,
-                            ResourceType.FEATURE,
-                            api.getData(),
-                            Optional.of(collectionId))
-                        .orElse(null))
-            .filter(Objects::nonNull)
-            .toList();
+        negotiateProfiles(
+            allProfileSets,
+            outputFormat,
+            ResourceType.FEATURE,
+            api.getData(),
+            Optional.of(collectionId),
+            queryInput.getProfiles(),
+            queryInput.getDefaultProfilesResource());
 
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(
@@ -365,6 +359,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       if (parameter instanceof FeatureTransformationQueryParameter) {
         ((FeatureTransformationQueryParameter) parameter)
             .applyTo(transformationContext, queryParameterSet);
+      }
+    }
+
+    for (Profile profile : profiles) {
+      if (profile instanceof ProfileFeatureQuery) {
+        query = ((ProfileFeatureQuery) profile).transformFeatureQuery(query);
       }
     }
 

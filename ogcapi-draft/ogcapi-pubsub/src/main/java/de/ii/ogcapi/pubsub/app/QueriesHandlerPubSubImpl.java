@@ -383,7 +383,7 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
     if (schema.isPresent()) {
       SchemaDeriverCollectionProperties schemaDeriver =
           new SchemaDeriverCollectionProperties(
-              VERSION.V7,
+              VERSION.current(),
               Optional.empty(),
               "ignore",
               Optional.empty(),

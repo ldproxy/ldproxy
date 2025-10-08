@@ -191,7 +191,8 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
                 GROUP_STYLES_WRITE,
                 TAGS,
                 StylesBuildingBlock.MATURITY,
-                StylesBuildingBlock.SPEC)
+                StylesBuildingBlock.SPEC,
+                false)
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.POST.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());
@@ -249,7 +250,8 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
                 GROUP_STYLES_WRITE,
                 TAGS,
                 StylesBuildingBlock.MATURITY,
-                StylesBuildingBlock.SPEC)
+                StylesBuildingBlock.SPEC,
+                false)
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
 
@@ -274,7 +276,8 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
                 GROUP_STYLES_WRITE,
                 TAGS,
                 StylesBuildingBlock.MATURITY,
-                StylesBuildingBlock.SPEC)
+                StylesBuildingBlock.SPEC,
+                false)
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());
