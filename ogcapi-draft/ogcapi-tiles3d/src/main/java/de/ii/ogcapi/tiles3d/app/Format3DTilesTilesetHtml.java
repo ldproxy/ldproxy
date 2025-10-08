@@ -17,7 +17,6 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.StyleReader;
@@ -25,6 +24,7 @@ import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tileset;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.net.URI;
@@ -121,7 +121,8 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
         .apiData(api.getData())
         .collectionId(collectionId)
         .tileset(tileset)
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .additionalStyleUrl(styleUrl)
         .htmlConfig(htmlConfig)
         .rawLinks(links)

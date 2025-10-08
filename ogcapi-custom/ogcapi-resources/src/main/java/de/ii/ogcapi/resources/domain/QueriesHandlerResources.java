@@ -7,12 +7,15 @@
  */
 package de.ii.ogcapi.resources.domain;
 
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import java.io.InputStream;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface QueriesHandlerResources
@@ -26,6 +29,8 @@ public interface QueriesHandlerResources
 
   enum Query implements QueryIdentifier {
     RESOURCES,
+    CREATE_REPLACE,
+    DELETE,
     RESOURCE
   }
 
@@ -37,5 +42,36 @@ public interface QueriesHandlerResources
   @Value.Immutable
   interface QueryInputResource extends QueryInput {
     String getResourceId();
+  }
+
+  @Value.Immutable
+  @Value.Style(builder = "new")
+  interface QueryInputResourceCreateReplace extends QueryInput {
+    String getResourceId();
+
+    InputStream getRequestBody();
+
+    boolean getStrict();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
+
+    @Value.Default
+    default boolean getDryRun() {
+      return false;
+    }
+  }
+
+  @Value.Immutable
+  @Value.Style(builder = "new")
+  interface QueryInputResourceDelete extends QueryInput {
+    String getResourceId();
+
+    OgcApi getDataset();
+
+    Optional<String> getIfMatch();
+
+    Optional<String> getIfUnmodifiedSince();
   }
 }

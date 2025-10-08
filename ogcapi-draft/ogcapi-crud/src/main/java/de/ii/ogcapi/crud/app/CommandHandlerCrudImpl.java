@@ -27,7 +27,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
@@ -380,9 +380,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       }
 
       ApiRequestContext requestContextGeoJson =
-          new Builder()
+          new ImmutableStaticRequestContext.Builder()
               .from(requestContext)
-              .request(Optional.empty())
               .requestUri(
                   requestContext
                       .getUriCustomizer()

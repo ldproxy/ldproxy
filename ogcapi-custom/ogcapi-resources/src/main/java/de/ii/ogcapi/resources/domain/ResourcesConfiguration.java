@@ -51,6 +51,56 @@ public interface ResourcesConfiguration extends ExtensionConfiguration, CachingC
     return Objects.equals(getManagerEnabled(), true);
   }
 
+  /**
+   * @langEn Option to enable support for conditional processing of PUT and DELETE requests, based
+   *     on the time when the resource was last updated. Such requests on an existing ressource must
+   *     include an `If-Unmodified-Since` header, otherwise they will be rejected. A resource will
+   *     only be changed, if the resource was not changed since the timestamp in the header (or if
+   *     no last modification time is known for the feature).
+   *     <p>The setting is ignored, if `optimisticLockingETag` is enabled.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT- und
+   *     DELETE-Anfragen, basierend auf der Zeit, zu der die Ressource zuletzt aktualisiert wurde.
+   *     Solche Anfragen müssen bei einer bestehenden Ressource einen `If-Unmodified-Since`-Header
+   *     enthalten, andernfalls werden sie zurückgewiesen. Eine Ressource wird nur dann geändert,
+   *     wenn die Ressource seit dem Zeitstempel im Header nicht geändert wurde (oder wenn kein
+   *     letzter Änderungszeitpunkt für das Feature bekannt ist).
+   *     <p>Die Option wird ignoriert, wenn `optimisticLockingETag` aktiviert ist.
+   * @default false
+   * @since v3.5
+   */
+  @Nullable
+  Boolean getOptimisticLockingLastModified();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsLastModified() {
+    return Objects.equals(getOptimisticLockingLastModified(), true);
+  }
+
+  /**
+   * @langEn Option to enable support for conditional processing of PUT and DELETE requests, based
+   *     on a strong Entity Tag (ETag) of the resource. Such requests on an existing resource must
+   *     include an `If-Match` header, otherwise they will be rejected. A resource will only be
+   *     changed, if the resource matches the Etag(s) in the header.
+   * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT- und
+   *     DELETE-Anfragen, basierend auf einem starken Entity Tag (ETag) der Ressource. Solche
+   *     Anfragen müssen bei einer bestehenden Ressource einen `If-Match`-Header enthalten,
+   *     andernfalls werden sie zurückgewiesen. Eine Ressource wird nur dann geändert, wenn der
+   *     aktuelle ETag der Ressource zu den ETag(s) im Header passt.
+   * @default false
+   * @since v3.5
+   */
+  @Nullable
+  Boolean getOptimisticLockingETag();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsEtag() {
+    return Objects.equals(getOptimisticLockingETag(), true);
+  }
+
   @Override
   default Builder getBuilder() {
     return new ImmutableResourcesConfiguration.Builder();

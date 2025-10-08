@@ -20,10 +20,10 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -128,7 +128,8 @@ public class CollectionsFormatHtml
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(api.getData()))
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .rawLinks(collections.getLinks())
         .title(collections.getTitle().get())
         .description(collections.getDescription().get())

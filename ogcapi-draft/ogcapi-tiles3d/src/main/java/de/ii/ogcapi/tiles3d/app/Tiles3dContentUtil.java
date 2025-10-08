@@ -15,12 +15,11 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.tiles3d.domain.TileResourceDescriptor;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.cql.domain.And;
@@ -30,6 +29,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
@@ -134,7 +134,7 @@ public final class Tiles3dContentUtil {
     QueryParameterSet queryParameterSet =
         QueryParameterSet.of(knownParameters, actualParameters)
             .evaluate(api, api.getData().getCollectionData(collectionId));
-    return new Builder()
+    return new ImmutableStaticRequestContext.Builder()
         .api(r.getApi())
         .requestUri(
             uriCustomizer
@@ -145,7 +145,6 @@ public final class Tiles3dContentUtil {
                 // query parameters have been evaluated and are not necessary here
                 .build())
         .queryParameterSet(queryParameterSet)
-        .externalUri(uriCustomizer.copy().removeLastPathSegments(4).clearParameters().build())
         .mediaType(Format3dTilesContentGltfBinary.MEDIA_TYPE)
         .alternateMediaTypes(ImmutableList.of())
         .build();

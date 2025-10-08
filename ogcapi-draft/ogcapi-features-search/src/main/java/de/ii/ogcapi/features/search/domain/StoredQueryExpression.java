@@ -25,6 +25,7 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
+import de.ii.xtraplatform.values.domain.ValueEncoding.FORMAT;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
@@ -52,7 +53,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true, builder = "new")
-@FromValueStore(type = "queries")
+@FromValueStore(type = "queries", defaultFormat = FORMAT.JSON)
 @JsonDeserialize(builder = ImmutableStoredQueryExpression.Builder.class)
 @SuppressWarnings("PMD.TooManyMethods")
 public interface StoredQueryExpression extends StoredValue {

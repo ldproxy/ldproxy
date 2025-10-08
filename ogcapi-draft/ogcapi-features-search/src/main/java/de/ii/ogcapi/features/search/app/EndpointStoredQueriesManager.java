@@ -53,6 +53,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -208,12 +209,15 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
   public Response putStoredQuery(
       @Auth Optional<User> optionalUser,
       @PathParam("queryId") String queryId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
     OgcApiDataV2 apiData = api.getData();
+
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
@@ -236,7 +240,9 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
         new ImmutableQueryInputStoredQueryCreateReplace.Builder()
             .queryId(queryId)
             .query(query)
-            .strict(strictHandling(request.getHeaders("Prefer")));
+            .strict(strictHandling(request.getHeaders("Prefer")))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
@@ -260,16 +266,23 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
   public Response deleteStoredQuery(
       @Auth Optional<User> optionalUser,
       @PathParam("queryId") String queryId,
+      @HeaderParam("If-Match") String ifMatch,
+      @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     OgcApiDataV2 apiData = api.getData();
+
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
 
     // TODO recompute API definition of EndpointStoredQuery
 
     SearchQueriesHandler.QueryInputStoredQueryDelete queryInput =
-        new ImmutableQueryInputStoredQueryDelete.Builder().queryId(queryId).build();
+        new ImmutableQueryInputStoredQueryDelete.Builder()
+            .queryId(queryId)
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince))
+            .build();
 
     return queryHandler.handle(SearchQueriesHandler.Query.DELETE, queryInput, requestContext);
   }

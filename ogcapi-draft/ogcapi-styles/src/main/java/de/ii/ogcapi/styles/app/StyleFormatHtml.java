@@ -21,7 +21,6 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.foundation.domain.URICustomizer;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.ImmutableMapClient;
 import de.ii.ogcapi.html.domain.MapClient;
@@ -34,6 +33,7 @@ import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
@@ -267,7 +267,8 @@ public class StyleFormatHtml implements StyleFormatExtension {
         .popup(popup)
         .layerControl(layerControl)
         .noIndex(isNoIndexEnabledForApi(apiData))
-        .urlPrefix(requestContext.getStaticUrlPrefix())
+        .basePath(requestContext.getBasePath())
+        .apiPath(requestContext.getApiPath())
         .layerIds(
             "{"
                 + layerMap.asMap().entrySet().stream()
