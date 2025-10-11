@@ -81,7 +81,6 @@ import javax.inject.Singleton;
  *     <p><code>
  * - Mapbox/MapLibre Style: The stylesheets are parsed into an internal Java object. Not all structures are
  *     supported or validated:
- *   - Only a single sprite is supported.
  *   - Terrain is not supported.
  *   - Text strings (e.g., color values) are not validated.
  *   - `filter`, `layout` and `paint` values are not validated.
@@ -98,7 +97,6 @@ import javax.inject.Singleton;
  *     <p>Die folgenden Einschränkungen gelten für die Style-Formate:
  *     <p><code>
  * - Mapbox/MapLibre Style: Die Stylesheets werden in ein internes Java-Objekt geparst. Nicht alle Strukturen werden unterstützt oder validiert:
- *   - Nur ein einzelnes Sprite wird unterstützt.
  *   - Terrain wird nicht unterstützt.
  *   - Textstrings (z.B. Farbwerte) werden nicht validiert.
  *   - `filter`, `layout` und `paint` Werte werden nicht validiert.
