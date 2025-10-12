@@ -1,5 +1,48 @@
 # Changelog
 
+## v4.5.0 (12/10/2025)
+#### Implemented enhancements
+
+-  tile seeding on feature changes [#1459](https://github.com/ldproxy/ldproxy/issues/1459)
+-  tile seeding priorities [#1449](https://github.com/ldproxy/ldproxy/issues/1449)
+-  Styles: adjust MapLibre styles for other tile matrix sets [#1446](https://github.com/ldproxy/ldproxy/issues/1446)
+-  JSON-FG: Support embedding [#1421](https://github.com/ldproxy/ldproxy/issues/1421)
+-  support profile for codelists in schemas, consolidate schema classes [#1420](https://github.com/ldproxy/ldproxy/issues/1420)
+-  support circular arcs [#1398](https://github.com/ldproxy/ldproxy/issues/1398)
+-  html-representation for the /schema-resource of a collection [#1256](https://github.com/ldproxy/ldproxy/issues/1256)
+-  add pretty parameter for JSON output [#222](https://github.com/ldproxy/ldproxy/issues/222)
+
+#### Improvements
+
+-  support API specific permission claim name [#1464](https://github.com/ldproxy/ldproxy/issues/1464)
+-  provide static assets per API [#1462](https://github.com/ldproxy/ldproxy/issues/1462)
+-  support header `X-Forwarded-Prefix` [#1461](https://github.com/ldproxy/ldproxy/issues/1461)
+-  upgrade JSON-FG to v0.3 [#1397](https://github.com/ldproxy/ldproxy/issues/1397)
+-  support pre-condition checks for all CRUD operations [#1034](https://github.com/ldproxy/ldproxy/issues/1034)
+
+#### Fixed bugs
+
+-  3D Tiles are always empty, if `computeNumberMatched=false` [#1468](https://github.com/ldproxy/ldproxy/issues/1468)
+
+#### Dependency updates
+
+* Update dependency io.github.classgraph:classgraph to v4.8.181 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/239
+* Update dependency commons-codec:commons-codec to v1.19.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/248
+* Update jjwt to v0.13.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/259
+* Update swagger to v2.2.38 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/274
+* Update dependency com.fasterxml.uuid:java-uuid-generator to v5.1.1 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/280
+* Update dependency io.minio:minio to v8.6.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/282
+* Update dependency io.reactivex.rxjava3:rxjava to v3.1.12 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/281
+* Update dropwizard to v3.0.16 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/266
+* Update dependency org.xerial:sqlite-jdbc to v3.50.3.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/372
+* Update dependency com.zaxxer:HikariCP to v7.0.2 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/385
+* Update dependency org.postgresql:postgresql to v42.7.8 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/396
+* Update commonmark to v0.26.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/393
+* Update dependency com.fasterxml:aalto-xml to v1.3.4 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/402
+* Update schemacrawler to v16.29.1 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/405
+
+---
+
 ## v4.4.2 (30/08/2025)
 #### Fixed bugs
 
