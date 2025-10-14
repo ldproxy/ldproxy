@@ -33,12 +33,6 @@ public abstract class JsonSchemaRef extends JsonSchema {
     return getRef().matches("^#/\\$defs/");
   }
 
-  @JsonIgnore
-  @Value.Derived
-  public boolean isLocalV7() {
-    return getRef().matches("^#/definitions/");
-  }
-
   public abstract static class Builder extends JsonSchema.Builder {}
 
   @SuppressWarnings("UnstableApiUsage")
