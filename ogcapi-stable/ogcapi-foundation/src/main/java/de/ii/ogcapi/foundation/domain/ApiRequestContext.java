@@ -67,18 +67,18 @@ public interface ApiRequestContext {
 
   @Value.Derived
   default String getApiUri() {
-    return getUriCustomizer()
+    return getBaseUriCustomizer()
         .copy()
-        .cutPathAfterSegments(getApi().getData().getSubPath().toArray(new String[0]))
+        .appendPathSegments(getApi().getData().getSubPath().toArray(new String[0]))
         .clearParameters()
         .toString();
   }
 
   @Value.Derived
   default String getApiPath() {
-    return getUriCustomizer()
+    return getBaseUriCustomizer()
         .copy()
-        .cutPathAfterSegments(getApi().getData().getSubPath().toArray(new String[0]))
+        .appendPathSegments(getApi().getData().getSubPath().toArray(new String[0]))
         .getPath();
   }
 
@@ -100,11 +100,7 @@ public interface ApiRequestContext {
 
   @Value.Derived
   default Optional<String> getCollectionId() {
-    String apiPath =
-        getUriCustomizer()
-            .copy()
-            .cutPathAfterSegments(getApi().getData().getSubPath().toArray(new String[0]))
-            .getPath();
+    String apiPath = getApiPath();
     List<String> pathSegments =
         getUriCustomizer().copy().replaceInPath(apiPath, "").getPathSegments();
 
