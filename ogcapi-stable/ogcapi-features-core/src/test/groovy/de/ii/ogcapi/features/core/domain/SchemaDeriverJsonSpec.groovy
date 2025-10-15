@@ -15,6 +15,19 @@ import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformat
 import de.ii.xtraplatform.features.domain.transform.OnlyQueryables
 import de.ii.xtraplatform.features.domain.transform.WithScope
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaArray
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaBoolean
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaDocument
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaFalse
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaGeometry
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaInteger
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaNumber
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaRef
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBuildingBlocks
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument
 import spock.lang.Specification
 
 import java.util.function.Predicate

@@ -8,7 +8,7 @@
 package de.ii.ogcapi.pubsub.domain.asyncapi;
 
 import com.google.common.hash.Funnel;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;

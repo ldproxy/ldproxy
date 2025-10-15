@@ -7,9 +7,9 @@
  */
 package de.ii.ogcapi.profile.codelist.app;
 
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaVisitor;
 import java.util.List;
 
 public class MapCodelists implements JsonSchemaVisitor {

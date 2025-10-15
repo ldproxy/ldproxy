@@ -7,9 +7,14 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaFalse;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;

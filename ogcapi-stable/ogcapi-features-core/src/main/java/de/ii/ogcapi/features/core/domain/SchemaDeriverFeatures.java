@@ -8,9 +8,13 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBuildingBlocks;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
