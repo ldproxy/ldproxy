@@ -52,6 +52,7 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
+import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -773,16 +774,21 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   .flatMap(FeaturesCoreConfiguration::getFeatureType)
                   .orElse(collectionId))
           .sortKeys(
-              sortby.stream()
-                  .map(
-                      s ->
-                          s.startsWith("-")
-                              ? SortKey.of(s.substring(1), Direction.DESCENDING)
-                              : SortKey.of(s.replace("+", "")))
-                  .collect(Collectors.toUnmodifiableList()))
+              (!sortby.isEmpty()
+                      ? sortby
+                      : apiData
+                          .getExtension(SortingConfiguration.class, collectionId)
+                          .map(SortingConfiguration::getDefaultSortby)
+                          .orElse(List.of()))
+                  .stream()
+                      .map(
+                          s ->
+                              s.startsWith("-")
+                                  ? SortKey.of(s.substring(1), Direction.DESCENDING)
+                                  : SortKey.of(s.replace("+", "")))
+                      .toList())
           .filters(
-              getEffectiveCql2Expression(filter, globalFilter, filterOperator).stream()
-                  .collect(Collectors.toUnmodifiableList()))
+              getEffectiveCql2Expression(filter, globalFilter, filterOperator).stream().toList())
           .fields(
               globalProperties.isEmpty() && properties.isEmpty()
                   ? ImmutableList.of("*")
@@ -790,8 +796,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                       ? properties
                       : properties.isEmpty()
                           ? globalProperties
-                          : Stream.concat(globalProperties.stream(), properties.stream())
-                              .collect(Collectors.toUnmodifiableList()))
+                          : Stream.concat(globalProperties.stream(), properties.stream()).toList())
           .build();
     }
   }
