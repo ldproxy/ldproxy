@@ -8,10 +8,10 @@
 package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -42,5 +42,5 @@ public abstract class Parameters extends PageRepresentation {
 
   public abstract List<String> getRequired();
 
-  public abstract Map<String, JsonNode> getProperties();
+  public abstract Map<String, JsonSchema> getProperties();
 }

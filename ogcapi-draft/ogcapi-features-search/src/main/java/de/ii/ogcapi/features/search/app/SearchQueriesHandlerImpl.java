@@ -7,9 +7,6 @@
  */
 package de.ii.ogcapi.features.search.app;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -17,6 +14,7 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
+import de.ii.ogcapi.features.search.domain.FilterOperator;
 import de.ii.ogcapi.features.search.domain.ImmutableParameter;
 import de.ii.ogcapi.features.search.domain.ImmutableParameters;
 import de.ii.ogcapi.features.search.domain.ImmutableStoredQueries;
@@ -26,7 +24,6 @@ import de.ii.ogcapi.features.search.domain.ParameterFormat;
 import de.ii.ogcapi.features.search.domain.Parameters;
 import de.ii.ogcapi.features.search.domain.ParametersFormat;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
-import de.ii.ogcapi.features.search.domain.QueryExpression.FilterOperator;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueries;
@@ -34,6 +31,7 @@ import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.features.search.domain.StoredQueryValidator;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -49,7 +47,6 @@ import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
@@ -59,9 +56,7 @@ import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Cql;
-import de.ii.xtraplatform.cql.domain.Cql.Format;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.cql.domain.CqlParseException;
 import de.ii.xtraplatform.cql.domain.Or;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
@@ -83,6 +78,8 @@ import de.ii.xtraplatform.features.domain.SortKey;
 import de.ii.xtraplatform.features.domain.SortKey.Direction;
 import de.ii.xtraplatform.features.domain.TypeQuery;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaAny;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import de.ii.xtraplatform.streams.domain.Reactive.Sink;
 import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
@@ -235,6 +232,14 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     StoredQueryExpression query = queryInput.getQuery();
 
+    List<String> errors =
+        query.accept(new StoredQueryValidator(query.getParameters(), Optional.of(schemaValidator)));
+    if (!errors.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The stored query '%s' is not valid: %s", queryId, String.join("; ", errors)));
+    }
+
     if (queryInput.getStrict()) {
       // check collections
       query
@@ -242,30 +247,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
           .forEach(
               q ->
                   q.getCollections().stream()
-                      .filter(JsonNode::isTextual)
-                      .map(JsonNode::asText)
+                      .filter(c -> c.getValue().isPresent())
+                      .map(c -> c.getValue().get())
                       .forEach(
                           collectionId ->
                               ensureCollectionIdExists(
                                   requestContext.getApi().getData(), collectionId)));
       query.getCollections().stream()
-          .filter(JsonNode::isTextual)
-          .map(JsonNode::asText)
+          .filter(c -> c.getValue().isPresent())
+          .map(c -> c.getValue().get())
           .forEach(
               collectionId ->
                   ensureCollectionIdExists(requestContext.getApi().getData(), collectionId));
-
-      if (!query.hasParameters()
-          || query.getParametersWithOpenApiSchema().values().stream()
-              .allMatch(p -> Objects.nonNull(p.getDefault()))) {
-        // if we do not have parameters or if all parameters have default values, we can also check
-        // that the filters are valid CQL2 JSON
-        QueryExpression resolved = query.resolveParameters(QueryParameterSet.of(), schemaValidator);
-        getCql2Expression(resolved.getFilter(), resolved.getFilterCrs());
-        resolved
-            .getQueries()
-            .forEach(q -> getCql2Expression(q.getFilter(), resolved.getFilterCrs()));
-      }
     }
 
     if (!queryInput.getDryRun()) {
@@ -338,15 +331,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     String queryId = queryInput.getQueryId();
     StoredQueryExpression query = repository.get(apiData, queryId);
 
-    query
-        .getParametersAsNodes()
-        .forEach(
-            (name, schema) -> {
-              builder.putProperties(name, schema);
-              if (schema.isObject() && !schema.has("default")) {
-                builder.addRequired(name);
-              }
-            });
+    Map<String, JsonSchema> params = query.getAllParameters();
+    params.forEach(builder::putProperties);
+    params.entrySet().stream()
+        .filter(entry -> entry.getValue().getDefault_().isEmpty())
+        .map(Entry::getKey)
+        .forEach(builder::addRequired);
 
     builder.lastModified(Optional.ofNullable(repository.getLastModified(apiData, queryId)));
 
@@ -397,15 +387,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     String queryId = queryInput.getQueryId();
     StoredQueryExpression query = repository.get(apiData, queryId);
 
-    query.getParametersAsNodes().entrySet().stream()
-        .filter(e -> e.getKey().equals(queryInput.getParameterName()))
-        .map(Entry::getValue)
-        .findFirst()
-        .ifPresentOrElse(
-            builder::schema,
-            () -> {
-              throw new NotFoundException();
-            });
+    builder.schema(
+        Objects.requireNonNullElse(
+            query.getAllParameters().get(queryInput.getParameterName()), JsonSchemaAny.of()));
 
     builder.links(linkGenerator.generateLinks(requestContext, i18n));
 
@@ -476,7 +460,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                               i18n,
                               requestContext.getLanguage()))
                       .parameters(
-                          q.getParametersAsNodes().entrySet().stream()
+                          q.getParameters().entrySet().stream()
                               .collect(
                                   Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue)))
                       .formats(
@@ -631,9 +615,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
             ? ImmutableList.of(queryExpression.getCollections().get(0))
-            : queryExpression.getQueries().stream()
-                .map(q -> q.getCollections().get(0))
-                .collect(Collectors.toUnmodifiableList());
+            : queryExpression.getQueries().stream().map(q -> q.getCollections().get(0)).toList();
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<Link> links =
         queryInput.isStoredQuery()
@@ -693,8 +675,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
   private MultiFeatureQuery getMultiFeatureQuery(
       OgcApi api, QueryExpression queryExpression, EpsgCrs crs) {
-    Optional<Cql2Expression> topLevelFilter =
-        getCql2Expression(queryExpression.getFilter(), queryExpression.getFilterCrs());
+    Optional<Cql2Expression> topLevelFilter = queryExpression.getFilter();
     List<SubQuery> queries =
         queryExpression.getCollections().size() == 1
             ? ImmutableList.of(
@@ -713,13 +694,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                         getSubQuery(
                             api.getData(),
                             q.getCollections().get(0),
-                            getCql2Expression(q.getFilter(), queryExpression.getFilterCrs()),
+                            q.getFilter(),
                             topLevelFilter,
                             queryExpression.getFilterOperator(),
                             q.getSortby(),
                             q.getProperties(),
                             queryExpression.getProperties()))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
 
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
@@ -819,28 +800,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       cqlFilter = globalFilter;
     }
     return cqlFilter;
-  }
-
-  private Optional<Cql2Expression> getCql2Expression(
-      Optional<Object> filter, Optional<String> filterCrs) {
-    if (filter.isPresent()) {
-      Optional<EpsgCrs> crs;
-      try {
-        crs = filterCrs.map(EpsgCrs::fromString);
-      } catch (Throwable e) {
-        throw new IllegalArgumentException(
-            String.format("The CRS URI '%s' is invalid: %s", filterCrs.get(), e.getMessage()), e);
-      }
-      try {
-        String jsonFilter = new ObjectMapper().writeValueAsString(filter.get());
-        return crs.map(epsgCrs -> cql.read(jsonFilter, Format.JSON, epsgCrs))
-            .or(() -> Optional.ofNullable(cql.read(jsonFilter, Format.JSON)));
-      } catch (JsonProcessingException | CqlParseException e) {
-        throw new IllegalArgumentException(
-            String.format("The CQL2 JSON Filter is invalid: %s", filter.get()), e);
-      }
-    }
-    return Optional.empty();
   }
 
   private StreamingOutput getStreamingOutput(

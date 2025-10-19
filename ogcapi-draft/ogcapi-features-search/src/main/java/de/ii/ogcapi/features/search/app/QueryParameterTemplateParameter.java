@@ -9,7 +9,6 @@ package de.ii.ogcapi.features.search.app;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -36,7 +35,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class QueryParameterTemplateParameter extends OgcApiQueryParameterBase
-    implements TypedQueryParameter<JsonNode> {
+    implements TypedQueryParameter<Object> {
 
   ObjectMapper MAPPER =
       new ObjectMapper()
@@ -93,7 +92,7 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
   }
 
   @Override
-  public JsonNode parse(
+  public Object parse(
       String value,
       Map<String, Object> typedValues,
       OgcApi api,
@@ -107,8 +106,7 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
   }
 
   @SuppressWarnings("PMD.NullAssignment")
-  private JsonNode getValue(String value, Schema<?> schema) {
-    JsonNode valueAsNode;
+  private Object getValue(String value, Schema<?> schema) {
     StringBuilder valueAsString = new StringBuilder();
     if (schema instanceof ArraySchema && !value.trim().startsWith("[")) {
       Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
@@ -158,8 +156,7 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
       }
     }
     try {
-      // convert to a JSON Node for processing
-      valueAsNode = MAPPER.readTree(valueAsString.toString());
+      return MAPPER.readValue(valueAsString.toString(), Object.class);
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException(
           String.format(
@@ -167,7 +164,6 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
               value, getName()),
           e);
     }
-    return valueAsNode;
   }
 
   @Override

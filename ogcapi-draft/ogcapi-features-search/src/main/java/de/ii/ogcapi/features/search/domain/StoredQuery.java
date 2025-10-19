@@ -8,14 +8,13 @@
 package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.features.core.domain.SchemaProperty;
 import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,7 @@ public abstract class StoredQuery extends PageRepresentationWithId {
                 });
       };
 
-  public abstract Map<String, JsonNode> getParameters();
+  public abstract Map<String, JsonSchema> getParameters();
 
   @JsonIgnore
   public abstract List<Entry<String, String>> getFormats();
@@ -54,9 +53,7 @@ public abstract class StoredQuery extends PageRepresentationWithId {
             entry ->
                 builder.add(
                     SchemaProperty.of(
-                        entry.getKey(),
-                        (ObjectNode) entry.getValue(),
-                        SchemaType.STORED_QUERY_PARAMETER)));
+                        entry.getKey(), entry.getValue(), SchemaType.STORED_QUERY_PARAMETER)));
     return builder.build();
   }
 

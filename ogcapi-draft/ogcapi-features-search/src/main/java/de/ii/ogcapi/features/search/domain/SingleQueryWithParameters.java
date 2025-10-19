@@ -7,12 +7,10 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
-import static de.ii.ogcapi.features.search.domain.StoredQueryExpression.PARAMETER;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -20,21 +18,21 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(jdkOnly = true, deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableSingleQueryWithParameters.Builder.class)
-public interface SingleQueryWithParameters {
+public interface SingleQueryWithParameters extends StoredQueryComponent {
 
   @JsonIgnore String SCHEMA_REF = "#/components/schemas/Query";
 
   // If provided, it must be a list with a single string or parameter
-  List<JsonNode> getCollections();
+  List<StringOrParameter> getCollections();
 
   // a CQL2 filter object
-  Optional<JsonNode> getFilter();
+  Optional<Cql2Expression> getFilter();
 
   // List of string or parameter, or a parameter that is a string array
-  Optional<JsonNode> getSortby();
+  Optional<ParameterOrListOfStringOrParameter> getSortby();
 
   // List of string or parameter, or a parameter that is a string array
-  Optional<JsonNode> getProperties();
+  Optional<ParameterOrListOfStringOrParameter> getProperties();
 
   @JsonIgnore
   @Value.Check
@@ -45,24 +43,5 @@ public interface SingleQueryWithParameters {
         getCollections().size() < 2,
         "Each query must be for a single collection. Join queries are currently not supported. Found collections: %s.",
         getCollections());
-    Preconditions.checkState(
-        getCollections().stream()
-            .allMatch(v -> v.isTextual() || (v.isObject() && v.has(PARAMETER))),
-        "Each collection must be a string or a parameter. Collections: %s.",
-        getCollections());
-    Preconditions.checkState(
-        getSortby().isEmpty()
-            || getSortby().filter(v -> v.isObject() && v.has(PARAMETER)).isPresent()
-            || getSortby().stream()
-                .allMatch(v -> v.isTextual() || (v.isObject() && v.has(PARAMETER))),
-        "Sortby must be a list of strings/parameters or a parameter that is a string array. Value: %s.",
-        getSortby());
-    Preconditions.checkState(
-        getProperties().isEmpty()
-            || getProperties().filter(v -> v.isObject() && v.has(PARAMETER)).isPresent()
-            || getProperties().stream()
-                .allMatch(v -> v.isTextual() || (v.isObject() && v.has(PARAMETER))),
-        "Properties must be a list of strings/parameters or a parameter that is a string array. Value: %s.",
-        getProperties());
   }
 }

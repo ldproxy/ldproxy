@@ -4,6 +4,7 @@ maintenance = 'LOW'
 description = 'Support for fetching features from multiple collections as well as for stored queries.'
 descriptionDe = 'Unterstützung für den Abruf von Features aus mehreren Collections sowie für gespeicherte Abfragen.'
 
+// The maturity level should only be raised after supporting paging for ad-hoc queries
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
@@ -15,6 +16,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-jsonschema'
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-features-core'

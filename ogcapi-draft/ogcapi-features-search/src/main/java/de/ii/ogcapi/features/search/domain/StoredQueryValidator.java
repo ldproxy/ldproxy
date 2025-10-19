@@ -1,0 +1,224 @@
+/*
+ * Copyright 2022 interactive instruments GmbH
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package de.ii.ogcapi.features.search.domain;
+
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.xtraplatform.cql.domain.CqlVisitorExtractParameters;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNumber;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
+
+  private final Map<String, JsonSchema> globalParameters;
+  private final Optional<SchemaValidator> schemaValidator;
+
+  public StoredQueryValidator(
+      Map<String, JsonSchema> globalParameters, Optional<SchemaValidator> schemaValidator) {
+    this.globalParameters = globalParameters;
+    this.schemaValidator = schemaValidator;
+  }
+
+  public List<String> visit(StoredQueryExpression storedQuery) {
+    if (Objects.isNull(storedQuery)) {
+      return List.of();
+    }
+
+    List<String> errors = new ArrayList<>();
+
+    storedQuery.getCollections().forEach(v -> errors.addAll(v.accept(this)));
+    storedQuery.getCrs().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getVerticalCrs().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getFilterCrs().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getFilterOperator().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getLimit().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getMaxAllowableOffset().ifPresent(v -> errors.addAll(v.accept(this)));
+
+    storedQuery.getProfiles().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getProperties().ifPresent(v -> errors.addAll(v.accept(this)));
+    storedQuery.getSortby().ifPresent(v -> errors.addAll(v.accept(this)));
+
+    storedQuery
+        .getFilter()
+        .ifPresent(
+            v ->
+                v.accept(new CqlVisitorExtractParameters(globalParameters), true).values().stream()
+                    .map(this::checkSchema)
+                    .forEach(errors::addAll));
+
+    storedQuery
+        .getQueries()
+        .forEach(
+            query -> {
+              errors.addAll(query.accept(this));
+            });
+
+    if (schemaValidator.isPresent()
+        && storedQuery.getAllParameters().values().stream()
+            .allMatch(schema -> schema.getDefault_().isPresent())) {
+      try {
+        new ParameterResolver(QueryParameterSet.of(), schemaValidator.get()).visit(storedQuery);
+      } catch (Exception e) {
+        errors.add("Stored query is invalid with the default parameter values: " + e.getMessage());
+      }
+    }
+
+    return List.copyOf(errors);
+  }
+
+  public List<String> visit(SingleQueryWithParameters query) {
+    List<String> errors = new ArrayList<>();
+    query.getCollections().forEach(v -> errors.addAll(v.accept(this)));
+    query.getProperties().ifPresent(v -> errors.addAll(v.accept(this)));
+    query.getSortby().ifPresent(v -> errors.addAll(v.accept(this)));
+    query
+        .getFilter()
+        .ifPresent(
+            v ->
+                v.accept(new CqlVisitorExtractParameters(globalParameters), true).values().stream()
+                    .map(this::checkSchema)
+                    .forEach(errors::addAll));
+    return List.copyOf(errors);
+  }
+
+  @Override
+  public List<String> visit(ParameterValue param) {
+    if (param.getSchema() instanceof JsonSchemaRef ref) {
+      if (ref.getRef().startsWith("#/parameters/")) {
+        String name = ref.getRef().substring("#/parameters/".length());
+        if (!globalParameters.containsKey(name)) {
+          return List.of("Parameter '" + name + "' is not defined in global parameters.");
+        }
+      } else {
+        return List.of("Only local parameter references are supported, found: " + ref.getRef());
+      }
+    }
+    return List.of();
+  }
+
+  public List<String> visit(StringOrParameter value) {
+    return value
+        .getParameter()
+        .map(param -> checkParameter(param, JsonSchemaString.class))
+        .orElse(List.of());
+  }
+
+  public List<String> visit(IntegerOrParameter value) {
+    return value
+        .getParameter()
+        .map(param -> checkParameter(param, JsonSchemaInteger.class))
+        .orElse(List.of());
+  }
+
+  public List<String> visit(DoubleOrParameter value) {
+    return value
+        .getParameter()
+        .map(param -> checkParameter(param, JsonSchemaNumber.class))
+        .orElse(List.of());
+  }
+
+  public List<String> visit(FilterOperatorOrParameter value) {
+    return value
+        .getParameter()
+        .map(
+            param -> {
+              List<String> errors = checkParameter(param, JsonSchemaString.class);
+              if (errors.isEmpty()) {
+                // Further check that the parameter schema is an enum
+                JsonSchema effectiveSchema = param.getSchema();
+                if (effectiveSchema instanceof JsonSchemaRef ref) {
+                  String name = ref.getRef().substring("#/parameters/".length());
+                  effectiveSchema = globalParameters.get(name);
+                }
+                if (effectiveSchema instanceof JsonSchemaString string) {
+                  if (string.getEnums().isEmpty()) {
+                    errors =
+                        List.of(
+                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'.");
+                  } else if (string.getEnums().get().size() > 2) {
+                    errors =
+                        List.of(
+                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
+                                + String.join(", ", string.getEnums().get()));
+                  } else if (string.getEnums().get().stream()
+                      .anyMatch(item -> !item.equals("AND") && !item.equals("OR"))) {
+                    errors =
+                        List.of(
+                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
+                                + String.join(", ", string.getEnums().get()));
+                  }
+                } else {
+                  errors =
+                      List.of(
+                          "The parameter schema for a filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
+                              + effectiveSchema.getClass().getSimpleName());
+                }
+              }
+              return errors;
+            })
+        .orElse(List.of());
+  }
+
+  public List<String> visit(ParameterOrListOfStringOrParameter value) {
+    return value
+        .getParameter()
+        .map(param -> checkParameter(param, JsonSchemaString.class))
+        .or(
+            () ->
+                value
+                    .getValue()
+                    .map(
+                        list -> {
+                          List<String> errors = new ArrayList<>();
+                          list.stream()
+                              .map(StringOrParameter::getParameter)
+                              .filter(Optional::isPresent)
+                              .forEach(
+                                  v ->
+                                      errors.addAll(
+                                          checkParameter(v.get(), JsonSchemaString.class)));
+                          return List.copyOf(errors);
+                        }))
+        .orElse(List.of());
+  }
+
+  private List<String> checkParameter(ParameterValue param, Class<?> clazz) {
+    return checkParameter(param.getSchema(), clazz);
+  }
+
+  private List<String> checkSchema(JsonSchema schema) {
+    return checkParameter(schema, null);
+  }
+
+  private List<String> checkParameter(JsonSchema schema, Class<?> clazz) {
+    if (schema instanceof JsonSchemaRef ref) {
+      if (ref.getRef().startsWith("#/parameters/")) {
+        String name = ref.getRef().substring("#/parameters/".length());
+        if (!globalParameters.containsKey(name)) {
+          return List.of("Parameter '" + name + "' is is not specified.");
+        }
+        if (Objects.nonNull(clazz)
+            && !globalParameters.get(name).getClass().isAssignableFrom(clazz)) {
+          ;
+          return List.of("Parameter '" + name + "' must be of type " + clazz.getSimpleName() + ".");
+        }
+      } else {
+        return List.of("Only local parameter references are supported, found: " + ref.getRef());
+      }
+    }
+    return List.of();
+  }
+}
