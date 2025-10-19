@@ -237,7 +237,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(
-              "The stored query '%s' is not valid: %s", queryId, String.join("; ", errors)));
+              "The stored query '%s' is invalid: %s", queryId, String.join("; ", errors)));
     }
 
     if (queryInput.getStrict()) {

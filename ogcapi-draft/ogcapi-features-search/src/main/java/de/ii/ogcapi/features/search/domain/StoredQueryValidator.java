@@ -147,24 +147,27 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
                   if (string.getEnums().isEmpty()) {
                     errors =
                         List.of(
-                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'.");
+                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. The parameter schema does not specify 'enum' values.");
                   } else if (string.getEnums().get().size() > 2) {
                     errors =
                         List.of(
-                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
-                                + String.join(", ", string.getEnums().get()));
+                            String.format(
+                                "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: %s",
+                                String.join(", ", string.getEnums().get())));
                   } else if (string.getEnums().get().stream()
                       .anyMatch(item -> !item.equals("AND") && !item.equals("OR"))) {
                     errors =
                         List.of(
-                            "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
-                                + String.join(", ", string.getEnums().get()));
+                            String.format(
+                                "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: %s",
+                                String.join(", ", string.getEnums().get())));
                   }
                 } else {
                   errors =
                       List.of(
-                          "The parameter schema for a filter operator must be a string limited to the values 'AND' and 'OR'. Found: "
-                              + effectiveSchema.getClass().getSimpleName());
+                          String.format(
+                              "The parameter schema for a filter operator must be a string limited to the values 'AND' and 'OR'. Found: %s",
+                              effectiveSchema.getClass().getSimpleName()));
                 }
               }
               return errors;
@@ -208,15 +211,21 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
       if (ref.getRef().startsWith("#/parameters/")) {
         String name = ref.getRef().substring("#/parameters/".length());
         if (!globalParameters.containsKey(name)) {
-          return List.of("Parameter '" + name + "' is is not specified.");
+          return List.of(String.format("Parameter '%s' is is not specified.", name));
         }
         if (Objects.nonNull(clazz)
-            && !globalParameters.get(name).getClass().isAssignableFrom(clazz)) {
-          ;
-          return List.of("Parameter '" + name + "' must be of type " + clazz.getSimpleName() + ".");
+            && !clazz.isAssignableFrom(globalParameters.get(name).getClass())) {
+          return List.of(
+              String.format(
+                  "Parameter '%s' must be of type %s. Found: %s",
+                  name,
+                  clazz.getSimpleName(),
+                  globalParameters.get(name).getClass().getSimpleName()));
         }
       } else {
-        return List.of("Only local parameter references are supported, found: " + ref.getRef());
+        return List.of(
+            String.format(
+                "Only local parameter references are supported. Found: %s", ref.getRef()));
       }
     }
     return List.of();

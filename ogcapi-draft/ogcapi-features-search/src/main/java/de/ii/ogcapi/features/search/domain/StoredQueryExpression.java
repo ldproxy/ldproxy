@@ -123,10 +123,7 @@ public interface StoredQueryExpression extends StoredValue, StoredQueryComponent
 
     List<String> errors = this.accept(new StoredQueryValidator(getParameters(), Optional.empty()));
     Preconditions.checkState(
-        errors.isEmpty(),
-        "The stored query ''{0}'' is invalid: {1}",
-        getId(),
-        String.join("; ", errors));
+        errors.isEmpty(), "The stored query %s is invalid: %s", getId(), String.join("; ", errors));
   }
 
   @JsonIgnore
