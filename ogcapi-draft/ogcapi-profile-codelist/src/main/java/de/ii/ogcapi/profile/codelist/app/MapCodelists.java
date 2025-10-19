@@ -9,10 +9,10 @@ package de.ii.ogcapi.profile.codelist.app;
 
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaVisitor;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import java.util.List;
 
-public class MapCodelists implements JsonSchemaVisitor {
+public class MapCodelists implements JsonSchemaTransformer {
 
   private final List<Profile> profiles;
 

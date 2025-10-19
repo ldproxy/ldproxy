@@ -26,13 +26,13 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchemaGeometry;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaVisitor;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-public class ForValidation implements JsonSchemaVisitor {
+public class ForValidation implements JsonSchemaTransformer {
 
   private static final JsonSchemaArray POSITION =
       new ImmutableJsonSchemaArray.Builder()

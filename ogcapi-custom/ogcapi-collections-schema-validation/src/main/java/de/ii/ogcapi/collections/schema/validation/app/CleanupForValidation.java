@@ -37,11 +37,11 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaOneOf;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTrue;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaVisitor;
 import java.util.Optional;
 
-public class CleanupForValidation implements JsonSchemaVisitor {
+public class CleanupForValidation implements JsonSchemaTransformer {
 
   @Override
   public JsonSchema visit(JsonSchema schema) {

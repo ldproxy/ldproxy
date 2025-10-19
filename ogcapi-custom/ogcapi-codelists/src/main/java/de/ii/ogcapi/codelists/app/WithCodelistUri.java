@@ -15,12 +15,12 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaOneOf;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaVisitor;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class WithCodelistUri implements JsonSchemaVisitor {
+public class WithCodelistUri implements JsonSchemaTransformer {
 
   private final URI serviceUri;
   private final OgcApiDataV2 apiData;
