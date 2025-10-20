@@ -13,13 +13,11 @@ import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
-import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,12 +30,15 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
 
   public static String URI_CORE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/core";
   public static String URI_POLYHEDRA = "http://www.opengis.net/spec/json-fg-1/0.3/conf/polyhedra";
+  public static String URI_CIRCULAR_ARCS =
+      "http://www.opengis.net/spec/json-fg-1/0.3/conf/circular-arcs";
   public static String URI_TYPE = "http://www.opengis.net/spec/json-fg-1/0.3/conf/types-schemas";
   public static String URI_PROFILES = "http://www.opengis.net/spec/json-fg-1/0.3/conf/profiles";
 
   boolean isEnabled;
   boolean has3d;
   boolean hasFeatureType;
+  boolean hasCircularArcs;
 
   @Inject
   JsonFgWriterConformsTo() {}
@@ -59,6 +60,7 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
     isEnabled = isEnabled(context.encoding());
     has3d = has3d(context.encoding());
     hasFeatureType = hasFeatureType(context.encoding());
+    hasCircularArcs = hasCircularArcs(context.encoding());
 
     if (isEnabled && context.encoding().isFeatureCollection()) {
       writeConformsTo(context.encoding().getJson());
@@ -87,6 +89,9 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
     if (has3d) {
       json.writeString(URI_POLYHEDRA);
     }
+    if (hasCircularArcs) {
+      json.writeString(URI_CIRCULAR_ARCS);
+    }
     if (hasFeatureType) {
       json.writeString(URI_TYPE);
     }
@@ -98,12 +103,11 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
   }
 
   private boolean has3d(FeatureTransformationContextGeoJson transformationContext) {
-    return transformationContext.getFeatureSchemas().values().stream()
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .map(FeatureSchema::getPrimaryGeometries)
-        .flatMap(Collection::stream)
-        .anyMatch(
+    return transformationContext
+        .getFeatureSchemas()
+        .get(transformationContext.getCollectionId())
+        .flatMap(SchemaBase::getPrimaryGeometry)
+        .filter(
             s ->
                 (s.getGeometryType().map(t -> t.equals(GeometryType.MULTI_POLYGON)).orElse(false)
                         && s.getConstraints()
@@ -112,7 +116,8 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
                     || (s.getGeometryType()
                             .map(t -> t.equals(GeometryType.POLYHEDRAL_SURFACE))
                             .orElse(false)
-                        && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)));
+                        && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)))
+        .isPresent();
   }
 
   private boolean hasFeatureType(FeatureTransformationContextGeoJson transformationContext) {
@@ -127,5 +132,14 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
                             .getFeatureSchemas()
                             .get(transformationContext.getCollectionId()))))
         .orElse(false);
+  }
+
+  private boolean hasCircularArcs(FeatureTransformationContextGeoJson transformationContext) {
+    return !transformationContext
+        .getFeatureSchemas()
+        .get(transformationContext.getCollectionId())
+        .flatMap(SchemaBase::getPrimaryGeometry)
+        .map(SchemaBase::isSimpleFeatureGeometry)
+        .orElse(true);
   }
 }
