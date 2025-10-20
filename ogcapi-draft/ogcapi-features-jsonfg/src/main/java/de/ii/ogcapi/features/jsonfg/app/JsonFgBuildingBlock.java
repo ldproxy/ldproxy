@@ -77,12 +77,13 @@ import javax.inject.Singleton;
  *     unterstützen, die JSON-FG nicht kennen. Das Profil ist nur aktiv, wenn eine Eigenschaft mit der Rolle `SECONDARY_GEOMETRY` angegeben ist.
  * </code>
  * @conformanceEn The building block implements the Requirements Classes "Core", "Polyhedra",
- *     "Feature Types and Schemas", "GeoJSON Profiles", and "JSON-FG in Web APIs" of [JSON-FG 0.3.0
+ *     "Circular Arcs", "Feature Types and Schemas", "GeoJSON Profiles", and "JSON-FG in Web APIs"
+ *     of [JSON-FG 0.3.0
  *     (DRAFT)](https://github.com/opengeospatial/ogc-feat-geo-json/releases/tag/v0.3.0). The
  *     implementation may change as the draft can evolve during the standardization process.
- * @conformanceDe Der Baustein implementiert die Requirements Classes "Core", "Polyhedra" und
- *     "Feature Types and Schemas", "GeoJSON Profiles" und "JSON-FG in Web APIs" aus [JSON-FG 0.3.0
- *     (DRAFT)](https://github.com/opengeospatial/ogc-feat-geo-json/releases/tag/v0.3.0). Die
+ * @conformanceDe Der Baustein implementiert die Requirements Classes "Core", "Polyhedra", "Circular
+ *     Arcs", "Feature Types and Schemas", "GeoJSON Profiles" und "JSON-FG in Web APIs" aus [JSON-FG
+ *     0.3.0 (DRAFT)](https://github.com/opengeospatial/ogc-feat-geo-json/releases/tag/v0.3.0). Die
  *     Implementierung kann sich im Zuge der weiteren Standardisierung der Spezifikation noch
  *     ändern.
  * @ref:cfg {@link de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration}
