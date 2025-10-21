@@ -44,6 +44,7 @@ import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.cql.domain.Cql;
+import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.dropwizard.auth.Auth;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -82,6 +83,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
   private static final List<String> TAGS = ImmutableList.of("Access data as 3D Tiles");
 
+  private final ServicesContext servicesContext;
   private final FeaturesCoreProviders providers;
   private final FeaturesCoreQueriesHandler queriesHandlerFeatures;
   private final QueriesHandler3dTiles queryHandler;
@@ -90,6 +92,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
   @Inject
   public Endpoint3dTilesContent(
+      ServicesContext servicesContext,
       ExtensionRegistry extensionRegistry,
       FeaturesCoreProviders providers,
       FeaturesCoreQueriesHandler queriesHandlerFeatures,
@@ -97,6 +100,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       Cql cql,
       TileResourceCache tileResourceCache) {
     super(extensionRegistry);
+    this.servicesContext = servicesContext;
     this.providers = providers;
     this.queriesHandlerFeatures = queriesHandlerFeatures;
     this.queryHandler = queryHandler;
@@ -262,6 +266,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
     OgcApiDataV2 apiData = api.getData();
     Response response =
         Tiles3dContentUtil.getContent(
+            servicesContext,
             extensionRegistry,
             api,
             collectionId,

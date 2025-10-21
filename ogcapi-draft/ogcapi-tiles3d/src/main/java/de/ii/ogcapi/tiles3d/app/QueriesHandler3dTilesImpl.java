@@ -42,6 +42,7 @@ import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -65,6 +66,7 @@ import javax.ws.rs.core.Response;
 public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
     implements QueriesHandler3dTiles {
 
+  private final ServicesContext servicesContext;
   private final I18n i18n;
   private final FeaturesCoreQueriesHandler queriesHandlerFeatures;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
@@ -72,11 +74,13 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
   @Inject
   public QueriesHandler3dTilesImpl(
+      ServicesContext servicesContext,
       I18n i18n,
       FeaturesCoreQueriesHandler queriesHandlerFeatures,
       TileResourceCache tileResourceCache,
       VolatileRegistry volatileRegistry) {
     super(QueriesHandler3dTiles.class.getSimpleName(), volatileRegistry, true);
+    this.servicesContext = servicesContext;
     this.i18n = i18n;
     this.queriesHandlerFeatures = queriesHandlerFeatures;
     this.tileResourceCache = tileResourceCache;
@@ -288,7 +292,8 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
     byte[] result = getSubtreeContent(r);
 
     if (Objects.isNull(result)) {
-      result = Subtree.getBinary(Subtree.of(queriesHandlerFeatures, queryInput, r));
+      result =
+          Subtree.getBinary(Subtree.of(servicesContext, queriesHandlerFeatures, queryInput, r));
 
       try {
         tileResourceCache.storeTileResource(r, result);

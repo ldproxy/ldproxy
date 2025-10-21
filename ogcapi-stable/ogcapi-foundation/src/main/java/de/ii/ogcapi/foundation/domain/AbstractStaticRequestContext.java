@@ -28,7 +28,7 @@ public abstract class AbstractStaticRequestContext implements ApiRequestContext 
   @Value.Derived
   @Override
   public List<String> getBasePathSegments() {
-    return List.of();
+    return getWebContext().getPathPrefix();
   }
 
   @Value.Derived
