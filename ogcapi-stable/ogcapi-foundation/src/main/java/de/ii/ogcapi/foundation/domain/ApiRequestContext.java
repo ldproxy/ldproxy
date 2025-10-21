@@ -10,6 +10,7 @@ package de.ii.ogcapi.foundation.domain;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.WebContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,6 +24,8 @@ import org.immutables.value.Value;
 public interface ApiRequestContext {
 
   Splitter PATH_SPLITTER = Splitter.on('/').trimResults().omitEmptyStrings();
+
+  WebContext getWebContext();
 
   ApiMediaType getMediaType();
 

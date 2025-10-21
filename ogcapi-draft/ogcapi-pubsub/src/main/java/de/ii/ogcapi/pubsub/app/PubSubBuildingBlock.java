@@ -42,6 +42,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.ParameterExtension;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.LogContext.MARKER;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -193,6 +194,7 @@ public class PubSubBuildingBlock
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PubSubBuildingBlock.class);
 
+  private final AppContext appContext;
   private final ExtensionRegistry extensionRegistry;
   private final FeaturesCoreProviders providers;
   private final FeaturesCoreQueriesHandler queriesHandler;
@@ -203,9 +205,11 @@ public class PubSubBuildingBlock
 
   @Inject
   public PubSubBuildingBlock(
+      AppContext appContext,
       ExtensionRegistry extensionRegistry,
       FeaturesCoreProviders providers,
       FeaturesCoreQueriesHandler queriesHandler) {
+    this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.providers = providers;
     this.queriesHandler = queriesHandler;
@@ -540,6 +544,7 @@ public class PubSubBuildingBlock
               .collect(ImmutableList.toImmutableList());
       ApiRequestContext requestContextGeoJson =
           new ImmutableStaticRequestContext.Builder()
+              .webContext(appContext)
               .api(api)
               .requestUri(uri)
               .mediaType(

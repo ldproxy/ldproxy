@@ -47,7 +47,7 @@ public class AppContextTest implements AppContext {
 
   @Override
   public URI getUri() {
-    return null;
+    return URI.create("http://localhost:7080");
   }
 
   @Override

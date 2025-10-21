@@ -117,6 +117,7 @@ class LandingPageSpec extends Specification {
 
     static def createRequestContext(String uri = 'http://example.com') {
         new ImmutableStaticRequestContext.Builder()
+                .webContext(new AppContextTest())
                 .mediaType(new ImmutableApiMediaType.Builder()
                         .type(MediaType.APPLICATION_JSON_TYPE)
                         .build())
