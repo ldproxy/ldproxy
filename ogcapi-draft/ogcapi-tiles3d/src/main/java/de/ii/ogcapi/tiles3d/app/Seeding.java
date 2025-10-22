@@ -37,7 +37,6 @@ import de.ii.xtraplatform.tiles.domain.SeedingOptions;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -66,7 +65,7 @@ public class Seeding implements OgcApiBackgroundTask {
 
   private final ExtensionRegistry extensionRegistry;
   private final TileResourceCache tileResourcesCache;
-  private final URI servicesUri;
+  private final ServicesContext servicesContext;
   private final FeaturesCoreProviders providers;
   private final FeaturesCoreQueriesHandler queryHandlerFeatures;
   private final Cql cql;
@@ -83,7 +82,7 @@ public class Seeding implements OgcApiBackgroundTask {
       VolatileRegistry volatileRegistry) {
     this.extensionRegistry = extensionRegistry;
     this.tileResourcesCache = tileResourcesCache;
-    this.servicesUri = servicesContext.getUri();
+    this.servicesContext = servicesContext;
     this.providers = providers;
     this.queryHandlerFeatures = queryHandlerFeatures;
     this.cql = cql;
@@ -391,7 +390,7 @@ public class Seeding implements OgcApiBackgroundTask {
                     .flatMap(SchemaBase::getFilterGeometry)
                     .map(SchemaBase::getFullPathAsString)
                     .orElseThrow())
-            .servicesUri(servicesUri)
+            .servicesUri(servicesContext.getUri())
             .collectionId(descriptor.getCollectionId())
             .level(descriptor.getLevel())
             .x(descriptor.getX())
@@ -409,7 +408,7 @@ public class Seeding implements OgcApiBackgroundTask {
                     .collect(Collectors.toUnmodifiableList()))
             .build();
 
-    Subtree subtree = Subtree.of(queryHandlerFeatures, queryInput, descriptor);
+    Subtree subtree = Subtree.of(servicesContext, queryHandlerFeatures, queryInput, descriptor);
     storeSubtree(descriptor, Subtree.getBinary(subtree));
 
     return subtree;
@@ -618,6 +617,7 @@ public class Seeding implements OgcApiBackgroundTask {
 
         Response response =
             Tiles3dContentUtil.getContent(
+                servicesContext,
                 extensionRegistry,
                 content.getApi(),
                 content.getCollectionId(),
@@ -628,7 +628,7 @@ public class Seeding implements OgcApiBackgroundTask {
                 cfg,
                 content,
                 content.getQuery(providers),
-                new URICustomizer(servicesUri)
+                new URICustomizer(servicesContext.getUri())
                     .ensureLastPathSegments(
                         content.getApi().getId(),
                         "collections",

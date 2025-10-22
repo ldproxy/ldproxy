@@ -29,6 +29,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -42,6 +43,7 @@ public final class Tiles3dContentUtil {
   private Tiles3dContentUtil() {}
 
   public static Response getContent(
+      ServicesContext servicesContext,
       ExtensionRegistry extensionRegistry,
       OgcApi api,
       String collectionId,
@@ -70,7 +72,14 @@ public final class Tiles3dContentUtil {
 
     ApiRequestContext requestContextGltf =
         getFeaturesRequestContext(
-            extensionRegistry, api, collectionId, uriCustomizer, cfg, r, contentFilterString);
+            servicesContext,
+            extensionRegistry,
+            api,
+            collectionId,
+            uriCustomizer,
+            cfg,
+            r,
+            contentFilterString);
 
     return queriesHandlerFeatures.handle(Query.FEATURES, queryInput, requestContextGltf);
   }
@@ -96,6 +105,7 @@ public final class Tiles3dContentUtil {
   }
 
   private static ApiRequestContext getFeaturesRequestContext(
+      ServicesContext servicesContext,
       ExtensionRegistry extensionRegistry,
       OgcApi api,
       String collectionId,
@@ -135,6 +145,7 @@ public final class Tiles3dContentUtil {
         QueryParameterSet.of(knownParameters, actualParameters)
             .evaluate(api, api.getData().getCollectionData(collectionId));
     return new ImmutableStaticRequestContext.Builder()
+        .webContext(servicesContext)
         .api(r.getApi())
         .requestUri(
             uriCustomizer

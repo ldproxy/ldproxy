@@ -40,6 +40,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.services.domain.ServicesContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -94,6 +95,7 @@ public interface Subtree {
   byte[] EMPTY = new byte[0];
 
   static Subtree of(
+      ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
       QueryInputSubtree queryInput,
       TileResourceDescriptor subtree) {
@@ -111,6 +113,7 @@ public interface Subtree {
 
     processZ(
         queryInput,
+        servicesContext,
         queriesHandler,
         subtree.getLevel(),
         subtree.getX(),
@@ -377,6 +380,7 @@ public interface Subtree {
 
   private static void processZ(
       QueryInputSubtree queryInput,
+      ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
       int baseLevel,
       int xBase,
@@ -407,7 +411,8 @@ public interface Subtree {
           relativeLevel >= 0 && queryInput.getTileFilters().size() > relativeLevel
               ? Optional.of(queryInput.getTileFilters().get(relativeLevel))
               : Optional.empty();
-      boolean hasData = hasData(queriesHandler, queryInput, bbox, additionalFilter);
+      boolean hasData =
+          hasData(servicesContext, queriesHandler, queryInput, bbox, additionalFilter);
       if (hasData) {
         if (level - baseLevel < queryInput.getSubtreeLevels()) {
           setAvailability(tileAvailability, 0, level - baseLevel, i0 + i);
@@ -419,7 +424,8 @@ public interface Subtree {
                   queryInput.getContentFilters().size() > relativeLevel
                       ? Optional.of(queryInput.getContentFilters().get(relativeLevel))
                       : Optional.empty();
-              hasData = hasData(queriesHandler, queryInput, bbox, additionalFilter);
+              hasData =
+                  hasData(servicesContext, queriesHandler, queryInput, bbox, additionalFilter);
               if (hasData) {
                 setAvailability(contentAvailability, 0, level - baseLevel, i0 + i);
               }
@@ -428,6 +434,7 @@ public interface Subtree {
 
           processZ(
               queryInput,
+              servicesContext,
               queriesHandler,
               baseLevel,
               xBase * 2,
@@ -450,6 +457,7 @@ public interface Subtree {
   }
 
   private static boolean hasData(
+      ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
       QueryInputSubtree queryInput,
       BoundingBox bbox,
@@ -484,6 +492,7 @@ public interface Subtree {
 
     ApiRequestContext requestContext =
         new ImmutableStaticRequestContext.Builder()
+            .webContext(servicesContext)
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("model", "gltf-binary"))

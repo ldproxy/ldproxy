@@ -13,6 +13,7 @@ import de.ii.ogcapi.features.geojson.domain.*
 import de.ii.ogcapi.foundation.app.OgcApiEntity
 import de.ii.ogcapi.foundation.domain.*
 import de.ii.xtraplatform.auth.domain.User
+import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.web.domain.URICustomizer
@@ -46,6 +47,11 @@ class GeoJsonWriterSetupUtil {
                 .links(ImmutableList.of())
                 .isFeatureCollection(isCollection)
                 .ogcApiRequest(new ApiRequestContext() {
+                    @Override
+                    AppContext getWebContext() {
+                        return new AppContextTest()
+                    }
+
                     @Override
                     URICustomizer getBaseUriCustomizer() {
                         return null
