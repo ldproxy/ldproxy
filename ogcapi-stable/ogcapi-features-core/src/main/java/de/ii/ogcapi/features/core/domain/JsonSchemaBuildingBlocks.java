@@ -39,7 +39,7 @@ public interface JsonSchemaBuildingBlocks {
   JsonSchemaGeometry POLYGON =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-polygon").build();
   JsonSchemaGeometry CURVE_POLYGON =
-      new ImmutableJsonSchemaGeometry.Builder().format("geometry-curvepoylgon").build();
+      new ImmutableJsonSchemaGeometry.Builder().format("geometry-curvepolygon").build();
   JsonSchemaGeometry SURFACE =
       new ImmutableJsonSchemaGeometry.Builder().format("geometry-surface").build();
   JsonSchemaGeometry POLYHEDRAL_SURFACE =
