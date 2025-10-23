@@ -93,7 +93,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
 
   public abstract Map<String, MbStyleSource> getSources();
 
-  public abstract Optional<String> getSprite();
+  public abstract Optional<MbStyleSprites> getSprite();
 
   public abstract Optional<String> getGlyphs();
 
@@ -452,7 +452,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
   public MbStyleStylesheet replaceParameters(String serviceUrl) {
     // any template parameters in links?
     boolean templated =
-        this.getSprite().orElse("").matches("^.*\\{serviceUrl\\}.*$")
+        this.getSprite().filter(MbStyleSprites::isTemplated).isPresent()
             || this.getGlyphs().orElse("").matches("^.*\\{serviceUrl\\}.*$")
             || this.getSources().values().stream()
                 .filter(
@@ -495,7 +495,8 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
         .from(this)
         .sprite(
             this.getSprite().isPresent()
-                ? Optional.of(this.getSprite().get().replace("{serviceUrl}", serviceUrl))
+                ? Optional.of(
+                    this.getSprite().map(sprite -> sprite.withServiceUrl(serviceUrl)).get())
                 : Optional.empty())
         .glyphs(
             this.getGlyphs().isPresent()
