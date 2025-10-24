@@ -29,7 +29,7 @@ public abstract class AbstractRequestContext implements ApiRequestContext {
   @Value.Derived
   @Override
   public List<String> getBasePathSegments() {
-    return ForwardedUri.prefix(getRequestContext());
+    return ForwardedUri.prefix(getRequestContext(), getWebContext());
   }
 
   @Value.Derived

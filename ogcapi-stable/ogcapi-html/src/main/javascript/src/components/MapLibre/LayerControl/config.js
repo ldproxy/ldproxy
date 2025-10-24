@@ -221,6 +221,38 @@ const loadSprite = (url) => {
   );
 };
 
+const loadMultipleSprites = (sprites) => {
+  const spritePromises = sprites.map((sprite) =>
+    Promise.allSettled([loadImage(`${sprite.url}@2x.png`), loadJson(`${sprite.url}@2x.json`)]).then(
+      ([image, json]) => ({
+        id: sprite.id,
+        image,
+        json,
+      })
+    )
+  );
+
+  return Promise.all(spritePromises).then((loadedSprites) => {
+    const mergedJson = {};
+
+    loadedSprites.forEach((sprite) => {
+      if (sprite.json.status === "fulfilled") {
+        Object.assign(mergedJson, sprite.json.value);
+      }
+    });
+
+    // first image as fallback for compatibility, but main.js will search through sprites if available
+    const firstImage = loadedSprites.find((sprite) => sprite.image.status === "fulfilled")?.image
+      .value;
+
+    return {
+      image: { status: "fulfilled", value: firstImage },
+      json: { status: "fulfilled", value: mergedJson },
+      sprites: loadedSprites,
+    };
+  });
+};
+
 export const parse = (style, entriesCfg, preferStyle) => {
   const cfg =
     preferStyle && style.metadata && style.metadata["ldproxy:layerControl"]
@@ -247,6 +279,14 @@ export const parse = (style, entriesCfg, preferStyle) => {
   };
 
   if (style.sprite) {
+    const multipleSprites = Array.isArray(style.sprite);
+
+    if (multipleSprites) {
+      return loadMultipleSprites(style.sprite).then((sprite) => {
+        style.spriteLoaded = { json: sprite.json.value, image: sprite.image.value };
+        return config;
+      });
+    }
     return loadSprite(style.sprite).then((sprite) => {
       style.spriteLoaded = { json: sprite.json.value, image: sprite.image.value };
       return config;

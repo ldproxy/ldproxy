@@ -71,6 +71,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       ImmutableSet.of("POST", "PUT", "DELETE", "PATCH");
   private static final ApiMediaType DEFAULT_MEDIA_TYPE = ApiMediaType.JSON_MEDIA_TYPE;
 
+  private final AppContext appContext;
   private final ExtensionRegistry extensionRegistry;
   private final RequestInjectableContext ogcApiInjectableContext;
   private final ContentNegotiationMediaType contentNegotiationMediaType;
@@ -86,6 +87,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       ContentNegotiationMediaType contentNegotiationMediaType,
       ContentNegotiationLanguage contentNegotiationLanguage,
       ApiRequestAuthorizer apiRequestAuthorizer) {
+    this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.ogcApiInjectableContext = ogcApiInjectableContext;
     this.contentNegotiationMediaType = contentNegotiationMediaType;
@@ -190,6 +192,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     ApiRequestContext apiRequestContext =
         new ImmutableRequestContext.Builder()
+            .webContext(appContext)
             .requestContext(requestContext)
             .queryParameterSet(queryParameterSet)
             .mediaType(selectedMediaType)

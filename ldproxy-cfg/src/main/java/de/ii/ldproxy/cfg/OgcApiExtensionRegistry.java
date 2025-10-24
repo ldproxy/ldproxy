@@ -83,7 +83,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new JsonFgBuildingBlock())
             .add(new OpenApiBuildingBlock())
             .add(new ProjectionsBuildingBlock())
-            .add(new PubSubBuildingBlock(this, null, null))
+            .add(new PubSubBuildingBlock(null, this, null, null))
             .add(new QueryablesBuildingBlock(null, null))
             .add(new ResourcesBuildingBlock())
             .add(new ResultTypeBuildingBlock())
