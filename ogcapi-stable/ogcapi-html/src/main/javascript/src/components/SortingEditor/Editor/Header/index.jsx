@@ -25,7 +25,7 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? "Apply" : "Bearbeiten "}
+              {isOpen ? "Apply" : "Edit "}
             </Button>
           )}
           {isOpen && (

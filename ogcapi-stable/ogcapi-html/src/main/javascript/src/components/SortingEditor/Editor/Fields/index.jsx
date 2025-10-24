@@ -5,16 +5,7 @@ import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstra
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
-const FieldFilter = ({
-  fields,
-  onAdd,
-  filters,
-  deleteFilters,
-  code,
-  titleForFilter,
-  integerKeys,
-  booleanProperty,
-}) => {
+const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
   const [changedValue, setChangedValue] = useState("");
@@ -25,10 +16,9 @@ const FieldFilter = ({
     setValue(event.target.value);
   };
 
-  const filtersToMap = Object.keys(filters).filter(
-    (key) => filters[key].remove === false && key !== "bbox" && key !== "datetime"
-  ).toSorted();
-  const enumKeys = Object.keys(code);
+  const filtersToMap = Object.keys(filters)
+    .filter((key) => filters[key].remove === false && key !== "bbox" && key !== "datetime")
+    .toSorted();
 
   const save = (event) => {
     event.preventDefault();
@@ -65,11 +55,13 @@ const FieldFilter = ({
               <option value="" className="d-none">
                 none
               </option>
-              {Object.keys(fields).toSorted().map((f) => (
-                <option value={f} key={f}>
-                  {fields[f]}
-                </option>
-              ))}
+              {Object.keys(fields)
+                .toSorted()
+                .map((f) => (
+                  <option value={f} key={f}>
+                    {fields[f]}
+                  </option>
+                ))}
             </Input>
           </FormGroup>
         </Col>
@@ -79,10 +71,7 @@ const FieldFilter = ({
               valueKey={field}
               value={value}
               saveValue={saveValue}
-              code={code}
-              integerKeys={integerKeys}
-              enumKeys={enumKeys}
-              booleanProperty={booleanProperty}
+              enumKeys={["ascending", "descending"]}
               save={save}
               disabled={field === ""}
             />
@@ -111,14 +100,10 @@ const FieldFilter = ({
             <Col md="5">
               <FormGroup>
                 <FilterValueField
-                  code={code}
                   filterKey={key}
                   filters={filters}
                   setChangedValue={setChangedValue}
                   changedValue={changedValue}
-                  enumKeys={enumKeys}
-                  integerKeys={integerKeys}
-                  booleanProperty={booleanProperty}
                   overwriteFilters={overwriteFilters(key)}
                 />
               </FormGroup>
@@ -164,10 +149,7 @@ FieldFilter.propTypes = {
   filters: PropTypes.object.isRequired,
   deleteFilters: PropTypes.func.isRequired,
   // eslint-disable-next-line react/forbid-prop-types
-  code: PropTypes.object.isRequired,
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
-  integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
-  booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 FieldFilter.defaultProps = {};

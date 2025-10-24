@@ -5,7 +5,7 @@ import qs from "qs";
 
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
-import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
+import { getBaseUrl, extractFields } from "./util";
 import { useApiInfo } from "./hooks";
 
 const baseUrl = getBaseUrl();
@@ -15,33 +15,9 @@ const query = qs.parse(window.location.search, {
   ignoreQueryPrefix: true,
 });
 
-const toBounds = (filter) => {
-  const a = filter.split(",");
-  const b = [
-    [parseFloat(a[0]), parseFloat(a[1])],
-    [parseFloat(a[2]), parseFloat(a[3])],
-  ];
-  return b;
-};
-
 const FilterEditor = ({ backgroundUrl, attribution }) => {
-  const urlSpatialTemporal = new URL(baseUrl.pathname.endsWith("/") ? "../" : "./", baseUrl.href);
-  urlSpatialTemporal.search = "?f=json";
-
-  const {
-    obj: spatialTemporal,
-    isLoaded: loadedSpatialTemporal,
-    error: errorSpatialTemporal,
-  } = useApiInfo(urlSpatialTemporal);
-
-  const { start, end, temporal } = useMemo(
-    () => extractInterval(spatialTemporal),
-    [spatialTemporal]
-  );
-  const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
-
   const urlProperties = new URL(
-    baseUrl.pathname.endsWith("/") ? "../queryables" : "./queryables",
+    baseUrl.pathname.endsWith("/") ? "../sortables" : "./sortables",
     baseUrl.href
   );
   urlProperties.search = "?f=json";
@@ -59,30 +35,9 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const [isOpen, setOpen] = useState(false);
 
-  const enabled =
-    loadedProperties &&
-    loadedSpatialTemporal &&
-    (Object.keys(fields).length > 0 || spatial || temporal);
+  const enabled = loadedProperties;
 
   const [filters, setFilters] = useState({});
-
-  useEffect(() => {
-    setFilters(
-      Object.keys(fields)
-        .concat(["bbox", "datetime"])
-        .reduce((reduced, field) => {
-          if (query[field]) {
-            // eslint-disable-next-line no-param-reassign
-            reduced[field] = {
-              value: query[field],
-              add: false,
-              remove: false,
-            };
-          }
-          return reduced;
-        }, {})
-    );
-  }, [fields]);
 
   const onAdd = (field, value) => {
     setFilters((prev) => ({
@@ -98,8 +53,31 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     }));
   };
 
+  useEffect(() => {
+    setFilters(
+      Object.keys(fields).reduce((reduced, field) => {
+        if (query.sortby) {
+          query.sortby.split(",").forEach((sortStr) => {
+            const direction = sortStr.startsWith("+") ? "ascending" : "descending";
+            const key = sortStr.slice(1);
+            if (key === field) {
+              // eslint-disable-next-line no-param-reassign
+              reduced[field] = {
+                value: direction,
+                add: false,
+                remove: false,
+              };
+            }
+          });
+        }
+        return reduced;
+      }, {})
+    );
+  }, [fields]);
+
   const save = (event) => {
     event.target.blur();
+    delete query.offset;
 
     const newFilters = Object.keys(filters).reduce((reduced, key) => {
       if (filters[key].add || !filters[key].remove) {
@@ -113,21 +91,22 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
       return reduced;
     }, {});
 
-    delete query.offset;
-
-    Object.keys(fields)
-      .concat(["bbox", "datetime"])
-      .forEach((field) => {
-        delete query[field];
-        if (newFilters[field]) {
-          query[field] = newFilters[field].value;
-        }
+    // Sortier-String bauen
+    const sortFields = Object.keys(newFilters)
+      .filter((key) => newFilters[key].value)
+      .map((key) => {
+        const direction = newFilters[key].value === "ascending" ? "+" : "-";
+        return direction + key;
       });
 
-    // eslint-disable-next-line no-undef
-    window.location.search = qs.stringify(query, {
-      addQueryPrefix: true,
-    });
+    if (sortFields.length > 0) {
+      query.sortby = sortFields.join(",");
+    } else {
+      delete query.sortby;
+    }
+
+    const url = qs.stringify(query, { addQueryPrefix: true });
+    window.location.search = url;
   };
 
   const deleteFilters = (field) => () => {
@@ -176,24 +155,17 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
           fields={fields}
           backgroundUrl={backgroundUrl}
           attribution={attribution}
-          spatial={filters.bbox ? toBounds(filters.bbox.value) : spatial}
-          temporal={temporal}
           filters={filters}
           onAdd={onAdd}
           deleteFilters={deleteFilters}
           code={code}
           titleForFilter={fields}
-          start={start}
-          end={end}
           setFilters={setFilters}
           integerKeys={integerKeys}
           booleanProperty={booleanProperty}
         />
       ) : (
-        <>
-          {errorSpatialTemporal && <div>Error loading spatial-temporal data</div>}
-          {errorProperties && <div>Error loading properties data</div>}
-        </>
+        <>{errorProperties && <div>Error loading properties data</div>}</>
       )}
     </>
   );
