@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.ApiExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.util.List;
 
 @AutoMultiBind

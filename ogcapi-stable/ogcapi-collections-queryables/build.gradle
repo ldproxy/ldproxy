@@ -9,6 +9,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-codelists'
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-jsonschema'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided project(":ogcapi-foundation")
     provided project(":ogcapi-collections")

@@ -8,10 +8,10 @@
 package de.ii.ogcapi.collections.schema.validation.app;
 
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import javax.validation.constraints.NotNull;
 
 public abstract class ProfileJsonSchemaForValidation extends ProfileGeneric {

@@ -8,8 +8,6 @@
 package de.ii.ogcapi.collections.schema.app;
 
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.features.core.domain.SchemaDeriverFeatures;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -19,6 +17,8 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.transform.WithScope;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;

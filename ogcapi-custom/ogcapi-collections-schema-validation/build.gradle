@@ -7,6 +7,7 @@ descriptionDe = 'JSON-Schema-Profile für GeoJSON (mit oder ohne JSON-FG-Erweite
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-jsonschema'
     provided 'de.interactive_instruments:ogcapi-collections-schema'
     provided 'de.interactive_instruments:ogcapi-crud'
     provided 'de.interactive_instruments:ogcapi-features-core'

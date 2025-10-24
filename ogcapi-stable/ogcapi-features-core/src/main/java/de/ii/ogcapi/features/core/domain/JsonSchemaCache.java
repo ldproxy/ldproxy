@@ -7,11 +7,12 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument.VERSION;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

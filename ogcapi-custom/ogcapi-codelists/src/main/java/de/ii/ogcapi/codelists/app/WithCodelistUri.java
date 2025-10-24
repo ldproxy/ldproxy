@@ -7,20 +7,20 @@
  */
 package de.ii.ogcapi.codelists.app;
 
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class WithCodelistUri implements JsonSchemaVisitor {
+public class WithCodelistUri implements JsonSchemaTransformer {
 
   private final URI serviceUri;
   private final OgcApiDataV2 apiData;

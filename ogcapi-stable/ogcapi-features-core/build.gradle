@@ -14,6 +14,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-geometries'
+    provided 'de.interactive_instruments:xtraplatform-jsonschema'
     provided 'de.interactive_instruments:xtraplatform-proj'
     provided 'de.interactive_instruments:xtraplatform-strings'
     provided project(":ogcapi-foundation")

@@ -9,14 +9,17 @@ package de.ii.ogcapi.features.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.Iterator;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNumber;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -34,92 +37,59 @@ public abstract class SchemaProperty {
   private static final String URI = "URI";
   private static final String OBJECT = "Object";
 
-  public static SchemaProperty of(String name, ObjectNode schema, SchemaType schemaType) {
+  public static SchemaProperty of(String name, JsonSchema schema, SchemaType schemaType) {
     ImmutableSchemaProperty.Builder builder = ImmutableSchemaProperty.builder().id(name);
-    if (schema.has("title")) {
-      builder.title(schema.get("title").textValue());
-    }
-    if (schema.has("description")) {
-      builder.description(schema.get("description").textValue());
-    }
-    if (schema.has("default")) {
-      JsonNode defaultValue = schema.get("default");
-      if (defaultValue.isTextual()) {
-        builder.defaultValue(defaultValue.textValue());
-      } else if (defaultValue.isArray()) {
-        Iterable<JsonNode> iterable = defaultValue::elements;
-        StreamSupport.stream(iterable.spliterator(), false)
-            .map(element -> element.isTextual() ? element.textValue() : element.toString())
-            .forEach(builder::addDefaultValues);
-      } else {
-        builder.defaultValue(defaultValue.toString());
-      }
-    }
+    schema.getTitle().ifPresent(builder::title);
+    schema.getDescription().ifPresent(builder::description);
+    schema
+        .getDefault_()
+        .ifPresent(
+            v -> {
+              if (v instanceof List) {
+                ((List<?>) v).forEach(item -> builder.addDefaultValues(item.toString()));
+              } else {
+                builder.defaultValue(v.toString());
+              }
+            });
 
-    String type = schema.has("type") ? schema.get("type").textValue() : null;
-    if ("array".equals(type)) {
+    if (schema instanceof JsonSchemaArray) {
       builder.isArray(true);
-      schema = (ObjectNode) schema.get("items");
-      type = schema.has("type") ? schema.get("type").textValue() : null;
+      schema = ((JsonSchemaArray) schema).getItems().orElse(null);
     } else {
       builder.isArray(false);
     }
 
-    if ("string".equals(type)) {
-      if (schema.has("format")) {
-        String format = schema.get("format").textValue();
-        if ("date-time".equals(format)) {
-          builder.type(TIMESTAMP);
-        } else if ("date".equals(format)) {
-          builder.type(DATE);
-        } else if ("uri".equals(format)) {
-          builder.type(URI);
-        } else {
-          builder.type(STRING);
-        }
+    if (schema == null) {
+      builder.type(STRING);
+    } else if (schema instanceof JsonSchemaString string) {
+      String format = string.getFormat().orElse(null);
+      if ("date-time".equals(format)) {
+        builder.type(TIMESTAMP);
+      } else if ("date".equals(format)) {
+        builder.type(DATE);
+      } else if ("uri".equals(format)) {
+        builder.type(URI);
       } else {
         builder.type(STRING);
       }
-      if (schema.has("minLength")) {
-        builder.minLength(schema.get("minLength").numberValue());
-      }
-      if (schema.has("maxLength")) {
-        builder.maxLength(schema.get("maxLength").numberValue());
-      }
-      if (schema.has("pattern")) {
-        builder.pattern(schema.get("pattern").textValue());
-      }
-      if (schema.has("enum")) {
-        Iterator<JsonNode> enums = schema.get("enum").elements();
-        while (enums.hasNext()) {
-          builder.addValues(enums.next().textValue());
-        }
-      }
-    } else if ("number".equals(type)) {
+      string.getPattern().ifPresent(builder::pattern);
+      string.getEnums().ifPresent(values -> values.forEach(builder::addValues));
+      string.getMinLength().ifPresent(builder::minLength);
+      string.getMaxLength().ifPresent(builder::maxLength);
+    } else if (schema instanceof JsonSchemaNumber number) {
       builder.type(NUMBER);
-      if (schema.has("minimum")) {
-        builder.minimum(schema.get("minimum").numberValue());
-      }
-      if (schema.has("maximum")) {
-        builder.maximum(schema.get("maximum").numberValue());
-      }
-    } else if ("integer".equals(type)) {
+      number.getMinimum().ifPresent(builder::minimum);
+      number.getMaximum().ifPresent(builder::maximum);
+    } else if (schema instanceof JsonSchemaInteger integer) {
       builder.type(INTEGER);
-      if (schema.has("minimum")) {
-        builder.minimum(schema.get("minimum").numberValue());
-      }
-      if (schema.has("maximum")) {
-        builder.maximum(schema.get("maximum").numberValue());
-      }
-      if (schema.has("enum")) {
-        Iterator<JsonNode> enums = schema.get("enum").elements();
-        while (enums.hasNext()) {
-          builder.addValues(String.valueOf(enums.next().intValue()));
-        }
-      }
-    } else if ("boolean".equals(type)) {
+      integer.getMinimum().ifPresent(builder::minimum);
+      integer.getMaximum().ifPresent(builder::maximum);
+      integer
+          .getEnums()
+          .ifPresent(values -> values.forEach(v -> builder.addValues(String.valueOf(v))));
+    } else if (schema instanceof JsonSchemaBoolean) {
       builder.type(BOOLEAN);
-    } else if ("object".equals(type)) {
+    } else if (schema instanceof JsonSchemaObject) {
       builder.type(OBJECT);
     } else {
       builder.type(STRING);

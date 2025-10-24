@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.sorting.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration.PathSeparator;
@@ -73,6 +74,19 @@ public interface SortingConfiguration extends ExtensionConfiguration, ProfilesCo
    * @since v3.4
    */
   List<String> getExcluded();
+
+  /**
+   * @langEn Default values for sorting features of a collection. If not specified, the features
+   *     will be sorted using the sort key configured in the feature provider. See the `sortby`
+   *     parameter for details.
+   * @langDe Standardwerte für die Sortierung von Features einer Collection. Wenn keine Sortierung
+   *     spezifiziert wird, werden die Features anhand des im Feature-Provider konfigurierten
+   *     Sortierschlüssels sortiert. Siehe den `sortby`-Parameter für Details.
+   * @default []
+   * @since v4.6
+   */
+  @JsonProperty("default")
+  List<String> getDefaultSortby();
 
   /**
    * @langEn The character that is used as the path separator in case of object-valued properties.
@@ -154,6 +168,10 @@ public interface SortingConfiguration extends ExtensionConfiguration, ProfilesCo
                     ((SortingConfiguration) source).getExcluded().stream(), getExcluded().stream())
                 .distinct()
                 .collect(Collectors.toList()))
+        .defaultSortby(
+            !getDefaultSortby().isEmpty()
+                ? getDefaultSortby()
+                : ((SortingConfiguration) source).getDefaultSortby())
         .defaultProfiles(
             ProfilesConfiguration.super
                 .mergeInto((ProfilesConfiguration) source)

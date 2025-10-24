@@ -141,6 +141,8 @@ import javax.inject.Singleton;
  * - The JSON Schema of a parameter supports a subset of the language. In particular,
  *     `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`,
  *     `additionalItems` and `items: false` are not supported.
+ * - Parameters in filter expressions are limited to scalar values (string, number, boolean) or
+ *     or arrays of scalar values.
  * - POST to execute a stored query is not supported. This will be added after discussing the
  *     specification in OGC (e.g., whether the payload should be JSON or URL-encoded query
  *     parameters).
@@ -152,6 +154,7 @@ import javax.inject.Singleton;
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
  * - Das JSON-Schema eines Parameters unterstützt eine Teilmenge der Sprache. Insbesondere werden `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`, `additionalItems` und `items: false` nicht unterstützt.
+ * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte) oder Arrays von Skalarwerten beschränkt.
  * - POST zur Ausführung einer gespeicherten Abfrage wird nicht unterstützt. Dies wird hinzugefügt, nachdem die Spezifikation in OGC diskutiert wurde (z.B. ob die Nutzlast JSON oder URL-kodierte Abfrageparameter sein sollen).
  *     </code>
  *     <p>Ad-hoc-Queries haben die folgenden Beschränkungen:

@@ -8,15 +8,15 @@
 package de.ii.ogcapi.collections.schema.validation.app;
 
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 
 public abstract class ProfileValidationReturnables extends ProfileJsonSchemaForValidation {
 

@@ -8,13 +8,13 @@
 package de.ii.ogcapi.profile.codelist.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaConstant;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.JsonSchemaString;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaConstant;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;

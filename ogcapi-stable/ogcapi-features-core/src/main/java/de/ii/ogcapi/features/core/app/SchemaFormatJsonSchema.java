@@ -10,7 +10,6 @@ package de.ii.ogcapi.features.core.app;
 import static de.ii.ogcapi.foundation.domain.ApiMediaType.JSON_SCHEMA_MEDIA_TYPE;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
 import de.ii.ogcapi.features.core.domain.SchemaFormatExtension;
 import de.ii.ogcapi.features.core.domain.SchemaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -18,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
