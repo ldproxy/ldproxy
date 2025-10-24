@@ -1,17 +1,13 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 
 import { Row, Col, Collapse } from "reactstrap";
-import { MapSelect, roundBounds, boundsArraysEqual } from "./Spatial";
 
 import FieldFilter from "./Fields";
 
 const EditorBody = ({
   isOpen,
   fields,
-  backgroundUrl,
-  attribution,
-  spatial,
   filters,
   onAdd,
   deleteFilters,
@@ -20,31 +16,8 @@ const EditorBody = ({
   integerKeys,
   booleanProperty,
 }) => {
-  const [showMap, setShowMap] = useState(false);
-  const [bounds, setBounds] = useState(roundBounds(spatial));
-  const [mapFlag, setMapFlag] = useState(true);
-
-  const refreshMap = useCallback(() => setMapFlag((prev) => !prev), []);
-
-  const setBoundsIfNecessary = useCallback(
-    (newBounds, doRefreshMap) => {
-      const rounded = roundBounds(newBounds);
-
-      setBounds((prev) => {
-        if (boundsArraysEqual(prev, rounded)) {
-          return prev;
-        }
-        if (doRefreshMap) {
-          refreshMap();
-        }
-        return rounded;
-      });
-    },
-    [refreshMap]
-  );
-
   return (
-    <Collapse isOpen={isOpen} onEntered={() => setShowMap(true)}>
+    <Collapse isOpen={isOpen} onEntered={() => {}}>
       <Row>
         <Col md="6">
           {Object.keys(fields).length > 0 && (
@@ -68,17 +41,6 @@ const EditorBody = ({
             />
           )}
         </Col>
-        <Col md="6">
-          {showMap && spatial && spatial.length > 0 && (
-            <MapSelect
-              key={JSON.stringify(mapFlag)}
-              backgroundUrl={backgroundUrl}
-              attribution={attribution}
-              bounds={bounds}
-              onChange={setBoundsIfNecessary}
-            />
-          )}
-        </Col>
       </Row>
     </Collapse>
   );
@@ -89,9 +51,6 @@ EditorBody.displayName = "EditorBody";
 EditorBody.propTypes = {
   isOpen: PropTypes.bool,
   fields: PropTypes.objectOf(PropTypes.string),
-  backgroundUrl: PropTypes.string.isRequired,
-  attribution: PropTypes.string.isRequired,
-  spatial: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
   // eslint-disable-next-line react/forbid-prop-types
   filters: PropTypes.object.isRequired,
   onAdd: PropTypes.func,
@@ -106,7 +65,6 @@ EditorBody.propTypes = {
 EditorBody.defaultProps = {
   isOpen: false,
   fields: {},
-  spatial: null,
   onAdd: () => {},
 };
 
