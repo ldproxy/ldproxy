@@ -15,6 +15,8 @@ import de.ii.ogcapi.features.html.app.CesiumDataFeatures;
 import de.ii.ogcapi.features.html.app.FeatureHtml;
 import de.ii.ogcapi.features.html.app.FilterEditor;
 import de.ii.ogcapi.features.html.app.ImmutableFilterEditor.Builder;
+import de.ii.ogcapi.features.html.app.ImmutableSortingEditor;
+import de.ii.ogcapi.features.html.app.SortingEditor;
 import de.ii.ogcapi.features.html.domain.FeaturesHtmlConfiguration.POSITION;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.I18n;
@@ -212,6 +214,18 @@ public abstract class FeaturesView extends OgcApiDatasetView {
       return null;
     }
     return new Builder()
+        .backgroundUrl(Optional.ofNullable(htmlConfig().getBasemapUrl()))
+        .attribution(Optional.ofNullable(htmlConfig().getBasemapAttribution()))
+        .build();
+  }
+
+  @Value.Default
+  @Nullable
+  public SortingEditor sortingEditor() {
+    if (collectionData().isEmpty()) {
+      return null;
+    }
+    return new ImmutableSortingEditor.Builder()
         .backgroundUrl(Optional.ofNullable(htmlConfig().getBasemapUrl()))
         .attribution(Optional.ofNullable(htmlConfig().getBasemapAttribution()))
         .build();

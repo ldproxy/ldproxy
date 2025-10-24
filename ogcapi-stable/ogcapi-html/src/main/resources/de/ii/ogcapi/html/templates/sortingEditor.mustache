@@ -1,0 +1,17 @@
+{{#sortingEditor}}
+<script type="text/javascript">
+  globalThis._sortingfilter = {
+      sortingcontainer: 'sf',
+      fields: {
+        {{#fields}}
+          '{{key}}': '{{{value}}}',
+        {{/fields}}
+      },
+  }
+</script>
+
+{{> app-sortingeditor}}
+
+{{/sortingEditor}}
+
+
