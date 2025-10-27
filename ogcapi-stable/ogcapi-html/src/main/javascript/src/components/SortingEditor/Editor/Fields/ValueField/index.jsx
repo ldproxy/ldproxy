@@ -1,19 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import { Input } from "reactstrap";
 import { useTranslation } from "react-i18next";
-import i18n from "../../../../../i18n";
-import { fetchTranslations } from "../../../../../fetchTranslations";
 
 const ValueField = ({ value, saveValue, save, disabled }) => {
   const { t } = useTranslation();
-
-  useEffect(() => {
-    fetchTranslations("de").then((res) => {
-      i18n.addResourceBundle("de", "translation", res.translation, true, true);
-      i18n.changeLanguage("de");
-    });
-  }, []);
 
   return (
     <Input

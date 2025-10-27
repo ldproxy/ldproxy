@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 
 import qs from "qs";
-
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
+import { fetchTranslations } from "../../fetchTranslations";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
@@ -39,6 +41,15 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     [spatialTemporal]
   );
   const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
+
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    fetchTranslations("de").then((res) => {
+      i18n.addResourceBundle("de", "translation", res.translation, true, true);
+      i18n.changeLanguage("de");
+    });
+  }, []);
 
   const urlProperties = new URL(
     baseUrl.pathname.endsWith("/") ? "../queryables" : "./queryables",
@@ -191,8 +202,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
         />
       ) : (
         <>
-          {errorSpatialTemporal && <div>Error loading spatial-temporal data</div>}
-          {errorProperties && <div>Error loading properties data</div>}
+          {errorSpatialTemporal && <div>{t("ErrorSpatialTemporal")}</div>}
+          {errorProperties && <div>{t("Error")}</div>}
         </>
       )}
     </>
