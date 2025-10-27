@@ -28,10 +28,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     error: errorProperties,
   } = useApiInfo(urlProperties);
 
-  const { fields, code, integerKeys, booleanProperty } = useMemo(
-    () => extractFields(properties),
-    [properties]
-  );
+  const { fields } = useMemo(() => extractFields(properties), [properties]);
 
   const [isOpen, setOpen] = useState(false);
 
@@ -91,7 +88,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
       return reduced;
     }, {});
 
-    // Sortier-String bauen
     const sortFields = Object.keys(newFilters)
       .filter((key) => newFilters[key].value)
       .map((key) => {
@@ -158,11 +154,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
           filters={filters}
           onAdd={onAdd}
           deleteFilters={deleteFilters}
-          code={code}
           titleForFilter={fields}
           setFilters={setFilters}
-          integerKeys={integerKeys}
-          booleanProperty={booleanProperty}
         />
       ) : (
         <>{errorProperties && <div>Error loading properties data</div>}</>

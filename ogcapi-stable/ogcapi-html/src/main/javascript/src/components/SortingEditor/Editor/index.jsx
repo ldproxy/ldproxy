@@ -5,17 +5,7 @@ import { Row, Col, Collapse } from "reactstrap";
 
 import FieldFilter from "./Fields";
 
-const EditorBody = ({
-  isOpen,
-  fields,
-  filters,
-  onAdd,
-  deleteFilters,
-  code,
-  titleForFilter,
-  integerKeys,
-  booleanProperty,
-}) => {
+const EditorBody = ({ isOpen, fields, filters, onAdd, deleteFilters, titleForFilter }) => {
   return (
     <Collapse isOpen={isOpen} onEntered={() => {}}>
       <Row>
@@ -34,10 +24,7 @@ const EditorBody = ({
               onAdd={onAdd}
               filters={filters}
               deleteFilters={deleteFilters}
-              code={code}
               titleForFilter={titleForFilter}
-              integerKeys={integerKeys}
-              booleanProperty={booleanProperty}
             />
           )}
         </Col>
@@ -56,10 +43,7 @@ EditorBody.propTypes = {
   onAdd: PropTypes.func,
   deleteFilters: PropTypes.func.isRequired,
   // eslint-disable-next-line react/forbid-prop-types
-  code: PropTypes.object.isRequired,
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
-  integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
-  booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 EditorBody.defaultProps = {
