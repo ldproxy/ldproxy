@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-
 import qs from "qs";
-
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
+import { fetchTranslations } from "../../fetchTranslations";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields } from "./util";
@@ -35,6 +36,15 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const enabled = loadedProperties;
 
   const [filters, setFilters] = useState({});
+
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    fetchTranslations("de").then((res) => {
+      i18n.addResourceBundle("de", "translation", res.translation, true, true);
+      i18n.changeLanguage("de");
+    });
+  }, []);
 
   const onAdd = (field, value) => {
     setFilters((prev) => ({
@@ -158,7 +168,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
           setFilters={setFilters}
         />
       ) : (
-        <>{errorProperties && <div>Error loading properties data</div>}</>
+        <>{errorProperties && <div>{t("Error")}</div>}</>
       )}
     </>
   );

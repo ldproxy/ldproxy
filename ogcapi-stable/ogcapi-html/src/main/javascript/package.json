@@ -24,6 +24,7 @@
     "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
     "date-fns": "2.16.1",
+    "i18next": "^25.0.0",
     "jquery": "^3",
     "maplibre-gl": "3.2.1",
     "moment": "^2.29.1",
@@ -38,6 +39,7 @@
     "react-datetime": "^2.16.3",
     "react-datetime-range-picker": "^3.0.0",
     "react-dom": "^16",
+    "react-i18next": "^16.0.0",
     "react-maplibre-ui": "^2.0.0",
     "reactstrap": "^8.10.1",
     "rlayers": "^1.1.1"

@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
+import i18n from "../../../../i18n";
+import { fetchTranslations } from "../../../../fetchTranslations";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
@@ -9,6 +12,14 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
   const [changedValue, setChangedValue] = useState("");
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    fetchTranslations("de").then((res) => {
+      i18n.addResourceBundle("de", "translation", res.translation, true, true);
+      i18n.changeLanguage("de");
+    });
+  }, []);
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
 
@@ -38,9 +49,10 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
     const updatedFilterValue = { ...changedValue };
     onAdd(item, updatedFilterValue[item].value);
   };
+
   return (
     <Form onSubmit={noOp}>
-      <p className="text-muted text-uppercase">field</p>
+      <p className="text-muted text-uppercase">{t("Field")}</p>
       <Row>
         <Col md="5">
           <FormGroup>
@@ -53,7 +65,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
               onChange={selectField}
             >
               <option value="" className="d-none">
-                none
+                {t("None")}
               </option>
               {Object.keys(fields)
                 .toSorted()
@@ -79,7 +91,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === "" || value === ""} onClick={save}>
-            Add
+            {t("Add")}
           </Button>
         </Col>
       </Row>
