@@ -1,11 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import PropTypes from "prop-types";
-
 import { Button, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
+import i18n from "../../../../i18n";
+import { fetchTranslations } from "../../../../fetchTranslations";
 
 import Badge from "../../Badge";
 
 const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRemove }) => {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    fetchTranslations("de").then((res) => {
+      i18n.addResourceBundle("de", "translation", res.translation, true, true);
+      i18n.changeLanguage("de");
+    });
+  }, []);
+
   const toggle = (event) => {
     event.target.blur();
 
@@ -27,12 +38,12 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? "Apply" : "Edit "}
+              {isOpen ? t("Apply") : t("Edit")}
             </Button>
           )}
           {isOpen && (
             <Button color="danger" size="sm" className="ml-1 py-0" onClick={cancel}>
-              Cancel
+              {t("Cancel")}
             </Button>
           )}
         </Col>
