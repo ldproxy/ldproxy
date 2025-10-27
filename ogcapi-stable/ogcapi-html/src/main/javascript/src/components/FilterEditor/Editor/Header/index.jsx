@@ -1,11 +1,13 @@
 import React from "react";
 import PropTypes from "prop-types";
-
 import { Button, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
 
 import Badge from "../../Badge";
 
 const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRemove }) => {
+  const { t } = useTranslation();
+
   const toggle = (event) => {
     event.target.blur();
 
@@ -27,12 +29,12 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? "Apply" : "Edit"}
+              {isOpen ? t("Apply") : t("Edit")}{" "}
             </Button>
           )}
           {isOpen && (
             <Button color="danger" size="sm" className="ml-1 py-0" onClick={cancel}>
-              Cancel
+              {t("Cancel")}
             </Button>
           )}
         </Col>

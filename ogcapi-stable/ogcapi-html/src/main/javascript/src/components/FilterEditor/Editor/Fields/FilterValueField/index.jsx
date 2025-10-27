@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
-
 import { FormGroup, Label, Input } from "reactstrap";
+import { useTranslation } from "react-i18next";
 
 const FilterValueField = ({
   code,
@@ -14,6 +14,8 @@ const FilterValueField = ({
   booleanProperty,
   overwriteFilters,
 }) => {
+  const { t } = useTranslation();
+
   switch (true) {
     case enumKeys.includes(filterKey):
       return (
@@ -91,7 +93,7 @@ const FilterValueField = ({
                   })
                 }
               />{" "}
-              True
+              {t("True")}
             </Label>
           </FormGroup>
           <FormGroup check inline>
@@ -111,7 +113,7 @@ const FilterValueField = ({
                   })
                 }
               />{" "}
-              False
+              {t("False")}
             </Label>
           </FormGroup>
         </FormGroup>

@@ -1,21 +1,12 @@
-import React, { useEffect } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import { Button, Row, Col } from "reactstrap";
 import { useTranslation } from "react-i18next";
-import i18n from "../../../../i18n";
-import { fetchTranslations } from "../../../../fetchTranslations";
 
 import Badge from "../../Badge";
 
 const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRemove }) => {
   const { t } = useTranslation();
-
-  useEffect(() => {
-    fetchTranslations("de").then((res) => {
-      i18n.addResourceBundle("de", "translation", res.translation, true, true);
-      i18n.changeLanguage("de");
-    });
-  }, []);
 
   const toggle = (event) => {
     event.target.blur();

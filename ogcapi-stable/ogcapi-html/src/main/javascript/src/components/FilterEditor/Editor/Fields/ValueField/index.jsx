@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
-
 import { FormGroup, Label, Input, FormText } from "reactstrap";
+import { useTranslation } from "react-i18next";
 
 const ValueField = ({
   value,
@@ -14,6 +14,8 @@ const ValueField = ({
   save,
   disabled,
 }) => {
+  const { t } = useTranslation();
+
   switch (true) {
     case enumKeys.includes(valueKey):
       return (
@@ -27,7 +29,7 @@ const ValueField = ({
           disabled={disabled}
         >
           <option value="" className="d-none">
-            none
+            {t("None")}
           </option>
           {Object.keys(code[valueKey]).map((item) => (
             <option value={code[valueKey][item]} key={item}>
@@ -67,7 +69,7 @@ const ValueField = ({
                 checked={value === "true"}
                 onChange={saveValue}
               />{" "}
-              True
+              {t("True")}
             </Label>
           </FormGroup>
           <FormGroup check inline>
@@ -80,7 +82,7 @@ const ValueField = ({
                 checked={value === "false"}
                 onChange={saveValue}
               />{" "}
-              False
+              {t("False")}
             </Label>
           </FormGroup>
         </FormGroup>
@@ -104,7 +106,7 @@ const ValueField = ({
               }
             }}
           />
-          <FormText>Use * as wildcard</FormText>
+          <FormText>{t("wildcard")}</FormText>
         </>
       );
   }

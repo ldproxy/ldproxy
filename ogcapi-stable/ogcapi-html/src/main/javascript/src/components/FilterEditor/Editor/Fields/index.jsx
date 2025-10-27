@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
@@ -18,6 +19,7 @@ const FieldFilter = ({
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
   const [changedValue, setChangedValue] = useState("");
+  const { t } = useTranslation();
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
 
@@ -25,9 +27,9 @@ const FieldFilter = ({
     setValue(event.target.value);
   };
 
-  const filtersToMap = Object.keys(filters).filter(
-    (key) => filters[key].remove === false && key !== "bbox" && key !== "datetime"
-  ).toSorted();
+  const filtersToMap = Object.keys(filters)
+    .filter((key) => filters[key].remove === false && key !== "bbox" && key !== "datetime")
+    .toSorted();
   const enumKeys = Object.keys(code);
 
   const save = (event) => {
@@ -50,7 +52,7 @@ const FieldFilter = ({
   };
   return (
     <Form onSubmit={noOp}>
-      <p className="text-muted text-uppercase">field</p>
+      <p className="text-muted text-uppercase">{t("Field")}</p>
       <Row>
         <Col md="5">
           <FormGroup>
@@ -63,13 +65,15 @@ const FieldFilter = ({
               onChange={selectField}
             >
               <option value="" className="d-none">
-                none
+                {t("None")}
               </option>
-              {Object.keys(fields).toSorted().map((f) => (
-                <option value={f} key={f}>
-                  {fields[f]}
-                </option>
-              ))}
+              {Object.keys(fields)
+                .toSorted()
+                .map((f) => (
+                  <option value={f} key={f}>
+                    {fields[f]}
+                  </option>
+                ))}
             </Input>
           </FormGroup>
         </Col>
@@ -90,7 +94,7 @@ const FieldFilter = ({
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === "" || value === ""} onClick={save}>
-            Add
+            {t("Add")}
           </Button>
         </Col>
       </Row>
