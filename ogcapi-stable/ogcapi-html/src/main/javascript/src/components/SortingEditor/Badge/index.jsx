@@ -2,6 +2,7 @@ import React from "react";
 // import PropTypes from 'prop-types';
 
 import { Button } from "reactstrap";
+import { useTranslation } from "react-i18next";
 import "./style.css";
 
 const FilterBadge = ({ field, value, isAdd, isRemove }) => {
@@ -10,6 +11,13 @@ const FilterBadge = ({ field, value, isAdd, isRemove }) => {
   if (value === "descending") arrow = "↓";
   const label = `${field} ${arrow}`;
 
+  let translatedValue = value;
+  if (i18n.language === "de") {
+    if (value === "ascending") translatedValue = t("Ascending");
+    if (value === "descending") translatedValue = t("Descending");
+  }
+
+  const label = `${field}=${translatedValue}`;
   const button = (
     <Button
       key={value}

@@ -203,7 +203,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
         />
       ) : (
         <>
-          {errorSpatialTemporal && <div>{t("ErrorSpatialTemporal")}</div>}
+          {errorSpatialTemporal && <div>{t("error.spatialTemporal")}</div>}
           {errorProperties && <div>{t("Error")}</div>}
         </>
       )}

@@ -106,7 +106,7 @@ const ValueField = ({
               }
             }}
           />
-          <FormText>{t("wildcard")}</FormText>
+          <FormText>{t("Wildcard")}</FormText>
         </>
       );
   }
