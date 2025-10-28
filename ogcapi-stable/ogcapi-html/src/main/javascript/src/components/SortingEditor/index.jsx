@@ -22,7 +22,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     baseUrl.href
   );
   urlProperties.search = "?f=json";
-
   const {
     obj: properties,
     isLoaded: loadedProperties,
@@ -42,7 +41,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   useEffect(() => {
     fetchTranslations("de").then((res) => {
       i18n.addResourceBundle("de", "translation", res.translation, true, true);
-      i18n.changeLanguage("de");
     });
   }, []);
 
