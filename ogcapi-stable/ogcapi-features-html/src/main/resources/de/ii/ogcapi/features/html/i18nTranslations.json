@@ -11,7 +11,7 @@
       "Ascending": "Aufsteigend",
       "Descending": "Absteigend",
       "Error": "Fehler beim Laden der Eigenschaftsdaten",
-      "ErrorSpatialTemporal": "Fehler beim Laden der raum-zeitlichen Daten",
+      "error.spatialTemporal": "Fehler beim Laden der raum-zeitlichen Daten",
       "error.startDateOutOfRange": "Das Startdatum liegt außerhalb des Bereichs.",
       "error.endDateOutOfRange": "Das Enddatum liegt außerhalb des Bereichs.",
       "error.startLessThanEnd": "Das Startdatum muss vor dem Enddatum liegen.",
@@ -25,9 +25,9 @@
       "minLatitude": "Min. Breitengrad",
       "maxLongitude": "Max. Längengrad",
       "maxLatitude": "Max. Breitengrad",
-      "true": "Wahr",
-      "false": "Falsch",
-      "wildcard": "Verwenden Sie * als Platzhalter",
+      "True": "Wahr",
+      "False": "Falsch",
+      "Wildcard": "Verwenden Sie * als Platzhalter",
       "noSortableFields": "Keine sortierbaren Attribute für die Collection..."
     }
   },
@@ -43,7 +43,7 @@
       "Ascending": "Ascending",
       "Descending": "Descending",
       "Error": "Error loading properties data",
-      "ErrorSpatialTemporal": "Error loading spatial-temporal data",
+      "error.spatialTemporal": "Error loading spatial-temporal data",
       "error.startDateOutOfRange": "The start date is outside the specified range.",
       "error.endDateOutOfRange": "The end date is outside the specified range.",
       "error.startLessThanEnd": "The start date must be less than the end date.",
@@ -57,9 +57,9 @@
       "minLatitude": "Min. Latitude",
       "maxLongitude": "Max. Longitude",
       "maxLatitude": "Max. Latitude",
-      "true": "True",
-      "false": "False",
-      "wildcard": "Use * as wildcard",
+      "True": "True",
+      "False": "False",
+      "Wildcard": "Use * as wildcard",
       "noSortableFields": "No sortable attributes for the collection..."
     }
   }
