@@ -44,7 +44,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { translations } = globalThis._sortingfilter;
+  const { translations } = globalThis._filter;
 
   useEffect(() => {
     Object.entries(translations).forEach(([lang, bundle]) => {

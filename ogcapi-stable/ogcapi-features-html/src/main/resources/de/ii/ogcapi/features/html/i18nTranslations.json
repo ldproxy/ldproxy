@@ -27,7 +27,8 @@
       "maxLatitude": "Max. Breitengrad",
       "true": "Wahr",
       "false": "Falsch",
-      "wildcard": "Verwenden Sie * als Platzhalter"
+      "wildcard": "Verwenden Sie * als Platzhalter",
+      "noSortableFields": "Keine sortierbaren Attribute für die Collection..."
     }
   },
   "en": {
@@ -58,7 +59,8 @@
       "maxLatitude": "Max. Latitude",
       "true": "True",
       "false": "False",
-      "wildcard": "Use * as wildcard"
+      "wildcard": "Use * as wildcard",
+      "noSortableFields": "No sortable attributes for the collection..."
     }
   }
 }
