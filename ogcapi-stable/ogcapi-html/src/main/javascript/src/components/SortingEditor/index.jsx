@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import qs from "qs";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
-import { fetchTranslations } from "../../fetchTranslations";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields } from "./util";
@@ -30,6 +29,9 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { fields } = useMemo(() => extractFields(properties), [properties]);
 
+  // eslint-disable-next-line no-undef, no-underscore-dangle
+  const { translations } = globalThis._sortingfilter;
+
   const [isOpen, setOpen] = useState(false);
 
   const enabled = loadedProperties;
@@ -39,8 +41,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    fetchTranslations("de").then((res) => {
-      i18n.addResourceBundle("de", "translation", res.translation, true, true);
+    Object.entries(translations).forEach(([lang, bundle]) => {
+      i18n.addResourceBundle(lang, "translation", bundle.translation, true, true);
     });
   }, []);
 
