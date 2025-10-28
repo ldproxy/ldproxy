@@ -29,9 +29,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { fields } = useMemo(() => extractFields(properties), [properties]);
 
-  // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { translations } = globalThis._sortingfilter;
-
   const [isOpen, setOpen] = useState(false);
 
   const enabled = loadedProperties;
@@ -39,6 +36,9 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const [filters, setFilters] = useState({});
 
   const { t } = useTranslation();
+
+  // eslint-disable-next-line no-undef, no-underscore-dangle
+  const { translations } = globalThis._sortingfilter;
 
   useEffect(() => {
     Object.entries(translations).forEach(([lang, bundle]) => {
@@ -142,6 +142,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     setOpen(false);
   };
 
+  const hasFields = fields && Object.keys(fields).length > 0;
+
   const editorHeaderProps = {
     isOpen,
     setOpen,
@@ -150,26 +152,34 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     save,
     cancel,
     onRemove,
+    hasFields,
   };
+
+  let content = null;
+  if (enabled && hasFields) {
+    content = (
+      <Editor
+        isOpen={isOpen}
+        fields={fields}
+        backgroundUrl={backgroundUrl}
+        attribution={attribution}
+        filters={filters}
+        onAdd={onAdd}
+        deleteFilters={deleteFilters}
+        titleForFilter={fields}
+        setFilters={setFilters}
+      />
+    );
+  } else if (errorProperties) {
+    content = <div>{t("Error")}</div>;
+  } else if (enabled && !hasFields && isOpen) {
+    content = <div>{t("noSortableFields")}</div>;
+  }
 
   return (
     <>
       <EditorHeader {...editorHeaderProps} />
-      {enabled ? (
-        <Editor
-          isOpen={isOpen}
-          fields={fields}
-          backgroundUrl={backgroundUrl}
-          attribution={attribution}
-          filters={filters}
-          onAdd={onAdd}
-          deleteFilters={deleteFilters}
-          titleForFilter={fields}
-          setFilters={setFilters}
-        />
-      ) : (
-        <>{errorProperties && <div>{t("Error")}</div>}</>
-      )}
+      {content}
     </>
   );
 };

@@ -1,14 +1,14 @@
 {{#sortingEditor}}
 <script type="text/javascript">
   globalThis._sortingfilter = {
-      language: '{{{language}}}',
-      translations: {{{translationsJson}}},
       sortingcontainer: 'sf',
       fields: {
         {{#fields}}
           '{{key}}': '{{{value}}}',
         {{/fields}}
       },
+      language: '{{{language}}}',
+      translations: {{{translationsJson}}},
   }
 </script>
 
