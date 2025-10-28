@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.html.domain;
 
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Modifiable;
 
@@ -32,4 +33,7 @@ public abstract class FeatureCollectionView extends FeaturesView {
   public boolean fromStoredQuery() {
     return false;
   }
+
+  @Nullable
+  public abstract String translationsJson();
 }

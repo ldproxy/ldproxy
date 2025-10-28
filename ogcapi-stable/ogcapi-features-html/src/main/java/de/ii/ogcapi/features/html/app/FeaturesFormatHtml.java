@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.html.app;
 
 import static de.ii.ogcapi.features.core.domain.SchemaGeneratorFeatureOpenApi.DEFAULT_FLATTENING_SEPARATOR;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +62,7 @@ import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.web.domain.MustacheRenderer;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
@@ -138,6 +140,17 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         builder.add("http://www.opengis.net/spec/ogcapi-records-1/0.0/conf/html");
     }
     return builder.build();
+  }
+
+  public String loadTranslations() {
+    ObjectMapper mapper = new ObjectMapper();
+    try (InputStream is =
+        getClass().getResourceAsStream("/de/ii/ogcapi/features/html/i18nTranslations.json")) {
+      Object json = mapper.readValue(is, Object.class);
+      return mapper.writeValueAsString(json);
+    } catch (Exception e) {
+      return "{}";
+    }
   }
 
   @Override
@@ -270,6 +283,8 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     Optional<User> user = transformationContext.getOgcApiRequest().getUser();
     ModifiableFeatureCollectionView featureTypeDataset;
 
+    String translationsJson = loadTranslations();
+
     boolean hideMap =
         transformationContext.getFeatureSchema().flatMap(SchemaBase::getPrimaryGeometry).isEmpty();
 
@@ -287,6 +302,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               basePath,
               apiPath,
               language,
+              translationsJson,
               isNoIndexEnabledForApi(apiData),
               getMapPosition(apiData),
               hideMap,
@@ -321,6 +337,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 basePath,
                 apiPath,
                 language,
+                translationsJson,
                 isNoIndexEnabledForApi(apiData),
                 getMapPosition(apiData, collectionName),
                 hideMap,
@@ -341,6 +358,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 basePath,
                 apiPath,
                 language,
+                translationsJson,
                 isNoIndexEnabledForApi(apiData),
                 apiData.getSubPath(),
                 getMapPosition(apiData, collectionName),
@@ -385,6 +403,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
+      String translationsJson,
       boolean noIndex,
       POSITION mapPosition,
       boolean hideMap,
@@ -452,6 +471,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
+        .setTranslationsJson(translationsJson)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
@@ -503,6 +523,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
+      String translationsJson,
       boolean noIndex,
       List<String> subPathToLandingPage,
       POSITION mapPosition,
@@ -580,6 +601,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
+        .setTranslationsJson(translationsJson)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
@@ -625,6 +647,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
+      String translationsJson,
       boolean noIndex,
       POSITION mapPosition,
       boolean hideMap,
@@ -686,6 +709,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
+        .setTranslationsJson(translationsJson)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setPropertyTooltips(propertyTooltips)
