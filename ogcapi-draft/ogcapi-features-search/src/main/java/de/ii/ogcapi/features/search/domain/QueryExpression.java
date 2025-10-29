@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Preconditions;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -36,11 +37,6 @@ public interface QueryExpression {
 
   String SCHEMA_REF = "#/components/schemas/QueryExpression";
 
-  enum FilterOperator {
-    AND,
-    OR
-  }
-
   abstract class Builder {}
 
   static QueryExpression of(InputStream requestBody) throws IOException {
@@ -60,7 +56,7 @@ public interface QueryExpression {
 
   List<String> getCollections();
 
-  Optional<Object> getFilter();
+  Optional<Cql2Expression> getFilter();
 
   Optional<String> getFilterCrs();
 

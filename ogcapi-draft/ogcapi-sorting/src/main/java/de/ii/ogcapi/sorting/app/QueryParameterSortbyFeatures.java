@@ -28,6 +28,7 @@ import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery.Builder;
 import de.ii.xtraplatform.features.domain.SortKey;
+import de.ii.xtraplatform.features.domain.SortKey.Direction;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -107,6 +108,16 @@ public class QueryParameterSortbyFeatures extends OgcApiQueryParameterBase
       OgcApi api,
       Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData) {
     if (Objects.isNull(value)) {
+      List<SortKey> sortKeys =
+          optionalCollectionData
+              .map(collectionData -> collectionData.getExtension(SortingConfiguration.class))
+              .flatMap(cfg -> cfg.map(SortingConfiguration::getDefaultSortby))
+              .map(keys -> keys.stream().map(QueryParameterSortbyFeatures::getSortKey).toList())
+              .orElse(List.of());
+      if (!sortKeys.isEmpty()) {
+        return sortKeys;
+      }
+
       // no default value
       return null;
     }
@@ -114,13 +125,17 @@ public class QueryParameterSortbyFeatures extends OgcApiQueryParameterBase
     // the validation against the schema has verified that only valid properties are listed
     ImmutableList.Builder<SortKey> builder = new ImmutableList.Builder<>();
     for (String key : KEYS_SPLITTER.split(value)) {
-      if (key.startsWith("-")) {
-        builder.add(SortKey.of(key.substring(1), SortKey.Direction.DESCENDING));
-      } else {
-        builder.add(SortKey.of(key.startsWith("+") ? key.substring(1) : key));
-      }
+      builder.add(getSortKey(key));
     }
     return builder.build();
+  }
+
+  private static SortKey getSortKey(String key) {
+    if (key.startsWith("-")) {
+      return SortKey.of(key.substring(1), Direction.DESCENDING);
+    } else {
+      return SortKey.of(key.startsWith("+") ? key.substring(1) : key);
+    }
   }
 
   @Override

@@ -7,41 +7,41 @@
  */
 package de.ii.ogcapi.collections.schema.validation.app;
 
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaAllOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaArray;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaBoolean;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaConstant;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaFalse;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaGeometry;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaNull;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaNumber;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaRef;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaTrue;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaAllOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaArray;
-import de.ii.ogcapi.features.core.domain.JsonSchemaBoolean;
-import de.ii.ogcapi.features.core.domain.JsonSchemaConstant;
-import de.ii.ogcapi.features.core.domain.JsonSchemaDocument;
-import de.ii.ogcapi.features.core.domain.JsonSchemaFalse;
-import de.ii.ogcapi.features.core.domain.JsonSchemaGeometry;
-import de.ii.ogcapi.features.core.domain.JsonSchemaInteger;
-import de.ii.ogcapi.features.core.domain.JsonSchemaNull;
-import de.ii.ogcapi.features.core.domain.JsonSchemaNumber;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.JsonSchemaOneOf;
-import de.ii.ogcapi.features.core.domain.JsonSchemaRef;
-import de.ii.ogcapi.features.core.domain.JsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchemaTrue;
-import de.ii.ogcapi.features.core.domain.JsonSchemaVisitor;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaAllOf;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaArray;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaBoolean;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaConstant;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaFalse;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaGeometry;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaNull;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaNumber;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaRef;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaTrue;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaAllOf;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaConstant;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaFalse;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaGeometry;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNull;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNumber;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaOneOf;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTrue;
 import java.util.Optional;
 
-public class CleanupForValidation implements JsonSchemaVisitor {
+public class CleanupForValidation implements JsonSchemaTransformer {
 
   @Override
   public JsonSchema visit(JsonSchema schema) {

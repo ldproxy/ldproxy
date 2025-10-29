@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import java.util.List;
 
 @AutoMultiBind

@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.search.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -23,7 +24,7 @@ public interface SingleQuery {
 
   List<String> getCollections(); // String or Parameter
 
-  Optional<Object> getFilter();
+  Optional<Cql2Expression> getFilter();
 
   List<String> getSortby(); // String or Parameter
 

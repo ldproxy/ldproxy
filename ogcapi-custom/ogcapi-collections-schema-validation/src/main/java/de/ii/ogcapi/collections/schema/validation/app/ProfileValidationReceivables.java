@@ -11,14 +11,14 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaConstant;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaObject;
-import de.ii.ogcapi.features.core.domain.ImmutableJsonSchemaString;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaConstant;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 
 public abstract class ProfileValidationReceivables extends ProfileJsonSchemaForValidation {
 

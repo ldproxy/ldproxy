@@ -18,6 +18,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
+import de.ii.ogcapi.features.search.domain.ParameterResolver;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
@@ -220,7 +221,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     storedQuery = builder.build();
 
     QueryExpression executableQuery =
-        storedQuery.resolveParameters(queryParameterSet, schemaValidator);
+        new ParameterResolver(queryParameterSet, schemaValidator).visit(storedQuery);
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

@@ -7,11 +7,11 @@
  */
 package de.ii.ogcapi.profile.codelist.app;
 
-import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.profile.codelist.domain.ProfileCodelistConfiguration;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 
 public abstract class ProfileCodelist extends ProfileGeneric {
 

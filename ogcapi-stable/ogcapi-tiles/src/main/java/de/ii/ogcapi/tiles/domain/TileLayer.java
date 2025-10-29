@@ -9,10 +9,10 @@ package de.ii.ogcapi.tiles.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaObject;
 import de.ii.ogcapi.foundation.domain.OgcResourceMetadata;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetOgcApi;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.tiles.domain.TilesBoundingBox;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;

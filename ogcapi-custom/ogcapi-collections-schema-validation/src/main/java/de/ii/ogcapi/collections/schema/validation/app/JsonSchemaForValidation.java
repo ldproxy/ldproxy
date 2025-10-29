@@ -8,12 +8,12 @@
 package de.ii.ogcapi.collections.schema.validation.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.core.domain.JsonSchema;
 import de.ii.ogcapi.features.core.domain.JsonSchemaExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
