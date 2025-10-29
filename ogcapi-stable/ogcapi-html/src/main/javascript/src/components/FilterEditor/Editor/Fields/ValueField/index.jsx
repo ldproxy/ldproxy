@@ -29,7 +29,7 @@ const ValueField = ({
           disabled={disabled}
         >
           <option value="" className="d-none">
-            {t("None")}
+            {t("none")}
           </option>
           {Object.keys(code[valueKey]).map((item) => (
             <option value={code[valueKey][item]} key={item}>
@@ -69,7 +69,7 @@ const ValueField = ({
                 checked={value === "true"}
                 onChange={saveValue}
               />{" "}
-              {t("True")}
+              {t("true")}
             </Label>
           </FormGroup>
           <FormGroup check inline>
@@ -82,7 +82,7 @@ const ValueField = ({
                 checked={value === "false"}
                 onChange={saveValue}
               />{" "}
-              {t("False")}
+              {t("false")}
             </Label>
           </FormGroup>
         </FormGroup>
@@ -106,7 +106,7 @@ const ValueField = ({
               }
             }}
           />
-          <FormText>{t("Wildcard")}</FormText>
+          <FormText>{t("wildcard")}</FormText>
         </>
       );
   }

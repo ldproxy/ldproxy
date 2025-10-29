@@ -43,7 +43,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
 
   return (
     <Form onSubmit={noOp}>
-      <p className="text-muted text-uppercase">{t("Field")}</p>
+      <p className="text-muted text-uppercase">{t("field")}</p>
       <Row>
         <Col md="5">
           <FormGroup>
@@ -56,7 +56,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
               onChange={selectField}
             >
               <option value="" className="d-none">
-                {t("None")}
+                {t("none")}
               </option>
               {Object.keys(fields)
                 .toSorted()
@@ -82,7 +82,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === ""} onClick={save}>
-            {t("Add")}
+            {t("add")}
           </Button>
         </Col>
       </Row>

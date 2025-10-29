@@ -29,8 +29,8 @@ const FilterValueField = ({
       }
       onBlur={() => overwriteFilters(filterKey)()}
     >
-      <option value="ascending">{t("Ascending")}</option>
-      <option value="descending">{t("Descending")}</option>
+      <option value="ascending">{t("ascending")}</option>
+      <option value="descending">{t("descending")}</option>
     </Input>
   );
 };

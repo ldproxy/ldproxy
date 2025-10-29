@@ -39,12 +39,12 @@ const EditorHeader = ({
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? t("Apply") : t("Edit")}
+              {isOpen ? t("apply") : t("edit")}
             </Button>
           )}
           {isOpen && (
             <Button color="danger" size="sm" className="ml-1 py-0" onClick={cancel}>
-              {t("Cancel")}
+              {t("cancel")}
             </Button>
           )}
         </Col>

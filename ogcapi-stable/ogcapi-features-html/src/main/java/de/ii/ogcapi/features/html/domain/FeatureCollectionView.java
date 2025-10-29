@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.features.html.domain;
 
+import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Modifiable;
@@ -35,5 +37,7 @@ public abstract class FeatureCollectionView extends FeaturesView {
   }
 
   @Nullable
-  public abstract String translationsJson();
+  public abstract List<Map<String, String>> translationsMapDe();
+
+  public abstract List<Map<String, String>> translationsMapEn();
 }

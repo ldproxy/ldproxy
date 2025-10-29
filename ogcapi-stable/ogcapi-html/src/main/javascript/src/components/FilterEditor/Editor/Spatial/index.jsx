@@ -171,7 +171,7 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
         ) : (
           <Col md="2">
             <Button color="primary" size="sm" disabled={!valid.all} onClick={save}>
-              {t("Add")}
+              {t("add")}
             </Button>
           </Col>
         )}

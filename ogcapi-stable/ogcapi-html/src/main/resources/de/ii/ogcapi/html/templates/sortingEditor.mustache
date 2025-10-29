@@ -2,8 +2,17 @@
 <script type="text/javascript">
   globalThis._sortingfilter = {
       sortingcontainer: 'sf',
-            language: '{{{language}}}',
-      translations: {{{translationsJson}}},
+      language: '{{{language}}}',
+      translationsDe: {
+        {{#translationsMapDe}}
+          '{{key}}': '{{{value}}}',
+        {{/translationsMapDe}}
+      },
+      translationsEn: {
+      {{#translationsMapEn}}
+        '{{key}}': '{{{value}}}',
+      {{/translationsMapEn}}
+      },
   }
 </script>
 

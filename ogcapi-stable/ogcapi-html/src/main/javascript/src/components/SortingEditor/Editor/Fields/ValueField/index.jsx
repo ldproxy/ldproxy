@@ -21,8 +21,8 @@ const ValueField = ({ value, saveValue, save, disabled }) => {
         }
       }}
     >
-      <option value="ascending">{t("Ascending")}</option>
-      <option value="descending">{t("Descending")}</option>
+      <option value="ascending">{t("ascending")}</option>
+      <option value="descending">{t("descending")}</option>
     </Input>
   );
 };

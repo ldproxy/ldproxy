@@ -2,9 +2,18 @@
 <script type="text/javascript">
   globalThis._filter = {
       container: 'filter',
-            language: '{{{language}}}',
-      translations: {{{translationsJson}}},
-    {{#temporalExtent}}
+      language: '{{{language}}}',
+      translationsDe: {
+        {{#translationsMapDe}}
+          '{{key}}': '{{{value}}}',
+        {{/translationsMapDe}}
+      },
+      translationsEn: {
+      {{#translationsMapEn}}
+        '{{key}}': '{{{value}}}',
+      {{/translationsMapEn}}
+      },
+      {{#temporalExtent}}
       temporal: {
           start: {{#start}}{{.}}{{/start}}{{^start}}0{{/start}},
           end: {{#end}}{{.}}{{/end}}{{^end}}Date.now(){{/end}}

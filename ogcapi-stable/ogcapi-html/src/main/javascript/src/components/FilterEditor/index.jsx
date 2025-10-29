@@ -44,11 +44,14 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { translations } = globalThis._filter;
+  const { translationsDe, translationsEn } = globalThis._filter;
 
   useEffect(() => {
-    Object.entries(translations).forEach(([lang, bundle]) => {
-      i18n.addResourceBundle(lang, "translation", bundle.translation, true, true);
+    Object.entries(translationsDe).forEach(([key, value]) => {
+      i18n.addResourceBundle("de", "translation", { [key]: value }, true, true);
+    });
+    Object.entries(translationsEn).forEach(([key, value]) => {
+      i18n.addResourceBundle("en", "translation", { [key]: value }, true, true);
     });
   }, []);
 
@@ -204,7 +207,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
       ) : (
         <>
           {errorSpatialTemporal && <div>{t("error.spatialTemporal")}</div>}
-          {errorProperties && <div>{t("Error")}</div>}
+          {errorProperties && <div>{t("error")}</div>}
         </>
       )}
     </>

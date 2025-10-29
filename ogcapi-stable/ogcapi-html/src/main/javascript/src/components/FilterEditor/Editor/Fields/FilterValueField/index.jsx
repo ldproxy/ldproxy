@@ -93,7 +93,7 @@ const FilterValueField = ({
                   })
                 }
               />{" "}
-              {t("True")}
+              {t("true")}
             </Label>
           </FormGroup>
           <FormGroup check inline>
@@ -113,7 +113,7 @@ const FilterValueField = ({
                   })
                 }
               />{" "}
-              {t("False")}
+              {t("false")}
             </Label>
           </FormGroup>
         </FormGroup>

@@ -180,7 +180,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
           className="py-0"
           onClick={() => setIsInstant(false)}
         >
-          {t("Period")}
+          {t("period")}
         </Button>
         <Button
           color="primary"
@@ -189,7 +189,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
           className="py-0"
           onClick={() => setIsInstant(true)}
         >
-          {t("Instant")}
+          {t("instant")}
         </Button>
       </ButtonGroup>
       <Row>
@@ -314,7 +314,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
               onClick={save}
               disabled={!validInstant.instantInputValid || !validPeriod.all}
             >
-              {t("Add")}
+              {t("add")}
             </Button>
           </Col>
         )}
