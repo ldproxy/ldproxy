@@ -302,7 +302,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               basePath,
               apiPath,
               language,
-              translationsJson,
               isNoIndexEnabledForApi(apiData),
               getMapPosition(apiData),
               hideMap,
@@ -358,7 +357,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 basePath,
                 apiPath,
                 language,
-                translationsJson,
                 isNoIndexEnabledForApi(apiData),
                 apiData.getSubPath(),
                 getMapPosition(apiData, collectionName),
@@ -523,7 +521,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
-      String translationsJson,
       boolean noIndex,
       List<String> subPathToLandingPage,
       POSITION mapPosition,
@@ -601,7 +598,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
-        .setTranslationsJson(translationsJson)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))
@@ -647,7 +643,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
-      String translationsJson,
       boolean noIndex,
       POSITION mapPosition,
       boolean hideMap,
@@ -708,7 +703,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
-        .setTranslationsJson(translationsJson)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setPropertyTooltips(propertyTooltips)

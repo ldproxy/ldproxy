@@ -82,7 +82,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === ""} onClick={save}>
-            Add
+            {t("Add")}
           </Button>
         </Col>
       </Row>
