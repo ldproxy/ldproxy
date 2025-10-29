@@ -671,7 +671,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     return ModifiableFeatureCollectionView.create()
         .setFromStoredQuery(true)
         .setFilterEditor(null)
-        .setSortingEditor(null)
         .setApiData(apiData)
         .setSpatialExtent(api.getSpatialExtent())
         .setUri(requestUri)
