@@ -7,14 +7,8 @@
  */
 package de.ii.ogcapi.features.html.app;
 
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(builder = "new", deepImmutablesDetection = true)
-public interface SortingEditor {
-
-  Optional<String> getBackgroundUrl();
-
-  Optional<String> getAttribution();
-}
+public interface SortingEditor {}

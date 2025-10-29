@@ -225,10 +225,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
     if (collectionData().isEmpty()) {
       return null;
     }
-    return new ImmutableSortingEditor.Builder()
-        .backgroundUrl(Optional.ofNullable(htmlConfig().getBasemapUrl()))
-        .attribution(Optional.ofNullable(htmlConfig().getBasemapAttribution()))
-        .build();
+    return new ImmutableSortingEditor.Builder().build();
   }
 
   @Value.Derived
