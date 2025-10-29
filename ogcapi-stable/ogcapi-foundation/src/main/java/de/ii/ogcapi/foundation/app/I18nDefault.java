@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -44,5 +46,14 @@ public class I18nDefault implements I18n {
       return key;
     }
   }
-  ;
+
+  @Override
+  public Set<String> getKeys() {
+    return LOCALE_RESOURCE_BUNDLE_MAP.get(Locale.ENGLISH).keySet();
+  }
+
+  @Override
+  public Set<String> getKeysWithPrefix(String prefix) {
+    return getKeys().stream().filter(key -> key.startsWith(prefix)).collect(Collectors.toSet());
+  }
 }
