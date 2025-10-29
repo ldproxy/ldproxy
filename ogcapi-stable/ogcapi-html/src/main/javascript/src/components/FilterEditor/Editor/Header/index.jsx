@@ -15,8 +15,10 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
   return (
     <>
       <Row className="mb-3">
-        <Col md="3" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
-          <span className="mr-2 font-weight-bold">Filter</span>
+        <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+          <span className="font-weight-bold">Filter</span>
+        </Col>
+        <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {isEnabled && (
             <Button
               color={isOpen ? "primary" : "secondary"}
