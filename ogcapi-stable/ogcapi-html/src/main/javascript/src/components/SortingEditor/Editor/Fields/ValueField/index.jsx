@@ -1,7 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { Input } from "reactstrap";
-import { useTranslation } from "react-i18next";
 
 const ValueField = ({ value, saveValue, save, disabled }) => (
   <Input

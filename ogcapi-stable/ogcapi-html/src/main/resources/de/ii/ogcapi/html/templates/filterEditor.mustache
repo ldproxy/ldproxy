@@ -2,6 +2,8 @@
 <script type="text/javascript">
   globalThis._filter = {
       container: 'filter',
+            language: '{{{language}}}',
+      translations: {{{translationsJson}}},
     {{#temporalExtent}}
       temporal: {
           start: {{#start}}{{.}}{{/start}}{{^start}}0{{/start}},
