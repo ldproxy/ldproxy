@@ -27,7 +27,7 @@ const EditorHeader = ({
     <>
       <Row className="mb-3">
         <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
-          <span className="font-weight-bold">Sorting</span>
+          <span className="font-weight-bold">{t("sorting")}</span>
         </Col>
         <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {isEnabled && (
