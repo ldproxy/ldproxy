@@ -5,7 +5,10 @@ import { Button } from "reactstrap";
 import "./style.css";
 
 const FilterBadge = ({ field, value, isAdd, isRemove }) => {
-  const label = `${field}=${value}`;
+  let arrow = "";
+  if (value === "ascending") arrow = "↑";
+  if (value === "descending") arrow = "↓";
+  const label = `${field} ${arrow}`;
 
   const button = (
     <Button

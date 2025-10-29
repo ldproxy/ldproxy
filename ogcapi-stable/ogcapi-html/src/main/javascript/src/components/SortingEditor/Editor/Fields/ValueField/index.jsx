@@ -18,9 +18,6 @@ const ValueField = ({ value, saveValue, save, disabled }) => (
       }
     }}
   >
-    <option value="" className="d-none">
-      none
-    </option>
     <option value="ascending">Ascending</option>
     <option value="descending">Descending</option>
   </Input>

@@ -7,7 +7,7 @@ import ValueField from "./ValueField";
 
 const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) => {
   const [field, setField] = useState("");
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState("ascending");
   const [changedValue, setChangedValue] = useState("");
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
@@ -78,7 +78,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
           </FormGroup>
         </Col>
         <Col md="2">
-          <Button color="primary" size="sm" disabled={field === "" || value === ""} onClick={save}>
+          <Button color="primary" size="sm" disabled={field === ""} onClick={save}>
             Add
           </Button>
         </Col>
