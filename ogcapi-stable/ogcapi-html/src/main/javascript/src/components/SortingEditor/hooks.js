@@ -10,10 +10,18 @@ export const useApiInfo = (url) => {
 
   useEffect(() => {
     fetch(url)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          setError({ status: response.status, message: response.statusText });
+          return null;
+        }
+        return response.json();
+      })
       .then((data) => {
-        setObj(data);
-        setIsLoaded(true);
+        if (data) {
+          setObj(data);
+          setIsLoaded(true);
+        }
       })
       .catch((errors) => setError(errors));
   }, []);
