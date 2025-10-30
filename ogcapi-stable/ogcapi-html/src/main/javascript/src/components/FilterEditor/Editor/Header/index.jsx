@@ -16,7 +16,7 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
 
   return (
     <>
-      <Row className="mb-3">
+      <Row className="mb-1">
         <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           <span className="font-weight-bold">Filter</span>
         </Col>
@@ -30,11 +30,6 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               onClick={isOpen ? save : toggle}
             >
               {isOpen ? t("apply") : t("edit")}{" "}
-            </Button>
-          )}
-          {isOpen && (
-            <Button color="danger" size="sm" className="ml-1 py-0" onClick={cancel}>
-              {t("cancel")}
             </Button>
           )}
         </Col>
@@ -51,6 +46,16 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
                 onRemove={onRemove}
               />
             ))}
+        </Col>
+      </Row>
+      <Row className="mb-3">
+        <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap"/>
+        <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+          {isOpen && (
+            <Button color="danger" size="sm" className="py-0" onClick={cancel}>
+              {t("cancel")}
+            </Button>
+          )}
         </Col>
       </Row>
     </>

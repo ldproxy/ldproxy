@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import qs from "qs";
-import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
@@ -34,8 +33,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const enabled = loadedProperties;
 
   const [filters, setFilters] = useState({});
-
-  const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
   const { language, translations } = globalThis._sortingfilter;
@@ -154,7 +151,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   };
 
   if (errorProperties) {
-    return <div>{t("error")}</div>;
+    return <div>Error loading properties data</div>;
   }
 
   if (enabled && hasFields) {
