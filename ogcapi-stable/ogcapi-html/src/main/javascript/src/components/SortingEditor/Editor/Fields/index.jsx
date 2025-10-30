@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
@@ -30,6 +30,13 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
     setValue("");
     setField("");
   };
+
+  useEffect(() => {
+    if (Object.keys(filters).length === 0) {
+      setValue("ascending");
+      setField("");
+    }
+  }, [filters]);
 
   const noOp = (event) => {
     event.preventDefault();

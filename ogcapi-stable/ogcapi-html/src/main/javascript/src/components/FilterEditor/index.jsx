@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import PropTypes from "prop-types";
 
 import qs from "qs";
@@ -26,6 +26,18 @@ const toBounds = (filter) => {
 };
 
 const FilterEditor = ({ backgroundUrl, attribution }) => {
+  const initialFilters = useRef({});
+
+  const [isOpen, setOpen] = useState(false);
+
+  const [filters, setFilters] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      initialFilters.current = filters;
+    }
+  }, [isOpen]);
+
   const urlSpatialTemporal = new URL(baseUrl.pathname.endsWith("/") ? "../" : "./", baseUrl.href);
   urlSpatialTemporal.search = "?f=json";
 
@@ -68,14 +80,10 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     [properties]
   );
 
-  const [isOpen, setOpen] = useState(false);
-
   const enabled =
     loadedProperties &&
     loadedSpatialTemporal &&
     (Object.keys(fields).length > 0 || spatial || temporal);
-
-  const [filters, setFilters] = useState({});
 
   useEffect(() => {
     setFilters(
@@ -151,20 +159,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const cancel = (event) => {
     event.target.blur();
-
-    const newFilters = Object.keys(filters).reduce((reduced, key) => {
-      if (!filters[key].add) {
-        // eslint-disable-next-line no-param-reassign
-        reduced[key] = {
-          ...filters[key],
-          add: false,
-          remove: false,
-        };
-      }
-      return reduced;
-    }, {});
-
-    setFilters(newFilters);
+    setFilters(initialFilters.current);
     setOpen(false);
   };
 
