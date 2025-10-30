@@ -2,11 +2,6 @@
 <script type="text/javascript">
   globalThis._filter = {
       container: 'filter',
-      fields: {
-        {{#fields}}
-          '{{key}}': '{{{value}}}',
-        {{/fields}}
-      },
     {{#temporalExtent}}
       temporal: {
           start: {{#start}}{{.}}{{/start}}{{^start}}0{{/start}},

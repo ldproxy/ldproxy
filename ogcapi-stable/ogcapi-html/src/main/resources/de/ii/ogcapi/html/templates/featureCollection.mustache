@@ -8,7 +8,7 @@
 </div>
 
 {{#filterEditor}}
-<div id="filter" class="mb-5">
+<div id="filter" class="mb-2">
 <div class="row mb-3">
 <div class="col-md-3 font-weight-bold py-1">
 Filter
@@ -16,6 +16,16 @@ Filter
 </div>
 </div>
 {{/filterEditor}}
+
+{{#sortingEditor}}
+<div id="sf" class="mb-5">
+<div class="row mb-3">
+<div class="col-md-3 font-weight-bold py-1">
+Sorting
+</div>
+</div>
+</div>
+{{/sortingEditor}}
 
 {{#isMapRight}}
     <div class="row">
@@ -85,5 +95,6 @@ Filter
 {{/hideMap}}
 
 {{> filterEditor}}
+{{> sortingEditor}}
 
 {{> footer}}

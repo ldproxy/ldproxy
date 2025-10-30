@@ -16,7 +16,7 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
     <>
       <Row className="mb-3">
         <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
-          <span className="font-weight-bold">Filter</span>
+          <span className="font-weight-bold">Sorting</span>
         </Col>
         <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {isEnabled && (
@@ -27,7 +27,7 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? "Apply" : "Edit"}
+              {isOpen ? "Apply" : "Edit "}
             </Button>
           )}
           {isOpen && (
