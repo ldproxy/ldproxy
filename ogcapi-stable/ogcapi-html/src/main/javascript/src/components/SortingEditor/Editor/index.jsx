@@ -9,7 +9,7 @@ const EditorBody = ({ isOpen, fields, filters, onAdd, deleteFilters, titleForFil
   return (
     <Collapse isOpen={isOpen} onEntered={() => {}}>
       <Row>
-        <Col md="6">
+        <Col md="7">
           {Object.keys(fields).length > 0 && (
             <FieldFilter
               fields={Object.keys(fields)
