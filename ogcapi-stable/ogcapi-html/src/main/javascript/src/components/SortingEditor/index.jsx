@@ -154,33 +154,29 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     hasFields,
   };
 
-  let content = null;
-  if (enabled && hasFields) {
-    content = (
-      <Editor
-        isOpen={isOpen}
-        fields={fields}
-        backgroundUrl={backgroundUrl}
-        attribution={attribution}
-        filters={filters}
-        onAdd={onAdd}
-        deleteFilters={deleteFilters}
-        titleForFilter={fields}
-        setFilters={setFilters}
-      />
-    );
-  } else if (errorProperties) {
-    content = <div>{t("error")}</div>;
-  } else if (enabled && !hasFields && isOpen) {
-    content = <div>{t("noSortableFields")}</div>;
+  if (errorProperties) {
+    return <div>{t("error")}</div>;
   }
 
-  return (
-    <>
-      <EditorHeader {...editorHeaderProps} />
-      {content}
-    </>
-  );
+  if (enabled && hasFields) {
+    return (
+      <>
+        <EditorHeader {...editorHeaderProps} />
+        <Editor
+          isOpen={isOpen}
+          fields={fields}
+          backgroundUrl={backgroundUrl}
+          attribution={attribution}
+          filters={filters}
+          onAdd={onAdd}
+          deleteFilters={deleteFilters}
+          titleForFilter={fields}
+          setFilters={setFilters}
+        />
+      </>
+    );
+  }
+  return null;
 };
 
 FilterEditor.displayName = "FilterEditor";
