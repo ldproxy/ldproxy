@@ -132,6 +132,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     setOpen(false);
   };
 
+  const hasFields = fields && Object.keys(fields).length > 0;
+
   const editorHeaderProps = {
     isOpen,
     setOpen,
@@ -142,10 +144,14 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     onRemove,
   };
 
-  return (
-    <>
-      <EditorHeader {...editorHeaderProps} />
-      {enabled ? (
+  if (errorProperties) {
+    return <div>Error loading properties data</div>;
+  }
+
+  if (enabled && hasFields) {
+    return (
+      <>
+        <EditorHeader {...editorHeaderProps} />
         <Editor
           isOpen={isOpen}
           fields={fields}
@@ -157,11 +163,10 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
           titleForFilter={fields}
           setFilters={setFilters}
         />
-      ) : (
-        <>{errorProperties && <div>Error loading properties data</div>}</>
-      )}
-    </>
-  );
+      </>
+    );
+  }
+  return null;
 };
 
 FilterEditor.displayName = "FilterEditor";
