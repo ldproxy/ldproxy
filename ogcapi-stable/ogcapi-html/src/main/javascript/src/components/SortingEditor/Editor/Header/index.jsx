@@ -49,7 +49,10 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
         </Col>
       </Row>
       <Row className="mb-3">
-        <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap"/>
+        <Col
+          md="1"
+          className="d-flex flex-row justify-content-start align-items-center flex-wrap"
+        />
         <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {isOpen && (
             <Button color="danger" size="sm" className="py-0" onClick={cancel}>
