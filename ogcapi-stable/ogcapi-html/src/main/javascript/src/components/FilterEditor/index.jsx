@@ -44,14 +44,10 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { translationsDe, translationsEn } = globalThis._filter;
-
+  const { language, translations } = globalThis._sortingfilter;
   useEffect(() => {
-    Object.entries(translationsDe).forEach(([key, value]) => {
-      i18n.addResourceBundle("de", "translation", { [key]: value }, true, true);
-    });
-    Object.entries(translationsEn).forEach(([key, value]) => {
-      i18n.addResourceBundle("en", "translation", { [key]: value }, true, true);
+    Object.entries(translations).forEach(([key, value]) => {
+      i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
     });
   }, []);
 

@@ -89,7 +89,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
           ImmutableMap.of(
               PropertyTransformations.WILDCARD,
               new Builder().flatten(DEFAULT_FLATTENING_SEPARATOR).build()));
-
+  private static final String PREFIX = "js.editor.";
   private final Values<Codelist> codelistStore;
   private final I18n i18n;
   private final FeaturesCoreValidation featuresCoreValidator;
@@ -97,11 +97,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
   private final MustacheRenderer mustacheRenderer;
   private final HttpClient httpClient;
   private final StyleReader styleReader;
-  private final String prefix = "js.editor.";
-  private final Locale de = Locale.GERMAN;
-  private final Locale en = Locale.ENGLISH;
-  private final List<Map<String, String>> deMap;
-  private final List<Map<String, String>> enMap;
 
   @Inject
   public FeaturesFormatHtml(
@@ -117,26 +112,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.i18n = i18n;
-    this.deMap =
-        this.i18n.getKeysWithPrefix(prefix).stream()
-            .map(
-                k ->
-                    Map.of(
-                        "key",
-                        k.substring(prefix.length()),
-                        "value",
-                        this.i18n.get(k, Optional.of(de))))
-            .collect(Collectors.toList());
-    this.enMap =
-        this.i18n.getKeysWithPrefix(prefix).stream()
-            .map(
-                k ->
-                    Map.of(
-                        "key",
-                        k.substring(prefix.length()),
-                        "value",
-                        this.i18n.get(k, Optional.of(en))))
-            .collect(Collectors.toList());
     this.featuresCoreValidator = featuresCoreValidator;
     this.servicesUri = servicesContext.getUri();
     this.mustacheRenderer = mustacheRenderer;
@@ -346,8 +321,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 basePath,
                 apiPath,
                 language,
-                deMap,
-                enMap,
                 isNoIndexEnabledForApi(apiData),
                 getMapPosition(apiData, collectionName),
                 hideMap,
@@ -412,8 +385,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String basePath,
       String apiPath,
       Optional<Locale> language,
-      List<Map<String, String>> deTranslations,
-      List<Map<String, String>> enTranslations,
       boolean noIndex,
       POSITION mapPosition,
       boolean hideMap,
@@ -429,6 +400,14 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     } catch (URISyntaxException e) {
       // ignore
     }
+
+    List<Map<String, String>> jsTranslations =
+        this.i18n.getKeysWithPrefix(PREFIX).stream()
+            .map(
+                k ->
+                    Map.of(
+                        "key", k.substring(PREFIX.length()), "value", this.i18n.get(k, language)))
+            .collect(Collectors.toList());
 
     Optional<HtmlConfiguration> htmlConfig = featureType.getExtension(HtmlConfiguration.class);
     String attribution = apiData.getMetadata().flatMap(ApiMetadata::getAttribution).orElse(null);
@@ -481,8 +460,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
-        .setTranslationsMapDe(deTranslations)
-        .setTranslationsMapEn(enTranslations)
+        .setJsTranslations(jsTranslations)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))

@@ -37,7 +37,5 @@ public abstract class FeatureCollectionView extends FeaturesView {
   }
 
   @Nullable
-  public abstract List<Map<String, String>> translationsMapDe();
-
-  public abstract List<Map<String, String>> translationsMapEn();
+  public abstract List<Map<String, String>> jsTranslations();
 }

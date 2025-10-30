@@ -3,15 +3,10 @@
   globalThis._filter = {
       container: 'filter',
       language: '{{{language}}}',
-      translationsDe: {
-        {{#translationsMapDe}}
+      translations: {
+        {{#jsTranslations}}
           '{{key}}': '{{{value}}}',
-        {{/translationsMapDe}}
-      },
-      translationsEn: {
-      {{#translationsMapEn}}
-        '{{key}}': '{{{value}}}',
-      {{/translationsMapEn}}
+        {{/jsTranslations}}
       },
       {{#temporalExtent}}
       temporal: {

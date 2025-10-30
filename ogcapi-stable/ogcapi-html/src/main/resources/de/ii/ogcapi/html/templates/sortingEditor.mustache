@@ -3,15 +3,10 @@
   globalThis._sortingfilter = {
       sortingcontainer: 'sf',
       language: '{{{language}}}',
-      translationsDe: {
-        {{#translationsMapDe}}
+      translations: {
+        {{#jsTranslations}}
           '{{key}}': '{{{value}}}',
-        {{/translationsMapDe}}
-      },
-      translationsEn: {
-      {{#translationsMapEn}}
-        '{{key}}': '{{{value}}}',
-      {{/translationsMapEn}}
+        {{/jsTranslations}}
       },
   }
 </script>
