@@ -90,6 +90,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               PropertyTransformations.WILDCARD,
               new Builder().flatten(DEFAULT_FLATTENING_SEPARATOR).build()));
   private static final String PREFIX = "js.editor.";
+
   private final Values<Codelist> codelistStore;
   private final I18n i18n;
   private final FeaturesCoreValidation featuresCoreValidator;
@@ -401,12 +402,9 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       // ignore
     }
 
-    List<Map<String, String>> jsTranslations =
+    List<Map.Entry<String, String>> jsTranslations =
         this.i18n.getKeysWithPrefix(PREFIX).stream()
-            .map(
-                k ->
-                    Map.of(
-                        "key", k.substring(PREFIX.length()), "value", this.i18n.get(k, language)))
+            .map(k -> Map.entry(k.substring(PREFIX.length()), this.i18n.get(k, language)))
             .collect(Collectors.toList());
 
     Optional<HtmlConfiguration> htmlConfig = featureType.getExtension(HtmlConfiguration.class);

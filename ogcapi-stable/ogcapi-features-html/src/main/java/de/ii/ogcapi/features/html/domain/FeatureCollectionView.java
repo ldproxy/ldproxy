@@ -9,14 +9,12 @@ package de.ii.ogcapi.features.html.domain;
 
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Modifiable;
 
 /**
  * @author zahnen
  */
-// TODO Look following classes: FeaturesFormatHtml
 @Value.Immutable
 @Value.Style(builder = "new")
 @Modifiable
@@ -36,6 +34,5 @@ public abstract class FeatureCollectionView extends FeaturesView {
     return false;
   }
 
-  @Nullable
-  public abstract List<Map<String, String>> jsTranslations();
+  public abstract List<Map.Entry<String, String>> jsTranslations();
 }
