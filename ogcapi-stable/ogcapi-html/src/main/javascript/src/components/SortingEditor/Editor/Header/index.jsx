@@ -5,16 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import Badge from "../../Badge";
 
-const EditorHeader = ({
-  isOpen,
-  setOpen,
-  isEnabled,
-  filters,
-  save,
-  cancel,
-  onRemove,
-  hasFields,
-}) => {
+const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRemove }) => {
   const { t } = useTranslation();
 
   const toggle = (event) => {
@@ -34,7 +25,6 @@ const EditorHeader = ({
             <Button
               color={isOpen ? "primary" : "secondary"}
               outline={!isOpen}
-              disabled={!hasFields && isOpen}
               size="sm"
               className="py-0"
               onClick={isOpen ? save : toggle}
@@ -78,7 +68,6 @@ EditorHeader.propTypes = {
   save: PropTypes.func.isRequired,
   cancel: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
-  hasFields: PropTypes.bool.isRequired,
 };
 
 EditorHeader.defaultProps = {

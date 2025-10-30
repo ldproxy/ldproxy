@@ -151,7 +151,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     save,
     cancel,
     onRemove,
-    hasFields,
   };
 
   if (errorProperties) {
