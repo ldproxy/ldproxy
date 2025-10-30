@@ -154,6 +154,13 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   };
 
   if (errorProperties) {
+    // Hide error if it's a 404 (HTML error page caused by disabled building block "sorting")
+    if (
+      typeof errorProperties.message === "string" &&
+      errorProperties.message.includes("<!DOCTYPE")
+    ) {
+      return null;
+    }
     return <div>{t("error")}</div>;
   }
 
