@@ -155,7 +155,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   };
 
   if (errorProperties) {
-    return <div>{t("error")}</div>;
+    return <div>Error loading properties data</div>;
   }
 
   if (enabled && hasFields) {
