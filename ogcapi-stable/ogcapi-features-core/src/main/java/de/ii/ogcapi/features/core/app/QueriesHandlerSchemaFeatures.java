@@ -190,7 +190,8 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("%s.%s", collectionId, outputFormat.getMediaType().fileExtension())))
+                String.format("%s.%s", collectionId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(schema, type, links, collectionId, api, requestContext))
         .build();
   }

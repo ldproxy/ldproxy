@@ -158,7 +158,8 @@ public class QueriesHandlerGltfImpl extends AbstractVolatileComposed implements 
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.schema.%s", collectionId, outputFormat.getMediaType().fileExtension())))
+                    "%s.schema.%s", collectionId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(schema))
         .build();
   }

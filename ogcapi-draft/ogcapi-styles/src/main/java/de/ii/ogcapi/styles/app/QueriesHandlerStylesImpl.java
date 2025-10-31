@@ -143,7 +143,8 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("styles.%s", format.getMediaType().fileExtension())))
+                String.format("styles.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getStylesEntity(styles, apiData, collectionId, requestContext))
         .build();
   }
@@ -214,7 +215,8 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
             links,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
-            HeaderContentDisposition.of(String.format("%s.%s", styleId, format.getFileExtension())))
+            HeaderContentDisposition.of(String.format("%s.%s", styleId, format.getFileExtension())),
+            i18n.getLanguages())
         .entity(
             format.getStyleEntity(
                 stylesheetContent, api, collectionId, styleId, tileMatrixSet, requestContext))
@@ -270,7 +272,8 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format(
                     "%s.metadata.%s",
-                    queryInput.getStyleId(), format.getMediaType().fileExtension())))
+                    queryInput.getStyleId(), format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getStyleMetadataEntity(metadata, apiData, collectionId, requestContext))
         .build();
   }
@@ -315,7 +318,8 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format(
                     "%s.legend.%s",
-                    queryInput.getStyleId(), format.getMediaType().fileExtension())))
+                    queryInput.getStyleId(), format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getStyleLegendImage(blob, apiData, collectionId, requestContext))
         .type(blob.contentType())
         .build();

@@ -32,8 +32,12 @@ public class ContentNegotiationLanguageImpl implements ContentNegotiationLanguag
   private static final String LANGUAGE_PARAMETER = "lang";
   private static final String ACCEPT_LANGUAGE_HEADER = "Accept-Language";
 
+  private final I18n i18n;
+
   @Inject
-  ContentNegotiationLanguageImpl() {}
+  ContentNegotiationLanguageImpl(I18n i18n) {
+    this.i18n = i18n;
+  }
 
   @Override
   public Optional<Locale> negotiateLanguage(ContainerRequestContext requestContext) {
@@ -69,7 +73,7 @@ public class ContentNegotiationLanguageImpl implements ContentNegotiationLanguag
   }
 
   private Optional<Locale> negotiateLanguage(Request request) {
-    Locale[] supportedLanguagesArray = I18n.getLanguages().toArray(Locale[]::new);
+    Locale[] supportedLanguagesArray = i18n.getLanguages().toArray(Locale[]::new);
 
     Variant variant = null;
     try {
@@ -87,7 +91,7 @@ public class ContentNegotiationLanguageImpl implements ContentNegotiationLanguag
 
     return Optional.ofNullable(variant)
         .map(Variant::getLanguage)
-        .flatMap(locale -> findMatchingLanguage(locale, I18n.getLanguages()));
+        .flatMap(locale -> findMatchingLanguage(locale, i18n.getLanguages()));
   }
 
   private Optional<Locale> findMatchingLanguage(Locale locale, Set<Locale> supportedLocales) {

@@ -506,7 +506,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             Objects.isNull(featureId) && !sendResponseAsStream
                 ? HeaderItems.of(
                     outputFormat.getNumberMatched(bytes), outputFormat.getNumberReturned(bytes))
-                : HeaderItems.of());
+                : HeaderItems.of(),
+            i18n.getLanguages());
 
     if (Objects.nonNull(spatialExtentHeader)) {
       response.header(BOUNDING_BOX_HEADER, spatialExtentHeader);

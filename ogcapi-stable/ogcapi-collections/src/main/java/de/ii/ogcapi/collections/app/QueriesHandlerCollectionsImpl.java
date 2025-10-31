@@ -165,7 +165,8 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "collections.%s", outputFormatExtension.getMediaType().fileExtension())))
+                    "collections.%s", outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(
             outputFormatExtension.getEntity(
                 responseObject, requestContext.getApi(), requestContext))
@@ -249,7 +250,8 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", collectionId, outputFormatExtension.getMediaType().fileExtension())))
+                    "%s.%s", collectionId, outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormatExtension.getEntity(responseObject, api, requestContext))
         .build();
   }

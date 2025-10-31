@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
+import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
@@ -84,13 +85,18 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
   private final Map<String, AsyncApi> asyncApiDefinitions;
   private final FeaturesCoreProviders providers;
   private final Supplier<Map<String, Codelist>> codelistSupplier;
+  private final I18n i18n;
 
   @Inject
   public QueriesHandlerPubSubImpl(
-      FeaturesCoreProviders providers, ValueStore valueStore, VolatileRegistry volatileRegistry) {
+      FeaturesCoreProviders providers,
+      ValueStore valueStore,
+      VolatileRegistry volatileRegistry,
+      I18n i18n) {
     super(QueriesHandlerPubSub.class.getSimpleName(), volatileRegistry, true);
     this.providers = providers;
     this.codelistSupplier = valueStore.forType(Codelist.class)::asMap;
+    this.i18n = i18n;
     this.queryHandlers =
         ImmutableMap.of(
             Query.ASYNC_API_DEFINITION,
@@ -374,7 +380,8 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("asyncapi.%s", outputFormatExtension.getMediaType().fileExtension())))
+                String.format("asyncapi.%s", outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormatExtension.getAsyncApiEntity(apiDefinition, requestContext))
         .build();
   }

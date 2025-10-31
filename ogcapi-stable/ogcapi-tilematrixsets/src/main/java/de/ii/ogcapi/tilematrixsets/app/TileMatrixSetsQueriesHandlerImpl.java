@@ -160,7 +160,8 @@ public class TileMatrixSetsQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("tileMatrixSets.%s", outputFormat.getMediaType().fileExtension())))
+                String.format("tileMatrixSets.%s", outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(tileMatrixSets, api, requestContext))
         .build();
   }
@@ -223,7 +224,8 @@ public class TileMatrixSetsQueriesHandlerImpl extends AbstractVolatileComposed
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", tileMatrixSetId, outputFormat.getMediaType().fileExtension())))
+                    "%s.%s", tileMatrixSetId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(tileMatrixSetData, api, requestContext))
         .build();
   }

@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.NotFoundException;
@@ -37,8 +38,6 @@ public interface QueriesHandler<T extends QueryIdentifier> {
 
   Logger LOGGER = LoggerFactory.getLogger(QueriesHandler.class);
 
-  Locale[] LANGUAGES =
-      I18n.getLanguages().stream().collect(Collectors.toUnmodifiableList()).toArray(Locale[]::new);
   String[] ENCODINGS = {"gzip", "identity"};
 
   static void ensureCollectionIdExists(OgcApiDataV2 apiData, String collectionId) {
@@ -116,14 +115,16 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       List<Link> links,
       HeaderCaching cacheInfo,
       EpsgCrs crs,
-      HeaderContentDisposition dispositionInfo) {
+      HeaderContentDisposition dispositionInfo,
+      Set<Locale> languages) {
     return prepareSuccessResponse(
         requestContext,
         links,
         cacheInfo,
         crs,
         dispositionInfo,
-        HeaderItems.of(Optional.empty(), Optional.empty()));
+        HeaderItems.of(Optional.empty(), Optional.empty()),
+        languages);
   }
 
   default Response.ResponseBuilder prepareSuccessResponse(
@@ -132,7 +133,8 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       HeaderCaching cacheInfo,
       EpsgCrs crs,
       HeaderContentDisposition dispositionInfo,
-      HeaderItems itemsHeader) {
+      HeaderItems itemsHeader,
+      Set<Locale> languages) {
     Response.ResponseBuilder response = Response.ok().type(requestContext.getMediaType().type());
 
     cacheInfo.getLastModified().ifPresent(response::lastModified);
@@ -151,7 +153,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
                         .stream()
                         .map(ApiMediaType::type)
                         .toArray(MediaType[]::new))
-            .languages(LANGUAGES)
+            .languages(languages.toArray(new Locale[0]))
             .encodings(ENCODINGS)
             .add()
             .build());

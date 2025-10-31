@@ -204,7 +204,8 @@ public class QueriesHandlerCodelistsImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified.orElse(null), etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("codelists.%s", format.getMediaType().fileExtension())))
+                String.format("codelists.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getCodelistsEntity(codelists, apiData, requestContext))
         .build();
   }
@@ -269,7 +270,8 @@ public class QueriesHandlerCodelistsImpl extends AbstractVolatileComposed
             links,
             HeaderCaching.of(lastModified, eTag, queryInput),
             null,
-            HeaderContentDisposition.of(id))
+            HeaderContentDisposition.of(id),
+            i18n.getLanguages())
         .entity(format.getCodelist(codelist, id, apiData, requestContext, links))
         .type(format.getMediaType().type())
         .build();

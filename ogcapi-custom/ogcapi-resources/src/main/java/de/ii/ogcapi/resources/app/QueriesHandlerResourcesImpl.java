@@ -270,7 +270,8 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("resources.%s", format.getMediaType().fileExtension())))
+                String.format("resources.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getResourcesEntity(resources, apiData, requestContext))
         .build();
   }
@@ -314,7 +315,8 @@ public class QueriesHandlerResourcesImpl extends AbstractVolatileComposed
               null,
               HeaderCaching.of(lastModified, eTag, queryInput),
               null,
-              HeaderContentDisposition.of(resourceId))
+              HeaderContentDisposition.of(resourceId),
+              i18n.getLanguages())
           .entity(format.getResourceEntity(blob.content(), resourceId, apiData, requestContext))
           .type(blob.contentType())
           .build();

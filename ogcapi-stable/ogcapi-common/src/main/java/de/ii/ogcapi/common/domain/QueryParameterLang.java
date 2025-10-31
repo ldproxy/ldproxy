@@ -45,10 +45,12 @@ public class QueryParameterLang extends OgcApiQueryParameterBase
 
   private Schema<?> schema = null;
   private final SchemaValidator schemaValidator;
+  private final I18n i18n;
 
   @Inject
-  public QueryParameterLang(SchemaValidator schemaValidator) {
+  public QueryParameterLang(SchemaValidator schemaValidator, I18n i18n) {
     this.schemaValidator = schemaValidator;
+    this.i18n = i18n;
   }
 
   @Override
@@ -67,7 +69,7 @@ public class QueryParameterLang extends OgcApiQueryParameterBase
       return null;
     }
 
-    return I18n.getLanguages().stream()
+    return i18n.getLanguages().stream()
         .filter(lang -> Objects.equals(lang.getLanguage(), value))
         .findFirst()
         .orElse(null);
@@ -98,7 +100,7 @@ public class QueryParameterLang extends OgcApiQueryParameterBase
       schema =
           new StringSchema()
               ._enum(
-                  I18n.getLanguages().stream()
+                  i18n.getLanguages().stream()
                       .map(Locale::getLanguage)
                       .collect(Collectors.toList()));
     }
