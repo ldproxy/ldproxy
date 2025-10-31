@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableList
 import de.ii.ogcapi.common.app.ImmutableQueryInputConformance
 import de.ii.ogcapi.common.app.ImmutableQueryInputLandingPage
 import de.ii.ogcapi.common.app.QueriesHandlerCommonImpl
-import de.ii.ogcapi.foundation.app.I18nDefault
 import de.ii.ogcapi.foundation.app.OgcApiEntity
 import de.ii.ogcapi.foundation.domain.*
 import de.ii.xtraplatform.crs.domain.BoundingBox
@@ -26,7 +25,7 @@ class LandingPageSpec extends Specification {
     static final OgcApiDataV2 datasetData = createDatasetData()
     static OgcApiEntity apiEntity = createDatasetEntity()
     static final ApiRequestContext requestContext = createRequestContext()
-    static QueriesHandlerCommonImpl queryHandler = new QueriesHandlerCommonImpl(createExtensionRegistry(), new I18nDefault())
+    static QueriesHandlerCommonImpl queryHandler = new QueriesHandlerCommonImpl(createExtensionRegistry(), createI18n())
 
     def 'Requirement 2 B: landing page response'() {
 
@@ -214,6 +213,35 @@ class LandingPageSpec extends Specification {
                 }
 
                 return ImmutableList.of()
+            }
+        }
+    }
+
+    static def createI18n() {
+        new I18n() {
+            @Override
+            Set<Locale> getLanguages() {
+                return Set.of()
+            }
+
+            @Override
+            String get(String key) {
+                return ""
+            }
+
+            @Override
+            String get(String key, Optional<Locale> language) {
+                return ""
+            }
+
+            @Override
+            Set<String> getKeys() {
+                return Set.of()
+            }
+
+            @Override
+            Set<String> getKeysWithPrefix(String prefix) {
+                return Set.of()
             }
         }
     }
