@@ -46,6 +46,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -329,12 +330,17 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
         scaleDenominatorLevel0WebMercatorQuad
             .divide(scaleDenominatorLevel0Target, MathContext.DECIMAL128)
             .setScale(5, RoundingMode.HALF_UP);
-    double adjust = Math.log(ratio.doubleValue()) / Math.log(2);
-    AdjustZoomLevels adjustZoomLevels = new AdjustZoomLevels(adjust);
+    double adjustment = Math.log(ratio.doubleValue()) / Math.log(2);
+    Function<Double, Double> adjustZoomLevel =
+        zoomLevel ->
+            Math.min(
+                tileMatrixSet.get().getMaxLevel(),
+                Math.max(tileMatrixSet.get().getMinLevel(), zoomLevel - adjustment));
+    AdjustZoomLevels adjustZoomLevels = new AdjustZoomLevels(adjustZoomLevel);
 
     return new ImmutableMbStyleStylesheet.Builder()
         .from(this)
-        .zoom(getZoom().map(v -> Math.max(0, v - adjust)))
+        .zoom(getZoom().map(adjustZoomLevel))
         .metadata(
             getMetadata()
                 .map(
@@ -357,17 +363,17 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                         .map(url -> adjustUrl(url, tmsId, serviceUrl)))
                                 .withTiles(
                                     ((MbStyleVectorSource) source)
-                                        .getTiles().orElse(List.of()).stream()
+                                        .getTiles().stream()
                                             .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
                                             .collect(Collectors.toList()))
                                 .withMinzoom(
                                     ((MbStyleVectorSource) source)
                                         .getMinzoom()
-                                        .map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                        .map(v -> adjustZoomLevel.apply(v.doubleValue())))
                                 .withMaxzoom(
                                     ((MbStyleVectorSource) source)
                                         .getMaxzoom()
-                                        .map(v -> Math.max(0, v.doubleValue() - adjust))));
+                                        .map(v -> adjustZoomLevel.apply(v.doubleValue()))));
                       } else if (source instanceof MbStyleRasterSource) {
                         return Map.entry(
                             entry.getKey(),
@@ -384,11 +390,11 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                 .withMinzoom(
                                     ((MbStyleRasterSource) source)
                                         .getMinzoom()
-                                        .map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                        .map(v -> adjustZoomLevel.apply(v.doubleValue())))
                                 .withMaxzoom(
                                     ((MbStyleRasterSource) source)
                                         .getMaxzoom()
-                                        .map(v -> Math.max(0, v.doubleValue() - adjust))));
+                                        .map(v -> adjustZoomLevel.apply(v.doubleValue()))));
                       }
                       return Map.entry(entry.getKey(), entry.getValue());
                     })
@@ -399,9 +405,9 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                     l ->
                         ImmutableMbStyleLayer.copyOf(l)
                             .withMinzoom(
-                                l.getMinzoom().map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                l.getMinzoom().map(v -> adjustZoomLevel.apply(v.doubleValue())))
                             .withMaxzoom(
-                                l.getMaxzoom().map(v -> Math.max(0, v.doubleValue() - adjust)))
+                                l.getMaxzoom().map(v -> adjustZoomLevel.apply(v.doubleValue())))
                             .withLayout(
                                 l.getLayout().entrySet().stream()
                                     .map(
@@ -464,7 +470,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                     source ->
                         (source instanceof MbStyleVectorSource
                                 && (((MbStyleVectorSource) source)
-                                        .getTiles().orElse(ImmutableList.of()).stream()
+                                        .getTiles().stream()
                                             .anyMatch(
                                                 tilesUri ->
                                                     tilesUri.matches("^.*\\{serviceUrl\\}.*$"))
@@ -517,7 +523,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                                         .map(url -> url.replace("{serviceUrl}", serviceUrl)))
                                 .tiles(
                                     ((MbStyleVectorSource) source)
-                                        .getTiles().orElse(ImmutableList.of()).stream()
+                                        .getTiles().stream()
                                             .map(tile -> tile.replace("{serviceUrl}", serviceUrl))
                                             .collect(Collectors.toList()))
                                 .build();

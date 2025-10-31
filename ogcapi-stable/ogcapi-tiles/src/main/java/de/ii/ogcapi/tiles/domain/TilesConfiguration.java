@@ -520,14 +520,15 @@ public interface TilesConfiguration
   /**
    * @langEn Selection of the map client to be used in the HTML output. The default is MapLibre GL
    *     JS, only the "WebMercatorQuad" tiling scheme is supported. Alternatively 'OPEN_LAYERS' is
-   *     supported as well (OpenLayers). The support of Open Layers only makes sense if other of the
-   *     predefined tiling schemes should be supported in the HTML output. With `OPEN_LAYERS` no
-   *     styles are supported.
+   *     supported as well (OpenLayers). The support of OpenLayers only makes sense if other of the
+   *     predefined tiling schemes should be supported in the HTML output. With OpenLayers, only the
+   *     settings for vector tiles are applied, not those for other sources, such as the basemap.
    * @langDe Auswahl des zu verwendenden Map-Clients in der HTML-Ausgabe. Der Standard ist MapLibre
    *     GL JS, unterstützt wird nur das Kachelschema "WebMercatorQuad". Alternativ wird als auch
-   *     `OPEN_LAYERS` unterstützt (OpenLayers). Die Unterstützung von Open Layers ist nur sinnvoll,
+   *     `OPEN_LAYERS` unterstützt (OpenLayers). Die Unterstützung von OpenLayers ist nur sinnvoll,
    *     wenn in der HTML Ausgabe auch andere der vordefinierten Kachelschemas unterstützt werden
-   *     sollen. Bei `OPEN_LAYERS` werden keine Styles unterstützt.
+   *     sollen. Bei OpenLayers werden nur die Vorgaben zu den Vector-Tiles übernommen, nicht zu
+   *     anderen Quellen, z.B. den Hintergrundkarten.
    * @default MAP_LIBRE
    */
   @Nullable
@@ -537,14 +538,12 @@ public interface TilesConfiguration
    * @langEn A style in the style repository to be used in maps with tiles by default. With
    *     `DEFAULT` the `defaultStyle` from the [HTML building block](html.md) is used. If the map
    *     client is MapLibre, the style must be available in the Mapbox format. If the style is set
-   *     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap. If the
-   *     map client is Open Layers, the setting is ignored.
+   *     to `NONE`, a simple wireframe style will be used with OpenStreetMap as a basemap.
    * @langDe Ein Style im Style-Repository, der standardmäßig in Karten mit den Tiles verwendet
    *     werden soll. Bei `DEFAULT` wird der `defaultStyle` aus dem [HTML-Baustein](html.md)
    *     verwendet. Handelt es sich bei dem Kartenclient um MapLibre, muss der Style im
    *     Mapbox-Format verfügbar sein. Wenn der Style auf `NONE` gesetzt ist, wird ein einfacher
-   *     Wireframe Style mit OpenStreetMap als Basiskarte verwendet. Handelt es sich bei dem
-   *     Kartenclient um Open Layers, wird die Angabe ignoriert.
+   *     Wireframe Style mit OpenStreetMap als Basiskarte verwendet.
    * @default DEFAULT
    */
   @Nullable

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.styles.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Optional;
@@ -24,19 +25,20 @@ public interface MbStyleVectorSource extends MbStyleSource {
 
   Optional<String> getUrl();
 
-  Optional<List<String>> getTiles();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<String> getTiles();
 
-  Optional<List<Double>>
-      getBounds(); // { return Optional.of(ImmutableList.of(-180.0,-85.051129,180.0,85.051129)); }
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<Double> getBounds();
 
   @Value.Default
   default Scheme getScheme() {
     return Scheme.xyz;
   }
 
-  Optional<Number> getMinzoom(); // { return Optional.of(0); }
+  Optional<Number> getMinzoom();
 
-  Optional<Number> getMaxzoom(); // { return Optional.of(22); }
+  Optional<Number> getMaxzoom();
 
   Optional<String> getAttribution();
 }
