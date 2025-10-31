@@ -34,7 +34,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   useEffect(() => {
     if (isOpen) {
-      initialFilters.current = filters;
+      initialFilters.current = JSON.parse(JSON.stringify(filters));
     }
   }, [isOpen]);
 
@@ -110,13 +110,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     }));
   };
 
-  const onRemove = (field) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: { value: prev[field].value, add: false, remove: true },
-    }));
-  };
-
   const save = (event) => {
     event.target.blur();
 
@@ -152,7 +145,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const deleteFilters = (field) => () => {
     setFilters((current) => {
       const copy = { ...current };
-      delete copy[field];
+      copy[field].remove = true;
       return copy;
     });
   };
@@ -170,7 +163,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     filters,
     save,
     cancel,
-    onRemove,
   };
 
   return (

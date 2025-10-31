@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
@@ -26,13 +26,6 @@ const FieldFilter = ({
   const saveValue = (event) => {
     setValue(event.target.value);
   };
-
-  useEffect(() => {
-    if (Object.keys(filters).length === 0) {
-      setValue("ascending");
-      setField("");
-    }
-  }, [filters]);
 
   const filtersToMap = Object.keys(filters)
     .filter((key) => filters[key].remove === false && key !== "bbox" && key !== "datetime")
