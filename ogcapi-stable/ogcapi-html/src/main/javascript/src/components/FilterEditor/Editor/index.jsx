@@ -69,6 +69,7 @@ const EditorBody = ({
               titleForFilter={titleForFilter}
               integerKeys={integerKeys}
               booleanProperty={booleanProperty}
+              isOpen={isOpen}
             />
           )}
           {spatial && spatial.length > 0 && (

@@ -25,6 +25,7 @@ const EditorBody = ({ isOpen, fields, filters, onAdd, deleteFilters, titleForFil
               filters={filters}
               deleteFilters={deleteFilters}
               titleForFilter={titleForFilter}
+              isOpen={isOpen}
             />
           )}
         </Col>

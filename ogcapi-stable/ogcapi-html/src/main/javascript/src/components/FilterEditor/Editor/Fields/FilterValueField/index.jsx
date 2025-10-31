@@ -24,7 +24,7 @@ const FilterValueField = ({
           size="sm"
           name="value"
           className="mr-2"
-          defaultValue={filters[filterKey].value}
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
           onChange={(e) =>
             setChangedValue({
               ...changedValue,
@@ -49,7 +49,7 @@ const FilterValueField = ({
           size="sm"
           name="value2"
           id={`input-${filterKey}`}
-          defaultValue={filters[filterKey].value}
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
           className="mr-2"
           onChange={(e) =>
             setChangedValue({
@@ -82,7 +82,7 @@ const FilterValueField = ({
                 type="radio"
                 name="value"
                 value="true"
-                defaultChecked={filters[filterKey].value === "true"}
+                checked={(changedValue[filterKey]?.value ?? filters[filterKey].value) === "true"}
                 onChange={(e) =>
                   setChangedValue({
                     ...changedValue,
@@ -102,7 +102,7 @@ const FilterValueField = ({
                 type="radio"
                 name="value"
                 value="false"
-                defaultChecked={filters[filterKey].value === "false"}
+                checked={(changedValue[filterKey]?.value ?? filters[filterKey].value) === "false"}
                 onChange={(e) =>
                   setChangedValue({
                     ...changedValue,
@@ -126,7 +126,7 @@ const FilterValueField = ({
           name="selectedValue"
           id={`input-${filterKey}`}
           className="mr-2"
-          defaultValue={filters[filterKey].value}
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
           onChange={(e) =>
             setChangedValue({
               ...changedValue,

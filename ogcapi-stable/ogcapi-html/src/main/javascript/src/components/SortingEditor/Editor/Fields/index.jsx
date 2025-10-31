@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
-const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) => {
+const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter, isOpen }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("ascending");
   const [changedValue, setChangedValue] = useState("");
@@ -32,10 +32,20 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
   };
 
   useEffect(() => {
-    if (Object.keys(filters).length === 0) {
-      setValue("ascending");
-      setField("");
+    if (Object.keys(filters).length !== 0) {
+      const newChangedValue = {};
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] && filters[key].value !== undefined) {
+          newChangedValue[key] = { value: filters[key].value };
+        }
+      });
+      setChangedValue(newChangedValue);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    setValue("ascending");
+    setField("");
   }, [filters]);
 
   const noOp = (event) => {
@@ -114,7 +124,6 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
                   filters={filters}
                   setChangedValue={setChangedValue}
                   changedValue={changedValue}
-                  overwriteFilters={overwriteFilters(key)}
                 />
               </FormGroup>
             </Col>
@@ -160,8 +169,11 @@ FieldFilter.propTypes = {
   deleteFilters: PropTypes.func.isRequired,
   // eslint-disable-next-line react/forbid-prop-types
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
+  isOpen: PropTypes.bool,
 };
 
-FieldFilter.defaultProps = {};
+FieldFilter.defaultProps = {
+  isOpen: false,
+};
 
 export default FieldFilter;

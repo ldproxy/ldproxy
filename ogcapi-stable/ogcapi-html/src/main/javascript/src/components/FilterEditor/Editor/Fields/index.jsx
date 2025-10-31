@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
@@ -15,6 +15,7 @@ const FieldFilter = ({
   titleForFilter,
   integerKeys,
   booleanProperty,
+  isOpen,
 }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
@@ -22,6 +23,18 @@ const FieldFilter = ({
   const { t } = useTranslation();
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
+
+  useEffect(() => {
+    if (Object.keys(filters).length !== 0) {
+      const newChangedValue = {};
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] && filters[key].value !== undefined) {
+          newChangedValue[key] = { value: filters[key].value };
+        }
+      });
+      setChangedValue(newChangedValue);
+    }
+  }, [isOpen]);
 
   const saveValue = (event) => {
     setValue(event.target.value);
@@ -172,8 +185,11 @@ FieldFilter.propTypes = {
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
   integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
   booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
+  isOpen: PropTypes.bool,
 };
 
-FieldFilter.defaultProps = {};
+FieldFilter.defaultProps = {
+  isOpen: false,
+};
 
 export default FieldFilter;
