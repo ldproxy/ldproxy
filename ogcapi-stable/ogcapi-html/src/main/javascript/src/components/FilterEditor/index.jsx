@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import PropTypes from "prop-types";
 
 import qs from "qs";
-
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
@@ -25,6 +26,18 @@ const toBounds = (filter) => {
 };
 
 const FilterEditor = ({ backgroundUrl, attribution }) => {
+  const initialFilters = useRef({});
+
+  const [isOpen, setOpen] = useState(false);
+
+  const [filters, setFilters] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      initialFilters.current = JSON.parse(JSON.stringify(filters));
+    }
+  }, [isOpen]);
+
   const urlSpatialTemporal = new URL(baseUrl.pathname.endsWith("/") ? "../" : "./", baseUrl.href);
   urlSpatialTemporal.search = "?f=json";
 
@@ -39,6 +52,16 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     [spatialTemporal]
   );
   const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
+
+  const { t } = useTranslation();
+
+  // eslint-disable-next-line no-undef, no-underscore-dangle
+  const { language, translations } = globalThis._sortingfilter;
+  useEffect(() => {
+    Object.entries(translations).forEach(([key, value]) => {
+      i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
+    });
+  }, []);
 
   const urlProperties = new URL(
     baseUrl.pathname.endsWith("/") ? "../queryables" : "./queryables",
@@ -57,14 +80,10 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     [properties]
   );
 
-  const [isOpen, setOpen] = useState(false);
-
   const enabled =
     loadedProperties &&
     loadedSpatialTemporal &&
     (Object.keys(fields).length > 0 || spatial || temporal);
-
-  const [filters, setFilters] = useState({});
 
   useEffect(() => {
     setFilters(
@@ -88,13 +107,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     setFilters((prev) => ({
       ...prev,
       [field]: { value, add: true, remove: false },
-    }));
-  };
-
-  const onRemove = (field) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: { value: prev[field].value, add: false, remove: true },
     }));
   };
 
@@ -133,27 +145,14 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const deleteFilters = (field) => () => {
     setFilters((current) => {
       const copy = { ...current };
-      delete copy[field];
+      copy[field].remove = true;
       return copy;
     });
   };
 
   const cancel = (event) => {
     event.target.blur();
-
-    const newFilters = Object.keys(filters).reduce((reduced, key) => {
-      if (!filters[key].add) {
-        // eslint-disable-next-line no-param-reassign
-        reduced[key] = {
-          ...filters[key],
-          add: false,
-          remove: false,
-        };
-      }
-      return reduced;
-    }, {});
-
-    setFilters(newFilters);
+    setFilters(initialFilters.current);
     setOpen(false);
   };
 
@@ -164,7 +163,6 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     filters,
     save,
     cancel,
-    onRemove,
   };
 
   return (
@@ -191,8 +189,8 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
         />
       ) : (
         <>
-          {errorSpatialTemporal && <div>Error loading spatial-temporal data</div>}
-          {errorProperties && <div>Error loading properties data</div>}
+          {errorSpatialTemporal && <div>{t("error.spatialTemporal")}</div>}
+          {errorProperties && <div>{t("error")}</div>}
         </>
       )}
     </>

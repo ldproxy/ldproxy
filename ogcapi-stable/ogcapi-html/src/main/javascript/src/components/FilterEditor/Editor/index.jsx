@@ -50,7 +50,7 @@ const EditorBody = ({
   return (
     <Collapse isOpen={isOpen} onEntered={() => setShowMap(true)}>
       <Row>
-        <Col md="6">
+        <Col md="7">
           {Object.keys(fields).length > 0 && (
             <FieldFilter
               fields={Object.keys(fields)
@@ -69,6 +69,7 @@ const EditorBody = ({
               titleForFilter={titleForFilter}
               integerKeys={integerKeys}
               booleanProperty={booleanProperty}
+              isOpen={isOpen}
             />
           )}
           {spatial && spatial.length > 0 && (
@@ -92,7 +93,7 @@ const EditorBody = ({
             />
           )}
         </Col>
-        <Col md="6">
+        <Col md="5">
           {showMap && spatial && spatial.length > 0 && (
             <MapSelect
               key={JSON.stringify(mapFlag)}

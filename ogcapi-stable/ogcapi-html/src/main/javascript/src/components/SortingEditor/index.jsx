@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import PropTypes from "prop-types";
-
 import qs from "qs";
-
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields } from "./util";
@@ -16,12 +16,23 @@ const query = qs.parse(window.location.search, {
 });
 
 const FilterEditor = ({ backgroundUrl, attribution }) => {
+  const initialFilters = useRef({});
+
+  const [isOpen, setOpen] = useState(false);
+
+  const [filters, setFilters] = useState({});
+
+  useEffect(() => {
+    if (isOpen) {
+      initialFilters.current = JSON.parse(JSON.stringify(filters));
+    }
+  }, [isOpen]);
+
   const urlProperties = new URL(
     baseUrl.pathname.endsWith("/") ? "../sortables" : "./sortables",
     baseUrl.href
   );
   urlProperties.search = "?f=json";
-
   const {
     obj: properties,
     isLoaded: loadedProperties,
@@ -30,23 +41,22 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { fields } = useMemo(() => extractFields(properties), [properties]);
 
-  const [isOpen, setOpen] = useState(false);
-
   const enabled = loadedProperties;
 
-  const [filters, setFilters] = useState({});
+  const { t } = useTranslation();
+
+  // eslint-disable-next-line no-undef, no-underscore-dangle
+  const { language, translations } = globalThis._sortingfilter;
+  useEffect(() => {
+    Object.entries(translations).forEach(([key, value]) => {
+      i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
+    });
+  }, []);
 
   const onAdd = (field, value) => {
     setFilters((prev) => ({
       ...prev,
       [field]: { value, add: true, remove: false },
-    }));
-  };
-
-  const onRemove = (field) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: { value: prev[field].value, add: false, remove: true },
     }));
   };
 
@@ -108,27 +118,14 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const deleteFilters = (field) => () => {
     setFilters((current) => {
       const copy = { ...current };
-      delete copy[field];
+      copy[field].remove = true;
       return copy;
     });
   };
 
   const cancel = (event) => {
     event.target.blur();
-
-    const newFilters = Object.keys(filters).reduce((reduced, key) => {
-      if (!filters[key].add) {
-        // eslint-disable-next-line no-param-reassign
-        reduced[key] = {
-          ...filters[key],
-          add: false,
-          remove: false,
-        };
-      }
-      return reduced;
-    }, {});
-
-    setFilters(newFilters);
+    setFilters(initialFilters.current);
     setOpen(false);
   };
 
@@ -137,15 +134,18 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const editorHeaderProps = {
     isOpen,
     setOpen,
-    isEnabled: enabled,
     filters,
     save,
     cancel,
-    onRemove,
+    isEnabled: enabled,
   };
 
   if (errorProperties) {
-    return <div>Error loading properties data</div>;
+    // Hide error if it's a 404 (caused by disabled building block "sorting")
+    if (errorProperties.status === 404) {
+      return null;
+    }
+    return <div>{t("error")}</div>;
   }
 
   if (enabled && hasFields) {

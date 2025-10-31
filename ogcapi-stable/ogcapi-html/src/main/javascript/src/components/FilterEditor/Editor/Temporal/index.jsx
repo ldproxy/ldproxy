@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Datetime from "react-datetime";
+import DatetimeRangePicker from "react-datetime-range-picker";
 import PropTypes from "prop-types";
 import { Button, ButtonGroup, Form, Input, Row, Col, FormText } from "reactstrap";
-import DatetimeRangePicker from "react-datetime-range-picker";
-import Datetime from "react-datetime";
 import moment from "moment";
+import { useTranslation } from "react-i18next";
 import Slider from "./Slider";
 
 import { validateInstant, validatePeriod, errorInstant } from "./util";
@@ -73,6 +74,8 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
     end: moment.utc(extent.end ? extent.end : extent.start),
   });
   const [isInstant, setIsInstant] = useState(extent.end === null);
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (filter !== null) {
@@ -168,7 +171,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
 
   return (
     <Form onSubmit={save}>
-      <p className="text-muted text-uppercase">date/time (utc)</p>
+      <p className="text-muted text-uppercase">{t("dateTimeUtc")}</p>{" "}
       <ButtonGroup className="mb-3">
         <Button
           color="primary"
@@ -177,7 +180,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
           className="py-0"
           onClick={() => setIsInstant(false)}
         >
-          Period
+          {t("period")}
         </Button>
         <Button
           color="primary"
@@ -186,7 +189,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
           className="py-0"
           onClick={() => setIsInstant(true)}
         >
-          Instant
+          {t("instant")}
         </Button>
       </ButtonGroup>
       <Row>
@@ -238,20 +241,18 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
             >
               {!validPeriod.startValid && (
                 <FormText style={{ marginLeft: "15px" }}>
-                  The start date is outside the specified range.
+                  {t("error.startDateOutOfRange")}{" "}
                 </FormText>
               )}
               {!validPeriod.endValid && (
-                <FormText style={{ marginLeft: "15px" }}>
-                  The end date is outside the specified range.
-                </FormText>
+                <FormText style={{ marginLeft: "15px" }}>{t("error.endDateOutOfRange")} </FormText>
               )}
               {
                 // prettier-ignore
                 (!validPeriod.startLessEnd ||
                 !validPeriod.endGreaterStart) && (
                   <FormText style={{ marginLeft: "15px" }}>
-                    The start date must be less than the end date.
+                    {t("error.startLessThanEnd")}
                   </FormText>
                 )
               }
@@ -313,7 +314,7 @@ const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }
               onClick={save}
               disabled={!validInstant.instantInputValid || !validPeriod.all}
             >
-              Add
+              {t("add")}
             </Button>
           </Col>
         )}

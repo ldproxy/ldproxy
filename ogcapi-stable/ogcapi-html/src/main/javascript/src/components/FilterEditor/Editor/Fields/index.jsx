@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
@@ -14,20 +15,34 @@ const FieldFilter = ({
   titleForFilter,
   integerKeys,
   booleanProperty,
+  isOpen,
 }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
   const [changedValue, setChangedValue] = useState("");
+  const { t } = useTranslation();
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
+
+  useEffect(() => {
+    if (Object.keys(filters).length !== 0) {
+      const newChangedValue = {};
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] && filters[key].value !== undefined) {
+          newChangedValue[key] = { value: filters[key].value };
+        }
+      });
+      setChangedValue(newChangedValue);
+    }
+  }, [isOpen]);
 
   const saveValue = (event) => {
     setValue(event.target.value);
   };
 
-  const filtersToMap = Object.keys(filters).filter(
-    (key) => filters[key].remove === false && key !== "bbox" && key !== "datetime"
-  ).toSorted();
+  const filtersToMap = Object.keys(filters)
+    .filter((key) => filters[key].remove === false && key !== "bbox" && key !== "datetime")
+    .toSorted();
   const enumKeys = Object.keys(code);
 
   const save = (event) => {
@@ -50,7 +65,7 @@ const FieldFilter = ({
   };
   return (
     <Form onSubmit={noOp}>
-      <p className="text-muted text-uppercase">field</p>
+      <p className="text-muted text-uppercase">{t("field")}</p>
       <Row>
         <Col md="5">
           <FormGroup>
@@ -63,13 +78,15 @@ const FieldFilter = ({
               onChange={selectField}
             >
               <option value="" className="d-none">
-                none
+                {t("none")}
               </option>
-              {Object.keys(fields).toSorted().map((f) => (
-                <option value={f} key={f}>
-                  {fields[f]}
-                </option>
-              ))}
+              {Object.keys(fields)
+                .toSorted()
+                .map((f) => (
+                  <option value={f} key={f}>
+                    {fields[f]}
+                  </option>
+                ))}
             </Input>
           </FormGroup>
         </Col>
@@ -90,7 +107,7 @@ const FieldFilter = ({
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === "" || value === ""} onClick={save}>
-            Add
+            {t("add")}
           </Button>
         </Col>
       </Row>
@@ -168,8 +185,11 @@ FieldFilter.propTypes = {
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
   integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
   booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
+  isOpen: PropTypes.bool,
 };
 
-FieldFilter.defaultProps = {};
+FieldFilter.defaultProps = {
+  isOpen: false,
+};
 
 export default FieldFilter;

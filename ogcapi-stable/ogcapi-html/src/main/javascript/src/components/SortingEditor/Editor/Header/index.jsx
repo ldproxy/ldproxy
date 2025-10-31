@@ -1,11 +1,13 @@
 import React from "react";
 import PropTypes from "prop-types";
-
 import { Button, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
 
 import Badge from "../../Badge";
 
-const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRemove }) => {
+const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel }) => {
+  const { t } = useTranslation();
+
   const toggle = (event) => {
     event.target.blur();
 
@@ -14,9 +16,9 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
 
   return (
     <>
-      <Row className="mb-3">
+      <Row className="mb-1">
         <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
-          <span className="font-weight-bold">Sorting</span>
+          <span className="font-weight-bold">{t("sorting")}</span>
         </Col>
         <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {isEnabled && (
@@ -27,12 +29,7 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
               className="py-0"
               onClick={isOpen ? save : toggle}
             >
-              {isOpen ? "Apply" : "Edit "}
-            </Button>
-          )}
-          {isOpen && (
-            <Button color="danger" size="sm" className="ml-1 py-0" onClick={cancel}>
-              Cancel
+              {isOpen ? t("apply") : t("edit")}
             </Button>
           )}
         </Col>
@@ -45,10 +42,21 @@ const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel, onRem
                 value={filters[key].value}
                 isAdd={filters[key].add}
                 isRemove={filters[key].remove}
-                isEditable={isOpen}
-                onRemove={onRemove}
               />
             ))}
+        </Col>
+      </Row>
+      <Row className="mb-3">
+        <Col
+          md="1"
+          className="d-flex flex-row justify-content-start align-items-center flex-wrap"
+        />
+        <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+          {isOpen && (
+            <Button color="danger" size="sm" className="py-0" onClick={cancel}>
+              {t("cancel")}
+            </Button>
+          )}
         </Col>
       </Row>
     </>
@@ -65,7 +73,6 @@ EditorHeader.propTypes = {
   filters: PropTypes.object.isRequired,
   save: PropTypes.func.isRequired,
   cancel: PropTypes.func.isRequired,
-  onRemove: PropTypes.func.isRequired,
 };
 
 EditorHeader.defaultProps = {

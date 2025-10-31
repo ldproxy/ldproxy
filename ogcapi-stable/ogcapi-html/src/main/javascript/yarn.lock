@@ -2444,6 +2444,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/runtime@npm:^7.27.6":
+  version: 7.28.4
+  resolution: "@babel/runtime@npm:7.28.4"
+  checksum: 934b0a0460f7d06637d93fcd1a44ac49adc33518d17253b5a0b55ff4cb90a45d8fe78bf034b448911dbec7aff2a90b918697559f78d21c99ff8dbadae9565b55
+  languageName: node
+  linkType: hard
+
 "@babel/template@npm:^7.12.7, @babel/template@npm:^7.15.4":
   version: 7.15.4
   resolution: "@babel/template@npm:7.15.4"
@@ -3384,6 +3391,7 @@ __metadata:
     date-fns: 2.16.1
     eslint: ^7
     eslint-plugin-babel: "*"
+    i18next: ^25.0.0
     jquery: ^3
     maplibre-gl: 3.2.1
     mocha: ^8
@@ -3401,6 +3409,7 @@ __metadata:
     react-datetime: ^2.16.3
     react-datetime-range-picker: ^3.0.0
     react-dom: ^16
+    react-i18next: ^16.0.0
     react-maplibre-ui: ^2.0.0
     react-refresh: ^0.9.0
     reactstrap: ^8.10.1
@@ -10327,6 +10336,15 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
+"html-parse-stringify@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "html-parse-stringify@npm:3.0.1"
+  dependencies:
+    void-elements: 3.1.0
+  checksum: 334fdebd4b5c355dba8e95284cead6f62bf865a2359da2759b039db58c805646350016d2017875718bc3c4b9bf81a0d11be5ee0cf4774a3a5a7b97cde21cfd67
+  languageName: node
+  linkType: hard
+
 "html-tags@npm:^3.1.0":
   version: 3.1.0
   resolution: "html-tags@npm:3.1.0"
@@ -10488,6 +10506,20 @@ fsevents@^1.2.7:
   dependencies:
     ms: ^2.0.0
   checksum: 9c7a74a2827f9294c009266c82031030eae811ca87b0da3dceb8d6071b9bde22c9f3daef0469c3c533cc67a97d8a167cd9fc0389350e5f415f61a79b171ded16
+  languageName: node
+  linkType: hard
+
+"i18next@npm:^25.0.0":
+  version: 25.6.0
+  resolution: "i18next@npm:25.6.0"
+  dependencies:
+    "@babel/runtime": ^7.27.6
+  peerDependencies:
+    typescript: ^5
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 533d04943a78c117d5bda0f925cfc4a7792e51afe3574a2a99b808fb272cd0b6af5f868e1eccfb329dbf26f48470774f33980e71e37665611b17315f150b0de1
   languageName: node
   linkType: hard
 
@@ -14597,6 +14629,28 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
+"react-i18next@npm:^16.0.0":
+  version: 16.2.1
+  resolution: "react-i18next@npm:16.2.1"
+  dependencies:
+    "@babel/runtime": ^7.27.6
+    html-parse-stringify: ^3.0.1
+    use-sync-external-store: ^1.6.0
+  peerDependencies:
+    i18next: ">= 25.5.2"
+    react: ">= 16.8.0"
+    typescript: ^5
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+    react-native:
+      optional: true
+    typescript:
+      optional: true
+  checksum: e7ee163c7ca20d426fc669985c0c485405a63f45e1b4f3d0c2eca4a1f0ec2ef09ea05ba516ea0e7b982c3dea4f2232812d9de7ad821cd296f18a2dd8c98ba1ec
+  languageName: node
+  linkType: hard
+
 "react-inspector@npm:^5.1.0":
   version: 5.1.1
   resolution: "react-inspector@npm:5.1.1"
@@ -17284,6 +17338,15 @@ resolve@^2.0.0-next.3:
   languageName: node
   linkType: hard
 
+"use-sync-external-store@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "use-sync-external-store@npm:1.6.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 61a62e910713adfaf91bdb72ff2cd30e5ba83687accaf3b6e75a903b45bf635f5722e3694af30d83a03e92cb533c0a5c699298d2fef639a03ffc86b469f4eee2
+  languageName: node
+  linkType: hard
+
 "use@npm:^3.1.0":
   version: 3.1.1
   resolution: "use@npm:3.1.1"
@@ -17424,6 +17487,13 @@ resolve@^2.0.0-next.3:
   version: 1.1.2
   resolution: "vm-browserify@npm:1.1.2"
   checksum: 10a1c50aab54ff8b4c9042c15fc64aefccce8d2fb90c0640403242db0ee7fb269f9b102bdb69cfb435d7ef3180d61fd4fb004a043a12709abaf9056cfd7e039d
+  languageName: node
+  linkType: hard
+
+"void-elements@npm:3.1.0":
+  version: 3.1.0
+  resolution: "void-elements@npm:3.1.0"
+  checksum: 0390f818107fa8fce55bb0a5c3f661056001c1d5a2a48c28d582d4d847347c2ab5b7f8272314cac58acf62345126b6b09bea623a185935f6b1c3bbce0dfd7f7f
   languageName: node
   linkType: hard
 

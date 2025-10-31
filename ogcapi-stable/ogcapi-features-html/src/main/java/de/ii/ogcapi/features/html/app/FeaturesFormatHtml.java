@@ -89,6 +89,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
           ImmutableMap.of(
               PropertyTransformations.WILDCARD,
               new Builder().flatten(DEFAULT_FLATTENING_SEPARATOR).build()));
+  private static final String PREFIX = "js.editor.";
 
   private final Values<Codelist> codelistStore;
   private final I18n i18n;
@@ -401,6 +402,11 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       // ignore
     }
 
+    List<Map.Entry<String, String>> jsTranslations =
+        this.i18n.getKeysWithPrefix(PREFIX).stream()
+            .map(k -> Map.entry(k.substring(PREFIX.length()), this.i18n.get(k, language)))
+            .collect(Collectors.toList());
+
     Optional<HtmlConfiguration> htmlConfig = featureType.getExtension(HtmlConfiguration.class);
     String attribution = apiData.getMetadata().flatMap(ApiMetadata::getAttribution).orElse(null);
 
@@ -452,6 +458,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         .setNoIndex(noIndex)
         .setI18n(i18n)
         .setLanguage(language.orElse(Locale.ENGLISH))
+        .setJsTranslations(jsTranslations)
         .setMapPosition(mapPosition)
         .setMapClientType(mapClientType)
         .setStyleUrl(styleUrl.orElse(null))

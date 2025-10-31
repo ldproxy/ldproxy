@@ -7,13 +7,14 @@
  */
 package de.ii.ogcapi.features.html.domain;
 
+import java.util.List;
+import java.util.Map;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Modifiable;
 
 /**
  * @author zahnen
  */
-// TODO Look following classes: FeaturesFormatHtml
 @Value.Immutable
 @Value.Style(builder = "new")
 @Modifiable
@@ -32,4 +33,6 @@ public abstract class FeatureCollectionView extends FeaturesView {
   public boolean fromStoredQuery() {
     return false;
   }
+
+  public abstract List<Map.Entry<String, String>> jsTranslations();
 }

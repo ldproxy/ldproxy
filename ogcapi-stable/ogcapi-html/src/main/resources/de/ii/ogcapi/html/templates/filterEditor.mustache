@@ -2,7 +2,13 @@
 <script type="text/javascript">
   globalThis._filter = {
       container: 'filter',
-    {{#temporalExtent}}
+      language: '{{{language}}}',
+      translations: {
+        {{#jsTranslations}}
+          '{{key}}': '{{{value}}}',
+        {{/jsTranslations}}
+      },
+      {{#temporalExtent}}
       temporal: {
           start: {{#start}}{{.}}{{/start}}{{^start}}0{{/start}},
           end: {{#end}}{{.}}{{/end}}{{^end}}Date.now(){{/end}}

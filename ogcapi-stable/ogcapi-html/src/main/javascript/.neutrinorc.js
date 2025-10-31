@@ -72,7 +72,7 @@ module.exports = {
       },
       publicPath: "",
       targets: {
-        browsers: ['defaults'],
+        browsers: ["defaults"],
       },
     }),
     mocha(),
@@ -135,6 +135,13 @@ module.exports = {
       neutrino.config.module
         .rule("compile")
         .include.add(new RegExp(`^.*?\\/\\.yarn\\/cache\\/@cesium-[a-z]*.*?$`)); //TODO: add cache in addition to $$virtual in @xtraplatform/neutrino, use modulePrefixes
+
+      neutrino.config.module
+        .rule("compile")
+        .include.add(new RegExp(`^.*?\\/\\.yarn\\/(cache|__virtual__)\\/react-i18next.*?$`)); // react-i18next
+      neutrino.config.module
+        .rule("compile")
+        .include.add(new RegExp(`^.*?\\/\\.yarn\\/(cache|__virtual__)\\/i18next.*?$`)); // i18next
 
       //for dev server
       neutrino.config

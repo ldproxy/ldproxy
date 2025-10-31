@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
-
 import {
   Button,
   ButtonGroup,
@@ -12,6 +11,7 @@ import {
   FormFeedback,
   FormText,
 } from "reactstrap";
+import { useTranslation } from "react-i18next";
 
 import {
   areBoundsValid,
@@ -30,6 +30,7 @@ export { round, roundBounds, boundsArraysEqual } from "./util";
 const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) => {
   const [inputs, setInputs] = useState(boundsAsObject(bounds));
   const debouncedInput = useDebounce(inputs, 1000);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setInputs((prev) => {
@@ -87,9 +88,9 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
               onChange={onInputChange}
               onKeyPress={onInputKey}
             />
-            {valid.minMaxLng && valid.minLng && <FormText>Min. Longitude</FormText>}
-            {!valid.minMaxLng && <FormFeedback>Min. greater than Max.</FormFeedback>}
-            {!valid.minLng && <FormFeedback>Value too low/high for Lng</FormFeedback>}
+            {valid.minMaxLng && valid.minLng && <FormText>{t("minLongitude")}</FormText>}
+            {!valid.minMaxLng && <FormFeedback>{t("error.minGreaterThanMax")}</FormFeedback>}
+            {!valid.minLng && <FormFeedback>{t("error.valueLng")}</FormFeedback>}
           </FormGroup>
         </Col>
         <Col md="5">
@@ -104,9 +105,9 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
               onChange={onInputChange}
               onKeyPress={onInputKey}
             />
-            {valid.minMaxLat && valid.minLat && <FormText>Min. Latitude</FormText>}
-            {!valid.minMaxLat && <FormFeedback>Min. greater than Max.</FormFeedback>}
-            {!valid.minLat && <FormFeedback>Value too low/high for Lat</FormFeedback>}
+            {valid.minMaxLat && valid.minLat && <FormText>{t("minLatitude")}</FormText>}
+            {!valid.minMaxLat && <FormFeedback>{t("error.minGreaterThanMax")}</FormFeedback>}
+            {!valid.minLat && <FormFeedback>{t("error.valueLat")}</FormFeedback>}
           </FormGroup>
         </Col>
       </Row>
@@ -123,9 +124,9 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
               onChange={onInputChange}
               onKeyPress={onInputKey}
             />
-            {valid.minMaxLng && valid.maxLng && <FormText>Max. Longitude</FormText>}
-            {!valid.minMaxLng && <FormFeedback>Min. greater than Max.</FormFeedback>}
-            {!valid.maxLng && <FormFeedback>Value too low/high for Lng</FormFeedback>}
+            {valid.minMaxLng && valid.maxLng && <FormText>{t("maxLongitude")}</FormText>}
+            {!valid.minMaxLng && <FormFeedback>{t("error.minGreaterThanMax")}</FormFeedback>}
+            {!valid.maxLng && <FormFeedback>{t("error.valueLng")}</FormFeedback>}
           </FormGroup>
         </Col>
         <Col md="5">
@@ -140,9 +141,9 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
               onChange={onInputChange}
               onKeyPress={onInputKey}
             />
-            {valid.minMaxLat && valid.maxLat && <FormText>Max. Latitude</FormText>}
-            {!valid.minMaxLat && <FormFeedback>Min. greater than Max.</FormFeedback>}
-            {!valid.maxLat && <FormFeedback>Value too low/high for Lat</FormFeedback>}
+            {valid.minMaxLat && valid.maxLat && <FormText>{t("maxLatitude")}</FormText>}
+            {!valid.minMaxLat && <FormFeedback>{t("error.minGreaterThanMax")}</FormFeedback>}
+            {!valid.maxLat && <FormFeedback>{t("error.valueLat")}</FormFeedback>}
           </FormGroup>
         </Col>
         {hasBboxInFilters ? (
@@ -170,7 +171,7 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
         ) : (
           <Col md="2">
             <Button color="primary" size="sm" disabled={!valid.all} onClick={save}>
-              Add
+              {t("add")}
             </Button>
           </Col>
         )}

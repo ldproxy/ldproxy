@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Button, ButtonGroup, Form, FormGroup, Input, Row, Col } from "reactstrap";
+import { useTranslation } from "react-i18next";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
-const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) => {
+const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter, isOpen }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("ascending");
   const [changedValue, setChangedValue] = useState("");
+  const { t } = useTranslation();
 
   const selectField = (event) => setField(event.option ? event.option.value : event.target.value);
 
@@ -29,6 +31,23 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
     setField("");
   };
 
+  useEffect(() => {
+    if (Object.keys(filters).length !== 0) {
+      const newChangedValue = {};
+      Object.keys(filters).forEach((key) => {
+        if (filters[key] && filters[key].value !== undefined) {
+          newChangedValue[key] = { value: filters[key].value };
+        }
+      });
+      setChangedValue(newChangedValue);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    setValue("ascending");
+    setField("");
+  }, [filters]);
+
   const noOp = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -38,9 +57,10 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
     const updatedFilterValue = { ...changedValue };
     onAdd(item, updatedFilterValue[item].value);
   };
+
   return (
     <Form onSubmit={noOp}>
-      <p className="text-muted text-uppercase">field</p>
+      <p className="text-muted text-uppercase">{t("field")}</p>
       <Row>
         <Col md="5">
           <FormGroup>
@@ -53,7 +73,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
               onChange={selectField}
             >
               <option value="" className="d-none">
-                none
+                {t("none")}
               </option>
               {Object.keys(fields)
                 .toSorted()
@@ -79,7 +99,7 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
         </Col>
         <Col md="2">
           <Button color="primary" size="sm" disabled={field === ""} onClick={save}>
-            Add
+            {t("add")}
           </Button>
         </Col>
       </Row>
@@ -104,7 +124,6 @@ const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter }) 
                   filters={filters}
                   setChangedValue={setChangedValue}
                   changedValue={changedValue}
-                  overwriteFilters={overwriteFilters(key)}
                 />
               </FormGroup>
             </Col>
@@ -150,8 +169,11 @@ FieldFilter.propTypes = {
   deleteFilters: PropTypes.func.isRequired,
   // eslint-disable-next-line react/forbid-prop-types
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
+  isOpen: PropTypes.bool,
 };
 
-FieldFilter.defaultProps = {};
+FieldFilter.defaultProps = {
+  isOpen: false,
+};
 
 export default FieldFilter;
