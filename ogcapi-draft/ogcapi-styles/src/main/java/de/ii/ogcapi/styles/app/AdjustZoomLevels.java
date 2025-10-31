@@ -22,15 +22,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.IntStream;
 
 public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpression> {
 
-  private final double zoomLevelAdjustment;
+  private final Function<Double, Double> adjustZoomLevel;
 
-  public AdjustZoomLevels(double zoomLevelAdjustment) {
-    this.zoomLevelAdjustment = zoomLevelAdjustment;
+  public AdjustZoomLevels(Function<Double, Double> adjustZoomLevel) {
+    this.adjustZoomLevel = adjustZoomLevel;
   }
 
   @Override
@@ -69,13 +70,12 @@ public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpress
                     "Expected an array for 'stops' with two items where the first item is a zoom level, but got: "
                         + stopValue);
               }
-              double adjustedZoom =
-                  ((NumberValue) stop.getValue().get(0)).getValue().doubleValue()
-                      - zoomLevelAdjustment;
               newStopsBuilder.add(
                   ImmutableArrayValue.of(
                       List.of(
-                          ImmutableNumberValue.of(Math.max(0, adjustedZoom)),
+                          ImmutableNumberValue.of(
+                              adjustZoomLevel.apply(
+                                  ((NumberValue) stop.getValue().get(0)).getValue().doubleValue())),
                           stop.getValue().get(1).accept(this))));
             }
             newMap.put(entry.getKey(), ImmutableArrayValue.of(newStopsBuilder.build()));
@@ -116,9 +116,8 @@ public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpress
                     // Adjust the zoom level for every input step
                     MbStyleExpression step = expression.get(i);
                     if (step instanceof NumberValue numberStep) {
-                      double adjustedZoom =
-                          numberStep.getValue().doubleValue() - zoomLevelAdjustment;
-                      return ImmutableNumberValue.of(Math.max(0, adjustedZoom));
+                      return ImmutableNumberValue.of(
+                          adjustZoomLevel.apply(numberStep.getValue().doubleValue()));
                     } else {
                       throw new IllegalArgumentException(
                           "Expected a number for zoom adjustment, but got: " + step);
