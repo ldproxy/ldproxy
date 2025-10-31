@@ -43,6 +43,19 @@ import org.immutables.value.Value;
  *     <p>For example the CSS file `resources/html/assets/my.css` could be included in
  *     `custom-head.mustache` with `<link href="{{urlPrefix}}/custom/assets/my.css"
  *     rel="stylesheet">`.
+ *     <p>#### Custom translations
+ *     <p>It is also possible to change any static text in the HTML pages by providing custom
+ *     translation files. The files have to reside in the
+ *     [Store](../../application/20-configuration/10-store-new.md) as resources with type
+ *     `html/i18n` and have to be named `i18n_XX.properties` where `XX` is the [ISO 639-1 language
+ *     code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) of the translation, e.g.
+ *     `i18n_en.properties` for English translations.
+ *     <p>The original translation files can be found in the
+ *     [ogcapi-foundation](https://github.com/ldproxy/ldproxy/tree/master/ogcapi-stable/ogcapi-foundation/src/main/resources)
+ *     module. The custom translation files only need to contain the texts that should be changed,
+ *     all other texts will fall back to the original translations.
+ *     <p>In this way it is possible to also add translations for languages that are not yet
+ *     supported by default.
  *     <p>### Login Provider
  *     <p>For APIs with [restricted access](../README.md#access-control) using an [identity
  *     provider](../../application/20-configuration/40-auth.md) with login capabilities, the
@@ -54,7 +67,7 @@ import org.immutables.value.Value;
  *     party.
  *     <p>In regard to the European GDPR and the German TTDSG we would deem these cookies as
  *     technically required. That means if you publish an API with this functionality, you would be
- *     required to mention these cookies in the privacy policy. :::6
+ *     required to mention these cookies in the privacy policy. :::
  *     <p>::: info If the identity provider uses `https` (which it should), this feature only works
  *     if the API is also published using `https`. The only exception is accessing an API on
  *     `localhost`. :::
@@ -84,6 +97,19 @@ import org.immutables.value.Value;
  *     `html/assets`.
  *     <p>Zum Beispiel könnte die CSS-Datei `resources/html/assets/my.css` in `custom-head.mustache`
  *     eingebunden werden mit `<link href="{{urlPrefix}}/custom/assets/my.css" rel="stylesheet">`.
+ *     <p>#### Benutzerdefinierte Übersetzungen
+ *     <p>Es ist auch möglich, alle statischen Texte in den HTML-Seiten durch benutzerdefinierte
+ *     Übersetzungsdateien zu ändern. Die Dateien liegen im
+ *     [Store](../../application/20-configuration/10-store-new.md) als Ressourcen mit Typ
+ *     `html/i18n` und müssen `i18n_XX.properties` heißen, wobei `XX` der [ISO 639-1
+ *     Sprachcode](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) der Übersetzung ist, z.B.
+ *     `i18n_de.properties` für deutsche Übersetzungen.
+ *     <p>Die Original-Übersetzungsdateien sind im
+ *     [ogcapi-foundation](https://github.com/ldproxy/ldproxy/tree/master/ogcapi-stable/ogcapi-foundation/src/main/resources)
+ *     Modul zu finden. Die benutzerdefinierten Übersetzungsdateien müssen nur die Texte enthalten,
+ *     die geändert werden sollen, alle anderen Texte fallen auf die Original-Übersetzungen zurück.
+ *     <p>Auf diese Weise ist es auch möglich, Übersetzungen für Sprachen hinzuzufügen, die
+ *     standardmäßig noch nicht unterstützt werden.
  *     <p>### Login Provider
  *     <p>Für APIs mit [beschränktem Zugriff](../README.md#access-control) die einen
  *     [Identity-Provider](../../application/20-configuration/40-auth.md) mit Login-Fähigkeiten
