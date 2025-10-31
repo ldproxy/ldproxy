@@ -14,7 +14,10 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
           "source",
           dataType === "raster"
             ? new XYZSource({
-                url: dataUrl.replace("WebMercatorQuad", tileMatrixSet.tileMatrixSet),
+                url: dataUrl.replace(
+                  "/WebMercatorQuad/",
+                  `/${tileMatrixSet.tileMatrixSet}/`
+                ),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
                 tileGrid: new TileGrid({
@@ -24,7 +27,10 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
                 }),
               })
             : new VectorTileSource({
-                url: dataUrl.replace("WebMercatorQuad", tileMatrixSet.tileMatrixSet),
+                url: dataUrl.replace(
+                  "/WebMercatorQuad/",
+                  `/${tileMatrixSet.tileMatrixSet}/`
+                ),
                 format: new MVT(),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
