@@ -295,7 +295,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("tilesets.%s", outputFormat.getMediaType().fileExtension())))
+                String.format("tilesets.%s", outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(
             outputFormat.getTileSetsEntity(
                 tileSets,
@@ -386,7 +387,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format(
                     "tileset.%s.%s",
-                    tileset.getTileMatrixSetId(), outputFormat.getMediaType().fileExtension())))
+                    tileset.getTileMatrixSetId(), outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getTileSetEntity(tileset, apiData, collectionId, requestContext))
         .build();
   }
@@ -453,7 +455,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
                     tileQuery.getLevel(),
                     tileQuery.getRow(),
                     tileQuery.getCol(),
-                    queryInput.getOutputFormat().getMediaType().fileExtension())))
+                    queryInput.getOutputFormat().getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(result.getContent().get())
         .build();
   }
@@ -676,7 +679,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("WMTSCapabilities.%s", outputFormat.getMediaType().fileExtension())))
+                String.format("WMTSCapabilities.%s", outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(capabilities, api, requestContext))
         .build();
   }

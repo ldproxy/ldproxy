@@ -151,7 +151,8 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.tileset.%s", collectionId, outputFormat.getMediaType().fileExtension())))
+                    "%s.tileset.%s", collectionId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(tileset, links, collectionId, api, requestContext))
         .build();
   }
@@ -264,7 +265,8 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
                     queryInput.getLevel(),
                     queryInput.getX(),
                     queryInput.getY(),
-                    requestContext.getMediaType().fileExtension())))
+                    requestContext.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(queryInput.getContent())
         .build();
   }
@@ -320,7 +322,8 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format(
                     "%s.subtree_%d_%d_%d.%s",
-                    collectionId, level, x, y, outputFormat.getMediaType().fileExtension())))
+                    collectionId, level, x, y, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(outputFormat.getEntity(result))
         .build();
   }

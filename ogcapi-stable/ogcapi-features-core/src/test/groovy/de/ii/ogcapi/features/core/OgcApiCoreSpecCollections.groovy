@@ -48,7 +48,7 @@ class OgcApiCoreSpecCollections extends Specification {
     @Shared
     ApiRequestContext requestContext = createRequestContext(api)
     @Shared
-    QueriesHandlerCollectionsImpl ogcApiQueriesHandlerCollections = new QueriesHandlerCollectionsImpl(registry, new I18nDefault())
+    QueriesHandlerCollectionsImpl ogcApiQueriesHandlerCollections = new QueriesHandlerCollectionsImpl(registry, createI18n())
     @Shared
     EndpointCollections collectionsEndpoint = createCollectionsEndpoint(registry, ogcApiQueriesHandlerCollections)
     @Shared
@@ -225,7 +225,7 @@ class OgcApiCoreSpecCollections extends Specification {
                 }
 
                 if (extensionType == CollectionExtension.class) {
-                    CollectionExtensionFeatures collectionExtension = new CollectionExtensionFeatures(self, new I18nDefault(), providers)
+                    CollectionExtensionFeatures collectionExtension = new CollectionExtensionFeatures(self, createI18n(), providers)
                     return ImmutableList.of((T) collectionExtension)
                 }
 
@@ -344,6 +344,35 @@ class OgcApiCoreSpecCollections extends Specification {
 
     static def createCollectionEndpoint(ExtensionRegistry registry, QueriesHandlerCollectionsImpl ogcApiQueriesHandlerCollections) {
         return new EndpointCollection(registry, ogcApiQueriesHandlerCollections)
+    }
+
+    static def createI18n() {
+        new I18n() {
+            @Override
+            Set<Locale> getLanguages() {
+                return Set.of()
+            }
+
+            @Override
+            String get(String key) {
+                return ""
+            }
+
+            @Override
+            String get(String key, Optional<Locale> language) {
+                return ""
+            }
+
+            @Override
+            Set<String> getKeys() {
+                return Set.of()
+            }
+
+            @Override
+            Set<String> getKeysWithPrefix(String prefix) {
+                return Set.of()
+            }
+        }
     }
 
 }

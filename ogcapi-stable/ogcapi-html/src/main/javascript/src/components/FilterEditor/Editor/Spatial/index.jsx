@@ -74,7 +74,7 @@ const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) 
 
   return (
     <Form onSubmit={save}>
-      <p className="text-muted text-uppercase">bbox</p>
+      <p className="text-muted text-uppercase">{t("bbox")}</p>
       <Row>
         <Col md="5">
           <FormGroup>

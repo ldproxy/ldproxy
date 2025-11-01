@@ -176,7 +176,8 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "landing-page.%s", outputFormatExtension.getMediaType().fileExtension())))
+                    "landing-page.%s", outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(entity)
         .build();
   }
@@ -269,7 +270,8 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
             HeaderContentDisposition.of(
                 String.format(
                     "conformance-declaration.%s",
-                    outputFormatExtension.getMediaType().fileExtension())))
+                    outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(entity)
         .build();
   }

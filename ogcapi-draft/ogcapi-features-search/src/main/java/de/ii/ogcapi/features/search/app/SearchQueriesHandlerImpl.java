@@ -374,7 +374,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("parameters.%s", format.getMediaType().fileExtension())))
+                String.format("parameters.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getEntity(parameters, apiData, requestContext))
         .build();
   }
@@ -427,7 +428,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("parameters.%s", format.getMediaType().fileExtension())))
+                String.format("parameters.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getEntity(parameter, apiData, requestContext))
         .build();
   }
@@ -521,7 +523,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("storedQueries.%s", format.getMediaType().fileExtension())))
+                String.format("storedQueries.%s", format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getEntity(storedQueries, apiData, requestContext))
         .build();
   }
@@ -573,7 +576,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             null,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", queryInput.getQueryId(), format.getMediaType().fileExtension())))
+                    "%s.%s", queryInput.getQueryId(), format.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(format.getEntity(query, apiData, requestContext))
         .build();
   }
@@ -668,7 +672,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             targetCrs,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension())))
+                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(streamingOutput)
         .build();
   }

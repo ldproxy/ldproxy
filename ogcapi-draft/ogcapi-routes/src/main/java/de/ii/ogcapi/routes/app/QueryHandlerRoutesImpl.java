@@ -342,7 +342,8 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
             HeaderContentDisposition.of(
                 String.format(
                     "%s.%s",
-                    inputs.getName().orElse("Route"), outputFormat.getMediaType().fileExtension())))
+                    inputs.getName().orElse("Route"), outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(result)
         .build();
   }
@@ -390,7 +391,8 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
             HeaderContentDisposition.of(
                 String.format(
                     "route-definition-template.%s",
-                    outputFormatExtension.getMediaType().fileExtension())))
+                    outputFormatExtension.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(entity)
         .build();
   }
@@ -423,7 +425,8 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
             queryInput.getIncludeLinkHeader() ? route.getLinks() : null,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
-            HeaderContentDisposition.of(String.format("%s.%s", routeId, format.getFileExtension())))
+            HeaderContentDisposition.of(String.format("%s.%s", routeId, format.getFileExtension())),
+            i18n.getLanguages())
         .entity(content)
         .build();
   }
@@ -464,7 +467,8 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
             HeaderContentDisposition.of(
                 String.format(
                     "%s.definition.%s",
-                    queryInput.getRouteId(), outputFormat.getMediaType().fileExtension())))
+                    queryInput.getRouteId(), outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
         .entity(content)
         .build();
   }

@@ -6,6 +6,7 @@ descriptionDe = 'Essenzielle Funktionalität, API-Katalog mit allen veröffentli
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-cache'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-crs'
