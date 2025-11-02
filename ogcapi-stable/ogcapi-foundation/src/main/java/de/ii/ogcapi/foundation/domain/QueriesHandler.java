@@ -167,13 +167,12 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       // Instead use a Link-Template header for templaes
       List<String> headerLinkTemplates = getLinkTemplates(links);
 
-      // only add links and link templates, if the strings are not larger than the limit
-      if (headerLinks.stream().map(l -> l.toString().length()).mapToInt(Integer::intValue).sum()
-              + headerLinkTemplates.stream().map(String::length).mapToInt(Integer::intValue).sum()
-          <= requestContext.getMaxResponseLinkHeaderSize()) {
-        headerLinks.forEach(response::links);
-        headerLinkTemplates.forEach(template -> response.header("Link-Template", template));
-      }
+      // only add links and link templates that fit into the limit
+      applyLinks(
+          response,
+          requestContext.getMaxResponseLinkHeaderSize(),
+          headerLinks,
+          headerLinkTemplates);
     }
 
     if (Objects.nonNull(collectionMetadata)) {
@@ -198,6 +197,45 @@ public interface QueriesHandler<T extends QueryIdentifier> {
     }
 
     return response;
+  }
+
+  Set<String> NOT_SKIPPABLE = Set.of("next");
+  Set<String> LEAST_SKIPPABLE = Set.of("prev", "first");
+  Set<String> MOST_SKIPPABLE = Set.of("alternate");
+
+  default void applyLinks(
+      Response.ResponseBuilder response,
+      int maxResponseLinkHeaderSize,
+      List<javax.ws.rs.core.Link> headerLinks,
+      List<String> headerLinkTemplates) {
+
+    List<javax.ws.rs.core.Link> links = headerLinks;
+    List<String> linkTemplates = headerLinkTemplates;
+
+    if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
+      links = links.stream().filter(link -> !MOST_SKIPPABLE.contains(link.getRel())).toList();
+    }
+    if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
+      links =
+          links.stream()
+              .filter(
+                  link ->
+                      NOT_SKIPPABLE.contains(link.getRel())
+                          || LEAST_SKIPPABLE.contains(link.getRel()))
+              .toList();
+      linkTemplates = List.of();
+    }
+    if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
+      links = links.stream().filter(link -> NOT_SKIPPABLE.contains(link.getRel())).toList();
+    }
+
+    links.forEach(response::links);
+    linkTemplates.forEach(template -> response.header("Link-Template", template));
+  }
+
+  default int linksSize(List<javax.ws.rs.core.Link> links, List<String> linkTemplates) {
+    return links.stream().map(l -> l.toString().length()).mapToInt(Integer::intValue).sum()
+        + linkTemplates.stream().map(String::length).mapToInt(Integer::intValue).sum();
   }
 
   default List<String> getLinkTemplates(List<Link> links) {
