@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import java.text.MessageFormat;
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -118,13 +119,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       HeaderContentDisposition dispositionInfo,
       Set<Locale> languages) {
     return prepareSuccessResponse(
-        requestContext,
-        links,
-        cacheInfo,
-        crs,
-        dispositionInfo,
-        HeaderItems.of(Optional.empty(), Optional.empty()),
-        languages);
+        requestContext, links, cacheInfo, crs, dispositionInfo, null, languages);
   }
 
   default Response.ResponseBuilder prepareSuccessResponse(
@@ -133,7 +128,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       HeaderCaching cacheInfo,
       EpsgCrs crs,
       HeaderContentDisposition dispositionInfo,
-      HeaderItems itemsHeader,
+      CollectionMetadata collectionMetadata,
       Set<Locale> languages) {
     Response.ResponseBuilder response = Response.ok().type(requestContext.getMediaType().type());
 
@@ -181,9 +176,11 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       }
     }
 
-    if (Objects.nonNull(itemsHeader)) {
-      itemsHeader.getNumberReturned().ifPresent(n -> response.header("OGC-numberReturned", n));
-      itemsHeader.getNumberMatched().ifPresent(n -> response.header("OGC-numberMatched", n));
+    if (Objects.nonNull(collectionMetadata)) {
+      collectionMetadata
+          .getNumberReturned()
+          .ifPresent(n -> response.header("OGC-numberReturned", n));
+      collectionMetadata.getNumberMatched().ifPresent(n -> response.header("OGC-numberMatched", n));
     }
 
     if (Objects.nonNull(crs)) {

@@ -24,7 +24,6 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
-import de.ii.ogcapi.foundation.domain.HeaderItems;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -526,10 +525,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                     "%s.%s",
                     Objects.isNull(featureId) ? collectionId : featureId,
                     outputFormat.getMediaType().fileExtension())),
-            Objects.isNull(featureId) && !sendResponseAsStream
-                ? HeaderItems.of(
-                    outputFormat.getNumberMatched(bytes), outputFormat.getNumberReturned(bytes))
-                : HeaderItems.of(),
+            Objects.isNull(featureId) ? collectionMetadata : null,
             i18n.getLanguages());
 
     if (Objects.nonNull(spatialExtentHeader)) {
