@@ -44,6 +44,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -64,6 +65,9 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -73,8 +77,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
@@ -424,14 +430,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     String temporalExtentHeader = null;
     byte[] bytes = null;
     StreamingOutput streamingOutput = null;
+    CollectionMetadata collectionMetadata = null;
+    boolean hasAnyFeatures = false;
 
-    if (sendResponseAsStream) {
-      streamingOutput =
-          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
-
-    } else {
-      ResultReduced<byte[]> result =
+    if (!sendResponseAsStream) {
+      Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
           reduce(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+      ResultReduced<byte[]> result = resultAndMetadata.first();
+      collectionMetadata = resultAndMetadata.second();
+      hasAnyFeatures =
+          collectionMetadata != null && collectionMetadata.getNumberReturned().orElse(0) > 0;
 
       bytes = result.reduced();
 
@@ -478,9 +486,10 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
-    if (Objects.nonNull(response)) {
-      return response.build();
+    Response.ResponseBuilder responsePre =
+        evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(responsePre)) {
+      return responsePre.build();
     }
 
     // TODO determine numberMatched, numberReturned and optionally return them as OGC-numberMatched
@@ -488,14 +497,28 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // TODO For now remove the "next" links from the headers since at this point we don't know,
     //      whether there will be a next page
 
-    response =
-        prepareSuccessResponse(
-            requestContext,
-            includeLinkHeader
-                ? links.stream()
+    if (sendResponseAsStream) {
+      Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
+          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+      streamingOutput = streamingOutputAndMetadata.first();
+      collectionMetadata = streamingOutputAndMetadata.second();
+      hasAnyFeatures =
+          collectionMetadata != null && collectionMetadata.getNumberReturned().orElse(0) > 0;
+    }
+
+    List<Link> filteredLinks =
+        includeLinkHeader
+            ? hasAnyFeatures
+                ? links
+                : links.stream()
                     .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
                     .collect(ImmutableList.toImmutableList())
-                : null,
+            : null;
+
+    Response.ResponseBuilder response =
+        prepareSuccessResponse(
+            requestContext,
+            filteredLinks,
             HeaderCaching.of(lastModified, etag, queryInput),
             outputFormat.getContentCrs(targetCrs),
             HeaderContentDisposition.of(
@@ -520,42 +543,55 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     return response.entity(Objects.nonNull(bytes) ? bytes : streamingOutput).build();
   }
 
-  private StreamingOutput stream(
+  private Tuple<StreamingOutput, CollectionMetadata> stream(
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations) {
+    DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
+    SinkTransformed<Object, byte[]> featureSink =
+        encoder.to(Sink.outputStream(delayedOutputStream));
+    CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
 
-    return outputStream -> {
-      SinkTransformed<Object, byte[]> featureSink = encoder.to(Sink.outputStream(outputStream));
+    // start stream asynchronously
+    CompletableFuture<Result> stream =
+        featureTransformStream
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .toCompletableFuture();
 
-      Supplier<Result> stream =
-          () ->
-              featureTransformStream
-                  .runWith(featureSink, propertyTransformations)
-                  .toCompletableFuture()
-                  .join();
+    // wait for collection metadata
+    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
 
-      run(stream, failIfNoFeatures);
-    };
+    StreamingOutput streamingOutput =
+        outputStream -> {
+          delayedOutputStream.setOutputStream(outputStream);
+
+          // wait for stream to finish
+          run(stream::join, failIfNoFeatures);
+        };
+
+    return Tuple.of(streamingOutput, collectionMetadata);
   }
 
-  private ResultReduced<byte[]> reduce(
+  private Tuple<ResultReduced<byte[]>, CollectionMetadata> reduce(
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations) {
 
     SinkReduced<Object, byte[]> featureSink = encoder.to(Sink.reduceByteArray());
+    CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
 
-    Supplier<ResultReduced<byte[]>> stream =
-        () ->
-            featureTransformStream
-                .runWith(featureSink, propertyTransformations)
-                .toCompletableFuture()
-                .join();
+    // start stream asynchronously
+    CompletableFuture<ResultReduced<byte[]>> stream =
+        featureTransformStream
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .toCompletableFuture();
 
-    return run(stream, failIfNoFeatures);
+    // wait for collection metadata
+    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+
+    return Tuple.of(run(stream::join, failIfNoFeatures), collectionMetadata);
   }
 
   private <U extends ResultBase> U run(Supplier<U> stream, boolean failIfNoFeatures) {
@@ -575,6 +611,68 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         throw (WebApplicationException) e.getCause();
       }
       throw new IllegalStateException("Feature stream error.", e.getCause());
+    }
+  }
+
+  /**
+   * An output stream that buffers all data written to it until an underlying output stream becomes
+   * available. This should be thread-safe but still performant for the given use case by using
+   * double-checked locking. It is assumed that there are only two threads involved: one writing to
+   * the stream, and one setting the underlying output stream.
+   */
+  static class DelayedOutputStream extends OutputStream {
+
+    private final ByteArrayOutputStream buffer;
+    @Nullable private volatile OutputStream outputStream;
+
+    public DelayedOutputStream() {
+      this.buffer = new ByteArrayOutputStream();
+      this.outputStream = null;
+    }
+
+    public synchronized void setOutputStream(OutputStream outputStream) throws IOException {
+      buffer.writeTo(outputStream);
+      buffer.reset();
+
+      // volatile write - enables fast path
+      this.outputStream = outputStream;
+    }
+
+    @Override
+    public void write(byte[] b) throws IOException {
+      // volatile read
+      if (Objects.nonNull(outputStream)) {
+        // fast path
+        outputStream.write(b);
+      } else {
+        // locking
+        synchronized (this) {
+          if (Objects.nonNull(outputStream)) {
+            outputStream.write(b);
+          } else {
+            buffer.write(b);
+          }
+        }
+      }
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+      // not needed, ReactiveRx only uses write(byte[])
+    }
+
+    @Override
+    public void flush() throws IOException {
+      if (Objects.nonNull(outputStream)) {
+        outputStream.flush();
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (Objects.nonNull(outputStream)) {
+        outputStream.close();
+      }
     }
   }
 }
