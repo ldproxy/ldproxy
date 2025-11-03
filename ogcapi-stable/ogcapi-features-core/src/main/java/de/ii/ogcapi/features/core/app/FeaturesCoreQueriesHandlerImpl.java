@@ -430,15 +430,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     byte[] bytes = null;
     StreamingOutput streamingOutput = null;
     CollectionMetadata collectionMetadata = null;
-    boolean hasAnyFeatures = false;
+    boolean hasNextPage = false;
 
     if (!sendResponseAsStream) {
       Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
           reduce(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
       ResultReduced<byte[]> result = resultAndMetadata.first();
       collectionMetadata = resultAndMetadata.second();
-      hasAnyFeatures =
-          collectionMetadata != null && collectionMetadata.getNumberReturned().orElse(0) > 0;
+      hasNextPage =
+          collectionMetadata != null
+              && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
 
       bytes = result.reduced();
 
@@ -491,23 +492,19 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       return responsePre.build();
     }
 
-    // TODO determine numberMatched, numberReturned and optionally return them as OGC-numberMatched
-    //      and OGC-numberReturned headers also when streaming the response
-    // TODO For now remove the "next" links from the headers since at this point we don't know,
-    //      whether there will be a next page
-
     if (sendResponseAsStream) {
       Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
           stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
       streamingOutput = streamingOutputAndMetadata.first();
       collectionMetadata = streamingOutputAndMetadata.second();
-      hasAnyFeatures =
-          collectionMetadata != null && collectionMetadata.getNumberReturned().orElse(0) > 0;
+      hasNextPage =
+          collectionMetadata != null
+              && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
     }
 
     List<Link> filteredLinks =
         includeLinkHeader
-            ? hasAnyFeatures
+            ? hasNextPage
                 ? links
                 : links.stream()
                     .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
