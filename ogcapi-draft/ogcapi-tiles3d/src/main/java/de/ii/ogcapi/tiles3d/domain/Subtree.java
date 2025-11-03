@@ -523,7 +523,7 @@ public interface Subtree {
     try (Response response =
         queriesHandler.handle(Query.FEATURES, queryInputHits, requestContext)) {
       return Long.parseLong(
-          Objects.requireNonNullElse(response.getHeaderString("OGC-numberMatched"), "0"));
+          Objects.requireNonNullElse(response.getHeaderString("OGC-NumberMatched"), "0"));
     }
   }
 

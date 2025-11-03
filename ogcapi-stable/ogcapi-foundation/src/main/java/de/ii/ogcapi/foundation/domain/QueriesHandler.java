@@ -178,8 +178,8 @@ public interface QueriesHandler<T extends QueryIdentifier> {
     if (Objects.nonNull(collectionMetadata)) {
       collectionMetadata
           .getNumberReturned()
-          .ifPresent(n -> response.header("OGC-numberReturned", n));
-      collectionMetadata.getNumberMatched().ifPresent(n -> response.header("OGC-numberMatched", n));
+          .ifPresent(n -> response.header("OGC-NumberReturned", n));
+      collectionMetadata.getNumberMatched().ifPresent(n -> response.header("OGC-NumberMatched", n));
     }
 
     if (Objects.nonNull(crs)) {
