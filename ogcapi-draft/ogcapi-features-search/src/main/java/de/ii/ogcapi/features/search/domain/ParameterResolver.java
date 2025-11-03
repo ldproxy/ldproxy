@@ -36,7 +36,8 @@ public class ParameterResolver implements ParameterResolverBase {
         new ImmutableQueryExpression.Builder()
             .id(storedQuery.getId())
             .title(storedQuery.getTitle())
-            .description(storedQuery.getDescription());
+            .description(storedQuery.getDescription())
+            .offset(storedQuery.getOffset());
 
     storedQuery
         .getCollections()
