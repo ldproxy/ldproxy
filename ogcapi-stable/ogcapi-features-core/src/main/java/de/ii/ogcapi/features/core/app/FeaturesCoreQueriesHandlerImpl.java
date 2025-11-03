@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.core.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureLinksGenerator;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationQueryParameter;
@@ -64,9 +65,6 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -79,7 +77,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.NotAcceptableException;
@@ -604,68 +601,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         throw (WebApplicationException) e.getCause();
       }
       throw new IllegalStateException("Feature stream error.", e.getCause());
-    }
-  }
-
-  /**
-   * An output stream that buffers all data written to it until an underlying output stream becomes
-   * available. This should be thread-safe but still performant for the given use case by using
-   * double-checked locking. It is assumed that there are only two threads involved: one writing to
-   * the stream, and one setting the underlying output stream.
-   */
-  static class DelayedOutputStream extends OutputStream {
-
-    private final ByteArrayOutputStream buffer;
-    @Nullable private volatile OutputStream outputStream;
-
-    public DelayedOutputStream() {
-      this.buffer = new ByteArrayOutputStream();
-      this.outputStream = null;
-    }
-
-    public synchronized void setOutputStream(OutputStream outputStream) throws IOException {
-      buffer.writeTo(outputStream);
-      buffer.reset();
-
-      // volatile write - enables fast path
-      this.outputStream = outputStream;
-    }
-
-    @Override
-    public void write(byte[] b) throws IOException {
-      // volatile read
-      if (Objects.nonNull(outputStream)) {
-        // fast path
-        outputStream.write(b);
-      } else {
-        // locking
-        synchronized (this) {
-          if (Objects.nonNull(outputStream)) {
-            outputStream.write(b);
-          } else {
-            buffer.write(b);
-          }
-        }
-      }
-    }
-
-    @Override
-    public void write(int b) throws IOException {
-      // not needed, ReactiveRx only uses write(byte[])
-    }
-
-    @Override
-    public void flush() throws IOException {
-      if (Objects.nonNull(outputStream)) {
-        outputStream.flush();
-      }
-    }
-
-    @Override
-    public void close() throws IOException {
-      if (Objects.nonNull(outputStream)) {
-        outputStream.close();
-      }
     }
   }
 }
