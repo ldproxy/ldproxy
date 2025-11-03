@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.core.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureLinksGenerator;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationQueryParameter;
@@ -24,7 +25,6 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
-import de.ii.ogcapi.foundation.domain.HeaderItems;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -44,6 +44,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -73,6 +74,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import javax.inject.Inject;
@@ -424,14 +426,17 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     String temporalExtentHeader = null;
     byte[] bytes = null;
     StreamingOutput streamingOutput = null;
+    CollectionMetadata collectionMetadata = null;
+    boolean hasNextPage = false;
 
-    if (sendResponseAsStream) {
-      streamingOutput =
-          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
-
-    } else {
-      ResultReduced<byte[]> result =
+    if (!sendResponseAsStream) {
+      Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
           reduce(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+      ResultReduced<byte[]> result = resultAndMetadata.first();
+      collectionMetadata = resultAndMetadata.second();
+      hasNextPage =
+          collectionMetadata != null
+              && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
 
       bytes = result.reduced();
 
@@ -478,24 +483,35 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
-    if (Objects.nonNull(response)) {
-      return response.build();
+    Response.ResponseBuilder responsePre =
+        evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(responsePre)) {
+      return responsePre.build();
     }
 
-    // TODO determine numberMatched, numberReturned and optionally return them as OGC-numberMatched
-    //      and OGC-numberReturned headers also when streaming the response
-    // TODO For now remove the "next" links from the headers since at this point we don't know,
-    //      whether there will be a next page
+    if (sendResponseAsStream) {
+      Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
+          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+      streamingOutput = streamingOutputAndMetadata.first();
+      collectionMetadata = streamingOutputAndMetadata.second();
+      hasNextPage =
+          collectionMetadata != null
+              && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
+    }
 
-    response =
-        prepareSuccessResponse(
-            requestContext,
-            includeLinkHeader
-                ? links.stream()
+    List<Link> filteredLinks =
+        includeLinkHeader
+            ? hasNextPage
+                ? links
+                : links.stream()
                     .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
                     .collect(ImmutableList.toImmutableList())
-                : null,
+            : null;
+
+    Response.ResponseBuilder response =
+        prepareSuccessResponse(
+            requestContext,
+            filteredLinks,
             HeaderCaching.of(lastModified, etag, queryInput),
             outputFormat.getContentCrs(targetCrs),
             HeaderContentDisposition.of(
@@ -503,10 +519,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                     "%s.%s",
                     Objects.isNull(featureId) ? collectionId : featureId,
                     outputFormat.getMediaType().fileExtension())),
-            Objects.isNull(featureId) && !sendResponseAsStream
-                ? HeaderItems.of(
-                    outputFormat.getNumberMatched(bytes), outputFormat.getNumberReturned(bytes))
-                : HeaderItems.of());
+            Objects.isNull(featureId) ? collectionMetadata : null);
 
     if (Objects.nonNull(spatialExtentHeader)) {
       response.header(BOUNDING_BOX_HEADER, spatialExtentHeader);
@@ -519,42 +532,55 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     return response.entity(Objects.nonNull(bytes) ? bytes : streamingOutput).build();
   }
 
-  private StreamingOutput stream(
+  private Tuple<StreamingOutput, CollectionMetadata> stream(
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations) {
+    DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
+    SinkTransformed<Object, byte[]> featureSink =
+        encoder.to(Sink.outputStream(delayedOutputStream));
+    CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
 
-    return outputStream -> {
-      SinkTransformed<Object, byte[]> featureSink = encoder.to(Sink.outputStream(outputStream));
+    // start stream asynchronously
+    CompletableFuture<Result> stream =
+        featureTransformStream
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .toCompletableFuture();
 
-      Supplier<Result> stream =
-          () ->
-              featureTransformStream
-                  .runWith(featureSink, propertyTransformations)
-                  .toCompletableFuture()
-                  .join();
+    // wait for collection metadata
+    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
 
-      run(stream, failIfNoFeatures);
-    };
+    StreamingOutput streamingOutput =
+        outputStream -> {
+          delayedOutputStream.setOutputStream(outputStream);
+
+          // wait for stream to finish
+          run(stream::join, failIfNoFeatures);
+        };
+
+    return Tuple.of(streamingOutput, collectionMetadata);
   }
 
-  private ResultReduced<byte[]> reduce(
+  private Tuple<ResultReduced<byte[]>, CollectionMetadata> reduce(
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations) {
 
     SinkReduced<Object, byte[]> featureSink = encoder.to(Sink.reduceByteArray());
+    CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
 
-    Supplier<ResultReduced<byte[]>> stream =
-        () ->
-            featureTransformStream
-                .runWith(featureSink, propertyTransformations)
-                .toCompletableFuture()
-                .join();
+    // start stream asynchronously
+    CompletableFuture<ResultReduced<byte[]>> stream =
+        featureTransformStream
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .toCompletableFuture();
 
-    return run(stream, failIfNoFeatures);
+    // wait for collection metadata
+    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+
+    return Tuple.of(run(stream::join, failIfNoFeatures), collectionMetadata);
   }
 
   private <U extends ResultBase> U run(Supplier<U> stream, boolean failIfNoFeatures) {

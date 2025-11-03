@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -68,6 +69,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
+import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
@@ -80,6 +82,7 @@ import de.ii.xtraplatform.features.domain.MultiFeatureQuery;
 import de.ii.xtraplatform.features.domain.MultiFeatureQuery.SubQuery;
 import de.ii.xtraplatform.features.domain.SortKey;
 import de.ii.xtraplatform.features.domain.SortKey.Direction;
+import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.TypeQuery;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
@@ -97,6 +100,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -658,7 +662,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    StreamingOutput streamingOutput =
+    Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
         getStreamingOutput(
             requestContext,
             queryExpression,
@@ -671,21 +675,30 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             targetCrs,
             links);
 
-    // same as in FeaturesCoreQueiriesHandlerImpl: numberMatched, numberReturned and next links
-    // are not known yet and cannot be written as headers;
-    // see https://github.com/interactive-instruments/ldproxy/issues/812
-    return prepareSuccessResponse(
-            requestContext,
-            queryInput.getIncludeLinkHeader()
-                ? links.stream()
+    StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
+    CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
+    boolean hasNextPage =
+        collectionMetadata != null
+            && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
+
+    List<Link> filteredLinks =
+        queryInput.getIncludeLinkHeader()
+            ? hasNextPage
+                ? links
+                : links.stream()
                     .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
                     .collect(ImmutableList.toImmutableList())
-                : ImmutableList.of(),
+            : null;
+
+    return prepareSuccessResponse(
+            requestContext,
+            filteredLinks,
             HeaderCaching.of(lastModified, etag, queryInput),
             targetCrs,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension())))
+                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension())),
+            collectionMetadata)
         .entity(streamingOutput)
         .build();
   }
@@ -838,7 +851,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     return Optional.empty();
   }
 
-  private StreamingOutput getStreamingOutput(
+  private Tuple<StreamingOutput, CollectionMetadata> getStreamingOutput(
       ApiRequestContext requestContext,
       QueryExpression queryExpression,
       MultiFeatureQuery query,
@@ -972,7 +985,28 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               requestContext.getMediaType().type()));
     }
 
-    return stream(featureStream, encoder, propertyTransformations);
+    DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
+    SinkTransformed<Object, byte[]> featureSink =
+        encoder.to(Sink.outputStream(delayedOutputStream));
+    CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
+
+    // start stream asynchronously
+    CompletableFuture<Result> stream =
+        featureStream
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .toCompletableFuture();
+
+    // wait for collection metadata
+    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+
+    StreamingOutput streamingOutput =
+        outputStream -> {
+          delayedOutputStream.setOutputStream(outputStream);
+          // wait for stream to finish
+          run(stream::join);
+        };
+
+    return Tuple.of(streamingOutput, collectionMetadata);
   }
 
   private Map<String, PropertyTransformations> getIdTransformations(
@@ -1012,25 +1046,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
   private String getFeatureTypeId(MultiFeatureQuery query, int queryIndex) {
     return query.getQueries().get(queryIndex).getType();
-  }
-
-  private StreamingOutput stream(
-      FeatureStream featureTransformStream,
-      final FeatureTokenEncoder<?> encoder,
-      Map<String, PropertyTransformations> propertyTransformations) {
-
-    return outputStream -> {
-      SinkTransformed<Object, byte[]> featureSink = encoder.to(Sink.outputStream(outputStream));
-
-      Supplier<Result> stream =
-          () ->
-              featureTransformStream
-                  .runWith(featureSink, propertyTransformations)
-                  .toCompletableFuture()
-                  .join();
-
-      run(stream);
-    };
   }
 
   @SuppressWarnings("PMD.PreserveStackTrace")
