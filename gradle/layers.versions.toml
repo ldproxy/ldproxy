@@ -1,5 +1,5 @@
 [versions]
 xtraplatform-core    = '6.6.0-SNAPSHOT'
 xtraplatform-native  = '2.5.0'
-xtraplatform-spatial = '7.6.0-stream-hook-SNAPSHOT'
+xtraplatform-spatial = '7.6.0-SNAPSHOT'
 
