@@ -7,8 +7,6 @@
  */
 package de.ii.ogcapi.features.geojson.app;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,7 +47,6 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -317,16 +314,6 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   }
 
   @Override
-  public Optional<Long> getNumberMatched(Object content) {
-    return getMetadata(content, "numberMatched");
-  }
-
-  @Override
-  public Optional<Long> getNumberReturned(Object content) {
-    return getMetadata(content, "numberReturned");
-  }
-
-  @Override
   public boolean isComplex() {
     return true;
   }
@@ -334,25 +321,5 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   @Override
   public boolean supportsRootConcat() {
     return true;
-  }
-
-  private Optional<Long> getMetadata(Object content, String key) {
-    if (content instanceof byte[]) {
-      JsonNode jsonNode;
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        jsonNode = mapper.readTree((byte[]) content);
-        if (Objects.nonNull(jsonNode) && jsonNode.isObject()) {
-          jsonNode = jsonNode.get(key);
-          if (Objects.nonNull(jsonNode) && jsonNode.isNumber()) {
-            return Optional.of(jsonNode.longValue());
-          }
-        }
-      } catch (IOException e) {
-        // ignore
-      }
-    }
-
-    return Optional.empty();
   }
 }

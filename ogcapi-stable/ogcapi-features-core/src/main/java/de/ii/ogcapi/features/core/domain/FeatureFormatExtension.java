@@ -175,14 +175,6 @@ public abstract class FeatureFormatExtension implements FormatExtension {
     return false;
   }
 
-  public Optional<Long> getNumberMatched(Object content) {
-    return Optional.empty();
-  }
-
-  public Optional<Long> getNumberReturned(Object content) {
-    return Optional.empty();
-  }
-
   public boolean isComplex() {
     return false;
   }
