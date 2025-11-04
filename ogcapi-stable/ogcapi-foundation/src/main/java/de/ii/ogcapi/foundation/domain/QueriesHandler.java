@@ -305,6 +305,10 @@ public interface QueriesHandler<T extends QueryIdentifier> {
                 mediaType.type().equals(profileSet.getMediaType())
                     || alternateMediaTypes.stream()
                         .anyMatch(mt -> mt.type().equals(profileSet.getMediaType())))
+        .filter(
+            profileSet ->
+                profileSet.getProfiles(apiData, Optional.of(collectionId)).stream()
+                    .anyMatch(profile -> !profiles.contains(profile)))
         .map(
             profileSet ->
                 new SimpleImmutableEntry<>(
