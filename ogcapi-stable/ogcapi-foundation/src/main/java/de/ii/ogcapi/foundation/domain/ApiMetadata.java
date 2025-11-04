@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Optional;
@@ -63,13 +64,14 @@ import org.spdx.library.model.v3_0_1.expandedlicensing.ListedLicense;
  */
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableApiMetadata.Builder.class)
-public interface ApiMetadata {
+public abstract class ApiMetadata {
 
-  boolean spdxInitialized = false;
+  private static boolean spdxInitialized = false;
 
   static void initializeSpdxIfNeeded() {
     if (!spdxInitialized) {
       SpdxModelFactory.init();
+      spdxInitialized = true;
     }
   }
 
@@ -77,74 +79,74 @@ public interface ApiMetadata {
    * @langEn Optional name of a contact person or organization for the API.
    * @langDe Optionaler Name einer Kontaktperson oder -organisation für die API.
    */
-  Optional<String> getContactName();
+  public abstract Optional<String> getContactName();
 
   /**
    * @langEn Optional URL of a contact webpage for the API.
    * @langDe Optionale URL einer Kontakt-Webseite für die API.
    */
-  Optional<String> getContactUrl();
+  public abstract Optional<String> getContactUrl();
 
   /**
    * @langEn Optional email address for information about the API.
    * @langDe Optionale Emailadresse für Informationen über die API.
    */
-  Optional<String> getContactEmail();
+  public abstract Optional<String> getContactEmail();
 
   /**
    * @langEn Optional phone number for information about the API.
    * @langDe Optionale Telefonnummer für Informationen über die API.
    */
-  Optional<String> getContactPhone();
+  public abstract Optional<String> getContactPhone();
 
   /**
    * @langEn Optional name of a creator of data shared via the API.
    * @langDe Optionaler Name des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  Optional<String> getCreatorName();
+  public abstract Optional<String> getCreatorName();
 
   /**
    * @langEn Optional URL of a website of the creator of data shared via the API.
    * @langDe Optionale URL der Website des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  Optional<String> getCreatorUrl();
+  public abstract Optional<String> getCreatorUrl();
 
   /**
    * @langEn Optional URL of a logo bitmap image of the creator of data shared via the API.
    * @langDe Optionale URL einer Logo-Bilddatei des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  Optional<String> getCreatorLogoUrl();
+  public abstract Optional<String> getCreatorLogoUrl();
 
   /**
    * @langEn Optional name of the publisher of this API.
    * @langDe Optionaler Name des Herausgebers dieser API.
    * @since v3.0
    */
-  Optional<String> getPublisherName();
+  public abstract Optional<String> getPublisherName();
 
   /**
    * @langEn Optional URL of a website of the publisher of this API.
    * @langDe Optionale URL der Website des Herausgebers dieser API.
    * @since v3.0
    */
-  Optional<String> getPublisherUrl();
+  public abstract Optional<String> getPublisherUrl();
 
   /**
    * @langEn Optional URL of a logo bitmap image of the publisher of this API.
    * @langDe Optionale URL einer Logo-Bilddatei des Herausgebers dieser API.
    * @since v3.0
    */
-  Optional<String> getPublisherLogoUrl();
+  public abstract Optional<String> getPublisherLogoUrl();
 
   /**
    * @langEn SPDX license identifier of the license of the data shared via this API.
    * @langDe SPDX-Lizenzidentifikator der Lizenz der Daten aus dieser API.
    * @since v4.6
    */
-  Optional<String> getLicense();
+  public abstract Optional<String> getLicense();
 
   /**
    * @langEn Name of the license of the data shared via this API. If not set and `license` is set,
@@ -152,12 +154,12 @@ public interface ApiMetadata {
    * @langDe Name der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist
    *     gesetzt, dann wird der Name aus dem SPDX-Identifikator abgeleitet.
    */
-  Optional<String> getLicenseName();
+  public abstract Optional<String> getLicenseName();
 
   @JsonIgnore
   @Value.Derived
   @Value.Auxiliary
-  default Optional<String> getEffectiveLicenseName() {
+  public Optional<String> getEffectiveLicenseName() {
     return getLicenseName()
         .or(
             () ->
@@ -184,12 +186,12 @@ public interface ApiMetadata {
    * @langDe URL der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist gesetzt,
    *     dann wird die URL aus dem SPDX-Identifikator abgeleitet.
    */
-  Optional<String> getLicenseUrl();
+  public abstract Optional<String> getLicenseUrl();
 
   @JsonIgnore
   @Value.Derived
   @Value.Auxiliary
-  default Optional<String> getEffectiveLicenseUrl() {
+  public Optional<String> getEffectiveLicenseUrl() {
     return getLicenseUrl()
         .or(
             () ->
@@ -213,15 +215,17 @@ public interface ApiMetadata {
   /**
    * @langEn Keywords describing this API.
    * @langDe Schlagworte die diese API beschreiben.
+   * @default []
    */
-  List<String> getKeywords();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  public abstract List<String> getKeywords();
 
   /**
    * @langEn Version for this API in the OpenAPI definition.
    * @langDe Version der API in der OpenAPI-Definition.
    * @default `1.0.0`
    */
-  Optional<String> getVersion();
+  public abstract Optional<String> getVersion();
 
   /**
    * @langEn Attribution text for data shared via this API, e.g., for display in maps.
@@ -229,5 +233,5 @@ public interface ApiMetadata {
    *     Karte.
    * @since v3.0
    */
-  Optional<String> getAttribution();
+  public abstract Optional<String> getAttribution();
 }
