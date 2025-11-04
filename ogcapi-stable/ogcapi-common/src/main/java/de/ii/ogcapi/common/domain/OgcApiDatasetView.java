@@ -404,7 +404,8 @@ public abstract class OgcApiDatasetView extends OgcApiView {
         + "\":\""
         + url
         + "\""
-        + (metadata.getLicenseUrl().isPresent() || metadata.getLicenseName().isPresent()
+        + (metadata.getEffectiveLicenseUrl().isPresent()
+                || metadata.getEffectiveLicenseName().isPresent()
             ? ","
                 + NEW_LINE
                 + (embedded ? INDENT : "")
@@ -414,7 +415,7 @@ public abstract class OgcApiDatasetView extends OgcApiView {
                 + INDENT
                 + "\"@type\": \"CreativeWork\""
                 + metadata
-                    .getLicenseName()
+                    .getEffectiveLicenseName()
                     .map(
                         s ->
                             ","
@@ -426,7 +427,7 @@ public abstract class OgcApiDatasetView extends OgcApiView {
                                 + "\"")
                     .orElse("")
                 + metadata
-                    .getLicenseUrl()
+                    .getEffectiveLicenseUrl()
                     .map(
                         s ->
                             ","
