@@ -4,6 +4,7 @@ description = 'Additional metadata on Landing Page, Collections an Collection re
 descriptionDe = 'Zusätzliche Metadaten auf den Ressourcen Landing Page, Collections und Collection.'
 
 dependencies {
+    provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-common'

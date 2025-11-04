@@ -18,7 +18,6 @@ import de.ii.ogcapi.common.domain.ImmutableLandingPage.Builder;
 import de.ii.ogcapi.common.domain.LandingPage;
 import de.ii.ogcapi.common.domain.LandingPageExtension;
 import de.ii.ogcapi.common.domain.LandingPageFormatExtension;
-import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.common.domain.QueriesHandlerCommon;
 import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -129,9 +128,6 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
         new Builder()
             .title(apiData.getLabel())
             .description(apiData.getDescription().orElse(""))
-            .attribution(apiData.getMetadata().flatMap(ApiMetadata::getAttribution))
-            .externalDocs(apiData.getExternalDocs())
-            .extent(OgcApiExtent.of(api.getSpatialExtent(), api.getTemporalExtent()))
             .links(links)
             .addAllLinks(queryInput.getAdditionalLinks());
 

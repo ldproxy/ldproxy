@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
@@ -45,11 +46,17 @@ public class MetadataOnCollection implements CollectionExtension {
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
       Optional<Locale> language) {
-    if (isEnabledForApi(api.getData())) {
-      api.getData()
+    OgcApiDataV2 apiData = api.getData();
+    if (isEnabledForApi(apiData)) {
+      apiData
           .getMetadata()
           .flatMap(ApiMetadata::getLicense)
           .ifPresent(spdx -> collectionBuilder.putExtensions("license", spdx));
+
+      apiData
+          .getMetadata()
+          .flatMap(ApiMetadata::getAttribution)
+          .ifPresent(attribution -> collectionBuilder.putExtensions("attribution", attribution));
     }
 
     return collectionBuilder;
