@@ -1,0 +1,7 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+
+dependencies {
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-foundation'
+    }
