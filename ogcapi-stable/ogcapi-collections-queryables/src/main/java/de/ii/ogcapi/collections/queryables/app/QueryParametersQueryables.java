@@ -10,6 +10,8 @@ package de.ii.ogcapi.collections.queryables.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.collections.queryables.domain.ImmutableQueryParameterTemplateQueryable;
+import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.SchemaGeneratorOpenApi;

@@ -8,10 +8,10 @@
 package de.ii.ogcapi.mcp.app;
 
 import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
-import static org.apache.commons.lang3.reflect.MethodUtils.invokeMethod;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.common.domain.CommonBuildingBlock;
 import de.ii.ogcapi.common.domain.CommonConfiguration;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
@@ -30,7 +30,6 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -145,160 +144,87 @@ public class EndpointMcp extends Endpoint {
     System.out.println("DEFINITIONS: " + definitions);
 
     // extract QueryParameterTemplateQueryable
-    List<Object> allParams =
+    List<QueryParameterTemplateQueryable> allParams =
         definitions.stream()
             .flatMap(def -> def.getResources().values().stream())
             .flatMap(res -> res.getOperations().values().stream())
             .flatMap(op -> op.getQueryParameters().stream())
-            .filter(
-                param -> {
-                  try {
-                    return param.getClass().getMethod("getCollectionId") != null;
-                  } catch (NoSuchMethodException e) {
-                    return false;
-                  }
-                })
-            .map(param -> (Object) param)
+            .filter(param -> param instanceof QueryParameterTemplateQueryable)
+            .map(param -> (QueryParameterTemplateQueryable) param)
             .toList();
 
     // group by collectionId using reflection
-    Map<String, List<Object>> grouped =
+    Map<String, List<QueryParameterTemplateQueryable>> grouped =
         allParams.stream()
-            .collect(
-                Collectors.groupingBy(
-                    param -> {
-                      try {
-                        return (String) param.getClass().getMethod("getCollectionId").invoke(param);
-                      } catch (Exception e) {
-                        return "unknown";
-                      }
-                    }));
+            .collect(Collectors.groupingBy(QueryParameterTemplateQueryable::getCollectionId));
 
     List<Map<String, Object>> items =
         grouped.entrySet().stream()
             .map(
-                entry -> {
-                  try {
-                    return Map.of(
+                entry ->
+                    Map.of(
                         "collectionId", entry.getKey(),
-                        "apiId", invokeMethod(entry.getValue().get(0), "getApiId"),
+                        "apiId", entry.getValue().get(0).getApiId(),
                         "info",
                             entry.getValue().stream()
                                 .map(
-                                    param -> {
-                                      try {
-                                        return Map.of(
-                                            "name", invokeMethod(param, "getName"),
-                                            "description", invokeMethod(param, "getDescription"));
-                                      } catch (NoSuchMethodException e) {
-                                        throw new RuntimeException(e);
-                                      } catch (IllegalAccessException e) {
-                                        throw new RuntimeException(e);
-                                      } catch (InvocationTargetException e) {
-                                        throw new RuntimeException(e);
-                                      }
-                                    })
-                                .toList());
-                  } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(e);
-                  } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                  } catch (InvocationTargetException e) {
-                    throw new RuntimeException(e);
-                  }
-                })
+                                    param ->
+                                        Map.of(
+                                            "name", param.getName(),
+                                            "description", param.getDescription()))
+                                .toList()))
             .toList();
 
-    // tool definitions for stored queries
     List<Map<String, Object>> queryTools =
         queries.stream()
             .map(
                 query -> {
-                  try {
-                    Object idObj = invokeMethod(query, "getId");
-                    String queryId =
-                        idObj instanceof Optional
-                            ? ((Optional<?>) idObj).map(Object::toString).orElse("unknown")
-                            : idObj != null ? idObj.toString() : "unknown";
+                  String queryId = query.getId() != null ? query.getId() : "unknown";
+                  String title =
+                      query.getTitle() != null ? String.valueOf(query.getTitle()) : queryId;
+                  String description =
+                      query.getDescription() != null ? String.valueOf(query.getDescription()) : "";
 
-                    Object titleObj = invokeMethod(query, "getTitle");
-                    String title =
-                        titleObj instanceof Optional
-                            ? ((Optional<?>) titleObj).map(Object::toString).orElse(queryId)
-                            : titleObj != null ? titleObj.toString() : queryId;
+                  Map<String, Object> parameters = new java.util.HashMap<>(query.getParameters());
+                  List<Map<String, Object>> paramsList =
+                      parameters.entrySet().stream()
+                          .map(
+                              entry -> {
+                                Object schema = entry.getValue();
+                                String paramName = entry.getKey();
 
-                    Object descObj = invokeMethod(query, "getDescription");
-                    String description =
-                        descObj instanceof Optional
-                            ? ((Optional<?>) descObj).map(Object::toString).orElse("")
-                            : descObj != null ? descObj.toString() : "";
+                                String paramTitle = null;
+                                String paramDescription = "";
+                                String paramType = "string";
 
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> parameters =
-                        (Map<String, Object>) invokeMethod(query, "getParameters");
+                                if (schema instanceof QueryParameterTemplateQueryable) {
+                                  QueryParameterTemplateQueryable qp =
+                                      (QueryParameterTemplateQueryable) schema;
+                                  paramTitle = qp.getName();
+                                  paramDescription = qp.getDescription();
+                                  paramType =
+                                      qp.getType() != null
+                                          ? String.valueOf(qp.getType())
+                                          : "string";
+                                }
 
-                    List<Map<String, Object>> paramsList =
-                        parameters.entrySet().stream()
-                            .map(
-                                entry -> {
-                                  try {
-                                    Object schema = entry.getValue();
-                                    String paramName = entry.getKey();
+                                Map<String, Object> paramMap = new java.util.HashMap<>();
+                                paramMap.put("name", paramName);
+                                paramMap.put("title", paramTitle != null ? paramTitle : paramName);
+                                paramMap.put("description", paramDescription);
+                                paramMap.put("type", paramType);
+                                return paramMap;
+                              })
+                          .collect(Collectors.toList());
 
-                                    // AUCH HIER: Optional-Handling
-                                    @SuppressWarnings("unchecked")
-                                    Optional<String> paramTitleOpt =
-                                        (Optional<String>) invokeMethod(schema, "getTitle");
-                                    String paramTitle = paramTitleOpt.orElse(paramName);
-
-                                    @SuppressWarnings("unchecked")
-                                    Optional<String> paramDescOpt =
-                                        (Optional<String>) invokeMethod(schema, "getDescription");
-                                    String paramDescription = paramDescOpt.orElse("");
-
-                                    String paramType = (String) invokeMethod(schema, "getType");
-                                    Object defaultValue = invokeMethod(schema, "getDefault_");
-
-                                    Map<String, Object> paramMap = new java.util.HashMap<>();
-                                    paramMap.put("name", paramName);
-                                    paramMap.put("title", paramTitle);
-                                    paramMap.put("description", paramDescription);
-                                    paramMap.put("type", paramType != null ? paramType : "string");
-                                    paramMap.put(
-                                        "default", defaultValue != null ? defaultValue : "");
-                                    return paramMap;
-                                  } catch (NoSuchMethodException
-                                      | IllegalAccessException
-                                      | InvocationTargetException e) {
-                                    Map<String, Object> errorMap = new java.util.HashMap<>();
-                                    errorMap.put("name", entry.getKey());
-                                    errorMap.put("description", "");
-                                    return errorMap;
-                                  }
-                                })
-                            .collect(Collectors.toList());
-
-                    return Map.of(
-                        "queryId",
-                        queryId != null ? queryId : "unknown",
-                        "apiId",
-                        apiData.getId(),
-                        "name",
-                        title != null ? title : queryId,
-                        "description",
-                        description,
-                        "parameters",
-                        paramsList);
-                  } catch (NoSuchMethodException
-                      | IllegalAccessException
-                      | InvocationTargetException e) {
-                    throw new RuntimeException(e);
-                  }
+                  return Map.of(
+                      "queryId", queryId,
+                      "apiId", apiData.getId(),
+                      "name", title,
+                      "description", description,
+                      "parameters", paramsList);
                 })
             .toList();
-
-    System.out.println("MY QUERY TOOLS: " + queryTools);
-    System.out.println("MY ITEMS: " + items);
 
     // combine tool-definitions
     Map<String, Object> response =
