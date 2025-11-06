@@ -144,7 +144,7 @@ public class EndpointMcp extends Endpoint {
 
     System.out.println("DEFINITIONS: " + definitions);
 
-    // Alle QueryParameterTemplateQueryable extrahieren
+    // extract QueryParameterTemplateQueryable
     List<Object> allParams =
         definitions.stream()
             .flatMap(def -> def.getResources().values().stream())
@@ -161,7 +161,7 @@ public class EndpointMcp extends Endpoint {
             .map(param -> (Object) param)
             .toList();
 
-    // Gruppieren nach collectionId per Reflection
+    // group by collectionId using reflection
     Map<String, List<Object>> grouped =
         allParams.stream()
             .collect(
@@ -174,8 +174,7 @@ public class EndpointMcp extends Endpoint {
                       }
                     }));
 
-    // Ergebnis bauen
-    List<Map<String, Object>> result =
+    List<Map<String, Object>> items =
         grouped.entrySet().stream()
             .map(
                 entry -> {
@@ -183,7 +182,7 @@ public class EndpointMcp extends Endpoint {
                     return Map.of(
                         "collectionId", entry.getKey(),
                         "apiId", invokeMethod(entry.getValue().get(0), "getApiId"),
-                        "params",
+                        "info",
                             entry.getValue().stream()
                                 .map(
                                     param -> {
@@ -210,6 +209,6 @@ public class EndpointMcp extends Endpoint {
                 })
             .toList();
 
-    return Response.ok(result).build();
+    return Response.ok(items).build();
   }
 }
