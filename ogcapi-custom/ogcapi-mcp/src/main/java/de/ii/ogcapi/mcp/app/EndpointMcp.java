@@ -209,6 +209,103 @@ public class EndpointMcp extends Endpoint {
                 })
             .toList();
 
-    return Response.ok(items).build();
+    // tool definitions for stored queries
+    List<Map<String, Object>> queryTools =
+        queries.stream()
+            .map(
+                query -> {
+                  try {
+                    Object idObj = invokeMethod(query, "getId");
+                    String queryId =
+                        idObj instanceof Optional
+                            ? ((Optional<?>) idObj).map(Object::toString).orElse("unknown")
+                            : idObj != null ? idObj.toString() : "unknown";
+
+                    Object titleObj = invokeMethod(query, "getTitle");
+                    String title =
+                        titleObj instanceof Optional
+                            ? ((Optional<?>) titleObj).map(Object::toString).orElse(queryId)
+                            : titleObj != null ? titleObj.toString() : queryId;
+
+                    Object descObj = invokeMethod(query, "getDescription");
+                    String description =
+                        descObj instanceof Optional
+                            ? ((Optional<?>) descObj).map(Object::toString).orElse("")
+                            : descObj != null ? descObj.toString() : "";
+
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> parameters =
+                        (Map<String, Object>) invokeMethod(query, "getParameters");
+
+                    List<Map<String, Object>> paramsList =
+                        parameters.entrySet().stream()
+                            .map(
+                                entry -> {
+                                  try {
+                                    Object schema = entry.getValue();
+                                    String paramName = entry.getKey();
+
+                                    // AUCH HIER: Optional-Handling
+                                    @SuppressWarnings("unchecked")
+                                    Optional<String> paramTitleOpt =
+                                        (Optional<String>) invokeMethod(schema, "getTitle");
+                                    String paramTitle = paramTitleOpt.orElse(paramName);
+
+                                    @SuppressWarnings("unchecked")
+                                    Optional<String> paramDescOpt =
+                                        (Optional<String>) invokeMethod(schema, "getDescription");
+                                    String paramDescription = paramDescOpt.orElse("");
+
+                                    String paramType = (String) invokeMethod(schema, "getType");
+                                    Object defaultValue = invokeMethod(schema, "getDefault_");
+
+                                    Map<String, Object> paramMap = new java.util.HashMap<>();
+                                    paramMap.put("name", paramName);
+                                    paramMap.put("title", paramTitle);
+                                    paramMap.put("description", paramDescription);
+                                    paramMap.put("type", paramType != null ? paramType : "string");
+                                    paramMap.put(
+                                        "default", defaultValue != null ? defaultValue : "");
+                                    return paramMap;
+                                  } catch (NoSuchMethodException
+                                      | IllegalAccessException
+                                      | InvocationTargetException e) {
+                                    Map<String, Object> errorMap = new java.util.HashMap<>();
+                                    errorMap.put("name", entry.getKey());
+                                    errorMap.put("description", "");
+                                    return errorMap;
+                                  }
+                                })
+                            .collect(Collectors.toList());
+
+                    return Map.of(
+                        "queryId",
+                        queryId != null ? queryId : "unknown",
+                        "apiId",
+                        apiData.getId(),
+                        "name",
+                        title != null ? title : queryId,
+                        "description",
+                        description,
+                        "parameters",
+                        paramsList);
+                  } catch (NoSuchMethodException
+                      | IllegalAccessException
+                      | InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                  }
+                })
+            .toList();
+
+    System.out.println("MY QUERY TOOLS: " + queryTools);
+    System.out.println("MY ITEMS: " + items);
+
+    // combine tool-definitions
+    Map<String, Object> response =
+        Map.of(
+            "collections", items,
+            "queries", queryTools);
+
+    return Response.ok(response).build();
   }
 }
