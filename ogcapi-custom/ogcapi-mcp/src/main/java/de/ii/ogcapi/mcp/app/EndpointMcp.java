@@ -15,7 +15,8 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.CommonBuildingBlock;
 import de.ii.ogcapi.common.domain.CommonConfiguration;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
-import de.ii.ogcapi.common.domain.QueriesHandlerCommon;
+import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
+import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -60,10 +61,13 @@ import javax.ws.rs.core.Response;
 public class EndpointMcp extends Endpoint {
 
   private static final List<String> TAGS = ImmutableList.of("Capabilities");
+  private final StoredQueryRepository storedQueryRepository;
 
   @Inject
-  public EndpointMcp(ExtensionRegistry extensionRegistry, QueriesHandlerCommon queryHandler) {
+  public EndpointMcp(
+      ExtensionRegistry extensionRegistry, StoredQueryRepository storedQueryRepository) {
     super(extensionRegistry);
+    this.storedQueryRepository = storedQueryRepository;
   }
 
   @Override
@@ -123,6 +127,9 @@ public class EndpointMcp extends Endpoint {
   @Produces({"application/json"})
   public Response getMcpClasses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
     OgcApiDataV2 apiData = api.getData();
+
+    List<StoredQueryExpression> queries = storedQueryRepository.getAll(apiData);
+    System.out.println("STORED QUERIES: " + queries);
 
     List<ApiEndpointDefinition> definitions =
         extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
