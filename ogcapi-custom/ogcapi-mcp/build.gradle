@@ -9,4 +9,16 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-jsonschema'
+
+    /*embedded(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '0.15.0') {
+        exclude module: 'jackson-annotations'
+        exclude module: 'reactive-streams'
+        exclude module: 'slf4j-api'
+    }
+    embedded(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '0.15.0') {
+        exclude module: 'jackson-databind'
+        exclude module: 'json-schema-validator'
+    }*/
+    //use jts exported from this
+    //embeddedImport 'de.interactive_instruments:xtraplatform-geometries'
 }
