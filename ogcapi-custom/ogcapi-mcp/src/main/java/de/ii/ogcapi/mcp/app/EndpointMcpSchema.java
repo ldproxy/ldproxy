@@ -13,7 +13,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
-import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -31,9 +30,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpServer;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -128,11 +125,6 @@ public class EndpointMcpSchema extends Endpoint {
     OgcApiDataV2 apiData = api.getData();
 
     // TODO: move the MCP schema generation from below to McpServerImpl
-    // return Response.ok(mcpServer.getSchema(apiData)).build();
-
-    List<StoredQueryExpression> queries = storedQueryRepository.getAll(apiData);
-    System.out.println("STORED QUERIES: " + queries);
-
     List<ApiEndpointDefinition> definitions =
         extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
             .filter(endpoint -> endpoint.isEnabledForApi(apiData))
@@ -144,10 +136,8 @@ public class EndpointMcpSchema extends Endpoint {
                         .anyMatch(op -> op.getOperationId().contains("getItems")))
             .toList();
 
-    System.out.println("DEFINITIONS: " + definitions);
-
     // extract QueryParameterTemplateQueryable
-    List<QueryParameterTemplateQueryable> allParams =
+    List<QueryParameterTemplateQueryable> allItems =
         definitions.stream()
             .flatMap(def -> def.getResources().values().stream())
             .flatMap(res -> res.getOperations().values().stream())
@@ -156,85 +146,72 @@ public class EndpointMcpSchema extends Endpoint {
             .map(param -> (QueryParameterTemplateQueryable) param)
             .toList();
 
-    // group by collectionId using reflection
-    Map<String, List<QueryParameterTemplateQueryable>> grouped =
-        allParams.stream()
-            .collect(Collectors.groupingBy(QueryParameterTemplateQueryable::getCollectionId));
+    return Response.ok(mcpServer.getSchema(apiData, allItems)).build();
 
-    List<Map<String, Object>> items =
-        grouped.entrySet().stream()
-            .map(
-                entry ->
-                    Map.of(
-                        "collectionId", entry.getKey(),
-                        "apiId", entry.getValue().get(0).getApiId(),
-                        "info",
-                            entry.getValue().stream()
-                                .map(
-                                    param ->
-                                        Map.of(
-                                            "name", param.getName(),
-                                            "description", param.getDescription()))
-                                .toList()))
-            .toList();
+    /*
+        List<StoredQueryExpression> queries = storedQueryRepository.getAll(apiData);
+        System.out.println("STORED QUERIES: " + queries);
 
-    List<Map<String, Object>> queryTools =
-        queries.stream()
-            .map(
-                query -> {
-                  String queryId = query.getId() != null ? query.getId() : "unknown";
-                  String title =
-                      query.getTitle() != null ? String.valueOf(query.getTitle()) : queryId;
-                  String description =
-                      query.getDescription() != null ? String.valueOf(query.getDescription()) : "";
 
-                  Map<String, Object> parameters = new java.util.HashMap<>(query.getParameters());
-                  List<Map<String, Object>> paramsList =
-                      parameters.entrySet().stream()
-                          .map(
-                              entry -> {
-                                Object schema = entry.getValue();
-                                String paramName = entry.getKey();
+        List<Map<String, Object>> queryTools =
+            queries.stream()
+                .map(
+                    query -> {
+                      String queryId = query.getId() != null ? query.getId() : "unknown";
+                      String title =
+                          query.getTitle() != null ? String.valueOf(query.getTitle()) : queryId;
+                      String description =
+                          query.getDescription() != null ? String.valueOf(query.getDescription()) : "";
 
-                                String paramTitle = null;
-                                String paramDescription = "";
-                                String paramType = "string";
+                      Map<String, Object> parameters = new java.util.HashMap<>(query.getParameters());
+                      List<Map<String, Object>> paramsList =
+                          parameters.entrySet().stream()
+                              .map(
+                                  entry -> {
+                                    Object schema = entry.getValue();
+                                    String paramName = entry.getKey();
 
-                                if (schema instanceof QueryParameterTemplateQueryable) {
-                                  QueryParameterTemplateQueryable qp =
-                                      (QueryParameterTemplateQueryable) schema;
-                                  paramTitle = qp.getName();
-                                  paramDescription = qp.getDescription();
-                                  paramType =
-                                      qp.getType() != null
-                                          ? String.valueOf(qp.getType())
-                                          : "string";
-                                }
+                                    String paramTitle = null;
+                                    String paramDescription = "";
+                                    String paramType = "string";
 
-                                Map<String, Object> paramMap = new java.util.HashMap<>();
-                                paramMap.put("name", paramName);
-                                paramMap.put("title", paramTitle != null ? paramTitle : paramName);
-                                paramMap.put("description", paramDescription);
-                                paramMap.put("type", paramType);
-                                return paramMap;
-                              })
-                          .collect(Collectors.toList());
+                                    if (schema instanceof QueryParameterTemplateQueryable) {
+                                      QueryParameterTemplateQueryable qp =
+                                          (QueryParameterTemplateQueryable) schema;
+                                      paramTitle = qp.getName();
+                                      paramDescription = qp.getDescription();
+                                      paramType =
+                                          qp.getType() != null
+                                              ? String.valueOf(qp.getType())
+                                              : "string";
+                                    }
 
-                  return Map.of(
-                      "queryId", queryId,
-                      "apiId", apiData.getId(),
-                      "name", title,
-                      "description", description,
-                      "parameters", paramsList);
-                })
-            .toList();
+                                    Map<String, Object> paramMap = new java.util.HashMap<>();
+                                    paramMap.put("name", paramName);
+                                    paramMap.put("title", paramTitle != null ? paramTitle : paramName);
+                                    paramMap.put("description", paramDescription);
+                                    paramMap.put("type", paramType);
+                                    return paramMap;
+                                  })
+                              .collect(Collectors.toList());
 
-    // combine tool-definitions
-    Map<String, Object> response =
-        Map.of(
-            "collections", items,
-            "queries", queryTools);
+                      return Map.of(
+                          "queryId", queryId,
+                          "apiId", apiData.getId(),
+                          "name", title,
+                          "description", description,
+                          "parameters", paramsList);
+                    })
+                .toList();
 
-    return Response.ok(response).build();
+        // combine tool-definitions
+        Map<String, Object> response =
+            Map.of(
+    //            "collections", items,
+                "queries", queryTools);
+
+        return Response.ok(response).build();
+
+         */
   }
 }

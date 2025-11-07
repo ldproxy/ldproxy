@@ -7,9 +7,12 @@
  */
 package de.ii.ogcapi.mcp.domain;
 
+import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import java.util.List;
 
 public interface McpServer {
 
-  McpSchema getSchema(OgcApiDataV2 apiData);
+  McpSchema getSchema(
+      OgcApiDataV2 apiData, List<QueryParameterTemplateQueryable> queryParameterTemplates);
 }
