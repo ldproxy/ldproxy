@@ -12,8 +12,6 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
-import de.ii.ogcapi.common.domain.CommonBuildingBlock;
-import de.ii.ogcapi.common.domain.CommonConfiguration;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
@@ -30,6 +28,8 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.mcp.domain.McpConfiguration;
+import de.ii.ogcapi.mcp.domain.McpServer;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,43 +37,42 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 /**
- * @title Conformance Declaration
- * @path conformance
- * @langEn The URIs of all conformance classes supported by the API. This information is provided to
- *     support 'generic' clients that want to access multiple OGC API implementations - and not
- *     'just' a specific API. For clients accessing only a single API, this information is in
- *     general not relevant and the OpenAPI definition describes the API in detail.
- * @langDe Die URIs aller von der API unterstützten Konformitätsklassen. Diese Informationen werden
- *     bereitgestellt, um "generische" Clients zu unterstützen, die auf mehrere
- *     OGC-API-Implementierungen zugreifen wollen - und nicht "nur" auf eine bestimmte API. Für
- *     Clients, die nur auf eine einzige API zugreifen, ist diese Information im Allgemeinen nicht
- *     relevant und die OpenAPI-Definition beschreibt die API im Detail.
- * @ref:formats {@link de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension}
+ * @title Model Context Protocol (MCP) Schema
+ * @path mcp/schema
+ * @langEn TODO
+ * @langDe TODO
  */
 @Singleton
 @AutoBind
-public class EndpointMcp extends Endpoint {
+public class EndpointMcpSchema extends Endpoint {
 
-  private static final List<String> TAGS = ImmutableList.of("Capabilities");
+  private static final List<String> TAGS = ImmutableList.of("MCP");
+
+  private final McpServer mcpServer;
   private final StoredQueryRepository storedQueryRepository;
 
   @Inject
-  public EndpointMcp(
-      ExtensionRegistry extensionRegistry, StoredQueryRepository storedQueryRepository) {
+  public EndpointMcpSchema(
+      McpServer mcpServer,
+      ExtensionRegistry extensionRegistry,
+      StoredQueryRepository storedQueryRepository) {
     super(extensionRegistry);
+    this.mcpServer = mcpServer;
     this.storedQueryRepository = storedQueryRepository;
   }
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return CommonConfiguration.class;
+    return McpConfiguration.class;
   }
 
+  // TODO: az
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
@@ -89,7 +88,7 @@ public class EndpointMcp extends Endpoint {
             .apiEntrypoint("mcp")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_CONFORMANCE);
     List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, "/mcp");
+        getQueryParameters(extensionRegistry, apiData, "/mcp/schema");
     String operationSummary = "mcp declaration";
     Optional<String> operationDescription =
         Optional.of(
@@ -98,7 +97,7 @@ public class EndpointMcp extends Endpoint {
                 + "OGC API implementations - and not 'just' a specific API. For clients accessing only a single "
                 + "API, this information is in general not relevant and the OpenAPI definition details the "
                 + "required information about the API.");
-    String path = "/mcp";
+    String path = "/mcp/schema";
     ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
         new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
     ApiOperation.getResource(
@@ -114,18 +113,22 @@ public class EndpointMcp extends Endpoint {
             getOperationId("getMcpDeclaration"),
             GROUP_DISCOVER_READ,
             TAGS,
-            CommonBuildingBlock.MATURITY,
-            CommonBuildingBlock.SPEC)
+            McpBuildingBlock.MATURITY,
+            McpBuildingBlock.SPEC)
         .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
     return definitionBuilder.build();
   }
 
+  @Path("/schema")
   @GET
   @Produces({"application/json"})
   public Response getMcpClasses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
     OgcApiDataV2 apiData = api.getData();
+
+    // TODO: move the MCP schema generation from below to McpServerImpl
+    // return Response.ok(mcpServer.getSchema(apiData)).build();
 
     List<StoredQueryExpression> queries = storedQueryRepository.getAll(apiData);
     System.out.println("STORED QUERIES: " + queries);

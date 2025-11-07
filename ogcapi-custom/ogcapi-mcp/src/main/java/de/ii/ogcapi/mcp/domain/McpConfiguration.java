@@ -10,22 +10,60 @@ package de.ii.ogcapi.mcp.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * @buildingBlock RESULT_TYPE
+ * @buildingBlock MCP
  * @examplesAll <code>
  * ```yaml
- * - buildingBlock: RESULT_TYPE
+ * - buildingBlock: MCP
  *   enabled: true
  * ```
  * </code>
  */
 @Value.Immutable
-@Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "MCP")
 @JsonDeserialize(builder = ImmutableMcpConfiguration.Builder.class)
 public interface McpConfiguration extends ExtensionConfiguration {
+
+  /**
+   * @langEn TODO
+   * @langDe TODO
+   * @default []
+   * @since v4.6
+   */
+  Optional<McpIncludeExclude> getIncluded();
+
+  /**
+   * @langEn TODO
+   * @langDe TODO
+   * @default []
+   * @since v4.6
+   */
+  Optional<McpIncludeExclude> getExcluded();
+
+  @Value.Immutable
+  @JsonDeserialize(builder = ImmutableMcpIncludeExclude.Builder.class)
+  interface McpIncludeExclude {
+
+    /**
+     * @langEn TODO
+     * @langDe TODO
+     * @default []
+     * @since v4.6
+     */
+    List<String> getCollections();
+
+    /**
+     * @langEn TODO
+     * @langDe TODO
+     * @default []
+     * @since v4.6
+     */
+    List<String> getQueries();
+  }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
