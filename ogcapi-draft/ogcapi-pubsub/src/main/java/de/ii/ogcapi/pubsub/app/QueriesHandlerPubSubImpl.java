@@ -155,11 +155,11 @@ public class QueriesHandlerPubSubImpl extends AbstractVolatileComposed
           md.getContactEmail().ifPresent(contact::email);
           info.contact(contact.build());
         }
-        if (md.getEffectiveLicenseName().isPresent()) {
+        if (md.getLicenseName().isPresent()) {
           // license name is required
           ImmutableAsyncApiLicense.Builder license =
-              ImmutableAsyncApiLicense.builder().name(md.getEffectiveLicenseName().get());
-          md.getEffectiveLicenseUrl().ifPresent(v -> license.url(URI.create(v)));
+              ImmutableAsyncApiLicense.builder().name(md.getLicenseName().get());
+          md.getLicenseUrl().ifPresent(v -> license.url(URI.create(v)));
           info.license(license.build());
         }
       }

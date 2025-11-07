@@ -7,15 +7,11 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
-import org.spdx.library.LicenseInfoFactory;
-import org.spdx.library.SpdxModelFactory;
-import org.spdx.library.model.v3_0_1.expandedlicensing.ListedLicense;
 
 /**
  * @langEn General metadata for the API (version, contact details, license information). Supported
@@ -64,89 +60,80 @@ import org.spdx.library.model.v3_0_1.expandedlicensing.ListedLicense;
  */
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableApiMetadata.Builder.class)
-public abstract class ApiMetadata {
-
-  private static boolean spdxInitialized = false;
-
-  static void initializeSpdxIfNeeded() {
-    if (!spdxInitialized) {
-      SpdxModelFactory.init();
-      spdxInitialized = true;
-    }
-  }
+public interface ApiMetadata {
 
   /**
    * @langEn Optional name of a contact person or organization for the API.
    * @langDe Optionaler Name einer Kontaktperson oder -organisation für die API.
    */
-  public abstract Optional<String> getContactName();
+  Optional<String> getContactName();
 
   /**
    * @langEn Optional URL of a contact webpage for the API.
    * @langDe Optionale URL einer Kontakt-Webseite für die API.
    */
-  public abstract Optional<String> getContactUrl();
+  Optional<String> getContactUrl();
 
   /**
    * @langEn Optional email address for information about the API.
    * @langDe Optionale Emailadresse für Informationen über die API.
    */
-  public abstract Optional<String> getContactEmail();
+  Optional<String> getContactEmail();
 
   /**
    * @langEn Optional phone number for information about the API.
    * @langDe Optionale Telefonnummer für Informationen über die API.
    */
-  public abstract Optional<String> getContactPhone();
+  Optional<String> getContactPhone();
 
   /**
    * @langEn Optional name of a creator of data shared via the API.
    * @langDe Optionaler Name des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getCreatorName();
+  Optional<String> getCreatorName();
 
   /**
    * @langEn Optional URL of a website of the creator of data shared via the API.
    * @langDe Optionale URL der Website des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getCreatorUrl();
+  Optional<String> getCreatorUrl();
 
   /**
    * @langEn Optional URL of a logo bitmap image of the creator of data shared via the API.
    * @langDe Optionale URL einer Logo-Bilddatei des Erzeugers der Daten aus dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getCreatorLogoUrl();
+  Optional<String> getCreatorLogoUrl();
 
   /**
    * @langEn Optional name of the publisher of this API.
    * @langDe Optionaler Name des Herausgebers dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getPublisherName();
+  Optional<String> getPublisherName();
 
   /**
    * @langEn Optional URL of a website of the publisher of this API.
    * @langDe Optionale URL der Website des Herausgebers dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getPublisherUrl();
+  Optional<String> getPublisherUrl();
 
   /**
    * @langEn Optional URL of a logo bitmap image of the publisher of this API.
    * @langDe Optionale URL einer Logo-Bilddatei des Herausgebers dieser API.
    * @since v3.0
    */
-  public abstract Optional<String> getPublisherLogoUrl();
+  Optional<String> getPublisherLogoUrl();
 
   /**
    * @langEn SPDX license identifier of the license of the data shared via this API.
    * @langDe SPDX-Lizenzidentifikator der Lizenz der Daten aus dieser API.
    * @since v4.6
    */
-  public abstract Optional<String> getLicense();
+  Optional<String> getLicense();
 
   /**
    * @langEn Name of the license of the data shared via this API. If not set and `license` is set,
@@ -154,31 +141,7 @@ public abstract class ApiMetadata {
    * @langDe Name der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist
    *     gesetzt, dann wird der Name aus dem SPDX-Identifikator abgeleitet.
    */
-  public abstract Optional<String> getLicenseName();
-
-  @JsonIgnore
-  @Value.Derived
-  @Value.Auxiliary
-  public Optional<String> getEffectiveLicenseName() {
-    return getLicenseName()
-        .or(
-            () ->
-                getLicense()
-                    .map(
-                        spdx -> {
-                          // Try to map SPDX identifier to full license name
-                          try {
-                            initializeSpdxIfNeeded();
-                            ListedLicense lic = LicenseInfoFactory.getListedLicenseById(spdx);
-                            if (lic != null && lic.getName().isPresent()) {
-                              return lic.getName().get();
-                            }
-                          } catch (Exception e) {
-                            // ignore
-                          }
-                          return spdx;
-                        }));
-  }
+  Optional<String> getLicenseName();
 
   /**
    * @langEn URL of the license of the data shared via this API. If not set and `license` is set,
@@ -186,31 +149,7 @@ public abstract class ApiMetadata {
    * @langDe URL der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist gesetzt,
    *     dann wird die URL aus dem SPDX-Identifikator abgeleitet.
    */
-  public abstract Optional<String> getLicenseUrl();
-
-  @JsonIgnore
-  @Value.Derived
-  @Value.Auxiliary
-  public Optional<String> getEffectiveLicenseUrl() {
-    return getLicenseUrl()
-        .or(
-            () ->
-                getLicense()
-                    .map(
-                        spdx -> {
-                          // Try to map SPDX identifier to license uri
-                          try {
-                            initializeSpdxIfNeeded();
-                            ListedLicense lic = LicenseInfoFactory.getListedLicenseById(spdx);
-                            if (lic != null) {
-                              return lic.getObjectUri();
-                            }
-                          } catch (Exception e) {
-                            // ignore
-                          }
-                          return null;
-                        }));
-  }
+  Optional<String> getLicenseUrl();
 
   /**
    * @langEn Keywords describing this API.
@@ -218,14 +157,14 @@ public abstract class ApiMetadata {
    * @default []
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  public abstract List<String> getKeywords();
+  List<String> getKeywords();
 
   /**
    * @langEn Version for this API in the OpenAPI definition.
    * @langDe Version der API in der OpenAPI-Definition.
    * @default `1.0.0`
    */
-  public abstract Optional<String> getVersion();
+  Optional<String> getVersion();
 
   /**
    * @langEn Attribution text for data shared via this API, e.g., for display in maps.
@@ -233,5 +172,5 @@ public abstract class ApiMetadata {
    *     Karte.
    * @since v3.0
    */
-  public abstract Optional<String> getAttribution();
+  Optional<String> getAttribution();
 }

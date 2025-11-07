@@ -493,7 +493,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
                     .getAbstract(apiData.getDescription())
                     .addAllKeywords(md.map(ApiMetadata::getKeywords).orElse(ImmutableList.of()))
                     .accessConstraints(
-                        md.flatMap(ApiMetadata::getEffectiveLicenseName)
+                        md.flatMap(ApiMetadata::getLicenseName)
                             .map(s -> String.format("License: %s", s)))
                     .build());
 

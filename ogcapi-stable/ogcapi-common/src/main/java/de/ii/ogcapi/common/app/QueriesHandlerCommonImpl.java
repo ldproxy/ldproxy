@@ -107,10 +107,8 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
     OgcApiDataV2 apiData = api.getData();
 
     Optional<String> licenseSpdx = apiData.getMetadata().flatMap(ApiMetadata::getLicense);
-    Optional<String> licenseUrl =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseUrl);
-    Optional<String> licenseName =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseName);
+    Optional<String> licenseUrl = apiData.getMetadata().flatMap(ApiMetadata::getLicenseUrl);
+    Optional<String> licenseName = apiData.getMetadata().flatMap(ApiMetadata::getLicenseName);
     List<Link> links =
         linksGenerator.generateLinks(
             requestContext.getUriCustomizer().copy(),

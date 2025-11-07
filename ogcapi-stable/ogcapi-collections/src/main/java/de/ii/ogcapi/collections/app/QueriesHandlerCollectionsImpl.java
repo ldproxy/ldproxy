@@ -101,10 +101,8 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
 
-    Optional<String> licenseUrl =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseUrl);
-    Optional<String> licenseName =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseName);
+    Optional<String> licenseUrl = apiData.getMetadata().flatMap(ApiMetadata::getLicenseUrl);
+    Optional<String> licenseName = apiData.getMetadata().flatMap(ApiMetadata::getLicenseName);
     List<Link> links =
         new CollectionsLinksGenerator()
             .generateLinks(
@@ -182,10 +180,8 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
     OgcApiDataV2 apiData = api.getData();
     String collectionId = queryInput.getCollectionId();
 
-    Optional<String> licenseUrl =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseUrl);
-    Optional<String> licenseName =
-        apiData.getMetadata().flatMap(ApiMetadata::getEffectiveLicenseName);
+    Optional<String> licenseUrl = apiData.getMetadata().flatMap(ApiMetadata::getLicenseUrl);
+    Optional<String> licenseName = apiData.getMetadata().flatMap(ApiMetadata::getLicenseName);
     List<Link> links =
         new CollectionLinksGenerator()
             .generateLinks(

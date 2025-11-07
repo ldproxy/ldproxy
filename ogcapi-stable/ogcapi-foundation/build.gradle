@@ -12,7 +12,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
 
-    embeddedExport(libCatalog.spdx) {
+    embedded(libCatalog.spdx) {
         exclude module: 'commons-lang3'
         exclude module: 'slf4j-api'
         exclude module: 'jsr305'
