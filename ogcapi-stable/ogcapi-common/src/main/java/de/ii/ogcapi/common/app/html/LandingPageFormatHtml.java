@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.LandingPage;
 import de.ii.ogcapi.common.domain.LandingPageFormatExtension;
+import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -24,6 +25,7 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -101,7 +103,11 @@ public class LandingPageFormatHtml
             .i18n(i18n)
             .title(apiLandingPage.getTitle().orElse(api.getData().getId()))
             .description(apiLandingPage.getDescription().orElse(null))
-            .extent(apiLandingPage.getExtent())
+            .extent(
+                Optional.ofNullable(
+                    apiLandingPage.getExtensions().containsKey("extent")
+                        ? (OgcApiExtent) apiLandingPage.getExtensions().get("extent")
+                        : null))
             .language(requestContext.getLanguage())
             .user(requestContext.getUser())
             .build();

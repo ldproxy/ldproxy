@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Optional;
@@ -21,8 +22,9 @@ import org.immutables.value.Value;
  * - `contactUrl`: API Definition, HTML Landing Page
  * - `contactEmail`: API Definition, HTML Landing Page
  * - `contactPhone`: HTML Landing Page,
- * - `licenseName`: API Definition, HTML Landing Page, Feature Collections, Feature Collection
- * - `licenseUrl`: API Definition, HTML Landing Page, Feature Collections, Feature Collection
+ * - `license`: API Definition, Landing Page, Feature Collections, Feature Collection
+ * - `licenseName`: API Definition, Landing Page, Feature Collections, Feature Collection
+ * - `licenseUrl`: API Definition, Landing Page, Feature Collections, Feature Collection
  * - `keywords`: HTML meta tages and schema:Dataset in HTML Landing Page
  * - `attribution`: Landing Page, maps
  * - `creatorName`: schema:Dataset in HTML
@@ -42,6 +44,7 @@ import org.immutables.value.Value;
  * - `contactUrl`: API-Definition, HTML-Landing-Page
  * - `contactEmail`: API-Definition, HTML-Landing-Page
  * - `contactPhone`: HTML-Landing-Page
+ * - `license`: API-Definition, Landing-Page, Feature-Collections, Feature-Collection
  * - `licenseName`: API-Definition, HTML-Landing-Page, Feature-Collections, Feature-Collection
  * - `licenseUrl`: API-Definition, HTML-Landing-Page, Feature-Collections, Feature-Collection
  * - `keywords`: Meta-Tags und schema:Dataset in HTML-Landing-Page
@@ -126,21 +129,34 @@ public interface ApiMetadata {
   Optional<String> getPublisherLogoUrl();
 
   /**
-   * @langEn Name of the license of the data shared via this API.
-   * @langDe Name der Lizenz der Daten aus dieser API.
+   * @langEn SPDX license identifier of the license of the data shared via this API.
+   * @langDe SPDX-Lizenzidentifikator der Lizenz der Daten aus dieser API.
+   * @since v4.6
+   */
+  Optional<String> getLicense();
+
+  /**
+   * @langEn Name of the license of the data shared via this API. If not set and `license` is set,
+   *     the name is derived from the SPDX identifier.
+   * @langDe Name der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist
+   *     gesetzt, dann wird der Name aus dem SPDX-Identifikator abgeleitet.
    */
   Optional<String> getLicenseName();
 
   /**
-   * @langEn URL of the license of the data shared via this API.
-   * @langDe URL der Lizenz der Daten aus dieser API.
+   * @langEn URL of the license of the data shared via this API. If not set and `license` is set,
+   *     the URL is derived from the SPDX identifier.
+   * @langDe URL der Lizenz der Daten aus dieser API. Falls nicht gesetzt und `license` ist gesetzt,
+   *     dann wird die URL aus dem SPDX-Identifikator abgeleitet.
    */
   Optional<String> getLicenseUrl();
 
   /**
    * @langEn Keywords describing this API.
    * @langDe Schlagworte die diese API beschreiben.
+   * @default []
    */
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getKeywords();
 
   /**

@@ -4,10 +4,12 @@ earcut4j = '2.2.2'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.28.2'
 json-patch = '2.0.2'
+spdx = '2.0.1'
 
 [libraries]
 # foundation
 schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "schema-validator" }
+spdx = { module = "org.spdx:java-spdx-library", version.ref = "spdx" }
 
 # gltf
 earcut4j = { module = "io.github.earcut4j:earcut4j", version.ref = "earcut4j" }

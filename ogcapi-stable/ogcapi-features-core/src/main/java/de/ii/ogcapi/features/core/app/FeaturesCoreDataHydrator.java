@@ -209,7 +209,7 @@ public class FeaturesCoreDataHydrator implements OgcApiDataHydratorExtension {
                 .contactName(providerMetadata.get().getContactName())
                 .contactUrl(providerMetadata.get().getContactUrl())
                 .contactEmail(providerMetadata.get().getContactEmail())
-                .licenseName(license)
+                .license(license)
                 .build();
 
         String label =

@@ -37,24 +37,10 @@ class ClassSchemaCacheImplSpec extends Specification {
         then:
         Objects.nonNull(schema)
         schema.getType() == "object"
-        schema.getProperties().get("extent").get$ref() == "#/components/schemas/Extent"
-        schema.getProperties().get("externalDocs").get$ref() == "#/components/schemas/ExternalDocumentation"
         schema.getProperties().get("description").getType() == "string"
         schema.getProperties().get("title").getType() == "string"
         schema.getProperties().get("links").getType() == "array"
         schema.getRequired() == ["links"]
-        Objects.nonNull(refSchemas)
-        refSchemas.keySet() == ImmutableSet.of("Extent", "ExternalDocumentation", "SpatialExtent", "TemporalExtent", "doubleArray", "InstantArray", "doubleArrayArray", "InstantArrayArray", "Link")
-        Objects.nonNull(extentSchema)
-        extentSchema.getType() == "object"
-        extentSchema.getProperties().get("spatial").get$ref() == "#/components/schemas/SpatialExtent"
-        extentSchema.getProperties().get("temporal").get$ref() == "#/components/schemas/TemporalExtent"
-        Objects.nonNull(spatialExtentSchema)
-        spatialExtentSchema.getType()  == "object"
-        spatialExtentSchema.getRequired()  == ["bbox", "crs"]
-        Objects.nonNull(temporalExtentSchema)
-        temporalExtentSchema.getType() == "object"
-        temporalExtentSchema.getRequired()  == ["interval", "trs"]
     }
 
     def 'Test Conformance Declaration schema generation'() {
