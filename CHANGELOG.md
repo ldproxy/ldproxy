@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.5.1 (05/11/2025)
+#### Improvements
+
+-  support paging headers for all encodings [#812](https://github.com/ldproxy/ldproxy/issues/812)
+
+#### Fixed bugs
+
+-  alternate links to GeoJSON are dropped, if JSON-FG is not enabled [#1504](https://github.com/ldproxy/ldproxy/issues/1504)
+-  concat for value arrays leads to errors [#1497](https://github.com/ldproxy/ldproxy/issues/1497)
+-  incorrect handling of MapLibre styles with a TileJSON URL [#1495](https://github.com/ldproxy/ldproxy/issues/1495)
+-  incorrect handling of MapLibre styles for other tile matrix sets [#1494](https://github.com/ldproxy/ldproxy/issues/1494)
+-  xtratiler seeding not properly logged anymore [#1486](https://github.com/ldproxy/ldproxy/issues/1486)
+-  path prefix in `externalUrl` is ignored [#1484](https://github.com/ldproxy/ldproxy/issues/1484)
+-  JSON-FG: conformance class for circular arcs not declared [#1482](https://github.com/ldproxy/ldproxy/issues/1482)
+-  simplified circular arcs result in invalid geometries [#1480](https://github.com/ldproxy/ldproxy/issues/1480)
+-  static resources not found when collection id equals api id [#1477](https://github.com/ldproxy/ldproxy/issues/1477)
+
+#### Dependency updates
+
+* Update dependency io.github.classgraph:classgraph to v4.8.184 (maintenance-6.5) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/295
+* Update swagger to v2.2.40 (maintenance-6.5) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/296
+
+---
+
 ## v4.5.0 (12/10/2025)
 #### Implemented enhancements
 
