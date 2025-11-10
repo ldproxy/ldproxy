@@ -25,6 +25,8 @@ public class LandingPageLinksGenerator extends DefaultLinksGenerator {
       Optional<String> describeFeatureTypeUrl,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
+      Optional<String> licenseUrl,
+      Optional<String> licenseName,
       I18n i18n,
       Optional<Locale> language) {
     final ImmutableList.Builder<Link> builder =
@@ -60,6 +62,15 @@ public class LandingPageLinksGenerator extends DefaultLinksGenerator {
                 .rel("http://www.opengis.net/def/rel/ogc/1.0/conformance")
                 .title(i18n.get("conformanceLink", language))
                 .build());
+
+    licenseUrl.ifPresent(
+        url ->
+            builder.add(
+                new ImmutableLink.Builder()
+                    .href(url)
+                    .rel("license")
+                    .title(licenseName.orElseGet(() -> i18n.get("licenseLink", language)))
+                    .build()));
 
     return builder.build();
   }

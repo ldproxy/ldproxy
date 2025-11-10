@@ -146,15 +146,15 @@ public class ExtendableOpenApiDefinitionImpl implements ExtendableOpenApiDefinit
               || md.getContactUrl().isPresent()
               || md.getContactEmail().isPresent()) {
             Contact contact = new Contact();
-            md.getContactName().ifPresent(v -> contact.name(v));
-            md.getContactUrl().ifPresent(v -> contact.url(v));
-            md.getContactEmail().ifPresent(v -> contact.email(v));
+            md.getContactName().ifPresent(contact::name);
+            md.getContactUrl().ifPresent(contact::url);
+            md.getContactEmail().ifPresent(contact::email);
             openAPI.getInfo().contact(contact);
           }
           if (md.getLicenseName().isPresent()) {
             // license name is required
             License license = new License().name(md.getLicenseName().get());
-            md.getLicenseUrl().ifPresent(v -> license.url(v));
+            md.getLicenseUrl().ifPresent(license::url);
             openAPI.getInfo().license(license);
           }
         } else {

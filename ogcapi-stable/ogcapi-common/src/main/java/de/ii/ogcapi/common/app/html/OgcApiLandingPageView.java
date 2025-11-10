@@ -223,7 +223,10 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
   }
 
   public Optional<ExternalDocumentation> getExternalDocs() {
-    return apiLandingPage().getExternalDocs();
+    return Optional.ofNullable(
+        apiLandingPage().getExtensions().containsKey("externalDocs")
+            ? (ExternalDocumentation) apiLandingPage().getExtensions().get("externalDocs")
+            : null);
   }
 
   public Optional<String> getSchemaOrgDataset() {

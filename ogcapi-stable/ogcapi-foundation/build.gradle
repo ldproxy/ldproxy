@@ -12,6 +12,14 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
 
+    embedded(libCatalog.spdx) {
+        exclude module: 'commons-lang3'
+        exclude module: 'slf4j-api'
+        exclude module: 'jsr305'
+        exclude module: 'error_prone_annotations'
+        exclude module: 'jsoup'
+    }
+
     //TODO: move to xtraplatform
     embeddedExport (libCatalog.schema.validator) {
         exclude module: 'jackson-core'
