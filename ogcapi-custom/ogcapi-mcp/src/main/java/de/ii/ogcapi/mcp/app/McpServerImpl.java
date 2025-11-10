@@ -59,16 +59,60 @@ public class McpServerImpl implements McpServer {
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
+      Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
+      Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
+
+      List<String> includedQueries =
+          includedOpt.map(McpConfiguration.McpIncludeExclude::getQueries).orElse(null);
+      List<String> excludedQueries =
+          excludedOpt.map(McpConfiguration.McpIncludeExclude::getQueries).orElse(List.of());
+
+      List<StoredQueryExpression> filteredQueries;
+      if ((includedQueries == null || includedOpt.isEmpty()) && excludedQueries.isEmpty()) {
+        filteredQueries = storedQueries;
+      } else if (includedQueries == null) {
+        filteredQueries = List.of();
+      } else if (includedQueries.contains("*")) {
+        filteredQueries =
+            storedQueries.stream()
+                .filter(
+                    q ->
+                        !excludedQueries.contains(q.getId())
+                            && !excludedQueries.contains(
+                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
+                .toList();
+      } else {
+        filteredQueries =
+            storedQueries.stream()
+                .filter(
+                    q ->
+                        includedQueries.contains(q.getId())
+                            || includedQueries.contains(
+                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
+                .filter(
+                    q ->
+                        !excludedQueries.contains(q.getId())
+                            && !excludedQueries.contains(
+                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
+                .toList();
+      }
+
       List<ImmutableMcpTool> queryTools =
-          storedQueries.stream()
+          filteredQueries.stream()
               .map(
                   query -> {
                     String queryId = query.getId() != null ? query.getId() : "unknown";
                     String title =
-                        query.getTitle() != null ? String.valueOf(query.getTitle()) : queryId;
+                        query.getTitle() != null
+                            ? String.valueOf(query.getTitle())
+                                .replace("Optional[", "")
+                                .replace("]", "")
+                            : queryId;
                     String description =
                         query.getDescription() != null
                             ? String.valueOf(query.getDescription())
+                                .replace("Optional[", "")
+                                .replace("]", "")
                             : "";
 
                     // Parameter-Schema
@@ -91,22 +135,29 @@ public class McpServerImpl implements McpServer {
                                         paramTitle =
                                             s.getTitle() != null
                                                 ? String.valueOf(s.getTitle())
+                                                    .replace("Optional[", "")
+                                                    .replace("]", "")
                                                 : paramTitle;
                                         paramDescription =
                                             s.getDescription() != null
                                                 ? String.valueOf(s.getDescription())
+                                                    .replace("Optional[", "")
+                                                    .replace("]", "")
                                                 : "";
                                         pattern = String.valueOf(s.getPattern());
                                         defaultValue = s.getDefault_();
-                                        // In the future, additional types such as minimum, etc.
                                       } else if (schema instanceof JsonSchemaInteger i) {
                                         paramTitle =
                                             i.getTitle() != null
                                                 ? String.valueOf(i.getTitle())
+                                                    .replace("Optional[", "")
+                                                    .replace("]", "")
                                                 : paramTitle;
                                         paramDescription =
                                             i.getDescription() != null
                                                 ? String.valueOf(i.getDescription())
+                                                    .replace("Optional[", "")
+                                                    .replace("]", "")
                                                 : "";
                                         defaultValue = i.getDefault_();
                                       }
@@ -140,8 +191,8 @@ public class McpServerImpl implements McpServer {
       // Collections
       List<QueryParameterTemplateQueryable> filteredItems;
 
-      Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
-      Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
+      includedOpt = mcpConfiguration.getIncluded();
+      excludedOpt = mcpConfiguration.getExcluded();
 
       List<String> includedCollections =
           includedOpt.map(McpConfiguration.McpIncludeExclude::getCollections).orElse(null);
