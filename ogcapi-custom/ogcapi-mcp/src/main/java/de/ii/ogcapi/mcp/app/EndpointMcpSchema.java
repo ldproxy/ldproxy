@@ -11,14 +11,12 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Endpoint;
-import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -124,28 +122,6 @@ public class EndpointMcpSchema extends Endpoint {
   public Response getMcpClasses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
     OgcApiDataV2 apiData = api.getData();
 
-    // TODO: move the MCP schema generation from below to McpServerImpl
-    List<ApiEndpointDefinition> definitions =
-        extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
-            .filter(endpoint -> endpoint.isEnabledForApi(apiData))
-            .map(endpoint -> endpoint.getDefinition(apiData))
-            .filter(
-                def ->
-                    def.getResources().values().stream()
-                        .flatMap(res -> res.getOperations().values().stream())
-                        .anyMatch(op -> op.getOperationId().contains("getItems")))
-            .toList();
-
-    // extract QueryParameterTemplateQueryable
-    List<QueryParameterTemplateQueryable> allItems =
-        definitions.stream()
-            .flatMap(def -> def.getResources().values().stream())
-            .flatMap(res -> res.getOperations().values().stream())
-            .flatMap(op -> op.getQueryParameters().stream())
-            .filter(param -> param instanceof QueryParameterTemplateQueryable)
-            .map(param -> (QueryParameterTemplateQueryable) param)
-            .toList();
-
-    return Response.ok(mcpServer.getSchema(apiData, allItems)).build();
+    return Response.ok(mcpServer.getSchema(apiData)).build();
   }
 }

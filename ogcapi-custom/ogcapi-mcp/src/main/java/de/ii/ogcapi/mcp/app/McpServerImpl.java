@@ -11,6 +11,9 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.EndpointExtension;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
@@ -40,16 +43,19 @@ public class McpServerImpl implements McpServer {
 
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
   private final StoredQueryRepository storedQueryRepository;
+  private final ExtensionRegistry extensionRegistry;
 
   // private final Map<String, McpSyncServer> servers = new ConcurrentHashMap<>();
 
   @Inject
-  public McpServerImpl(StoredQueryRepository storedQueryRepository) {
+  public McpServerImpl(
+      StoredQueryRepository storedQueryRepository, ExtensionRegistry extensionRegistry) {
     this.storedQueryRepository = storedQueryRepository;
+    this.extensionRegistry = extensionRegistry;
   }
 
   @Override
-  public McpSchema getSchema(OgcApiDataV2 apiData, List<QueryParameterTemplateQueryable> allItems) {
+  public McpSchema getSchema(OgcApiDataV2 apiData) {
 
     if (!schemas.containsKey(apiData.getStableHash())) {
       LOGGER.debug("Creating MCP schema for API {}", apiData.getId());
@@ -189,6 +195,26 @@ public class McpServerImpl implements McpServer {
               .collect(Collectors.toList());
 
       // Collections
+      List<ApiEndpointDefinition> definitions =
+          extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
+              .filter(endpoint -> endpoint.isEnabledForApi(apiData))
+              .map(endpoint -> endpoint.getDefinition(apiData))
+              .filter(
+                  def ->
+                      def.getResources().values().stream()
+                          .flatMap(res -> res.getOperations().values().stream())
+                          .anyMatch(op -> op.getOperationId().contains("getItems")))
+              .toList();
+
+      List<QueryParameterTemplateQueryable> allItems =
+          definitions.stream()
+              .flatMap(def -> def.getResources().values().stream())
+              .flatMap(res -> res.getOperations().values().stream())
+              .flatMap(op -> op.getQueryParameters().stream())
+              .filter(param -> param instanceof QueryParameterTemplateQueryable)
+              .map(param -> (QueryParameterTemplateQueryable) param)
+              .toList();
+
       List<QueryParameterTemplateQueryable> filteredItems;
 
       includedOpt = mcpConfiguration.getIncluded();
