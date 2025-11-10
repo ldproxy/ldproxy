@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
+import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpSchema;
 import de.ii.ogcapi.mcp.domain.McpServer;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
@@ -23,6 +24,7 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -54,8 +56,6 @@ public class McpServerImpl implements McpServer {
 
       McpConfiguration mcpConfiguration =
           apiData.getExtension(McpConfiguration.class).orElseThrow();
-
-      // TODO: generate MCP schema based on apiData and mcpConfiguration, put it in the map
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
@@ -98,6 +98,7 @@ public class McpServerImpl implements McpServer {
                                                 : "";
                                         pattern = String.valueOf(s.getPattern());
                                         defaultValue = s.getDefault_();
+                                        // In the future, additional types such as minimum, etc.
                                       } else if (schema instanceof JsonSchemaInteger i) {
                                         paramTitle =
                                             i.getTitle() != null
@@ -137,8 +138,35 @@ public class McpServerImpl implements McpServer {
               .collect(Collectors.toList());
 
       // Collections
+      List<QueryParameterTemplateQueryable> filteredItems;
+
+      Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
+      Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
+
+      List<String> includedCollections =
+          includedOpt.map(McpConfiguration.McpIncludeExclude::getCollections).orElse(null);
+      List<String> excludedCollections =
+          excludedOpt.map(McpConfiguration.McpIncludeExclude::getCollections).orElse(List.of());
+
+      if (includedOpt.isEmpty() && excludedOpt.isEmpty()) {
+        filteredItems = allItems;
+      } else if (includedCollections == null) {
+        filteredItems = List.of();
+      } else if (includedCollections.contains("*")) {
+        filteredItems =
+            allItems.stream()
+                .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
+                .toList();
+      } else {
+        filteredItems =
+            allItems.stream()
+                .filter(qp -> includedCollections.contains(qp.getCollectionId()))
+                .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
+                .toList();
+      }
+
       Map<String, Map<String, JsonSchemaObject>> collectionProperties =
-          allItems.stream()
+          filteredItems.stream()
               .collect(
                   Collectors.groupingBy(
                       QueryParameterTemplateQueryable::getCollectionId,
