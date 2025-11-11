@@ -13,13 +13,16 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface McpTool {
 
-  static McpTool of(String name, String description, JsonSchemaObject inputSchema) {
+  static McpTool of(String id, String name, String description, JsonSchemaObject inputSchema) {
     return new ImmutableMcpTool.Builder()
+        .id(id)
         .name(name)
         .description(description)
         .inputSchema(inputSchema)
         .build();
   }
+
+  String getId();
 
   String getName();
 

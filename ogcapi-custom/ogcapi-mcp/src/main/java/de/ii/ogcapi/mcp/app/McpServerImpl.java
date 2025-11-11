@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
@@ -21,10 +22,22 @@ import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpSchema;
 import de.ii.ogcapi.mcp.domain.McpServer;
+import de.ii.ogcapi.mcp.domain.McpTool;
+import de.ii.xtraplatform.base.domain.AppContext;
+import de.ii.xtraplatform.base.domain.AppLifeCycle;
+import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.server.McpStatelessServerFeatures;
+import io.modelcontextprotocol.server.McpStatelessSyncServer;
+import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
+import io.modelcontextprotocol.spec.McpSchema.Tool;
+import io.modelcontextprotocol.spec.McpStatelessServerTransport;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,26 +45,119 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.servlet.http.HttpServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind
-public class McpServerImpl implements McpServer {
+public class McpServerImpl implements McpServer, AppLifeCycle {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(McpServerImpl.class);
+  private static final String STORED_QUERY_PREFIX = "query.";
+  private static final String COLLECTION_QUERY_PREFIX = "collection.";
 
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
-  private final StoredQueryRepository storedQueryRepository;
+  private final AppContext appContext;
   private final ExtensionRegistry extensionRegistry;
-
-  // private final Map<String, McpSyncServer> servers = new ConcurrentHashMap<>();
+  private final StoredQueryRepository storedQueryRepository;
+  private final ObjectMapper objectMapper;
+  private final Map<String, HttpServletStatelessServerTransportJavaX> servers =
+      new ConcurrentHashMap<>();
 
   @Inject
   public McpServerImpl(
-      StoredQueryRepository storedQueryRepository, ExtensionRegistry extensionRegistry) {
-    this.storedQueryRepository = storedQueryRepository;
+      AppContext appContext,
+      Jackson jackson,
+      ExtensionRegistry extensionRegistry,
+      StoredQueryRepository storedQueryRepository) {
+    this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
+    this.storedQueryRepository = storedQueryRepository;
+    this.objectMapper = jackson.getDefaultObjectMapper();
+  }
+
+  // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
+  @Override
+  public HttpServlet getServlet(OgcApiDataV2 apiData) {
+    return servers.computeIfAbsent(
+        apiData.getStableHash(),
+        key -> {
+          HttpServletStatelessServerTransportJavaX transport =
+              HttpServletStatelessServerTransportJavaX.builder()
+                  .jsonMapper(new JacksonMcpJsonMapper(objectMapper))
+                  .messageEndpoint("/mcp")
+                  .build();
+          try {
+            McpStatelessSyncServer server = createServer(apiData, transport);
+          } catch (IOException e) {
+            throw new IllegalStateException(e);
+          }
+
+          return transport;
+        });
+  }
+
+  private McpStatelessSyncServer createServer(
+      OgcApiDataV2 apiData, McpStatelessServerTransport transport) throws IOException {
+    McpSchema mcpSchema = getSchema(apiData);
+    McpStatelessSyncServer server =
+        io.modelcontextprotocol.server.McpServer.sync(transport)
+            .serverInfo(appContext.getName(), appContext.getVersion())
+            .capabilities(ServerCapabilities.builder().tools(true).build())
+            .build();
+
+    for (McpTool tool : mcpSchema.getTools()) {
+      server.addTool(
+          new McpStatelessServerFeatures.SyncToolSpecification(
+              new Tool(
+                  tool.getId(),
+                  tool.getName(),
+                  tool.getDescription(),
+                  objectMapper.readValue(
+                      objectMapper.writeValueAsString(tool.getInputSchema()),
+                      io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
+                  null,
+                  null,
+                  null),
+              (exchange, arguments) -> {
+                if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
+                  String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
+                  String result = handleStoredQuery(apiData, queryId, arguments.arguments());
+
+                  return new CallToolResult(result, false);
+                } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
+                  String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
+                  String result =
+                      handleCollectionQuery(apiData, collectionId, arguments.arguments());
+
+                  return new CallToolResult(result, false);
+                }
+
+                return new CallToolResult("Unknown tool id: " + tool.getId(), true);
+              }));
+    }
+
+    return server;
+  }
+
+  // TODO: implement
+  private String handleCollectionQuery(
+      OgcApiDataV2 apiData, String collectionId, Map<String, Object> parameters) {
+    return "TODO: handled collection query for collection: " + collectionId;
+  }
+
+  // TODO: implement
+  private String handleStoredQuery(
+      OgcApiDataV2 apiData, String queryId, Map<String, Object> parameters) {
+    return "TODO: handled stored query: " + queryId;
+  }
+
+  @Override
+  public void onStop() {
+    servers.values().forEach(HttpServletStatelessServerTransportJavaX::close);
+
+    AppLifeCycle.super.onStop();
   }
 
   @Override
@@ -108,18 +214,8 @@ public class McpServerImpl implements McpServer {
               .map(
                   query -> {
                     String queryId = query.getId() != null ? query.getId() : "unknown";
-                    String title =
-                        query.getTitle() != null
-                            ? String.valueOf(query.getTitle())
-                                .replace("Optional[", "")
-                                .replace("]", "")
-                            : queryId;
-                    String description =
-                        query.getDescription() != null
-                            ? String.valueOf(query.getDescription())
-                                .replace("Optional[", "")
-                                .replace("]", "")
-                            : "";
+                    String title = query.getTitle().orElse(queryId);
+                    String description = query.getDescription().orElse("");
 
                     // Parameter-Schema
                     Map<String, JsonSchemaObject> parameterProperties =
@@ -187,7 +283,8 @@ public class McpServerImpl implements McpServer {
                             .build();
 
                     return new ImmutableMcpTool.Builder()
-                        .name(title)
+                        .id(STORED_QUERY_PREFIX + queryId)
+                        .name("Stored Query - " + title)
                         .description(description)
                         .inputSchema(inputSchema)
                         .build();
@@ -272,13 +369,16 @@ public class McpServerImpl implements McpServer {
                       .map(
                           e ->
                               new ImmutableMcpTool.Builder()
-                                  .name(e.getKey())
+                                  .id(COLLECTION_QUERY_PREFIX + e.getKey())
+                                  .name(
+                                      "Collection Query - "
+                                          + apiData.getCollections().get(e.getKey()).getLabel())
                                   .description(
-                                      String.valueOf(
-                                          apiData
-                                              .getCollections()
-                                              .get(e.getKey())
-                                              .getDescription()))
+                                      apiData
+                                          .getCollections()
+                                          .get(e.getKey())
+                                          .getDescription()
+                                          .orElse(""))
                                   .inputSchema(e.getValue())
                                   .build())
                       .toList())
