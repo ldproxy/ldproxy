@@ -20,4 +20,17 @@ dependencyResolutionManagement {
             from(files("gradle/plugins.versions.toml"))
         }
     }
+//TODO: workaround, the jar has an illegal automatic module names containing minus, should be removed when fixed
+    repositories {
+        exclusiveContent {
+            forRepository {
+                maven {
+                    url "https://dl.interactive-instruments.de/repository/maven-releases/"
+                }
+            }
+            filter {
+                includeModule "io.modelcontextprotocol.sdk", "mcp-core"
+            }
+        }
+    }
 }

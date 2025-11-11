@@ -9,16 +9,31 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-jsonschema'
+    provided 'de.interactive_instruments:xtraplatform-streams'
 
-    /*embedded(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '0.15.0') {
+    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '0.15.0') {
         exclude module: 'jackson-annotations'
         exclude module: 'reactive-streams'
         exclude module: 'slf4j-api'
     }
-    embedded(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '0.15.0') {
+    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json', version: '0.15.0')
+    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '0.15.0') {
         exclude module: 'jackson-databind'
         exclude module: 'json-schema-validator'
-    }*/
-    //use jts exported from this
-    //embeddedImport 'de.interactive_instruments:xtraplatform-geometries'
+    }
+    embeddedFlat(group: 'io.projectreactor', name: 'reactor-core', version: '3.7.0')
+
+    //use reactive-streams exported from this in mcp-core
+    embeddedImport 'de.interactive_instruments:xtraplatform-streams'
+}
+
+moduleInfo {
+    provides = [
+            '!io.micrometer.context*': [],
+            '!reactor.blockhound.integration*': [],
+    ]
+    uses = [
+            '!io.micrometer.context*',
+            '!reactor.blockhound.integration*',
+    ]
 }
