@@ -144,6 +144,19 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   // TODO: implement
   private String handleCollectionQuery(
       OgcApiDataV2 apiData, String collectionId, Map<String, Object> parameters) {
+
+    /*TODO:
+      - add a List<OgcApiQueryParameter> to McpTool, add the filteredItems to it in getSchema
+      - pass that list as argument to this method from createServer
+      - create QueryParameterSet using QueryParameterSet.of with that list and the 'parameters' map
+      - get FeatureProvider for api and collection using FeaturesCoreProviders, see EndpointFeatures:312
+      - create FeatureQuery using FeaturesQuery.requestToFeatureQuery, see EndpointFeatures:297
+      - create QueryInputFeatures using ImmutableQueryInputFeatures.Builder
+      - create ApiRequestContext with ImmutableStaticRequestContext.Builder, see PubSubBuildingBlock:545 (leave alternateMediaTypes empty)
+      - call FeaturesCoreQueryHandler.handle(Query.FEATURES, queryInput, apiRequestContext) with that input
+      - the returned Response should contain the result to be
+    */
+
     return "TODO: handled collection query for collection: " + collectionId;
   }
 
