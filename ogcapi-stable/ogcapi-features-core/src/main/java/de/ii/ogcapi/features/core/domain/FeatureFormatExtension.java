@@ -194,6 +194,10 @@ public abstract class FeatureFormatExtension implements FormatExtension {
     return false;
   }
 
+  public boolean supportsNullVsMissing() {
+    return false;
+  }
+
   public Map<String, String> getDefaultProfiles(OgcApiDataV2 apiData, String collectionId) {
     return apiData
         .getExtension(getBuildingBlockConfigurationType(), collectionId)

@@ -11,7 +11,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
-import de.ii.ogcapi.features.core.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -67,6 +66,7 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.CollectionMetadata;
+import de.ii.xtraplatform.features.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
@@ -929,32 +929,36 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
 
-    if (api.getData()
-            .getExtension(FeaturesCoreConfiguration.class)
-            .filter(FeaturesCoreConfiguration::shouldSkipUnusedPipelineSteps)
-            .isPresent()
+    if (featureProvider.queries().isAvailable()
+        && featureProvider.queries().get().skipUnusedPipelineSteps()
         && !query.skipPipelineSteps().contains(PipelineSteps.ALL)) {
       final MultiFeatureQuery finalQuery = query;
       Set<PipelineSteps> keepSteps =
           query.getQueries().stream()
               .map(
-                  subQuery ->
-                      schemas
-                          .get(subQuery.getType())
-                          .map(
-                              schema ->
-                                  schema.accept(
-                                      new DeterminePipelineStepsThatCannotBeSkipped(
-                                          outputFormat,
-                                          featureProvider.crs().get().getNativeCrs(),
-                                          finalQuery.getCrs().orElse(defaultCrs),
-                                          finalQuery,
-                                          api.getData()
-                                              .getCollections()
-                                              .get(subQuery.getCollectionId()),
-                                          profiles,
-                                          true)))
-                          .orElse(Set.of()))
+                  subQuery -> {
+                    Optional<FeatureSchema> schema = schemas.get(subQuery.getType());
+                    Optional<PropertyTransformations> propertyTransformations =
+                        outputFormat.getPropertyTransformations(
+                            api.getData().getCollections().get(subQuery.getCollectionId()),
+                            schema,
+                            profiles);
+                    return schema
+                        .map(
+                            s ->
+                                s.accept(
+                                    new DeterminePipelineStepsThatCannotBeSkipped(
+                                        finalQuery,
+                                        subQuery.getType(),
+                                        propertyTransformations,
+                                        featureProvider.crs().get().getNativeCrs(),
+                                        finalQuery.getCrs().orElse(defaultCrs),
+                                        false,
+                                        outputFormat.requiresPropertiesInSequence(schema.get()),
+                                        outputFormat.supportsSecondaryGeometry(),
+                                        outputFormat.supportsNullVsMissing())))
+                        .orElse(Set.of());
+                  })
               .flatMap(Collection::stream)
               .collect(Collectors.toUnmodifiableSet());
 

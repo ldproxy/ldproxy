@@ -370,4 +370,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   public boolean isComplex() {
     return true;
   }
+
+  @Override
+  public boolean supportsNullVsMissing() {
+    return true;
+  }
 }

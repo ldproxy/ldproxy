@@ -11,7 +11,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
-import de.ii.ogcapi.features.core.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureLinksGenerator;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationQueryParameter;
@@ -46,6 +45,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.CollectionMetadata;
+import de.ii.xtraplatform.features.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -56,7 +56,6 @@ import de.ii.xtraplatform.features.domain.FeatureStream.ResultBase;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
-import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
@@ -322,10 +321,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     String featureTypeId =
         optcfg.flatMap(FeaturesCoreConfiguration::getFeatureType).orElse(collectionId);
 
-    Optional<FeatureSchema> schema = featureProvider.info().getSchema(featureTypeId);
+    FeatureSchema schema = featureProvider.info().getSchema(featureTypeId).orElse(null);
 
-    if (schema.filter(SchemaBase::hasEmbeddedFeature).isPresent()
-        && !outputFormat.supportsEmbedding()) {
+    if (Objects.isNull(schema)) {
+      throw new IllegalStateException(
+          String.format(
+              "Unknown feature type '%s' in feature provider '%s'",
+              featureTypeId, featureProvider.getId()));
+    }
+
+    if (schema.hasEmbeddedFeature() && !outputFormat.supportsEmbedding()) {
       throw new NotAcceptableException(
           "The requested media type does not support embedding. Please contact the server administrator.");
     }
@@ -334,7 +339,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         new ImmutableFeatureTransformationContextGeneric.Builder()
             .api(api)
             .apiData(api.getData())
-            .featureSchemas(ImmutableMap.of(collectionId, schema))
+            .featureSchemas(ImmutableMap.of(collectionId, Optional.of(schema)))
             .ogcApiRequest(requestContext)
             .profiles(profiles)
             .crsTransformer(crsTransformer)
@@ -373,20 +378,26 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
-    if (optcfg.filter(FeaturesCoreConfiguration::shouldSkipUnusedPipelineSteps).isPresent()
+    if (featureProvider.queries().isAvailable()
+        && featureProvider.queries().get().skipUnusedPipelineSteps()
         && !query.skipPipelineSteps().contains(PipelineSteps.ALL)) {
+      Optional<PropertyTransformations> propertyTransformations =
+          outputFormat.getPropertyTransformations(
+              api.getData().getCollections().get(collectionId), Optional.of(schema), profiles);
+
       Set<PipelineSteps> keepSteps =
-          schema
-              .get()
-              .accept(
-                  new DeterminePipelineStepsThatCannotBeSkipped(
-                      outputFormat,
-                      featureProvider.crs().get().getNativeCrs(),
-                      query.getCrs().orElse(defaultCrs),
-                      query,
-                      api.getData().getCollections().get(collectionId),
-                      profiles,
-                      sendResponseAsStream));
+          schema.accept(
+              new DeterminePipelineStepsThatCannotBeSkipped(
+                  query,
+                  query.getType(),
+                  propertyTransformations,
+                  featureProvider.crs().get().getNativeCrs(),
+                  query.getCrs().orElse(defaultCrs),
+                  !sendResponseAsStream,
+                  outputFormat.requiresPropertiesInSequence(schema),
+                  outputFormat.supportsSecondaryGeometry(),
+                  outputFormat.supportsNullVsMissing()));
+
       ImmutableList.Builder<PipelineSteps> skipSteps = ImmutableList.builder();
       skipSteps.addAll(query.skipPipelineSteps());
       for (PipelineSteps step : PipelineSteps.values()) {
@@ -436,7 +447,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       propertyTransformations =
           outputFormat
               .getPropertyTransformations(
-                  api.getData().getCollections().get(collectionId), schema, profiles)
+                  api.getData().getCollections().get(collectionId), Optional.of(schema), profiles)
               .map(
                   pt ->
                       ImmutableMap.of(

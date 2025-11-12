@@ -204,7 +204,6 @@ public class FeaturesCoreBuildingBlock
         .defaultPageSize(DEFAULT_PAGE_SIZE)
         .maximumPageSize(MAX_PAGE_SIZE)
         .validateCoordinatesInQueries(false)
-        .skipUnusedPipelineSteps(false)
         .build();
   }
 

@@ -129,6 +129,11 @@ public class FeaturesFormatDebugTokens extends FeatureFormatExtension implements
   }
 
   @Override
+  public boolean supportsNullVsMissing() {
+    return true;
+  }
+
+  @Override
   public boolean isComplex() {
     return true;
   }

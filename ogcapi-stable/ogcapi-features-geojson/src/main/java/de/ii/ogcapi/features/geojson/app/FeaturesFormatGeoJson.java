@@ -322,4 +322,9 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   public boolean supportsRootConcat() {
     return true;
   }
+
+  @Override
+  public boolean supportsNullVsMissing() {
+    return true;
+  }
 }

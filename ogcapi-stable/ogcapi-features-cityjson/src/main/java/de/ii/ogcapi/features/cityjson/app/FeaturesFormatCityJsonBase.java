@@ -216,6 +216,11 @@ public abstract class FeaturesFormatCityJsonBase extends FeatureFormatExtension 
     return true;
   }
 
+  @Override
+  public boolean supportsNullVsMissing() {
+    return true;
+  }
+
   protected Optional<FeatureTokenEncoder<?>> getFeatureEncoder(
       FeatureTransformationContext transformationContext,
       @SuppressWarnings("unused") Optional<Locale> language,
