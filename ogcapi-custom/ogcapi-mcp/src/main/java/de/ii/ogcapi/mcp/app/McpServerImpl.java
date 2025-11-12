@@ -10,13 +10,22 @@ package de.ii.ogcapi.mcp.app;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
+import de.ii.ogcapi.features.core.domain.FeaturesQuery;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
@@ -31,26 +40,33 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
-import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
+import de.ii.xtraplatform.features.domain.FeatureQuery;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject.Builder;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
-import io.modelcontextprotocol.server.McpStatelessServerFeatures;
+import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServlet;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +86,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final Map<String, HttpServletStatelessServerTransportJavaX> servers =
       new ConcurrentHashMap<>();
   private final FeaturesCoreProviders providers;
+  private final FeaturesQuery ogcApiFeaturesQuery;
+  private final FeaturesCoreQueriesHandler featuresCoreQueriesHandler;
 
   @Inject
   public McpServerImpl(
@@ -77,17 +95,21 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       Jackson jackson,
       ExtensionRegistry extensionRegistry,
       StoredQueryRepository storedQueryRepository,
-      FeaturesCoreProviders providers) {
+      FeaturesCoreProviders providers,
+      FeaturesQuery ogcApiFeaturesQuery,
+      FeaturesCoreQueriesHandler featuresCoreQueriesHandler) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.storedQueryRepository = storedQueryRepository;
     this.objectMapper = jackson.getDefaultObjectMapper();
     this.providers = providers;
+    this.ogcApiFeaturesQuery = ogcApiFeaturesQuery;
+    this.featuresCoreQueriesHandler = featuresCoreQueriesHandler;
   }
 
   // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
   @Override
-  public HttpServlet getServlet(OgcApiDataV2 apiData) {
+  public HttpServlet getServlet(OgcApi api, OgcApiDataV2 apiData) {
     return servers.computeIfAbsent(
         apiData.getStableHash(),
         key -> {
@@ -97,7 +119,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   .messageEndpoint("/mcp")
                   .build();
           try {
-            McpStatelessSyncServer server = createServer(apiData, transport);
+            McpStatelessSyncServer server = createServer(api, apiData, transport);
           } catch (IOException e) {
             throw new IllegalStateException(e);
           }
@@ -107,8 +129,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   }
 
   private McpStatelessSyncServer createServer(
-      OgcApiDataV2 apiData, McpStatelessServerTransport transport) throws IOException {
-    McpSchema mcpSchema = getSchema(apiData);
+      OgcApi api, OgcApiDataV2 apiData, McpStatelessServerTransport transport) throws IOException {
+    McpSchema mcpSchema = getSchema(api);
     McpStatelessSyncServer server =
         io.modelcontextprotocol.server.McpServer.sync(transport)
             .serverInfo(appContext.getName(), appContext.getVersion())
@@ -117,14 +139,13 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     for (McpTool tool : mcpSchema.getTools()) {
       server.addTool(
-          new McpStatelessServerFeatures.SyncToolSpecification(
+          new SyncToolSpecification(
               new Tool(
                   tool.getId(),
                   tool.getName(),
                   tool.getDescription(),
                   objectMapper.readValue(
-                      objectMapper.writeValueAsString(tool.getInputSchema()),
-                      io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
+                      objectMapper.writeValueAsString(tool.getInputSchema()), JsonSchema.class),
                   null,
                   null,
                   null),
@@ -138,7 +159,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                   String result =
                       handleCollectionQuery(
-                          apiData, collectionId, arguments.arguments(), tool.getQueryParameters());
+                          api,
+                          apiData,
+                          collectionId,
+                          arguments.arguments(),
+                          tool.getQueryParameters());
 
                   return new CallToolResult(result, false);
                 }
@@ -150,8 +175,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     return server;
   }
 
-  // TODO: implement
   private String handleCollectionQuery(
+      OgcApi api,
       OgcApiDataV2 apiData,
       String collectionId,
       Map<String, Object> parameters,
@@ -161,7 +186,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         parameters.entrySet().stream()
             .collect(
                 Collectors.toMap(
-                    Map.Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : null));
+                    Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : null));
 
     QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
     System.out.println("parameterSet: " + parameterSet.getValues());
@@ -174,19 +199,80 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     FeatureProvider featureProvider = providers.getFeatureProviderOrThrow(apiData, collectionData);
     System.out.println("featureProvider: " + featureProvider);
 
-    /*TODO:
-      - add a List<OgcApiQueryParameter> to McpTool, add the filteredItems to it in getSchema
-      - pass that list as argument to this method from createServer
-      - create QueryParameterSet using QueryParameterSet.of with that list and the 'parameters' map
-      - get FeatureProvider for api and collection using FeaturesCoreProviders, see EndpointFeatures:312
-      - create FeatureQuery using FeaturesQuery.requestToFeatureQuery, see EndpointFeatures:297
-      - create QueryInputFeatures using ImmutableQueryInputFeatures.Builder
-      - create ApiRequestContext with ImmutableStaticRequestContext.Builder, see PubSubBuildingBlock:545 (leave alternateMediaTypes empty)
-      - call FeaturesCoreQueryHandler.handle(Query.FEATURES, queryInput, apiRequestContext) with that input
-      - the returned Response should contain the result to be
-    */
+    FeaturesCoreConfiguration coreConfiguration =
+        collectionData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .filter(
+                cfg ->
+                    cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
+                        != FeaturesCoreConfiguration.ItemType.unknown)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        String.format(
+                            "Features are not supported in collection '%s'.", collectionId)));
 
-    return "TODO: handled collection query for collection: " + collectionId;
+    int defaultPageSize = coreConfiguration.getDefaultPageSize();
+
+    System.out.println("cfg and pagesize: " + coreConfiguration + ", " + defaultPageSize);
+
+    FeatureQuery query =
+        ogcApiFeaturesQuery.requestToFeatureQuery(
+            apiData,
+            collectionData,
+            coreConfiguration.getDefaultEpsgCrs(),
+            coreConfiguration.getCoordinatePrecision(),
+            defaultPageSize,
+            parameterSet);
+
+    System.out.println("query: " + query);
+
+    FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
+        new ImmutableQueryInputFeatures.Builder()
+            .collectionId(collectionId)
+            .query(query)
+            .featureProvider(featureProvider)
+            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
+            .defaultPageSize(Optional.of(defaultPageSize))
+            .build();
+
+    System.out.println("queryInput: " + queryInput);
+
+    URI uri = URI.create("/collections/" + collectionId + "/items");
+
+    ApiRequestContext requestContextGeoJson =
+        new ImmutableStaticRequestContext.Builder()
+            .webContext(appContext)
+            .api(api)
+            .requestUri(uri)
+            .mediaType(
+                new ImmutableApiMediaType.Builder()
+                    .type(new MediaType("application", "geo+json"))
+                    .label("GeoJSON")
+                    .parameter("json")
+                    .build())
+            .alternateMediaTypes(Set.of())
+            .queryParameterSet(parameterSet)
+            .build();
+
+    System.out.println("requestContextGeoJson: " + requestContextGeoJson);
+
+    javax.ws.rs.core.Response response =
+        featuresCoreQueriesHandler.handle(
+            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContextGeoJson);
+
+    System.out.println("response: " + response);
+
+    try {
+      String result = response.readEntity(String.class);
+      System.out.println("result: " + result);
+      return result;
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.out.println("Fehler beim Lesen der Entity: " + e.getMessage());
+      return null;
+    }
   }
 
   // TODO: implement
@@ -203,7 +289,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   }
 
   @Override
-  public McpSchema getSchema(OgcApiDataV2 apiData) {
+  public McpSchema getSchema(OgcApi api) {
+    OgcApiDataV2 apiData = api.getData();
 
     if (!schemas.containsKey(apiData.getStableHash())) {
       LOGGER.debug("Creating MCP schema for API {}", apiData.getId());
@@ -216,10 +303,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
       Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
 
-      List<String> includedQueries =
-          includedOpt.map(McpConfiguration.McpIncludeExclude::getQueries).orElse(null);
+      List<String> includedQueries = includedOpt.map(McpIncludeExclude::getQueries).orElse(null);
       List<String> excludedQueries =
-          excludedOpt.map(McpConfiguration.McpIncludeExclude::getQueries).orElse(List.of());
+          excludedOpt.map(McpIncludeExclude::getQueries).orElse(List.of());
 
       List<StoredQueryExpression> filteredQueries;
       if ((includedQueries == null || includedOpt.isEmpty()) && excludedQueries.isEmpty()) {
@@ -264,11 +350,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                         query.getParameters().entrySet().stream()
                             .collect(
                                 Collectors.toMap(
-                                    Map.Entry::getKey,
+                                    Entry::getKey,
                                     entry -> {
                                       Object schema = entry.getValue();
-                                      ImmutableJsonSchemaObject.Builder builder =
-                                          new ImmutableJsonSchemaObject.Builder();
+                                      Builder builder = new Builder();
 
                                       String paramTitle = entry.getKey();
                                       String paramDescription = "";
@@ -315,14 +400,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                                     }));
 
                     JsonSchemaObject parametersSchema =
-                        new ImmutableJsonSchemaObject.Builder()
-                            .properties(parameterProperties)
-                            .build();
+                        new Builder().properties(parameterProperties).build();
 
                     JsonSchemaObject inputSchema =
-                        new ImmutableJsonSchemaObject.Builder()
-                            .properties(Map.of("parameters", parametersSchema))
-                            .build();
+                        new Builder().properties(Map.of("parameters", parametersSchema)).build();
 
                     return new ImmutableMcpTool.Builder()
                         .id(STORED_QUERY_PREFIX + queryId)
@@ -360,9 +441,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       excludedOpt = mcpConfiguration.getExcluded();
 
       List<String> includedCollections =
-          includedOpt.map(McpConfiguration.McpIncludeExclude::getCollections).orElse(null);
+          includedOpt.map(McpIncludeExclude::getCollections).orElse(null);
       List<String> excludedCollections =
-          excludedOpt.map(McpConfiguration.McpIncludeExclude::getCollections).orElse(List.of());
+          excludedOpt.map(McpIncludeExclude::getCollections).orElse(List.of());
 
       if (includedOpt.isEmpty() && excludedOpt.isEmpty()) {
         filteredItems = allItems;
@@ -388,20 +469,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                       QueryParameterTemplateQueryable::getCollectionId,
                       Collectors.toMap(
                           QueryParameterTemplateQueryable::getName,
-                          qp ->
-                              new ImmutableJsonSchemaObject.Builder()
-                                  .description(qp.getDescription())
-                                  .build())));
+                          qp -> new Builder().description(qp.getDescription()).build())));
 
       Map<String, JsonSchemaObject> properties =
           collectionProperties.entrySet().stream()
               .collect(
                   Collectors.toMap(
-                      Map.Entry::getKey, // collectionId
-                      e ->
-                          new ImmutableJsonSchemaObject.Builder()
-                              .properties(e.getValue())
-                              .build()));
+                      Entry::getKey, // collectionId
+                      e -> new Builder().properties(e.getValue()).build()));
 
       schemas.put(
           apiData.getStableHash(),

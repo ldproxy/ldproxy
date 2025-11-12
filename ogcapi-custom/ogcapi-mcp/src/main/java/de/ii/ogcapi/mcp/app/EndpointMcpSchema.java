@@ -120,8 +120,6 @@ public class EndpointMcpSchema extends Endpoint {
   @GET
   @Produces({"application/json"})
   public Response getMcpClasses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
-    OgcApiDataV2 apiData = api.getData();
-
-    return Response.ok(mcpServer.getSchema(apiData)).build();
+    return Response.ok(mcpServer.getSchema(api)).build();
   }
 }

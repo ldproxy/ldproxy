@@ -121,6 +121,6 @@ public class EndpointMcp extends Endpoint {
       @Context HttpServletRequest request,
       @Context HttpServletResponse response)
       throws ServletException, IOException {
-    mcpServer.getServlet(api.getData()).service(request, response);
+    mcpServer.getServlet(api, api.getData()).service(request, response);
   }
 }

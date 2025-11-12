@@ -10,6 +10,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-jsonschema'
     provided 'de.interactive_instruments:xtraplatform-streams'
+    provided 'de.interactive_instruments:xtraplatform-crs'
 
     embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '0.15.0') {
         exclude module: 'jackson-annotations'
