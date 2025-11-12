@@ -269,6 +269,32 @@ public interface FeaturesCoreConfiguration
   @Override
   Map<String, String> getDefaultProfiles();
 
+  /**
+   * @langEn Skip unused pipeline steps in the feature stream processing. If set to true, steps that
+   *     are not required to fulfil the request (e.g. coordinate processing, if no coordinate
+   *     transformation or specific coordinate precision is needed) are skipped. This can improve
+   *     performance depending on the query and the capabilities used in the feature provider. For
+   *     now the default is `false`, but the default may change to `true`, if experience shows that
+   *     the option does not have side effects.
+   * @langDe Überspringen Sie nicht verwendete Pipeline-Schritte in der Feature-Stream-Verarbeitung.
+   *     Wenn diese Option auf `true` gesetzt ist, werden Schritte übersprungen, die zur Erfüllung
+   *     der Query nicht erforderlich sind (z. B. Koordinatenverarbeitung, wenn keine
+   *     Koordinatentransformation oder bestimmte Koordinatengenauigkeit erforderlich ist). Dies
+   *     kann die Leistung je nach Query und den im Feature-Provider verwendeten Möglichkeiten
+   *     verbessern. Derzeit ist die Standardeinstellung `false`, aber die Standardeinstellung kann
+   *     sich zu `true` ändern, wenn die Erfahrung zeigt, dass die Option keine Nebenwirkungen hat.
+   * @default false
+   */
+  @Nullable
+  Boolean getSkipUnusedPipelineSteps();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean shouldSkipUnusedPipelineSteps() {
+    return Boolean.TRUE.equals(getSkipUnusedPipelineSteps());
+  }
+
   @Override
   default Builder getBuilder() {
     return new ImmutableFeaturesCoreConfiguration.Builder().from(this);

@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
+import de.ii.ogcapi.features.core.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureLinksGenerator;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationQueryParameter;
@@ -49,6 +50,7 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
+import de.ii.xtraplatform.features.domain.FeatureStream.PipelineSteps;
 import de.ii.xtraplatform.features.domain.FeatureStream.Result;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultBase;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
@@ -311,13 +313,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                     i18n,
                     requestContext.getLanguage());
 
-    String featureTypeId =
+    Optional<FeaturesCoreConfiguration> optcfg =
         api.getData()
             .getCollections()
             .get(collectionId)
-            .getExtension(FeaturesCoreConfiguration.class)
-            .map(cfg -> cfg.getFeatureType().orElse(collectionId))
-            .orElse(collectionId);
+            .getExtension(FeaturesCoreConfiguration.class);
+
+    String featureTypeId =
+        optcfg.flatMap(FeaturesCoreConfiguration::getFeatureType).orElse(collectionId);
 
     Optional<FeatureSchema> schema = featureProvider.info().getSchema(featureTypeId);
 
@@ -370,6 +373,35 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
+    if (optcfg.filter(FeaturesCoreConfiguration::shouldSkipUnusedPipelineSteps).isPresent()
+        && !query.skipPipelineSteps().contains(PipelineSteps.ALL)) {
+      Set<PipelineSteps> keepSteps =
+          schema
+              .get()
+              .accept(
+                  new DeterminePipelineStepsThatCannotBeSkipped(
+                      outputFormat,
+                      featureProvider.crs().get().getNativeCrs(),
+                      query.getCrs().orElse(defaultCrs),
+                      query,
+                      api.getData().getCollections().get(collectionId),
+                      profiles,
+                      sendResponseAsStream));
+      ImmutableList.Builder<PipelineSteps> skipSteps = ImmutableList.builder();
+      skipSteps.addAll(query.skipPipelineSteps());
+      for (PipelineSteps step : PipelineSteps.values()) {
+        if (step != PipelineSteps.ALL && !keepSteps.contains(step)) {
+          skipSteps.add(step);
+        }
+      }
+      query =
+          ImmutableFeatureQuery.builder().from(query).skipPipelineSteps(skipSteps.build()).build();
+    }
+
+    if (LOGGER.isDebugEnabled() && !query.skipPipelineSteps().isEmpty()) {
+      LOGGER.debug("Skipping pipeline steps: {}", query.skipPipelineSteps().toString());
+    }
+
     FeatureStream featureStream;
     FeatureTokenEncoder<?> encoder;
     Map<String, PropertyTransformations> propertyTransformations = ImmutableMap.of();
@@ -404,7 +436,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       propertyTransformations =
           outputFormat
               .getPropertyTransformations(
-                  api.getData(), api.getData().getCollections().get(collectionId), schema, profiles)
+                  api.getData().getCollections().get(collectionId), schema, profiles)
               .map(
                   pt ->
                       ImmutableMap.of(
