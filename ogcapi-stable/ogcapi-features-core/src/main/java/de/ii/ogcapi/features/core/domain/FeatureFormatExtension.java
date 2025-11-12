@@ -146,7 +146,6 @@ public abstract class FeatureFormatExtension implements FormatExtension {
   }
 
   public Optional<PropertyTransformations> getPropertyTransformations(
-      OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
       Optional<FeatureSchema> schema,
       List<Profile> profiles) {
@@ -184,6 +183,14 @@ public abstract class FeatureFormatExtension implements FormatExtension {
   }
 
   public boolean supportsRootConcat() {
+    return false;
+  }
+
+  public boolean requiresPropertiesInSequence(FeatureSchema schema) {
+    return false;
+  }
+
+  public boolean supportsSecondaryGeometry() {
     return false;
   }
 
