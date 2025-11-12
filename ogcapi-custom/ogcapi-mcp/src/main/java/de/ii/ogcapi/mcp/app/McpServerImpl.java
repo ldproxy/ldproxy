@@ -10,12 +10,16 @@ package de.ii.ogcapi.mcp.app;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
@@ -26,6 +30,7 @@ import de.ii.ogcapi.mcp.domain.McpTool;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
+import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
@@ -64,17 +69,20 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final ObjectMapper objectMapper;
   private final Map<String, HttpServletStatelessServerTransportJavaX> servers =
       new ConcurrentHashMap<>();
+  private final FeaturesCoreProviders providers;
 
   @Inject
   public McpServerImpl(
       AppContext appContext,
       Jackson jackson,
       ExtensionRegistry extensionRegistry,
-      StoredQueryRepository storedQueryRepository) {
+      StoredQueryRepository storedQueryRepository,
+      FeaturesCoreProviders providers) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.storedQueryRepository = storedQueryRepository;
     this.objectMapper = jackson.getDefaultObjectMapper();
+    this.providers = providers;
   }
 
   // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
@@ -129,7 +137,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                 } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
                   String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                   String result =
-                      handleCollectionQuery(apiData, collectionId, arguments.arguments());
+                      handleCollectionQuery(
+                          apiData, collectionId, arguments.arguments(), tool.getQueryParameters());
 
                   return new CallToolResult(result, false);
                 }
@@ -143,7 +152,27 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   // TODO: implement
   private String handleCollectionQuery(
-      OgcApiDataV2 apiData, String collectionId, Map<String, Object> parameters) {
+      OgcApiDataV2 apiData,
+      String collectionId,
+      Map<String, Object> parameters,
+      List<OgcApiQueryParameter> queryParameters) {
+
+    Map<String, String> stringParams =
+        parameters.entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : null));
+
+    QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
+    System.out.println("parameterSet: " + parameterSet.getValues());
+    // curl -H "Content-Type: application/json" -H "Accept: application/json,text/event-stream" -d
+    // '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name":
+    // "collection_nullpunkte", "arguments":{"nknr": "12345"}}}' -v
+    // http://localhost:7080/strassen/mcp
+
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    FeatureProvider featureProvider = providers.getFeatureProviderOrThrow(apiData, collectionData);
+    System.out.println("featureProvider: " + featureProvider);
 
     /*TODO:
       - add a List<OgcApiQueryParameter> to McpTool, add the filteredItems to it in getSchema
@@ -380,20 +409,28 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
               .addAllTools(
                   properties.entrySet().stream()
                       .map(
-                          e ->
-                              new ImmutableMcpTool.Builder()
-                                  .id(COLLECTION_QUERY_PREFIX + e.getKey())
-                                  .name(
-                                      "Collection Query - "
-                                          + apiData.getCollections().get(e.getKey()).getLabel())
-                                  .description(
-                                      apiData
-                                          .getCollections()
-                                          .get(e.getKey())
-                                          .getDescription()
-                                          .orElse(""))
-                                  .inputSchema(e.getValue())
-                                  .build())
+                          e -> {
+                            // filter query parameters for this collection
+                            List<OgcApiQueryParameter> collectionQueryParameters =
+                                filteredItems.stream()
+                                    .filter(qp -> qp.getCollectionId().equals(e.getKey()))
+                                    .collect(Collectors.toList());
+
+                            return new ImmutableMcpTool.Builder()
+                                .id(COLLECTION_QUERY_PREFIX + e.getKey())
+                                .name(
+                                    "Collection Query - "
+                                        + apiData.getCollections().get(e.getKey()).getLabel())
+                                .description(
+                                    apiData
+                                        .getCollections()
+                                        .get(e.getKey())
+                                        .getDescription()
+                                        .orElse(""))
+                                .inputSchema(e.getValue())
+                                .queryParameters(collectionQueryParameters)
+                                .build();
+                          })
                       .toList())
               .addAllTools(queryTools)
               .build());

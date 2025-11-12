@@ -7,18 +7,26 @@
  */
 package de.ii.ogcapi.mcp.domain;
 
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
+import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface McpTool {
 
-  static McpTool of(String id, String name, String description, JsonSchemaObject inputSchema) {
+  static McpTool of(
+      String id,
+      String name,
+      String description,
+      JsonSchemaObject inputSchema,
+      List<OgcApiQueryParameter> queryParameters) {
     return new ImmutableMcpTool.Builder()
         .id(id)
         .name(name)
         .description(description)
         .inputSchema(inputSchema)
+        .queryParameters(queryParameters)
         .build();
   }
 
@@ -29,4 +37,6 @@ public interface McpTool {
   String getDescription();
 
   JsonSchemaObject getInputSchema();
+
+  List<OgcApiQueryParameter> getQueryParameters();
 }
