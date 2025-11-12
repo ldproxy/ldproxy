@@ -54,8 +54,8 @@ import org.slf4j.LoggerFactory;
 public class McpServerImpl implements McpServer, AppLifeCycle {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(McpServerImpl.class);
-  private static final String STORED_QUERY_PREFIX = "query.";
-  private static final String COLLECTION_QUERY_PREFIX = "collection.";
+  private static final String STORED_QUERY_PREFIX = "query_";
+  private static final String COLLECTION_QUERY_PREFIX = "collection_";
 
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
   private final AppContext appContext;
