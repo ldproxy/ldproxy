@@ -11,7 +11,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
-import de.ii.ogcapi.features.core.domain.DeterminePipelineStepsThatCannotBeSkipped;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -70,7 +69,6 @@ import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
-import de.ii.xtraplatform.features.domain.FeatureStream.PipelineSteps;
 import de.ii.xtraplatform.features.domain.FeatureStream.Result;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultBase;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
@@ -94,14 +92,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
@@ -776,7 +772,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   .getExtension(FeaturesCoreConfiguration.class, collectionId)
                   .flatMap(FeaturesCoreConfiguration::getFeatureType)
                   .orElse(collectionId))
-          .collectionId(collectionId)
           .sortKeys(
               (!sortby.isEmpty()
                       ? sortby
@@ -929,53 +924,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
 
-    if (api.getData()
-            .getExtension(FeaturesCoreConfiguration.class)
-            .filter(FeaturesCoreConfiguration::shouldSkipUnusedPipelineSteps)
-            .isPresent()
-        && !query.skipPipelineSteps().contains(PipelineSteps.ALL)) {
-      final MultiFeatureQuery finalQuery = query;
-      Set<PipelineSteps> keepSteps =
-          query.getQueries().stream()
-              .map(
-                  subQuery ->
-                      schemas
-                          .get(subQuery.getType())
-                          .map(
-                              schema ->
-                                  schema.accept(
-                                      new DeterminePipelineStepsThatCannotBeSkipped(
-                                          outputFormat,
-                                          featureProvider.crs().get().getNativeCrs(),
-                                          finalQuery.getCrs().orElse(defaultCrs),
-                                          finalQuery,
-                                          api.getData()
-                                              .getCollections()
-                                              .get(subQuery.getCollectionId()),
-                                          profiles,
-                                          true)))
-                          .orElse(Set.of()))
-              .flatMap(Collection::stream)
-              .collect(Collectors.toUnmodifiableSet());
-
-      ImmutableList.Builder<PipelineSteps> skipSteps = ImmutableList.builder();
-      skipSteps.addAll(query.skipPipelineSteps());
-      for (PipelineSteps step : PipelineSteps.values()) {
-        if (step != PipelineSteps.ALL && !keepSteps.contains(step)) {
-          skipSteps.add(step);
-        }
-      }
-      query =
-          ImmutableMultiFeatureQuery.builder()
-              .from(query)
-              .skipPipelineSteps(skipSteps.build())
-              .build();
-    }
-
-    if (LOGGER.isDebugEnabled() && !query.skipPipelineSteps().isEmpty()) {
-      LOGGER.debug("Skipping pipeline steps: {}", query.skipPipelineSteps().toString());
-    }
-
     FeatureStream featureStream;
     FeatureTokenEncoder<?> encoder;
     Map<String, PropertyTransformations> propertyTransformations;
@@ -1050,6 +998,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   PropertyTransformations pt =
                       outputFormat
                           .getPropertyTransformations(
+                              apiData,
                               Objects.requireNonNull(apiData.getCollections().get(collectionId)),
                               schema,
                               profiles)
