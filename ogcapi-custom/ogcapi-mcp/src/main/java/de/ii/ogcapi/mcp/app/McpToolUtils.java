@@ -10,25 +10,53 @@ package de.ii.ogcapi.mcp.app;
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.OgcApiResource;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject.Builder;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import io.swagger.v3.oas.models.media.StringSchema;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.ws.rs.HttpMethod;
 
 public class McpToolUtils {
 
   private static final String STORED_QUERY_PREFIX = "query_";
+
+  private static JsonSchemaObject convertToJsonSchema(Object openApiSchema, String name) {
+    ImmutableJsonSchemaObject.Builder builder = new ImmutableJsonSchemaObject.Builder();
+
+    if (openApiSchema instanceof StringSchema s) {
+      builder.description(
+          s.getDescription() != null ? s.getDescription() : "String parameter: " + name);
+      builder.title(s.getTitle() != null ? s.getTitle() : name);
+    } else if (openApiSchema instanceof io.swagger.v3.oas.models.media.ArraySchema a) {
+      builder.description("Array parameter: " + name);
+      builder.title(name);
+    } else if (openApiSchema instanceof io.swagger.v3.oas.models.media.IntegerSchema i) {
+      builder.description("Integer parameter: " + name);
+      builder.title(name);
+    } else {
+      builder.description("Generic parameter: " + name);
+      builder.title(name);
+    }
+
+    return builder.build();
+  }
 
   public static class CollectionsResult {
     private final Map<String, JsonSchemaObject> collections;
@@ -182,6 +210,32 @@ public class McpToolUtils {
                         .anyMatch(op -> op.getOperationId().contains("getItems")))
             .toList();
 
+    // System.out.println("Definitions found: " + definitions);
+    // Bbox, datetime etc. finden wir am Anfang im queryParameters Array
+
+    Map<String, JsonSchemaObject> globalParameters = new HashMap<>();
+
+    for (ApiEndpointDefinition def : definitions) {
+      for (OgcApiResource resource : def.getResources().values()) {
+        ApiOperation getOp = resource.getOperations().get(HttpMethod.GET);
+        if (getOp == null) continue;
+
+        for (OgcApiQueryParameter param : getOp.getQueryParameters()) {
+          String name = param.getName();
+          if ("bbox".equals(name)
+              || "datetime".equals(name)
+              || "offset".equals(name)
+              || "limit".equals(name)
+              || "sortby".equals(name)) {
+            Object schema = param.getSchema(apiData, Optional.empty());
+            System.out.println("Global parameter found: " + name + " with schema: " + schema);
+            globalParameters.put(name, convertToJsonSchema(schema, name));
+          }
+        }
+      }
+    }
+    System.out.println("Global parameters: " + globalParameters);
+
     List<QueryParameterTemplateQueryable> allItems =
         definitions.stream()
             .flatMap(def -> def.getResources().values().stream())
@@ -231,8 +285,12 @@ public class McpToolUtils {
         collectionProperties.entrySet().stream()
             .collect(
                 Collectors.toMap(
-                    Entry::getKey, // collectionId
-                    e -> new Builder().properties(e.getValue()).build()));
+                    Entry::getKey,
+                    e -> {
+                      Map<String, JsonSchemaObject> props = new HashMap<>(e.getValue());
+                      props.putAll(globalParameters);
+                      return new Builder().properties(props).build();
+                    }));
 
     return new CollectionsResult(collections, filteredItems);
   }
