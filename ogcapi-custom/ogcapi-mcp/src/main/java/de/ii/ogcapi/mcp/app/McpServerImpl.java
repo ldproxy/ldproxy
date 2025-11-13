@@ -39,6 +39,7 @@ import de.ii.ogcapi.mcp.domain.McpTool;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
+import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject.Builder;
@@ -152,18 +153,25 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   null,
                   null),
               (exchange, arguments) -> {
-                if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
-                  String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
-                  String result = handleStoredQuery(api, queryId, arguments.arguments());
+                try {
+                  if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
+                    String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
+                    String result = handleStoredQuery(api, queryId, arguments.arguments());
 
-                  return new CallToolResult(result, false);
-                } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
-                  String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
-                  String result =
-                      handleCollectionQuery(
-                          api, collectionId, arguments.arguments(), tool.getQueryParameters());
+                    return new CallToolResult(result, false);
+                  } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
+                    String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
+                    String result =
+                        handleCollectionQuery(
+                            api, collectionId, arguments.arguments(), tool.getQueryParameters());
 
-                  return new CallToolResult(result, false);
+                    return new CallToolResult(result, false);
+                  }
+                } catch (Throwable e) {
+                  LogContext.errorAsDebug(LOGGER, e, "Error executing MCP tool '{}'", tool.getId());
+
+                  return new CallToolResult(
+                      "Error executing tool '" + tool.getId() + "': " + e.getMessage(), true);
                 }
 
                 return new CallToolResult("Unknown tool id: " + tool.getId(), true);
@@ -232,6 +240,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .defaultPageSize(Optional.of(defaultPageSize))
+            .includeBodyLinks(false)
+            .sendResponseAsStream(false)
             .build();
 
     System.out.println("queryInput: " + queryInput);
@@ -255,20 +265,17 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     System.out.println("requestContext: " + requestContext);
 
-    Response response =
+    try (Response response =
         featuresCoreQueriesHandler.handle(
-            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContext);
+            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContext)) {
+      System.out.println("response: " + response);
 
-    System.out.println("response: " + response);
+      Object entity = response.getEntity();
+      String result = entity instanceof byte[] ? new String((byte[]) entity) : "";
 
-    try {
-      String result = response.readEntity(String.class);
       System.out.println("result: " + result);
+
       return result;
-    } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Fehler beim Lesen der Entity: " + e.getMessage());
-      return null;
     }
   }
 
