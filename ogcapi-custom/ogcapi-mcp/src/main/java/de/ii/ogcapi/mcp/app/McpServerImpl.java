@@ -284,8 +284,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
           McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
       McpToolUtils.CollectionsResult collectionsResult =
           McpToolUtils.filterAndCreateCollections(mcpConfiguration, apiData, extensionRegistry);
-      Map<String, JsonSchemaObject> collections = collectionsResult.collections();
-      List<QueryParameterTemplateQueryable> filteredItems = collectionsResult.filteredItems();
+      Map<String, JsonSchemaObject> collections = collectionsResult.getCollections();
+      List<QueryParameterTemplateQueryable> filteredItems = collectionsResult.getFilteredItems();
 
       schemas.put(
           apiData.getStableHash(),

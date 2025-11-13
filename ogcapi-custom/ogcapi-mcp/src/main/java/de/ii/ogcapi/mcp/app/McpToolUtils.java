@@ -30,9 +30,25 @@ public class McpToolUtils {
 
   private static final String STORED_QUERY_PREFIX = "query_";
 
-  public record CollectionsResult(
-      Map<String, JsonSchemaObject> collections,
-      List<QueryParameterTemplateQueryable> filteredItems) {}
+  public static class CollectionsResult {
+    private final Map<String, JsonSchemaObject> collections;
+    private final List<QueryParameterTemplateQueryable> filteredItems;
+
+    public CollectionsResult(
+        Map<String, JsonSchemaObject> collections,
+        List<QueryParameterTemplateQueryable> filteredItems) {
+      this.collections = collections;
+      this.filteredItems = filteredItems;
+    }
+
+    public Map<String, JsonSchemaObject> getCollections() {
+      return collections;
+    }
+
+    public List<QueryParameterTemplateQueryable> getFilteredItems() {
+      return filteredItems;
+    }
+  }
 
   public static List<ImmutableMcpTool> filterAndCreateStoredQueries(
       List<StoredQueryExpression> storedQueries, McpConfiguration mcpConfiguration) {

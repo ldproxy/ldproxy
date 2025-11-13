@@ -38,7 +38,3 @@ moduleInfo {
             '!reactor.blockhound.integration*',
     ]
 }
-
-tasks.withType(Javadoc) {
-    failOnError = false
-}
