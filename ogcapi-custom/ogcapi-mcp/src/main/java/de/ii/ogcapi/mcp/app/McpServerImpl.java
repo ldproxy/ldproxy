@@ -17,9 +17,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
-import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -32,7 +30,6 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
-import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpSchema;
 import de.ii.ogcapi.mcp.domain.McpServer;
 import de.ii.ogcapi.mcp.domain.McpTool;
@@ -42,10 +39,7 @@ import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject.Builder;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
@@ -194,15 +188,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString()));
 
     QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
-    System.out.println("parameterSet: " + parameterSet.getValues());
-    // curl -H "Content-Type: application/json" -H "Accept: application/json,text/event-stream" -d
-    // '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name":
-    // "collection_nullpunkte", "arguments":{"nknr": "12345"}}}' -v
-    // http://localhost:7080/strassen/mcp
 
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
     FeatureProvider featureProvider = providers.getFeatureProviderOrThrow(apiData, collectionData);
-    System.out.println("featureProvider: " + featureProvider);
 
     FeaturesCoreConfiguration coreConfiguration =
         collectionData
@@ -220,8 +208,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     int defaultPageSize = coreConfiguration.getDefaultPageSize();
 
-    System.out.println("cfg and pagesize: " + coreConfiguration + ", " + defaultPageSize);
-
     FeatureQuery query =
         ogcApiFeaturesQuery.requestToFeatureQuery(
             apiData,
@@ -230,8 +216,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             coreConfiguration.getCoordinatePrecision(),
             defaultPageSize,
             parameterSet);
-
-    System.out.println("query: " + query);
 
     FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
         new ImmutableQueryInputFeatures.Builder()
@@ -243,8 +227,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .includeBodyLinks(false)
             .sendResponseAsStream(false)
             .build();
-
-    System.out.println("queryInput: " + queryInput);
 
     URI uri = URI.create("/collections/" + collectionId + "/items");
 
@@ -263,17 +245,12 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .queryParameterSet(parameterSet)
             .build();
 
-    System.out.println("requestContext: " + requestContext);
-
     try (Response response =
         featuresCoreQueriesHandler.handle(
             FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContext)) {
-      System.out.println("response: " + response);
 
       Object entity = response.getEntity();
       String result = entity instanceof byte[] ? new String((byte[]) entity) : "";
-
-      System.out.println("result: " + result);
 
       return result;
     }
@@ -303,189 +280,18 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
-      Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
-      Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
-
-      List<String> includedQueries = includedOpt.map(McpIncludeExclude::getQueries).orElse(null);
-      List<String> excludedQueries =
-          excludedOpt.map(McpIncludeExclude::getQueries).orElse(List.of());
-
-      List<StoredQueryExpression> filteredQueries;
-      if ((includedQueries == null || includedOpt.isEmpty()) && excludedQueries.isEmpty()) {
-        filteredQueries = storedQueries;
-      } else if (includedQueries == null) {
-        filteredQueries = List.of();
-      } else if (includedQueries.contains("*")) {
-        filteredQueries =
-            storedQueries.stream()
-                .filter(
-                    q ->
-                        !excludedQueries.contains(q.getId())
-                            && !excludedQueries.contains(
-                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
-                .toList();
-      } else {
-        filteredQueries =
-            storedQueries.stream()
-                .filter(
-                    q ->
-                        includedQueries.contains(q.getId())
-                            || includedQueries.contains(
-                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
-                .filter(
-                    q ->
-                        !excludedQueries.contains(q.getId())
-                            && !excludedQueries.contains(
-                                q.getTitle() != null ? q.getTitle().orElse("") : ""))
-                .toList();
-      }
-
       List<ImmutableMcpTool> queryTools =
-          filteredQueries.stream()
-              .map(
-                  query -> {
-                    String queryId = query.getId() != null ? query.getId() : "unknown";
-                    String title = query.getTitle().orElse(queryId);
-                    String description = query.getDescription().orElse("");
-
-                    // Parameter-Schema
-                    Map<String, JsonSchemaObject> parameterProperties =
-                        query.getParameters().entrySet().stream()
-                            .collect(
-                                Collectors.toMap(
-                                    Entry::getKey,
-                                    entry -> {
-                                      Object schema = entry.getValue();
-                                      Builder builder = new Builder();
-
-                                      String paramTitle = entry.getKey();
-                                      String paramDescription = "";
-                                      String pattern = null;
-                                      Object defaultValue = null;
-
-                                      if (schema instanceof JsonSchemaString s) {
-                                        paramTitle =
-                                            s.getTitle() != null
-                                                ? String.valueOf(s.getTitle())
-                                                    .replace("Optional[", "")
-                                                    .replace("]", "")
-                                                : paramTitle;
-                                        paramDescription =
-                                            s.getDescription() != null
-                                                ? String.valueOf(s.getDescription())
-                                                    .replace("Optional[", "")
-                                                    .replace("]", "")
-                                                : "";
-                                        pattern = String.valueOf(s.getPattern());
-                                        defaultValue = s.getDefault_();
-                                      } else if (schema instanceof JsonSchemaInteger i) {
-                                        paramTitle =
-                                            i.getTitle() != null
-                                                ? String.valueOf(i.getTitle())
-                                                    .replace("Optional[", "")
-                                                    .replace("]", "")
-                                                : paramTitle;
-                                        paramDescription =
-                                            i.getDescription() != null
-                                                ? String.valueOf(i.getDescription())
-                                                    .replace("Optional[", "")
-                                                    .replace("]", "")
-                                                : "";
-                                        defaultValue = i.getDefault_();
-                                      }
-
-                                      builder.title(paramTitle).description(paramDescription);
-
-                                      if (pattern != null) builder.codelistId(pattern);
-                                      if (defaultValue != null) builder.default_(defaultValue);
-
-                                      return builder.build();
-                                    }));
-
-                    JsonSchemaObject parametersSchema =
-                        new Builder().properties(parameterProperties).build();
-
-                    JsonSchemaObject inputSchema =
-                        new Builder().properties(Map.of("parameters", parametersSchema)).build();
-
-                    return new ImmutableMcpTool.Builder()
-                        .id(STORED_QUERY_PREFIX + queryId)
-                        .name("Stored Query - " + title)
-                        .description(description)
-                        .inputSchema(inputSchema)
-                        .build();
-                  })
-              .collect(Collectors.toList());
-
-      // Collections
-      List<ApiEndpointDefinition> definitions =
-          extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
-              .filter(endpoint -> endpoint.isEnabledForApi(apiData))
-              .map(endpoint -> endpoint.getDefinition(apiData))
-              .filter(
-                  def ->
-                      def.getResources().values().stream()
-                          .flatMap(res -> res.getOperations().values().stream())
-                          .anyMatch(op -> op.getOperationId().contains("getItems")))
-              .toList();
-
-      List<QueryParameterTemplateQueryable> allItems =
-          definitions.stream()
-              .flatMap(def -> def.getResources().values().stream())
-              .flatMap(res -> res.getOperations().values().stream())
-              .flatMap(op -> op.getQueryParameters().stream())
-              .filter(param -> param instanceof QueryParameterTemplateQueryable)
-              .map(param -> (QueryParameterTemplateQueryable) param)
-              .toList();
-
-      List<QueryParameterTemplateQueryable> filteredItems;
-
-      includedOpt = mcpConfiguration.getIncluded();
-      excludedOpt = mcpConfiguration.getExcluded();
-
-      List<String> includedCollections =
-          includedOpt.map(McpIncludeExclude::getCollections).orElse(null);
-      List<String> excludedCollections =
-          excludedOpt.map(McpIncludeExclude::getCollections).orElse(List.of());
-
-      if (includedOpt.isEmpty() && excludedOpt.isEmpty()) {
-        filteredItems = allItems;
-      } else if (includedCollections == null) {
-        filteredItems = List.of();
-      } else if (includedCollections.contains("*")) {
-        filteredItems =
-            allItems.stream()
-                .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
-                .toList();
-      } else {
-        filteredItems =
-            allItems.stream()
-                .filter(qp -> includedCollections.contains(qp.getCollectionId()))
-                .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
-                .toList();
-      }
-
-      Map<String, Map<String, JsonSchemaObject>> collectionProperties =
-          filteredItems.stream()
-              .collect(
-                  Collectors.groupingBy(
-                      QueryParameterTemplateQueryable::getCollectionId,
-                      Collectors.toMap(
-                          QueryParameterTemplateQueryable::getName,
-                          qp -> new Builder().description(qp.getDescription()).build())));
-
-      Map<String, JsonSchemaObject> properties =
-          collectionProperties.entrySet().stream()
-              .collect(
-                  Collectors.toMap(
-                      Entry::getKey, // collectionId
-                      e -> new Builder().properties(e.getValue()).build()));
+          McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
+      McpToolUtils.CollectionsResult collectionsResult =
+          McpToolUtils.filterAndCreateCollections(mcpConfiguration, apiData, extensionRegistry);
+      Map<String, JsonSchemaObject> collections = collectionsResult.collections();
+      List<QueryParameterTemplateQueryable> filteredItems = collectionsResult.filteredItems();
 
       schemas.put(
           apiData.getStableHash(),
           new ImmutableMcpSchema.Builder()
               .addAllTools(
-                  properties.entrySet().stream()
+                  collections.entrySet().stream()
                       .map(
                           e -> {
                             // filter query parameters for this collection
