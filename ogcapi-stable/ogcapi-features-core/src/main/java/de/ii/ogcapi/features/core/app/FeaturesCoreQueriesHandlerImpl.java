@@ -338,7 +338,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .codelists(codelistStore.asMap())
             .defaultCrs(defaultCrs)
             .sourceCrs(Optional.ofNullable(sourceCrs))
-            .links(links)
+            .links(queryInput.includeBodyLinks() ? links : List.of())
             .isFeatureCollection(Objects.isNull(featureId))
             .isHitsOnly(query.hitsOnly())
             .fields(ImmutableMap.of(collectionId, query.getFields()))
