@@ -58,7 +58,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
@@ -194,19 +193,19 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       @PathParam("y") String y)
       throws URISyntaxException {
 
-    Tiles3dConfiguration cfg =
+    /*Tiles3dConfiguration cfg =
         api.getData()
             .getCollectionData(collectionId)
             .flatMap(c -> c.getExtension(Tiles3dConfiguration.class))
             .orElseThrow();
 
     int maxLevel = Objects.requireNonNull(cfg.getMaxLevel());
-    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());
+    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());*/
 
     int cl = Integer.parseInt(level);
     int cx = Integer.parseInt(x);
     int cy = Integer.parseInt(y);
-    if (cl < Math.max(0, firstLevelWithContent)
+    /*if (cl < Math.max(0, firstLevelWithContent)
         || cl > maxLevel
         || cx < 0
         || cx >= Math.pow(2, cl)
@@ -221,7 +220,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
     if (Objects.isNull(content)) {
       return computeAndCache(requestContext, api, collectionId, cfg, r);
-    }
+    }*/
 
     QueryInputContent queryInput =
         ImmutableQueryInputContent.builder()
@@ -230,7 +229,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
             .level(cl)
             .x(cx)
             .y(cy)
-            .content(content)
+            // .content(content)
             .build();
 
     return queryHandler.handle(Query.CONTENT, queryInput, requestContext);
@@ -293,10 +292,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(
-        queryHandler,
-        queriesHandlerFeatures,
-        tileResourceCache,
-        providers.getFeatureProviderOrThrow(apiData));
+    return Set.of(queryHandler, queriesHandlerFeatures, tileResourceCache /*,
+        providers.getFeatureProviderOrThrow(apiData)*/);
   }
 }

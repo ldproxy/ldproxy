@@ -29,7 +29,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
-import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtree;
+import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtreeOld;
 import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Bbox;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
@@ -97,7 +97,7 @@ public interface Subtree {
   static Subtree of(
       ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
-      QueryInputSubtree queryInput,
+      QueryInputSubtreeOld queryInput,
       TileResourceDescriptor subtree) {
     int size = 0;
     for (int i = 0; i < queryInput.getSubtreeLevels(); i++) {
@@ -131,7 +131,7 @@ public interface Subtree {
 
   @SuppressWarnings("PMD.ExcessiveMethodLength")
   private static ImmutableSubtree buildSubtree(
-      QueryInputSubtree queryInput,
+      QueryInputSubtreeOld queryInput,
       int size,
       byte[] tileAvailability,
       byte[] contentAvailability,
@@ -379,7 +379,7 @@ public interface Subtree {
   }
 
   private static void processZ(
-      QueryInputSubtree queryInput,
+      QueryInputSubtreeOld queryInput,
       ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
       int baseLevel,
@@ -459,7 +459,7 @@ public interface Subtree {
   private static boolean hasData(
       ServicesContext servicesContext,
       FeaturesCoreQueriesHandler queriesHandler,
-      QueryInputSubtree queryInput,
+      QueryInputSubtreeOld queryInput,
       BoundingBox bbox,
       Optional<Cql2Expression> additionalFilter) {
     Bbox bbox2 =

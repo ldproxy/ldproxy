@@ -19,8 +19,8 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiBackgroundTask;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles3d.domain.Availability;
-import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputSubtree;
-import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtree;
+import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputSubtreeOld;
+import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtreeOld;
 import de.ii.ogcapi.tiles3d.domain.Subtree;
 import de.ii.ogcapi.tiles3d.domain.TileResourceCache;
 import de.ii.ogcapi.tiles3d.domain.TileResourceDescriptor;
@@ -369,9 +369,13 @@ public class Seeding implements OgcApiBackgroundTask {
 
   private Subtree computeAndCacheSubtree(
       TileResourceDescriptor descriptor, Tiles3dConfiguration cfg) {
-    final QueryInputSubtree queryInput =
-        ImmutableQueryInputSubtree.builder()
+    final QueryInputSubtreeOld queryInput =
+        ImmutableQueryInputSubtreeOld.builder()
             .api(descriptor.getApi())
+            .collectionId(descriptor.getCollectionId())
+            .level(descriptor.getLevel())
+            .x(descriptor.getX())
+            .y(descriptor.getY())
             .featureProvider(providers.getFeatureProviderOrThrow(descriptor.getApiData()))
             .featureType(
                 descriptor
@@ -391,10 +395,6 @@ public class Seeding implements OgcApiBackgroundTask {
                     .map(SchemaBase::getFullPathAsString)
                     .orElseThrow())
             .servicesUri(servicesContext.getUri())
-            .collectionId(descriptor.getCollectionId())
-            .level(descriptor.getLevel())
-            .x(descriptor.getX())
-            .y(descriptor.getY())
             .maxLevel(Objects.requireNonNull(cfg.getMaxLevel()))
             .firstLevelWithContent(Objects.requireNonNull(cfg.getFirstLevelWithContent()))
             .subtreeLevels(Objects.requireNonNull(cfg.getSubtreeLevels()))

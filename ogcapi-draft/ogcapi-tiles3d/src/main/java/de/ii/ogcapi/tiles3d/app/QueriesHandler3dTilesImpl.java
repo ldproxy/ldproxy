@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.gltf.domain.ImmutableAssetMetadata;
 import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
@@ -33,7 +34,7 @@ import de.ii.ogcapi.tiles3d.domain.ImmutableImplicitTiling;
 import de.ii.ogcapi.tiles3d.domain.ImmutableTile;
 import de.ii.ogcapi.tiles3d.domain.ImmutableTileset;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
-import de.ii.ogcapi.tiles3d.domain.Subtree;
+import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.TileResourceCache;
 import de.ii.ogcapi.tiles3d.domain.TileResourceDescriptor;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
@@ -43,6 +44,11 @@ import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles.domain.TileResult;
+import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dQuery;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -68,6 +74,7 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
   private final ServicesContext servicesContext;
   private final I18n i18n;
+  private final Tile3dProviders tile3dProviders;
   private final FeaturesCoreQueriesHandler queriesHandlerFeatures;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
   private final TileResourceCache tileResourceCache;
@@ -76,12 +83,14 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
   public QueriesHandler3dTilesImpl(
       ServicesContext servicesContext,
       I18n i18n,
+      Tile3dProviders tile3dProviders,
       FeaturesCoreQueriesHandler queriesHandlerFeatures,
       TileResourceCache tileResourceCache,
       VolatileRegistry volatileRegistry) {
     super(QueriesHandler3dTiles.class.getSimpleName(), volatileRegistry, true);
     this.servicesContext = servicesContext;
     this.i18n = i18n;
+    this.tile3dProviders = tile3dProviders;
     this.queriesHandlerFeatures = queriesHandlerFeatures;
     this.tileResourceCache = tileResourceCache;
     this.queryHandlers =
@@ -119,6 +128,8 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
     final OgcApi api = requestContext.getApi();
     final OgcApiDataV2 apiData = api.getData();
     final String collectionId = queryInput.getCollectionId();
+    final FeatureTypeConfigurationOgcApi collectionData =
+        apiData.getCollectionData(collectionId).orElseThrow();
 
     if (!apiData.isCollectionEnabled(collectionId)) {
       throw new NotFoundException(
@@ -129,13 +140,30 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
     checkCollectionId(api.getData(), collectionId);
 
-    Tileset tileset = getTileset(api, collectionId, requestContext.getUriCustomizer());
+    // Tileset tileset = getTileset(api, collectionId, requestContext.getUriCustomizer());
+
+    Tileset3d tileset3d =
+        tile3dProviders
+            .getTileset3dMetadataOrThrow(apiData, collectionData)
+            .withUris(
+                requestContext
+                    .getUriCustomizer()
+                    .copy()
+                    .clearParameters()
+                    .ensureLastPathSegment("content_{level}_{x}_{y}")
+                    .toString(),
+                requestContext
+                    .getUriCustomizer()
+                    .copy()
+                    .clearParameters()
+                    .ensureLastPathSegment("subtree_{level}_{x}_{y}")
+                    .toString());
 
     Date lastModified = getLastModified(queryInput);
     @SuppressWarnings("UnstableApiUsage")
     EntityTag etag =
         shouldProvideEntityTag(apiData, collectionId, outputFormat)
-            ? ETag.from(tileset, Tileset.FUNNEL, outputFormat.getMediaType().label())
+            ? ETag.from(tileset3d, Tileset3d.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) {
@@ -153,7 +181,7 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
                 String.format(
                     "%s.tileset.%s", collectionId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(tileset, links, collectionId, api, requestContext))
+        .entity(outputFormat.getEntity(tileset3d, links, collectionId, api, requestContext))
         .build();
   }
 
@@ -245,7 +273,7 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
       QueryInputContent queryInput, ApiRequestContext requestContext) {
 
     Date lastModified = getLastModified(queryInput);
-    EntityTag etag = ETag.from(queryInput.getContent());
+    EntityTag etag = null; // ETag.from(queryInput.getContent());
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) {
       return response.build();
@@ -253,30 +281,11 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
     List<Link> links = getLinks(requestContext, i18n);
 
-    return prepareSuccessResponse(
-            requestContext,
-            queryInput.getIncludeLinkHeader() ? links : ImmutableList.of(),
-            HeaderCaching.of(lastModified, etag, queryInput),
-            null,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.content_%d_%d_%d.%s",
-                    queryInput.getCollectionId(),
-                    queryInput.getLevel(),
-                    queryInput.getX(),
-                    queryInput.getY(),
-                    requestContext.getMediaType().fileExtension())),
-            i18n.getLanguages())
-        .entity(queryInput.getContent())
-        .build();
-  }
-
-  private Response getSubtreeResponse(
-      QueryInputSubtree queryInput, ApiRequestContext requestContext) {
-
     final OgcApi api = requestContext.getApi();
     final OgcApiDataV2 apiData = api.getData();
     final String collectionId = queryInput.getCollectionId();
+    final FeatureTypeConfigurationOgcApi collectionData =
+        apiData.getCollectionData(collectionId).orElseThrow();
 
     if (!apiData.isCollectionEnabled(collectionId)) {
       throw new NotFoundException(
@@ -289,9 +298,85 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
     int x = queryInput.getX();
     int y = queryInput.getY();
 
-    TileResourceDescriptor r = TileResourceDescriptor.subtreeOf(api, collectionId, level, x, y);
+    Tile3dAccess tile3dAccess =
+        tile3dProviders.getTile3dProviderOrThrow(apiData, collectionData, Tile3dProvider::access);
 
-    byte[] result = getSubtreeContent(r);
+    String tileset3dId = tile3dProviders.getTileset3dId(collectionData).orElseThrow();
+
+    TileResult tileResult =
+        tile3dAccess.getTile(
+            ImmutableTile3dQuery.builder().tileset(tileset3dId).level(level).col(x).row(y).build());
+
+    if (tileResult.isNotFound()) {
+      throw new NotFoundException();
+    }
+    if (!tileResult.isAvailable()) {
+      throw new IllegalStateException(
+          "Tile content could not be retrieved: "
+              + tileResult.getError().orElse(tileResult.getStatus().toString()));
+    }
+
+    byte[] result = tileResult.getContent().get();
+
+    return prepareSuccessResponse(
+            requestContext,
+            queryInput.getIncludeLinkHeader() ? links : ImmutableList.of(),
+            HeaderCaching.of(lastModified, etag, queryInput),
+            null,
+            null,
+            /*HeaderContentDisposition.of(
+            String.format(
+                "%s.content_%d_%d_%d.%s",
+                queryInput.getCollectionId(),
+                queryInput.getLevel(),
+                queryInput.getX(),
+                queryInput.getY(),
+                requestContext.getMediaType().fileExtension())),*/
+            i18n.getLanguages())
+        .entity(result)
+        .build();
+  }
+
+  private Response getSubtreeResponse(
+      QueryInputSubtree queryInput, ApiRequestContext requestContext) {
+
+    final OgcApi api = requestContext.getApi();
+    final OgcApiDataV2 apiData = api.getData();
+    final String collectionId = queryInput.getCollectionId();
+    final FeatureTypeConfigurationOgcApi collectionData =
+        apiData.getCollectionData(collectionId).orElseThrow();
+
+    if (!apiData.isCollectionEnabled(collectionId)) {
+      throw new NotFoundException(
+          MessageFormat.format("The collection ''{0}'' does not exist in this API.", collectionId));
+    }
+
+    checkCollectionId(api.getData(), collectionId);
+
+    int level = queryInput.getLevel();
+    int x = queryInput.getX();
+    int y = queryInput.getY();
+
+    // TileResourceDescriptor r = TileResourceDescriptor.subtreeOf(api, collectionId, level, x, y);
+
+    Tile3dAccess tile3dAccess =
+        tile3dProviders.getTile3dProviderOrThrow(apiData, collectionData, Tile3dProvider::access);
+
+    String tileset3dId = tile3dProviders.getTileset3dId(collectionData).orElseThrow();
+
+    TileResult tileResult =
+        tile3dAccess.getSubtree(
+            ImmutableTile3dQuery.builder().tileset(tileset3dId).level(level).col(x).row(y).build());
+
+    if (!tileResult.isAvailable()) {
+      throw new IllegalStateException(
+          "Tile subtree could not be retrieved: "
+              + tileResult.getError().orElse(tileResult.getStatus().toString()));
+    }
+
+    byte[] result = tileResult.getContent().get();
+
+    /*byte[] result = getSubtreeContent(r);
 
     if (Objects.isNull(result)) {
       result =
@@ -302,13 +387,12 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
       } catch (IOException e) {
         throw new IllegalStateException(e);
       }
-    }
+    }*/
 
-    Format3dTilesSubtree outputFormat = getFormat3dTilesSubtree(queryInput, requestContext);
+    // Format3dTilesSubtree outputFormat = getFormat3dTilesSubtree(queryInput, requestContext);
 
     Date lastModified = getLastModified(queryInput);
-    EntityTag etag =
-        shouldProvideEntityTag(apiData, collectionId, outputFormat) ? ETag.from(result) : null;
+    EntityTag etag = ETag.from(result);
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) {
       return response.build();
@@ -319,12 +403,17 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
             queryInput.getIncludeLinkHeader() ? getLinks(requestContext, i18n) : ImmutableList.of(),
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.subtree_%d_%d_%d.%s",
-                    collectionId, level, x, y, outputFormat.getMediaType().fileExtension())),
+            null,
+            /*HeaderContentDisposition.of(
+            String.format(
+                "%s.subtree_%d_%d_%d.%s",
+                collectionId,
+                level,
+                x,
+                y,
+                outputFormat.getMediaType().fileExtension())),*/
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(result))
+        .entity(result)
         .build();
   }
 

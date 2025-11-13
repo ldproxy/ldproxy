@@ -13,7 +13,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
@@ -39,22 +38,16 @@ import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.cql.domain.Cql;
-import de.ii.xtraplatform.cql.domain.Cql.Format;
-import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.dropwizard.auth.Auth;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
@@ -182,19 +175,19 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
       @PathParam("x") String x,
       @PathParam("y") String y) {
 
-    Tiles3dConfiguration cfg =
+    /*Tiles3dConfiguration cfg =
         api.getData()
             .getCollectionData(collectionId)
             .flatMap(c -> c.getExtension(Tiles3dConfiguration.class))
             .orElseThrow();
     int maxLevel = Objects.requireNonNull(cfg.getMaxLevel());
     int subtreeLevels = Objects.requireNonNull(cfg.getSubtreeLevels());
-    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());
+    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());*/
 
     int sl = Integer.parseInt(level);
     int sx = Integer.parseInt(x);
     int sy = Integer.parseInt(y);
-    if (sl < 0
+    /*if (sl < 0
         || sl > maxLevel
         || sl % subtreeLevels != 0
         || sx < 0
@@ -212,13 +205,17 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
     List<Cql2Expression> tileFilters =
         cfg.getTileFilters().stream()
             .map(filter -> cql.read(filter, Format.TEXT))
-            .collect(Collectors.toUnmodifiableList());
+            .collect(Collectors.toUnmodifiableList());*/
 
     QueryInputSubtree queryInput =
         ImmutableQueryInputSubtree.builder()
             .from(getGenericQueryInput(api.getData()))
             .api(api)
-            .featureProvider(providers.getFeatureProviderOrThrow(api.getData()))
+            .collectionId(collectionId)
+            .level(sl)
+            .x(sx)
+            .y(sy)
+            /*.featureProvider(providers.getFeatureProviderOrThrow(api.getData()))
             .featureType(
                 api.getData()
                     .getExtension(FeaturesCoreConfiguration.class, collectionId)
@@ -232,15 +229,11 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
                     .map(SchemaBase::getFullPathAsString)
                     .orElseThrow())
             .servicesUri(servicesUri)
-            .collectionId(collectionId)
-            .level(sl)
-            .x(sx)
-            .y(sy)
             .maxLevel(maxLevel)
             .firstLevelWithContent(firstLevelWithContent)
             .subtreeLevels(subtreeLevels)
             .contentFilters(contentFilters)
-            .tileFilters(tileFilters)
+            .tileFilters(tileFilters)*/
             .build();
 
     return queryHandler.handle(Query.SUBTREE, queryInput, requestContext);
@@ -248,6 +241,6 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler, providers.getFeatureProviderOrThrow(apiData));
+    return Set.of(queryHandler /*, providers.getFeatureProviderOrThrow(apiData)*/);
   }
 }

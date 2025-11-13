@@ -22,8 +22,8 @@ import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.ogcapi.tiles3d.domain.Tileset;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -92,7 +92,7 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
 
   @Override
   public Object getEntity(
-      Tileset tileset,
+      Tileset3d tileset,
       List<Link> links,
       String collectionId,
       OgcApi api,

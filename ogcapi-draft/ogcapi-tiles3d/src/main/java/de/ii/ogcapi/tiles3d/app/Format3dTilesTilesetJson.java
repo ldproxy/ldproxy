@@ -20,6 +20,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tileset;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +44,8 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
 
   @Inject
   public Format3dTilesTilesetJson(ClassSchemaCache classSchemaCache) {
-    schema = classSchemaCache.getSchema(Tileset.class);
-    referencedSchemas = classSchemaCache.getReferencedSchemas(Tileset.class);
+    schema = classSchemaCache.getSchema(Tileset3d.class);
+    referencedSchemas = classSchemaCache.getReferencedSchemas(Tileset3d.class);
   }
 
   @Override
@@ -69,7 +70,7 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
 
   @Override
   public Object getEntity(
-      Tileset tileset,
+      Tileset3d tileset,
       List<Link> links,
       String collectionId,
       OgcApi api,

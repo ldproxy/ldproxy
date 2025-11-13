@@ -46,12 +46,45 @@ public interface QueriesHandler3dTiles
 
     int getY();
 
-    byte[] getContent();
+    // byte[] getContent();
   }
 
   @Value.Immutable
   interface QueryInputSubtree extends QueryInput {
     OgcApi getApi();
+
+    String getCollectionId();
+
+    /*FeatureProvider getFeatureProvider();
+
+    String getFeatureType();
+
+    String getGeometryProperty();
+
+    URI getServicesUri();*/
+
+    int getLevel();
+
+    int getX();
+
+    int getY();
+
+    /*int getSubtreeLevels();
+
+    int getFirstLevelWithContent();
+
+    int getMaxLevel();
+
+    List<Cql2Expression> getContentFilters();
+
+    List<Cql2Expression> getTileFilters();*/
+  }
+
+  @Value.Immutable
+  interface QueryInputSubtreeOld extends QueryInput {
+    OgcApi getApi();
+
+    String getCollectionId();
 
     FeatureProvider getFeatureProvider();
 
@@ -60,8 +93,6 @@ public interface QueriesHandler3dTiles
     String getGeometryProperty();
 
     URI getServicesUri();
-
-    String getCollectionId();
 
     int getLevel();
 

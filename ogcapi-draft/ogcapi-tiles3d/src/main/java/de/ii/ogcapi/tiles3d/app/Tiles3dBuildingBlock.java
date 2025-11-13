@@ -72,6 +72,7 @@ public class Tiles3dBuildingBlock implements ApiBuildingBlock {
               "https://opengeospatial.github.io/ogcna-auto-review/22-029.html",
               "OGC API - 3D GeoVolumes (DRAFT)"));
   public static final String STORE_RESOURCE_TYPE = "tiles3d";
+  public static final String DATASET_TILES = "__all__";
 
   @Inject
   public Tiles3dBuildingBlock() {}

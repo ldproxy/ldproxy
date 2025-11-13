@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
 import java.util.List;
@@ -65,6 +66,28 @@ import org.immutables.value.Value;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "TILES3D")
 @JsonDeserialize(builder = ImmutableTiles3dConfiguration.Builder.class)
 public interface Tiles3dConfiguration extends ExtensionConfiguration {
+
+  /**
+   * @langEn Specifies the data source for the tiles, see [Tile
+   *     Providers](../../providers/tile/README.md).
+   * @langDe Spezifiziert die Datenquelle für die Kacheln, siehe
+   *     [Tile-Provider](../../providers/tile/README.md).
+   * @default null
+   * @since v4.6
+   */
+  @Nullable
+  String getTileProvider();
+
+  /**
+   * @langEn Specifies the tileset from the tile provider that should be used. The default is
+   *     `__all__` for dataset tiles and `{collectionId}` for collection tiles.
+   * @langDe Spezifiziert das Tileset vom Tile-Provider das verwendet werden soll. Der Default ist
+   *     `__all__` für Dataset Tiles und `{collectionId}` für Collection Tiles.
+   * @default __all__ \| {collectionId}
+   * @since v4.6
+   */
+  @Nullable
+  String getTileProviderTileset();
 
   /**
    * @langEn The first level of the tileset which will contain buildings. The value will depend on
@@ -250,6 +273,21 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   String getStyle();
+
+  @Value.Auxiliary
+  @Value.Derived
+  @JsonIgnore
+  default String getDatasetTileset() {
+    return Objects.requireNonNullElse(getTileProviderTileset(), Tiles3dBuildingBlock.DATASET_TILES);
+  }
+
+  default String getCollectionTileset(String collectionId) {
+    if (Objects.isNull(getTileProviderTileset())
+        || Tiles3dBuildingBlock.DATASET_TILES.equals(getTileProviderTileset())) {
+      return collectionId;
+    }
+    return getTileProviderTileset();
+  }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
