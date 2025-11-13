@@ -58,6 +58,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,6 +68,7 @@ import javax.inject.Singleton;
 import javax.servlet.http.HttpServlet;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,9 +111,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
   @Override
-  public HttpServlet getServlet(OgcApi api, OgcApiDataV2 apiData) {
+  public HttpServlet getServlet(OgcApi api) {
     return servers.computeIfAbsent(
-        apiData.getStableHash(),
+        api.getData().getStableHash(),
         key -> {
           HttpServletStatelessServerTransportJavaX transport =
               HttpServletStatelessServerTransportJavaX.builder()
@@ -119,7 +121,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   .messageEndpoint("/mcp")
                   .build();
           try {
-            McpStatelessSyncServer server = createServer(api, apiData, transport);
+            McpStatelessSyncServer server = createServer(api, transport);
           } catch (IOException e) {
             throw new IllegalStateException(e);
           }
@@ -128,8 +130,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         });
   }
 
-  private McpStatelessSyncServer createServer(
-      OgcApi api, OgcApiDataV2 apiData, McpStatelessServerTransport transport) throws IOException {
+  private McpStatelessSyncServer createServer(OgcApi api, McpStatelessServerTransport transport)
+      throws IOException {
     McpSchema mcpSchema = getSchema(api);
     McpStatelessSyncServer server =
         io.modelcontextprotocol.server.McpServer.sync(transport)
@@ -152,18 +154,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
               (exchange, arguments) -> {
                 if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
                   String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
-                  String result = handleStoredQuery(apiData, queryId, arguments.arguments());
+                  String result = handleStoredQuery(api, queryId, arguments.arguments());
 
                   return new CallToolResult(result, false);
                 } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
                   String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                   String result =
                       handleCollectionQuery(
-                          api,
-                          apiData,
-                          collectionId,
-                          arguments.arguments(),
-                          tool.getQueryParameters());
+                          api, collectionId, arguments.arguments(), tool.getQueryParameters());
 
                   return new CallToolResult(result, false);
                 }
@@ -177,16 +175,15 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   private String handleCollectionQuery(
       OgcApi api,
-      OgcApiDataV2 apiData,
       String collectionId,
       Map<String, Object> parameters,
       List<OgcApiQueryParameter> queryParameters) {
+    OgcApiDataV2 apiData = api.getData();
 
     Map<String, String> stringParams =
         parameters.entrySet().stream()
-            .collect(
-                Collectors.toMap(
-                    Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : null));
+            .filter(e -> Objects.nonNull(e.getValue()))
+            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString()));
 
     QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
     System.out.println("parameterSet: " + parameterSet.getValues());
@@ -241,7 +238,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     URI uri = URI.create("/collections/" + collectionId + "/items");
 
-    ApiRequestContext requestContextGeoJson =
+    ApiRequestContext requestContext =
         new ImmutableStaticRequestContext.Builder()
             .webContext(appContext)
             .api(api)
@@ -256,11 +253,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .queryParameterSet(parameterSet)
             .build();
 
-    System.out.println("requestContextGeoJson: " + requestContextGeoJson);
+    System.out.println("requestContext: " + requestContext);
 
-    javax.ws.rs.core.Response response =
+    Response response =
         featuresCoreQueriesHandler.handle(
-            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContextGeoJson);
+            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContext);
 
     System.out.println("response: " + response);
 
@@ -276,8 +273,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   }
 
   // TODO: implement
-  private String handleStoredQuery(
-      OgcApiDataV2 apiData, String queryId, Map<String, Object> parameters) {
+  private String handleStoredQuery(OgcApi api, String queryId, Map<String, Object> parameters) {
     return "TODO: handled stored query: " + queryId;
   }
 

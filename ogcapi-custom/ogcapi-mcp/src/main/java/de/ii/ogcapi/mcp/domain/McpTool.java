@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.mcp.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import java.util.List;
@@ -38,5 +39,6 @@ public interface McpTool {
 
   JsonSchemaObject getInputSchema();
 
+  @JsonIgnore
   List<OgcApiQueryParameter> getQueryParameters();
 }

@@ -8,12 +8,11 @@
 package de.ii.ogcapi.mcp.domain;
 
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import javax.servlet.http.HttpServlet;
 
 public interface McpServer {
 
   McpSchema getSchema(OgcApi api);
 
-  HttpServlet getServlet(OgcApi api, OgcApiDataV2 apiData);
+  HttpServlet getServlet(OgcApi api);
 }

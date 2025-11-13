@@ -12,7 +12,6 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
-import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -50,16 +49,11 @@ public class EndpointMcpSchema extends Endpoint {
   private static final List<String> TAGS = ImmutableList.of("MCP");
 
   private final McpServer mcpServer;
-  private final StoredQueryRepository storedQueryRepository;
 
   @Inject
-  public EndpointMcpSchema(
-      McpServer mcpServer,
-      ExtensionRegistry extensionRegistry,
-      StoredQueryRepository storedQueryRepository) {
+  public EndpointMcpSchema(McpServer mcpServer, ExtensionRegistry extensionRegistry) {
     super(extensionRegistry);
     this.mcpServer = mcpServer;
-    this.storedQueryRepository = storedQueryRepository;
   }
 
   @Override
