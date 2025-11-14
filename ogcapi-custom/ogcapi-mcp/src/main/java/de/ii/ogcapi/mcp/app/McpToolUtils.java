@@ -38,21 +38,21 @@ public class McpToolUtils {
 
   public static class CollectionsResult {
     private final Map<String, ObjectSchema> collections;
-    private final List<QueryParameterTemplateQueryable> filteredItems;
+    private final Map<String, List<OgcApiQueryParameter>> queryParametersByCollection;
 
     public CollectionsResult(
         Map<String, ObjectSchema> collections,
-        List<QueryParameterTemplateQueryable> filteredItems) {
+        Map<String, List<OgcApiQueryParameter>> queryParametersByCollection) {
       this.collections = collections;
-      this.filteredItems = filteredItems;
+      this.queryParametersByCollection = queryParametersByCollection;
     }
 
     public Map<String, ObjectSchema> getCollections() {
       return collections;
     }
 
-    public List<QueryParameterTemplateQueryable> getFilteredItems() {
-      return filteredItems;
+    public Map<String, List<OgcApiQueryParameter>> getQueryParametersByCollection() {
+      return queryParametersByCollection;
     }
   }
 
@@ -154,7 +154,8 @@ public class McpToolUtils {
   public static CollectionsResult filterAndCreateCollections(
       McpConfiguration mcpConfiguration,
       OgcApiDataV2 apiData,
-      ExtensionRegistry extensionRegistry) {
+      ExtensionRegistry extensionRegistry,
+      List<String> allowedNames) {
 
     List<ApiEndpointDefinition> definitions =
         extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
@@ -194,16 +195,23 @@ public class McpToolUtils {
                 })
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    // Only collect queryable parameters for the included collections
-    List<QueryParameterTemplateQueryable> filteredItems =
+    // Map: CollectionId -> List of filtered query parameters
+    Map<String, List<OgcApiQueryParameter>> queryParametersByCollection =
         definitions.stream()
             .flatMap(def -> def.getResources().values().stream())
             .filter(res -> collectionMap.containsKey(res.getCollectionId(apiData).orElse("")))
-            .flatMap(res -> res.getOperations().values().stream())
-            .flatMap(op -> op.getQueryParameters().stream())
-            .filter(param -> param instanceof QueryParameterTemplateQueryable)
-            .map(param -> (QueryParameterTemplateQueryable) param)
-            .toList();
+            .collect(
+                Collectors.toMap(
+                    res -> res.getCollectionId(apiData).orElse(""),
+                    res ->
+                        res.getOperations().values().stream()
+                            .flatMap(op -> op.getQueryParameters().stream())
+                            .filter(
+                                param ->
+                                    allowedNames == null
+                                        || allowedNames.contains(param.getName())
+                                        || param instanceof QueryParameterTemplateQueryable)
+                            .collect(Collectors.toList())));
 
     Map<String, Schema<?>> globalParameters = new HashMap<>();
 
@@ -229,31 +237,25 @@ public class McpToolUtils {
       }
     }
 
-    Map<String, Map<String, Schema<?>>> collectionProperties =
-        filteredItems.stream()
-            .collect(
-                Collectors.groupingBy(
-                    QueryParameterTemplateQueryable::getCollectionId,
-                    Collectors.toMap(
-                        QueryParameterTemplateQueryable::getName,
-                        qp -> {
-                          Schema<?> schema = new ObjectSchema();
-                          schema.setDescription(qp.getDescription());
-                          return schema;
-                        })));
-
     Map<String, ObjectSchema> collections =
-        collectionProperties.entrySet().stream()
+        collectionMap.entrySet().stream()
             .collect(
                 Collectors.toMap(
                     Map.Entry::getKey,
                     e -> {
-                      Map<String, Schema<?>> props = new HashMap<>(e.getValue());
-                      props.putAll(globalParameters);
-                      return (ObjectSchema)
-                          new ObjectSchema().properties((Map<String, Schema>) (Map<?, ?>) props);
+                      Map<String, Schema<?>> props = new HashMap<>(globalParameters);
+                      List<OgcApiQueryParameter> params =
+                          queryParametersByCollection.getOrDefault(e.getKey(), List.of());
+                      for (OgcApiQueryParameter param : params) {
+                        Schema<?> schema = param.getSchema(apiData, Optional.empty());
+                        if (schema != null) {
+                          props.put(param.getName(), schema);
+                        }
+                      }
+                      ObjectSchema schema = new ObjectSchema();
+                      schema.setProperties((Map) props);
+                      return schema;
                     }));
-
-    return new CollectionsResult(collections, filteredItems);
+    return new CollectionsResult(collections, queryParametersByCollection);
   }
 }

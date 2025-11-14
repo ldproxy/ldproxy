@@ -9,7 +9,6 @@ package de.ii.ogcapi.mcp.app;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
@@ -284,9 +283,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       List<ImmutableMcpTool> queryTools =
           McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
       McpToolUtils.CollectionsResult collectionsResult =
-          McpToolUtils.filterAndCreateCollections(mcpConfiguration, apiData, extensionRegistry);
+          McpToolUtils.filterAndCreateCollections(
+              mcpConfiguration,
+              apiData,
+              extensionRegistry,
+              List.of("bbox", "datetime", "limit", "offset", "sortby"));
       Map<String, ObjectSchema> collections = collectionsResult.getCollections();
-      List<QueryParameterTemplateQueryable> filteredItems = collectionsResult.getFilteredItems();
+      Map<String, List<OgcApiQueryParameter>> queryParametersByCollection =
+          collectionsResult.getQueryParametersByCollection();
 
       schemas.put(
           apiData.getStableHash(),
@@ -297,9 +301,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                               .map(
                                   e -> {
                                     List<OgcApiQueryParameter> collectionQueryParameters =
-                                        filteredItems.stream()
-                                            .filter(qp -> qp.getCollectionId().equals(e.getKey()))
-                                            .collect(Collectors.toList());
+                                        queryParametersByCollection.getOrDefault(
+                                            e.getKey(), List.of());
 
                                     return new ImmutableMcpTool.Builder()
                                         .id(COLLECTION_QUERY_PREFIX + e.getKey())
