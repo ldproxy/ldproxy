@@ -256,6 +256,20 @@ public class McpToolUtils {
                       schema.setProperties((Map) props);
                       return schema;
                     }));
+
+    for (Map.Entry<String, List<OgcApiQueryParameter>> entry :
+        queryParametersByCollection.entrySet()) {
+      ObjectSchema objectSchema = new ObjectSchema();
+      for (OgcApiQueryParameter param : entry.getValue()) {
+        Schema<?> schema = param.getSchema(apiData, Optional.empty());
+        if (schema != null) {
+          schema.setDescription(param.getDescription());
+          objectSchema.addProperty(param.getName(), schema);
+        }
+      }
+      collections.put(entry.getKey(), objectSchema);
+    }
+
     return new CollectionsResult(collections, queryParametersByCollection);
   }
 }
