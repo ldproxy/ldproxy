@@ -167,6 +167,44 @@ public class McpToolUtils {
                         .anyMatch(op -> op.getOperationId().contains("getItems")))
             .toList();
 
+    Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
+    Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
+
+    List<String> includedCollections =
+        includedOpt.map(McpIncludeExclude::getCollections).orElse(null);
+    List<String> excludedCollections =
+        excludedOpt.map(McpIncludeExclude::getCollections).orElse(List.of());
+
+    Map<String, OgcApiResource> collectionMap =
+        definitions.stream()
+            .flatMap(def -> def.getResources().values().stream())
+            .map(res -> Map.entry(res.getCollectionId(apiData).orElse(""), res))
+            .filter(
+                e -> {
+                  String id = e.getKey();
+
+                  boolean included;
+                  if (includedCollections == null) included = false;
+                  else if (includedCollections.contains("*")) included = true;
+                  else included = includedCollections.contains(id);
+
+                  boolean excluded = excludedCollections.contains(id);
+
+                  return included && !excluded;
+                })
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    // Only collect queryable parameters for the included collections
+    List<QueryParameterTemplateQueryable> filteredItems =
+        definitions.stream()
+            .flatMap(def -> def.getResources().values().stream())
+            .filter(res -> collectionMap.containsKey(res.getCollectionId(apiData).orElse("")))
+            .flatMap(res -> res.getOperations().values().stream())
+            .flatMap(op -> op.getQueryParameters().stream())
+            .filter(param -> param instanceof QueryParameterTemplateQueryable)
+            .map(param -> (QueryParameterTemplateQueryable) param)
+            .toList();
+
     Map<String, Schema<?>> globalParameters = new HashMap<>();
 
     for (ApiEndpointDefinition def : definitions) {
@@ -189,42 +227,6 @@ public class McpToolUtils {
           }
         }
       }
-    }
-
-    List<QueryParameterTemplateQueryable> allItems =
-        definitions.stream()
-            .flatMap(def -> def.getResources().values().stream())
-            .flatMap(res -> res.getOperations().values().stream())
-            .flatMap(op -> op.getQueryParameters().stream())
-            .filter(param -> param instanceof QueryParameterTemplateQueryable)
-            .map(param -> (QueryParameterTemplateQueryable) param)
-            .toList();
-
-    List<QueryParameterTemplateQueryable> filteredItems;
-
-    Optional<McpIncludeExclude> includedOpt = mcpConfiguration.getIncluded();
-    Optional<McpIncludeExclude> excludedOpt = mcpConfiguration.getExcluded();
-
-    List<String> includedCollections =
-        includedOpt.map(McpIncludeExclude::getCollections).orElse(null);
-    List<String> excludedCollections =
-        excludedOpt.map(McpIncludeExclude::getCollections).orElse(List.of());
-
-    if (includedOpt.isEmpty() && excludedOpt.isEmpty()) {
-      filteredItems = allItems;
-    } else if (includedCollections == null) {
-      filteredItems = List.of();
-    } else if (includedCollections.contains("*")) {
-      filteredItems =
-          allItems.stream()
-              .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
-              .toList();
-    } else {
-      filteredItems =
-          allItems.stream()
-              .filter(qp -> includedCollections.contains(qp.getCollectionId()))
-              .filter(qp -> !excludedCollections.contains(qp.getCollectionId()))
-              .toList();
     }
 
     Map<String, Map<String, Schema<?>>> collectionProperties =
