@@ -9,7 +9,6 @@ package de.ii.ogcapi.mcp.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -20,7 +19,7 @@ public interface McpTool {
       String id,
       String name,
       String description,
-      JsonSchemaObject inputSchema,
+      io.swagger.v3.oas.models.media.ObjectSchema inputSchema,
       List<OgcApiQueryParameter> queryParameters) {
     return new ImmutableMcpTool.Builder()
         .id(id)
@@ -37,7 +36,7 @@ public interface McpTool {
 
   String getDescription();
 
-  JsonSchemaObject getInputSchema();
+  io.swagger.v3.oas.models.media.ObjectSchema getInputSchema();
 
   @JsonIgnore
   List<OgcApiQueryParameter> getQueryParameters();

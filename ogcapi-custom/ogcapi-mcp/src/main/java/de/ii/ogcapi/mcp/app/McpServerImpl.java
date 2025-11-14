@@ -39,7 +39,6 @@ import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
@@ -48,6 +47,7 @@ import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
@@ -58,6 +58,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServlet;
@@ -284,39 +285,42 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
           McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
       McpToolUtils.CollectionsResult collectionsResult =
           McpToolUtils.filterAndCreateCollections(mcpConfiguration, apiData, extensionRegistry);
-      Map<String, JsonSchemaObject> collections = collectionsResult.getCollections();
+      Map<String, ObjectSchema> collections = collectionsResult.getCollections();
       List<QueryParameterTemplateQueryable> filteredItems = collectionsResult.getFilteredItems();
 
       schemas.put(
           apiData.getStableHash(),
           new ImmutableMcpSchema.Builder()
               .addAllTools(
-                  collections.entrySet().stream()
-                      .map(
-                          e -> {
-                            // filter query parameters for this collection
-                            List<OgcApiQueryParameter> collectionQueryParameters =
-                                filteredItems.stream()
-                                    .filter(qp -> qp.getCollectionId().equals(e.getKey()))
-                                    .collect(Collectors.toList());
+                  Stream.concat(
+                          collections.entrySet().stream()
+                              .map(
+                                  e -> {
+                                    List<OgcApiQueryParameter> collectionQueryParameters =
+                                        filteredItems.stream()
+                                            .filter(qp -> qp.getCollectionId().equals(e.getKey()))
+                                            .collect(Collectors.toList());
 
-                            return new ImmutableMcpTool.Builder()
-                                .id(COLLECTION_QUERY_PREFIX + e.getKey())
-                                .name(
-                                    "Collection Query - "
-                                        + apiData.getCollections().get(e.getKey()).getLabel())
-                                .description(
-                                    apiData
-                                        .getCollections()
-                                        .get(e.getKey())
-                                        .getDescription()
-                                        .orElse(""))
-                                .inputSchema(e.getValue())
-                                .queryParameters(collectionQueryParameters)
-                                .build();
-                          })
-                      .toList())
-              .addAllTools(queryTools)
+                                    return new ImmutableMcpTool.Builder()
+                                        .id(COLLECTION_QUERY_PREFIX + e.getKey())
+                                        .name(
+                                            "Collection Query - "
+                                                + apiData
+                                                    .getCollections()
+                                                    .get(e.getKey())
+                                                    .getLabel())
+                                        .description(
+                                            apiData
+                                                .getCollections()
+                                                .get(e.getKey())
+                                                .getDescription()
+                                                .orElse(""))
+                                        .inputSchema(e.getValue())
+                                        .queryParameters(collectionQueryParameters)
+                                        .build();
+                                  }),
+                          queryTools.stream())
+                      .collect(Collectors.toList()))
               .build());
     }
     return schemas.get(apiData.getStableHash());
