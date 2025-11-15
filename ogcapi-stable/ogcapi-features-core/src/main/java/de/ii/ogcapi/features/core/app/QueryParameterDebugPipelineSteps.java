@@ -145,6 +145,6 @@ public class QueryParameterDebugPipelineSteps extends OgcApiQueryParameterBase
       QueryParameterSet parameters,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData) {
-    parameters.getValue(this).ifPresent(queryBuilder::debugSkipPipelineSteps);
+    parameters.getValue(this).ifPresent(queryBuilder::skipPipelineSteps);
   }
 }
