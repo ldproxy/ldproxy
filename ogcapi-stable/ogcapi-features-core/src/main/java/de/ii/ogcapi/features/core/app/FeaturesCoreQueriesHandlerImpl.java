@@ -396,7 +396,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                   !sendResponseAsStream,
                   outputFormat.requiresPropertiesInSequence(schema),
                   outputFormat.supportsSecondaryGeometry(),
-                  outputFormat.supportsNullVsMissing()));
+                  outputFormat.supportsNullVsMissing(),
+                  query.getMaxAllowableOffset() > 0));
 
       ImmutableList.Builder<PipelineSteps> skipSteps = ImmutableList.builder();
       skipSteps.addAll(query.skipPipelineSteps());

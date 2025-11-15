@@ -948,7 +948,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                             s ->
                                 s.accept(
                                     new DeterminePipelineStepsThatCannotBeSkipped(
-                                        finalQuery,
+                                        subQuery,
                                         subQuery.getType(),
                                         propertyTransformations,
                                         featureProvider.crs().get().getNativeCrs(),
@@ -956,7 +956,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                         false,
                                         outputFormat.requiresPropertiesInSequence(schema.get()),
                                         outputFormat.supportsSecondaryGeometry(),
-                                        outputFormat.supportsNullVsMissing())))
+                                        outputFormat.supportsNullVsMissing(),
+                                        finalQuery.getMaxAllowableOffset() > 0)))
                         .orElse(Set.of());
                   })
               .flatMap(Collection::stream)
