@@ -14,8 +14,15 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
+import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
+import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
+import de.ii.ogcapi.features.search.domain.ParameterResolver;
+import de.ii.ogcapi.features.search.domain.QueryExpression;
+import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
+import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.foundation.domain.ApiExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -26,6 +33,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
@@ -42,7 +50,6 @@ import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.JsonSchema;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
@@ -85,6 +92,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final FeaturesCoreProviders providers;
   private final FeaturesQuery ogcApiFeaturesQuery;
   private final FeaturesCoreQueriesHandler featuresCoreQueriesHandler;
+  private final SearchQueriesHandler searchQueriesHandler;
 
   @Inject
   public McpServerImpl(
@@ -94,7 +102,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       StoredQueryRepository storedQueryRepository,
       FeaturesCoreProviders providers,
       FeaturesQuery ogcApiFeaturesQuery,
-      FeaturesCoreQueriesHandler featuresCoreQueriesHandler) {
+      FeaturesCoreQueriesHandler featuresCoreQueriesHandler,
+      SearchQueriesHandler searchQueriesHandler) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.storedQueryRepository = storedQueryRepository;
@@ -102,6 +111,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     this.providers = providers;
     this.ogcApiFeaturesQuery = ogcApiFeaturesQuery;
     this.featuresCoreQueriesHandler = featuresCoreQueriesHandler;
+    this.searchQueriesHandler = searchQueriesHandler;
   }
 
   // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
@@ -142,7 +152,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   tool.getName(),
                   tool.getDescription(),
                   objectMapper.readValue(
-                      objectMapper.writeValueAsString(tool.getInputSchema()), JsonSchema.class),
+                      objectMapper.writeValueAsString(tool.getInputSchema()),
+                      io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
                   null,
                   null,
                   null),
@@ -150,9 +161,16 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                 try {
                   if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
                     String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
-                    String result = handleStoredQuery(api, queryId, arguments.arguments());
 
-                    return new CallToolResult(result, false);
+                    System.out.println("tool.getId(): " + tool.getId());
+                    System.out.println("queryId: " + queryId);
+                    System.out.println("tool.getQueryParameters(): " + tool.getQueryParameters());
+                    System.out.println("arguments.arguments(): " + arguments.arguments());
+
+                    return new CallToolResult(
+                        handleStoredQuery(
+                            api, queryId, arguments.arguments(), tool.getQueryParameters()),
+                        false);
                   } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
                     String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                     String result =
@@ -182,6 +200,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       List<OgcApiQueryParameter> queryParameters) {
     OgcApiDataV2 apiData = api.getData();
 
+    System.out.println("queryParametersCollection: " + queryParameters);
+
     Map<String, String> stringParams =
         parameters.entrySet().stream()
             .filter(e -> Objects.nonNull(e.getValue()))
@@ -190,6 +210,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
 
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    parameterSet = parameterSet.evaluate(api, Optional.of(collectionData));
+
     FeatureProvider featureProvider = providers.getFeatureProviderOrThrow(apiData, collectionData);
 
     FeaturesCoreConfiguration coreConfiguration =
@@ -256,9 +278,90 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     }
   }
 
-  // TODO: implement
-  private String handleStoredQuery(OgcApi api, String queryId, Map<String, Object> parameters) {
-    return "TODO: handled stored query: " + queryId;
+  private String handleStoredQuery(
+      OgcApi api,
+      String queryId,
+      Map<String, Object> parameters,
+      List<OgcApiQueryParameter> queryParameters) {
+
+    System.out.println("queryParameters" + queryParameters);
+
+    OgcApiDataV2 apiData = api.getData();
+
+    Map<String, String> stringParams =
+        parameters.entrySet().stream()
+            .filter(e -> Objects.nonNull(e.getValue()))
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+    QueryParameterSet queryParameterSet = QueryParameterSet.of(queryParameters, stringParams);
+    queryParameterSet = queryParameterSet.evaluate(api, Optional.empty());
+    System.out.println("stringParams: " + stringParams);
+    System.out.println("queryParameterSet: " + queryParameterSet);
+
+    StoredQueryExpression storedQuery = storedQueryRepository.get(apiData, queryId);
+
+    ImmutableStoredQueryExpression.Builder builder =
+        new ImmutableStoredQueryExpression.Builder().from(storedQuery);
+    for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
+      if (parameter instanceof QueryExpressionQueryParameter) {
+        ((QueryExpressionQueryParameter) parameter).applyTo(builder, queryParameterSet);
+      }
+    }
+    storedQuery = builder.build();
+    System.out.println("StoredQueryExpression nach applyTo: " + storedQuery);
+
+    // Executable Query erzeugen
+    List<ApiExtension> extensions = extensionRegistry.getExtensions();
+    List<SchemaValidator> validators =
+        extensions.stream()
+            .filter(SchemaValidator.class::isInstance)
+            .map(SchemaValidator.class::cast)
+            .collect(Collectors.toList());
+    System.out.println("Gefundene SchemaValidatoren: " + validators);
+
+    FeaturesCoreConfiguration coreConfiguration =
+        apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
+    System.out.println("FeaturesCoreConfiguration: " + coreConfiguration);
+
+    QueryExpression executableQuery =
+        new ParameterResolver(queryParameterSet, validators.isEmpty() ? null : validators.get(0))
+            .visit(storedQuery);
+    System.out.println("Executable Query: " + executableQuery);
+
+    // QueryInputQuery bauen
+    SearchQueriesHandler.QueryInputQuery queryInput =
+        new ImmutableQueryInputQuery.Builder()
+            .query(executableQuery)
+            .featureProvider(providers.getFeatureProviderOrThrow(apiData))
+            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
+            .minimumPageSize(Optional.ofNullable(coreConfiguration.getMinimumPageSize()))
+            .defaultPageSize(Optional.ofNullable(coreConfiguration.getDefaultPageSize()))
+            .maximumPageSize(Optional.ofNullable(coreConfiguration.getMaximumPageSize()))
+            .isStoredQuery(true)
+            .build();
+    System.out.println("QueryInputQuery: " + queryInput);
+
+    ApiRequestContext requestContext =
+        new ImmutableStaticRequestContext.Builder()
+            .webContext(appContext)
+            .api(api)
+            .requestUri(URI.create("/search/" + queryId))
+            .mediaType(
+                new ImmutableApiMediaType.Builder()
+                    .type(new MediaType("application", "geo+json"))
+                    .label("GeoJSON")
+                    .parameter("json")
+                    .build())
+            .alternateMediaTypes(Set.of())
+            .queryParameterSet(queryParameterSet)
+            .build();
+    System.out.println("ApiRequestContext: " + requestContext);
+
+    try (Response response =
+        searchQueriesHandler.handle(SearchQueriesHandler.Query.QUERY, queryInput, requestContext)) {
+      Object entity = response.getEntity();
+      System.out.println("Response entity: " + (entity != null ? entity.getClass() : "null"));
+      return entity instanceof byte[] ? new String((byte[]) entity) : "";
+    }
   }
 
   @Override
@@ -280,8 +383,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
-      List<ImmutableMcpTool> queryTools =
+      McpToolUtils.StoredQueriesResult storedQueryResult =
           McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
+
+      List<ImmutableMcpTool> queryTools = storedQueryResult.getTools();
+      Map<String, List<OgcApiQueryParameter>> queryParametersByStoredQuery =
+          storedQueryResult.getParametersByQuery();
+      System.out.println("queryParametersByStoredQuery: " + queryParametersByStoredQuery);
+
       McpToolUtils.CollectionsResult collectionsResult =
           McpToolUtils.filterAndCreateCollections(
               mcpConfiguration,
@@ -322,7 +431,18 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                                         .queryParameters(collectionQueryParameters)
                                         .build();
                                   }),
-                          queryTools.stream())
+                          storedQueryResult.getTools().stream()
+                              .map(
+                                  tool -> {
+                                    List<OgcApiQueryParameter> params =
+                                        queryParametersByStoredQuery.getOrDefault(
+                                            tool.getId(), List.of());
+
+                                    return new ImmutableMcpTool.Builder()
+                                        .from(tool)
+                                        .queryParameters(params)
+                                        .build();
+                                  }))
                       .collect(Collectors.toList()))
               .build());
     }
