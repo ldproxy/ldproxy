@@ -66,6 +66,26 @@ import javax.inject.Singleton;
  *     Features und 3D Tiles zu rendern, wenn Cesium als Kartenclient verwendet wird. Siehe
  *     `defaultStyle` in [HTML](html.md), und `style` in [Features HTML](features_-_html.md) und
  *     [Tiles](tiles.md).
+ * @cfgFilesEn Stylesheet files have to be located depending on the Style format:
+ *     <p><code>
+ * - MapLibre styles for the vector tiles tileset of the dataset: in the value store as `maplibre-styles/{apiId}/{styleId}.json`;
+ * - 3DTiles styles for buildings: in the value store as `3dtiles-styles/{apiId}/building/{styleId}.json`;
+ * - ArcGIS LYR styles for the dataset: in the resource store as `other-styles/{apiId}/{styleId}.lyr`;
+ * - ArcGIS LYRX styles for the dataset: in the resource store as `other-styles/{apiId}/{styleId}.lyrx`;
+ * - SLD 1.0 styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld10`;
+ * - SLD 1.1 styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld11`;
+ * - QGIS QML styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.qml`.
+ *     </code>
+ * @cfgFilesDe Stylesheet-Dateien müssen je nach Style-Format an folgendem Ort abgelegt werden:
+ *     <p><code>
+ * - MapLibre Styles: im Value-Store als `maplibre-styles/{apiId}/{styleId}.json`;
+ * - 3DTiles Styles: im Value-Store als `3dtiles-styles/{apiId}/{styleId}.json`;
+ * - ArcGIS LYR Styles: im Resource-Store als `other-styles/{apiId}/{styleId}.lyr`;
+ * - ArcGIS LYRX Styles: im Resource-Store als `other-styles/{apiId}/{styleId}.lyrx`;
+ * - SLD 1.0 Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld10`;
+ * - SLD 1.1 Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld11`;
+ * - QGIS QML Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.qml`.
+ *     </code>
  * @conformanceEn This building block implements requirements of the conformance classes *Core*,
  *     *Manage Styles*, *Validation of styles*, *Resources*, *Manage resources*, *Mapbox Style*,
  *     *OGC SLD 1.0*, *OGC SLD 1.1*, *HTML* and *Style information* from the draft specification

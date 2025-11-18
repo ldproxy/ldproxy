@@ -137,6 +137,7 @@ import de.ii.xtraplatform.docs.DocVar;
                   + "{@docVar:cfgBody |||}\n\n"
                   + "{@docTable:cfgProperties ### Options\n\n||| This building block has no configuration options.}\n\n"
                   + "{@cfgPropertiesAdditionalEn |||}\n\n"
+                  + "{@cfgFilesEn ### Files\n\n|||}\n\n"
                   + "{@docVar:cfgExamples ### Examples\n\n|||}\n"),
       @DocI18n(
           language = "de",
@@ -156,6 +157,7 @@ import de.ii.xtraplatform.docs.DocVar;
                   + "{@docVar:cfgBody |||}\n\n"
                   + "{@docTable:cfgProperties ### Optionen\n\n||| Dieses Modul hat keine Konfigurationsoptionen.}\n\n"
                   + "{@cfgPropertiesAdditionalDe |||}\n\n"
+                  + "{@cfgFilesDe ### Dateien\n\n|||}\n\n"
                   + "{@docVar:cfgExamples ### Beispiele\n\n|||}\n")
     },
     tables = {

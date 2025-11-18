@@ -27,6 +27,8 @@ import javax.inject.Singleton;
  *     feature encoding. Supported are the feature types `Building` and `BuildingPart`.
  * @scopeDe Der Baustein *Features CityJSON* unterstützt CityJSON 1.0 und 1.1 als Kodierung für
  *     Features. Unterstützt werden die Objektarten `Building` und `BuildingPart`.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Features - CityJSON* implements support for [CityJSON
  *     1.0](https://www.cityjson.org/specs/1.0.3/) and [CityJSON
  *     1.1](https://www.cityjson.org/specs/1.1.3/).

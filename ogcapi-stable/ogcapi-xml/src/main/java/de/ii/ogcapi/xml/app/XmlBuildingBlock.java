@@ -18,6 +18,8 @@ import javax.inject.Singleton;
  * @title XML
  * @langEn XML encoding for every supported resource.
  * @langDe XML-Kodierung für alle unterstützten Ressourcen.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @limitationsEn Only the resources *Landing Page*, *Conformance Declaration*, *Feature
  *     Collections* and *Feature Collection* support XML.
  * @limitationsDe Nur die Ressourcen *Landing Page*, *Conformance Declaration*, *Feature

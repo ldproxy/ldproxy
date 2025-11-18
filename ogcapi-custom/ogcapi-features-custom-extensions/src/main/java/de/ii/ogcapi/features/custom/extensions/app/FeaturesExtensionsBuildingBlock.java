@@ -38,6 +38,8 @@ import javax.inject.Singleton;
  *     GeoJSON-Objekt mit einer Geometrie. Im Fall einer FeatureCollection wird die erste Geometrie
  *     verwendet.
  *     </code>
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.features.custom.extensions.domain.FeaturesExtensionsConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.features.custom.extensions.domain.ImmutableFeaturesExtensionsConfiguration}

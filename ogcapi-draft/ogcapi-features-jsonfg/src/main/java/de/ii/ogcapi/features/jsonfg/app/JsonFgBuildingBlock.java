@@ -76,6 +76,8 @@ import javax.inject.Singleton;
  *     Einschränkung, dass das Element "geometry" nicht `null` ist, um GeoJSON-Clients zu
  *     unterstützen, die JSON-FG nicht kennen. Das Profil ist nur aktiv, wenn eine Eigenschaft mit der Rolle `SECONDARY_GEOMETRY` angegeben ist.
  * </code>
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn The building block implements the Requirements Classes "Core", "Polyhedra",
  *     "Circular Arcs", "Feature Types and Schemas", "GeoJSON Profiles", and "JSON-FG in Web APIs"
  *     of [JSON-FG 0.3.0

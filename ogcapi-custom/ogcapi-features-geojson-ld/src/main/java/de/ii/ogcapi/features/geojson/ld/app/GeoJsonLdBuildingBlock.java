@@ -24,7 +24,7 @@ import javax.inject.Singleton;
  * @scopeEn The building block *Features - GeoJSON-LD* adds the following information to the GeoJSON
  *     output:
  *     <p><code>
- * - A JSON-LD context to be referenced from the GeoJSON outputs of the Features and Feature resources. The context can be external or provided via the API. For this, in the ldproxy data directory, the context must be located under the relative path `json-ld-contexts/{apiId}/{collectionId}.jsonld`. Instead of `{collectionId}.jsonld` another file name can be configured via `contextFileName`. The context must contain at least the following entries:
+ * - A JSON-LD context to be referenced from the GeoJSON outputs of the Features and Feature resources. The context can be external or provided via the API. The context must contain at least the following entries:
  * - `"@version": 1.1`
  * - `"geojson": "https://purl.org/geojson/vocab#"`
  * - `"FeatureCollection": "geojson:FeatureCollection"`
@@ -40,10 +40,7 @@ import javax.inject.Singleton;
  *     <p><code>
  * - Einen JSON-LD-Context, auf den aus den GeoJSON-Ausgaben der Ressourcen Features und
  *     Feature verwiesen wird. Der Context kann extern liegen oder über die API bereitgestellt
- *     werden. Dafür muss im ldproxy-Datenverzeichnis der Context unter dem relativen Pfad
- *     `json-ld-contexts/{apiId}/{collectionId}.jsonld` liegen. Statt `{collectionId}.jsonld` kann
- *     über `contextFileName` auch ein anderer Dateiname konfiguriert werden. Der Context muss
- *     mindestens die folgenden Einträge enthalten:
+ *     werden. Der Context muss mindestens die folgenden Einträge enthalten:
  *   - `"@version": 1.1`
  *   - `"geojson": "https://purl.org/geojson/vocab#"`
  *   - `"FeatureCollection": "geojson:FeatureCollection"`
@@ -58,6 +55,15 @@ import javax.inject.Singleton;
  *     Landing-Page-URI der API, `{{collectionId}}` durch die Collection-ID und `{{featureId}}`
  *     durch den Wert von "id" ersetzt.
  *     </code>
+ * @cfgFilesEn If the context file is provided by the API, the context must be located in the
+ *     resource store under the relative path `json-ld-contexts/{apiId}/{collectionId}.jsonld`, or
+ *     `json-ld-contexts/{apiId}/{contextFileName}`, if the `contextFileName` configuration option
+ *     is used.
+ * @cfgFilesDe Wenn der Context über die API bereitgestellt wird, muss der Context im Verzeichnis
+ *     des Ressourcen-Stores unter dem relativen Pfad
+ *     `json-ld-contexts/{apiId}/{collectionId}.jsonld` liegen, bzw. unter
+ *     `json-ld-contexts/{apiId}/{contextFileName}`, wenn die Konfigurationsoption `contextFileName`
+ *     verwendet wird.
  * @ref:cfg {@link de.ii.ogcapi.features.geojson.ld.domain.GeoJsonLdConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.features.geojson.ld.domain.ImmutableGeoJsonLdConfiguration}

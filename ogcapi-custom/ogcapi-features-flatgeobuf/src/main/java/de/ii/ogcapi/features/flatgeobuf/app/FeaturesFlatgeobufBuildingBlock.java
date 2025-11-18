@@ -27,6 +27,8 @@ import javax.inject.Singleton;
  *     Properties with multiple values are limited to `maxMultiplicity` values.
  * @scopeDe Kodierung von Features als FlatGeobuf-Datei. Die Objekteigenschaften werden stets
  *     abgeflacht. Eigenschaften mit mehreren Werten werden auf `maxMultiplicity` Werte begrenzt.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.features.flatgeobuf.domain.FlatgeobufConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.features.flatgeobuf.domain.ImmutableFlatgeobufConfiguration}

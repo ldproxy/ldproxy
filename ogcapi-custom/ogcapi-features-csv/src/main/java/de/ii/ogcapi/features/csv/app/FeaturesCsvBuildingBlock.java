@@ -31,6 +31,8 @@ import javax.inject.Singleton;
  *     der Transformation `flatten` abgeflacht, wobei standardmäßig '.' als Trennzeichen verwendet
  *     wird. Array-Eigenschaften sind auf `maxMultiplicity`-Werte beschränkt.
  *     <p>Geometrien werden nicht kodiert.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.features.csv.domain.CsvConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.csv.domain.ImmutableCsvConfiguration}
  */

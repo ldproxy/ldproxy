@@ -21,6 +21,8 @@ import javax.inject.Singleton;
  * @title Geometry Simplification
  * @langEn Simplification of geometries with Douglas Peucker.
  * @langDe Vereinfachung von Geometrien mit Douglas-Peucker.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Geometry Simplification* is based on the [draft of OGC API Features Part 7:
  *     Geometry Simplification](https://docs.ogc.org/DRAFTS/24-020.html).
  * @conformanceDe Der Baustein basiert auf dem [Entwurf für OGC API Features Part 7: Geometry

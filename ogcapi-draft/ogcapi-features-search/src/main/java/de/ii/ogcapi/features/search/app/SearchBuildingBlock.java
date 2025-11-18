@@ -128,6 +128,8 @@ import javax.inject.Singleton;
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
  * - Parameter können in allen Membern der Query Expression verwendet werden, außer in "id", "title", "description" und "offset".
  *     </code>
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn This building block implements the OGC API Features extensions specified in
  *     chapters 5 and 6 of the [OGC Testbed-18 Filtering Service and Rule Set Engineering
  *     Report](https://docs.ogc.org/per/22-024r2.html). The implementation will change as the draft

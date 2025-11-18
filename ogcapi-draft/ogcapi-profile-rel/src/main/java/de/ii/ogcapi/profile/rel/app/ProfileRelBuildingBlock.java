@@ -37,6 +37,8 @@ import javax.inject.Singleton;
  *     <p>Formate, die nur einfache Werte unterstützen, unterstützen typischerweise "rel-as-link"
  *     nicht und verwenden "rel-as-key" als Default. HTML, GeoJSON, JSON-FG und GML verwenden
  *     "rel-as-link" als Default. GML unterstützt nur "rel-as-link".
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Profile - References* implements the Requirements Class "Profiles for references"
  *     [draft of OGC API - Features - Part 5: Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html).
  * @conformanceDe Der Baustein implementiert die Requirements Class "Profiles for references"

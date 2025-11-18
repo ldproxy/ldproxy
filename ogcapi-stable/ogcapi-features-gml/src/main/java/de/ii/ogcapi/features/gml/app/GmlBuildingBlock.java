@@ -74,6 +74,8 @@ import javax.inject.Singleton;
  *   Provider-Schema sind, werden ebenfalls auf einen `gml:MeasureType`-Wert abgebildet.
  *   Der Wert von `unit` wird auf das Attribut `uom` abgebildet.
  *     </code>
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn In general, *Features GML* implements all requirements of conformance class
  *     *Geography Markup Language (GML), Simple Features Profile, Level 0* and *Geography Markup
  *     Language (GML), Simple Features Profile, Level 2* from [OGC API - Features - Part 1: Core
