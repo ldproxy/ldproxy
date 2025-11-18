@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -22,7 +23,6 @@ import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
-import de.ii.ogcapi.foundation.domain.ApiExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -162,11 +162,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
                     String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
 
-                    System.out.println("tool.getId(): " + tool.getId());
-                    System.out.println("queryId: " + queryId);
-                    System.out.println("tool.getQueryParameters(): " + tool.getQueryParameters());
-                    System.out.println("arguments.arguments(): " + arguments.arguments());
-
                     return new CallToolResult(
                         handleStoredQuery(
                             api, queryId, arguments.arguments(), tool.getQueryParameters()),
@@ -199,8 +194,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       Map<String, Object> parameters,
       List<OgcApiQueryParameter> queryParameters) {
     OgcApiDataV2 apiData = api.getData();
-
-    System.out.println("queryParametersCollection: " + queryParameters);
 
     Map<String, String> stringParams =
         parameters.entrySet().stream()
@@ -282,9 +275,19 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       OgcApi api,
       String queryId,
       Map<String, Object> parameters,
-      List<OgcApiQueryParameter> queryParameters) {
+      List<OgcApiQueryParameter> queryParameters)
+      throws JsonProcessingException {
 
-    System.out.println("queryParameters" + queryParameters);
+    System.out.println("Parameters as JSON: " + objectMapper.writeValueAsString(parameters));
+    System.out.println("Query Parameters: " + queryParameters);
+
+    try {
+      String json = objectMapper.writeValueAsString(parameters);
+      System.out.println("Serialized JSON: " + json);
+    } catch (Exception e) {
+      System.err.println("Error serializing parameters: " + e.getMessage());
+      e.printStackTrace();
+    }
 
     OgcApiDataV2 apiData = api.getData();
 
@@ -292,13 +295,18 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         parameters.entrySet().stream()
             .filter(e -> Objects.nonNull(e.getValue()))
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+
     QueryParameterSet queryParameterSet = QueryParameterSet.of(queryParameters, stringParams);
+
+    System.out.println("Values vor evaluate: " + queryParameterSet.getValues());
+    System.out.println("QueryParameterSet vor evaluate: " + queryParameterSet);
+
     queryParameterSet = queryParameterSet.evaluate(api, Optional.empty());
-    System.out.println("stringParams: " + stringParams);
-    System.out.println("queryParameterSet: " + queryParameterSet);
+
+    System.out.println("Typed Values vor evaluate: " + queryParameterSet.getTypedValues());
+    System.out.println("QueryParameterSet nach evaluate: " + queryParameterSet);
 
     StoredQueryExpression storedQuery = storedQueryRepository.get(apiData, queryId);
-
     ImmutableStoredQueryExpression.Builder builder =
         new ImmutableStoredQueryExpression.Builder().from(storedQuery);
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
@@ -306,28 +314,38 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         ((QueryExpressionQueryParameter) parameter).applyTo(builder, queryParameterSet);
       }
     }
-    storedQuery = builder.build();
-    System.out.println("StoredQueryExpression nach applyTo: " + storedQuery);
 
-    // Executable Query erzeugen
-    List<ApiExtension> extensions = extensionRegistry.getExtensions();
-    List<SchemaValidator> validators =
-        extensions.stream()
-            .filter(SchemaValidator.class::isInstance)
-            .map(SchemaValidator.class::cast)
-            .collect(Collectors.toList());
-    System.out.println("Gefundene SchemaValidatoren: " + validators);
+    storedQuery = builder.build();
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
-    System.out.println("FeaturesCoreConfiguration: " + coreConfiguration);
+
+    SchemaValidator schemaValidator =
+        queryParameterSet.getDefinitions().stream()
+            .map(
+                param -> {
+                  try {
+                    java.lang.reflect.Field f =
+                        param.getClass().getDeclaredField("schemaValidator");
+                    f.setAccessible(true);
+                    return (SchemaValidator) f.get(param);
+                  } catch (Exception e) {
+                    return null;
+                  }
+                })
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+    System.out.println("SchemaValidator: " + schemaValidator);
+
+    if (schemaValidator == null) {
+      throw new IllegalStateException("No SchemaValidator found!");
+    }
 
     QueryExpression executableQuery =
-        new ParameterResolver(queryParameterSet, validators.isEmpty() ? null : validators.get(0))
-            .visit(storedQuery);
-    System.out.println("Executable Query: " + executableQuery);
+        new ParameterResolver(queryParameterSet, schemaValidator).visit(storedQuery);
 
-    // QueryInputQuery bauen
     SearchQueriesHandler.QueryInputQuery queryInput =
         new ImmutableQueryInputQuery.Builder()
             .query(executableQuery)
@@ -338,7 +356,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .maximumPageSize(Optional.ofNullable(coreConfiguration.getMaximumPageSize()))
             .isStoredQuery(true)
             .build();
-    System.out.println("QueryInputQuery: " + queryInput);
+
+    System.out.println("queryInput" + queryInput);
 
     ApiRequestContext requestContext =
         new ImmutableStaticRequestContext.Builder()
@@ -354,12 +373,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .alternateMediaTypes(Set.of())
             .queryParameterSet(queryParameterSet)
             .build();
-    System.out.println("ApiRequestContext: " + requestContext);
 
     try (Response response =
         searchQueriesHandler.handle(SearchQueriesHandler.Query.QUERY, queryInput, requestContext)) {
+      System.out.println("response" + response);
       Object entity = response.getEntity();
-      System.out.println("Response entity: " + (entity != null ? entity.getClass() : "null"));
       return entity instanceof byte[] ? new String((byte[]) entity) : "";
     }
   }
@@ -384,12 +402,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
       McpToolUtils.StoredQueriesResult storedQueryResult =
-          McpToolUtils.filterAndCreateStoredQueries(storedQueries, mcpConfiguration);
+          McpToolUtils.filterAndCreateStoredQueries(
+              storedQueries, mcpConfiguration, extensionRegistry, apiData);
 
       List<ImmutableMcpTool> queryTools = storedQueryResult.getTools();
       Map<String, List<OgcApiQueryParameter>> queryParametersByStoredQuery =
           storedQueryResult.getParametersByQuery();
-      System.out.println("queryParametersByStoredQuery: " + queryParametersByStoredQuery);
+
+      // System.out.println("storedQueryResult" + storedQueryResult);
 
       McpToolUtils.CollectionsResult collectionsResult =
           McpToolUtils.filterAndCreateCollections(
@@ -434,9 +454,15 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                           storedQueryResult.getTools().stream()
                               .map(
                                   tool -> {
+                                    String queryId =
+                                        tool.getId()
+                                            .replaceFirst("^query_", ""); // Präfix entfernen
                                     List<OgcApiQueryParameter> params =
                                         queryParametersByStoredQuery.getOrDefault(
-                                            tool.getId(), List.of());
+                                            queryId, List.of());
+
+                                    //  System.out.println("Tool ID: " + tool.getId() + ", Query ID:
+                                    // " + queryId + ", Params: " + params);
 
                                     return new ImmutableMcpTool.Builder()
                                         .from(tool)
