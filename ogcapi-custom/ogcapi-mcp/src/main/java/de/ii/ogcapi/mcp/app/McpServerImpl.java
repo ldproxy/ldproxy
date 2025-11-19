@@ -52,6 +52,7 @@ import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
+import io.swagger.v3.oas.models.media.Schema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -94,6 +95,20 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final FeaturesQuery ogcApiFeaturesQuery;
   private final FeaturesCoreQueriesHandler featuresCoreQueriesHandler;
   private final SearchQueriesHandler searchQueriesHandler;
+
+  // Utility method to parse parameter values
+  private Object parseParameterValue(Schema<?> schema, Object value) {
+    if (schema != null && "array".equals(schema.getType())) {
+      if (value instanceof List<?> list) {
+        return list.stream().map(Object::toString).collect(Collectors.joining(","));
+      }
+      if (value instanceof String str) {
+        String cleaned = str.replaceAll("^\\[|\\]$", "");
+        return cleaned;
+      }
+    }
+    return value != null ? value.toString() : null;
+  }
 
   @Inject
   public McpServerImpl(
@@ -199,7 +214,20 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     Map<String, String> stringParams =
         parameters.entrySet().stream()
             .filter(e -> Objects.nonNull(e.getValue()))
-            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString()));
+            .collect(
+                Collectors.toMap(
+                    Entry::getKey,
+                    e -> {
+                      OgcApiQueryParameter param =
+                          queryParameters.stream()
+                              .filter(p -> p.getName().equals(e.getKey()))
+                              .findFirst()
+                              .orElse(null);
+                      Schema<?> schema =
+                          param != null ? param.getSchema(api.getData(), Optional.empty()) : null;
+                      Object parsed = parseParameterValue(schema, e.getValue());
+                      return parsed != null ? parsed.toString() : null;
+                    }));
 
     QueryParameterSet parameterSet = QueryParameterSet.of(queryParameters, stringParams);
 
@@ -284,7 +312,20 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     Map<String, String> stringParams =
         parameters.entrySet().stream()
             .filter(e -> Objects.nonNull(e.getValue()))
-            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+            .collect(
+                Collectors.toMap(
+                    Entry::getKey,
+                    e -> {
+                      OgcApiQueryParameter param =
+                          queryParameters.stream()
+                              .filter(p -> p.getName().equals(e.getKey()))
+                              .findFirst()
+                              .orElse(null);
+                      Schema<?> schema =
+                          param != null ? param.getSchema(api.getData(), Optional.empty()) : null;
+                      Object parsed = parseParameterValue(schema, e.getValue());
+                      return parsed != null ? parsed.toString() : null;
+                    }));
 
     QueryParameterSet queryParameterSet = QueryParameterSet.of(queryParameters, stringParams);
     queryParameterSet = queryParameterSet.evaluate(api, Optional.empty());
