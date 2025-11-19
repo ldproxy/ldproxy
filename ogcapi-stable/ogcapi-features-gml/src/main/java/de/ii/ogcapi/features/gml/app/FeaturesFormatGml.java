@@ -316,6 +316,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   @Override
+  public boolean requiresPropertiesInSequence(FeatureSchema schema) {
+    return true;
+  }
+
+  @Override
   public Optional<FeatureTokenEncoder<?>> getFeatureEncoder(
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
 
@@ -363,6 +368,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   @Override
   public boolean isComplex() {
+    return true;
+  }
+
+  @Override
+  public boolean supportsNullVsMissing() {
     return true;
   }
 }
