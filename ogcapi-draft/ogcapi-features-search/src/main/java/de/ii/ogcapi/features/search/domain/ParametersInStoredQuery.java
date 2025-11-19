@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.search.domain;
 
 import de.ii.xtraplatform.cql.domain.CqlVisitorExtractParameters;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -75,6 +76,13 @@ public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, J
 
   @Override
   public Map<String, JsonSchema> visit(ParameterValue param) {
+    if (param.getSchema() instanceof JsonSchemaRef) {
+      String ref = ((JsonSchemaRef) param.getSchema()).getRef();
+      String name = ref.substring(ref.lastIndexOf('/') + 1);
+      if (globalParameters.containsKey(name)) {
+        return Map.of(param.getName(), globalParameters.get(name));
+      }
+    }
     return Map.of(param.getName(), param.getSchema());
   }
 
