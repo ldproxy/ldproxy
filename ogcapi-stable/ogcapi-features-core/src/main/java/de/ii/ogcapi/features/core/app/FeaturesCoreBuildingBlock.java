@@ -145,6 +145,8 @@ import org.slf4j.LoggerFactory;
  *     <p>Zusätzliche Attribute können auf der Grundlage ihrer Werte gefiltert werden, wenn sie als
  *     abfragbar konfiguriert sind (Queryables).
  *     <p>Alle Filterprädikate müssen erfüllt sein, um ein Feature zu selektieren.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Features* implements all requirements of conformance class *Core* of [OGC API -
  *     Features - Part 1: Core 1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) for the
  *     two operations resources.

@@ -21,6 +21,8 @@ import javax.inject.Singleton;
  * @title OpenAPI 3.0
  * @langEn Publish OpenAPI definitions.
  * @langDe Veröffentlichung von OpenAPI-Definitionen.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *OpenAPI 3.0* implements all requirements of conformance class *OpenAPI 3.0* from
  *     [OGC API - Features - Part 1: Core
  *     1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_oas30) for the mentioned resource.

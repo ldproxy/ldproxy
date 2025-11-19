@@ -33,6 +33,8 @@ import javax.inject.Singleton;
  *     <p>::: info Zusätzliche Links zu einer bestimmten Feature Collection einzelnen können bei der
  *     Konfiguration der Collection angegeben werden. :::
  *     <p>
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Feature Collections* implements all requirements of conformance class *Core* of
  *     [OGC API - Features - Part 1: Core
  *     1.0.1](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) for the two mentioned

@@ -21,6 +21,8 @@ import javax.inject.Singleton;
  * @title Text Search
  * @langEn General text search in multiple text properties of the data.
  * @langDe Generelle Textsuche über mehrere Properties der Daten.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Text Search* implements the [draft of OGC API - Features - Part 1: Text
  *     Search](https://docs.ogc.org/DRAFTS/24-031.html).
  * @conformanceDe Der Baustein implementiert den [Entwurf von OGC API - Features - Part 9: Text

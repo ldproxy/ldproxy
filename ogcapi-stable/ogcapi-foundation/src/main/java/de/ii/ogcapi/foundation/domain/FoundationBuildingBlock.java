@@ -15,6 +15,8 @@ import javax.inject.Singleton;
  * @title Foundation
  * @langEn Essentials, API catalog with all published APIs.
  * @langDe Essenzielle Funktionalität, API-Katalog mit allen veröffentlichten APIs.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.foundation.domain.FoundationConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.foundation.domain.ImmutableFoundationConfiguration}
  */

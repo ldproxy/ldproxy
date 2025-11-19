@@ -95,6 +95,8 @@ import javax.inject.Singleton;
  *     "<http://www.opengis.net/def/profile/OGC/0/rfc7946>; rel=profile" hinzu. Für ein Feature mit
  *     den JSON-FG-Erweiterungen verwenden Sie den Wert
  *     "<http://www.opengis.net/def/profile/OGC/0/jsonfg>; rel=profile".
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @limitationsEn Only feature types from an SQL feature provider with `dialect` `PGIS` and
  *     `datasetChanges.mode` `CRUD` are supported.
  *     <p>The features may only have a single geometry property with scope `RECEIVABLES`.

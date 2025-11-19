@@ -45,6 +45,10 @@ import javax.inject.Singleton;
  *     <p>Alle Koordinatentransformationen zwischen zwei Koordinatenreferenzsystemen erfolgen mit
  *     *PROJ*. *PROJ* entscheidet, welche Transformation verwendet wird, sofern mehrere verfügbar
  *     sind.
+ * @cfgFilesEn PROJ grid shift files have to be placed in the resource store in the directory
+ *     `proj`.
+ * @cfgFilesDe PROJ-Grid-Shift-Dateien müssen im Ressourcen-Store im Verzeichnis `proj` abgelegt
+ *     werden.
  * @conformanceEn *CRS* implements all requirements of conformance class *Coordinate Reference
  *     System by Reference* of [OGC API - Features - Part 2: Coordinate Reference System by *
  *     Reference 1.0.1](https://docs.ogc.org/is/18-058r1/18-058r1.html).

@@ -27,6 +27,10 @@ import javax.inject.Singleton;
  * @scopeDe Typische Dateiressourcen sind Ressourcen, die von Styles referenziert werden (Icons,
  *     Sprites) oder Schemadokumente, die aus Daten referenziert werden. Die Dateien befinden sich
  *     im Ordner `api-resources/resources/{apiId}`.
+ * @cfgFilesEn Resource files are placed in the resource store in the directory
+ *     `api-resources/{apiId}/`. Sub-directories are supported.
+ * @cfgFilesDe Ressourcendateien werden im Ressourcen-Store im Verzeichnis `api-resources/{apiId}/`
+ *     abgelegt. Unterverzeichnisse werden unterstützt.
  * @ref:cfg {@link de.ii.ogcapi.resources.domain.ResourcesConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.resources.domain.ImmutableResourcesConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.resources.infra.EndpointResources}, {@link

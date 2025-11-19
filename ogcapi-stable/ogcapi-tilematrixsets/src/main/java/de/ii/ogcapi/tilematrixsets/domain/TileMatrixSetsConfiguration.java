@@ -21,13 +21,12 @@ import org.immutables.value.Value;
  * @langEn ### Custom Tiling Schemes
  *     <p>Additional tiling schemes can be configured as JSON files according to the [OGC Two
  *     Dimensional Tile Matrix Set and Tile Set Metadata 2.0
- *     Standard](https://docs.ogc.org/is/17-083r4/17-083r4.html) in the data directory at
- *     `api-resources/tile-matrix-sets/{tileMatrixSetId}.json`.
+ *     Standard](https://docs.ogc.org/is/17-083r4/17-083r4.html) in the value store at
+ *     `tile-matrix-sets/{tileMatrixSetId}.json`.
  * @langDe ### Benutzerdefinierte Kachelschemas
  *     <p>Weitere Kachelschemas können als JSON-Datei gemäß dem Standard [OGC Two Dimensional Tile
  *     Matrix Set and Tile Set Metadata 2.0](https://docs.ogc.org/is/17-083r4/17-083r4.html) im
- *     Datenverzeichnis unter `api-resources/tile-matrix-sets/{tileMatrixSetId}.json` konfiguriert
- *     werden.
+ *     Value-Store unter `tile-matrix-sets/{tileMatrixSetId}.json` konfiguriert werden.
  * @examplesEn The JSON representation of the pre-defined tiling schemes are available on
  *     [GitHub](https://github.com/interactive-instruments/xtraplatform-spatial/tree/master/xtraplatform-tiles/src/main/resources/tilematrixsets).
  *     <p>A configuration for an API that provides tiles in three tiling schemas could be the following:

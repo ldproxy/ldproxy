@@ -84,6 +84,24 @@ import org.slf4j.LoggerFactory;
  *     Kachelformat unterstützt sowie PNG-Kartenkacheln, die aus diesen Vektorkacheln unter
  *     Verwendung eines oder mehrerer MapLibre Styles abgeleitet wurden.
  *     <p>Alle Kacheln einer API kommen vom selben Tile-Provider.
+ * @cfgFilesEn If the `style` configuration option is set to a custom style, the stylesheet file
+ *     must be placed in the value store as `maplibre-styles/{apiId}/{styleId}.json`, if
+ *     `mapClientType` is `MAP_LIBRE`. The stylesheet must be a MapLibre style. If `mapClientType`
+ *     is `CESIUM`, the stylesheet file must be placed in the value store as
+ *     `3dtiles-styles/{apiId}/building/{styleId}.json`, and must be a 3DTiles style. `{styleId}`
+ *     must be the value of the `style` configuration option, `{apiId}` must be the `id` of the
+ *     service.
+ *     <p>If seeding is enabled, the files of the tile cache are stored in the resource store in the
+ *     directory `tiles/{apiId}/`.
+ * @cfgFilesDe Wenn die Konfigurationsoption `style` auf einen spezifischen Style gesetzt wird, muss
+ *     die Stylesheet-Datei im Value Store unter `maplibre-styles/{apiId}/{styleId}.json` abgelegt
+ *     werden, wenn `mapClientType` auf `MAP_LIBRE` gesetzt ist. Das Stylesheet muss ein
+ *     MapLibre-Style sein. Wenn `mapClientType` auf `CESIUM` gesetzt ist, muss die Stylesheet-Datei
+ *     im Value Store unter `3dtiles-styles/{apiId}/building/{styleId}.json` abgelegt werden und ein
+ *     3DTiles-Style sein. `{styleId}` muss dem Wert der Konfigurationsoption `style` entsprechen,
+ *     `{apiId}` muss die `id` des Dienstes sein.
+ *     <p>Wenn das Seeding aktiviert ist, werden die Dateien des Tile-Caches im Ressourcen-Store im
+ *     Verzeichnis `tiles/{apiId}/` abgelegt.
  * @conformanceEn The building block implements the conformance classes "Core", "TileSet", "TileSets
  *     List", "Dataset TileSets", "GeoData TileSets", "Collections Selection", "DateTime", "OpenAPI
  *     Specification 3.0 API definition", "Mapbox Vector Tiles", "PNG", "JPEG", and "TIFF" of the

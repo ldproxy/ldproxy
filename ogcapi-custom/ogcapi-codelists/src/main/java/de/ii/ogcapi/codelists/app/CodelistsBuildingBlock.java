@@ -28,6 +28,10 @@ import javax.inject.Singleton;
  *     "codelist"-[Constraints](../../../providers/details/constraints.md) enthält und dieser
  *     Baustein aktiviert ist, kann auf die Codelisten über die API in HTML und JSON zugegriffen
  *     werden.
+ * @cfgFilesEn Codelists are placed in the value store. See
+ *     [Codelists](../../auxiliaries/codelists.md) for details.
+ * @cfgFilesDe Codelisten werden im Value-Store abgelegt. Siehe
+ *     [Codelists](../../auxiliaries/codelists.md) für Details.
  * @ref:cfg {@link de.ii.ogcapi.codelists.domain.CodelistsConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.codelists.domain.ImmutableCodelistsConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.codelists.infra.EndpointCodelists}, {@link

@@ -23,6 +23,8 @@ import javax.inject.Singleton;
  * @scopeDe Fügt der Landing Page, den Collections- und Collection-Ressourcen zusätzliche
  *     Informationen hinzu, die nicht in den OGC-API-Standards festgelegt sind. Zum Beispiel die
  *     Lizenz der Daten und Vorgaben zur Namensnennung.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.additional.metadata.domain.AdditionalMetadataConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.additional.metadata.domain.ImmutableAdditionalMetadataConfiguration}

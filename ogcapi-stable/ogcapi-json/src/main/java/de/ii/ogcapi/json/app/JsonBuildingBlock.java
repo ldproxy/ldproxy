@@ -18,6 +18,8 @@ import javax.inject.Singleton;
  * @title JSON
  * @langEn JSON encoding for every supported resource.
  * @langDe JSON-Kodierung für alle unterstützten Ressourcen.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *JSON* implements all requirements of conformance class *GeoJSON* from [OGC API -
  *     Features - Part 1: Core 1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_geojson) for
  *     the resources *Landing Page*, *Conformance Declaration*, *Feature Collections*, and *Feature

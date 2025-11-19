@@ -81,6 +81,8 @@ import javax.inject.Singleton;
  *     <p>Der Operator `IN` erfordert eine Eigenschaft auf der linken Seite und Literale auf der
  *     rechten Seite.
  *     <p>Die Unicode-Zeichen "\x10000" bis "\x10FFFF" werden nicht unterstützt.
+ * @cfgFilesEn The building block does not require or support any additional configuration files.
+ * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.filter.domain.FilterConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.filter.domain.ImmutableFilterConfiguration}
  * @ref:queryParameters {@link de.ii.ogcapi.filter.api.QueryParameterFilter}, {@link
