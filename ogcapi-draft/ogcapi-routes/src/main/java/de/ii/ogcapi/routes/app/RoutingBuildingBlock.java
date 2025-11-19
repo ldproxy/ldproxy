@@ -50,8 +50,8 @@ import javax.inject.Singleton;
  *     `routes/definitions/{apiId}/`.
  * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  *     <p>Wenn die `manageRoutes`-Option aktiviert ist, werden die Dateien zu den Routen im
- *     Value-Store in den Verzeichnissen ``routes/results/{apiId}/` und
- *     `routes/definitions/{apiId}/` abgelegt.
+ *     Value-Store in den Verzeichnissen `routes/results/{apiId}/` und `routes/definitions/{apiId}/`
+ *     abgelegt.
  * @ref:cfg {@link de.ii.ogcapi.routes.domain.RoutingConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.routes.infra.EndpointRouteDefinition}, {@link
