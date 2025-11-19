@@ -52,7 +52,6 @@ import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
-import io.swagger.v3.oas.models.media.ObjectSchema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -280,17 +279,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       List<OgcApiQueryParameter> queryParameters)
       throws IOException {
 
-    System.out.println("Parameters as JSON: " + objectMapper.writeValueAsString(parameters));
-    System.out.println("Query Parameters: " + queryParameters);
-
-    try {
-      String json = objectMapper.writeValueAsString(parameters);
-      System.out.println("Serialized JSON: " + json);
-    } catch (Exception e) {
-      System.err.println("Error serializing parameters: " + e.getMessage());
-      e.printStackTrace();
-    }
-
     OgcApiDataV2 apiData = api.getData();
 
     Map<String, String> stringParams =
@@ -299,14 +287,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
 
     QueryParameterSet queryParameterSet = QueryParameterSet.of(queryParameters, stringParams);
-
-    System.out.println("Values vor evaluate: " + queryParameterSet.getValues());
-    System.out.println("QueryParameterSet vor evaluate: " + queryParameterSet);
-
     queryParameterSet = queryParameterSet.evaluate(api, Optional.empty());
-
-    System.out.println("Typed Values vor evaluate: " + queryParameterSet.getTypedValues());
-    System.out.println("QueryParameterSet nach evaluate: " + queryParameterSet);
 
     StoredQueryExpression storedQuery = storedQueryRepository.get(apiData, queryId);
     ImmutableStoredQueryExpression.Builder builder =
@@ -339,8 +320,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .findFirst()
             .orElse(null);
 
-    System.out.println("SchemaValidator: " + schemaValidator);
-
     if (schemaValidator == null) {
       throw new IllegalStateException("No SchemaValidator found!");
     }
@@ -359,8 +338,6 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .isStoredQuery(true)
             .includeBodyLinks(false)
             .build();
-
-    System.out.println("queryInput" + queryInput);
 
     ApiRequestContext requestContext =
         new ImmutableStaticRequestContext.Builder()
@@ -411,74 +388,22 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
-      McpToolUtils.StoredQueriesResult storedQueryResult =
+      List<ImmutableMcpTool> storedQueryTools =
           McpToolUtils.filterAndCreateStoredQueries(
               storedQueries, mcpConfiguration, extensionRegistry, apiData);
 
-      List<ImmutableMcpTool> queryTools = storedQueryResult.getTools();
-      Map<String, List<OgcApiQueryParameter>> queryParametersByStoredQuery =
-          storedQueryResult.getParametersByQuery();
-
-      // System.out.println("storedQueryResult" + storedQueryResult);
-
-      McpToolUtils.CollectionsResult collectionsResult =
+      List<ImmutableMcpTool> collectionTools =
           McpToolUtils.filterAndCreateCollections(
               mcpConfiguration,
               apiData,
               extensionRegistry,
               List.of("bbox", "datetime", "limit", "offset", "sortby"));
-      Map<String, ObjectSchema> collections = collectionsResult.getCollections();
-      Map<String, List<OgcApiQueryParameter>> queryParametersByCollection =
-          collectionsResult.getQueryParametersByCollection();
 
       schemas.put(
           apiData.getStableHash(),
           new ImmutableMcpSchema.Builder()
               .addAllTools(
-                  Stream.concat(
-                          collections.entrySet().stream()
-                              .map(
-                                  e -> {
-                                    List<OgcApiQueryParameter> collectionQueryParameters =
-                                        queryParametersByCollection.getOrDefault(
-                                            e.getKey(), List.of());
-
-                                    return new ImmutableMcpTool.Builder()
-                                        .id(COLLECTION_QUERY_PREFIX + e.getKey())
-                                        .name(
-                                            "Collection Query - "
-                                                + apiData
-                                                    .getCollections()
-                                                    .get(e.getKey())
-                                                    .getLabel())
-                                        .description(
-                                            apiData
-                                                .getCollections()
-                                                .get(e.getKey())
-                                                .getDescription()
-                                                .orElse(""))
-                                        .inputSchema(e.getValue())
-                                        .queryParameters(collectionQueryParameters)
-                                        .build();
-                                  }),
-                          storedQueryResult.getTools().stream()
-                              .map(
-                                  tool -> {
-                                    String queryId =
-                                        tool.getId()
-                                            .replaceFirst("^query_", ""); // Präfix entfernen
-                                    List<OgcApiQueryParameter> params =
-                                        queryParametersByStoredQuery.getOrDefault(
-                                            queryId, List.of());
-
-                                    //  System.out.println("Tool ID: " + tool.getId() + ", Query ID:
-                                    // " + queryId + ", Params: " + params);
-
-                                    return new ImmutableMcpTool.Builder()
-                                        .from(tool)
-                                        .queryParameters(params)
-                                        .build();
-                                  }))
+                  Stream.concat(collectionTools.stream(), storedQueryTools.stream())
                       .collect(Collectors.toList()))
               .build());
     }

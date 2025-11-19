@@ -37,48 +37,10 @@ public class McpToolUtils {
     return path.substring(path.lastIndexOf('/') + 1);
   }
 
+  private static final String COLLECTION_QUERY_PREFIX = "collection_";
   private static final String STORED_QUERY_PREFIX = "query_";
 
-  public static class CollectionsResult {
-    private final Map<String, ObjectSchema> collections;
-    private final Map<String, List<OgcApiQueryParameter>> queryParametersByCollection;
-
-    public CollectionsResult(
-        Map<String, ObjectSchema> collections,
-        Map<String, List<OgcApiQueryParameter>> queryParametersByCollection) {
-      this.collections = collections;
-      this.queryParametersByCollection = queryParametersByCollection;
-    }
-
-    public Map<String, ObjectSchema> getCollections() {
-      return collections;
-    }
-
-    public Map<String, List<OgcApiQueryParameter>> getQueryParametersByCollection() {
-      return queryParametersByCollection;
-    }
-  }
-
-  public static class StoredQueriesResult {
-    private final List<ImmutableMcpTool> tools;
-    private final Map<String, List<OgcApiQueryParameter>> parametersByQuery;
-
-    public StoredQueriesResult(
-        List<ImmutableMcpTool> tools, Map<String, List<OgcApiQueryParameter>> parametersByQuery) {
-      this.tools = tools;
-      this.parametersByQuery = parametersByQuery;
-    }
-
-    public List<ImmutableMcpTool> getTools() {
-      return tools;
-    }
-
-    public Map<String, List<OgcApiQueryParameter>> getParametersByQuery() {
-      return parametersByQuery;
-    }
-  }
-
-  public static StoredQueriesResult filterAndCreateStoredQueries(
+  public static List filterAndCreateStoredQueries(
       List<StoredQueryExpression> storedQueries,
       McpConfiguration mcpConfiguration,
       ExtensionRegistry extensionRegistry,
@@ -159,44 +121,38 @@ public class McpToolUtils {
                                                 entry.getKey())))
                             .toList()));
 
-    List<ImmutableMcpTool> tools =
-        queryParametersByQuery.entrySet().stream()
-            .map(
-                entry -> {
-                  String queryId = entry.getKey();
-                  List<OgcApiQueryParameter> parameters = entry.getValue();
+    return queryParametersByQuery.entrySet().stream()
+        .map(
+            entry -> {
+              String queryId = entry.getKey();
+              List<OgcApiQueryParameter> parameters = entry.getValue();
 
-                  ObjectSchema inputSchema = new ObjectSchema();
-                  parameters.forEach(
-                      param -> {
-                        Schema<?> schema = param.getSchema(apiData, Optional.empty());
-                        if (schema != null) {
-                          inputSchema.addProperty(param.getName(), schema);
-                        }
-                      });
+              ObjectSchema inputSchema = new ObjectSchema();
+              parameters.forEach(
+                  param -> {
+                    Schema<?> schema = param.getSchema(apiData, Optional.empty());
+                    if (schema != null) {
+                      inputSchema.addProperty(param.getName(), schema);
+                    }
+                  });
 
-                  if (inputSchema.getProperties() == null
-                      || inputSchema.getProperties().isEmpty()) {
-                    throw new IllegalStateException(
-                        "Cannot create McpTool for queryId "
-                            + queryId
-                            + ": inputSchema is missing");
-                  }
+              if (inputSchema.getProperties() == null || inputSchema.getProperties().isEmpty()) {
+                throw new IllegalStateException(
+                    "Cannot create McpTool for queryId " + queryId + ": inputSchema is missing");
+              }
 
-                  return new ImmutableMcpTool.Builder()
-                      .id(STORED_QUERY_PREFIX + queryId)
-                      .name("Stored Query - " + queryId)
-                      .description("Tool for stored query: " + queryId)
-                      .inputSchema(inputSchema)
-                      .queryParameters(parameters)
-                      .build();
-                })
-            .toList();
-
-    return new StoredQueriesResult(tools, queryParametersByQuery);
+              return new ImmutableMcpTool.Builder()
+                  .id(STORED_QUERY_PREFIX + queryId)
+                  .name("Stored Query - " + queryId)
+                  .description("Tool for stored query: " + queryId)
+                  .inputSchema(inputSchema)
+                  .queryParameters(parameters)
+                  .build();
+            })
+        .toList();
   }
 
-  public static CollectionsResult filterAndCreateCollections(
+  public static List filterAndCreateCollections(
       McpConfiguration mcpConfiguration,
       OgcApiDataV2 apiData,
       ExtensionRegistry extensionRegistry,
@@ -258,8 +214,6 @@ public class McpToolUtils {
                                         || param instanceof QueryParameterTemplateQueryable)
                             .collect(Collectors.toList())));
 
-    //  System.out.println("queryParametersByCollection" + queryParametersByCollection);
-
     Map<String, Schema<?>> globalParameters = new HashMap<>();
 
     for (ApiEndpointDefinition def : definitions) {
@@ -316,8 +270,24 @@ public class McpToolUtils {
       collections.put(entry.getKey(), objectSchema);
     }
 
-    // System.out.println("queryParametersByCollection" + queryParametersByCollection);
+    return collectionMap.entrySet().stream()
+        .map(
+            e -> {
+              String collectionId = e.getKey();
+              List<OgcApiQueryParameter> collectionQueryParameters =
+                  queryParametersByCollection.getOrDefault(collectionId, List.of());
+              ObjectSchema inputSchema = collections.get(collectionId);
 
-    return new CollectionsResult(collections, queryParametersByCollection);
+              return new ImmutableMcpTool.Builder()
+                  .id(COLLECTION_QUERY_PREFIX + collectionId)
+                  .name(
+                      "Collection Query - " + apiData.getCollections().get(collectionId).getLabel())
+                  .description(
+                      apiData.getCollections().get(collectionId).getDescription().orElse(""))
+                  .inputSchema(inputSchema)
+                  .queryParameters(collectionQueryParameters)
+                  .build();
+            })
+        .toList();
   }
 }
