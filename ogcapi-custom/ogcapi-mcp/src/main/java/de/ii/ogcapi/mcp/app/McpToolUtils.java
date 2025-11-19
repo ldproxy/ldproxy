@@ -8,7 +8,7 @@
 package de.ii.ogcapi.mcp.app;
 
 import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryable;
-import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameterView;
+import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -23,10 +23,10 @@ import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.HttpMethod;
@@ -146,29 +146,18 @@ public class McpToolUtils {
             .collect(
                 Collectors.toMap(
                     Map.Entry::getKey,
-                    entry -> {
-                      List<OgcApiQueryParameter> parameters =
-                          entry.getValue().getOperations().values().stream()
-                              .flatMap(op -> op.getQueryParameters().stream())
-                              .filter(
-                                  param ->
-                                      "limit".equals(param.getName())
-                                          || "offset".equals(param.getName())
-                                          || param instanceof QueryParameterTemplateParameterView)
-                              .collect(Collectors.toList());
-
-                      Map<String, OgcApiQueryParameter> uniqueParams = new LinkedHashMap<>();
-                      for (OgcApiQueryParameter param : parameters) {
-                        if ("limit".equals(param.getName())) {
-                          if (!(param.getSchema(apiData, Optional.empty())
-                              instanceof io.swagger.v3.oas.models.media.IntegerSchema)) {
-                            continue;
-                          }
-                        }
-                        uniqueParams.put(param.getName(), param);
-                      }
-                      return List.copyOf(uniqueParams.values());
-                    }));
+                    entry ->
+                        entry.getValue().getOperations().values().stream()
+                            .flatMap(op -> op.getQueryParameters().stream())
+                            .filter(
+                                param ->
+                                    "offset".equals(param.getName())
+                                        || (param instanceof QueryParameterTemplateParameter
+                                            && Objects.equals(
+                                                ((QueryParameterTemplateParameter) param)
+                                                    .getQueryId(),
+                                                entry.getKey())))
+                            .toList()));
 
     List<ImmutableMcpTool> tools =
         queryParametersByQuery.entrySet().stream()
