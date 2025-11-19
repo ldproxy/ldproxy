@@ -215,7 +215,7 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
                               .title(api.getLabel())
                               .description(api.getDescription())
                               .landingPageUri(getApiUrl(uriCustomizer, api.getSubPath()))
-                              .tags(((OgcApiDataV2) api).getTags())
+                              .tags(((OgcApiDataV2) api).getTags().stream().sorted().toList())
                               .isDataset(((OgcApiDataV2) api).isDataset())
                               .build();
                         }
