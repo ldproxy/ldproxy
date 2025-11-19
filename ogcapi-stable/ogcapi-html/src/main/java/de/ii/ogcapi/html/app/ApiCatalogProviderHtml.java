@@ -31,6 +31,7 @@ import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -89,10 +90,11 @@ public class ApiCatalogProviderHtml extends ApiCatalogProvider {
   public Response getServiceListing(
       List<ServiceData> apis,
       URICustomizer uriCustomizer,
+      Map<String, String> queryParameters,
       Optional<Principal> user,
       Optional<Locale> language)
       throws URISyntaxException {
-    ApiCatalog apiCatalog = getCatalog(apis, uriCustomizer, language);
+    ApiCatalog apiCatalog = getCatalog(apis, uriCustomizer, language, queryParameters);
 
     // TODO: map in caller
     return Response.ok()
