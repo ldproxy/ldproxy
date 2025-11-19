@@ -66,6 +66,11 @@ public interface SearchQueriesHandler
     }
 
     boolean isStoredQuery();
+
+    @Value.Default
+    default boolean includeBodyLinks() {
+      return true;
+    }
   }
 
   @Value.Immutable

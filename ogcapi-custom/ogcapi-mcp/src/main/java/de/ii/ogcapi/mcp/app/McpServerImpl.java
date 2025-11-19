@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.mcp.app;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -54,7 +53,9 @@ import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,7 @@ import javax.servlet.http.HttpServlet;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -276,7 +278,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       String queryId,
       Map<String, Object> parameters,
       List<OgcApiQueryParameter> queryParameters)
-      throws JsonProcessingException {
+      throws IOException {
 
     System.out.println("Parameters as JSON: " + objectMapper.writeValueAsString(parameters));
     System.out.println("Query Parameters: " + queryParameters);
@@ -355,6 +357,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .defaultPageSize(Optional.ofNullable(coreConfiguration.getDefaultPageSize()))
             .maximumPageSize(Optional.ofNullable(coreConfiguration.getMaximumPageSize()))
             .isStoredQuery(true)
+            .includeBodyLinks(false)
             .build();
 
     System.out.println("queryInput" + queryInput);
@@ -376,8 +379,15 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     try (Response response =
         searchQueriesHandler.handle(SearchQueriesHandler.Query.QUERY, queryInput, requestContext)) {
-      System.out.println("response" + response);
       Object entity = response.getEntity();
+
+      if (entity instanceof StreamingOutput) {
+        StreamingOutput streamingOutput = (StreamingOutput) entity;
+        OutputStream os = new ByteArrayOutputStream();
+        streamingOutput.write(os);
+        return os.toString();
+      }
+
       return entity instanceof byte[] ? new String((byte[]) entity) : "";
     }
   }

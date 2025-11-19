@@ -660,7 +660,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             outputFormat,
             queryInput.getDefaultCrs(),
             targetCrs,
-            links);
+            queryInput.includeBodyLinks() ? links : List.of());
 
     StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
     CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
