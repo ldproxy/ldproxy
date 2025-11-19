@@ -11,7 +11,6 @@ import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -21,6 +20,7 @@ import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.ParameterResolver;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
+import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
@@ -46,6 +46,7 @@ import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
@@ -162,8 +163,15 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
               String queryId = query.getId();
               String path = "/search/" + queryId;
               String definitionPath = "/search/{queryId}";
-              Builder<OgcApiQueryParameter> paramsBuilder = ImmutableList.builder();
-              paramsBuilder.addAll(getQueryParameters(extensionRegistry, apiData, definitionPath));
+              List<OgcApiQueryParameter> queryParameters =
+                  getQueryParameters(extensionRegistry, apiData, definitionPath).stream()
+                      .filter(
+                          param ->
+                              !(param instanceof QueryParameterTemplateParameter)
+                                  || Objects.equals(
+                                      ((QueryParameterTemplateParameter) param).getQueryId(),
+                                      queryId))
+                      .toList();
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
               Optional<String> operationDescription = query.getDescription();
@@ -173,13 +181,13 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       apiData,
                       path,
                       false,
-                      paramsBuilder.build(),
+                      queryParameters,
                       ImmutableList.of(),
                       getResponseContent(apiData),
                       operationSummary,
                       operationDescription,
                       Optional.empty(),
-                      getOperationId("executeStoredQuery"),
+                      getOperationId("executeStoredQuery", queryId),
                       GROUP_DATA_READ,
                       TAGS,
                       SearchBuildingBlock.MATURITY,

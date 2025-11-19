@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.features.search.app;
+package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Splitter;
-import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.app.SearchBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Value.Style() // use defaults
 public abstract class QueryParameterTemplateParameter extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Object> {
 
