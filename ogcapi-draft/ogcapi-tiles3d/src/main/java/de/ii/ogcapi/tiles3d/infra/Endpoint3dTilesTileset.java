@@ -57,8 +57,8 @@ import org.slf4j.LoggerFactory;
 /**
  * @title 3D Tiles Tileset
  * @path collections/{collectionId}/3dtiles
- * @langEn Access a 3D Tiles 1.1 tileset with implicit quadtree tiling.
- * @langDe Zugriff auf einen Kachelsatz gemäß 3D Tiles 1.1 mit impliziter Quadtree-Kachelung.
+ * @langEn Access a 3D Tiles 1.0 or 1.1 tileset.
+ * @langDe Zugriff auf einen Kachelsatz gemäß 3D Tiles 1.0 oder 1.1.
  * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset}
  */
 @Singleton

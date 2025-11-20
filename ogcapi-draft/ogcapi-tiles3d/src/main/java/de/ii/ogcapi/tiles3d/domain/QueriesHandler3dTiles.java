@@ -36,10 +36,12 @@ public interface QueriesHandler3dTiles
     Float getGeometricErrorRoot();
   }
 
-  @Value.Immutable
   interface QueryInputContent extends QueryInput {
     String getCollectionId();
+  }
 
+  @Value.Immutable
+  interface QueryInputContentImplicit extends QueryInputContent {
     int getLevel();
 
     int getX();
@@ -47,6 +49,11 @@ public interface QueriesHandler3dTiles
     int getY();
 
     // byte[] getContent();
+  }
+
+  @Value.Immutable
+  interface QueryInputContentExplicit extends QueryInputContent {
+    String getContent();
   }
 
   @Value.Immutable

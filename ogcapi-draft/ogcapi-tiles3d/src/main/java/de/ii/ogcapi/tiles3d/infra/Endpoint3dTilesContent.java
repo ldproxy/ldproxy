@@ -30,13 +30,15 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.tiles3d.app.Format3dTilesContentGltfBinary;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.ogcapi.tiles3d.app.Tiles3dContentUtil;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesContent;
-import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputContent;
+import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputContentImplicit;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
-import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputContent;
+import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputContentImplicit;
+import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.TileResourceCache;
 import de.ii.ogcapi.tiles3d.domain.TileResourceDescriptor;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
@@ -68,10 +70,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title 3D Tiles Content (glTF)
+ * @title 3D Tiles Content
  * @path collections/{collectionId}/3dtiles/content_{level}_{x}_{y}
- * @langEn Access a 3D Tiles 1.1 Content file, a glTF 2.0 binary file.
- * @langDe Zugriff auf eine 3D-Tiles 1.1 Kachel-Datei im Format glTF 2.0.
+ * @langEn Access a 3D Tiles 1.1 Content file.
+ * @langDe Zugriff auf eine 3D-Tiles 1.1 Kachel-Datei.
  * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesContent}
  */
 @Singleton
@@ -85,6 +87,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
   private final ServicesContext servicesContext;
   private final FeaturesCoreProviders providers;
   private final FeaturesCoreQueriesHandler queriesHandlerFeatures;
+  private final Tile3dProviders tile3dProviders;
   private final QueriesHandler3dTiles queryHandler;
   private final Cql cql;
   private final TileResourceCache tileResourceCache;
@@ -95,6 +98,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       ExtensionRegistry extensionRegistry,
       FeaturesCoreProviders providers,
       FeaturesCoreQueriesHandler queriesHandlerFeatures,
+      Tile3dProviders tile3dProviders,
       QueriesHandler3dTiles queryHandler,
       Cql cql,
       TileResourceCache tileResourceCache) {
@@ -102,9 +106,19 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
     this.servicesContext = servicesContext;
     this.providers = providers;
     this.queriesHandlerFeatures = queriesHandlerFeatures;
+    this.tile3dProviders = tile3dProviders;
     this.queryHandler = queryHandler;
     this.cql = cql;
     this.tileResourceCache = tileResourceCache;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return super.isEnabledForApi(apiData, collectionId)
+        && tile3dProviders
+            .getTileset3dMetadata(apiData, apiData.getCollectionData(collectionId).orElse(null))
+            .map(tileset3d1 -> tileset3d1.getRoot().getImplicitTiling().isPresent())
+            .orElse(false);
   }
 
   @Override
@@ -115,7 +129,10 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(Format3dTilesContent.class);
+      formats =
+          extensionRegistry.getExtensionsForType(Format3dTilesContent.class).stream()
+              .filter(format -> format instanceof Format3dTilesContentGltfBinary)
+              .toList();
     }
     return formats;
   }
@@ -141,9 +158,8 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         String operationSummary =
-            "retrieve a glTF tile of the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription =
-            Optional.of("Access a 3D Tiles 1.1 Content file, a glTF 2.0 binary file.");
+            "retrieve a tile of the feature collection '" + collectionId + "'";
+        Optional<String> operationDescription = Optional.of("Access a 3D Tiles 1.1 Content file.");
         String resourcePath = "/collections/" + collectionId + subSubPath;
         ImmutableOgcApiResourceData.Builder resourceBuilder =
             new ImmutableOgcApiResourceData.Builder()
@@ -222,8 +238,8 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       return computeAndCache(requestContext, api, collectionId, cfg, r);
     }*/
 
-    QueryInputContent queryInput =
-        ImmutableQueryInputContent.builder()
+    QueryInputContentImplicit queryInput =
+        ImmutableQueryInputContentImplicit.builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .level(cl)
@@ -292,7 +308,10 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler, queriesHandlerFeatures, tileResourceCache /*,
-        providers.getFeatureProviderOrThrow(apiData)*/);
+    return Set.of(
+        queryHandler,
+        queriesHandlerFeatures,
+        tileResourceCache,
+        tile3dProviders.getTile3dProviderOrThrow(apiData));
   }
 }

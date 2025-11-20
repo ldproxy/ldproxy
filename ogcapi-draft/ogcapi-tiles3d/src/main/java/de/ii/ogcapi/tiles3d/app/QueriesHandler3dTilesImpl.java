@@ -48,6 +48,7 @@ import de.ii.xtraplatform.tiles.domain.TileResult;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.ByteArrayOutputStream;
@@ -146,6 +147,12 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
         tile3dProviders
             .getTileset3dMetadataOrThrow(apiData, collectionData)
             .withUris(
+                requestContext
+                    .getUriCustomizer()
+                    .copy()
+                    .clearParameters()
+                    .ensureTrailingSlash()
+                    .toString(),
                 requestContext
                     .getUriCustomizer()
                     .copy()
@@ -294,18 +301,12 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
     checkCollectionId(api.getData(), collectionId);
 
-    int level = queryInput.getLevel();
-    int x = queryInput.getX();
-    int y = queryInput.getY();
-
     Tile3dAccess tile3dAccess =
         tile3dProviders.getTile3dProviderOrThrow(apiData, collectionData, Tile3dProvider::access);
 
     String tileset3dId = tile3dProviders.getTileset3dId(collectionData).orElseThrow();
 
-    TileResult tileResult =
-        tile3dAccess.getTile(
-            ImmutableTile3dQuery.builder().tileset(tileset3dId).level(level).col(x).row(y).build());
+    TileResult tileResult = tile3dAccess.getTile(getContentQuery(tileset3dId, queryInput));
 
     if (tileResult.isNotFound()) {
       throw new NotFoundException();
@@ -334,6 +335,29 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
                 requestContext.getMediaType().fileExtension())),*/
             i18n.getLanguages())
         .entity(result)
+        .build();
+  }
+
+  private Tile3dQuery getContentQuery(String tileset3dId, QueryInputContent queryInput) {
+    if (queryInput instanceof QueryInputContentExplicit) {
+      String content = ((QueryInputContentExplicit) queryInput).getContent();
+
+      return ImmutableTile3dQuery.builder()
+          .tileset(tileset3dId)
+          .fileName(content)
+          .level(-1)
+          .col(-1)
+          .row(-1)
+          .build();
+    }
+
+    QueryInputContentImplicit queryInputImplicit = (QueryInputContentImplicit) queryInput;
+
+    return ImmutableTile3dQuery.builder()
+        .tileset(tileset3dId)
+        .level(queryInputImplicit.getLevel())
+        .col(queryInputImplicit.getX())
+        .row(queryInputImplicit.getY())
         .build();
   }
 

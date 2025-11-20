@@ -13,7 +13,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -28,20 +27,19 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.tiles3d.app.Format3dTilesContentBinary;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
-import de.ii.ogcapi.tiles3d.domain.Format3dTilesSubtree;
-import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputSubtree;
+import de.ii.ogcapi.tiles3d.domain.Format3dTilesContent;
+import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputContentExplicit;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
-import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputSubtree;
+import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputContentExplicit;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import de.ii.xtraplatform.cql.domain.Cql;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.dropwizard.auth.Auth;
-import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,40 +57,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title 3D Tiles Subtree
- * @path collections/{collectionId}/3dtiles/subtree_{level}_{x}_{y}
- * @langEn Access a 3D Tiles 1.1 Subtree file.
- * @langDe Zugriff auf eine 3D-Tiles 1.1 Subtree-Datei.
- * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesSubtree}
+ * @title 3D Tiles Content
+ * @path collections/{collectionId}/3dtiles/{content}
+ * @langEn Access a 3D Tiles 1.1 Content file.
+ * @langDe Zugriff auf eine 3D-Tiles 1.1 Kachel-Datei.
+ * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesContent}
  */
 @Singleton
 @AutoBind
-public class Endpoint3dTilesSubtree extends EndpointSubCollection implements ApiExtensionHealth {
+public class Endpoint3dTilesContentExplicit extends EndpointSubCollection
+    implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesSubtree.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(Endpoint3dTilesContentExplicit.class);
 
   private static final List<String> TAGS = ImmutableList.of("Access data as 3D Tiles");
 
-  private final FeaturesCoreProviders providers;
   private final Tile3dProviders tile3dProviders;
   private final QueriesHandler3dTiles queryHandler;
-  private final URI servicesUri;
-  private final Cql cql;
 
   @Inject
-  public Endpoint3dTilesSubtree(
+  public Endpoint3dTilesContentExplicit(
       ExtensionRegistry extensionRegistry,
-      FeaturesCoreProviders providers,
       Tile3dProviders tile3dProviders,
-      QueriesHandler3dTiles queryHandler,
-      ServicesContext servicesContext,
-      Cql cql) {
+      QueriesHandler3dTiles queryHandler) {
     super(extensionRegistry);
-    this.providers = providers;
     this.tile3dProviders = tile3dProviders;
     this.queryHandler = queryHandler;
-    this.servicesUri = servicesContext.getUri();
-    this.cql = cql;
   }
 
   @Override
@@ -100,7 +91,7 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
     return super.isEnabledForApi(apiData, collectionId)
         && tile3dProviders
             .getTileset3dMetadata(apiData, apiData.getCollectionData(collectionId).orElse(null))
-            .map(tileset3d1 -> tileset3d1.getRoot().getImplicitTiling().isPresent())
+            .map(tileset3d1 -> tileset3d1.getRoot().getImplicitTiling().isEmpty())
             .orElse(false);
   }
 
@@ -112,7 +103,10 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(Format3dTilesSubtree.class);
+      formats =
+          extensionRegistry.getExtensionsForType(Format3dTilesContent.class).stream()
+              .filter(format -> format instanceof Format3dTilesContentBinary)
+              .toList();
     }
     return formats;
   }
@@ -123,8 +117,8 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("collections")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_3D_TILES_SUBTREE);
-    String subSubPath = "/3dtiles/subtree_{level}_{x}_{y}";
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_3D_TILES_CONTENT);
+    String subSubPath = "/3dtiles/{content}";
     String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     Optional<OgcApiPathParameter> optCollectionIdParam =
@@ -138,8 +132,8 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         String operationSummary =
-            "retrieve a 3D Tiles subtree of the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription = Optional.of("Access a 3D Tiles 1.1 Subtree file.");
+            "retrieve a tile of the feature collection '" + collectionId + "'";
+        Optional<String> operationDescription = Optional.of("Access a 3D Tiles 1.1 Content file.");
         String resourcePath = "/collections/" + collectionId + subSubPath;
         ImmutableOgcApiResourceData.Builder resourceBuilder =
             new ImmutableOgcApiResourceData.Builder()
@@ -156,7 +150,7 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
                 operationSummary,
                 operationDescription,
                 Optional.empty(),
-                getOperationId("get3dTilesSubtree", collectionId),
+                getOperationId("get3dTilesContent", collectionId),
                 GROUP_TILES_READ,
                 TAGS,
                 Tiles3dBuildingBlock.MATURITY,
@@ -176,80 +170,25 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
   }
 
   @GET
-  @Path("/{collectionId}/3dtiles/subtree_{level}_{x}_{y}")
+  @Path("/{collectionId}/3dtiles/{content}")
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
-  public Response getSubtree(
+  public Response getContent(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId,
-      @PathParam("level") String level,
-      @PathParam("x") String x,
-      @PathParam("y") String y) {
+      @PathParam("content") String content)
+      throws URISyntaxException {
 
-    /*Tiles3dConfiguration cfg =
-        api.getData()
-            .getCollectionData(collectionId)
-            .flatMap(c -> c.getExtension(Tiles3dConfiguration.class))
-            .orElseThrow();
-    int maxLevel = Objects.requireNonNull(cfg.getMaxLevel());
-    int subtreeLevels = Objects.requireNonNull(cfg.getSubtreeLevels());
-    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());*/
-
-    int sl = Integer.parseInt(level);
-    int sx = Integer.parseInt(x);
-    int sy = Integer.parseInt(y);
-    /*if (sl < 0
-        || sl > maxLevel
-        || sl % subtreeLevels != 0
-        || sx < 0
-        || sx >= Math.pow(2, sl)
-        || sy < 0
-        || sy >= Math.pow(2, sl)) {
-      throw new NotFoundException();
-    }
-
-    List<Cql2Expression> contentFilters =
-        cfg.getContentFilters().stream()
-            .map(filter -> cql.read(filter, Format.TEXT))
-            .collect(Collectors.toUnmodifiableList());
-
-    List<Cql2Expression> tileFilters =
-        cfg.getTileFilters().stream()
-            .map(filter -> cql.read(filter, Format.TEXT))
-            .collect(Collectors.toUnmodifiableList());*/
-
-    QueryInputSubtree queryInput =
-        ImmutableQueryInputSubtree.builder()
+    QueryInputContentExplicit queryInput =
+        ImmutableQueryInputContentExplicit.builder()
             .from(getGenericQueryInput(api.getData()))
-            .api(api)
             .collectionId(collectionId)
-            .level(sl)
-            .x(sx)
-            .y(sy)
-            /*.featureProvider(providers.getFeatureProviderOrThrow(api.getData()))
-            .featureType(
-                api.getData()
-                    .getExtension(FeaturesCoreConfiguration.class, collectionId)
-                    .flatMap(FeaturesCoreConfiguration::getFeatureType)
-                    .orElse(collectionId))
-            .geometryProperty(
-                providers
-                    .getFeatureSchema(
-                        api.getData(), api.getData().getCollectionData(collectionId).orElseThrow())
-                    .flatMap(SchemaBase::getFilterGeometry)
-                    .map(SchemaBase::getFullPathAsString)
-                    .orElseThrow())
-            .servicesUri(servicesUri)
-            .maxLevel(maxLevel)
-            .firstLevelWithContent(firstLevelWithContent)
-            .subtreeLevels(subtreeLevels)
-            .contentFilters(contentFilters)
-            .tileFilters(tileFilters)*/
+            .content(content)
             .build();
 
-    return queryHandler.handle(Query.SUBTREE, queryInput, requestContext);
+    return queryHandler.handle(Query.CONTENT, queryInput, requestContext);
   }
 
   @Override
