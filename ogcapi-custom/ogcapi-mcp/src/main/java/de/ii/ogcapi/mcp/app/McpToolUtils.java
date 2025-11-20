@@ -144,7 +144,12 @@ public class McpToolUtils {
               return new ImmutableMcpTool.Builder()
                   .id(STORED_QUERY_PREFIX + queryId)
                   .name("Stored Query - " + queryId)
-                  .description("Tool for stored query: " + queryId)
+                  .description(
+                      filteredQueries.stream()
+                          .filter(q -> q.getId().equals(queryId))
+                          .findFirst()
+                          .flatMap(StoredQueryExpression::getDescription)
+                          .orElse("Tool for stored query: " + queryId))
                   .inputSchema(inputSchema)
                   .queryParameters(parameters)
                   .build();
