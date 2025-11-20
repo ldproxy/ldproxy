@@ -20,12 +20,14 @@ public interface McpTool {
       String name,
       String description,
       io.swagger.v3.oas.models.media.ObjectSchema inputSchema,
+      io.swagger.v3.oas.models.media.ObjectSchema outputSchema,
       List<OgcApiQueryParameter> queryParameters) {
     return new ImmutableMcpTool.Builder()
         .id(id)
         .name(name)
         .description(description)
         .inputSchema(inputSchema)
+        .outputSchema(outputSchema)
         .queryParameters(queryParameters)
         .build();
   }
@@ -37,6 +39,8 @@ public interface McpTool {
   String getDescription();
 
   io.swagger.v3.oas.models.media.ObjectSchema getInputSchema();
+
+  io.swagger.v3.oas.models.media.ObjectSchema getOutputSchema();
 
   @JsonIgnore
   List<OgcApiQueryParameter> getQueryParameters();

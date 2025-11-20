@@ -11,7 +11,9 @@ import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryabl
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
+import de.ii.ogcapi.foundation.domain.ApiResponse;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -22,6 +24,7 @@ import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +139,47 @@ public class McpToolUtils {
                     }
                   });
 
+              ObjectSchema outputSchema =
+                  resourceMapByQueryId.get(queryId).getOperations().values().stream()
+                      .filter(op -> op.getOperationId().contains("executeStoredQuery"))
+                      .findFirst()
+                      .map(
+                          op -> {
+                            var successOpt = op.getSuccess();
+                            if (successOpt.isEmpty()) {
+                              throw new IllegalStateException(
+                                  "No success response for stored query " + queryId);
+                            }
+
+                            Map<String, ApiMediaTypeContent> contentMap =
+                                successOpt.get().getContent().entrySet().stream()
+                                    .collect(
+                                        Collectors.toMap(
+                                            e -> e.getKey().toString(), Map.Entry::getValue));
+
+                            Schema<?> schema = null;
+
+                            if (contentMap.containsKey("application/geo+json")) {
+                              schema = contentMap.get("application/geo+json").getSchema();
+                            } else if (contentMap.containsKey("application/json")) {
+                              schema = contentMap.get("application/json").getSchema();
+                            } else {
+                              schema = new ObjectSchema().addProperty("value", new StringSchema());
+                            }
+
+                            if (schema instanceof ObjectSchema os) {
+                              return os;
+                            }
+
+                            ObjectSchema wrapper = new ObjectSchema();
+                            wrapper.addProperty("value", schema);
+                            return wrapper;
+                          })
+                      .orElseThrow(
+                          () ->
+                              new IllegalStateException(
+                                  "Output schema missing for queryId " + queryId));
+
               if (inputSchema.getProperties() == null || inputSchema.getProperties().isEmpty()) {
                 throw new IllegalStateException(
                     "Cannot create McpTool for queryId " + queryId + ": inputSchema is missing");
@@ -151,6 +195,7 @@ public class McpToolUtils {
                           .flatMap(StoredQueryExpression::getDescription)
                           .orElse("Tool for stored query: " + queryId))
                   .inputSchema(inputSchema)
+                  .outputSchema(outputSchema)
                   .queryParameters(parameters)
                   .build();
             })
@@ -283,13 +328,57 @@ public class McpToolUtils {
                   queryParametersByCollection.getOrDefault(collectionId, List.of());
               ObjectSchema inputSchema = collections.get(collectionId);
 
+              Schema<?> outputSchema = null;
+              ApiOperation getOp = e.getValue().getOperations().get(HttpMethod.GET);
+
+              Map<String, ApiMediaTypeContent> contentMap =
+                  getOp
+                      .getSuccess()
+                      .map(ApiResponse::getContent)
+                      .map(
+                          original ->
+                              original.entrySet().stream()
+                                  .collect(
+                                      Collectors.toMap(
+                                          f ->
+                                              f.getKey()
+                                                  .toString(), // MediaType → "application/geo+json"
+                                          Map.Entry::getValue)))
+                      .orElse(Map.of());
+
+              if (contentMap.containsKey("application/geo+json")) {
+                outputSchema = contentMap.get("application/geo+json").getSchema();
+              } else if (contentMap.containsKey("application/json")) {
+                outputSchema = contentMap.get("application/json").getSchema();
+              } else {
+                outputSchema = new ObjectSchema().addProperty("value", new StringSchema());
+              }
+
+              // Standard-Description
+              String description =
+                  apiData.getCollections().get(collectionId).getDescription().orElse("");
+
+              // Spezielle Anpassung für collection_unfaelle2
+              if ("unfaelle2".equals(collectionId)) {
+                description +=
+                    " Im Gegensatz zu collection_unfaelle werden hier auch nähere Angaben zu den Straßennummern/namen gemacht.";
+              }
+
+              ObjectSchema outputObjectSchema;
+              if (outputSchema instanceof ObjectSchema os) {
+                outputObjectSchema = os;
+              } else {
+                outputObjectSchema = new ObjectSchema();
+                outputObjectSchema.addProperty("value", outputSchema);
+              }
+
               return new ImmutableMcpTool.Builder()
                   .id(COLLECTION_QUERY_PREFIX + collectionId)
                   .name(
                       "Collection Query - " + apiData.getCollections().get(collectionId).getLabel())
-                  .description(
-                      apiData.getCollections().get(collectionId).getDescription().orElse(""))
+                  .description(description)
                   .inputSchema(inputSchema)
+                  .outputSchema(outputObjectSchema)
                   .queryParameters(collectionQueryParameters)
                   .build();
             })
