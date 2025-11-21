@@ -66,7 +66,7 @@ public class OptionsEndpoint implements EndpointExtension {
       @Context ContainerRequestContext requestContext) {
 
     String path = requestContext.getUriInfo().getPath();
-    int index = path.indexOf("/" + api.getId()) + api.getId().length() + 2;
+    int index = path.indexOf(api.getId()) + api.getId().length() + 1;
     String entrypoint = index > path.length() ? "" : path.substring(index);
 
     return getOptions(api.getData(), entrypoint, "");
@@ -81,8 +81,7 @@ public class OptionsEndpoint implements EndpointExtension {
       @PathParam("subPath") String subPath) {
 
     String path = requestContext.getUriInfo().getPath();
-    String landingPage =
-        "/" + api.getId() + api.getData().getApiVersion().map(v -> "/v" + v).orElse("");
+    String landingPage = api.getId() + api.getData().getApiVersion().map(v -> "/v" + v).orElse("");
     int index = path.indexOf(landingPage) + landingPage.length() + 1;
     String[] pathElements = path.substring(index).split("/", 2);
     String entrypoint = pathElements[0];
