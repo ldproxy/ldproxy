@@ -65,6 +65,10 @@ public class CollectionExtensionFeatures implements CollectionExtension {
       List<ApiMediaType> alternateMediaTypes,
       Optional<Locale> language) {
 
+    if (!isEnabledForApi(api.getData(), featureType.getId())) {
+      return collection;
+    }
+
     collection
         .title(featureType.getLabel())
         .description(featureType.getDescription())
