@@ -50,6 +50,7 @@ import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecifi
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
+import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
 import io.swagger.v3.oas.models.media.Schema;
@@ -178,17 +179,20 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
                     String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
 
-                    return new CallToolResult(
+                    String result =
                         handleStoredQuery(
-                            api, queryId, arguments.arguments(), tool.getQueryParameters()),
-                        false);
+                            api, queryId, arguments.arguments(), tool.getQueryParameters());
+                    Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
+                    return new CallToolResult(List.of(new TextContent(result)), false, resultAsMap);
+
                   } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
                     String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                     String result =
                         handleCollectionQuery(
                             api, collectionId, arguments.arguments(), tool.getQueryParameters());
 
-                    return new CallToolResult(result, false);
+                    Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
+                    return new CallToolResult(List.of(new TextContent(result)), false, resultAsMap);
                   }
                 } catch (Throwable e) {
                   LogContext.errorAsDebug(LOGGER, e, "Error executing MCP tool '{}'", tool.getId());
