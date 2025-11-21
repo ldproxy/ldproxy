@@ -27,7 +27,6 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.tiles3d.app.Format3dTilesContentBinary;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesContent;
 import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputContentExplicit;
@@ -103,10 +102,7 @@ public class Endpoint3dTilesContentExplicit extends EndpointSubCollection
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats =
-          extensionRegistry.getExtensionsForType(Format3dTilesContent.class).stream()
-              .filter(format -> format instanceof Format3dTilesContentBinary)
-              .toList();
+      formats = extensionRegistry.getExtensionsForType(Format3dTilesContent.class);
     }
     return formats;
   }
@@ -129,6 +125,9 @@ public class Endpoint3dTilesContentExplicit extends EndpointSubCollection
       final List<String> collectionIds =
           explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
       for (String collectionId : collectionIds) {
+        if (!isEnabledForApi(apiData, collectionId)) {
+          continue;
+        }
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         String operationSummary =

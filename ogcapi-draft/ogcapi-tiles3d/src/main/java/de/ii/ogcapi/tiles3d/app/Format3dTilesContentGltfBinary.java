@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.tiles3d.app;
 
-import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -18,11 +17,10 @@ import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 
-@AutoBind
-@Singleton
+// @AutoBind
+// @Singleton
 public class Format3dTilesContentGltfBinary implements Format3dTilesContent {
 
   public static final ApiMediaType MEDIA_TYPE =

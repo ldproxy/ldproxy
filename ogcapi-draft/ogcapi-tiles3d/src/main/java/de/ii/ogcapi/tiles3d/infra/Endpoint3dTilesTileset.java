@@ -34,6 +34,7 @@ import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputTileset;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputTileset;
+import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -71,12 +72,24 @@ public class Endpoint3dTilesTileset extends EndpointSubCollection
   private static final List<String> TAGS = ImmutableList.of("Access data as 3D Tiles");
 
   private final QueriesHandler3dTiles queryHandler;
+  private final Tile3dProviders tile3dProviders;
 
   @Inject
   public Endpoint3dTilesTileset(
-      ExtensionRegistry extensionRegistry, QueriesHandler3dTiles queryHandler) {
+      ExtensionRegistry extensionRegistry,
+      QueriesHandler3dTiles queryHandler,
+      Tile3dProviders tile3dProviders) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+    this.tile3dProviders = tile3dProviders;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return super.isEnabledForApi(apiData, collectionId)
+        && tile3dProviders
+            .getTileset3dMetadata(apiData, apiData.getCollectionData(collectionId).orElse(null))
+            .isPresent();
   }
 
   @Override
@@ -115,6 +128,9 @@ public class Endpoint3dTilesTileset extends EndpointSubCollection
       final List<String> collectionIds =
           explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
       for (String collectionId : collectionIds) {
+        if (!isEnabledForApi(apiData, collectionId)) {
+          continue;
+        }
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         String operationSummary =
@@ -184,6 +200,6 @@ public class Endpoint3dTilesTileset extends EndpointSubCollection
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler);
+    return Set.of(queryHandler, tile3dProviders.getTile3dProviderOrThrow(apiData));
   }
 }

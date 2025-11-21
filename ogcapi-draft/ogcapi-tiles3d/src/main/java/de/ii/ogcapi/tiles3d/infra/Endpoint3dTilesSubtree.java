@@ -135,6 +135,9 @@ public class Endpoint3dTilesSubtree extends EndpointSubCollection implements Api
       final List<String> collectionIds =
           explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
       for (String collectionId : collectionIds) {
+        if (!isEnabledForApi(apiData, collectionId)) {
+          continue;
+        }
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         String operationSummary =
