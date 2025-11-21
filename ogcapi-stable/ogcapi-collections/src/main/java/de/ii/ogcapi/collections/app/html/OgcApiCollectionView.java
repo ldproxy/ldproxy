@@ -62,8 +62,8 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
   @Value.Derived
   public Link items() {
     return collection().getLinks().stream()
-        .filter(link -> link.getRel().equalsIgnoreCase("items"))
-        .filter(link -> link.getType().equalsIgnoreCase("text/html"))
+        .filter(link -> collection().getDataRel().equalsIgnoreCase(link.getRel()))
+        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
         .findFirst()
         .orElse(null);
   }

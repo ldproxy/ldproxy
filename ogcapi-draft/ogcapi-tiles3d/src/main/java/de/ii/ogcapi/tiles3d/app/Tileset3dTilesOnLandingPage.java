@@ -8,14 +8,11 @@
 package de.ii.ogcapi.tiles3d.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.ImmutableLandingPage;
 import de.ii.ogcapi.common.domain.LandingPageExtension;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.I18n;
-import de.ii.ogcapi.foundation.domain.ImmutableLink;
-import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.web.domain.URICustomizer;
@@ -50,33 +47,33 @@ public class Tileset3dTilesOnLandingPage implements LandingPageExtension {
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
       Optional<Locale> language) {
-    api.getData().getCollections().entrySet().stream()
-        .filter(entry -> isExtensionEnabled(entry.getValue(), getBuildingBlockConfigurationType()))
-        .forEach(
-            entry -> {
-              URICustomizer uriCustomizerTileset =
-                  uriCustomizer
-                      .copy()
-                      .ensureNoTrailingSlash()
-                      .removeParameters("f")
-                      .ensureLastPathSegments("collections", entry.getKey(), "3dtiles");
-              landingPageBuilder.addAllLinks(
-                  ImmutableList.<Link>builder()
-                      .add(
-                          new ImmutableLink.Builder()
-                              .href(uriCustomizerTileset.toString())
-                              // TODO rel is still unclear
-                              .rel("http://www.opengis.net/def/rel/ogc/0.0/tileset-3dtiles")
-                              // TODO see
-                              // https://github.com/opengeospatial/ogcapi-3d-geovolumes/issues/13
-                              .type("application/json")
-                              // .type("application/json+3dtiles")
-                              .title(
-                                  i18n.get("3dtilesLink", language)
-                                      .replace("{{collection}}", entry.getValue().getLabel()))
-                              .build())
-                      .build());
-            });
+    /*api.getData().getCollections().entrySet().stream()
+    .filter(entry -> isExtensionEnabled(entry.getValue(), getBuildingBlockConfigurationType()))
+    .forEach(
+        entry -> {
+          URICustomizer uriCustomizerTileset =
+              uriCustomizer
+                  .copy()
+                  .ensureNoTrailingSlash()
+                  .removeParameters("f")
+                  .ensureLastPathSegments("collections", entry.getKey(), "3dtiles");
+          landingPageBuilder.addAllLinks(
+              ImmutableList.<Link>builder()
+                  .add(
+                      new ImmutableLink.Builder()
+                          .href(uriCustomizerTileset.toString())
+                          // TODO rel is still unclear
+                          .rel("http://www.opengis.net/def/rel/ogc/0.0/tileset-3dtiles")
+                          // TODO see
+                          // https://github.com/opengeospatial/ogcapi-3d-geovolumes/issues/13
+                          .type("application/json")
+                          // .type("application/json+3dtiles")
+                          .title(
+                              i18n.get("3dtilesLink", language)
+                                  .replace("{{collection}}", entry.getValue().getLabel()))
+                          .build())
+                  .build());
+        });*/
 
     return landingPageBuilder;
   }

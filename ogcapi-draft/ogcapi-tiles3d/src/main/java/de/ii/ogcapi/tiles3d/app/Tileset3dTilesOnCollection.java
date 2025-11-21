@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiCollection.Builder;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -63,6 +64,14 @@ public class Tileset3dTilesOnCollection implements CollectionExtension {
       } else {
         uriCustomizerTileset = uriCustomizerTileset.ensureLastPathSegment("3dtiles");
       }
+
+      if (!isExtensionEnabled(featureTypeConfiguration, FeaturesCoreConfiguration.class)) {
+        if (isNested) {
+          collection.title(featureTypeConfiguration.getLabel() + " (3D Tiles)");
+        }
+        collection.dataRel("http://www.opengis.net/def/rel/ogc/0.0/tileset-3dtiles");
+      }
+
       collection.addAllLinks(
           ImmutableList.<Link>builder()
               .add(
@@ -70,9 +79,8 @@ public class Tileset3dTilesOnCollection implements CollectionExtension {
                       .href(uriCustomizerTileset.toString())
                       // TODO rel is still unclear
                       .rel("http://www.opengis.net/def/rel/ogc/0.0/tileset-3dtiles")
-                      .title(
-                          i18n.get("3dtilesLink", language)
-                              .replace("{{collection}}", featureTypeConfiguration.getLabel()))
+                      .type("text/html")
+                      .title(i18n.get("3dtilesLink", language))
                       .build())
               .add(
                   new ImmutableLink.Builder()
@@ -82,9 +90,7 @@ public class Tileset3dTilesOnCollection implements CollectionExtension {
                       // TODO see https://github.com/opengeospatial/ogcapi-3d-geovolumes/issues/13
                       .type("application/json")
                       // .type("application/json+3dtiles")
-                      .title(
-                          i18n.get("3dtilesLink", language)
-                              .replace("{{collection}}", featureTypeConfiguration.getLabel()))
+                      .title(i18n.get("3dtilesLink", language))
                       .build())
               .build());
 

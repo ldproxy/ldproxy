@@ -11,7 +11,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiCollection.Builder;
-import de.ii.ogcapi.collections.domain.OgcApiCollection;
 import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -159,38 +158,5 @@ public class CollectionExtensionFeatures implements CollectionExtension {
     }
 
     return collection;
-  }
-
-  public static OgcApiCollection createNestedCollection(
-      FeatureTypeConfigurationOgcApi featureType,
-      OgcApi api,
-      ApiMediaType mediaType,
-      List<ApiMediaType> alternateMediaTypes,
-      Optional<Locale> language,
-      URICustomizer uriCustomizer,
-      List<CollectionExtension> collectionExtenders) {
-    ImmutableOgcApiCollection.Builder ogcApiCollection =
-        ImmutableOgcApiCollection.builder().id(featureType.getId());
-
-    for (CollectionExtension ogcApiCollectionExtension : collectionExtenders) {
-      ogcApiCollection =
-          ogcApiCollectionExtension.process(
-              ogcApiCollection,
-              featureType,
-              api,
-              uriCustomizer.copy(),
-              true,
-              mediaType,
-              alternateMediaTypes,
-              language);
-    }
-
-    ImmutableOgcApiCollection result = null;
-    try {
-      result = ogcApiCollection.build();
-    } catch (Throwable e) {
-      result = null;
-    }
-    return result;
   }
 }

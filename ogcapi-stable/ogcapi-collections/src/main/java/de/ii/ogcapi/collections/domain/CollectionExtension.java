@@ -21,6 +21,38 @@ import java.util.Optional;
 @AutoMultiBind
 public interface CollectionExtension extends ContentExtension {
 
+  static OgcApiCollection createNestedCollection(
+      FeatureTypeConfigurationOgcApi featureType,
+      OgcApi api,
+      ApiMediaType mediaType,
+      List<ApiMediaType> alternateMediaTypes,
+      Optional<Locale> language,
+      URICustomizer uriCustomizer,
+      List<CollectionExtension> collectionExtenders) {
+    Builder ogcApiCollection = ImmutableOgcApiCollection.builder().id(featureType.getId());
+
+    for (CollectionExtension ogcApiCollectionExtension : collectionExtenders) {
+      ogcApiCollection =
+          ogcApiCollectionExtension.process(
+              ogcApiCollection,
+              featureType,
+              api,
+              uriCustomizer.copy(),
+              true,
+              mediaType,
+              alternateMediaTypes,
+              language);
+    }
+
+    ImmutableOgcApiCollection result = null;
+    try {
+      result = ogcApiCollection.build();
+    } catch (Throwable e) {
+      result = null;
+    }
+    return result;
+  }
+
   ImmutableOgcApiCollection.Builder process(
       Builder collection,
       FeatureTypeConfigurationOgcApi featureTypeConfiguration,
