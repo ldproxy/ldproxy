@@ -30,7 +30,7 @@ public class ParameterResolver implements ParameterResolverBase {
       return null;
     }
 
-    final Map<String, JsonSchema> parameters = storedQuery.getParameters();
+    final Map<String, JsonSchema> parameters = storedQuery.getAllParameters();
 
     ImmutableQueryExpression.Builder builder =
         new ImmutableQueryExpression.Builder()
@@ -136,6 +136,10 @@ public class ParameterResolver implements ParameterResolverBase {
   }
 
   private Object resolveParameter(ParameterValue param, Map<String, JsonSchema> parameters) {
-    return resolveParameter(param.getName(), param.getSchema(), queryParameterSet, schemaValidator);
+    return resolveParameter(
+        param.getName(),
+        parameters.getOrDefault(param.getName(), param.getSchema()),
+        queryParameterSet,
+        schemaValidator);
   }
 }
