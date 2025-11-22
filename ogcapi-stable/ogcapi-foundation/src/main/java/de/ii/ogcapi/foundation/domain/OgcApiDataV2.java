@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -466,7 +467,7 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
    * @default []
    * @since v2.1
    */
-  List<String> getTags();
+  Set<String> getTags();
 
   /**
    * @langEn [API Building Blocks](#building-blocks) configuration.
