@@ -432,6 +432,24 @@ public interface GmlConfiguration
   Boolean getGmlIdOnGeometries();
 
   /**
+   * @langEn This option adds a `srsDimension` attribute on all GML `posList` and `pos` elements.
+   *     Some GML readers expect this information, especially for 3D coordinates.
+   * @langDe Diese Option fügt ein `srsDimension`-Attribut bei allen `posList` und `pos`-Elementen
+   *     hinzu. Einige GML-Reader erwarten diese Information, insbesondere für 3D-Koordinaten.
+   * @default false
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   srsDimension: true
+   * ```
+   * </code>
+   * @since v4.6
+   */
+  @Nullable
+  Boolean getSrsDimension();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set, such
    *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.
