@@ -1,5 +1,5 @@
 [versions]
 xtraplatform-core    = '6.6.0-SNAPSHOT'
 xtraplatform-native  = '2.5.0'
-xtraplatform-spatial = '7.6.0-gml-srsDimension-SNAPSHOT'
+xtraplatform-spatial = '7.6.0-SNAPSHOT'
 
