@@ -27,8 +27,6 @@ import javax.inject.Singleton;
  *     Currently, schemas are created according to JSON Schema 2020-12.
  * @scopeDe Das Schema wird aus den Schema-Informationen im Feature-Provider abgeleitet. Aktuell
  *     wird JSON Schema 2020-12 unterstützt.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Feature Collections - Schema* is based on the [OGC API - Features - Part 5:
  *     Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html).
  * @conformanceDe Der Baustein basiert auf dem [Entwurf für OGC API - Features - Part 5:

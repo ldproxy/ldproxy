@@ -165,8 +165,6 @@ import org.slf4j.LoggerFactory;
  *     Veröffentlichungsnachricht gesendet wird. Dies kann z.B. der Wert einer Messung sein.
  *     <p>Siehe die Veröffentlichung `{wigos_station_identifier}/{observed_property}` im
  *     [Beispiel](#beispiele).
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @limitationsEn This building block is an initial version that was developed during OGC Testbed
  *     19. Additional development and testing is required to ensure the building block supports a
  *     sufficient range of use cases.

@@ -21,8 +21,6 @@ import javax.inject.Singleton;
  * @title Projections
  * @langEn Select the feature properties included in the feature response.
  * @langDe Auswahl der Feature-Eigenschaften in Rückgaben.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Projections* is based on the [draft of OGC API Features Part 6: Property
  *     Selection](https://docs.ogc.org/DRAFTS/24-019.html).
  * @conformanceDe Der Baustein basiert auf dem [Entwurf für OGC API Features Part 6: Property

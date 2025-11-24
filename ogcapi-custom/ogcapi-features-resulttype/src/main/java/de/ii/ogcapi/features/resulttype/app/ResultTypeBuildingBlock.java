@@ -22,8 +22,6 @@ import javax.inject.Singleton;
  * @langEn Adds a query parameter to return only the number of features matched by a request.
  * @langDe Ergänzt einen Query-Parameter sodass nur die Anzahl der Features, die von einer Anfrage
  *     selektiert werden, zurückgegeben wird.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.features.resulttype.domain.ResultTypeConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.features.resulttype.domain.ImmutableResultTypeConfiguration}

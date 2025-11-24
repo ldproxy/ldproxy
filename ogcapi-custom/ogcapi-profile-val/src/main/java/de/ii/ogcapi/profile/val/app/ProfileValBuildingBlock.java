@@ -38,8 +38,6 @@ import javax.inject.Singleton;
  *     <p>Hinweis: Explizite Codelisten-Transformationen im Provider oder in der
  *     Service-Konfiguration werden immer ausgeführt, der "profile"-Parameter mit dem Wert
  *     "val-as-code" deaktiviert nicht diese Transformationen.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.profile.val.domain.ProfileValConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.profile.val.domain.ImmutableProfileValConfiguration}
  */

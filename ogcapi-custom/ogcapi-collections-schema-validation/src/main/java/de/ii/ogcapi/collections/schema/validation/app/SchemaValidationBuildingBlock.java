@@ -38,8 +38,6 @@ import javax.inject.Singleton;
  * - "validation-returnables-jsonfg": JSON-Schema zur Validierung eines JSON-FG-Features, das als Antwort auf eine Query zurückgegeben wird
  * - "validation-receivables-jsonfg": JSON-Schema zur Validierung eines JSON-FG-Features, das im Rahmen einer Create- oder Update-Operation an den Server gesendet wird
  * </code>
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link SchemaValidationConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.collections.schema.validation.app.ImmutableSchemaValidationConfiguration}

@@ -78,8 +78,6 @@ import javax.inject.Singleton;
  *     nächsten Hauptversion nicht mehr als Queryables akzeptiert werden.
  *     <p>Wenn die abfragbare Eigenschaft ein Wert ist, z.B. ein String oder ein Integer, die in
  *     einem Array verschachtelt ist, ist der Typ der abfragbaren Eigenschaft ein Array der Werte.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Feature Collections - Queryables* implements the conformance classes "Queryables"
  *     and "Queryables as Query Parameters" of [OGC API - Features - Part 3:
  *     Filtering](https://docs.ogc.org/is/19-079r2/19-079r2.html).

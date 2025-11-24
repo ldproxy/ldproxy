@@ -74,8 +74,6 @@ import javax.inject.Singleton;
  * - Offset und Skalierung werden nicht unterstützt.
  * - Standardwerte werden nicht unterstützt.
  *     </code>
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @ref:cfg {@link de.ii.ogcapi.features.gltf.domain.GltfConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.gltf.domain.ImmutableGltfConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.features.gltf.infra.EndpointGltfSchema}

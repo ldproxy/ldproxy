@@ -42,8 +42,6 @@ import javax.inject.Singleton;
  * @title Sorting
  * @langEn Sort features in a response.
  * @langDe Sortieren von Features in Rückgaben.
- * @cfgFilesEn The building block does not require or support any additional configuration files.
- * @cfgFilesDe Der Baustein benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
  * @conformanceEn *Sorting* implements the conformance class "Sortables" of the [draft of OGC API -
  *     Features - Part 5: Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html#rc_sortables) as well
  *     as the conformance classes "Sorting" and "Features Sorting" of the [draft of OGC API -
