@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.gml.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -15,7 +16,6 @@ import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,13 +44,19 @@ public class GmlWriterGeometry implements GmlWriter {
   public void onStart(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
     // TODO add support for AdV CityGML profile LoD1 and LoD2
+    ImmutableSet.Builder<GeometryEncoderGml.Options> options =
+        ImmutableSet.<GeometryEncoderGml.Options>builder().add(Options.WITH_SRS_NAME);
+    if (context.encoding().getGmlIdOnGeometries()) {
+      options.add(Options.WITH_GML_ID);
+    }
+    if (context.encoding().getSrsDimension()) {
+      options.add(Options.WITH_SRS_DIMENSION);
+    }
     encoder =
         new GeometryEncoderGml(
             context.encoding().getWriter(),
             context.encoding().getGmlVersion(),
-            context.encoding().getGmlIdOnGeometries()
-                ? Set.of(Options.WITH_SRS_NAME, Options.WITH_GML_ID)
-                : Set.of(Options.WITH_SRS_NAME),
+            options.build(),
             Optional.of(context.encoding().getGmlPrefix()),
             context.encoding().getGmlIdPrefix(),
             context.encoding().getGeometryPrecision());

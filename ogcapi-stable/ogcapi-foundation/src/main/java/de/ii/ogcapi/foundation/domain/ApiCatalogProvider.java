@@ -23,11 +23,11 @@ import java.security.Principal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.hc.core5.http.NameValuePair;
 
 public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiExtension {
 
@@ -49,9 +49,13 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
 
   @Override
   public Response getServiceListing(
-      List<ServiceData> apis, URICustomizer uriCustomizer, Optional<Principal> user) {
+      List<ServiceData> apis,
+      URICustomizer uriCustomizer,
+      Map<String, String> queryParameters,
+      Optional<Principal> user) {
     try {
-      return getServiceListing(apis, uriCustomizer, user, Optional.of(Locale.ENGLISH));
+      return getServiceListing(
+          apis, uriCustomizer, queryParameters, user, Optional.of(Locale.ENGLISH));
     } catch (URISyntaxException e) {
       throw new IllegalStateException("Could not generate service overview.", e);
     }
@@ -60,6 +64,7 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
   public abstract Response getServiceListing(
       List<ServiceData> services,
       URICustomizer uriCustomizer,
+      Map<String, String> queryParameters,
       Optional<Principal> user,
       Optional<Locale> language)
       throws URISyntaxException;
@@ -111,24 +116,19 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
   }
 
   protected ApiCatalog getCatalog(
-      List<ServiceData> services, URICustomizer uriCustomizer, Optional<Locale> language)
+      List<ServiceData> services,
+      URICustomizer uriCustomizer,
+      Optional<Locale> language,
+      Map<String, String> queryParameters)
       throws URISyntaxException {
     final DefaultLinksGenerator linksGenerator = new DefaultLinksGenerator();
     List<String> tags =
         Splitter.on(',')
             .omitEmptyStrings()
             .trimResults()
-            .splitToList(
-                uriCustomizer.getQueryParams().stream()
-                    .filter(param -> "tags".equals(param.getName()))
-                    .map(NameValuePair::getValue)
-                    .findAny()
-                    .orElse(""));
+            .splitToList(queryParameters.getOrDefault("tags", ""));
     Optional<String> name =
-        uriCustomizer.getQueryParams().stream()
-            .filter(param -> "name".equals(param.getName()))
-            .map(NameValuePair::getValue)
-            .findAny();
+        Optional.ofNullable(queryParameters.get("name")).filter(s -> !s.isBlank());
 
     ApiMediaType mediaType = getApiMediaType();
     List<ApiMediaType> alternateMediaTypes =
@@ -215,7 +215,7 @@ public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiE
                               .title(api.getLabel())
                               .description(api.getDescription())
                               .landingPageUri(getApiUrl(uriCustomizer, api.getSubPath()))
-                              .tags(((OgcApiDataV2) api).getTags())
+                              .tags(((OgcApiDataV2) api).getTags().stream().sorted().toList())
                               .isDataset(((OgcApiDataV2) api).isDataset())
                               .build();
                         }
