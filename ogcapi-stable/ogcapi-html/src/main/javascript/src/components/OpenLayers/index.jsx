@@ -16,28 +16,23 @@ setupProjections();
 
 function getRasterBackgroundAndAttributions(style) {
   let rasterBackgroundUrl;
-  let rasterAttribution;
   const usedSourceKeys = [];
-  let attributionsList = [];
+  const attributionsList = [];
 
-  style.layers?.forEach((layer) => {
+  style.layers?.forEach((layer, i) => {
     const key = layer.source;
     if (key && !usedSourceKeys.includes(key)) {
       usedSourceKeys.push(key);
       const source = style.sources[key];
-      if (layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
+      if (i === 0 && layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
         const [firstTile] = source.tiles || [];
         rasterBackgroundUrl = firstTile;
-        rasterAttribution = source.attribution;
-      } else if (source?.attribution) {
+      }
+      if (source?.attribution) {
         attributionsList.push(source.attribution);
       }
     }
   });
-
-  if (rasterAttribution) {
-    attributionsList = [rasterAttribution, ...attributionsList];
-  }
 
   return {
     rasterBackgroundUrl,
