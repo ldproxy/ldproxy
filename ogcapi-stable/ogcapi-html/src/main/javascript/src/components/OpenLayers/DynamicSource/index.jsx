@@ -14,10 +14,7 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
           "source",
           dataType === "raster"
             ? new XYZSource({
-                url: dataUrl.replace(
-                  "/WebMercatorQuad/",
-                  `/${tileMatrixSet.tileMatrixSet}/`
-                ),
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
                 tileGrid: new TileGrid({
@@ -27,10 +24,7 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
                 }),
               })
             : new VectorTileSource({
-                url: dataUrl.replace(
-                  "/WebMercatorQuad/",
-                  `/${tileMatrixSet.tileMatrixSet}/`
-                ),
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
                 format: new MVT(),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
@@ -58,9 +52,12 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
               return response.json();
             })
             .then((glStyle) => {
-              const sourceName = Object.entries(glStyle.sources)
-                .find(([, source]) => source.type === "vector")?.[0];
-              stylefunction(layer, glStyle, sourceName, JSON.parse(tileMatrixSet.resolutions));
+              const sourceName = Object.entries(glStyle.sources).find(
+                ([, source]) => source.type === "vector"
+              )?.[0];
+              if (sourceName) {
+                stylefunction(layer, glStyle, sourceName, JSON.parse(tileMatrixSet.resolutions));
+              }
             })
             .catch((error) => {
               throw new Error(`Failed to fetch or apply style: ${error.message}`);

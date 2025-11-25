@@ -29,11 +29,54 @@ const OpenLayers = ({
   const [currentTileMatrixSet, setCurrentTileMatrixSet] = React.useState(
     tileMatrixSets[0] ? tileMatrixSets[0].tileMatrixSet : null
   );
+  const [styleConfig, setStyleConfig] = React.useState(null);
   const prevTMSRef = useRef();
   useEffect(() => {
     prevTMSRef.current = currentTileMatrixSet;
   });
   const previousTileMatrixSet = prevTMSRef.current;
+
+  useEffect(() => {
+    if (effectiveStyleUrl) {
+      fetch(effectiveStyleUrl)
+        .then((response) => response.json())
+        .then((style) => {
+          console.log("Fetched style:", style);
+          const config = {
+            center: style.center,
+            zoom: style.zoom,
+          };
+          if (style.sources) {
+            const sourceWithBounds = Object.values(style.sources).find((s) => s.bounds);
+            if (sourceWithBounds && sourceWithBounds.bounds) {
+              config.bounds = sourceWithBounds.bounds;
+            }
+          }
+
+          const sourcesCount = style.sources ? Object.keys(style.sources).length : 0;
+          const layersCount = style.layers ? style.layers.length : 0;
+          if ((sourcesCount >= 2 || layersCount >= 2) && style.layers) {
+            const rasterLayer = style.layers.find((l) => l.type === "raster");
+            if (
+              rasterLayer &&
+              rasterLayer.source &&
+              style.sources &&
+              style.sources[rasterLayer.source]
+            ) {
+              const { tiles, attribution: rasterAttribution } = style.sources[rasterLayer.source];
+              const rasterBackgroundUrl = tiles ? tiles[0] : undefined;
+              config.backgroundUrl = rasterBackgroundUrl;
+              config.attribution = rasterAttribution;
+            }
+          }
+
+          setStyleConfig(config);
+        })
+        .catch((error) => {
+          console.error("[OpenLayers] Failed to load style configuration:", error);
+        });
+    }
+  }, [effectiveStyleUrl]);
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
   globalThis._map.setCurrentTileMatrixSet = setCurrentTileMatrixSet;
@@ -46,7 +89,28 @@ const OpenLayers = ({
 
   const tms = tileMatrixSets.find((tms1) => tms1.tileMatrixSet === currentTileMatrixSet);
 
-  if (tms) {
+  if (effectiveStyleUrl && styleConfig) {
+    if (styleConfig.center) {
+      initial = {
+        center: fromLonLat(styleConfig.center),
+        zoom: styleConfig.zoom || 0,
+      };
+    } else if (styleConfig.bounds && styleConfig.bounds.length === 4) {
+      const boundsExtent = boundingExtent([
+        fromLonLat([styleConfig.bounds[0], styleConfig.bounds[1]]),
+        fromLonLat([styleConfig.bounds[2], styleConfig.bounds[3]]),
+      ]);
+      initial = {
+        center: getCenter(boundsExtent),
+        zoom: styleConfig.zoom || 0,
+      };
+    } else {
+      initial = {
+        center: fromLonLat([0, 0]),
+        zoom: styleConfig.zoom || 0,
+      };
+    }
+  } else if (tms) {
     initial = {
       center: fromLonLat([tms.defaultCenterLon, tms.defaultCenterLat]),
       zoom: tms.defaultZoomLevel,
@@ -60,7 +124,11 @@ const OpenLayers = ({
     <>
       <RMap width="100%" height="100%" initial={initial} noDefaultControls>
         <DynamicView tileMatrixSet={tms} update={previousTileMatrixSet !== currentTileMatrixSet} />
-        <RLayerTile properties={{ label: "Base map" }} url={baseUrl} attributions={attribution} />
+        <RLayerTile
+          properties={{ label: "Base map" }}
+          url={styleConfig?.backgroundUrl || baseUrl}
+          attributions={styleConfig?.attribution || attribution}
+        />
         {dataType === "raster" && (
           <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
             <DynamicSource
