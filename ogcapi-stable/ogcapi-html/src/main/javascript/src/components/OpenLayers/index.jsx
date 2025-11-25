@@ -14,6 +14,37 @@ import "./custom.css";
 
 setupProjections();
 
+function getRasterBackgroundAndAttributions(style) {
+  let rasterBackgroundUrl;
+  let rasterAttribution;
+  const usedSourceKeys = [];
+  let attributionsList = [];
+
+  style.layers?.forEach((layer) => {
+    const key = layer.source;
+    if (key && !usedSourceKeys.includes(key)) {
+      usedSourceKeys.push(key);
+      const source = style.sources[key];
+      if (layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
+        const [firstTile] = source.tiles || [];
+        rasterBackgroundUrl = firstTile;
+        rasterAttribution = source.attribution;
+      } else if (source?.attribution) {
+        attributionsList.push(source.attribution);
+      }
+    }
+  });
+
+  if (rasterAttribution) {
+    attributionsList = [rasterAttribution, ...attributionsList];
+  }
+
+  return {
+    rasterBackgroundUrl,
+    combinedAttribution: attributionsList.join(" | "),
+  };
+}
+
 const OpenLayers = ({
   backgroundUrl,
   bounds,
@@ -52,34 +83,10 @@ const OpenLayers = ({
             }
           }
 
-          const usedSourceKeys = [];
-          const attributionsList = [];
-          let rasterBackgroundUrl;
-
-          style.layers?.forEach((layer) => {
-            const key = layer.source;
-            if (key && !usedSourceKeys.includes(key)) {
-              usedSourceKeys.push(key);
-              const source = style.sources[key];
-              if (source?.attribution) attributionsList.push(source.attribution);
-              const [firstTile] = source.tiles;
-              if (layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
-                rasterBackgroundUrl = firstTile;
-              }
-            }
-          });
-
-          if (style.sources.base?.attribution) {
-            const filtered = attributionsList.filter(
-              (attr) => attr !== style.sources.base.attribution
-            );
-            attributionsList.length = 0;
-            attributionsList.push(style.sources.base.attribution, ...filtered);
-          }
-
-          const combinedAttribution = attributionsList.join(" | ");
-          config.attributions = combinedAttribution;
+          const { rasterBackgroundUrl, combinedAttribution } =
+            getRasterBackgroundAndAttributions(style);
           if (rasterBackgroundUrl) config.backgroundUrl = rasterBackgroundUrl;
+          if (combinedAttribution) config.attributions = combinedAttribution;
 
           setStyleConfig(config);
         })
