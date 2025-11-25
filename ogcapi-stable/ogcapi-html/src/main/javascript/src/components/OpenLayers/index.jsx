@@ -41,7 +41,6 @@ const OpenLayers = ({
       fetch(effectiveStyleUrl)
         .then((response) => response.json())
         .then((style) => {
-          console.log("Fetched style:", style);
           const config = {
             center: style.center,
             zoom: style.zoom,
@@ -53,22 +52,34 @@ const OpenLayers = ({
             }
           }
 
-          const sourcesCount = style.sources ? Object.keys(style.sources).length : 0;
-          const layersCount = style.layers ? style.layers.length : 0;
-          if ((sourcesCount >= 2 || layersCount >= 2) && style.layers) {
-            const rasterLayer = style.layers.find((l) => l.type === "raster");
-            if (
-              rasterLayer &&
-              rasterLayer.source &&
-              style.sources &&
-              style.sources[rasterLayer.source]
-            ) {
-              const { tiles, attribution: rasterAttribution } = style.sources[rasterLayer.source];
-              const rasterBackgroundUrl = tiles ? tiles[0] : undefined;
-              config.backgroundUrl = rasterBackgroundUrl;
-              config.attribution = rasterAttribution;
+          const usedSourceKeys = [];
+          const attributionsList = [];
+          let rasterBackgroundUrl;
+
+          style.layers?.forEach((layer) => {
+            const key = layer.source;
+            if (key && !usedSourceKeys.includes(key)) {
+              usedSourceKeys.push(key);
+              const source = style.sources[key];
+              if (source?.attribution) attributionsList.push(source.attribution);
+              const [firstTile] = source.tiles;
+              if (layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
+                rasterBackgroundUrl = firstTile;
+              }
             }
+          });
+
+          if (style.sources.base?.attribution) {
+            const filtered = attributionsList.filter(
+              (attr) => attr !== style.sources.base.attribution
+            );
+            attributionsList.length = 0;
+            attributionsList.push(style.sources.base.attribution, ...filtered);
           }
+
+          const combinedAttribution = attributionsList.join(" | ");
+          config.attributions = combinedAttribution;
+          if (rasterBackgroundUrl) config.backgroundUrl = rasterBackgroundUrl;
 
           setStyleConfig(config);
         })
@@ -127,7 +138,7 @@ const OpenLayers = ({
         <RLayerTile
           properties={{ label: "Base map" }}
           url={styleConfig?.backgroundUrl || baseUrl}
-          attributions={styleConfig?.attribution || attribution}
+          attributions={styleConfig?.attributions || attribution}
         />
         {dataType === "raster" && (
           <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
