@@ -43,6 +43,7 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
@@ -96,6 +97,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final FeaturesQuery ogcApiFeaturesQuery;
   private final FeaturesCoreQueriesHandler featuresCoreQueriesHandler;
   private final SearchQueriesHandler searchQueriesHandler;
+  private final Cql cql;
 
   // Utility method to parse parameter values
   private Object parseParameterValue(Schema<?> schema, Object value) {
@@ -120,7 +122,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       FeaturesCoreProviders providers,
       FeaturesQuery ogcApiFeaturesQuery,
       FeaturesCoreQueriesHandler featuresCoreQueriesHandler,
-      SearchQueriesHandler searchQueriesHandler) {
+      SearchQueriesHandler searchQueriesHandler,
+      Cql cql) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.storedQueryRepository = storedQueryRepository;
@@ -129,6 +132,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     this.ogcApiFeaturesQuery = ogcApiFeaturesQuery;
     this.featuresCoreQueriesHandler = featuresCoreQueriesHandler;
     this.searchQueriesHandler = searchQueriesHandler;
+    this.cql = cql;
   }
 
   // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
@@ -370,7 +374,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     }
 
     QueryExpression executableQuery =
-        new ParameterResolver(queryParameterSet, schemaValidator).visit(storedQuery);
+        new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
 
     SearchQueriesHandler.QueryInputQuery queryInput =
         new ImmutableQueryInputQuery.Builder()

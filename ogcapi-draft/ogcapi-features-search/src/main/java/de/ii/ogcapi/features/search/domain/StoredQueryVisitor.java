@@ -12,6 +12,8 @@ public interface StoredQueryVisitor<T> {
   default T visit(StoredQueryComponent component) {
     if (component instanceof StoredQueryExpression) {
       return visit((StoredQueryExpression) component);
+    } else if (component instanceof StoredQueryBase) {
+      return visit((StoredQueryBase) component);
     } else if (component instanceof SingleQueryWithParameters) {
       return visit((SingleQueryWithParameters) component);
     } else if (component instanceof ParameterValue) {
@@ -32,7 +34,11 @@ public interface StoredQueryVisitor<T> {
     }
   }
 
-  T visit(StoredQueryExpression storedQuery);
+  default T visit(StoredQueryExpression storedQuery) {
+    return visit((StoredQueryBase) storedQuery);
+  }
+
+  T visit(StoredQueryBase storedQuery);
 
   T visit(SingleQueryWithParameters query);
 

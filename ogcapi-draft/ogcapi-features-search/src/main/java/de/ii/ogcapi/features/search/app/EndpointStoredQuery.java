@@ -42,6 +42,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
@@ -78,6 +79,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   private final StoredQueryRepository repository;
   private final SearchQueriesHandler queryHandler;
   private final SchemaValidator schemaValidator;
+  private final Cql cql;
 
   @Inject
   public EndpointStoredQuery(
@@ -85,12 +87,14 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       FeaturesCoreProviders providers,
       StoredQueryRepository repository,
       SearchQueriesHandler queryHandler,
-      SchemaValidator schemaValidator) {
+      SchemaValidator schemaValidator,
+      Cql cql) {
     super(extensionRegistry);
     this.providers = providers;
     this.repository = repository;
     this.queryHandler = queryHandler;
     this.schemaValidator = schemaValidator;
+    this.cql = cql;
   }
 
   @Override
@@ -229,7 +233,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     storedQuery = builder.build();
 
     QueryExpression executableQuery =
-        new ParameterResolver(queryParameterSet, schemaValidator).visit(storedQuery);
+        new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

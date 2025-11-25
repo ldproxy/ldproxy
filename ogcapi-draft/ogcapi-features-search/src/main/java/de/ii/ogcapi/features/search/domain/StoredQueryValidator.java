@@ -7,9 +7,15 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.xtraplatform.cql.domain.Cql;
+import de.ii.xtraplatform.cql.domain.Cql.Format;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.CqlVisitorExtractParameters;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNumber;
@@ -25,14 +31,46 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
 
   private final Map<String, JsonSchema> globalParameters;
   private final Optional<SchemaValidator> schemaValidator;
+  private final Optional<Cql> cql;
+  private final ObjectMapper mapper;
+
+  public StoredQueryValidator(Map<String, JsonSchema> globalParameters) {
+    this(globalParameters, null, null);
+  }
 
   public StoredQueryValidator(
-      Map<String, JsonSchema> globalParameters, Optional<SchemaValidator> schemaValidator) {
+      Map<String, JsonSchema> globalParameters, SchemaValidator schemaValidator, Cql cql) {
     this.globalParameters = globalParameters;
-    this.schemaValidator = schemaValidator;
+    this.schemaValidator = Optional.ofNullable(schemaValidator);
+    this.cql = Optional.ofNullable(cql);
+    this.mapper = new ObjectMapper();
   }
 
   public List<String> visit(StoredQueryExpression storedQuery) {
+    if (Objects.isNull(storedQuery)) {
+      return List.of();
+    }
+
+    List<String> errors = new ArrayList<>();
+
+    errors.addAll(visit((StoredQueryBase) storedQuery));
+
+    if (schemaValidator.isPresent()
+        && cql.isPresent()
+        && storedQuery.getAllParameters().values().stream()
+            .allMatch(schema -> schema.getDefault_().isPresent())) {
+      try {
+        new ParameterResolver(QueryParameterSet.of(), schemaValidator.get(), cql.get())
+            .visit(storedQuery);
+      } catch (Exception e) {
+        errors.add("Stored query is invalid with the default parameter values: " + e.getMessage());
+      }
+    }
+
+    return List.copyOf(errors);
+  }
+
+  public List<String> visit(StoredQueryBase storedQuery) {
     if (Objects.isNull(storedQuery)) {
       return List.of();
     }
@@ -51,13 +89,24 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
     storedQuery.getProperties().ifPresent(v -> errors.addAll(v.accept(this)));
     storedQuery.getSortby().ifPresent(v -> errors.addAll(v.accept(this)));
 
-    storedQuery
-        .getFilter()
-        .ifPresent(
-            v ->
-                v.accept(new CqlVisitorExtractParameters(globalParameters), true).values().stream()
-                    .map(this::checkSchema)
-                    .forEach(errors::addAll));
+    if (storedQuery.getFilter().isPresent() && cql.isPresent()) {
+      try {
+        // we don't have the filterCrs here, but it is not relevant for parameter extraction, so we
+        // use CRS84
+        Cql2Expression expression =
+            cql.get()
+                .read(
+                    mapper.writeValueAsString(storedQuery.getFilter().get()),
+                    Format.JSON,
+                    OgcCrs.CRS84,
+                    true);
+        expression.accept(new CqlVisitorExtractParameters(globalParameters), true).values().stream()
+            .map(this::checkSchema)
+            .forEach(errors::addAll);
+      } catch (JsonProcessingException e) {
+        errors.add("CQL filter is invalid: " + e.getMessage());
+      }
+    }
 
     storedQuery
         .getQueries()
@@ -65,16 +114,6 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
             query -> {
               errors.addAll(query.accept(this));
             });
-
-    if (schemaValidator.isPresent()
-        && storedQuery.getAllParameters().values().stream()
-            .allMatch(schema -> schema.getDefault_().isPresent())) {
-      try {
-        new ParameterResolver(QueryParameterSet.of(), schemaValidator.get()).visit(storedQuery);
-      } catch (Exception e) {
-        errors.add("Stored query is invalid with the default parameter values: " + e.getMessage());
-      }
-    }
 
     return List.copyOf(errors);
   }
