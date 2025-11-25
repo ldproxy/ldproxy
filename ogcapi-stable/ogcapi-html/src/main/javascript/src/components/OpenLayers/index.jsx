@@ -56,11 +56,11 @@ const OpenLayers = ({
     tileMatrixSets[0] ? tileMatrixSets[0].tileMatrixSet : null
   );
   const [styleConfig, setStyleConfig] = React.useState(null);
-  const prevTMSRef = useRef();
-  useEffect(() => {
-    prevTMSRef.current = currentTileMatrixSet;
-  });
-  const previousTileMatrixSet = prevTMSRef.current;
+
+  const onPointerEnter = useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature]);
+  const onPointerLeave = useCallback((e) => currentFeature === e.target && setCurrentFeature(null),
+   [currentFeature, setCurrentFeature]
+  );
 
   useEffect(() => {
     if (effectiveStyleUrl) {
@@ -87,9 +87,24 @@ const OpenLayers = ({
         })
         .catch((error) => {
           console.error("[OpenLayers] Failed to load style configuration:", error);
+          setStyleConfig({});
         });
     }
   }, [effectiveStyleUrl]);
+
+  const prevTMSRef = useRef();
+  useEffect(() => {
+    // only update previous TMS if style is not used or style is already loaded
+    if (!effectiveStyleUrl || styleConfig) {
+      prevTMSRef.current = currentTileMatrixSet;
+    }
+  }, [currentTileMatrixSet, effectiveStyleUrl, styleConfig]);
+  const previousTileMatrixSet = prevTMSRef.current;
+
+  // Wait until style is loaded if styleUrl is provided
+  if (effectiveStyleUrl && !styleConfig) {
+    return null;
+  }
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
   globalThis._map.setCurrentTileMatrixSet = setCurrentTileMatrixSet;
@@ -158,13 +173,8 @@ const OpenLayers = ({
             properties={{ label: "Vector tiles" }}
             url={dataUrl}
             format={new MVT()}
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            onPointerEnter={useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature])}
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            onPointerLeave={useCallback(
-              (e) => currentFeature === e.target && setCurrentFeature(null),
-              [currentFeature, setCurrentFeature]
-            )}
+            onPointerEnter={onPointerEnter}
+            onPointerLeave={onPointerLeave}
           >
             <DynamicSource
               tileMatrixSet={tms}
