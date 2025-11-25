@@ -91,8 +91,12 @@ import org.slf4j.LoggerFactory;
  *     `3dtiles-styles/{apiId}/building/{styleId}.json`, and must be a 3DTiles style. `{styleId}`
  *     must be the value of the `style` configuration option, `{apiId}` must be the `id` of the
  *     service.
- *     <p>If seeding is enabled, the files of the tile cache are stored in the resource store in the
- *     directory `tiles/{apiId}/`.
+ *     <p>The tile cache is located in the
+ *     [Store](../../application/20-configuration/10-store-new.md) as resource with type `tiles` and
+ *     relative path `{apiId}/`. The contents of the cache directory depend on the type and storage
+ *     of the cache in the tile provider.
+ *     <p>If the data for an API or tile configuration has been changed, then the cache directory
+ *     for the API should be deleted so that the cache is rebuilt with the updated data or rules.
  * @cfgFilesDe Wenn die Konfigurationsoption `style` auf einen spezifischen Style gesetzt wird, muss
  *     die Stylesheet-Datei im Value Store unter `maplibre-styles/{apiId}/{styleId}.json` abgelegt
  *     werden, wenn `mapClientType` auf `MAP_LIBRE` gesetzt ist. Das Stylesheet muss ein
@@ -100,8 +104,12 @@ import org.slf4j.LoggerFactory;
  *     im Value Store unter `3dtiles-styles/{apiId}/building/{styleId}.json` abgelegt werden und ein
  *     3DTiles-Style sein. `{styleId}` muss dem Wert der Konfigurationsoption `style` entsprechen,
  *     `{apiId}` muss die `id` des Dienstes sein.
- *     <p>Wenn das Seeding aktiviert ist, werden die Dateien des Tile-Caches im Ressourcen-Store im
- *     Verzeichnis `tiles/{apiId}/` abgelegt.
+ *     <p>Der Tile-Cache liegt im [Store](../../application/20-configuration/10-store-new.md) als
+ *     Ressource mit dem Typ `tiles` und dem relativen Pfad `{apiId}/`. Die Inhalte des
+ *     Cache-Verzeichnisses hängen von der Art und Speicherung des Caches im Tile-Provider ab.
+ *     <p>Wenn die Daten zu einer API oder Kachelkonfiguration geändert wurden, dann sollte das
+ *     Cache-Verzeichnis für die API gelöscht werden, damit der Cache mit den aktualisierten Daten
+ *     oder Regeln neu aufgebaut wird.
  * @conformanceEn The building block implements the conformance classes "Core", "TileSet", "TileSets
  *     List", "Dataset TileSets", "GeoData TileSets", "Collections Selection", "DateTime", "OpenAPI
  *     Specification 3.0 API definition", "Mapbox Vector Tiles", "PNG", "JPEG", and "TIFF" of the

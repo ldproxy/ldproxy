@@ -66,25 +66,47 @@ import javax.inject.Singleton;
  *     Features und 3D Tiles zu rendern, wenn Cesium als Kartenclient verwendet wird. Siehe
  *     `defaultStyle` in [HTML](html.md), und `style` in [Features HTML](features_-_html.md) und
  *     [Tiles](tiles.md).
- * @cfgFilesEn Stylesheet files have to be located depending on the Style format:
+ * @cfgFilesEn Stylesheet files have a location depending on the Style format:
  *     <p><code>
- * - MapLibre styles for the vector tiles tileset of the dataset: in the value store as `maplibre-styles/{apiId}/{styleId}.json`;
- * - 3DTiles styles for buildings: in the value store as `3dtiles-styles/{apiId}/building/{styleId}.json`;
- * - ArcGIS LYR styles for the dataset: in the resource store as `other-styles/{apiId}/{styleId}.lyr`;
- * - ArcGIS LYRX styles for the dataset: in the resource store as `other-styles/{apiId}/{styleId}.lyrx`;
- * - SLD 1.0 styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld10`;
- * - SLD 1.1 styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld11`;
- * - QGIS QML styles for a collection: in the resource store as `other-styles/{apiId}/collections/{collectionId}/{styleId}.qml`.
+ * - MapLibre stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type
+ *     `maplibre-styles` and relative path `{apiId}/{styleId}.{ext}`. The extension `mbs` is
+ *     still supported, but preferably stylesheets are stored as plain JSON (`json`) or YAML (`yml`) files. The URIs (Sprites,
+ *     Glyphs, Source.url, Source.tiles) used in MapLibre styles links might contain `{serviceUrl}`.
+ * - 3d Tiles stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type
+ *      `3dtiles-styles` and relative path `{apiId}/{styleId}.{ext}`. The extension `3dtiles`
+ *      is still supported, but preferably stylesheets are stored as plain JSON (`json`) or YAML (`yml`) files.
+ * - Other stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as resources with type
+ *      `other-styles` and relative path `{apiId}/{styleId}.{ext}` or `{apiId}/collections/{collectionId}/{styleId}.{ext}`.
+ *     Whether the latter path with `collectionId` is used depends on the style scope.
+ *     The file extension `{ext}` must have the following value depending on the style encoding:
+ *   - OGC SLD 1.0: `sld10`
+ *   - OGC SLD 1.1: `sld11`
+ *   - QGIS QML: `qml`
+ *   - ArcGIS Desktop: `lyr`
+ *   - ArcGIS Pro: `lyrx`
  *     </code>
  * @cfgFilesDe Stylesheet-Dateien müssen je nach Style-Format an folgendem Ort abgelegt werden:
  *     <p><code>
- * - MapLibre Styles: im Value-Store als `maplibre-styles/{apiId}/{styleId}.json`;
- * - 3DTiles Styles: im Value-Store als `3dtiles-styles/{apiId}/{styleId}.json`;
- * - ArcGIS LYR Styles: im Resource-Store als `other-styles/{apiId}/{styleId}.lyr`;
- * - ArcGIS LYRX Styles: im Resource-Store als `other-styles/{apiId}/{styleId}.lyrx`;
- * - SLD 1.0 Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld10`;
- * - SLD 1.1 Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.sld11`;
- * - QGIS QML Styles für eine Collection: im Resource-Store als `other-styles/{apiId}/collections/{collectionId}/{styleId}.qml`.
+ * - MapLibre Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
+ *      als Values mit Typ `maplibre-styles` und relativem Pfad `{apiId}/{styleId}.{ext}`. `mbs` wird
+ *      als Erweiterung weiterhin unterstützt, aber bevorzugt werden Stylesheets als normale
+ *      JSON- oder YAML-Dateien gespeichert (Erweiterung `json` oder `yml`). Die URIs (Sprites, Glyphs, Source.url,
+ *      Source.tiles) bei Links in den MapLibre-Styles können dabei als Parameter `{serviceUrl}`
+ *      enthalten.
+ * - 3d Tiles Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
+ *      als Values mit Typ `3dtiles-styles` und relativem Pfad `{apiId}/{styleId}.{ext}`. `3dtiles`
+ *      wird als Erweiterung weiterhin unterstützt, aber bevorzugt werden Stylesheets als normale
+ *      JSON- oder YAML-Dateien gespeichert (Erweiterung `json` oder `yml`).
+ * - Andere Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
+ *      als Ressourcen mit Typ `other-styles` und relativem Pfad `{apiId}/{styleId}.{ext}` oder
+ *      `{apiId}/collections/{collectionId}/{styleId}.{ext}`.
+ *      Ob der letztgenannte Pfad mit `collectionId` verwendet wird, hängt vom Style-Scope ab.
+ *      Die Dateikennung `{ext}` muss den folgenden Wert in Abhängigkeit des Style-Formats haben:
+ *   - OGC SLD 1.0: `sld10`
+ *   - OGC SLD 1.1: `sld11`
+ *   - QGIS QML: `qml`
+ *   - ArcGIS Desktop: `lyr`
+ *   - ArcGIS Pro: `lyrx`
  *     </code>
  * @conformanceEn This building block implements requirements of the conformance classes *Core*,
  *     *Manage Styles*, *Validation of styles*, *Resources*, *Manage resources*, *Mapbox Style*,
