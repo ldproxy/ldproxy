@@ -37,6 +37,12 @@ import javax.inject.Singleton;
  *     Subtrees werden aus Gründen der Kompaktheit im Binärformat kodiert.
  *     <p>Die 3D-Kacheln können in einem Webbrowser mit Hilfe eines integrierten Cesium-Clients
  *     inspiziert werden.
+ * @cfgFilesEn This building block does not require or support any additional configuration files.
+ *     <p>If seeding is enabled, the files of the tileset are stored in the resource store in the
+ *     directory `tiles3d/{apiId}/building/`.
+ * @cfgFilesDe Dieses Modul benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
+ *     <p>Wenn das Seeding aktiviert ist, werden die Dateien des Tilesets im Ressourcen-Store im
+ *     Verzeichnis `tiles3d/{apiId}/building/` abgelegt.
  * @conformanceEn *3D Tiles* implements support for the OGC Community Standard [3D Tiles
  *     1.1](https://docs.ogc.org/cs/22-025r4/22-025r4.html). glTF is the only supported tile format.
  *     All tilesets use implicit quadtree tiling.

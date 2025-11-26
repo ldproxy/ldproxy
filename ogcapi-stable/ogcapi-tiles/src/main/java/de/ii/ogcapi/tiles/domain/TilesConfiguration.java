@@ -34,21 +34,9 @@ import org.immutables.value.Value;
 /**
  * @buildingBlock TILES
  * @langEn ### Prerequisites
- *     <p>The building block *Tile Matrix Sets* must be enabled
- *     <p>### Storage
- *     <p>The tile cache is located in the [Store](../../application/20-configuration/10-store-new.md) as resource with path
- *       `tiles/{apiId}`.
- *     <p>If the data for an API or tile configuration has been changed, then
- *     the cache directory for the API should be deleted so that the cache is rebuilt with the
- *     updated data or rules.
+ *     <p>The building block *Tile Matrix Sets* must be enabled.
  * @langDe ### Voraussetzungen
  *     <p>Der Baustein *Tile Matrix Sets* muss aktiviert sein.
- *     <p>### Storage
- *     <p>Der Tile-Cache liegt im [Store](../../application/20-configuration/10-store-new.md)
- *       als Ressource mit dem Pfad `tiles/{apiId}`.
- *     <p>Wenn die Daten zu einer API oder Kachelkonfiguration geändert wurden, dann sollte das
- *     Cache-Verzeichnis für die API gelöscht werden, damit der Cache mit den aktualisierten Daten
- *     oder Regeln neu aufgebaut wird.
  * @examplesEn Example of the specifications in the configuration file from the API for [Vineyards
  *     in Rhineland-Palatinate](https://demo.ldproxy.net/vineyards).
  *     <p>At API level (since there is only a single feature type, the dataset tileset is the same
