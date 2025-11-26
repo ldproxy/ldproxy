@@ -16,6 +16,11 @@ import org.immutables.value.Value;
 
 /**
  * @buildingBlock ADDITIONAL_METADATA
+ * @examplesAll <code>
+ * ```yaml
+ * - buildingBlock: ADDITIONAL_METADATA
+ *   enabled: true
+ * ```
  */
 @Value.Immutable
 @Value.Style(builder = "new")
