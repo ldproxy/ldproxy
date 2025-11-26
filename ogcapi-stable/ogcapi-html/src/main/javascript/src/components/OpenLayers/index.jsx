@@ -58,18 +58,26 @@ const OpenLayers = ({
   const [styleConfig, setStyleConfig] = React.useState(null);
 
   const onPointerEnter = useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature]);
-  const onPointerLeave = useCallback((e) => currentFeature === e.target && setCurrentFeature(null),
-   [currentFeature, setCurrentFeature]
+  const onPointerLeave = useCallback(
+    (e) => currentFeature === e.target && setCurrentFeature(null),
+    [currentFeature, setCurrentFeature]
   );
 
   useEffect(() => {
-    if (effectiveStyleUrl) {
-      fetch(effectiveStyleUrl)
+    if (effectiveStyleUrl && currentTileMatrixSet) {
+      let updatedStyleUrl = effectiveStyleUrl;
+      if (currentTileMatrixSet !== "WebMercatorQuad") {
+        updatedStyleUrl = `${effectiveStyleUrl}${
+          effectiveStyleUrl.includes("?") ? "&" : "?"
+        }tile-matrix-set=${currentTileMatrixSet}`;
+      }
+      fetch(updatedStyleUrl)
         .then((response) => response.json())
         .then((style) => {
           const config = {
             center: style.center,
             zoom: style.zoom,
+            styleObject: style,
           };
           if (style.sources) {
             const sourceWithBounds = Object.values(style.sources).find((s) => s.bounds);
@@ -87,10 +95,10 @@ const OpenLayers = ({
         })
         .catch((error) => {
           console.error("[OpenLayers] Failed to load style configuration:", error);
-          setStyleConfig({});
+          setStyleConfig(null);
         });
     }
-  }, [effectiveStyleUrl]);
+  }, [effectiveStyleUrl, currentTileMatrixSet]);
 
   const prevTMSRef = useRef();
   useEffect(() => {
@@ -163,7 +171,7 @@ const OpenLayers = ({
               tileMatrixSet={tms}
               dataUrl={dataUrl}
               dataType={dataType}
-              styleUrl={effectiveStyleUrl}
+              styleObject={styleConfig?.styleObject || undefined}
               update={previousTileMatrixSet !== currentTileMatrixSet}
             />
           </RLayerTile>
@@ -180,7 +188,7 @@ const OpenLayers = ({
               tileMatrixSet={tms}
               dataUrl={dataUrl}
               dataType={dataType}
-              styleUrl={effectiveStyleUrl}
+              styleObject={styleConfig?.styleObject || undefined}
               update={previousTileMatrixSet !== currentTileMatrixSet}
             />
           </RLayerVectorTile>
