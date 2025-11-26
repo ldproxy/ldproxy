@@ -77,6 +77,8 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract boolean getGmlIdOnGeometries();
 
+  public abstract boolean getSrsDimension();
+
   public abstract List<String> getXmlAttributes();
 
   public abstract Optional<String> getGmlIdPrefix();
