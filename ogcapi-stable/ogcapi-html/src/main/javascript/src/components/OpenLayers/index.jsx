@@ -62,20 +62,6 @@ const OpenLayers = ({
     (e) => currentFeature === e.target && setCurrentFeature(null),
     [currentFeature, setCurrentFeature]
   );
-  const prevBackgroundUrlRef = useRef();
-  const [backgroundUrlVersion, setBackgroundUrlVersion] = React.useState(0);
-  const prevBackgroundUrlVersionRef = useRef(0);
-
-  useEffect(() => {
-    if (styleConfig?.backgroundUrl !== prevBackgroundUrlRef.current) {
-      setBackgroundUrlVersion((v) => v + 1);
-      prevBackgroundUrlRef.current = styleConfig?.backgroundUrl;
-    }
-  }, [styleConfig?.backgroundUrl]);
-
-  useEffect(() => {
-    prevBackgroundUrlVersionRef.current = backgroundUrlVersion;
-  }, [backgroundUrlVersion]);
 
   useEffect(() => {
     if (effectiveStyleUrl && currentTileMatrixSet) {
@@ -109,7 +95,7 @@ const OpenLayers = ({
         })
         .catch((error) => {
           console.error("[OpenLayers] Failed to load style configuration:", error);
-          setStyleConfig(null);
+          setStyleConfig({});
         });
     }
   }, [effectiveStyleUrl, currentTileMatrixSet]);
@@ -129,7 +115,10 @@ const OpenLayers = ({
   }
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  globalThis._map.setCurrentTileMatrixSet = setCurrentTileMatrixSet;
+  globalThis._map.setCurrentTileMatrixSet = (tms) => {
+    setStyleConfig(null);
+    setCurrentTileMatrixSet(tms);
+  };
 
   const baseUrl = backgroundUrl.indexOf("{s}")
     ? backgroundUrl.replace(/\{s\}/, "{a-c}")
@@ -184,10 +173,7 @@ const OpenLayers = ({
             dataUrl={styleConfig.backgroundUrl || baseUrl}
             dataType="raster"
             styleObject={undefined}
-            update={
-              previousTileMatrixSet !== currentTileMatrixSet ||
-              backgroundUrlVersion !== prevBackgroundUrlVersionRef.current
-            }
+            update={previousTileMatrixSet !== currentTileMatrixSet}
           />
         </RLayerTile>
         {dataType === "raster" && (

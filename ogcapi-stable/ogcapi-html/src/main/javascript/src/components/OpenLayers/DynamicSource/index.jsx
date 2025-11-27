@@ -9,35 +9,33 @@ import { MVT } from "ol/format";
 const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleObject }) => (
   <RContext.Consumer>
     {({ layer }) => {
-      if (tileMatrixSet) {
-        if (update) {
-          layer.set(
-            "source",
-            dataType === "raster"
-              ? new XYZSource({
-                  url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
-                  maxZoom: tileMatrixSet.maxLevel,
-                  projection: tileMatrixSet.projection,
-                  tileGrid: new TileGrid({
-                    extent: JSON.parse(tileMatrixSet.extent),
-                    resolutions: JSON.parse(tileMatrixSet.resolutions),
-                    sizes: JSON.parse(tileMatrixSet.sizes),
-                  }),
-                })
-              : new VectorTileSource({
-                  url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
-                  format: new MVT(),
-                  maxZoom: tileMatrixSet.maxLevel,
-                  projection: tileMatrixSet.projection,
-                  tileGrid: new TileGrid({
-                    extent: JSON.parse(tileMatrixSet.extent),
-                    resolutions: JSON.parse(tileMatrixSet.resolutions),
-                    sizes: JSON.parse(tileMatrixSet.sizes),
-                  }),
-                })
-          );
-        }
-        if (styleObject) {
+      if (tileMatrixSet && update) {
+        layer.set(
+          "source",
+          dataType === "raster"
+            ? new XYZSource({
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
+                maxZoom: tileMatrixSet.maxLevel,
+                projection: tileMatrixSet.projection,
+                tileGrid: new TileGrid({
+                  extent: JSON.parse(tileMatrixSet.extent),
+                  resolutions: JSON.parse(tileMatrixSet.resolutions),
+                  sizes: JSON.parse(tileMatrixSet.sizes),
+                }),
+              })
+            : new VectorTileSource({
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
+                format: new MVT(),
+                maxZoom: tileMatrixSet.maxLevel,
+                projection: tileMatrixSet.projection,
+                tileGrid: new TileGrid({
+                  extent: JSON.parse(tileMatrixSet.extent),
+                  resolutions: JSON.parse(tileMatrixSet.resolutions),
+                  sizes: JSON.parse(tileMatrixSet.sizes),
+                }),
+              })
+        );
+        if (styleObject && styleObject.sources) {
           const sourceName = Object.entries(styleObject.sources).find(
             ([, source]) => source.type === "vector"
           )?.[0];
