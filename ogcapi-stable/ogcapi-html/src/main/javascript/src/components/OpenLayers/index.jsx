@@ -15,6 +15,7 @@ import "./custom.css";
 setupProjections();
 
 function getRasterBackgroundAndAttributions(style) {
+  let rasterBackgroundId;
   let rasterBackgroundUrl;
   const usedSourceKeys = [];
   const attributionsList = [];
@@ -27,6 +28,7 @@ function getRasterBackgroundAndAttributions(style) {
       if (i === 0 && layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
         const [firstTile] = source.tiles || [];
         rasterBackgroundUrl = firstTile;
+        rasterBackgroundId = key;
       }
       if (source?.attribution) {
         attributionsList.push(source.attribution);
@@ -35,6 +37,7 @@ function getRasterBackgroundAndAttributions(style) {
   });
 
   return {
+    rasterBackgroundId,
     rasterBackgroundUrl,
     combinedAttribution: attributionsList.join(" | "),
   };
@@ -86,8 +89,9 @@ const OpenLayers = ({
             }
           }
 
-          const { rasterBackgroundUrl, combinedAttribution } =
+          const { rasterBackgroundId, rasterBackgroundUrl, combinedAttribution } =
             getRasterBackgroundAndAttributions(style);
+          if (rasterBackgroundId) config.backgroundId = rasterBackgroundId;
           if (rasterBackgroundUrl) config.backgroundUrl = rasterBackgroundUrl;
           if (combinedAttribution) config.attributions = combinedAttribution;
 
@@ -159,6 +163,9 @@ const OpenLayers = ({
     initial = { center: getCenter(extent), zoom: 6 };
   }
 
+  const backgroundTms = styleConfig?.styleObject?.metadata?.["ldproxy:tileMatrixSets"]?.[styleConfig.backgroundId];
+  const applyTmsToBackground = !!backgroundTms && backgroundTms !== "WebMercatorQuad";
+
   return (
     <>
       <RMap width="100%" height="100%" initial={initial} noDefaultControls>
@@ -168,13 +175,15 @@ const OpenLayers = ({
           url={styleConfig.backgroundUrl || baseUrl}
           attributions={styleConfig?.attributions || attribution}
         >
-          <DynamicSource
-            tileMatrixSet={tms}
-            dataUrl={styleConfig.backgroundUrl || baseUrl}
-            dataType="raster"
-            styleObject={undefined}
-            update={previousTileMatrixSet !== currentTileMatrixSet}
-          />
+          {applyTmsToBackground && (
+            <DynamicSource
+              tileMatrixSet={tms}
+              dataUrl={styleConfig.backgroundUrl || baseUrl}
+              dataType="raster"
+              styleObject={undefined}
+              update={previousTileMatrixSet !== currentTileMatrixSet}
+            />
+          )}
         </RLayerTile>
         {dataType === "raster" && (
           <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
