@@ -75,7 +75,7 @@ const OpenLayers = ({
 
   useEffect(() => {
     prevBackgroundUrlVersionRef.current = backgroundUrlVersion;
-  });
+  }, [backgroundUrlVersion]);
 
   useEffect(() => {
     if (effectiveStyleUrl && currentTileMatrixSet) {
