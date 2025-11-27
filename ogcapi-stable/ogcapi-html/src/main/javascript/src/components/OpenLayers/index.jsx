@@ -62,6 +62,20 @@ const OpenLayers = ({
     (e) => currentFeature === e.target && setCurrentFeature(null),
     [currentFeature, setCurrentFeature]
   );
+  const prevBackgroundUrlRef = useRef();
+  const [backgroundUrlVersion, setBackgroundUrlVersion] = React.useState(0);
+  const prevBackgroundUrlVersionRef = useRef(0);
+
+  useEffect(() => {
+    if (styleConfig?.backgroundUrl !== prevBackgroundUrlRef.current) {
+      setBackgroundUrlVersion((v) => v + 1);
+      prevBackgroundUrlRef.current = styleConfig?.backgroundUrl;
+    }
+  }, [styleConfig?.backgroundUrl]);
+
+  useEffect(() => {
+    prevBackgroundUrlVersionRef.current = backgroundUrlVersion;
+  });
 
   useEffect(() => {
     if (effectiveStyleUrl && currentTileMatrixSet) {
@@ -162,9 +176,20 @@ const OpenLayers = ({
         <DynamicView tileMatrixSet={tms} update={previousTileMatrixSet !== currentTileMatrixSet} />
         <RLayerTile
           properties={{ label: "Base map" }}
-          url={styleConfig?.backgroundUrl || baseUrl}
+          url={styleConfig.backgroundUrl || baseUrl}
           attributions={styleConfig?.attributions || attribution}
-        />
+        >
+          <DynamicSource
+            tileMatrixSet={tms}
+            dataUrl={styleConfig.backgroundUrl || baseUrl}
+            dataType="raster"
+            styleObject={undefined}
+            update={
+              previousTileMatrixSet !== currentTileMatrixSet ||
+              backgroundUrlVersion !== prevBackgroundUrlVersionRef.current
+            }
+          />
+        </RLayerTile>
         {dataType === "raster" && (
           <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
             <DynamicSource
