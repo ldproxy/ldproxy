@@ -1,5 +1,5 @@
 [versions]
-xtraplatform-core    = '6.5.1'
+xtraplatform-core    = '6.5.1-maintenance-6.5-SNAPSHOT'
 xtraplatform-native  = '2.5.0'
-xtraplatform-spatial = '7.5.1'
+xtraplatform-spatial = '7.5.1-maintenance-7.5-SNAPSHOT'
 
