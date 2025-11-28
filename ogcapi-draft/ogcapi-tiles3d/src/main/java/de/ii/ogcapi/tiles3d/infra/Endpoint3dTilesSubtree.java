@@ -9,7 +9,6 @@ package de.ii.ogcapi.tiles3d.infra;
 
 import static de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsQueriesHandler.GROUP_TILES_READ;
 
-import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
@@ -47,7 +46,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -65,8 +63,8 @@ import org.slf4j.LoggerFactory;
  * @langDe Zugriff auf eine 3D-Tiles 1.1 Subtree-Datei.
  * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesSubtree}
  */
-@Singleton
-@AutoBind
+// @Singleton
+// @AutoBind
 public class Endpoint3dTilesSubtree extends EndpointSubCollection implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesSubtree.class);

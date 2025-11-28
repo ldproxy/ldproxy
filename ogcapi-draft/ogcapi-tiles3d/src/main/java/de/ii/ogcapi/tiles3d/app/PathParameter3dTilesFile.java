@@ -24,20 +24,20 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * @title content
- * @endpoints 3D Tiles Content
- * @langEn The file name of the tile.
- * @langDe Der Dateiname der Kachel.
+ * @title subPath
+ * @endpoints 3D Tiles file
+ * @langEn The file name.
+ * @langDe Der Dateiname.
  */
 @Singleton
 @AutoBind
-public class PathParameterContentExplicit implements OgcApiPathParameter {
+public class PathParameter3dTilesFile implements OgcApiPathParameter {
 
   private final SchemaValidator schemaValidator;
   private final Schema<?> schema = new StringSchema();
 
   @Inject
-  PathParameterContentExplicit(SchemaValidator schemaValidator) {
+  PathParameter3dTilesFile(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
@@ -63,18 +63,18 @@ public class PathParameterContentExplicit implements OgcApiPathParameter {
 
   @Override
   public String getName() {
-    return "content";
+    return "subPath";
   }
 
   @Override
   public String getDescription() {
-    return "The file name of the tile.";
+    return "The file name.";
   }
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
-        && "/collections/{collectionId}/3dtiles/{content}".equals(definitionPath);
+        && "/collections/{collectionId}/3dtiles/{subPath}".equals(definitionPath);
   }
 
   @Override

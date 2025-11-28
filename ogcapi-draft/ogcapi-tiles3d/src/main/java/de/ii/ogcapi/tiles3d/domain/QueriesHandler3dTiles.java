@@ -23,6 +23,7 @@ public interface QueriesHandler3dTiles
 
   enum Query implements QueryIdentifier {
     TILESET,
+    FILE,
     CONTENT,
     SUBTREE
   }
@@ -52,8 +53,8 @@ public interface QueriesHandler3dTiles
   }
 
   @Value.Immutable
-  interface QueryInputContentExplicit extends QueryInputContent {
-    String getContent();
+  interface QueryInputFile extends QueryInputContent {
+    String getPath();
   }
 
   @Value.Immutable
