@@ -122,6 +122,8 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
                         .orElse(false))
             .orElse(false)
         && context.geometry() != null) {
+      startIfNecessary(context);
+
       context.encoding().getJson().writeFieldName(context.schema().get().getName());
       context
           .geometry()
