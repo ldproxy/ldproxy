@@ -27,8 +27,8 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.tiles3d.app.FormatAny;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
-import de.ii.ogcapi.tiles3d.domain.Format3dTilesContent;
 import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputFile;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
@@ -84,11 +84,7 @@ public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiEx
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return super.isEnabledForApi(apiData, collectionId) /*
-        && tile3dProviders
-            .getTileset3dMetadata(apiData, apiData.getCollectionData(collectionId).orElse(null))
-            .map(tileset3d1 -> tileset3d1.getRoot().getImplicitTiling().isEmpty())
-            .orElse(false)*/;
+    return super.isEnabledForApi(apiData, collectionId);
   }
 
   @Override
@@ -98,10 +94,7 @@ public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiEx
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(Format3dTilesContent.class);
-    }
-    return formats;
+    return List.of(FormatAny.INSTANCE);
   }
 
   @Override

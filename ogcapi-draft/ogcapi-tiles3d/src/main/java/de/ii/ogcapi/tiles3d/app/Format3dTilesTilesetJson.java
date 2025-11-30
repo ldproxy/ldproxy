@@ -19,7 +19,6 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.ogcapi.tiles3d.domain.Tileset;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
@@ -63,7 +62,7 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schema)
         .referencedSchemas(referencedSchemas)
-        .schemaRef(Tileset.SCHEMA_REF)
+        .schemaRef(Tileset3d.SCHEMA_REF)
         .ogcApiMediaType(MEDIA_TYPE)
         .build();
   }

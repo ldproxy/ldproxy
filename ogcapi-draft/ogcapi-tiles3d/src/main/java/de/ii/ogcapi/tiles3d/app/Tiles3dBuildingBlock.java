@@ -77,12 +77,10 @@ import javax.inject.Singleton;
  * @ref:cfg {@link de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.tiles3d.domain.ImmutableTiles3dConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.tiles3d.infra.Endpoint3dTilesTileset}, {@link
- *     de.ii.ogcapi.tiles3d.infra.Endpoint3dTilesSubtree}, {@link
- *     de.ii.ogcapi.tiles3d.infra.Endpoint3dTilesContent}
+ *     de.ii.ogcapi.tiles3d.infra.Endpoint3dTilesFiles}
  * @ref:queryParameters {@link de.ii.ogcapi.tiles3d.app.QueryParameterFTileset}
  * @ref:pathParameters {@link de.ii.ogcapi.tiles3d.app.PathParameterCollectionId3dTiles}, {@link
- *     de.ii.ogcapi.tiles3d.app.PathParameterLevel}, {@link
- *     de.ii.ogcapi.tiles3d.app.PathParameterX}, {@link de.ii.ogcapi.tiles3d.app.PathParameterY}
+ *     de.ii.ogcapi.tiles3d.app.PathParameter3dTilesFile}
  */
 @AutoBind
 @Singleton

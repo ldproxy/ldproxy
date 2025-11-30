@@ -13,8 +13,10 @@ import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -36,9 +38,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 public final class Tiles3dContentUtil {
+
+  public static final ApiMediaType MEDIA_TYPE =
+      new ImmutableApiMediaType.Builder()
+          .type(new MediaType("model", "gltf-binary"))
+          .label("glTF-Binary")
+          .parameter("glb")
+          .build();
 
   private Tiles3dContentUtil() {}
 
@@ -156,7 +166,7 @@ public final class Tiles3dContentUtil {
                 // query parameters have been evaluated and are not necessary here
                 .build())
         .queryParameterSet(queryParameterSet)
-        .mediaType(Format3dTilesContentGltfBinary.MEDIA_TYPE)
+        .mediaType(MEDIA_TYPE)
         .alternateMediaTypes(ImmutableList.of())
         .build();
   }
