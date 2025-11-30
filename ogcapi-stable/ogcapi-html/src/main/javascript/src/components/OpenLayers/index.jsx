@@ -14,6 +14,35 @@ import "./custom.css";
 
 setupProjections();
 
+function getRasterBackgroundAndAttributions(style) {
+  let rasterBackgroundId;
+  let rasterBackgroundUrl;
+  const usedSourceKeys = [];
+  const attributionsList = [];
+
+  style.layers?.forEach((layer, i) => {
+    const key = layer.source;
+    if (key && !usedSourceKeys.includes(key)) {
+      usedSourceKeys.push(key);
+      const source = style.sources[key];
+      if (i === 0 && layer.type === "raster" && source?.tiles && !rasterBackgroundUrl) {
+        const [firstTile] = source.tiles || [];
+        rasterBackgroundUrl = firstTile;
+        rasterBackgroundId = key;
+      }
+      if (source?.attribution) {
+        attributionsList.push(source.attribution);
+      }
+    }
+  });
+
+  return {
+    rasterBackgroundId,
+    rasterBackgroundUrl,
+    combinedAttribution: attributionsList.join(" | "),
+  };
+}
+
 const OpenLayers = ({
   backgroundUrl,
   bounds,
@@ -29,14 +58,71 @@ const OpenLayers = ({
   const [currentTileMatrixSet, setCurrentTileMatrixSet] = React.useState(
     tileMatrixSets[0] ? tileMatrixSets[0].tileMatrixSet : null
   );
+  const [styleConfig, setStyleConfig] = React.useState(null);
+
+  const onPointerEnter = useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature]);
+  const onPointerLeave = useCallback(
+    (e) => currentFeature === e.target && setCurrentFeature(null),
+    [currentFeature, setCurrentFeature]
+  );
+
+  useEffect(() => {
+    if (effectiveStyleUrl && currentTileMatrixSet) {
+      let updatedStyleUrl = effectiveStyleUrl;
+      if (currentTileMatrixSet !== "WebMercatorQuad") {
+        updatedStyleUrl = `${effectiveStyleUrl}${
+          effectiveStyleUrl.includes("?") ? "&" : "?"
+        }tile-matrix-set=${currentTileMatrixSet}`;
+      }
+      fetch(updatedStyleUrl)
+        .then((response) => response.json())
+        .then((style) => {
+          const config = {
+            center: style.center,
+            zoom: style.zoom,
+            styleObject: style,
+          };
+          if (style.sources) {
+            const sourceWithBounds = Object.values(style.sources).find((s) => s.bounds);
+            if (sourceWithBounds && sourceWithBounds.bounds) {
+              config.bounds = sourceWithBounds.bounds;
+            }
+          }
+
+          const { rasterBackgroundId, rasterBackgroundUrl, combinedAttribution } =
+            getRasterBackgroundAndAttributions(style);
+          if (rasterBackgroundId) config.backgroundId = rasterBackgroundId;
+          if (rasterBackgroundUrl) config.backgroundUrl = rasterBackgroundUrl;
+          if (combinedAttribution) config.attributions = combinedAttribution;
+
+          setStyleConfig(config);
+        })
+        .catch((error) => {
+          console.error("[OpenLayers] Failed to load style configuration:", error);
+          setStyleConfig({});
+        });
+    }
+  }, [effectiveStyleUrl, currentTileMatrixSet]);
+
   const prevTMSRef = useRef();
   useEffect(() => {
-    prevTMSRef.current = currentTileMatrixSet;
-  });
+    // only update previous TMS if style is not used or style is already loaded
+    if (!effectiveStyleUrl || styleConfig) {
+      prevTMSRef.current = currentTileMatrixSet;
+    }
+  }, [currentTileMatrixSet, effectiveStyleUrl, styleConfig]);
   const previousTileMatrixSet = prevTMSRef.current;
 
+  // Wait until style is loaded if styleUrl is provided
+  if (effectiveStyleUrl && !styleConfig) {
+    return null;
+  }
+
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  globalThis._map.setCurrentTileMatrixSet = setCurrentTileMatrixSet;
+  globalThis._map.setCurrentTileMatrixSet = (tms) => {
+    setStyleConfig(null);
+    setCurrentTileMatrixSet(tms);
+  };
 
   const baseUrl = backgroundUrl.indexOf("{s}")
     ? backgroundUrl.replace(/\{s\}/, "{a-c}")
@@ -46,7 +132,28 @@ const OpenLayers = ({
 
   const tms = tileMatrixSets.find((tms1) => tms1.tileMatrixSet === currentTileMatrixSet);
 
-  if (tms) {
+  if (effectiveStyleUrl && styleConfig) {
+    if (styleConfig.center) {
+      initial = {
+        center: fromLonLat(styleConfig.center),
+        zoom: styleConfig.zoom || 0,
+      };
+    } else if (styleConfig.bounds && styleConfig.bounds.length === 4) {
+      const boundsExtent = boundingExtent([
+        fromLonLat([styleConfig.bounds[0], styleConfig.bounds[1]]),
+        fromLonLat([styleConfig.bounds[2], styleConfig.bounds[3]]),
+      ]);
+      initial = {
+        center: getCenter(boundsExtent),
+        zoom: styleConfig.zoom || 0,
+      };
+    } else {
+      initial = {
+        center: fromLonLat([0, 0]),
+        zoom: styleConfig.zoom || 0,
+      };
+    }
+  } else if (tms) {
     initial = {
       center: fromLonLat([tms.defaultCenterLon, tms.defaultCenterLat]),
       zoom: tms.defaultZoomLevel,
@@ -56,18 +163,35 @@ const OpenLayers = ({
     initial = { center: getCenter(extent), zoom: 6 };
   }
 
+  const backgroundTms = styleConfig?.styleObject?.metadata?.["ldproxy:tileMatrixSets"]?.[styleConfig.backgroundId];
+  const applyTmsToBackground = !!backgroundTms && backgroundTms !== "WebMercatorQuad";
+
   return (
     <>
       <RMap width="100%" height="100%" initial={initial} noDefaultControls>
         <DynamicView tileMatrixSet={tms} update={previousTileMatrixSet !== currentTileMatrixSet} />
-        <RLayerTile properties={{ label: "Base map" }} url={baseUrl} attributions={attribution} />
+        <RLayerTile
+          properties={{ label: "Base map" }}
+          url={styleConfig.backgroundUrl || baseUrl}
+          attributions={styleConfig?.attributions || attribution}
+        >
+          {applyTmsToBackground && (
+            <DynamicSource
+              tileMatrixSet={tms}
+              dataUrl={styleConfig.backgroundUrl || baseUrl}
+              dataType="raster"
+              styleObject={undefined}
+              update={previousTileMatrixSet !== currentTileMatrixSet}
+            />
+          )}
+        </RLayerTile>
         {dataType === "raster" && (
           <RLayerTile properties={{ label: "Vector tiles" }} url={dataUrl}>
             <DynamicSource
               tileMatrixSet={tms}
               dataUrl={dataUrl}
               dataType={dataType}
-              styleUrl={effectiveStyleUrl}
+              styleObject={styleConfig?.styleObject || undefined}
               update={previousTileMatrixSet !== currentTileMatrixSet}
             />
           </RLayerTile>
@@ -77,19 +201,14 @@ const OpenLayers = ({
             properties={{ label: "Vector tiles" }}
             url={dataUrl}
             format={new MVT()}
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            onPointerEnter={useCallback((e) => setCurrentFeature(e.target), [setCurrentFeature])}
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            onPointerLeave={useCallback(
-              (e) => currentFeature === e.target && setCurrentFeature(null),
-              [currentFeature, setCurrentFeature]
-            )}
+            onPointerEnter={onPointerEnter}
+            onPointerLeave={onPointerLeave}
           >
             <DynamicSource
               tileMatrixSet={tms}
               dataUrl={dataUrl}
               dataType={dataType}
-              styleUrl={effectiveStyleUrl}
+              styleObject={styleConfig?.styleObject || undefined}
               update={previousTileMatrixSet !== currentTileMatrixSet}
             />
           </RLayerVectorTile>

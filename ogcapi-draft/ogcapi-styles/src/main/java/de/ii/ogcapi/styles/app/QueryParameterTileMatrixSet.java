@@ -28,9 +28,11 @@ import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -94,29 +96,13 @@ public class QueryParameterTileMatrixSet extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return new StringSchema()
-        ._enum(
-            tilesProviders.getTilesetMetadataOrThrow(apiData).getTileMatrixSets().stream()
-                .filter(
-                    tmsId ->
-                        tileMatrixSetRepository
-                            .get(tmsId)
-                            .filter(TileMatrixSet::isQuadTree)
-                            .isPresent())
-                .sorted()
-                .toList());
+    return new StringSchema()._enum(getTileMatrixSets(apiData, Optional.empty()));
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
     return new StringSchema()
-        ._enum(
-            tilesProviders
-                .getTilesetMetadataOrThrow(apiData, apiData.getCollectionData(collectionId))
-                .getTileMatrixSets()
-                .stream()
-                .sorted()
-                .toList());
+        ._enum(getTileMatrixSets(apiData, apiData.getCollectionData(collectionId)));
   }
 
   @Override
@@ -132,7 +118,8 @@ public class QueryParameterTileMatrixSet extends OgcApiQueryParameterBase
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
     return isExtensionEnabled(apiData, TilesConfiguration.class, TilesConfiguration::isEnabled)
-        && isExtensionEnabled(apiData, StylesConfiguration.class, StylesConfiguration::isEnabled);
+        && isExtensionEnabled(apiData, StylesConfiguration.class, StylesConfiguration::isEnabled)
+        && getTileMatrixSets(apiData, Optional.empty()).size() > 1;
   }
 
   @Override
@@ -142,7 +129,8 @@ public class QueryParameterTileMatrixSet extends OgcApiQueryParameterBase
         && isExtensionEnabled(
             collectionData, TilesConfiguration.class, TilesConfiguration::isEnabled)
         && isExtensionEnabled(
-            collectionData, StylesConfiguration.class, StylesConfiguration::isEnabled);
+            collectionData, StylesConfiguration.class, StylesConfiguration::isEnabled)
+        && getTileMatrixSets(apiData, Optional.of(collectionData)).size() > 1;
   }
 
   @Override
@@ -166,9 +154,7 @@ public class QueryParameterTileMatrixSet extends OgcApiQueryParameterBase
       Map<String, Object> typedValues,
       OgcApi api,
       Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData) {
-    TilesetMetadata tilesetMetadata =
-        tilesProviders.getTilesetMetadataOrThrow(api.getData(), optionalCollectionData);
-    return tilesetMetadata.getTileMatrixSets().stream()
+    return getTileMatrixSets(api.getData(), optionalCollectionData).stream()
         .filter(tmsId -> tmsId.equals(value))
         .map(tileMatrixSetRepository::get)
         .filter(Optional::isPresent)
@@ -180,5 +166,19 @@ public class QueryParameterTileMatrixSet extends OgcApiQueryParameterBase
   @Override
   public void applyTo(ImmutableQueryInputStyle.Builder builder, QueryParameterSet parameters) {
     parameters.getValue(this).ifPresent(builder::tileMatrixSet);
+  }
+
+  private List<String> getTileMatrixSets(
+      OgcApiDataV2 apiData, Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData) {
+    return tilesProviders
+        .getTilesetMetadata(apiData, optionalCollectionData)
+        .map(TilesetMetadata::getTileMatrixSets)
+        .orElse(Set.of())
+        .stream()
+        .filter(
+            tmsId ->
+                tileMatrixSetRepository.get(tmsId).filter(TileMatrixSet::isQuadTree).isPresent())
+        .sorted()
+        .toList();
   }
 }
