@@ -15,11 +15,27 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * @buildingBlock MCP
+ * @buildingBlock MCP * @langEn ### Purpose *
+ *     <p>The MCP building block enables the creation of an MCP schema, which allows ldproxy to be
+ *     used with Large Language Models (LLMs). *
+ *     <p>This configuration controls which collections and queries are included or excluded in the
+ *     MCP schema. * @langDe ### Zweck *
+ *     <p>Der MCP-BuildingBlock dient dazu, ein MCP-Schema zu erstellen, sodass ldproxy mit Large
+ *     Language Models (LLMs) genutzt werden kann. *
+ *     <p>Über diese Konfiguration wird gesteuert, welche Collections und Queries im MCP-Schema
+ *     enthalten oder ausgeschlossen sind.
  * @examplesAll <code>
  * ```yaml
  * - buildingBlock: MCP
  *   enabled: true
+ *      included:
+ *      collections:
+ *        - "*"
+ *      queries:
+ *        - "*"
+ *    excluded:
+ *      collections:
+ *        - "collection_to_exclude"
  * ```
  * </code>
  */
@@ -29,16 +45,16 @@ import org.immutables.value.Value;
 public interface McpConfiguration extends ExtensionConfiguration {
 
   /**
-   * @langEn TODO
-   * @langDe TODO
+   * @langEn Specifies which collections and queries should be included in the MCP schema.
+   * @langDe Gibt an, welche Collections und Queries ins MCP-Schema übernommen werden sollen.
    * @default []
    * @since v4.6
    */
   Optional<McpIncludeExclude> getIncluded();
 
   /**
-   * @langEn TODO
-   * @langDe TODO
+   * @langEn Specifies which collections and queries should be excluded from the MCP schema.
+   * @langDe Gibt an, welche Collections und Queries vom MCP-Schema ausgeschlossen werden sollen.
    * @default []
    * @since v4.6
    */
@@ -49,16 +65,16 @@ public interface McpConfiguration extends ExtensionConfiguration {
   interface McpIncludeExclude {
 
     /**
-     * @langEn TODO
-     * @langDe TODO
+     * @langEn List of collection IDs to be included or excluded.
+     * @langDe Liste der Collection-IDs, die eingeschlossen oder ausgeschlossen werden sollen.
      * @default []
      * @since v4.6
      */
     List<String> getCollections();
 
     /**
-     * @langEn TODO
-     * @langDe TODO
+     * @langEn List of query IDs to be included or excluded.
+     * @langDe Liste der Query-IDs, die eingeschlossen oder ausgeschlossen werden sollen.
      * @default []
      * @since v4.6
      */
