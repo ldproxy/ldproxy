@@ -52,7 +52,7 @@ public abstract class TilesetView extends OgcApiView {
 
   public abstract Optional<BoundingBox> spatialExtent();
 
-  public abstract String collectionId();
+  public abstract Optional<String> collectionId();
 
   @Value.Derived
   @Override
@@ -88,11 +88,12 @@ public abstract class TilesetView extends OgcApiView {
 
   public CesiumData3dTiles cesiumData() {
     Tiles3dConfiguration tiles3dConfig =
-        apiData().getExtension(Tiles3dConfiguration.class, collectionId()).orElseThrow();
+        collectionId().isPresent()
+            ? apiData().getExtension(Tiles3dConfiguration.class, collectionId().get()).orElseThrow()
+            : apiData().getExtension(Tiles3dConfiguration.class).orElseThrow();
     return new CesiumData3dTiles(
         tilesetJson(),
         spatialExtent(),
-        tiles3dConfig.shouldClampToEllipsoid(),
         tiles3dConfig.getIonAccessToken(),
         tiles3dConfig.getMaptilerApiKey(),
         tiles3dConfig.getCustomTerrainProviderUri(),

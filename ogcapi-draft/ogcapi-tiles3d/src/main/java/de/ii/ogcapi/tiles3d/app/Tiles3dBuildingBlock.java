@@ -8,6 +8,7 @@
 package de.ii.ogcapi.tiles3d.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -150,6 +151,13 @@ public class Tiles3dBuildingBlock implements ApiBuildingBlock, ApiExtensionHealt
                   Tile3dProviders.to3dTilesId(apiData.getId())));
         }
       }
+    }
+
+    if (!isExtensionEnabled(apiData, FeaturesCoreConfiguration.class)) {
+      tile3dProviders
+          .getTileset3dMetadata(api.getData())
+          .flatMap(tileset3d -> tileset3d.getRoot().getBoundingVolume().toBoundingBox())
+          .ifPresent(api::setSpatialExtent);
     }
 
     /*if (apiValidation == MODE.NONE) {

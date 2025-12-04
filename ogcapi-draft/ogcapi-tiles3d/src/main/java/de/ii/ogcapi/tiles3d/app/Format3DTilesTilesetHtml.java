@@ -94,7 +94,7 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
   public Object getEntity(
       Tileset3d tileset,
       List<Link> links,
-      String collectionId,
+      Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
 
@@ -103,14 +103,20 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
             .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new));
     String serviceUrl = uriCustomizer.toString();
     Tiles3dConfiguration tiles3dConfig =
-        api.getData().getExtension(Tiles3dConfiguration.class, collectionId).orElseThrow();
+        collectionId.isPresent()
+            ? api.getData()
+                .getExtension(Tiles3dConfiguration.class, collectionId.get())
+                .orElseThrow()
+            : api.getData().getExtension(Tiles3dConfiguration.class).orElseThrow();
     HtmlConfiguration htmlConfig =
-        api.getData().getExtension(HtmlConfiguration.class, collectionId).orElseThrow();
+        collectionId.isPresent()
+            ? api.getData().getExtension(HtmlConfiguration.class, collectionId.get()).orElseThrow()
+            : api.getData().getExtension(HtmlConfiguration.class).orElseThrow();
     Optional<String> styleUrl =
         Optional.ofNullable(
             styleReader.getStyleUrl(
                 Optional.of(Objects.requireNonNullElse(tiles3dConfig.getStyle(), "DEFAULT")),
-                Optional.of(collectionId),
+                collectionId,
                 api.getData().getId(),
                 serviceUrl,
                 MapClient.Type.CESIUM,

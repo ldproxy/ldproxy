@@ -47,7 +47,7 @@ public class QueryParameterTilesetVersion extends OgcApiQueryParameterBase {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/3dtiles/{subPath}");
+    return definitionPath.endsWith("/3dtiles/{subPath}");
   }
 
   @Override

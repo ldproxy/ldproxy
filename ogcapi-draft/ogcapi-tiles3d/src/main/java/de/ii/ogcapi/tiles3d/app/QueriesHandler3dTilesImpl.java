@@ -28,8 +28,6 @@ import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.LogContext;
-import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
-import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.blobs.domain.Blob;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
@@ -54,17 +52,14 @@ import javax.ws.rs.core.Response;
 
 @Singleton
 @AutoBind
-public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
-    implements QueriesHandler3dTiles {
+public class QueriesHandler3dTilesImpl implements QueriesHandler3dTiles {
 
   private final I18n i18n;
   private final Tile3dProviders tile3dProviders;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
 
   @Inject
-  public QueriesHandler3dTilesImpl(
-      I18n i18n, Tile3dProviders tile3dProviders, VolatileRegistry volatileRegistry) {
-    super(QueriesHandler3dTiles.class.getSimpleName(), volatileRegistry, true);
+  public QueriesHandler3dTilesImpl(I18n i18n, Tile3dProviders tile3dProviders) {
     this.i18n = i18n;
     this.tile3dProviders = tile3dProviders;
     this.queryHandlers =
@@ -72,11 +67,7 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
             Query.TILESET,
             QueryHandler.with(QueryInputTileset.class, this::getTilesetResponse),
             Query.FILE,
-            QueryHandler.with(QueryInputContent.class, this::getContentResponse));
-
-    onVolatileStart();
-
-    onVolatileStarted();
+            QueryHandler.with(QueryInputFile.class, this::getContentResponse));
   }
 
   @Override
@@ -96,18 +87,15 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
 
     final OgcApi api = requestContext.getApi();
     final OgcApiDataV2 apiData = api.getData();
-    final String collectionId = queryInput.getCollectionId();
-    final FeatureTypeConfigurationOgcApi collectionData =
-        apiData.getCollectionData(collectionId).orElseThrow();
+    final Optional<String> collectionId = queryInput.getCollectionId();
+    final Optional<FeatureTypeConfigurationOgcApi> collectionData =
+        collectionId.flatMap(apiData::getCollectionData);
 
-    if (!apiData.isCollectionEnabled(collectionId)) {
-      throw new NotFoundException(
-          MessageFormat.format("The collection ''{0}'' does not exist in this API.", collectionId));
+    if (collectionId.isPresent()) {
+      checkCollectionId(api.getData(), collectionId.get());
     }
 
     Format3dTilesTileset outputFormat = getFormat3dTilesTileset(requestContext, collectionId);
-
-    checkCollectionId(api.getData(), collectionId);
 
     Tileset3d tileset3d =
         tile3dProviders
@@ -119,15 +107,19 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
                     .copy()
                     .clearParameters()
                     .ensureTrailingSlash()
-                    .toString())
-            .withSchemaUri(
-                requestContext
-                    .getUriCustomizer()
-                    .copy()
-                    .clearParameters()
-                    .removeLastPathSegments(1)
-                    .ensureLastPathSegments("gltf", "schema")
                     .toString());
+
+    if (tile3dProviders.getTile3dProvider(apiData, Tile3dProvider::seeding).isPresent()) {
+      tileset3d =
+          tileset3d.withSchemaUri(
+              requestContext
+                  .getUriCustomizer()
+                  .copy()
+                  .clearParameters()
+                  .removeLastPathSegments(1)
+                  .ensureLastPathSegments("gltf", "schema")
+                  .toString());
+    }
 
     Date lastModified = getLastModified(queryInput);
     @SuppressWarnings("UnstableApiUsage")
@@ -156,11 +148,10 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
   }
 
   private Format3dTilesTileset getFormat3dTilesTileset(
-      ApiRequestContext requestContext, String collectionId) {
+      ApiRequestContext requestContext, Optional<String> collectionId) {
     return requestContext
         .getApi()
-        .getOutputFormat(
-            Format3dTilesTileset.class, requestContext.getMediaType(), Optional.of(collectionId))
+        .getOutputFormat(Format3dTilesTileset.class, requestContext.getMediaType(), collectionId)
         .orElseThrow(
             () ->
                 new NotAcceptableException(
@@ -169,24 +160,23 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
                         requestContext.getMediaType())));
   }
 
-  private Response getContentResponse(
-      QueryInputContent queryInput, ApiRequestContext requestContext) {
+  private Response getContentResponse(QueryInputFile queryInput, ApiRequestContext requestContext) {
     final OgcApiDataV2 apiData = requestContext.getApi().getData();
-    final String collectionId = queryInput.getCollectionId();
-    final FeatureTypeConfigurationOgcApi collectionData =
-        apiData.getCollectionData(collectionId).orElseThrow();
+    final Optional<String> collectionId = queryInput.getCollectionId();
+    final Optional<FeatureTypeConfigurationOgcApi> collectionData =
+        collectionId.flatMap(apiData::getCollectionData);
 
-    if (!apiData.isCollectionEnabled(collectionId)) {
-      throw new NotFoundException(
-          MessageFormat.format("The collection ''{0}'' does not exist in this API.", collectionId));
+    if (collectionId.isPresent()) {
+      checkCollectionId(apiData, collectionId.get());
     }
-
-    checkCollectionId(apiData, collectionId);
 
     Tile3dAccess tile3dAccess =
         tile3dProviders.getTile3dProviderOrThrow(apiData, collectionData, Tile3dProvider::access);
 
-    String tileset3dId = tile3dProviders.getTileset3dId(collectionData).orElseThrow();
+    String tileset3dId =
+        collectionData.isPresent()
+            ? tile3dProviders.getTileset3dId(collectionData.get()).orElseThrow()
+            : tile3dProviders.getTileset3dId(apiData).orElseThrow();
 
     try {
       Optional<Blob> tileResult = tile3dAccess.getFile(getContentQuery(tileset3dId, queryInput));
@@ -223,34 +213,24 @@ public class QueriesHandler3dTilesImpl extends AbstractVolatileComposed
     }
   }
 
-  private Tile3dQuery getContentQuery(String tileset3dId, QueryInputContent queryInput) {
-    if (queryInput instanceof QueryInputFile) {
-      String filePath = ((QueryInputFile) queryInput).getPath();
-
-      return ImmutableTile3dQuery.builder()
-          .tileset(tileset3dId)
-          .fileName(filePath)
-          .level(-1)
-          .col(-1)
-          .row(-1)
-          .build();
-    }
-
-    QueryInputContentImplicit queryInputImplicit = (QueryInputContentImplicit) queryInput;
+  private Tile3dQuery getContentQuery(String tileset3dId, QueryInputFile queryInput) {
+    String filePath = queryInput.getPath();
 
     return ImmutableTile3dQuery.builder()
         .tileset(tileset3dId)
-        .level(queryInputImplicit.getLevel())
-        .col(queryInputImplicit.getX())
-        .row(queryInputImplicit.getY())
+        .fileName(filePath)
+        .level(-1)
+        .col(-1)
+        .row(-1)
         .build();
   }
 
   private boolean shouldProvideEntityTag(
-      OgcApiDataV2 apiData, String collectionId, FormatExtension outputFormat) {
+      OgcApiDataV2 apiData, Optional<String> collectionId, FormatExtension outputFormat) {
     return !outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
-        || apiData
-            .getExtension(HtmlConfiguration.class, collectionId)
+        || (collectionId.isPresent()
+                ? apiData.getExtension(HtmlConfiguration.class, collectionId.get())
+                : apiData.getExtension(HtmlConfiguration.class))
             .map(HtmlConfiguration::getSendEtags)
             .orElse(false);
   }

@@ -73,8 +73,7 @@ public class PathParameter3dTilesFile implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData)
-        && "/collections/{collectionId}/3dtiles/{subPath}".equals(definitionPath);
+    return isEnabledForApi(apiData) && definitionPath.endsWith("/3dtiles/{subPath}");
   }
 
   @Override

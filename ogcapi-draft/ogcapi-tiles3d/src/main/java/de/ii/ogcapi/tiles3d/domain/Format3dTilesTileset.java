@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import java.util.List;
+import java.util.Optional;
 
 @AutoMultiBind
 public interface Format3dTilesTileset extends GenericFormatExtension {
@@ -21,7 +22,7 @@ public interface Format3dTilesTileset extends GenericFormatExtension {
   Object getEntity(
       Tileset3d tileset,
       List<Link> links,
-      String collectionId,
+      Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext);
 }

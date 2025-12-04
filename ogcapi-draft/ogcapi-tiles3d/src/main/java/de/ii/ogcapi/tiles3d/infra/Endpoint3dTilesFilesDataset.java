@@ -11,13 +11,13 @@ import static de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsQueriesHandler.GR
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -38,7 +38,6 @@ import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,15 +56,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @title 3D Tiles Files
- * @path collections/{collectionId}/3dtiles/{subPath:.*}
+ * @path 3dtiles/{subPath:.*}
  * @langEn Access a file in a 3D Tiles tileset.
  * @langDe Zugriff auf eine Datei in einem 3D-Tiles Tileset.
  */
 @Singleton
 @AutoBind
-public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiExtensionHealth {
+public class Endpoint3dTilesFilesDataset extends Endpoint implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesFiles.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesFilesDataset.class);
 
   private static final List<String> TAGS = ImmutableList.of("Access data as 3D Tiles");
 
@@ -73,7 +72,7 @@ public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiEx
   private final QueriesHandler3dTiles queryHandler;
 
   @Inject
-  public Endpoint3dTilesFiles(
+  public Endpoint3dTilesFilesDataset(
       ExtensionRegistry extensionRegistry,
       Tile3dProviders tile3dProviders,
       QueriesHandler3dTiles queryHandler) {
@@ -83,12 +82,11 @@ public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiEx
   }
 
   @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return super.isEnabledForApi(apiData, collectionId)
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return super.isEnabledForApi(apiData)
         && apiData
-            .getCollectionData(collectionId)
-            .flatMap(collection -> collection.getExtension(Tiles3dConfiguration.class))
-            .filter(cfg -> cfg.hasCollectionTiles(tile3dProviders, apiData, collectionId))
+            .getExtension(Tiles3dConfiguration.class)
+            .filter(cfg -> cfg.hasDatasetTiles(tile3dProviders, apiData))
             .isPresent();
   }
 
@@ -108,77 +106,50 @@ public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiEx
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .hidden(true)
-            .apiEntrypoint("collections")
+            .apiEntrypoint("3dtiles")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_3D_TILES_CONTENT);
-    String subSubPath = "/3dtiles/{subPath}";
-    String path = "/collections/{collectionId}" + subSubPath;
+    String path = "/3dtiles/{subPath}";
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    Optional<OgcApiPathParameter> optCollectionIdParam =
-        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
-    if (optCollectionIdParam.isPresent()) {
-      final OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
-      final boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
-      final List<String> collectionIds =
-          explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
-      for (String collectionId : collectionIds) {
-        if (!isEnabledForApi(apiData, collectionId)) {
-          continue;
-        }
-        List<OgcApiQueryParameter> queryParameters =
-            getQueryParameters(extensionRegistry, apiData, path, collectionId);
-        String operationSummary = "retrieve a file of the 3D Tiles tileset '" + collectionId + "'";
-        Optional<String> operationDescription = Optional.of("Access a file in a 3D Tiles tileset.");
-        String resourcePath = "/collections/" + collectionId + subSubPath;
-        ImmutableOgcApiResourceData.Builder resourceBuilder =
-            new ImmutableOgcApiResourceData.Builder()
-                .path(resourcePath)
-                .pathParameters(pathParameters);
-        Map<MediaType, ApiMediaTypeContent> responseContent = getResponseContent(apiData);
-        ApiOperation.getResource(
-                apiData,
-                resourcePath,
-                false,
-                queryParameters,
-                ImmutableList.of(),
-                responseContent,
-                operationSummary,
-                operationDescription,
-                Optional.empty(),
-                getOperationId("get3dTilesFile", collectionId),
-                GROUP_TILES_READ,
-                TAGS,
-                Tiles3dBuildingBlock.MATURITY,
-                Tiles3dBuildingBlock.SPEC)
-            .ifPresent(
-                operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
-        definitionBuilder.putResources(resourcePath, resourceBuilder.build());
-      }
-    } else {
-      LOGGER.error(
-          "Path parameter 'collectionId' missing for resource at path '"
-              + path
-              + "'. The resource will not be available.");
-    }
+    List<OgcApiQueryParameter> queryParameters =
+        getQueryParameters(extensionRegistry, apiData, path);
+    String operationSummary = "retrieve a file of the 3D Tiles tileset";
+    Optional<String> operationDescription = Optional.of("Access a file in a 3D Tiles tileset.");
+    ImmutableOgcApiResourceData.Builder resourceBuilder =
+        new ImmutableOgcApiResourceData.Builder().path(path).pathParameters(pathParameters);
+    Map<MediaType, ApiMediaTypeContent> responseContent = getResponseContent(apiData);
+    ApiOperation.getResource(
+            apiData,
+            path,
+            false,
+            queryParameters,
+            ImmutableList.of(),
+            responseContent,
+            operationSummary,
+            operationDescription,
+            Optional.empty(),
+            getOperationId("get3dTilesFile"),
+            GROUP_TILES_READ,
+            TAGS,
+            Tiles3dBuildingBlock.MATURITY,
+            Tiles3dBuildingBlock.SPEC)
+        .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
+    definitionBuilder.putResources(path, resourceBuilder.build());
 
     return definitionBuilder.build();
   }
 
   @GET
-  @Path("/{collectionId}/3dtiles/{subPath:.*}")
+  @Path("/{subPath:.*}")
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public Response getContent(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context UriInfo uriInfo,
-      @PathParam("collectionId") String collectionId,
-      @PathParam("subPath") String subPath)
-      throws URISyntaxException {
-
+      @PathParam("subPath") String subPath) {
     QueryInputFile queryInput =
         ImmutableQueryInputFile.builder()
             .from(getGenericQueryInput(api.getData()))
-            .collectionId(collectionId)
             .path(subPath)
             .build();
 

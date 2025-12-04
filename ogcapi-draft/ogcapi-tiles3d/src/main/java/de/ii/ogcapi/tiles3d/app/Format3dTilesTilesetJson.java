@@ -23,6 +23,7 @@ import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
@@ -71,7 +72,7 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
   public Object getEntity(
       Tileset3d tileset,
       List<Link> links,
-      String collectionId,
+      Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
     return tileset;
