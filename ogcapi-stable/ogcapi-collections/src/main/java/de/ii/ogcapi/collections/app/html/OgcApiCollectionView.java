@@ -223,7 +223,10 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
   public List<Link> getTiles() {
     return rawLinks().stream()
         .filter(
-            link -> link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets-"))
+            link ->
+                link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets")
+                    || link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/0.0/tileset-"))
+        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
         .collect(Collectors.toUnmodifiableList());
   }
 

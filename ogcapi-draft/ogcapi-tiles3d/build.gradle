@@ -11,6 +11,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-geometries'
+    provided 'de.interactive_instruments:xtraplatform-jobs'
     provided 'de.interactive_instruments:xtraplatform-tiles'
     provided 'de.interactive_instruments:xtraplatform-tiles3d'
     provided 'de.interactive_instruments:xtraplatform-web'

@@ -11,12 +11,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -99,6 +103,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getFirstLevelWithContent();
 
@@ -112,6 +117,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getMaxLevel();
 
@@ -130,6 +136,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default []
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   List<String> getContentFilters();
 
   /**
@@ -149,6 +156,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default [ ... ]
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Value.Default
   default List<String> getTileFilters() {
     int levels = getContentFilters().size();
@@ -174,6 +182,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Float getGeometricErrorRoot();
 
@@ -183,6 +192,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 3
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getSubtreeLevels();
 
@@ -194,6 +204,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default {}
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   Optional<SeedingOptions> getSeeding();
 
   /**
@@ -206,9 +217,11 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default false
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Boolean getClampToEllipsoid();
 
+  @Deprecated(since = "4.6", forRemoval = true)
   @JsonIgnore
   @Value.Derived
   @Value.Auxiliary
@@ -287,6 +300,36 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
       return collectionId;
     }
     return getTileProviderTileset();
+  }
+
+  default boolean hasDatasetTiles(Tile3dProviders providers, OgcApiDataV2 apiData) {
+    return Objects.nonNull(providers)
+        && hasTiles(
+            providers.getTile3dProvider(apiData),
+            getDatasetTileset(),
+            (tileset, tileAccess) -> true);
+  }
+
+  default boolean hasCollectionTiles(
+      Tile3dProviders providers, OgcApiDataV2 apiData, String collectionId) {
+    return Objects.nonNull(providers)
+        && hasTiles(
+            providers.getTile3dProvider(apiData, apiData.getCollectionData(collectionId)),
+            getCollectionTileset(collectionId),
+            (tileset, tileAccess) -> true);
+  }
+
+  default boolean hasTiles(
+      Optional<Tile3dProvider> provider,
+      String tileset,
+      BiFunction<String, Tile3dAccess, Boolean> testForTileType) {
+    return provider
+        .filter(tileProvider -> tileProvider.getData().getTilesets().containsKey(tileset))
+        .filter(
+            tileProvider ->
+                tileProvider.access().isAvailable()
+                    && testForTileType.apply(tileset, tileProvider.access().get()))
+        .isPresent();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
