@@ -19,7 +19,10 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.tiles3d.domain.ImmutableTiles3dConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
+import de.ii.ogcapi.tiles3d.domain.Tiles3dMigrationV5;
+import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.base.domain.util.Tuple;
 import de.ii.xtraplatform.entities.domain.EntityFactories;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
@@ -209,6 +212,34 @@ public class Tiles3dBuildingBlock implements ApiBuildingBlock, ApiExtensionHealt
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
+    Optional<Tiles3dConfiguration> tilesConfiguration =
+        apiData.getExtension(Tiles3dConfiguration.class).filter(ExtensionConfiguration::isEnabled);
+
+    if (tilesConfiguration.isPresent()
+        && !tile3dProviders.hasTile3dProvider(apiData)
+        && (Objects.isNull(tilesConfiguration.get().getTileProvider()))) {
+      boolean tilesIdExists =
+          entityFactories.getAll("providers").stream()
+              .anyMatch(
+                  entityFactory ->
+                      Tile3dProviderData.class.isAssignableFrom(entityFactory.dataClass())
+                          && entityFactory
+                              .instance(Tile3dProviders.to3dTilesId(apiData.getId()))
+                              .isPresent());
+      if (!tilesIdExists) {
+        Tiles3dMigrationV5 tiles3dMigrationV5 = new Tiles3dMigrationV5(null);
+        Optional<Tuple<Class<? extends Tile3dProviderData>, ? extends Tile3dProviderData>>
+            tileProviderData = tiles3dMigrationV5.getTileProviderData(apiData);
+        if (tileProviderData.isPresent()) {
+          entityFactories
+              .get(tileProviderData.get().first())
+              .createInstance(tileProviderData.get().second())
+              .join();
+          LogContext.put(LogContext.CONTEXT.SERVICE, apiData.getId());
+        }
+      }
+    }
+
     return Set.of(tile3dProviders.getTile3dProviderOrThrow(apiData));
   }
 }

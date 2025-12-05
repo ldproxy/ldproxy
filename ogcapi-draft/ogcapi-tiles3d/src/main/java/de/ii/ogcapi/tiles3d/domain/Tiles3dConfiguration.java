@@ -159,16 +159,20 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
   @Deprecated(since = "4.6", forRemoval = true)
   @Value.Default
   default List<String> getTileFilters() {
-    int levels = getContentFilters().size();
+    return getTileFilters(getContentFilters());
+  }
+
+  static List<String> getTileFilters(List<String> contentFilters) {
+    int levels = contentFilters.size();
     return IntStream.range(0, levels)
         .mapToObj(
             i ->
                 String.format(
                     "(%s)",
                     IntStream.range(i, levels)
-                        .mapToObj(j -> getContentFilters().get(j))
+                        .mapToObj(contentFilters::get)
                         .collect(Collectors.joining(") OR ("))))
-        .collect(Collectors.toUnmodifiableList());
+        .toList();
   }
 
   /**
