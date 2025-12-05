@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.ArraySchema;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.EnumSchema;
@@ -50,8 +49,6 @@ import org.slf4j.LoggerFactory;
 public class ClassSchemaCacheImpl implements ClassSchemaCache {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClassSchemaCacheImpl.class);
-
-  private static final String SCHEMA_PATH_TEMPLATE = "#/components/schemas/%s";
 
   private static final Schema<?> OBJECT_SCHEMA = new io.swagger.v3.oas.models.media.ObjectSchema();
   private static final Schema<?> STRING_SCHEMA = new StringSchema();
@@ -122,7 +119,10 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
 
     if (Objects.nonNull(referencingClazz)) {
       addDependency(referencingClazz, clazz);
-      return new Schema<>().$ref(String.format(SCHEMA_PATH_TEMPLATE, getSchemaId(clazz)));
+      return new Schema<>()
+          .$ref(
+              String.format(
+                  ClassSchemaCache.SCHEMA_PATH_TEMPLATE, ClassSchemaCache.getSchemaId(clazz)));
     }
     return namedSchemaMap.get(clazz);
   }
@@ -143,19 +143,9 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
         .map(
             referencedClazz ->
                 new AbstractMap.SimpleEntry<String, Schema<?>>(
-                    getSchemaId(referencedClazz), namedSchemaMap.get(referencedClazz)))
+                    ClassSchemaCache.getSchemaId(referencedClazz),
+                    namedSchemaMap.get(referencedClazz)))
         .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-  }
-
-  private String getSchemaId(Class<?> clazz) {
-    ApiInfo annotation = clazz.getAnnotation(ApiInfo.class);
-    if (Objects.nonNull(annotation) && Objects.nonNull(annotation.schemaId())) {
-      return annotation.schemaId();
-    }
-    if (clazz.isArray()) {
-      return clazz.getSimpleName().replace("[]", "Array");
-    }
-    return clazz.getSimpleName();
   }
 
   private Set<Class<?>> getAllReferencedClasses(Class<?> clazz) {

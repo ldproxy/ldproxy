@@ -30,7 +30,7 @@ globalThis._cesium = {
   {{^ionAccessToken}}
   accessToken: null,
   {{/ionAccessToken}}
-  {{^clampToEllipsoid}}
+  {{#hasTerrainProvider}}
   terrainProvider: {
     {{#customTerrainProviderUri}}
       url: '{{.}}',
@@ -46,7 +46,7 @@ globalThis._cesium = {
       requestVertexNormals: true,
     {{/customTerrainProviderUri}}
   },
-  {{/clampToEllipsoid}}
+  {{/hasTerrainProvider}}
 }
 </script>
 

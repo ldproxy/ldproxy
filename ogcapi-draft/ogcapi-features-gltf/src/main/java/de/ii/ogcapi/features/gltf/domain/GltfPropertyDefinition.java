@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.features.gltf.domain.SchemaProperty.ComponentType;
 import de.ii.ogcapi.features.gltf.domain.SchemaProperty.Type;
+import de.ii.xtraplatform.tiles3d.domain.spec.Property.OffsetType;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -37,7 +38,7 @@ public interface GltfPropertyDefinition {
 
   Optional<ComponentType> getComponentType();
 
-  Optional<ComponentType> getStringOffsetType();
+  Optional<OffsetType> getStringOffsetType();
 
   @JsonInclude(Include.NON_NULL)
   @Value.Default
@@ -50,7 +51,7 @@ public interface GltfPropertyDefinition {
     if (getType() == Type.STRING && getStringOffsetType().isEmpty()) {
       return new ImmutableGltfPropertyDefinition.Builder()
           .from(this)
-          .stringOffsetType(ComponentType.UINT32)
+          .stringOffsetType(OffsetType.UINT32)
           .build();
     }
     return this;
@@ -61,9 +62,9 @@ public interface GltfPropertyDefinition {
     Preconditions.checkState(
         getType() != Type.STRING
             || (getStringOffsetType().isPresent()
-                && (getStringOffsetType().get() == ComponentType.UINT8
-                    || getStringOffsetType().get() == ComponentType.UINT16
-                    || getStringOffsetType().get() == ComponentType.UINT32)),
+                && (getStringOffsetType().get() == OffsetType.UINT8
+                    || getStringOffsetType().get() == OffsetType.UINT16
+                    || getStringOffsetType().get() == OffsetType.UINT32)),
         "The String Offset Type must be an 8-bit, 16-bit or 32-bit unsigned integer. Found: %s.",
         getStringOffsetType().map(Enum::name).orElse("null"));
     Preconditions.checkState(

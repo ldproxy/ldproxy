@@ -92,6 +92,7 @@ public abstract class OgcApiDatasetView extends OgcApiView {
             .add("describedby")
             .add("data")
             .add("items")
+            .add("tileset-\\w+")
             .add("tilesets-\\w+")
             .add("styles")
             .add("routes")
@@ -103,8 +104,8 @@ public abstract class OgcApiDatasetView extends OgcApiView {
         .filter(
             link ->
                 !link.getRel()
-                    .replace("http://www\\.opengis\\.net/def/rel/ogc/1\\.0/", "")
-                    .replace("http://www\\.opengis\\.net/def/rel/ogc/0\\.0/", "")
+                    .replace("http://www.opengis.net/def/rel/ogc/1.0/", "")
+                    .replace("http://www.opengis.net/def/rel/ogc/0.0/", "")
                     .matches("^(?:" + String.join("|", ignoreRels) + ")$"))
         .sorted(Comparator.comparing(Link::getTitle))
         .collect(Collectors.toList());

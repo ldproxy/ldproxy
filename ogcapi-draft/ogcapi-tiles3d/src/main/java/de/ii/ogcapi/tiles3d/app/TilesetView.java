@@ -16,8 +16,8 @@ import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.MapClient.Type;
 import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.ogcapi.tiles3d.domain.Tileset;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -34,7 +34,7 @@ public abstract class TilesetView extends OgcApiView {
     return "3D Tiles";
   }
 
-  public abstract Tileset tileset();
+  public abstract Tileset3d tileset();
 
   @Value.Derived
   public String tilesetJson() {
@@ -52,7 +52,7 @@ public abstract class TilesetView extends OgcApiView {
 
   public abstract Optional<BoundingBox> spatialExtent();
 
-  public abstract String collectionId();
+  public abstract Optional<String> collectionId();
 
   @Value.Derived
   @Override
@@ -88,11 +88,12 @@ public abstract class TilesetView extends OgcApiView {
 
   public CesiumData3dTiles cesiumData() {
     Tiles3dConfiguration tiles3dConfig =
-        apiData().getExtension(Tiles3dConfiguration.class, collectionId()).orElseThrow();
+        collectionId().isPresent()
+            ? apiData().getExtension(Tiles3dConfiguration.class, collectionId().get()).orElseThrow()
+            : apiData().getExtension(Tiles3dConfiguration.class).orElseThrow();
     return new CesiumData3dTiles(
         tilesetJson(),
         spatialExtent(),
-        tiles3dConfig.shouldClampToEllipsoid(),
         tiles3dConfig.getIonAccessToken(),
         tiles3dConfig.getMaptilerApiKey(),
         tiles3dConfig.getCustomTerrainProviderUri(),

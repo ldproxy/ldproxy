@@ -11,11 +11,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -67,6 +72,28 @@ import org.immutables.value.Value;
 public interface Tiles3dConfiguration extends ExtensionConfiguration {
 
   /**
+   * @langEn Specifies the data source for the tiles, see [Tile
+   *     Providers](../../providers/tile/README.md).
+   * @langDe Spezifiziert die Datenquelle für die Kacheln, siehe
+   *     [Tile-Provider](../../providers/tile/README.md).
+   * @default null
+   * @since v4.6
+   */
+  @Nullable
+  String getTileProvider();
+
+  /**
+   * @langEn Specifies the tileset from the tile provider that should be used. The default is
+   *     `__all__` for dataset tiles and `{collectionId}` for collection tiles.
+   * @langDe Spezifiziert das Tileset vom Tile-Provider das verwendet werden soll. Der Default ist
+   *     `__all__` für Dataset Tiles und `{collectionId}` für Collection Tiles.
+   * @default __all__ \| {collectionId}
+   * @since v4.6
+   */
+  @Nullable
+  String getTileProviderTileset();
+
+  /**
    * @langEn The first level of the tileset which will contain buildings. The value will depend on
    *     the spatial extent of the dataset, i.e., at what level of the implicit tiling scheme large
    *     buildings can be displayed.
@@ -76,6 +103,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getFirstLevelWithContent();
 
@@ -89,6 +117,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getMaxLevel();
 
@@ -107,6 +136,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default []
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   List<String> getContentFilters();
 
   /**
@@ -126,18 +156,23 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default [ ... ]
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Value.Default
   default List<String> getTileFilters() {
-    int levels = getContentFilters().size();
+    return getTileFilters(getContentFilters());
+  }
+
+  static List<String> getTileFilters(List<String> contentFilters) {
+    int levels = contentFilters.size();
     return IntStream.range(0, levels)
         .mapToObj(
             i ->
                 String.format(
                     "(%s)",
                     IntStream.range(i, levels)
-                        .mapToObj(j -> getContentFilters().get(j))
+                        .mapToObj(contentFilters::get)
                         .collect(Collectors.joining(") OR ("))))
-        .collect(Collectors.toUnmodifiableList());
+        .toList();
   }
 
   /**
@@ -151,6 +186,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 0
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Float getGeometricErrorRoot();
 
@@ -160,6 +196,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default 3
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Integer getSubtreeLevels();
 
@@ -171,6 +208,7 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default {}
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   Optional<SeedingOptions> getSeeding();
 
   /**
@@ -183,9 +221,11 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    * @default false
    * @since v3.4
    */
+  @Deprecated(since = "4.6", forRemoval = true)
   @Nullable
   Boolean getClampToEllipsoid();
 
+  @Deprecated(since = "4.6", forRemoval = true)
   @JsonIgnore
   @Value.Derived
   @Value.Auxiliary
@@ -250,6 +290,51 @@ public interface Tiles3dConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   String getStyle();
+
+  @Value.Auxiliary
+  @Value.Derived
+  @JsonIgnore
+  default String getDatasetTileset() {
+    return Objects.requireNonNullElse(getTileProviderTileset(), Tiles3dBuildingBlock.DATASET_TILES);
+  }
+
+  default String getCollectionTileset(String collectionId) {
+    if (Objects.isNull(getTileProviderTileset())
+        || Tiles3dBuildingBlock.DATASET_TILES.equals(getTileProviderTileset())) {
+      return collectionId;
+    }
+    return getTileProviderTileset();
+  }
+
+  default boolean hasDatasetTiles(Tile3dProviders providers, OgcApiDataV2 apiData) {
+    return Objects.nonNull(providers)
+        && hasTiles(
+            providers.getTile3dProvider(apiData),
+            getDatasetTileset(),
+            (tileset, tileAccess) -> true);
+  }
+
+  default boolean hasCollectionTiles(
+      Tile3dProviders providers, OgcApiDataV2 apiData, String collectionId) {
+    return Objects.nonNull(providers)
+        && hasTiles(
+            providers.getTile3dProvider(apiData, apiData.getCollectionData(collectionId)),
+            getCollectionTileset(collectionId),
+            (tileset, tileAccess) -> true);
+  }
+
+  default boolean hasTiles(
+      Optional<Tile3dProvider> provider,
+      String tileset,
+      BiFunction<String, Tile3dAccess, Boolean> testForTileType) {
+    return provider
+        .filter(tileProvider -> tileProvider.getData().getTilesets().containsKey(tileset))
+        .filter(
+            tileProvider ->
+                tileProvider.access().isAvailable()
+                    && testForTileType.apply(tileset, tileProvider.access().get()))
+        .isPresent();
+  }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

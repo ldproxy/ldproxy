@@ -11,11 +11,8 @@ import static de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsQueriesHandler.GR
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteStreams;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -30,35 +27,25 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.tiles3d.app.FormatAny;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
-import de.ii.ogcapi.tiles3d.app.Tiles3dContentUtil;
-import de.ii.ogcapi.tiles3d.domain.Format3dTilesContent;
-import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputContent;
+import de.ii.ogcapi.tiles3d.domain.ImmutableQueryInputFile;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
-import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputContent;
-import de.ii.ogcapi.tiles3d.domain.TileResourceCache;
-import de.ii.ogcapi.tiles3d.domain.TileResourceDescriptor;
+import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputFile;
+import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
-import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import de.ii.xtraplatform.cql.domain.Cql;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import io.dropwizard.auth.Auth;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
@@ -69,43 +56,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title 3D Tiles Content (glTF)
- * @path collections/{collectionId}/3dtiles/content_{level}_{x}_{y}
- * @langEn Access a 3D Tiles 1.1 Content file, a glTF 2.0 binary file.
- * @langDe Zugriff auf eine 3D-Tiles 1.1 Kachel-Datei im Format glTF 2.0.
- * @ref:formats {@link de.ii.ogcapi.tiles3d.domain.Format3dTilesContent}
+ * @title 3D Tiles Files
+ * @path collections/{collectionId}/3dtiles/{subPath:.*}
+ * @langEn Access a file in a 3D Tiles tileset.
+ * @langDe Zugriff auf eine Datei in einem 3D-Tiles Tileset.
  */
 @Singleton
 @AutoBind
-public class Endpoint3dTilesContent extends EndpointSubCollection implements ApiExtensionHealth {
+public class Endpoint3dTilesFiles extends EndpointSubCollection implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesContent.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint3dTilesFiles.class);
 
   private static final List<String> TAGS = ImmutableList.of("Access data as 3D Tiles");
 
-  private final ServicesContext servicesContext;
-  private final FeaturesCoreProviders providers;
-  private final FeaturesCoreQueriesHandler queriesHandlerFeatures;
+  private final Tile3dProviders tile3dProviders;
   private final QueriesHandler3dTiles queryHandler;
-  private final Cql cql;
-  private final TileResourceCache tileResourceCache;
 
   @Inject
-  public Endpoint3dTilesContent(
-      ServicesContext servicesContext,
+  public Endpoint3dTilesFiles(
       ExtensionRegistry extensionRegistry,
-      FeaturesCoreProviders providers,
-      FeaturesCoreQueriesHandler queriesHandlerFeatures,
-      QueriesHandler3dTiles queryHandler,
-      Cql cql,
-      TileResourceCache tileResourceCache) {
+      Tile3dProviders tile3dProviders,
+      QueriesHandler3dTiles queryHandler) {
     super(extensionRegistry);
-    this.servicesContext = servicesContext;
-    this.providers = providers;
-    this.queriesHandlerFeatures = queriesHandlerFeatures;
+    this.tile3dProviders = tile3dProviders;
     this.queryHandler = queryHandler;
-    this.cql = cql;
-    this.tileResourceCache = tileResourceCache;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return super.isEnabledForApi(apiData, collectionId)
+        && apiData
+            .getCollectionData(collectionId)
+            .flatMap(collection -> collection.getExtension(Tiles3dConfiguration.class))
+            .filter(cfg -> cfg.hasCollectionTiles(tile3dProviders, apiData, collectionId))
+            .isPresent();
   }
 
   @Override
@@ -115,10 +99,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(Format3dTilesContent.class);
-    }
-    return formats;
+    return List.of(FormatAny.INSTANCE);
   }
 
   @Override
@@ -126,9 +107,10 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
+            .hidden(true)
             .apiEntrypoint("collections")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_3D_TILES_CONTENT);
-    String subSubPath = "/3dtiles/content_{level}_{x}_{y}";
+    String subSubPath = "/3dtiles/{subPath}";
     String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     Optional<OgcApiPathParameter> optCollectionIdParam =
@@ -139,12 +121,13 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       final List<String> collectionIds =
           explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
       for (String collectionId : collectionIds) {
+        if (!isEnabledForApi(apiData, collectionId)) {
+          continue;
+        }
         List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
-        String operationSummary =
-            "retrieve a glTF tile of the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription =
-            Optional.of("Access a 3D Tiles 1.1 Content file, a glTF 2.0 binary file.");
+        String operationSummary = "retrieve a file of the 3D Tiles tileset '" + collectionId + "'";
+        Optional<String> operationDescription = Optional.of("Access a file in a 3D Tiles tileset.");
         String resourcePath = "/collections/" + collectionId + subSubPath;
         ImmutableOgcApiResourceData.Builder resourceBuilder =
             new ImmutableOgcApiResourceData.Builder()
@@ -161,7 +144,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
                 operationSummary,
                 operationDescription,
                 Optional.empty(),
-                getOperationId("get3dTilesContent", collectionId),
+                getOperationId("get3dTilesFile", collectionId),
                 GROUP_TILES_READ,
                 TAGS,
                 Tiles3dBuildingBlock.MATURITY,
@@ -181,7 +164,7 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
   }
 
   @GET
-  @Path("/{collectionId}/3dtiles/content_{level}_{x}_{y}")
+  @Path("/{collectionId}/3dtiles/{subPath:.*}")
   @SuppressWarnings("PMD.UseObjectForClearerAPI")
   public Response getContent(
       @Auth Optional<User> optionalUser,
@@ -189,114 +172,21 @@ public class Endpoint3dTilesContent extends EndpointSubCollection implements Api
       @Context ApiRequestContext requestContext,
       @Context UriInfo uriInfo,
       @PathParam("collectionId") String collectionId,
-      @PathParam("level") String level,
-      @PathParam("x") String x,
-      @PathParam("y") String y)
+      @PathParam("subPath") String subPath)
       throws URISyntaxException {
 
-    Tiles3dConfiguration cfg =
-        api.getData()
-            .getCollectionData(collectionId)
-            .flatMap(c -> c.getExtension(Tiles3dConfiguration.class))
-            .orElseThrow();
-
-    int maxLevel = Objects.requireNonNull(cfg.getMaxLevel());
-    int firstLevelWithContent = Objects.requireNonNull(cfg.getFirstLevelWithContent());
-
-    int cl = Integer.parseInt(level);
-    int cx = Integer.parseInt(x);
-    int cy = Integer.parseInt(y);
-    if (cl < Math.max(0, firstLevelWithContent)
-        || cl > maxLevel
-        || cx < 0
-        || cx >= Math.pow(2, cl)
-        || cy < 0
-        || cy >= Math.pow(2, cl)) {
-      throw new NotFoundException();
-    }
-
-    TileResourceDescriptor r = TileResourceDescriptor.contentOf(api, collectionId, cl, cx, cy);
-
-    byte[] content = fromCache(r);
-
-    if (Objects.isNull(content)) {
-      return computeAndCache(requestContext, api, collectionId, cfg, r);
-    }
-
-    QueryInputContent queryInput =
-        ImmutableQueryInputContent.builder()
+    QueryInputFile queryInput =
+        ImmutableQueryInputFile.builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
-            .level(cl)
-            .x(cx)
-            .y(cy)
-            .content(content)
+            .path(subPath)
             .build();
 
-    return queryHandler.handle(Query.CONTENT, queryInput, requestContext);
-  }
-
-  private byte[] fromCache(TileResourceDescriptor r) {
-    byte[] content = null;
-
-    try {
-      if (tileResourceCache.tileResourceExists(r)) {
-        Optional<InputStream> contentStream = tileResourceCache.getTileResource(r);
-        if (contentStream.isPresent()) {
-          try (InputStream is = contentStream.get()) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ByteStreams.copy(is, baos);
-            content = baos.toByteArray();
-          }
-        }
-      }
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
-    return content;
-  }
-
-  private Response computeAndCache(
-      ApiRequestContext requestContext,
-      OgcApi api,
-      String collectionId,
-      Tiles3dConfiguration cfg,
-      TileResourceDescriptor r)
-      throws URISyntaxException {
-    OgcApiDataV2 apiData = api.getData();
-    Response response =
-        Tiles3dContentUtil.getContent(
-            servicesContext,
-            extensionRegistry,
-            api,
-            collectionId,
-            providers.getFeatureProviderOrThrow(
-                apiData, apiData.getCollectionData(collectionId).orElseThrow()),
-            queriesHandlerFeatures,
-            cql,
-            cfg,
-            r,
-            r.getQuery(providers),
-            requestContext.getUriCustomizer(),
-            Optional.of(getGenericQueryInput(apiData)));
-
-    if (Objects.nonNull(response.getEntity())) {
-      try {
-        tileResourceCache.storeTileResource(r, (byte[]) response.getEntity());
-      } catch (IOException e) {
-        LogContext.error(LOGGER, e, "Could not write feature response to resource '{}'", r);
-      }
-    }
-
-    return response;
+    return queryHandler.handle(Query.FILE, queryInput, requestContext);
   }
 
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(
-        queryHandler,
-        queriesHandlerFeatures,
-        tileResourceCache,
-        providers.getFeatureProviderOrThrow(apiData));
+    return Set.of(tile3dProviders.getTile3dProviderOrThrow(apiData));
   }
 }

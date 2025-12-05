@@ -19,10 +19,11 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.ogcapi.tiles3d.domain.Tileset;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
@@ -43,8 +44,8 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
 
   @Inject
   public Format3dTilesTilesetJson(ClassSchemaCache classSchemaCache) {
-    schema = classSchemaCache.getSchema(Tileset.class);
-    referencedSchemas = classSchemaCache.getReferencedSchemas(Tileset.class);
+    schema = classSchemaCache.getSchema(Tileset3d.class);
+    referencedSchemas = classSchemaCache.getReferencedSchemas(Tileset3d.class);
   }
 
   @Override
@@ -62,16 +63,16 @@ public class Format3dTilesTilesetJson implements Format3dTilesTileset {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schema)
         .referencedSchemas(referencedSchemas)
-        .schemaRef(Tileset.SCHEMA_REF)
+        .schemaRef(Tileset3d.SCHEMA_REF)
         .ogcApiMediaType(MEDIA_TYPE)
         .build();
   }
 
   @Override
   public Object getEntity(
-      Tileset tileset,
+      Tileset3d tileset,
       List<Link> links,
-      String collectionId,
+      Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
     return tileset;

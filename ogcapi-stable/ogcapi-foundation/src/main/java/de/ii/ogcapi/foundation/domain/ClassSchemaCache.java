@@ -10,8 +10,23 @@ package de.ii.ogcapi.foundation.domain;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public interface ClassSchemaCache {
+
+  String SCHEMA_PATH_TEMPLATE = "#/components/schemas/%s";
+
+  static String getSchemaId(Class<?> clazz) {
+    ApiInfo annotation = clazz.getAnnotation(ApiInfo.class);
+    if (Objects.nonNull(annotation) && Objects.nonNull(annotation.schemaId())) {
+      return annotation.schemaId();
+    }
+    if (clazz.isArray()) {
+      return clazz.getSimpleName().replace("[]", "Array");
+    }
+    return clazz.getSimpleName();
+  }
+
   default Schema<?> getSchema(Class<?> clazz) {
     return getSchema(clazz, null);
   }

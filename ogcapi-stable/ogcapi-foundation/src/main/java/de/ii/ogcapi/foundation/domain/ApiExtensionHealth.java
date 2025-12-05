@@ -102,9 +102,9 @@ public interface ApiExtensionHealth extends ApiExtension {
                 Volatile2 composed = getComposedVolatile(api.getData());
                 if (composed instanceof ApiHealthVolatile) {
                   ((ApiHealthVolatile) composed).setErrors(result.getErrors());
-                  if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(
-                        "Errors in '{}.onStartup()', the module will be unavailable: {}",
+                  if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                        "Errors during startup of {}, the module will be unavailable: {}",
                         this.getClass().getSimpleName(),
                         String.join("; ", result.getErrors()));
                   }

@@ -47,6 +47,13 @@ public abstract class OgcApiCollection extends PageRepresentationWithId {
   public abstract Map<String, Object> getExtensions();
 
   @JsonIgnore
+  @Value.Default
+  @Value.Auxiliary
+  public String getDataRel() {
+    return "items";
+  }
+
+  @JsonIgnore
   @Value.Derived
   @Value.Auxiliary
   public Optional<String> getDefaultStyle() {
