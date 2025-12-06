@@ -40,6 +40,7 @@ import java.math.RoundingMode;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -64,6 +65,20 @@ import org.immutables.value.Value;
 public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
 
   public static final String SCHEMA_REF = "#/components/schemas/MbStyleStylesheet";
+  public static final String METADATA_PREFIX = "ldproxy:";
+  public static final String WEB_MERCATOR_QUAD = "WebMercatorQuad";
+  private static final Map<String, Map<String, String>> KNOWN_BASEMAP_TMS =
+      Map.of(
+          "https://sgx.geodatenzentrum.de/wmts_basemapde",
+          Map.of(
+              WEB_MERCATOR_QUAD,
+              "GLOBAL_WEBMERCATOR",
+              "AdV_25832",
+              "DE_EPSG_25832_ADV",
+              "AdV_25833",
+              "DE_EPSG_25833_ADV"),
+          "https://sg.geodatenzentrum.de/wmts_topplus_open",
+          Map.of(WEB_MERCATOR_QUAD, "GLOBAL_WEBMERCATOR", "EU_25832", "EU_EPSG_25832_TOPPLUS"));
 
   public enum Visibility {
     visible,
@@ -312,7 +327,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
   @JsonIgnore
   public MbStyleStylesheet adjustForTileMatrixSetIfNecessary(
       Optional<TileMatrixSet> tileMatrixSet, String serviceUrl) {
-    if (tileMatrixSet.isEmpty() || "WebMercatorQuad".equals(tileMatrixSet.get().getId())) {
+    if (tileMatrixSet.isEmpty() || WEB_MERCATOR_QUAD.equals(tileMatrixSet.get().getId())) {
       return this;
     }
 
@@ -338,67 +353,40 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                 Math.max(tileMatrixSet.get().getMinLevel(), zoomLevel - adjustment));
     AdjustZoomLevels adjustZoomLevels = new AdjustZoomLevels(adjustZoomLevel);
 
+    Map<String, String> sourceTms = new LinkedHashMap<>();
+    getSources().keySet().forEach(key -> sourceTms.put(key, WEB_MERCATOR_QUAD));
+
+    Map<String, MbStyleSource> adjustedSources =
+        getSources().entrySet().stream()
+            .map(
+                entry -> {
+                  MbStyleSource adjustedSource =
+                      adjustSource(
+                          serviceUrl,
+                          entry.getKey(),
+                          entry.getValue(),
+                          tmsId,
+                          adjustZoomLevel,
+                          sourceTms);
+                  return Map.entry(entry.getKey(), adjustedSource);
+                })
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+
+    Map<String, Object> adjustedMetadata = new LinkedHashMap<>();
+    getMetadata()
+        .ifPresent(
+            md ->
+                adjustedMetadata.putAll(
+                    md.entrySet().stream()
+                        .filter(entry -> !entry.getKey().startsWith(METADATA_PREFIX))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
+    adjustedMetadata.put(METADATA_PREFIX + "tileMatrixSets", sourceTms);
+
     return new ImmutableMbStyleStylesheet.Builder()
         .from(this)
         .zoom(getZoom().map(adjustZoomLevel))
-        .metadata(
-            getMetadata()
-                .map(
-                    md ->
-                        md.entrySet().stream()
-                            .filter(entry -> !entry.getKey().equals("ldproxy:layerControl"))
-                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))))
-        .sources(
-            getSources().entrySet().stream()
-                .map(
-                    entry -> {
-                      MbStyleSource source = entry.getValue();
-                      if (source instanceof MbStyleVectorSource) {
-                        return Map.entry(
-                            entry.getKey(),
-                            ImmutableMbStyleVectorSource.copyOf((MbStyleVectorSource) source)
-                                .withUrl(
-                                    ((MbStyleVectorSource) source)
-                                        .getUrl()
-                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
-                                .withTiles(
-                                    ((MbStyleVectorSource) source)
-                                        .getTiles().stream()
-                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
-                                            .collect(Collectors.toList()))
-                                .withMinzoom(
-                                    ((MbStyleVectorSource) source)
-                                        .getMinzoom()
-                                        .map(v -> adjustZoomLevel.apply(v.doubleValue())))
-                                .withMaxzoom(
-                                    ((MbStyleVectorSource) source)
-                                        .getMaxzoom()
-                                        .map(v -> adjustZoomLevel.apply(v.doubleValue()))));
-                      } else if (source instanceof MbStyleRasterSource) {
-                        return Map.entry(
-                            entry.getKey(),
-                            ImmutableMbStyleRasterSource.copyOf((MbStyleRasterSource) source)
-                                .withUrl(
-                                    ((MbStyleRasterSource) source)
-                                        .getUrl()
-                                        .map(url -> adjustUrl(url, tmsId, serviceUrl)))
-                                .withTiles(
-                                    ((MbStyleRasterSource) source)
-                                        .getTiles().orElse(ImmutableList.of()).stream()
-                                            .map(tileUri -> adjustUrl(tileUri, tmsId, serviceUrl))
-                                            .collect(Collectors.toList()))
-                                .withMinzoom(
-                                    ((MbStyleRasterSource) source)
-                                        .getMinzoom()
-                                        .map(v -> adjustZoomLevel.apply(v.doubleValue())))
-                                .withMaxzoom(
-                                    ((MbStyleRasterSource) source)
-                                        .getMaxzoom()
-                                        .map(v -> adjustZoomLevel.apply(v.doubleValue()))));
-                      }
-                      return Map.entry(entry.getKey(), entry.getValue());
-                    })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+        .metadata(adjustedMetadata)
+        .sources(adjustedSources)
         .layers(
             getLayers().stream()
                 .map(
@@ -431,20 +419,71 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
         .build();
   }
 
-  private static String adjustUrl(String url, String tmsId, String serviceUrl) {
-    // includes special handling for some commonly used basemap WMTS sources in Germany
-    if (url.startsWith("{serviceUrl}") || url.startsWith(serviceUrl)) {
-      return url.replace("WebMercatorQuad", tmsId);
-    } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
-        && tmsId.equals("AdV_25832")) {
-      return url.replace("GLOBAL_WEBMERCATOR", "DE_EPSG_25832_ADV");
-    } else if (url.startsWith("https://sgx.geodatenzentrum.de/wmts_basemapde")
-        && tmsId.equals("AdV_25833")) {
-      return url.replace("GLOBAL_WEBMERCATOR", "DE_EPSG_25833_ADV");
-    } else if (url.startsWith("https://sg.geodatenzentrum.de/wmts_topplus_open")
-        && tmsId.equals("EU_25832")) {
-      return url.replace("GLOBAL_WEBMERCATOR", "EU_EPSG_25832_TOPPLUS");
+  private static MbStyleSource adjustSource(
+      String serviceUrl,
+      String sourceId,
+      MbStyleSource source,
+      String tmsId,
+      Function<Double, Double> adjustZoomLevel,
+      Map<String, String> sourceTms) {
+    if (source instanceof MbStyleVectorSource) {
+      return ImmutableMbStyleVectorSource.copyOf((MbStyleVectorSource) source)
+          .withUrl(
+              ((MbStyleVectorSource) source)
+                  .getUrl()
+                  .map(url -> adjustUrl(sourceId, url, tmsId, serviceUrl, sourceTms)))
+          .withTiles(
+              ((MbStyleVectorSource) source)
+                  .getTiles().stream()
+                      .map(tileUri -> adjustUrl(sourceId, tileUri, tmsId, serviceUrl, sourceTms))
+                      .collect(Collectors.toList()))
+          .withMinzoom(
+              ((MbStyleVectorSource) source)
+                  .getMinzoom()
+                  .map(v -> adjustZoomLevel.apply(v.doubleValue())))
+          .withMaxzoom(
+              ((MbStyleVectorSource) source)
+                  .getMaxzoom()
+                  .map(v -> adjustZoomLevel.apply(v.doubleValue())));
+    } else if (source instanceof MbStyleRasterSource) {
+      return ImmutableMbStyleRasterSource.copyOf((MbStyleRasterSource) source)
+          .withUrl(
+              ((MbStyleRasterSource) source)
+                  .getUrl()
+                  .map(url -> adjustUrl(sourceId, url, tmsId, serviceUrl, sourceTms)))
+          .withTiles(
+              ((MbStyleRasterSource) source)
+                  .getTiles().orElse(ImmutableList.of()).stream()
+                      .map(tileUri -> adjustUrl(sourceId, tileUri, tmsId, serviceUrl, sourceTms))
+                      .collect(Collectors.toList()))
+          .withMinzoom(
+              ((MbStyleRasterSource) source)
+                  .getMinzoom()
+                  .map(v -> adjustZoomLevel.apply(v.doubleValue())))
+          .withMaxzoom(
+              ((MbStyleRasterSource) source)
+                  .getMaxzoom()
+                  .map(v -> adjustZoomLevel.apply(v.doubleValue())));
     }
+    return source;
+  }
+
+  private static String adjustUrl(
+      String sourceId, String url, String tmsId, String serviceUrl, Map<String, String> sourceTms) {
+    if (url.startsWith("{serviceUrl}") || url.startsWith(serviceUrl)) {
+      sourceTms.put(sourceId, tmsId);
+      return url.replace(WEB_MERCATOR_QUAD, tmsId);
+    }
+
+    for (Map.Entry<String, Map<String, String>> entry : KNOWN_BASEMAP_TMS.entrySet()) {
+      String baseUrl = entry.getKey();
+      Map<String, String> tmsMap = entry.getValue();
+      if (url.startsWith(baseUrl) && tmsMap.containsKey(tmsId)) {
+        sourceTms.put(sourceId, tmsId);
+        return url.replace(tmsMap.get(WEB_MERCATOR_QUAD), tmsMap.get(tmsId));
+      }
+    }
+
     return url;
   }
 

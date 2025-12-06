@@ -6,18 +6,15 @@ import { VectorTile as VectorTileSource, XYZ as XYZSource } from "ol/source";
 import TileGrid from "ol/tilegrid/TileGrid";
 import { MVT } from "ol/format";
 
-const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => (
+const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleObject }) => (
   <RContext.Consumer>
     {({ layer }) => {
-      if (update && tileMatrixSet) {
+      if (tileMatrixSet && update) {
         layer.set(
           "source",
           dataType === "raster"
             ? new XYZSource({
-                url: dataUrl.replace(
-                  "/WebMercatorQuad/",
-                  `/${tileMatrixSet.tileMatrixSet}/`
-                ),
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
                 tileGrid: new TileGrid({
@@ -27,10 +24,7 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
                 }),
               })
             : new VectorTileSource({
-                url: dataUrl.replace(
-                  "/WebMercatorQuad/",
-                  `/${tileMatrixSet.tileMatrixSet}/`
-                ),
+                url: dataUrl.replace("/WebMercatorQuad/", `/${tileMatrixSet.tileMatrixSet}/`),
                 format: new MVT(),
                 maxZoom: tileMatrixSet.maxLevel,
                 projection: tileMatrixSet.projection,
@@ -41,30 +35,13 @@ const DynamicView = ({ tileMatrixSet, dataUrl, dataType, update, styleUrl }) => 
                 }),
               })
         );
-
-        if (styleUrl) {
-          const updatedStyleUrl =
-            tileMatrixSet.tileMatrixSet !== "WebMercatorQuad"
-              ? `${styleUrl}${styleUrl.includes("?") ? "&" : "?"}tile-matrix-set=${
-                  tileMatrixSet.tileMatrixSet
-                }`
-              : styleUrl;
-
-          fetch(updatedStyleUrl)
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error(`Failed to fetch style: ${response.statusText}`);
-              }
-              return response.json();
-            })
-            .then((glStyle) => {
-              const sourceName = Object.entries(glStyle.sources)
-                .find(([, source]) => source.type === "vector")?.[0];
-              stylefunction(layer, glStyle, sourceName, JSON.parse(tileMatrixSet.resolutions));
-            })
-            .catch((error) => {
-              throw new Error(`Failed to fetch or apply style: ${error.message}`);
-            });
+        if (styleObject && styleObject.sources) {
+          const sourceName = Object.entries(styleObject.sources).find(
+            ([, source]) => source.type === "vector"
+          )?.[0];
+          if (sourceName) {
+            stylefunction(layer, styleObject, sourceName, JSON.parse(tileMatrixSet.resolutions));
+          }
         }
       }
     }}
@@ -77,7 +54,9 @@ DynamicView.propTypes = {
   dataUrl: PropTypes.string,
   dataType: PropTypes.string,
   update: PropTypes.bool,
-  styleUrl: PropTypes.string,
+  styleObject: PropTypes.shape({
+    sources: PropTypes.objectOf(PropTypes.any),
+  }),
 };
 
 DynamicView.defaultProps = {
@@ -85,7 +64,7 @@ DynamicView.defaultProps = {
   dataUrl: "",
   dataType: null,
   update: false,
-  styleUrl: "",
+  styleObject: null,
 };
 
 export default DynamicView;
