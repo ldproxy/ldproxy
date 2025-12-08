@@ -18,6 +18,7 @@ import de.ii.xtraplatform.base.domain.util.Tuple;
 import de.ii.xtraplatform.entities.domain.EntityData;
 import de.ii.xtraplatform.entities.domain.EntityMigration;
 import de.ii.xtraplatform.tiles.domain.MinMax;
+import de.ii.xtraplatform.tiles3d.domain.ImmutableSeedingOptions3d;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dProviderFeaturesData;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTileset3dFeatures;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTileset3dFeaturesDefaults;
@@ -186,7 +187,9 @@ public class Tiles3dMigrationV5 extends EntityMigration<OgcApiDataV2, OgcApiData
         .providerType(Tile3dProviderFeaturesData.PROVIDER_TYPE)
         .providerSubType(Tile3dProviderFeaturesData.PROVIDER_SUBTYPE)
         // .addAllCaches(getCaches(tilesConfiguration, collectionConfigs))
-        .seeding(cfg.getSeeding())
+        .seeding(
+            cfg.getSeeding()
+                .map(seeding -> new ImmutableSeedingOptions3d.Builder().from(seeding).build()))
         .tilesetDefaults(
             new ImmutableTileset3dFeaturesDefaults.Builder()
                 .featureProvider(
