@@ -43,41 +43,17 @@ import javax.inject.Singleton;
  * @title 3D Tiles
  * @langEn Publish geographic data as 3D Tiles.
  * @langDe Veröffentlichen von Geodaten als 3D Tiles.
- * @scopeEn The building block *3D Tiles* adds support for 3D Tiles 1.1 for feature collections that
- *     can be encoded by ldproxy using the building block [Features - glTF](features_-_gltf.md).
- *     <p>This building block supports glTF as the tile format and implicit quadtree tiling.
- *     Subtrees are encoded using the binary format for compactness.
- *     <p>The only [refinement strategy](https://docs.ogc.org/cs/22-025r4/22-025r4.html#toc19) that
- *     is supported is `ADD`. Use the `contentFilters` configuration option to specify at which
- *     level of the tile hierarchy a building will be represented. Each building should be included
- *     on exactly one level.
+ * @scopeEn The building block *3D Tiles* enables publishing of 3D Tiles (1.0 or 1.1) from a [3D
+ *     Tiles Provider](../../providers/tile3d/README.md).
  *     <p>The 3D Tiles can be inspected in a web browser using an integrated Cesium client.
- * @scopeDe Der Baustein *3D Tiles* fügt Unterstützung für 3D Tiles 1.1 für Feature Collections
- *     hinzu, die von ldproxy unter Verwendung des Bausteins [Features - glTF](features_-_gltf.md)
- *     kodiert werden können.
- *     <p>Dieser Baustein unterstützt glTF als Kachelformat und implizite Quadtree-Kachelung.
- *     Subtrees werden aus Gründen der Kompaktheit im Binärformat kodiert.
+ * @scopeDe Der Baustein *3D Tiles* ermöglicht die Veröffentlichung von 3D Tiles (1.0 oder 1.1) von
+ *     einem [3D Tiles Provider](../../providers/tile3d/README.md).
  *     <p>Die 3D-Kacheln können in einem Webbrowser mit Hilfe eines integrierten Cesium-Clients
  *     inspiziert werden.
- * @cfgFilesEn This building block does not require or support any additional configuration files.
- *     <p>If seeding is enabled, the files of the tileset are stored in the resource store in the
- *     directory `tiles3d/{apiId}/building/`.
- * @cfgFilesDe Dieses Modul benötigt bzw. unterstützt keine zusätzlichen Konfigurationsdateien.
- *     <p>Wenn das Seeding aktiviert ist, werden die Dateien des Tilesets im Ressourcen-Store im
- *     Verzeichnis `tiles3d/{apiId}/building/` abgelegt.
- * @conformanceEn *3D Tiles* implements support for the OGC Community Standard [3D Tiles
- *     1.1](https://docs.ogc.org/cs/22-025r4/22-025r4.html). glTF is the only supported tile format.
- *     All tilesets use implicit quadtree tiling.
- * @conformanceDe *3D Tiles* implementiert Unterstützung für den OGC Community Standard [3D Tiles
- *     1.1](https://docs.ogc.org/cs/22-025r4/22-025r4.html). glTF ist das einzige unterstützte
- *     Kachelformat. Alle Kachelsätze verwenden implizite Quadtree-Kachelung.
- * @limitationsEn See [Features - glTF](features_-_gltf.md#limitations).
- *     <p>In addition, the following information in Subtrees is not supported: property tables, tile
- *     metadata, content metadata, and subtree metadata.
- * @limitationsDe Siehe [Features - glTF](features_-_gltf.md#limitierungen).
- *     <p>Darüber hinaus werden die folgenden Informationen in Subtrees nicht unterstützt:
- *     Eigenschaftstabellen (Property Tables), Kachel-Metadaten (Tile Metadata), Inhalts-Metadaten
- *     (Content Metadata) und Metadaten von Subtrees.
+ * @conformanceEn *3D Tiles* implements support for the draft specification [OGC API - 3D
+ *     GeoVolumes](https://docs.ogc.org/DRAFTS/22-029.html).
+ * @conformanceDe *3D Tiles* implementiert Unterstützung für den Entwurf von [OGC API - 3D
+ *     GeoVolumes](https://docs.ogc.org/DRAFTS/22-029.html).
  * @ref:cfg {@link de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.tiles3d.domain.ImmutableTiles3dConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.tiles3d.infra.Endpoint3dTilesTileset}, {@link
