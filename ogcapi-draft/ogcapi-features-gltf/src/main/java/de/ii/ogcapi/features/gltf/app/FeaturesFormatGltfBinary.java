@@ -347,9 +347,18 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
     OgcApiDataV2 apiData = transformationContext.getApiData();
     String collectionId = transformationContext.getCollectionId();
 
-    URI schemaUri =
-        servicesUri.resolve(
-            String.format("%s/collections/%s/gltf/schema?f=json", apiData.getId(), collectionId));
+    Optional<GltfConfiguration> cfg = apiData.getExtension(GltfConfiguration.class, collectionId);
+    Optional<URI> schemaUri =
+        cfg.map(GltfConfiguration::getEmbedSchema).orElse(false)
+            ? Optional.empty()
+            : Optional.of(
+                cfg.map(GltfConfiguration::getSchemaUri)
+                    .map(URI::create)
+                    .orElse(
+                        servicesUri.resolve(
+                            String.format(
+                                "%s/collections/%s/gltf/schema?f=json",
+                                apiData.getId(), collectionId))));
 
     GltfSchema gltfSchema =
         schemaCache.getSchema(

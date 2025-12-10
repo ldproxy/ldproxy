@@ -606,16 +606,28 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
 
     PropertyTable propertyTable = propertyTableBuilder.build();
 
-    if (transformationContext.getSchemaUri().isPresent() && propertyTable.getCount() > 0) {
-      builder
-          .putExtensions(
-              EXT_STRUCTURAL_METADATA,
-              ImmutableMap.of(
-                  "schemaUri",
-                  transformationContext.getSchemaUri().get().toString(),
-                  "propertyTables",
-                  ImmutableList.of(propertyTable)))
-          .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+    if (transformationContext.getGltfSchema() != null && propertyTable.getCount() > 0) {
+      if (transformationContext.getSchemaUri().isEmpty()) {
+        builder
+            .putExtensions(
+                EXT_STRUCTURAL_METADATA,
+                ImmutableMap.of(
+                    "schema",
+                    transformationContext.getGltfSchema(),
+                    "propertyTables",
+                    ImmutableList.of(propertyTable)))
+            .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+      } else {
+        builder
+            .putExtensions(
+                EXT_STRUCTURAL_METADATA,
+                ImmutableMap.of(
+                    "schemaUri",
+                    transformationContext.getSchemaUri().get().toString(),
+                    "propertyTables",
+                    ImmutableList.of(propertyTable)))
+            .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+      }
     }
 
     Builder<ByteArrayOutputStream> bufferList =

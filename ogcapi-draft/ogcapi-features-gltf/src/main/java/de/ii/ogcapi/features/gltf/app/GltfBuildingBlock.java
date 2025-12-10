@@ -100,6 +100,8 @@ public class GltfBuildingBlock implements ApiBuildingBlock {
         .polygonOrientationNotGuaranteed(true)
         .withSurfaceType(false)
         .maxMultiplicity(DEFAULT_MULTIPLICITY)
+        .embedSchema(false)
+        .schemaUri(null)
         .build();
   }
 }
