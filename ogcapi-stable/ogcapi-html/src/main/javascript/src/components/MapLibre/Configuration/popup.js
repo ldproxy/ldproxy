@@ -91,9 +91,25 @@ const getPopupContent = ({ features }) => {
 };
 
 const showPopupProps = (map, popup) => (e) => {
-  const features = map.queryRenderedFeatures(e.point);
+  const allFeatures = map.queryRenderedFeatures(e.point);
 
-  if (!features || features.length === 0) {
+  if (!allFeatures || allFeatures.length === 0) {
+    return;
+  }
+
+  // Deduplicate features based on id and sourceLayer
+  const featuresMap = new Map();
+  allFeatures.forEach((f, index) => {
+    const featureId = f.id !== undefined ? f.id : `idx-${index}`;
+    const layerId = f.sourceLayer || f.layer?.id || "";
+    const key = `${featureId}-${layerId}`;
+    if (!featuresMap.has(key)) {
+      featuresMap.set(key, f);
+    }
+  });
+  const features = Array.from(featuresMap.values());
+
+  if (features.length === 0) {
     return;
   }
 
