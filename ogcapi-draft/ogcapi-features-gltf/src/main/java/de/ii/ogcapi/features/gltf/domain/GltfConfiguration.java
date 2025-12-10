@@ -206,6 +206,35 @@ public interface GltfConfiguration
   @Override
   Map<String, String> getDefaultProfiles();
 
+  /**
+   * @langEn By default, the glTF schema describing the feature properties as part of the
+   *     `EXT_structural_metadata` extension is referenced by the URI under which the schema is
+   *     published via the API. Use this option to specify a different URI. Note that the option is
+   *     ignored, if `embedSchema` is set to `true`.
+   * @langDe Standardmäßig wird das glTF-Schema, das die Feature-Eigenschaften als Teil der
+   *     `EXT_structural_metadata`-Erweiterung beschreibt, über die URI referenziert, unter der das
+   *     Schema über die API veröffentlicht wird. Verwenden Sie diese Option, um eine andere URI
+   *     anzugeben. Beachten Sie, dass die Option ignoriert wird, wenn `embedSchema` auf `true`
+   *     gesetzt ist.
+   * @default null
+   * @since v4.6
+   */
+  @Nullable
+  String getSchemaUri();
+
+  /**
+   * @langEn If set to `true`, the glTF schema describing the feature properties as part of the
+   *     `EXT_structural_metadata` extension is embedded in the glTF asset instead of referencing
+   *     the schema by URI.
+   * @langDe Falls auf `true` gesetzt, wird das glTF-Schema, das die Feature-Eigenschaften als Teil
+   *     der `EXT_structural_metadata`-Erweiterung beschreibt, in das glTF-Asset eingebettet,
+   *     anstatt das Schema über eine URI zu referenzieren.
+   * @default false
+   * @since v4.6
+   */
+  @Nullable
+  Boolean getEmbedSchema();
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override
