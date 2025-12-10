@@ -43,29 +43,61 @@ const showPopup = (map, popup, featureTitles) => {
   };
 };
 
-const getPopupContent = (e) => {
-  const title = e.features[0].sourceLayer ||
-          e.features[0].properties.featureType ||
-          "feature";
-  let description = `<h5>${title}</h5><hr/><table>`;
-
-  Object.keys(e.features[0].properties)
+const featureHtml = (feature, idx, total) => {
+  const title = feature.sourceLayer || feature.properties.featureType || "feature";
+  const header = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+      <h5 style="margin:0;">${title}</h5>
+      ${
+        total > 1
+          ? `
+          <div class="popup-navigation">
+            <a href="#" id="popup-prev-${idx}" class="popup-nav-btn">&lt;</a>
+            <span id="popup-index-${idx}" class="popup-index">${idx + 1}/${total}</span>
+            <a href="#" id="popup-next-${idx}" class="popup-nav-btn">&gt;</a>
+          </div>
+      `
+          : ""
+      }
+    </div>
+  `;
+  let description = `${header}<hr/><table>`;
+  Object.keys(feature.properties)
     .sort()
     .forEach((prop) => {
-      let val = e.features[0].properties[prop];
-      if (typeof val === 'string' && /^https?:\/\/[^\s]+$/.test(val)) {
+      let val = feature.properties[prop];
+      if (typeof val === "string" && /^https?:\/\/[^\s]+$/.test(val)) {
         val = `<a href="${val}" target="_blank">${val}</a>`;
       }
-      description += `<tr><td title="${prop}" class="pr-4"><strong>${prop}</strong></td><td title="${e.features[0].properties[prop]}">${val}</td></tr>`;
+      description += `<tr><td title="${prop}" class="pr-4"><strong>${prop}</strong></td><td title="${feature.properties[prop]}">${val}</td></tr>`;
     });
-
   description += "</table>";
+  return `<div class="popup-feature" id="popup-feature-${idx}" style="display:${
+    idx === 0 ? "block" : "none"
+  };transform:translateZ(0);backface-visibility:hidden;-webkit-font-smoothing:antialiased">${description}</div>`;
+};
 
-  return Promise.resolve(description);
+const getPopupContent = ({ features }) => {
+  if (!features || features.length === 0) {
+    return Promise.resolve("");
+  }
+
+  if (features.length === 1) {
+    return Promise.resolve(featureHtml(features[0], 0, 1));
+  }
+
+  const allFeaturesHtml = features.map((f, i) => featureHtml(f, i, features.length)).join("");
+  return Promise.resolve(allFeaturesHtml);
 };
 
 const showPopupProps = (map, popup) => (e) => {
-  const lngLat = firstCoordinate(e.features[0].geometry);
+  const features = map.queryRenderedFeatures(e.point);
+
+  if (!features || features.length === 0) {
+    return;
+  }
+
+  const lngLat = firstCoordinate(features[0].geometry);
 
   // Ensure that if the map is zoomed out such that multiple
   // copies of the feature are visible, the popup appears
@@ -74,11 +106,61 @@ const showPopupProps = (map, popup) => (e) => {
     lngLat[0] += e.lngLat.lng > lngLat[0] ? 360 : -360;
   }
 
-  // eslint-disable-next-line no-undef
-  const description = globalThis.getPopupContent ? globalThis.getPopupContent(e, map) : getPopupContent(e);
+  /* eslint-disable no-undef */
+  const description = globalThis.getPopupContent
+    ? globalThis.getPopupContent(features, map)
+    : getPopupContent({ features });
+  /* eslint-enable no-undef */
 
   if (lngLat && description) {
-    description.then(d => popup.setLngLat(lngLat).setHTML(d).addTo(map));
+    description.then((d) => {
+      popup.setLngLat(lngLat).setHTML(d).addTo(map);
+
+      if (features.length > 1) {
+        let idx = 0;
+        const total = features.length;
+
+        const update = (newIdx) => {
+          if (newIdx < 0 || newIdx >= total) return;
+          document.getElementById(`popup-feature-${idx}`).style.display = "none";
+          idx = newIdx;
+          document.getElementById(`popup-feature-${idx}`).style.display = "block";
+          const indexElement = document.getElementById(`popup-index-${idx}`);
+          if (indexElement) {
+            indexElement.textContent = `${idx + 1}/${total}`;
+          }
+          const prevBtn = document.getElementById(`popup-prev-${idx}`);
+          const nextBtn = document.getElementById(`popup-next-${idx}`);
+          if (prevBtn) {
+            prevBtn.onclick = (evt) => {
+              evt.preventDefault();
+              update(idx - 1);
+            };
+          }
+          if (nextBtn) {
+            nextBtn.onclick = (evt) => {
+              evt.preventDefault();
+              update(idx + 1);
+            };
+          }
+        };
+
+        const initialPrevBtn = document.getElementById(`popup-prev-${idx}`);
+        const initialNextBtn = document.getElementById(`popup-next-${idx}`);
+        if (initialPrevBtn) {
+          initialPrevBtn.onclick = (evt) => {
+            evt.preventDefault();
+            update(idx - 1);
+          };
+        }
+        if (initialNextBtn) {
+          initialNextBtn.onclick = (evt) => {
+            evt.preventDefault();
+            update(idx + 1);
+          };
+        }
+      }
+    });
   }
 };
 
@@ -95,7 +177,7 @@ export const addPopup = (map, maplibre, featureTitles = {}, layerIds = ["points"
 
   layerIds.forEach((layerId) => {
     // Make sure to detect feature change for overlapping features and use mousemove instead of mouseenter event
-    map.on('mousemove', layerId, showPopup(map, popup, featureTitles));
+    map.on("mousemove", layerId, showPopup(map, popup, featureTitles));
     map.on("mouseleave", layerId, hidePopup(map, popup));
   });
 };
@@ -108,10 +190,11 @@ export const addPopupProps = (map, maplibre, layerIds = []) => {
     className: "popup-props",
   });
 
+  map.on("click", showPopupProps(map, popup));
+
   layerIds.forEach((layerId) => {
     map.on("mouseenter", layerId, () => changeCursor(map, "pointer"));
     map.on("mouseleave", layerId, () => changeCursor(map, ""));
-    map.on("click", layerId, showPopupProps(map, popup));
   });
 };
 
