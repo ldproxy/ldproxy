@@ -16,7 +16,8 @@ const setStyleGeoJson = (
   maplibre,
   styleUrl,
   removeZoomLevelConstraints,
-  popup
+  popup,
+  featureTitles
 ) => {
   // eslint-disable-next-line no-undef
   fetch(styleUrl)
@@ -70,6 +71,7 @@ const setStyleGeoJson = (
         addPopup(
           map,
           maplibre,
+          featureTitles,
           dataStyle.layers
             .filter((layer) => isDataLayer(layer) === true)
             .map((layer) => layer.id)
@@ -166,7 +168,8 @@ const addData = (
   dataLayers,
   defaultStyle,
   fitBounds,
-  popup
+  popup,
+  featureTitles
 ) => {
   if (dataType === "geojson") {
     const features = getFeaturesWithIdAsProperty(data);
@@ -188,14 +191,14 @@ const addData = (
     }
 
     if (styleUrl) {
-      setStyleGeoJson(map, maplibre, styleUrl, removeZoomLevelConstraints, popup);
+      setStyleGeoJson(map, maplibre, styleUrl, removeZoomLevelConstraints, popup, featureTitles);
     } else {
       const defaultLayers = geoJsonLayers(defaultStyle);
 
       defaultLayers.forEach((layer) => map.addLayer(layer));
 
       if (popup === "HOVER_ID") {
-        addPopup(map, maplibre, hoverLayers);
+        addPopup(map, maplibre, featureTitles, hoverLayers);
       } else if (popup === "CLICK_PROPERTIES") {
         addPopupProps(
           map,
@@ -258,6 +261,7 @@ const MapLibreConfiguration = ({
   defaultStyle,
   fitBounds,
   popup,
+  featureTitles,
   custom,
   showCompass,
 }) => {
@@ -292,7 +296,8 @@ const MapLibreConfiguration = ({
               dataLayers,
               style,
               fitBounds,
-              popup
+              popup,
+              featureTitles
             );
           });
       } else {
@@ -306,7 +311,8 @@ const MapLibreConfiguration = ({
           dataLayers,
           style,
           fitBounds,
-          popup
+          popup,
+          featureTitles
         );
       }
     } else if (styleUrl) {
@@ -351,6 +357,7 @@ MapLibreConfiguration.propTypes = {
   }),
   fitBounds: PropTypes.bool,
   popup: PropTypes.oneOf(["HOVER_ID", "CLICK_PROPERTIES"]),
+  featureTitles: PropTypes.objectOf(PropTypes.string),
   custom: PropTypes.func,
   showCompass: PropTypes.bool,
 };
@@ -378,6 +385,7 @@ MapLibreConfiguration.defaultProps = {
   },
   fitBounds: true,
   popup: null,
+  featureTitles: {},
   custom: null,
   showCompass: true,
 };

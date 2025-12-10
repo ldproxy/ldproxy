@@ -69,6 +69,11 @@
     {{#popup}}
       popup: '{{.}}',
     {{/popup}}
+      featureTitles: {
+    {{#featureTitles}}
+        '{{key}}': '{{value}}',
+    {{/featureTitles}}
+      },
       layerGroupControl: [
     {{#layerGroupControl}}
         {

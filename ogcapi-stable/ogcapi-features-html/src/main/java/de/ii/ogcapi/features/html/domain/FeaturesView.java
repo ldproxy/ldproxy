@@ -183,6 +183,10 @@ public abstract class FeaturesView extends OgcApiDatasetView {
                   .url(uriBuilder().removeParameters("f").ensureParameter("f", "json").toString())
                   .build())
           .popup(Popup.HOVER_ID)
+          .featureTitles(
+              features().stream()
+                  .map(f -> Map.entry(f.getIdValue(), f.getName()))
+                  .collect(Collectors.toSet()))
           .styleUrl(Optional.ofNullable(styleUrl()))
           .removeZoomLevelConstraints(removeZoomLevelConstraints())
           .useBounds(true)
