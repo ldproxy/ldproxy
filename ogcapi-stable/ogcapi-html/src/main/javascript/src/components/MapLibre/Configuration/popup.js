@@ -74,7 +74,7 @@ const featureHtml = (feature, idx, total) => {
   description += "</table>";
   return `<div class="popup-feature" id="popup-feature-${idx}" style="display:${
     idx === 0 ? "block" : "none"
-  };transform:translateZ(0);backface-visibility:hidden;-webkit-font-smoothing:antialiased">${description}</div>`;
+  }">${description}</div>`;
 };
 
 const getPopupContent = ({ features }) => {
