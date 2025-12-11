@@ -28,40 +28,45 @@ import org.immutables.value.Value;
 
 /**
  * @buildingBlock TILES3D
- * @langEn ### Prerequisites
- *     <p>The building block requires that the feature provider includes a type `building`. The
- *     requirements for the type are the same as in the configuration of the [CityJSON
- *     encoding](features_-_cityjson.html#configuration).
- * @langDe ### Voraussetzungen
- *     <p>Der Baustein erfordert, dass der Feature Provider einen Typ "building" enthält. Die
- *     Anforderungen an den Typ sind dieselben wie in der Konfiguration der
- *     [CityJSON-Kodierung](features_-_cityjson.html#konfiguration).
- * @examplesAll <code>
+ * @examplesAll
+ *     <p>**API**
+ *     <p><code>
  * ```yaml
  * - buildingBlock: TILES3D
  *   enabled: true
- *   maxLevel: 9
- *   firstLevelWithContent: 5
- *   contentFilters:
- *   - diameter3d("bbox")>200
- *   - diameter3d("bbox")<=200 and diameter3d("bbox")>100
- *   - diameter3d("bbox")<=100 and diameter3d("bbox")>40
- *   - diameter3d("bbox")<=40 and diameter3d("bbox")>18
- *   - diameter3d("bbox")<=18
- *   tileFilters:
- *   - true
- *   - diameter3d("bbox")<=200
- *   - diameter3d("bbox")<=100
- *   - diameter3d("bbox")<=40
- *   - diameter3d("bbox")<=18
- *   geometricErrorRoot: 8192
- *   clampToEllipsoid: true
- *   subtreeLevels: 3
- *   seeding:
- *     runOnStartup: true
- *     runPeriodic: false
- *     purge: false
- *     maxThreads: 4
+ *   tileProvider: example-3dtiles
+ * ```
+ *     </code>
+ *     <p>**3D Tiles Provider**
+ *     <p><code>
+ * ```yaml
+ * id: example-3dtiles
+ * providerType: 3DTILE
+ * providerSubType: FEATURES
+ * seeding:
+ *   runOnStartup: true
+ *   purge: false
+ * tilesets:
+ *   building:
+ *     id: building
+ *     geometricErrorRoot: 8192
+ *     clampToEllipsoid: true
+ *     subtreeLevels: 3
+ *     contentLevels:
+ *       min: 5
+ *       max: 9
+ *     contentFilters:
+ *     - diameter3d("bbox")>200
+ *     - diameter3d("bbox")<=200 and diameter3d("bbox")>100
+ *     - diameter3d("bbox")<=100 and diameter3d("bbox")>40
+ *     - diameter3d("bbox")<=40 and diameter3d("bbox")>18
+ *     - diameter3d("bbox")<=18
+ *     tileFilters:
+ *     - true
+ *     - diameter3d("bbox")<=200
+ *     - diameter3d("bbox")<=100
+ *     - diameter3d("bbox")<=40
+ *     - diameter3d("bbox")<=18
  * ```
  *     </code>
  */
