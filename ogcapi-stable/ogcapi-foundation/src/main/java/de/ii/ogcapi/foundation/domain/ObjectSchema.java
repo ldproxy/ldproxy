@@ -97,7 +97,18 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
       if (required) {
         this.addRequiredItem(name);
       }
-      this.addProperties(name, classSchemaCache.getSchema(returnType, baseClazz));
+      if (Objects.equals(returnType, baseClazz)) {
+        // prevent infinite recursion
+        this.addProperties(
+            name,
+            new Schema<>()
+                .$ref(
+                    String.format(
+                        ClassSchemaCache.SCHEMA_PATH_TEMPLATE,
+                        ClassSchemaCache.getSchemaId(returnType))));
+      } else {
+        this.addProperties(name, classSchemaCache.getSchema(returnType, baseClazz));
+      }
     }
   }
 
@@ -162,6 +173,16 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
       return new io.swagger.v3.oas.models.media.ArraySchema()
           .items(generateSchema((ParameterizedType) t, referencingClazz, classSchemaCache));
     } else if (t instanceof Class<?>) {
+      if (Objects.equals(t, referencingClazz)) {
+        // prevent infinite recursion
+        return new io.swagger.v3.oas.models.media.ArraySchema()
+            .items(
+                new Schema<>()
+                    .$ref(
+                        String.format(
+                            ClassSchemaCache.SCHEMA_PATH_TEMPLATE,
+                            ClassSchemaCache.getSchemaId(referencingClazz))));
+      }
       return new ArraySchema(referencingClazz, (Class<?>) t, classSchemaCache);
     }
 

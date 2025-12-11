@@ -14,11 +14,10 @@ import de.ii.ogcapi.collections.infra.EndpointCollection
 import de.ii.ogcapi.collections.infra.EndpointCollections
 import de.ii.ogcapi.common.domain.ImmutableCommonConfiguration
 import de.ii.ogcapi.features.core.app.CollectionExtensionFeatures
-import de.ii.ogcapi.features.core.app.CollectionsExtensionFeatures
+import de.ii.ogcapi.collections.app.CollectionsExtensionBase
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders
 import de.ii.ogcapi.features.core.domain.ImmutableFeaturesCoreConfiguration
-import de.ii.ogcapi.foundation.app.I18nDefault
 import de.ii.ogcapi.foundation.app.OgcApiEntity
 import de.ii.ogcapi.foundation.domain.*
 import de.ii.ogcapi.html.domain.ImmutableHtmlConfiguration
@@ -221,7 +220,7 @@ class OgcApiCoreSpecCollections extends Specification {
                     })
                 }
                 if (extensionType == CollectionsExtension.class) {
-                    return ImmutableList.of((T) new CollectionsExtensionFeatures(self))
+                    return ImmutableList.of((T) new CollectionsExtensionBase(self))
                 }
 
                 if (extensionType == CollectionExtension.class) {

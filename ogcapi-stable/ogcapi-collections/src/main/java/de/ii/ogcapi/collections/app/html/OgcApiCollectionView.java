@@ -62,8 +62,8 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
   @Value.Derived
   public Link items() {
     return collection().getLinks().stream()
-        .filter(link -> link.getRel().equalsIgnoreCase("items"))
-        .filter(link -> link.getType().equalsIgnoreCase("text/html"))
+        .filter(link -> collection().getDataRel().equalsIgnoreCase(link.getRel()))
+        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
         .findFirst()
         .orElse(null);
   }
@@ -223,7 +223,11 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
   public List<Link> getTiles() {
     return rawLinks().stream()
         .filter(
-            link -> link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets-"))
+            link ->
+                link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets")
+                    || link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/0.0/tileset-"))
+        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
+        .filter(link -> !Objects.equals(items(), link))
         .collect(Collectors.toUnmodifiableList());
   }
 

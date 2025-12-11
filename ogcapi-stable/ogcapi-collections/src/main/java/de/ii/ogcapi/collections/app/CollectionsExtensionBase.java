@@ -5,15 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.features.core.app;
+package de.ii.ogcapi.collections.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.domain.CollectionExtension;
+import de.ii.ogcapi.collections.domain.CollectionsConfiguration;
 import de.ii.ogcapi.collections.domain.CollectionsExtension;
 import de.ii.ogcapi.collections.domain.ImmutableCollections;
 import de.ii.ogcapi.collections.domain.ImmutableCollections.Builder;
 import de.ii.ogcapi.collections.domain.OgcApiCollection;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -30,18 +30,18 @@ import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class CollectionsExtensionFeatures implements CollectionsExtension {
+public class CollectionsExtensionBase implements CollectionsExtension {
 
   private final ExtensionRegistry extensionRegistry;
 
   @Inject
-  public CollectionsExtensionFeatures(ExtensionRegistry extensionRegistry) {
+  public CollectionsExtensionBase(ExtensionRegistry extensionRegistry) {
     this.extensionRegistry = extensionRegistry;
   }
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return FeaturesCoreConfiguration.class;
+    return CollectionsConfiguration.class;
   }
 
   @Override
@@ -66,7 +66,7 @@ public class CollectionsExtensionFeatures implements CollectionsExtension {
             .sorted(Comparator.comparing(FeatureTypeConfigurationOgcApi::getId))
             .map(
                 featureType ->
-                    CollectionExtensionFeatures.createNestedCollection(
+                    CollectionExtension.createNestedCollection(
                         featureType,
                         api,
                         mediaType,

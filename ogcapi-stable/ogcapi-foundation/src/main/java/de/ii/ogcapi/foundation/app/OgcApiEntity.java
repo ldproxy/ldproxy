@@ -260,6 +260,11 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
   }
 
   @Override
+  public void setSpatialExtent(BoundingBox bbox) {
+    getChangingData().put(ChangingSpatialExtent.class, "UNKNOWN", ChangingSpatialExtent.of(bbox));
+  }
+
+  @Override
   public void setSpatialExtent(String collectionId, BoundingBox bbox) {
     getChangingData()
         .put(ChangingSpatialExtent.class, collectionId, ChangingSpatialExtent.of(bbox));

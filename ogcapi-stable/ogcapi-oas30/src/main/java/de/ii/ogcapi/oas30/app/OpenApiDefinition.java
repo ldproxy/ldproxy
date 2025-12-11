@@ -48,6 +48,7 @@ public class OpenApiDefinition implements OpenApiExtension {
       extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
           .filter(endpoint -> endpoint.isEnabledForApi(apiData))
           .map(endpoint -> endpoint.getDefinition(apiData))
+          .filter(def -> !def.getHidden())
           .sorted(Comparator.comparing(ApiEndpointDefinition::getSortPriority))
           .forEachOrdered(
               ogcApiEndpointDefinition -> {

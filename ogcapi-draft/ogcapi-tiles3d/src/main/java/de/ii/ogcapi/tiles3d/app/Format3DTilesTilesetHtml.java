@@ -22,8 +22,8 @@ import de.ii.ogcapi.html.domain.MapClient;
 import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.ogcapi.tiles3d.domain.Tileset;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -61,14 +61,14 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
     return Format3dTilesTileset.super.isEnabledForApi(apiData)
-        && apiData
-            .getExtension(Tiles3dConfiguration.class)
-            .filter(
-                config ->
-                    config.shouldClampToEllipsoid()
-                        || config.getIonAccessToken().isPresent()
-                        || config.getMaptilerApiKey().isPresent())
-            .isPresent();
+    /*&& apiData
+    .getExtension(Tiles3dConfiguration.class)
+    .filter(
+        config ->
+            config.shouldClampToEllipsoid()
+                || config.getIonAccessToken().isPresent()
+                || config.getMaptilerApiKey().isPresent())
+    .isPresent()*/ ;
   }
 
   @Override
@@ -92,9 +92,9 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
 
   @Override
   public Object getEntity(
-      Tileset tileset,
+      Tileset3d tileset,
       List<Link> links,
-      String collectionId,
+      Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
 
@@ -103,14 +103,20 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
             .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new));
     String serviceUrl = uriCustomizer.toString();
     Tiles3dConfiguration tiles3dConfig =
-        api.getData().getExtension(Tiles3dConfiguration.class, collectionId).orElseThrow();
+        collectionId.isPresent()
+            ? api.getData()
+                .getExtension(Tiles3dConfiguration.class, collectionId.get())
+                .orElseThrow()
+            : api.getData().getExtension(Tiles3dConfiguration.class).orElseThrow();
     HtmlConfiguration htmlConfig =
-        api.getData().getExtension(HtmlConfiguration.class, collectionId).orElseThrow();
+        collectionId.isPresent()
+            ? api.getData().getExtension(HtmlConfiguration.class, collectionId.get()).orElseThrow()
+            : api.getData().getExtension(HtmlConfiguration.class).orElseThrow();
     Optional<String> styleUrl =
         Optional.ofNullable(
             styleReader.getStyleUrl(
                 Optional.of(Objects.requireNonNullElse(tiles3dConfig.getStyle(), "DEFAULT")),
-                Optional.of(collectionId),
+                collectionId,
                 api.getData().getId(),
                 serviceUrl,
                 MapClient.Type.CESIUM,
