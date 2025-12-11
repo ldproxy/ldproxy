@@ -46,7 +46,7 @@ const showPopup = (map, popup, featureTitles) => {
 const featureHtml = (feature, idx, total) => {
   const title = feature.sourceLayer || feature.properties.featureType || "feature";
   const header = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:20px;">
       <h5 style="margin:0;">${title}</h5>
       ${
         total > 1
@@ -61,7 +61,7 @@ const featureHtml = (feature, idx, total) => {
       }
     </div>
   `;
-  let description = `${header}<hr/><table>`;
+  let description = `${header}<hr/><table style="width: 100%;">`;
   Object.keys(feature.properties)
     .sort()
     .forEach((prop) => {
