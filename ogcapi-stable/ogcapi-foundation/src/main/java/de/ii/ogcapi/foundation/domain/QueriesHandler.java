@@ -119,7 +119,26 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       HeaderContentDisposition dispositionInfo,
       Set<Locale> languages) {
     return prepareSuccessResponse(
-        requestContext, links, cacheInfo, crs, dispositionInfo, null, languages);
+        requestContext,
+        links,
+        cacheInfo,
+        crs,
+        dispositionInfo,
+        null,
+        languages,
+        requestContext.getMediaType().type());
+  }
+
+  default Response.ResponseBuilder prepareSuccessResponse(
+      ApiRequestContext requestContext,
+      List<Link> links,
+      HeaderCaching cacheInfo,
+      EpsgCrs crs,
+      HeaderContentDisposition dispositionInfo,
+      Set<Locale> languages,
+      MediaType mediaType) {
+    return prepareSuccessResponse(
+        requestContext, links, cacheInfo, crs, dispositionInfo, null, languages, mediaType);
   }
 
   default Response.ResponseBuilder prepareSuccessResponse(
@@ -130,7 +149,27 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       HeaderContentDisposition dispositionInfo,
       CollectionMetadata collectionMetadata,
       Set<Locale> languages) {
-    Response.ResponseBuilder response = Response.ok().type(requestContext.getMediaType().type());
+    return prepareSuccessResponse(
+        requestContext,
+        links,
+        cacheInfo,
+        crs,
+        dispositionInfo,
+        collectionMetadata,
+        languages,
+        requestContext.getMediaType().type());
+  }
+
+  default Response.ResponseBuilder prepareSuccessResponse(
+      ApiRequestContext requestContext,
+      List<Link> links,
+      HeaderCaching cacheInfo,
+      EpsgCrs crs,
+      HeaderContentDisposition dispositionInfo,
+      CollectionMetadata collectionMetadata,
+      Set<Locale> languages,
+      MediaType mediaType) {
+    Response.ResponseBuilder response = Response.ok().type(mediaType);
 
     cacheInfo.getLastModified().ifPresent(response::lastModified);
     cacheInfo.getEtag().ifPresent(response::tag);

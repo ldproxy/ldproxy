@@ -68,6 +68,13 @@ public interface OgcApi extends Service {
   }
 
   /**
+   * Set spatial extent of the dataset.
+   *
+   * @param bbox the extent
+   */
+  void setSpatialExtent(BoundingBox bbox);
+
+  /**
    * Set spatial extent of a collection in the dataset.
    *
    * @param collectionId the name of the feature type
