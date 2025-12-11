@@ -14,7 +14,7 @@ import java.util.Optional;
 
 public class CesiumData3dTiles {
 
-  public final boolean clampToEllipsoid;
+  public final boolean hasTerrainProvider;
   public final Optional<String> ionAccessToken;
   public final Optional<String> maptilerApiKey;
   public final Optional<String> customTerrainProviderUri;
@@ -27,7 +27,6 @@ public class CesiumData3dTiles {
   public CesiumData3dTiles(
       String tilesetJson,
       Optional<BoundingBox> bbox,
-      boolean clampToEllipsoid,
       Optional<String> ionAccessToken,
       Optional<String> maptilerApiKey,
       Optional<String> customTerrainProviderUri,
@@ -36,11 +35,7 @@ public class CesiumData3dTiles {
     this.maptilerApiKey = maptilerApiKey;
     this.customTerrainProviderUri = customTerrainProviderUri;
     this.terrainHeightDifference = terrainHeightDifference;
-    this.clampToEllipsoid =
-        clampToEllipsoid
-            || ionAccessToken.isEmpty()
-                && maptilerApiKey.isEmpty()
-                && customTerrainProviderUri.isEmpty();
+    this.hasTerrainProvider = maptilerApiKey.isPresent() && customTerrainProviderUri.isPresent();
     this.encodedTileset = URLEncoder.encode(tilesetJson, StandardCharsets.UTF_8);
     this.centerLon =
         bbox.map(box -> Math.toRadians((box.getXmax() + box.getXmin()) / 2)).orElse(null);

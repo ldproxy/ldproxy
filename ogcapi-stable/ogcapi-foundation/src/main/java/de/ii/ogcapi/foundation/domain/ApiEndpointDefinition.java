@@ -103,6 +103,14 @@ public abstract class ApiEndpointDefinition {
   public abstract Map<String, OgcApiResource> getResources();
 
   /**
+   * @return if this endpoint should be hidden from the API documentation
+   */
+  @Value.Default
+  public boolean getHidden() {
+    return false;
+  }
+
+  /**
    * Checks, if a request is supported by this endpoint based on the API path and the HTTP method
    *
    * @param requestPath the path of the resource

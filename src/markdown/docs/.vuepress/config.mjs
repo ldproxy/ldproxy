@@ -51,6 +51,9 @@ const sidebar = (lang) => {
         group({ en: "Tiles", de: "Tiles" }[lang], prefix + "providers/tile", {
           headerReadme: true,
         }),
+        group({ en: "3D Tiles", de: "3D Tiles" }[lang], prefix + "providers/tile3d", {
+          headerReadme: true,
+        }),
       ],
     }),
     group({ en: "Auxiliaries", de: "Zubehör" }[lang], prefix + "auxiliaries", {

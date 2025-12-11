@@ -16,35 +16,34 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import java.math.BigDecimal;
+import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * @title y
- * @endpoints 3D Tiles Subtree, Content
- * @langEn The row of the subtree or tile.
- * @langDe Die Reihe des Subtree oder der Kachel.
+ * @title subPath
+ * @endpoints 3D Tiles file
+ * @langEn The file name.
+ * @langDe Der Dateiname.
  */
 @Singleton
 @AutoBind
-public class PathParameterY implements OgcApiPathParameter {
+public class PathParameter3dTilesFile implements OgcApiPathParameter {
 
   private final SchemaValidator schemaValidator;
-  private final Schema<?> schema = new IntegerSchema().minimum(BigDecimal.ZERO);
+  private final Schema<?> schema = new StringSchema();
 
   @Inject
-  PathParameterY(SchemaValidator schemaValidator) {
+  PathParameter3dTilesFile(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
   @Override
   public String getPattern() {
-    return "\\d+";
+    return ".*";
   }
 
   @Override
@@ -64,20 +63,17 @@ public class PathParameterY implements OgcApiPathParameter {
 
   @Override
   public String getName() {
-    return "y";
+    return "subPath";
   }
 
   @Override
   public String getDescription() {
-    return "The row of the subtree or tile.";
+    return "The file name.";
   }
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData)
-        && ("/collections/{collectionId}/3dtiles/content_{level}_{x}_{y}".equals(definitionPath)
-            || "/collections/{collectionId}/3dtiles/subtree_{level}_{x}_{y}"
-                .equals(definitionPath));
+    return isEnabledForApi(apiData) && definitionPath.endsWith("/3dtiles/{subPath}");
   }
 
   @Override

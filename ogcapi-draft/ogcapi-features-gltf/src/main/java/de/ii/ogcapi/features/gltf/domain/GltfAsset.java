@@ -15,6 +15,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.hash.Funnel;
+import de.ii.xtraplatform.tiles3d.domain.spec.Buffer;
+import de.ii.xtraplatform.tiles3d.domain.spec.BufferView;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

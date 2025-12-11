@@ -20,22 +20,27 @@ const firstCoordinate = (geometry) => {
   }
 };
 
-const showPopup = (map, popup) => (e) => {
-  changeCursor(map, "pointer");
+const showPopup = (map, popup, featureTitles) => {
+  let currentLngLat;
+  return (e) => {
+    const lngLat = firstCoordinate(e.features[0].geometry);
+    if (currentLngLat !== lngLat) {
+      currentLngLat = lngLat;
+      changeCursor(map, "pointer");
+      const description = featureTitles[e.features[0].id] || e.features[0].id;
 
-  const lngLat = firstCoordinate(e.features[0].geometry);
-  const description = e.features[0].id;
+      // Ensure that if the map is zoomed out such that multiple
+      // copies of the feature are visible, the popup appears
+      // over the copy being pointed to.
+      while (Math.abs(e.lngLat.lng - lngLat[0]) > 180) {
+        lngLat[0] += e.lngLat.lng > lngLat[0] ? 360 : -360;
+      }
 
-  // Ensure that if the map is zoomed out such that multiple
-  // copies of the feature are visible, the popup appears
-  // over the copy being pointed to.
-  while (Math.abs(e.lngLat.lng - lngLat[0]) > 180) {
-    lngLat[0] += e.lngLat.lng > lngLat[0] ? 360 : -360;
-  }
-
-  if (lngLat && description) {
-    popup.setLngLat(lngLat).setHTML(description).addTo(map);
-  }
+      if (lngLat && description) {
+        popup.setLngLat(lngLat).setHTML(description).addTo(map);
+      }
+    }
+  };
 };
 
 const getPopupContent = (e) => {
@@ -82,14 +87,15 @@ const hidePopup = (map, popup) => () => {
   popup.remove();
 };
 
-export const addPopup = (map, maplibre, layerIds = ["points"]) => {
+export const addPopup = (map, maplibre, featureTitles = {}, layerIds = ["points"]) => {
   const popup = new maplibre.Popup({
     closeButton: false,
     closeOnClick: false,
   });
 
   layerIds.forEach((layerId) => {
-    map.on("mouseenter", layerId, showPopup(map, popup));
+    // Make sure to detect feature change for overlapping features and use mousemove instead of mouseenter event
+    map.on('mousemove', layerId, showPopup(map, popup, featureTitles));
     map.on("mouseleave", layerId, hidePopup(map, popup));
   });
 };

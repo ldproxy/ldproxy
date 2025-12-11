@@ -9,9 +9,9 @@ package de.ii.ogcapi.features.gltf.domain;
 
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
-import de.ii.ogcapi.features.gltf.domain.SchemaProperty.ComponentType;
 import de.ii.ogcapi.features.gltf.domain.SchemaProperty.Type;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
+import de.ii.xtraplatform.tiles3d.domain.spec.Property.OffsetType;
 import java.net.URI;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map;
@@ -43,7 +43,7 @@ public abstract class FeatureTransformationContextGltf implements FeatureTransfo
   }
 
   @Value.Derived
-  public Map<String, ComponentType> getStringOffsetTypes() {
+  public Map<String, OffsetType> getStringOffsetTypes() {
     return getGltfConfiguration().getProperties().entrySet().stream()
         .filter(p -> p.getValue().getType() == Type.STRING)
         .map(p -> new SimpleEntry<>(p.getKey(), p.getValue().getStringOffsetType().get()))

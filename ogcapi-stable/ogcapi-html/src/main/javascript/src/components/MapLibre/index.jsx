@@ -30,6 +30,7 @@ const MapLibre = ({
   defaultStyle,
   fitBoundsOptions,
   popup,
+  featureTitles,
   custom,
   showCompass,
   layerGroupControl,
@@ -74,6 +75,7 @@ const MapLibre = ({
         defaultStyle={defaultStyle}
         fitBounds={!drawBounds && bounds}
         popup={popup}
+        featureTitles={featureTitles}
         custom={custom}
       />
       {layerGroupControl && layerGroupControl.length > 0 && (
