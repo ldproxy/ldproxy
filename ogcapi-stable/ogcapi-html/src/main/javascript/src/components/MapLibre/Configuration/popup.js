@@ -113,14 +113,9 @@ const showPopupProps = (map, popup) => (e) => {
     return;
   }
 
-  const lngLat = firstCoordinate(features[0].geometry);
-
-  // Ensure that if the map is zoomed out such that multiple
-  // copies of the feature are visible, the popup appears
-  // over the copy being pointed to.
-  while (Math.abs(e.lngLat.lng - lngLat[0]) > 180) {
-    lngLat[0] += e.lngLat.lng > lngLat[0] ? 360 : -360;
-  }
+  // Use the click location instead of the first coordinate of the geometry
+  // This is better for polygons and lines where the first coordinate might be far from the click
+  const lngLat = [e.lngLat.lng, e.lngLat.lat];
 
   /* eslint-disable no-undef */
   const description = globalThis.getPopupContent
@@ -204,6 +199,7 @@ export const addPopupProps = (map, maplibre, layerIds = []) => {
     closeOnClick: true,
     maxWidth: "50%",
     className: "popup-props",
+    anchor: "top",
   });
 
   map.on("click", showPopupProps(map, popup));
