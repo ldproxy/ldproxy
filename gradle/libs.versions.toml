@@ -4,7 +4,7 @@ earcut4j = '2.2.2'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.28.2'
 json-patch = '2.0.2'
-spdx = '2.0.1'
+spdx = '2.0.2'
 
 [libraries]
 # foundation
