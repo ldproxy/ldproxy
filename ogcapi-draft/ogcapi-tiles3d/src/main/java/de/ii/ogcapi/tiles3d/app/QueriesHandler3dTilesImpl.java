@@ -29,8 +29,10 @@ import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.blobs.domain.Blob;
+import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dAccess;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
@@ -172,14 +174,29 @@ public class QueriesHandler3dTilesImpl implements QueriesHandler3dTiles {
 
     Tile3dAccess tile3dAccess =
         tile3dProviders.getTile3dProviderOrThrow(apiData, collectionData, Tile3dProvider::access);
+    boolean needsGenParams =
+        tile3dProviders
+            .getTile3dProvider(apiData, collectionData, Tile3dProvider::seeding)
+            .isPresent();
 
     String tileset3dId =
         collectionData.isPresent()
             ? tile3dProviders.getTileset3dId(collectionData.get()).orElseThrow()
             : tile3dProviders.getTileset3dId(apiData).orElseThrow();
 
+    Optional<Tile3dGenerationParameters> generationParameters =
+        needsGenParams
+            ? Optional.of(
+                new ImmutableTile3dGenerationParameters.Builder()
+                    .clipBoundingBox(requestContext.getApi().getSpatialExtent(collectionId))
+                    .apiId(apiData.getId())
+                    .collectionId(collectionId.orElse("UNKNOWN"))
+                    .build())
+            : Optional.empty();
+
     try {
-      Optional<Blob> tileResult = tile3dAccess.getFile(getContentQuery(tileset3dId, queryInput));
+      Optional<Blob> tileResult =
+          tile3dAccess.getFile(getContentQuery(tileset3dId, queryInput, generationParameters));
 
       if (tileResult.isEmpty()) {
         throw new NotFoundException();
@@ -213,7 +230,10 @@ public class QueriesHandler3dTilesImpl implements QueriesHandler3dTiles {
     }
   }
 
-  private Tile3dQuery getContentQuery(String tileset3dId, QueryInputFile queryInput) {
+  private Tile3dQuery getContentQuery(
+      String tileset3dId,
+      QueryInputFile queryInput,
+      Optional<Tile3dGenerationParameters> generationParameters) {
     String filePath = queryInput.getPath();
 
     return ImmutableTile3dQuery.builder()
@@ -222,6 +242,7 @@ public class QueriesHandler3dTilesImpl implements QueriesHandler3dTiles {
         .level(-1)
         .col(-1)
         .row(-1)
+        .generationParameters(generationParameters)
         .build();
   }
 
