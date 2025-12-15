@@ -7,8 +7,15 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.ii.xtraplatform.cql.domain.Cql;
+import de.ii.xtraplatform.cql.domain.Cql.Format;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.CqlVisitorExtractParameters;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -16,12 +23,16 @@ import java.util.Objects;
 public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, JsonSchema>> {
 
   private final Map<String, JsonSchema> globalParameters;
+  private final Cql cql;
+  private final ObjectMapper mapper;
 
-  public ParametersInStoredQuery(Map<String, JsonSchema> globalParameters) {
+  public ParametersInStoredQuery(Map<String, JsonSchema> globalParameters, Cql cql) {
     this.globalParameters = globalParameters;
+    this.cql = cql;
+    this.mapper = new ObjectMapper();
   }
 
-  public Map<String, JsonSchema> visit(StoredQueryExpression storedQuery) {
+  public Map<String, JsonSchema> visit(StoredQueryBase storedQuery) {
     if (Objects.isNull(storedQuery)) {
       return Map.of();
     }
@@ -42,12 +53,23 @@ public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, J
     storedQuery.getProperties().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
     storedQuery.getSortby().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
 
-    storedQuery
-        .getFilter()
-        .ifPresent(
-            v ->
-                v.accept(new CqlVisitorExtractParameters(globalParameters), true)
-                    .forEach(parameters::putIfAbsent));
+    if (storedQuery.getFilter().isPresent()) {
+      try {
+        // we don't have the filterCrs here, but it is not relevant for parameter extraction, so we
+        // use CRS84
+        Cql2Expression expression =
+            cql.read(
+                mapper.writeValueAsString(storedQuery.getFilter().get()),
+                Format.JSON,
+                OgcCrs.CRS84,
+                true);
+        expression
+            .accept(new CqlVisitorExtractParameters(globalParameters), true)
+            .forEach(parameters::putIfAbsent);
+      } catch (JsonProcessingException e) {
+        // ignore
+      }
+    }
 
     storedQuery
         .getQueries()
@@ -75,6 +97,13 @@ public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, J
 
   @Override
   public Map<String, JsonSchema> visit(ParameterValue param) {
+    if (param.getSchema() instanceof JsonSchemaRef) {
+      String ref = ((JsonSchemaRef) param.getSchema()).getRef();
+      String name = ref.substring(ref.lastIndexOf('/') + 1);
+      if (globalParameters.containsKey(name)) {
+        return Map.of(param.getName(), globalParameters.get(name));
+      }
+    }
     return Map.of(param.getName(), param.getSchema());
   }
 

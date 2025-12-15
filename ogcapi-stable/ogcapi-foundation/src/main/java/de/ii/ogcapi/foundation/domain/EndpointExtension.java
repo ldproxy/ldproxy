@@ -159,4 +159,8 @@ public interface EndpointExtension extends ApiExtension {
               throw new NotFoundException(message);
             });
   }
+
+  default boolean skipBodyParsing() {
+    return false;
+  }
 }

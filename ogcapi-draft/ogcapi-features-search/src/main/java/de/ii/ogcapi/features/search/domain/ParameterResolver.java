@@ -7,9 +7,15 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.xtraplatform.cql.domain.Cql;
+import de.ii.xtraplatform.cql.domain.Cql.Format;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +25,15 @@ public class ParameterResolver implements ParameterResolverBase {
 
   private final QueryParameterSet queryParameterSet;
   private final SchemaValidator schemaValidator;
+  private final Cql cql;
+  private final ObjectMapper mapper;
 
-  public ParameterResolver(QueryParameterSet queryParameterSet, SchemaValidator schemaValidator) {
+  public ParameterResolver(
+      QueryParameterSet queryParameterSet, SchemaValidator schemaValidator, Cql cql) {
     this.queryParameterSet = queryParameterSet;
     this.schemaValidator = schemaValidator;
+    this.cql = cql;
+    this.mapper = new ObjectMapper();
   }
 
   public QueryExpression visit(StoredQueryExpression storedQuery) {
@@ -30,7 +41,8 @@ public class ParameterResolver implements ParameterResolverBase {
       return null;
     }
 
-    final Map<String, JsonSchema> parameters = storedQuery.getParameters();
+    final Map<String, JsonSchema> parameters = storedQuery.getAllParameters();
+    EpsgCrs filterCrs = OgcCrs.CRS84;
 
     ImmutableQueryExpression.Builder builder =
         new ImmutableQueryExpression.Builder()
@@ -46,7 +58,11 @@ public class ParameterResolver implements ParameterResolverBase {
     storedQuery
         .getVerticalCrs()
         .ifPresent(v -> builder.verticalCrs(resolveParameter(v, parameters)));
-    storedQuery.getFilterCrs().ifPresent(v -> builder.filterCrs(resolveParameter(v, parameters)));
+    if (storedQuery.getFilterCrs().isPresent()) {
+      String s = resolveParameter(storedQuery.getFilterCrs().get(), parameters);
+      builder.filterCrs(s);
+      filterCrs = EpsgCrs.fromString(s);
+    }
     storedQuery
         .getFilterOperator()
         .ifPresent(v -> builder.filterOperator(resolveParameter(v, parameters)));
@@ -62,9 +78,19 @@ public class ParameterResolver implements ParameterResolverBase {
 
     ParameterResolverCql cqlParameterResolver =
         new ParameterResolverCql(queryParameterSet, storedQuery.getParameters(), schemaValidator);
-    storedQuery
-        .getFilter()
-        .ifPresent(v -> builder.filter((Cql2Expression) v.accept(cqlParameterResolver)));
+    if (storedQuery.getFilter().isPresent()) {
+      try {
+        Cql2Expression expression =
+            cql.read(
+                mapper.writeValueAsString(storedQuery.getFilter().get()),
+                Format.JSON,
+                filterCrs,
+                true);
+        builder.filter((Cql2Expression) expression.accept(cqlParameterResolver));
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
     storedQuery
         .getQueries()
@@ -136,6 +162,10 @@ public class ParameterResolver implements ParameterResolverBase {
   }
 
   private Object resolveParameter(ParameterValue param, Map<String, JsonSchema> parameters) {
-    return resolveParameter(param.getName(), param.getSchema(), queryParameterSet, schemaValidator);
+    return resolveParameter(
+        param.getName(),
+        parameters.getOrDefault(param.getName(), param.getSchema()),
+        queryParameterSet,
+        schemaValidator);
   }
 }

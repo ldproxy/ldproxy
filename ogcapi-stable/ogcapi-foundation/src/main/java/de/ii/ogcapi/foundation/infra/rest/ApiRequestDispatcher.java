@@ -136,7 +136,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     // read body for authorization and for form requests
     Optional<byte[]> body = Optional.empty();
-    if (requestContext.hasEntity()) {
+    if (requestContext.hasEntity() && !ogcApiEndpoint.skipBodyParsing()) {
       try {
         body = Optional.of(requestContext.getEntityStream().readAllBytes());
       } catch (IOException e) {

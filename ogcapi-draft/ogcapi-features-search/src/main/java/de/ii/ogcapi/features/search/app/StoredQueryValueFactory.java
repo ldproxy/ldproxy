@@ -8,17 +8,17 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
+import de.ii.ogcapi.features.search.domain.StoredQueryValue;
 import de.ii.xtraplatform.values.domain.ValueFactoryAuto;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class StoredQueryExpressionFactory extends ValueFactoryAuto {
+public class StoredQueryValueFactory extends ValueFactoryAuto {
 
   @Inject
-  StoredQueryExpressionFactory() {
-    super(StoredQueryExpression.class);
+  StoredQueryValueFactory() {
+    super(StoredQueryValue.class);
   }
 }

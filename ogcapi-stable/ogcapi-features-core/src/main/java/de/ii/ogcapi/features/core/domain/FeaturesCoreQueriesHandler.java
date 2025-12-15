@@ -50,6 +50,11 @@ public interface FeaturesCoreQueriesHandler
     EpsgCrs getDefaultCrs();
 
     boolean sendResponseAsStream();
+
+    @Value.Default
+    default boolean includeBodyLinks() {
+      return true;
+    }
   }
 
   @Value.Immutable
