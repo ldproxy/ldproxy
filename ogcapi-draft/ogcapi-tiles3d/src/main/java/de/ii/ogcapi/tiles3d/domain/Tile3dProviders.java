@@ -143,6 +143,15 @@ public interface Tile3dProviders {
         : getTile3dProvider(apiData);
   }
 
+  default <T> Optional<T> getTile3dProvider(
+      OgcApiDataV2 apiData,
+      Optional<FeatureTypeConfigurationOgcApi> collectionData,
+      Function<Tile3dProvider, OptionalVolatileCapability<T>> capability) {
+    return collectionData.isPresent()
+        ? getTile3dProvider(apiData, collectionData.get(), capability)
+        : getTile3dProvider(apiData, capability);
+  }
+
   default Tile3dProvider getTile3dProviderOrThrow(
       OgcApiDataV2 apiData, Optional<FeatureTypeConfigurationOgcApi> collectionData) {
     return collectionData.isPresent()
