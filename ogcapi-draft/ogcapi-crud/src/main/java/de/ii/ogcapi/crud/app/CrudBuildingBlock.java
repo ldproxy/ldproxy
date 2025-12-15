@@ -18,6 +18,8 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @title CRUD
@@ -121,6 +123,8 @@ import javax.inject.Singleton;
 @AutoBind
 public class CrudBuildingBlock implements ApiBuildingBlock {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CrudBuildingBlock.class);
+
   public static final Optional<SpecificationMaturity> MATURITY =
       Optional.of(SpecificationMaturity.DRAFT_OGC);
   public static final Optional<ExternalDocumentation> SPEC =
@@ -138,13 +142,13 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return isProviderSupportsMutations(apiData) && ApiBuildingBlock.super.isEnabledForApi(apiData);
+    return ApiBuildingBlock.super.isEnabledForApi(apiData) && isProviderSupportsMutations(apiData);
   }
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
-    return isProviderSupportsMutations(apiData)
-        && ApiBuildingBlock.super.isEnabledForApi(apiData, collectionId);
+    return ApiBuildingBlock.super.isEnabledForApi(apiData, collectionId)
+        && isProviderSupportsMutations(apiData);
   }
 
   @Override
@@ -153,9 +157,20 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
   }
 
   private boolean isProviderSupportsMutations(OgcApiDataV2 apiData) {
+
     return providers
         .getFeatureProvider(apiData)
-        .filter(provider -> provider.mutations().isSupported())
+        .filter(
+            provider -> {
+              if (!provider.mutations().isSupported()) {
+                LOGGER.warn(
+                    "Disabling building block CRUD, feature provider with id '{}' does not support mutations: datasetChanges.mode is not 'CRUD'",
+                    provider.getId());
+
+                return false;
+              }
+              return true;
+            })
         .isPresent();
   }
 }

@@ -20,45 +20,6 @@ import org.immutables.value.Value;
 
 /**
  * @buildingBlock STYLES
- * @langEn ### Storage
- *     <p><code>
- * - MapLibre stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type
- *      `maplibre-styles` and path `{apiId}/{styleId}`. In the latter case the extension `mbs` is
- *      still supported, but preferably stylesheets are stored as plain YAML or JSON files. The URIs (Sprites,
- *     Glyphs, Source.url, Source.tiles) used in MapLibre styles links might contain `{serviceUrl}`.
- * - 3d Tiles stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as values with type
- *      `3dtiles-styles` and path `{apiId}/{styleId}`. In the latter case the extension `3dtiles`
- *      is still supported, but preferably stylesheets are stored as plain YAML or JSON files.
- * - Other stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as resources with type
- *      `other-styles` and path `{apiId}/{styleId}.{ext}`.
- *     The file extension `{ext}` must have the following value depending on the style encoding:
- *   - OGC SLD 1.0: `sld10`
- *   - OGC SLD 1.1: `sld11`
- *   - QGIS QML: `qml`
- *   - ArcGIS Desktop: `lyr`
- *   - ArcGIS Pro: `lyrx`
- *     </code>
- * @langDe ### Speicherung
- *     <p><code>
- * - MapLibre Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
- *      als Values mit Typ `maplibre-styles` und Pfad `{apiId}/{styleId}`. Im letzten Fall wird `mbs`
- *      als Erweiterung weiterhin unterstützt, aber bevorzugt werden Stylesheets als normale
- *      YAML- oder JSON-Dateien gespeichert. Die URIs (Sprites, Glyphs, Source.url,
- *      Source.tiles) bei den Mapbox-Styles Links können dabei als Parameter `{serviceUrl}`
- *      enthalten.
- * - 3d Tiles Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
- *      als Values mit Typ `3dtiles-styles` und Pfad `{apiId}/{styleId}`. Im letzten Fall wird `3dtiles`
- *      als Erweiterung weiterhin unterstützt, aber bevorzugt werden Stylesheets als normale
- *      YAML- oder JSON-Dateien gespeichert.
- * - Andere Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
- *      als Ressourcen mit Typ `other-styles` und Pfad `{apiId}/{styleId}.{ext}`.
- *      Die Dateikennung `{ext}` muss den folgenden Wert in Abhängigkeit des Style-Formats haben:
- *   - OGC SLD 1.0: `sld10`
- *   - OGC SLD 1.1: `sld11`
- *   - QGIS QML: `qml`
- *   - ArcGIS Desktop: `lyr`
- *   - ArcGIS Pro: `lyrx`
- *     </code>
  * @langEn ### Layer Control
  *     <p>The layer control dialog in the webmap is activated via the `webmapWithLayerControl`
  *     option (see 'Options' below).

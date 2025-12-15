@@ -158,16 +158,17 @@ public abstract class OgcApiCollectionsView extends OgcApiView {
                     collection.getLinks().stream()
                         .filter(link -> link.getRel().equalsIgnoreCase("self"))
                         .findFirst()
-                        .map(link -> link.getHref())
+                        .map(Link::getHref)
                         .orElse(""),
                     "hrefitems",
                     collection.getLinks().stream()
-                        .filter(link -> link.getRel().equalsIgnoreCase("self"))
+                        .filter(link -> collection.getDataRel().equalsIgnoreCase(link.getRel()))
+                        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
                         .findFirst()
-                        .map(link -> link.getHref() + "/items")
+                        .map(Link::getHref)
                         .orElse(""),
                     "itemType",
-                    i18n().get(collection.getItemType().orElse("feature"), language()),
+                    i18n().get(collection.getItemType().orElse("unknown"), language()),
                     "itemCount",
                     collection.getItemCount().map(Object::toString).orElse("")))
         .collect(Collectors.toList());

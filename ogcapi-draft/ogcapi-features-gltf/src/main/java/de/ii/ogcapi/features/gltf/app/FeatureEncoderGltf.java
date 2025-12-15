@@ -16,18 +16,13 @@ import de.ii.ogcapi.features.gltf.domain.GltfConfiguration;
 import de.ii.ogcapi.features.gltf.domain.ImmutableAccessor;
 import de.ii.ogcapi.features.gltf.domain.ImmutableAssetMetadata;
 import de.ii.ogcapi.features.gltf.domain.ImmutableAttributes;
-import de.ii.ogcapi.features.gltf.domain.ImmutableBuffer;
-import de.ii.ogcapi.features.gltf.domain.ImmutableBufferView;
 import de.ii.ogcapi.features.gltf.domain.ImmutableGltfAsset;
 import de.ii.ogcapi.features.gltf.domain.ImmutableMaterial;
 import de.ii.ogcapi.features.gltf.domain.ImmutableMesh;
 import de.ii.ogcapi.features.gltf.domain.ImmutableNode;
 import de.ii.ogcapi.features.gltf.domain.ImmutablePbrMetallicRoughness;
 import de.ii.ogcapi.features.gltf.domain.ImmutablePrimitive;
-import de.ii.ogcapi.features.gltf.domain.ImmutableProperty;
-import de.ii.ogcapi.features.gltf.domain.ImmutablePropertyTable;
 import de.ii.ogcapi.features.gltf.domain.ImmutableScene;
-import de.ii.ogcapi.features.gltf.domain.PropertyTable;
 import de.ii.ogcapi.features.gltf.domain.SchemaEnum;
 import de.ii.ogcapi.features.gltf.domain.SchemaProperty;
 import de.ii.ogcapi.features.gltf.domain.SchemaProperty.ComponentType;
@@ -37,6 +32,12 @@ import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.xtraplatform.base.domain.LogContext.MARKER;
 import de.ii.xtraplatform.features.domain.FeatureObjectEncoder;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
+import de.ii.xtraplatform.tiles3d.domain.spec.ImmutableBuffer;
+import de.ii.xtraplatform.tiles3d.domain.spec.ImmutableBufferView;
+import de.ii.xtraplatform.tiles3d.domain.spec.ImmutableProperty;
+import de.ii.xtraplatform.tiles3d.domain.spec.ImmutablePropertyTable;
+import de.ii.xtraplatform.tiles3d.domain.spec.Property.OffsetType;
+import de.ii.xtraplatform.tiles3d.domain.spec.PropertyTable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -263,7 +264,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
       SchemaProperty property,
       String value,
       Map<String, SchemaEnum> enums,
-      ComponentType offsetType)
+      OffsetType offsetType)
       throws IOException {
     boolean present = Objects.nonNull(value) && !value.isBlank();
     String effectiveValue =
@@ -396,7 +397,7 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
   }
 
   private static void writeStringOffset(
-      ByteArrayOutputStream buffer, String propertyName, int offset, ComponentType offsetType) {
+      ByteArrayOutputStream buffer, String propertyName, int offset, OffsetType offsetType) {
     try {
       switch (offsetType) {
         case UINT8:
@@ -605,16 +606,28 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
 
     PropertyTable propertyTable = propertyTableBuilder.build();
 
-    if (transformationContext.getSchemaUri().isPresent() && propertyTable.getCount() > 0) {
-      builder
-          .putExtensions(
-              EXT_STRUCTURAL_METADATA,
-              ImmutableMap.of(
-                  "schemaUri",
-                  transformationContext.getSchemaUri().get().toString(),
-                  "propertyTables",
-                  ImmutableList.of(propertyTable)))
-          .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+    if (transformationContext.getGltfSchema() != null && propertyTable.getCount() > 0) {
+      if (transformationContext.getSchemaUri().isEmpty()) {
+        builder
+            .putExtensions(
+                EXT_STRUCTURAL_METADATA,
+                ImmutableMap.of(
+                    "schema",
+                    transformationContext.getGltfSchema(),
+                    "propertyTables",
+                    ImmutableList.of(propertyTable)))
+            .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+      } else {
+        builder
+            .putExtensions(
+                EXT_STRUCTURAL_METADATA,
+                ImmutableMap.of(
+                    "schemaUri",
+                    transformationContext.getSchemaUri().get().toString(),
+                    "propertyTables",
+                    ImmutableList.of(propertyTable)))
+            .addExtensionsUsed(EXT_STRUCTURAL_METADATA, EXT_MESH_FEATURES);
+      }
     }
 
     Builder<ByteArrayOutputStream> bufferList =

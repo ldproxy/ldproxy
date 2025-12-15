@@ -13,6 +13,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-geometries'
+    provided 'de.interactive_instruments:xtraplatform-tiles3d'
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-features-core'

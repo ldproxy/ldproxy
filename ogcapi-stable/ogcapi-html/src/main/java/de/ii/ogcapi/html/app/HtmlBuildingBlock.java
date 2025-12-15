@@ -30,6 +30,16 @@ import javax.inject.Singleton;
  * @title HTML
  * @langEn HTML encoding for every supported resource.
  * @langDe HTML-Kodierung für alle unterstützten Ressourcen.
+ * @cfgFilesEn To customize the HTML content, see [Customization](#customization).
+ *     <p>If the `defaultStyle` configuration option is set to a custom style, the stylesheet file
+ *     must be placed in the value store as `maplibre-styles/{apiId}/{styleId}.json` for a MapLibre
+ *     style and as `3dtiles-styles/{apiId}/building/{styleId}.json` for a 3DTiles style.
+ * @cfgFilesDe Um die HTML-Inhalte anzupassen, siehe [Benutzerdefinierte
+ *     Anpassungen](#benutzerdefinierte-anpassungen).
+ *     <p>Wenn die Konfigurationsoption `defaultStyle` auf einen benutzerdefinierten Stil gesetzt
+ *     ist, muss die Stylesheet-Datei im Value-Store als `maplibre-styles/{apiId}/{styleId}.json`
+ *     für einen MapLibre-Style und als `3dtiles-styles/{apiId}/building/{styleId}.json` für einen
+ *     3DTiles-Style abgelegt werden.
  * @conformanceEn *JSON* implements all requirements of conformance class *HTML* from [OGC API -
  *     Features - Part 1: Core 1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_geojson) for
  *     the resources *Landing Page*, *Conformance Declaration*, *Feature Collections*, and *Feature

@@ -82,6 +82,8 @@ public interface MapClient {
 
   Optional<Popup> getPopup();
 
+  Optional<Set<Entry<String, String>>> getFeatureTitles();
+
   Optional<Set<Entry<String, Collection<String>>>> getLayerGroupControl();
 
   @Value.Lazy

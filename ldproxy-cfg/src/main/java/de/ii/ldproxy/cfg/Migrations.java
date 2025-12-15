@@ -7,6 +7,7 @@
  */
 package de.ii.ldproxy.cfg;
 
+import de.ii.ogcapi.tiles3d.domain.Tiles3dMigrationV5;
 import de.ii.xtraplatform.entities.domain.EntityDataStore;
 import de.ii.xtraplatform.entities.domain.EntityMigration;
 import de.ii.xtraplatform.entities.domain.EntityMigration.EntityMigrationContext;
@@ -17,7 +18,7 @@ public interface Migrations {
   static Migrations create(EntityDataStore<?> entityDataStore) {
     EntityMigrationContext context = entityDataStore::has;
 
-    return () -> List.of();
+    return () -> List.of(new Tiles3dMigrationV5(context));
   }
 
   List<EntityMigration<?, ?>> entity();
