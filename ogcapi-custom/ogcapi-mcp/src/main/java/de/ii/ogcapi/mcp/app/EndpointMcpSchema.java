@@ -11,7 +11,6 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -37,10 +36,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 /**
- * @title Model Context Protocol (MCP) Schema
+ * @title MCP Schema
  * @path mcp/schema
- * @langEn TODO
- * @langDe TODO
+ * @langEn Check the generated MCP definitions.
+ * @langDe Überprüfung der generierten MCP-Definitionen.
  */
 @Singleton
 @AutoBind
@@ -61,13 +60,9 @@ public class EndpointMcpSchema extends Endpoint {
     return McpConfiguration.class;
   }
 
-  // TODO: az
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(ConformanceDeclarationFormatExtension.class);
-    }
-    return formats;
+    return List.of(FormatJson.INSTANCE);
   }
 
   @Override
@@ -78,14 +73,8 @@ public class EndpointMcpSchema extends Endpoint {
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_CONFORMANCE);
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, "/mcp/schema");
-    String operationSummary = "mcp declaration";
-    Optional<String> operationDescription =
-        Optional.of(
-            "The URIs of all mcp classes supported by the server. "
-                + "This information is provided to support 'generic' clients that want to access multiple "
-                + "OGC API implementations - and not 'just' a specific API. For clients accessing only a single "
-                + "API, this information is in general not relevant and the OpenAPI definition details the "
-                + "required information about the API.");
+    String operationSummary = "get MCP schema";
+    Optional<String> operationDescription = Optional.of("Check the generated MCP definitions.");
     String path = "/mcp/schema";
     ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
         new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
@@ -99,7 +88,7 @@ public class EndpointMcpSchema extends Endpoint {
             operationSummary,
             operationDescription,
             Optional.empty(),
-            getOperationId("getMcpDeclaration"),
+            getOperationId("getMcpSchema"),
             GROUP_DISCOVER_READ,
             TAGS,
             McpBuildingBlock.MATURITY,

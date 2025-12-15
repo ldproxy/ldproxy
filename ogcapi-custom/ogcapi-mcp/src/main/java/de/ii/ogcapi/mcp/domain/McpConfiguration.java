@@ -15,15 +15,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * @buildingBlock MCP * @langEn ### Purpose *
- *     <p>The MCP building block enables the creation of an MCP schema, which allows ldproxy to be
- *     used with Large Language Models (LLMs). *
- *     <p>This configuration controls which collections and queries are included or excluded in the
- *     MCP schema. * @langDe ### Zweck *
- *     <p>Der MCP-BuildingBlock dient dazu, ein MCP-Schema zu erstellen, sodass ldproxy mit Large
- *     Language Models (LLMs) genutzt werden kann. *
- *     <p>Über diese Konfiguration wird gesteuert, welche Collections und Queries im MCP-Schema
- *     enthalten oder ausgeschlossen sind.
+ * @buildingBlock MCP
  * @examplesAll <code>
  * ```yaml
  * - buildingBlock: MCP
@@ -65,16 +57,16 @@ public interface McpConfiguration extends ExtensionConfiguration {
   interface McpIncludeExclude {
 
     /**
-     * @langEn List of collection IDs to be included or excluded.
-     * @langDe Liste der Collection-IDs, die eingeschlossen oder ausgeschlossen werden sollen.
+     * @langEn List of collection Ids to be included or excluded.
+     * @langDe Liste der Collection-Ids, die eingeschlossen oder ausgeschlossen werden sollen.
      * @default []
      * @since v4.6
      */
     List<String> getCollections();
 
     /**
-     * @langEn List of query IDs to be included or excluded.
-     * @langDe Liste der Query-IDs, die eingeschlossen oder ausgeschlossen werden sollen.
+     * @langEn List of stored query Ids to be included or excluded.
+     * @langDe Liste der Stored-Query-Ids, die eingeschlossen oder ausgeschlossen werden sollen.
      * @default []
      * @since v4.6
      */

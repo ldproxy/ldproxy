@@ -11,7 +11,6 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.Endpoint;
@@ -37,10 +36,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.core.Context;
 
 /**
- * @title Model Context Protocol (MCP)
+ * @title MCP
  * @path mcp
- * @langEn TODO
- * @langDe TODO
+ * @langEn MCP server endpoint, can be added to AI tools as connector.
+ * @langDe MCP Server-Endpunkt, kann KI-Werkzeugen als Konnektor hinzugefügt werden.
  */
 @Singleton
 @AutoBind
@@ -61,13 +60,9 @@ public class EndpointMcp extends Endpoint {
     return McpConfiguration.class;
   }
 
-  // TODO: az
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(ConformanceDeclarationFormatExtension.class);
-    }
-    return formats;
+    return List.of(FormatJson.INSTANCE);
   }
 
   @Override
@@ -79,14 +74,8 @@ public class EndpointMcp extends Endpoint {
     String path = "/mcp";
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path);
-    String operationSummary = "mcp execution";
-    Optional<String> operationDescription =
-        Optional.of(
-            "The URIs of all mcp classes supported by the server. "
-                + "This information is provided to support 'generic' clients that want to access multiple "
-                + "OGC API implementations - and not 'just' a specific API. For clients accessing only a single "
-                + "API, this information is in general not relevant and the OpenAPI definition details the "
-                + "required information about the API.");
+    String operationSummary = "MCP server";
+    Optional<String> operationDescription = Optional.of("Can be added to AI tools as connector.");
     ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
         new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
     ApiOperation.getResource(
@@ -99,7 +88,7 @@ public class EndpointMcp extends Endpoint {
             operationSummary,
             operationDescription,
             Optional.empty(),
-            getOperationId("postMcpExecution"),
+            getOperationId("postMcp"),
             GROUP_DISCOVER_READ,
             TAGS,
             McpBuildingBlock.MATURITY,
