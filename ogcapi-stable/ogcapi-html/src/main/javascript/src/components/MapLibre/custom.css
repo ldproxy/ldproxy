@@ -12,6 +12,54 @@
   height: 100vh;
 }
 
+#popup-index {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+}
+
+.popup-feature {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.popup-navigation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 16px;
+  line-height: 0.8;
+}
+
+.popup-nav-btn {
+  text-decoration: none;
+  color: #333;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  line-height: 0.8;
+}
+
+.popup-nav-btn:hover {
+  color: #000;
+}
+
+.popup-index {
+  white-space: nowrap;
+  line-height: 0.8;
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+}
+
 .maplibregl-ctrl.maplibregl-ctrl-attrib {
   background-color: rgba(255, 255, 255, 0.7) !important;
 }

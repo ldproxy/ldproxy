@@ -28,10 +28,10 @@ import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.jobs.domain.JobQueue;
 import de.ii.xtraplatform.jobs.domain.JobSet;
 import de.ii.xtraplatform.services.domain.TaskContext;
-import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
-import de.ii.xtraplatform.tiles.domain.TileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.TileSeedingJobSet;
+import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dGenerationParameters;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dSeedingJobSet;
 import java.io.IOException;
@@ -264,8 +264,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
       Optional<String> collectionId,
       Optional<BoundingBox> bbox) {
     OgcApiDataV2 apiData = api.getData();
-    Map<String, TileGenerationParameters> tilesets = new LinkedHashMap<>();
-    Map<String, String> tilesetCollections = new LinkedHashMap<>();
+    Map<String, Tile3dGenerationParameters> tilesets = new LinkedHashMap<>();
 
     for (String cid : apiData.getCollections().keySet()) {
       if (collectionId.isPresent() && !collectionId.get().equals(cid)) {
@@ -276,23 +275,20 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
           .map(cfg -> cfg.getCollectionTileset(cid))
           .ifPresent(
               tileset -> {
-                TileGenerationParameters generationParameters =
-                    new ImmutableTileGenerationParameters.Builder()
+                Tile3dGenerationParameters generationParameters =
+                    new ImmutableTile3dGenerationParameters.Builder()
                         .clipBoundingBox(bbox.or(() -> api.getSpatialExtent(cid)))
-                        .substitutions(
-                            FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(
-                                api.getUri().toString()))
+                        .apiId(apiData.getId())
+                        .collectionId(cid)
                         .build();
 
                 tilesets.putIfAbsent(tileset, generationParameters);
-                tilesetCollections.putIfAbsent(tileset, cid);
               });
     }
 
     int priority = tileProvider.seeding().get().getOptions().getEffectivePriority();
 
-    return Tile3dSeedingJobSet.of(
-        tileProvider.getId(), apiData.getId(), tilesets, tilesetCollections, reseed, priority);
+    return Tile3dSeedingJobSet.of(tileProvider.getId(), tilesets, reseed, priority);
   }
 
   @Override
