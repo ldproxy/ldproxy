@@ -1,5 +1,5 @@
 
-maturity = 'PROPOSAL'
+maturity = 'CANDIDATE'
 maintenance = 'LOW'
 description = 'Create, replace, update and delete features.'
 descriptionDe = 'Erzeugen, Ersetzen, Aktualisieren und Löschen von Features.'
