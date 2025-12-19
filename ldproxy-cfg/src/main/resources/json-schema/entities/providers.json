@@ -5,18 +5,20 @@
     "providerType": {
       "enum": [
         "FEATURE",
+        "3DTILE",
         "TILE"
       ]
     },
     "providerSubType": {
       "enum": [
-        "WFS",
-        "MBTILES",
-        "FEATURES",
-        "HTTP",
         "ORACLE",
         "SQL",
-        "GRAPHQL"
+        "WFS",
+        "GRAPHQL",
+        "FILES",
+        "FEATURES",
+        "MBTILES",
+        "HTTP"
       ]
     }
   },
@@ -25,6 +27,44 @@
     "providerType"
   ],
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "ORACLE"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "SQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
+      }
+    },
     {
       "if": {
         "properties": {
@@ -42,6 +82,63 @@
       },
       "then": {
         "$ref": "#/$defs/FeatureProviderWfsData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "GRAPHQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderGraphQlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "3DTILE"
+          },
+          "providerSubType": {
+            "const": "FILES"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/Tile3dProviderFilesData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "3DTILE"
+          },
+          "providerSubType": {
+            "const": "FEATURES"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/Tile3dProviderFeaturesData"
       }
     },
     {
@@ -100,68 +197,11 @@
       "then": {
         "$ref": "#/$defs/TileProviderHttpData"
       }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "ORACLE"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "SQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "GRAPHQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderGraphQlData"
-      }
     }
   ],
   "$defs": {
-    "FeatureProviderWfsData": {
-      "title": "FeatureProviderWfsData",
+    "FeatureProviderSqlData": {
+      "title": "FeatureProviderSqlData",
       "description": "",
       "type": "object",
       "properties": {
@@ -183,8 +223,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -257,6 +297,270 @@
             "null"
           ]
         },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the     provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,     `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,     `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and     `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`     or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format     does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "See [Connection Info](#connection-info).",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoSql"
+        },
+        "datasetChanges": {
+          "title": "datasetChanges",
+          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)     below.",
+          "type": "object",
+          "$ref": "#/$defs/DatasetChangeSettings"
+        },
+        "sourcePathDefaults": {
+          "title": "sourcePathDefaults",
+          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path     Defaults](10-sql.md#source-path-defaults) below.",
+          "type": "object",
+          "$ref": "#/$defs/SqlPathDefaults"
+        },
+        "queryGeneration": {
+          "title": "queryGeneration",
+          "description": "Options for query generation, for details see [Query     Generation](10-sql.md#query-generation) below.",
+          "type": "object",
+          "$ref": "#/$defs/QueryGeneratorSettings"
+        },
+        "queryProcessing": {
+          "title": "queryProcessing",
+          "description": "Options for query processing, for details see [Query     Processing](10-sql.md#query-processing) below.",
+          "type": "object",
+          "$ref": "#/$defs/QueryProcessorSettings"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureProviderWfsData": {
+      "title": "FeatureProviderWfsData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the     provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,     `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,     `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and     `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`     or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format     does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
         "extensions": {
           "title": "extensions",
           "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
@@ -307,8 +611,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -328,6 +632,384 @@
           "additionalProperties": {
             "$ref": "#/$defs/FeatureSchema"
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureProviderGraphQlData": {
+      "title": "FeatureProviderGraphQlData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the     provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,     `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,     `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and     `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`     or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format     does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
+        },
+        "queries": {
+          "title": "queries",
+          "description": "Options for query generation, for details see [Queries](#queries) below.",
+          "type": "object",
+          "$ref": "#/$defs/GraphQlQueries"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Tile3dProviderFilesData": {
+      "title": "Tile3dProviderFilesData",
+      "description": "# Files  With this 3D tile provider, the tilesets are retrieved from the store. For each tileset     the root `tileset.json` has to be configured. Version 1.0 and 1.1 of the 3D Tiles     specification are supported.       ## Configuration       {@docTable:properties }       ### Tileset       {@docTable:tileset }       ## Example       {@docVar:examples }",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `3DTILE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "Always `FILES`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "tilesetDefaults": {
+          "title": "tilesetDefaults",
+          "description": "Defaults for all `tilesets`.",
+          "type": "object",
+          "$ref": "#/$defs/Tileset3dFilesDefaults"
+        },
+        "tilesets": {
+          "title": "tilesets",
+          "description": "Definition of tilesets.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Tileset3dFiles"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Tile3dProviderFeaturesData": {
+      "title": "Tile3dProviderFeaturesData",
+      "description": "# Features  In this 3D tile provider, the [3D Tiles     1.1](https://docs.ogc.org/cs/22-025r4/22-025r4.html) in glTF format are derived from a     [Feature Provider](../feature/README.md). The tilesets use implicit quadtree tiling, subtrees     are encoded using the binary format for compactness.       The only [refinement strategy](https://docs.ogc.org/cs/22-025r4/22-025r4.html#toc19) that     * is supported is `ADD`. Use the `contentFilters` configuration option to specify at which *     level of the tile hierarchy a building will be represented. Each building should be included     * on exactly one level.       ## Limitations       The provider currently depends on the building block [Features -     glTF](features_-_gltf.md#limitations) and inherits its limitations.       In addition, the following information in Subtrees is not supported: property tables, tile     metadata, content metadata, and subtree metadata.       ## Configuration       {@docTable:properties }       {@docVar:tilesetDefaults }       {@docTable:tilesetDefaults }       {@docVar:tileset }       {@docTable:tileset }       {@docVar:cache }       {@docTable:cache }       {@docVar:seeding }       {@docTable:seeding }       ## Storage       The files of the tilesets are stored in the resource store in the * directory     `3dtiles/{apiId}/cache_dyn/{tileset}/`.       ## Example       {@docVar:examples }",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `3DTILE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "Always `FEATURES`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "tilesetDefaults": {
+          "title": "tilesetDefaults",
+          "description": "Defaults for all `tilesets`.",
+          "type": "object",
+          "$ref": "#/$defs/Tileset3dFeaturesDefaults"
+        },
+        "tilesets": {
+          "title": "tilesets",
+          "description": "Definition of tilesets.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Tileset3dFeatures"
+          }
+        },
+        "seeding": {
+          "title": "seeding",
+          "description": "Controls how and when tiles are precomputed, see [Seeding](#seeding).",
+          "type": "object",
+          "$ref": "#/$defs/SeedingOptions3d"
+        },
+        "caches": {
+          "title": "caches",
+          "description": "List of cache definitions, see [Cache](#cache).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/Cache3d"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/Cache3d"
+              }
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -355,8 +1037,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -423,8 +1105,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -459,8 +1141,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -545,8 +1227,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -590,374 +1272,6 @@
       },
       "additionalProperties": false
     },
-    "FeatureProviderSqlData": {
-      "title": "FeatureProviderSqlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "See [Connection Info](#connection-info).",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoSql"
-        },
-        "datasetChanges": {
-          "title": "datasetChanges",
-          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)     below.",
-          "type": "object",
-          "$ref": "#/$defs/DatasetChangeSettings"
-        },
-        "sourcePathDefaults": {
-          "title": "sourcePathDefaults",
-          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path     Defaults](10-sql.md#source-path-defaults) below.",
-          "type": "object",
-          "$ref": "#/$defs/SqlPathDefaults"
-        },
-        "queryGeneration": {
-          "title": "queryGeneration",
-          "description": "Options for query generation, for details see [Query     Generation](10-sql.md#query-generation) below.",
-          "type": "object",
-          "$ref": "#/$defs/QueryGeneratorSettings"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureProviderGraphQlData": {
-      "title": "FeatureProviderGraphQlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the     coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to     use a non-default axis order: `LON_LAT` uses longitude/east as first value and     latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis     order and is the default value. Example: The default coordinate reference system `CRS84`     would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone     in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).     `NONE` means no validation. With `LAX` the validation will fail and the provider will not     start, when issues are detected that would definitely lead to runtime errors. Issues that     might lead to runtime errors depending on the data will be logged as warning. With `STRICT`     the validation will fail for any detected issue. That means the provider will only start if     runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the     name, if no label is set. The template is a string template and can contain the variables     `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For     example, to append the unit of measure in square brackets to the property label, one can     use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the     SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in     `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
-        },
-        "queries": {
-          "title": "queries",
-          "description": "Options for query generation, for details see [Queries](#queries) below.",
-          "type": "object",
-          "$ref": "#/$defs/GraphQlQueries"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema     definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:     ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "EpsgCrs": {
       "title": "EpsgCrs",
       "description": "",
@@ -971,8 +1285,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -987,8 +1301,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -998,6 +1312,85 @@
         "forceAxisOrder": {
           "title": "forceAxisOrder",
           "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureChangesPgConfiguration": {
+      "title": "FeatureChangesPgConfiguration",
+      "description": "```yaml  - type: FEATURE_CHANGES_PG   enabled: true   listenForTypes: # optional, default is to listen for all types   - governmentalservice   pollingInterval: 30s # optional, default is 60s  ```",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `FEATURE_CHANGES_PG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FEATURE_CHANGES_PG"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the extension?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "listenForTypes": {
+          "title": "listenForTypes",
+          "description": "List of types that should be observed. An empty list means all types.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pollingInterval": {
+          "title": "pollingInterval",
+          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be     polled for changes with the given interval.",
           "type": [
             "string",
             "number",
@@ -1070,8 +1463,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1172,8 +1565,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1207,8 +1600,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1250,85 +1643,6 @@
       },
       "additionalProperties": false
     },
-    "FeatureChangesPgConfiguration": {
-      "title": "FeatureChangesPgConfiguration",
-      "description": "```yaml  - type: FEATURE_CHANGES_PG   enabled: true   listenForTypes: # optional, default is to listen for all types   - governmentalservice   pollingInterval: 30s # optional, default is 60s  ```",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Always `FEATURE_CHANGES_PG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FEATURE_CHANGES_PG"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the extension?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "listenForTypes": {
-          "title": "listenForTypes",
-          "description": "List of types that should be observed. An empty list means all types.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pollingInterval": {
-          "title": "pollingInterval",
-          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be     polled for changes with the given interval.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
     "PgisTilesConfiguration": {
       "title": "PgisTilesConfiguration",
       "description": "```yaml  - type: PGIS_TILES   enabled: true   unsupportedProperties: IGNORE  ```",
@@ -1353,8 +1667,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1379,9 +1693,9 @@
       "properties": {
         "type": {
           "enum": [
+            "FEATURE_CHANGES_PG",
             "ROUTES",
             "JSON_SCHEMA",
-            "FEATURE_CHANGES_PG",
             "PGIS_TILES"
           ]
         }
@@ -1390,6 +1704,21 @@
         "type"
       ],
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "FEATURE_CHANGES_PG"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FeatureChangesPgConfiguration"
+          }
+        },
         {
           "if": {
             "properties": {
@@ -1424,21 +1753,6 @@
           "if": {
             "properties": {
               "type": {
-                "const": "FEATURE_CHANGES_PG"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FeatureChangesPgConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
                 "const": "PGIS_TILES"
               }
             },
@@ -1451,6 +1765,443 @@
           }
         }
       ]
+    },
+    "PoolSettings": {
+      "title": "PoolSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "maxConnections": {
+          "title": "maxConnections",
+          "description": "Maximum number of connections to the database. The default value is computed     depending on the number of processor cores and the maximum number of joins per feature     type in the [Types Configuration](README.md#schema-definitions). The default value is     recommended for optimal performance under load. The smallest possible value also depends     on the maximum number of joins per feature type, smaller values are rejected.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minConnections": {
+          "title": "minConnections",
+          "description": "Minimum number of connections to the database that are maintained.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initFailTimeout": {
+          "title": "initFailTimeout",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "idleTimeout": {
+          "title": "idleTimeout",
+          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only     applies to connections beyond the `minConnections` limit. A value of 0 means that idle     connections are never removed from the pool.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "shared": {
+          "title": "shared",
+          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a     single connection pool will be shared between these providers. If any of the other     `connectionInfo` options do not match, the provider startup will fail.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureActionTrigger": {
+      "title": "FeatureActionTrigger",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "onDelete": {
+          "title": "onDelete",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoSql": {
+      "title": "ConnectionInfoSql",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dialect": {
+          "title": "dialect",
+          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "database": {
+          "title": "database",
+          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`     in the [Store](../../application/20-configuration/10-store-new.md).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "title": "host",
+          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.     `db:30305`. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schemas": {
+          "title": "schemas",
+          "description": "The names of database schemas that should be used in addition to `public`. Not relevant     for `GPKG`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pool": {
+          "title": "pool",
+          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
+          "type": "object",
+          "$ref": "#/$defs/PoolSettings"
+        },
+        "defaultCollation": {
+          "title": "defaultCollation",
+          "description": "The default collation locale used by the database for string comparisons, e.g. `en` or     `en-US` for English. The special value `C` is allowed for the `C` or `POSIX` collation.     This will not change the database settings or the queries, but is needed for string     comparisons in the application.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "driverOptions": {
+          "title": "driverOptions",
+          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,     `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the     [driver     documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "triggers": {
+          "title": "triggers",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/FeatureActionTrigger"
+        },
+        "assumeExternalChanges": {
+          "title": "assumeExternalChanges",
+          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may     be changed by external applications. Setting this to `true` for example will recompute     extents and counts on every provider start or reload.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "deprecated": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DatasetChangeSettings": {
+      "title": "DatasetChangeSettings",
+      "description": "Defines how dataset changes should be detected. There are the following modes:        - `OFF`: The dataset is considered static and no change detection is performed. If there is a   new dataset version, that should result in changes to `connectionInfo`. (This will be the   default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD   interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes   (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic   synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.   In this mode a synchronization happens on every provider start or reload.   Additionally a periodic synchronization can be configured with `syncPeriodic`.",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "title": "mode",
+          "description": "The mode for dataset change detection, see above.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "syncPeriodic": {
+          "title": "syncPeriodic",
+          "description": "A crontab pattern to periodically refresh all cached data that is derived from the     dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SqlPathDefaults": {
+      "title": "SqlPathDefaults",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "primaryKey": {
+          "title": "primaryKey",
+          "description": "The default column that is used for join analysis if no differing primary key is set in     the [sourcePath](#source-path-syntax). Only relevant for CRUD.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "sortKey": {
+          "title": "sortKey",
+          "description": "The default column that is used to sort rows if no differing sort key is set in the     [sourcePath](#source-path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schema": {
+          "title": "schema",
+          "description": "The default schema that is applied to tables without prefix in     [sourcePaths](#source-path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "junctionTablePattern": {
+          "title": "junctionTablePattern",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryGeneratorSettings": {
+      "title": "QueryGeneratorSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "chunkSize": {
+          "title": "chunkSize",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "computeNumberMatched": {
+          "title": "computeNumberMatched",
+          "description": "Option to disable computation of the number of selected features for performance     reasons that are returned in `numberMatched`. As a general rule this should be disabled     for big datasets.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nullOrder": {
+          "title": "nullOrder",
+          "description": "If no value is provided, the sort order of the database (typically `last` for     ascending and `first` for descending) is used. `last` or `first` can be used to force a     specific sort order, if some rows have null values.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "accentiCollation": {
+          "title": "accentiCollation",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "geometryEncoding": {
+          "title": "geometryEncoding",
+          "description": "Encoding of the returned geometries, either Well-Known Text (WKT) or Well-Known     Binary (WKB). WKB is the default encoding since v4.5.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryProcessorSettings": {
+      "title": "QueryProcessorSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "skipUnusedPipelineSteps": {
+          "title": "skipUnusedPipelineSteps",
+          "description": "Skip unused pipeline steps in the feature stream processing. If set to true, steps     that are not required to fulfil the request (e.g. coordinate processing, if no coordinate     transformation or specific coordinate precision is needed) are skipped. This can improve     performance depending on the query and the capabilities used in the feature provider. For     now the default is `false`, but the default may change to `true`, if experience shows     that the option does not have side effects.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
     },
     "PropertyTransformation": {
       "title": "PropertyTransformation",
@@ -1495,8 +2246,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1693,8 +2444,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1709,8 +2460,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1725,8 +2476,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1741,8 +2492,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1757,8 +2508,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1773,8 +2524,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1789,8 +2540,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1927,7 +2678,7 @@
         },
         "geometryType": {
           "title": "geometryType",
-          "description": "The specific geometry type for properties with `type: GEOMETRY`. Possible values are     simple feature geometry types: `POINT`, `MULTI_POINT`, `LINE_STRING`, `MULTI_LINE_STRING`,     `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION` and `ANY`",
+          "description": "The specific geometry type for properties with `type: GEOMETRY`. Possible values are     simple feature geometry types: `POINT`, `MULTI_POINT`, `LINE_STRING`, `MULTI_LINE_STRING`,     `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION` and `ANY`. In addition, for feature     formats that support more complex geometries, the types `ANY_EXTENDED`, `CIRCULAR_STRING`,     `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE` and `POLYHEDRAL_SURFACE`     are available.",
           "type": [
             "string",
             "number",
@@ -2087,8 +2838,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2133,8 +2884,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2149,8 +2900,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2165,8 +2916,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2364,1468 +3115,6 @@
           "additionalProperties": {
             "type": "string"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "LonLat": {
-      "title": "LonLat",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "lon": {
-          "title": "lon",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "lat": {
-          "title": "lat",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "MinMax": {
-      "title": "MinMax",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "min": {
-          "title": "min",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "max": {
-          "title": "max",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "default": {
-          "title": "default",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetMbTilesDefaults": {
-      "title": "TilesetMbTilesDefaults",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "tileMatrixSet": {
-          "title": "tileMatrixSet",
-          "description": "Tile Matrix Set of the tiles in the MBTiles file.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetMbTiles": {
-      "title": "TilesetMbTiles",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "The tileset id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "source": {
-          "title": "source",
-          "description": "Filename of the MBTiles file in the `api-resources/tiles` directory.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "tileMatrixSet": {
-          "title": "tileMatrixSet",
-          "description": "Tile Matrix Set of the tiles in the MBTiles file.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "LevelTransformation": {
-      "title": "LevelTransformation",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "min": {
-          "title": "min",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "max": {
-          "title": "max",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "merge": {
-          "title": "merge",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "groupBy": {
-          "title": "groupBy",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "properties": {
-          "title": "properties",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetFeaturesDefaults": {
-      "title": "TilesetFeaturesDefaults",
-      "description": "### Tileset Defaults       Defaults that are applied to each [Tileset](#tileset).",
-      "type": "object",
-      "properties": {
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "featureLimit": {
-          "title": "featureLimit",
-          "description": "Maximum number of features contained in a single tile per query. This option is ignored     in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "minimumSizeInPixel": {
-          "title": "minimumSizeInPixel",
-          "description": "Features with line geometries shorter that the given value are excluded from tiles.     Features with surface geometries smaller than the square of the given value are excluded     from the tiles. The value `0.5` corresponds to half a \"pixel\" in the used coordinate     reference system. This option is ignored in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "ignoreInvalidGeometries": {
-          "title": "ignoreInvalidGeometries",
-          "description": "Ignore features with invalid geometries. Before ignoring a feature, an attempt is made     to transform the geometry to a valid geometry. The topology of geometries might be invalid     in the data source or in some cases the quantization of coordinates to integers might     render it invalid. This option is ignored in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sparse": {
-          "title": "sparse",
-          "description": "The feature type of the tileset is likely sparsely populated and may have a significant     number of tiles without features.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "Transform the selected features for a certain zoom level. Supported transformations     are: selecting a subset of feature properties (`properties`), spatial merging of features     that intersect (`merge`), with the option to restrict the operations to features with     matching attributes (`groupBy`). See the example below. For `merge`, the resulting object     will only obtain properties that are identical for all merged features. `merge` and     `groupBy` are ignored in the optimized PostGIS MVT tile generation.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/LevelTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/LevelTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "profiles": {
-          "title": "profiles",
-          "description": "The feature profiles to be applied when generating features for the tileset. Profiles     are ignored in the optimized PostGIS MVT tile generation.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "featureProvider": {
-          "title": "featureProvider",
-          "description": "The id of the feature provider. By default the tile provider id without `-tiles` is     used.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "LevelFilter": {
-      "title": "LevelFilter",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "min": {
-          "title": "min",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "max": {
-          "title": "max",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "filter": {
-          "title": "filter",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetFeatures": {
-      "title": "TilesetFeatures",
-      "description": "### Tileset       All options from [Tileset Defaults](#tileset-defaults) are also available and can be     overriden here.",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "The tileset id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "featureProvider": {
-          "title": "featureProvider",
-          "description": "The id of the feature provider. By default the tile provider id without `-tiles` is     used.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "featureLimit": {
-          "title": "featureLimit",
-          "description": "Maximum number of features contained in a single tile per query. This option is ignored     in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "minimumSizeInPixel": {
-          "title": "minimumSizeInPixel",
-          "description": "Features with line geometries shorter that the given value are excluded from tiles.     Features with surface geometries smaller than the square of the given value are excluded     from the tiles. The value `0.5` corresponds to half a \"pixel\" in the used coordinate     reference system. This option is ignored in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "ignoreInvalidGeometries": {
-          "title": "ignoreInvalidGeometries",
-          "description": "Ignore features with invalid geometries. Before ignoring a feature, an attempt is made     to transform the geometry to a valid geometry. The topology of geometries might be invalid     in the data source or in some cases the quantization of coordinates to integers might     render it invalid. This option is ignored in the optimized PostGIS MVT tile generation.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "sparse": {
-          "title": "sparse",
-          "description": "The feature type of the tileset is likely sparsely populated and may have a significant     number of tiles without features.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "transformations": {
-          "title": "transformations",
-          "description": "Transform the selected features for a certain zoom level. Supported transformations     are: selecting a subset of feature properties (`properties`), spatial merging of features     that intersect (`merge`), with the option to restrict the operations to features with     matching attributes (`groupBy`). See the example below. For `merge`, the resulting object     will only obtain properties that are identical for all merged features. `merge` and     `groupBy` are ignored in the optimized PostGIS MVT tile generation.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/LevelTransformation"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/LevelTransformation"
-                }
-              }
-            ]
-          }
-        },
-        "profiles": {
-          "title": "profiles",
-          "description": "The feature profiles to be applied when generating features for the tileset. Profiles     are ignored in the optimized PostGIS MVT tile generation.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "featureType": {
-          "title": "featureType",
-          "description": "The name of the feature type. By default the tileset id is used.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "combine": {
-          "title": "combine",
-          "description": "Instead of being generated using a `featureType`, a tileset may be composed of multiple     other tilesets. Takes a list of tileset ids. A list with a single entry `*` combines all     tilesets.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "filters": {
-          "title": "filters",
-          "description": "Filters to select a subset of feature for certain zoom levels using a CQL filter     expression, see example below.",
-          "type": "object",
-          "additionalProperties": {
-            "allOf": [
-              {
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "items": {
-                    "$ref": "#/$defs/LevelFilter"
-                  }
-                }
-              },
-              {
-                "if": {
-                  "type": "object"
-                },
-                "then": {
-                  "$ref": "#/$defs/LevelFilter"
-                }
-              }
-            ]
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetRaster": {
-      "title": "TilesetRaster",
-      "description": "### Raster Tileset       To generate raster tiles [xtratiler](../../tools/xtratiler/README.md) is required. Raster     tiles cannot be generated on-demand, so a seeded [cache](#cache) is required. Currently only     `DYNAMIC` caches are supported.",
-      "type": "object",
-      "properties": {
-        "prefix": {
-          "title": "prefix",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "styles": {
-          "title": "styles",
-          "description": "List of MapLibre styles that raster tiles should be generated for. The entries are     relative paths to values of type `maplibre-styles` in the store.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "Cache": {
-      "title": "Cache",
-      "description": "### Cache       There are two different cache types:        - `IMMUTABLE` An immutable cache can only be created through seeding. It will only be made available once it is complete. If some or all tiles are re-seeded, then again the new version will only be made available once it is complete. In the meantime the old version is still provided to consumers.   Therefore an immutable cache is always consistent and, once the initial seeding has completed, it guarantees uninterrupted operation. - `DYNAMIC` A dynamic cache can be computed through seeding, but it will also cache matching tiles that are requested by a consumer. Tiles will be made available as soon as they are computed. If some or all tiles are re-seeded, they are deleted first.   Therefore a dynamic cache might be inconsistent and may cause client errors during (re-)seeding.            In general the usage of immutable caches is recommended. For higher zoom levels a     complementary non-seeded dynamic cache might make sense to reduce seeding time.              There are two different storage types:        - `PER_JOB` Tiles are stored in one file per seeding job, see `jobSize` in [Seeding](#seeding). This is the recommended setting for seeded caches. - `PER_TILE` (or deprecated `PLAIN`) Every tile is stored in a separate file. - `PER_TILESET` (or deprecated `MBTILES`) Tiles are stored in a single file per tiling scheme.",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Either `IMMUTABLE` or `DYNAMIC`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "storage": {
-          "title": "storage",
-          "description": "Either `PLAIN` or `MBTILES`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "seeded": {
-          "title": "seeded",
-          "description": "Should this cache be included by the [Seeding](#seeding)?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Tiling schemes and zoom levels that should be stored in the cache. Applies to all     tilesets that are not specified in `tilesetLevels`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "tilesetLevels": {
-          "title": "tilesetLevels",
-          "description": "Tiling schemes and zoom levels for single tilesets that should be stored in the cache.",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "$ref": "#/$defs/MinMax"
-            }
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "SeedingOptions": {
-      "title": "SeedingOptions",
-      "description": "### Seeding       Controls how and when [caches](#cache) are computed.",
-      "type": "object",
-      "properties": {
-        "runOnStartup": {
-          "title": "runOnStartup",
-          "description": "If disabled, the seeding will not run when the API starts.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "runPeriodic": {
-          "title": "runPeriodic",
-          "description": "A crontab pattern to run the seeding periodically. There will only ever be one seeding     in progress, so if the next run is scheduled before the last one finished, it will be     skipped.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "runOnDatasetChange": {
-          "title": "runOnDatasetChange",
-          "description": "If disabled, the seeding will not run on dataset change events. See [Dataset     Changes](../feature/10-sql.md#dataset-changes).",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "purge": {
-          "title": "purge",
-          "description": "If enabled the tile cache will be purged before the seeding starts.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "maxThreads": {
-          "title": "maxThreads",
-          "description": "The maximum number of threads the seeding is allowed to use. The actual number of     threads used depends on the number of available background task threads when the seeding is     about to start. If you want to allow more than thread, first check if sufficient background     task threads are configured. Take into account that the seeding for multiple APIs will     compete for the available background task threads.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "jobSize": {
-          "title": "jobSize",
-          "description": "The maximum number of tiles in a seeding job (S\u003d256, M\u003d1024, L\u003d16384, XL\u003d65536). The     tile seeding is split into multiple jobs to distribute the work across threads and nodes.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetHttpDefaults": {
-      "title": "TilesetHttpDefaults",
-      "description": "### Tileset Defaults       Defaults that are applied to each [Tileset](#tileset).",
-      "type": "object",
-      "properties": {
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "encodings": {
-          "title": "encodings",
-          "description": "Supported tile encodings. Keys have to be one of `MVT`, `PNG`, `WebP` and `JPEG`,     values are provided as `{{fileExtension}}` in `urlTemplate`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "TilesetHttp": {
-      "title": "TilesetHttp",
-      "description": "### Tileset       All options from [Tileset Defaults](#tileset-defaults) are also available and can be     overriden here.",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "The tileset id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "levels": {
-          "title": "levels",
-          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/MinMax"
-          }
-        },
-        "center": {
-          "title": "center",
-          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
-          "type": "object",
-          "$ref": "#/$defs/LonLat"
-        },
-        "encodings": {
-          "title": "encodings",
-          "description": "Supported tile encodings. Keys have to be one of `MVT`, `PNG`, `WebP` and `JPEG`,     values are provided as `{{fileExtension}}` in `urlTemplate`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "urlTemplate": {
-          "title": "urlTemplate",
-          "description": "URL template for accessing tiles. Parameters to use are `{{tileMatrix}}`,     `{{tileRow}}`, `{{tileCol}}` and `{{fileExtension}}`. Single curly braces are also allowed.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "PoolSettings": {
-      "title": "PoolSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "maxConnections": {
-          "title": "maxConnections",
-          "description": "Maximum number of connections to the database. The default value is computed     depending on the number of processor cores and the maximum number of joins per feature     type in the [Types Configuration](README.md#schema-definitions). The default value is     recommended for optimal performance under load. The smallest possible value also depends     on the maximum number of joins per feature type, smaller values are rejected.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "minConnections": {
-          "title": "minConnections",
-          "description": "Minimum number of connections to the database that are maintained.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "initFailTimeout": {
-          "title": "initFailTimeout",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "idleTimeout": {
-          "title": "idleTimeout",
-          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only     applies to connections beyond the `minConnections` limit. A value of 0 means that idle     connections are never removed from the pool.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "shared": {
-          "title": "shared",
-          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a     single connection pool will be shared between these providers. If any of the other     `connectionInfo` options do not match, the provider startup will fail.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureActionTrigger": {
-      "title": "FeatureActionTrigger",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "onDelete": {
-          "title": "onDelete",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ConnectionInfoSql": {
-      "title": "ConnectionInfoSql",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "dialect": {
-          "title": "dialect",
-          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "database": {
-          "title": "database",
-          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`     in the [Store](../../application/20-configuration/10-store-new.md).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "host": {
-          "title": "host",
-          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.     `db:30305`. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schemas": {
-          "title": "schemas",
-          "description": "The names of database schemas that should be used in addition to `public`. Not relevant     for `GPKG`.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pool": {
-          "title": "pool",
-          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
-          "type": "object",
-          "$ref": "#/$defs/PoolSettings"
-        },
-        "defaultCollation": {
-          "title": "defaultCollation",
-          "description": "The default collation locale used by the database for string comparisons, e.g. `en` or     `en-US` for English. The special value `C` is allowed for the `C` or `POSIX` collation.     This will not change the database settings or the queries, but is needed for string     comparisons in the application.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "driverOptions": {
-          "title": "driverOptions",
-          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,     `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the     [driver     documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "triggers": {
-          "title": "triggers",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/FeatureActionTrigger"
-        },
-        "assumeExternalChanges": {
-          "title": "assumeExternalChanges",
-          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may     be changed by external applications. Setting this to `true` for example will recompute     extents and counts on every provider start or reload.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "deprecated": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "DatasetChangeSettings": {
-      "title": "DatasetChangeSettings",
-      "description": "Defines how dataset changes should be detected. There are the following modes:        - `OFF`: The dataset is considered static and no change detection is performed. If there is a   new dataset version, that should result in changes to `connectionInfo`. (This will be the   default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD   interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes   (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic   synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.   In this mode a synchronization happens on every provider start or reload.   Additionally a periodic synchronization can be configured with `syncPeriodic`.",
-      "type": "object",
-      "properties": {
-        "mode": {
-          "title": "mode",
-          "description": "The mode for dataset change detection, see above.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "syncPeriodic": {
-          "title": "syncPeriodic",
-          "description": "A crontab pattern to periodically refresh all cached data that is derived from the     dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "SqlPathDefaults": {
-      "title": "SqlPathDefaults",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "primaryKey": {
-          "title": "primaryKey",
-          "description": "The default column that is used for join analysis if no differing primary key is set in     the [sourcePath](#path-syntax). Only relevant for CRUD.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "sortKey": {
-          "title": "sortKey",
-          "description": "The default column that is used to sort rows if no differing sort key is set in the     [sourcePath](#path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schema": {
-          "title": "schema",
-          "description": "The default schema that is applied to tables without prefix in     [sourcePaths](#path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "junctionTablePattern": {
-          "title": "junctionTablePattern",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryGeneratorSettings": {
-      "title": "QueryGeneratorSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "chunkSize": {
-          "title": "chunkSize",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "computeNumberMatched": {
-          "title": "computeNumberMatched",
-          "description": "Option to disable computation of the number of selected features for performance     reasons that are returned in `numberMatched`. As a general rule this should be disabled     for big datasets.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "nullOrder": {
-          "title": "nullOrder",
-          "description": "If no value is provided, the sort order of the database (typically `last` for     ascending and `first` for descending) is used. `last` or `first` can be used to force a     specific sort order, if some rows have null values.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "accentiCollation": {
-          "title": "accentiCollation",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "geometryEncoding": {
-          "title": "geometryEncoding",
-          "description": "Encoding of the returned geometries, either Well-Known Text (WKT) or Well-Known     Binary (WKB).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
         }
       },
       "additionalProperties": false
@@ -4078,6 +3367,1603 @@
           "description": "Options for single feature queries. If not set, a collection query will be used.",
           "type": "object",
           "$ref": "#/$defs/SingleQuery"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Tileset3dFilesDefaults": {
+      "title": "Tileset3dFilesDefaults",
+      "description": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "Tileset3dFiles": {
+      "title": "Tileset3dFiles",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "The tileset id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "title": "source",
+          "description": "Relative path of the root `tileset.json` file in the store under `resources/3dtiles`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "MinMax": {
+      "title": "MinMax",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "min": {
+          "title": "min",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "title": "max",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "default": {
+          "title": "default",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Tileset3dFeaturesDefaults": {
+      "title": "Tileset3dFeaturesDefaults",
+      "description": "### Tileset Defaults       Defaults that are applied to each [Tileset](#tileset).",
+      "type": "object",
+      "properties": {
+        "geometricErrorRoot": {
+          "title": "geometricErrorRoot",
+          "description": "The error, in meters, introduced if a tile at level 0 (root) is rendered and its     children at level 1 are not. At runtime, the geometric error is used to compute screen     space error (SSE), i.e., the error measured in pixels.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clampToEllipsoid": {
+          "title": "clampToEllipsoid",
+          "description": "If set to `true`, each feature will be translated vertically so that the bottom of the     feature is on the WGS 84 ellipsoid. Use this option, if the data is intended to be rendered     without a terrain model.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subtreeLevels": {
+          "title": "subtreeLevels",
+          "description": "The number of levels in each Subtree.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentLevels": {
+          "title": "contentLevels",
+          "description": "`min` is the first level of the tileset which will contain buildings. The value will     depend on the spatial extent of the dataset, i.e., at what level of the implicit tiling     scheme large buildings can be displayed.       `max` is the last level of the tileset which will contain buildings. The value will depend     on the spatial extent of the dataset, i.e., at what level of the implicit tiling scheme     small buildings can be displayed in detail.",
+          "type": "object",
+          "$ref": "#/$defs/MinMax"
+        },
+        "contentFilters": {
+          "title": "contentFilters",
+          "description": "A CQL2 text filter expression for each level between the `firstLevelWithContent` and     the `maxLevel` to select the buildings to include in the tile on that level. Since the     [refinement strategy](https://docs.ogc.org/cs/22-025r4/22-025r4.html#toc19) is always     `ADD`, specify disjoint filter expressions, so that each building will be included on     exactly one level.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "tileFilters": {
+          "title": "tileFilters",
+          "description": "A CQL2 text filter expression for each level between the `firstLevelWithContent` and     the `maxLevel` to select the buildings to include in the tile on that level or in any of     the child tiles. This filter expression is the same as all the `contentFilters` on this or     higher levels combined with an `OR`. This is also the default value. However, depending on     the filter expressions, this may lead to inefficient tile filters and to improve     performance the tile filters can also be specified explicitly.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "featureProvider": {
+          "title": "featureProvider",
+          "description": "The id of the feature provider. By default the tile provider id without `-3dtiles` is     used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Tileset3dFeatures": {
+      "title": "Tileset3dFeatures",
+      "description": "### Tileset       All options from [Tileset Defaults](#tileset-defaults) are also available and can be     overriden here.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "The tileset id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "featureProvider": {
+          "title": "featureProvider",
+          "description": "The id of the feature provider. By default the tile provider id without `-3dtiles` is     used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "featureType": {
+          "title": "featureType",
+          "description": "The name of the feature type. By default the tileset id is used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "geometricErrorRoot": {
+          "title": "geometricErrorRoot",
+          "description": "The error, in meters, introduced if a tile at level 0 (root) is rendered and its     children at level 1 are not. At runtime, the geometric error is used to compute screen     space error (SSE), i.e., the error measured in pixels.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clampToEllipsoid": {
+          "title": "clampToEllipsoid",
+          "description": "If set to `true`, each feature will be translated vertically so that the bottom of the     feature is on the WGS 84 ellipsoid. Use this option, if the data is intended to be rendered     without a terrain model.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subtreeLevels": {
+          "title": "subtreeLevels",
+          "description": "The number of levels in each Subtree.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentLevels": {
+          "title": "contentLevels",
+          "description": "`min` is the first level of the tileset which will contain buildings. The value will     depend on the spatial extent of the dataset, i.e., at what level of the implicit tiling     scheme large buildings can be displayed.       `max` is the last level of the tileset which will contain buildings. The value will depend     on the spatial extent of the dataset, i.e., at what level of the implicit tiling scheme     small buildings can be displayed in detail.",
+          "type": "object",
+          "$ref": "#/$defs/MinMax"
+        },
+        "contentFilters": {
+          "title": "contentFilters",
+          "description": "A CQL2 text filter expression for each level between the `firstLevelWithContent` and     the `maxLevel` to select the buildings to include in the tile on that level. Since the     [refinement strategy](https://docs.ogc.org/cs/22-025r4/22-025r4.html#toc19) is always     `ADD`, specify disjoint filter expressions, so that each building will be included on     exactly one level.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "tileFilters": {
+          "title": "tileFilters",
+          "description": "A CQL2 text filter expression for each level between the `firstLevelWithContent` and     the `maxLevel` to select the buildings to include in the tile on that level or in any of     the child tiles. This filter expression is the same as all the `contentFilters` on this or     higher levels combined with an `OR`. This is also the default value. However, depending on     the filter expressions, this may lead to inefficient tile filters and to improve     performance the tile filters can also be specified explicitly.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "combine": {
+          "title": "combine",
+          "description": "Instead of being generated using a `featureType`, a tileset may be composed of multiple     other tilesets. Takes a list of tileset ids. A list with a single entry `*` combines all     tilesets.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SeedingOptions3d": {
+      "title": "SeedingOptions3d",
+      "description": "### Seeding       Controls how and when caches are computed.",
+      "type": "object",
+      "properties": {
+        "runOnStartup": {
+          "title": "runOnStartup",
+          "description": "If disabled, the seeding will not run when the API starts.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runPeriodic": {
+          "title": "runPeriodic",
+          "description": "A crontab pattern to run the seeding periodically. There will only ever be one seeding     in progress, so if the next run is scheduled before the last one finished, it will be     skipped.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "runOnDatasetChange": {
+          "title": "runOnDatasetChange",
+          "description": "If disabled, the seeding will not run on dataset change events. See [Dataset     Changes](../feature/10-sql.md#dataset-changes).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runOnFeatureChange": {
+          "title": "runOnFeatureChange",
+          "description": "If disabled, the seeding will not run on feature change events. See [Dataset     Changes](../feature/10-sql.md#dataset-changes).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purge": {
+          "title": "purge",
+          "description": "If enabled the tile cache will be purged before the seeding starts.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priority": {
+          "title": "priority",
+          "description": "The priority of the seeding job. This controls the order in which this seeding job is     executed compared to other seeding jobs. A higher number means that the seeding job is     executed earlier.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Cache3d": {
+      "title": "Cache3d",
+      "description": "### Cache       There is currently only one cache types:        - `DYNAMIC` A dynamic cache can be computed through seeding, but it will also cache matching tiles that are requested by a consumer. Tiles will be made available as soon as they are computed. If some or all tiles are re-seeded, they are deleted first.   Therefore a dynamic cache might be inconsistent and may cause client errors during (re-)seeding.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `DYNAMIC`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "seeded": {
+          "title": "seeded",
+          "description": "Should this cache be included by the [Seeding](#seeding)?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Zoom levels that should be stored in the cache. Applies to all tilesets that are not     specified in `tilesetLevels`.",
+          "type": "object",
+          "$ref": "#/$defs/MinMax"
+        },
+        "tilesetLevels": {
+          "title": "tilesetLevels",
+          "description": "Zoom levels for single tilesets that should be stored in the cache.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "LonLat": {
+      "title": "LonLat",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "lon": {
+          "title": "lon",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lat": {
+          "title": "lat",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetMbTilesDefaults": {
+      "title": "TilesetMbTilesDefaults",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "tileMatrixSet": {
+          "title": "tileMatrixSet",
+          "description": "Tile Matrix Set of the tiles in the MBTiles file.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetMbTiles": {
+      "title": "TilesetMbTiles",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "The tileset id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "source": {
+          "title": "source",
+          "description": "Filename of the MBTiles file in the store under `resources/tiles` directory.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "tileMatrixSet": {
+          "title": "tileMatrixSet",
+          "description": "Tile Matrix Set of the tiles in the MBTiles file.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "LevelTransformation": {
+      "title": "LevelTransformation",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "min": {
+          "title": "min",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "title": "max",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merge": {
+          "title": "merge",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupBy": {
+          "title": "groupBy",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "properties": {
+          "title": "properties",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetFeaturesDefaults": {
+      "title": "TilesetFeaturesDefaults",
+      "description": "### Tileset Defaults       Defaults that are applied to each [Tileset](#tileset).",
+      "type": "object",
+      "properties": {
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "featureLimit": {
+          "title": "featureLimit",
+          "description": "Maximum number of features contained in a single tile per query. This option is ignored     in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimumSizeInPixel": {
+          "title": "minimumSizeInPixel",
+          "description": "Features with line geometries shorter that the given value are excluded from tiles.     Features with surface geometries smaller than the square of the given value are excluded     from the tiles. The value `0.5` corresponds to half a \"pixel\" in the used coordinate     reference system. This option is ignored in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignoreInvalidGeometries": {
+          "title": "ignoreInvalidGeometries",
+          "description": "Ignore features with invalid geometries. Before ignoring a feature, an attempt is made     to transform the geometry to a valid geometry. The topology of geometries might be invalid     in the data source or in some cases the quantization of coordinates to integers might     render it invalid. This option is ignored in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sparse": {
+          "title": "sparse",
+          "description": "The feature type of the tileset is likely sparsely populated and may have a significant     number of tiles without features.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "Transform the selected features for a certain zoom level. Supported transformations     are: selecting a subset of feature properties (`properties`), spatial merging of features     that intersect (`merge`), with the option to restrict the operations to features with     matching attributes (`groupBy`). See the example below. For `merge`, the resulting object     will only obtain properties that are identical for all merged features. `merge` and     `groupBy` are ignored in the optimized PostGIS MVT tile generation.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/LevelTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/LevelTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "profiles": {
+          "title": "profiles",
+          "description": "The feature profiles to be applied when generating features for the tileset. Profiles     are ignored in the optimized PostGIS MVT tile generation.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "featureProvider": {
+          "title": "featureProvider",
+          "description": "The id of the feature provider. By default the tile provider id without `-tiles` is     used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "LevelFilter": {
+      "title": "LevelFilter",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "min": {
+          "title": "min",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "title": "max",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "filter": {
+          "title": "filter",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetFeatures": {
+      "title": "TilesetFeatures",
+      "description": "### Tileset       All options from [Tileset Defaults](#tileset-defaults) are also available and can be     overriden here.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "The tileset id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "featureProvider": {
+          "title": "featureProvider",
+          "description": "The id of the feature provider. By default the tile provider id without `-tiles` is     used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "featureLimit": {
+          "title": "featureLimit",
+          "description": "Maximum number of features contained in a single tile per query. This option is ignored     in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimumSizeInPixel": {
+          "title": "minimumSizeInPixel",
+          "description": "Features with line geometries shorter that the given value are excluded from tiles.     Features with surface geometries smaller than the square of the given value are excluded     from the tiles. The value `0.5` corresponds to half a \"pixel\" in the used coordinate     reference system. This option is ignored in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignoreInvalidGeometries": {
+          "title": "ignoreInvalidGeometries",
+          "description": "Ignore features with invalid geometries. Before ignoring a feature, an attempt is made     to transform the geometry to a valid geometry. The topology of geometries might be invalid     in the data source or in some cases the quantization of coordinates to integers might     render it invalid. This option is ignored in the optimized PostGIS MVT tile generation.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sparse": {
+          "title": "sparse",
+          "description": "The feature type of the tileset is likely sparsely populated and may have a significant     number of tiles without features.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transformations": {
+          "title": "transformations",
+          "description": "Transform the selected features for a certain zoom level. Supported transformations     are: selecting a subset of feature properties (`properties`), spatial merging of features     that intersect (`merge`), with the option to restrict the operations to features with     matching attributes (`groupBy`). See the example below. For `merge`, the resulting object     will only obtain properties that are identical for all merged features. `merge` and     `groupBy` are ignored in the optimized PostGIS MVT tile generation.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/LevelTransformation"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/LevelTransformation"
+                }
+              }
+            ]
+          }
+        },
+        "profiles": {
+          "title": "profiles",
+          "description": "The feature profiles to be applied when generating features for the tileset. Profiles     are ignored in the optimized PostGIS MVT tile generation.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "featureType": {
+          "title": "featureType",
+          "description": "The name of the feature type. By default the tileset id is used.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "combine": {
+          "title": "combine",
+          "description": "Instead of being generated using a `featureType`, a tileset may be composed of multiple     other tilesets. Takes a list of tileset ids. A list with a single entry `*` combines all     tilesets.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "filters": {
+          "title": "filters",
+          "description": "Filters to select a subset of feature for certain zoom levels using a CQL filter     expression, see example below.",
+          "type": "object",
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "type": "array"
+                },
+                "then": {
+                  "items": {
+                    "$ref": "#/$defs/LevelFilter"
+                  }
+                }
+              },
+              {
+                "if": {
+                  "type": "object"
+                },
+                "then": {
+                  "$ref": "#/$defs/LevelFilter"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetRaster": {
+      "title": "TilesetRaster",
+      "description": "### Raster Tileset       To generate raster tiles [xtratiler](../../tools/xtratiler/README.md) is required. Raster     tiles cannot be generated on-demand, so a seeded [cache](#cache) is required. Currently only     `DYNAMIC` caches are supported.",
+      "type": "object",
+      "properties": {
+        "prefix": {
+          "title": "prefix",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "styles": {
+          "title": "styles",
+          "description": "List of MapLibre styles that raster tiles should be generated for. The entries are     relative paths to values of type `maplibre-styles` in the store.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Cache": {
+      "title": "Cache",
+      "description": "### Cache       There are two different cache types:        - `IMMUTABLE` An immutable cache can only be created through seeding. It will only be made available once it is complete. If some or all tiles are re-seeded, then again the new version will only be made available once it is complete. In the meantime the old version is still provided to consumers.   Therefore an immutable cache is always consistent and, once the initial seeding has completed, it guarantees uninterrupted operation. - `DYNAMIC` A dynamic cache can be computed through seeding, but it will also cache matching tiles that are requested by a consumer. Tiles will be made available as soon as they are computed. If some or all tiles are re-seeded, they are deleted first.   Therefore a dynamic cache might be inconsistent and may cause client errors during (re-)seeding.            In general the usage of immutable caches is recommended. For higher zoom levels a     complementary non-seeded dynamic cache might make sense to reduce seeding time.              There are two different storage types:        - `PER_JOB` Tiles are stored in one file per seeding job, see `jobSize` in [Seeding](#seeding). This is the recommended setting for seeded caches. - `PER_TILE` (or deprecated `PLAIN`) Every tile is stored in a separate file. - `PER_TILESET` (or deprecated `MBTILES`) Tiles are stored in a single file per tiling scheme.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Either `IMMUTABLE` or `DYNAMIC`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "storage": {
+          "title": "storage",
+          "description": "Either `PLAIN` or `MBTILES`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "seeded": {
+          "title": "seeded",
+          "description": "Should this cache be included by the [Seeding](#seeding)?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Tiling schemes and zoom levels that should be stored in the cache. Applies to all     tilesets that are not specified in `tilesetLevels`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "tilesetLevels": {
+          "title": "tilesetLevels",
+          "description": "Tiling schemes and zoom levels for single tilesets that should be stored in the cache.",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "$ref": "#/$defs/MinMax"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SeedingOptions": {
+      "title": "SeedingOptions",
+      "description": "### Seeding       Controls how and when [caches](#cache) are computed.",
+      "type": "object",
+      "properties": {
+        "runOnStartup": {
+          "title": "runOnStartup",
+          "description": "If disabled, the seeding will not run when the API starts.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runPeriodic": {
+          "title": "runPeriodic",
+          "description": "A crontab pattern to run the seeding periodically. There will only ever be one seeding     in progress, so if the next run is scheduled before the last one finished, it will be     skipped.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "runOnDatasetChange": {
+          "title": "runOnDatasetChange",
+          "description": "If disabled, the seeding will not run on dataset change events. See [Dataset     Changes](../feature/10-sql.md#dataset-changes).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runOnFeatureChange": {
+          "title": "runOnFeatureChange",
+          "description": "If disabled, the seeding will not run on feature change events. See [Dataset     Changes](../feature/10-sql.md#dataset-changes).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "purge": {
+          "title": "purge",
+          "description": "If enabled the tile cache will be purged before the seeding starts.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxThreads": {
+          "title": "maxThreads",
+          "description": "*Deprecated* This option has no effect anymore. All available background task threads     will be used for seeding. You can control the order of execution by setting the `priority`     of the seeding job.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "deprecated": true
+        },
+        "jobSize": {
+          "title": "jobSize",
+          "description": "The maximum number of tiles in a seeding job (S\u003d256, M\u003d1024, L\u003d16384, XL\u003d65536). The     tile seeding is split into multiple jobs to distribute the work across threads and nodes.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "priority": {
+          "title": "priority",
+          "description": "The priority of the seeding job. This controls the order in which this seeding job is     executed compared to other seeding jobs. A higher number means that the seeding job is     executed earlier.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetHttpDefaults": {
+      "title": "TilesetHttpDefaults",
+      "description": "### Tileset Defaults       Defaults that are applied to each [Tileset](#tileset).",
+      "type": "object",
+      "properties": {
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "encodings": {
+          "title": "encodings",
+          "description": "Supported tile encodings. Keys have to be one of `MVT`, `PNG`, `WebP` and `JPEG`,     values are provided as `{{fileExtension}}` in `urlTemplate`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "TilesetHttp": {
+      "title": "TilesetHttp",
+      "description": "### Tileset       All options from [Tileset Defaults](#tileset-defaults) are also available and can be     overriden here.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "The tileset id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "levels": {
+          "title": "levels",
+          "description": "Controls the zoom levels available for each active tiling scheme as well as which zoom     level to use as default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/MinMax"
+          }
+        },
+        "center": {
+          "title": "center",
+          "description": "Longitude and latitude that a map with the tiles should be centered on by default.",
+          "type": "object",
+          "$ref": "#/$defs/LonLat"
+        },
+        "encodings": {
+          "title": "encodings",
+          "description": "Supported tile encodings. Keys have to be one of `MVT`, `PNG`, `WebP` and `JPEG`,     values are provided as `{{fileExtension}}` in `urlTemplate`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "urlTemplate": {
+          "title": "urlTemplate",
+          "description": "URL template for accessing tiles. Parameters to use are `{{tileMatrix}}`,     `{{tileRow}}`, `{{tileCol}}` and `{{fileExtension}}`. Single curly braces are also allowed.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
         }
       },
       "additionalProperties": false
