@@ -20,14 +20,14 @@ import org.immutables.value.Value;
  * ```yaml
  * - buildingBlock: MCP
  *   enabled: true
- *      included:
- *      collections:
- *        - "*"
- *      queries:
- *        - "*"
- *    excluded:
- *      collections:
- *        - "collection_to_exclude"
+ *   included:
+ *     collections:
+ *       - "*"
+ *     queries:
+ *       - "*"
+ *   excluded:
+ *     collections:
+ *      - "collection_to_exclude"
  * ```
  * </code>
  */
