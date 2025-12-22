@@ -470,7 +470,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                               i18n,
                               requestContext.getLanguage()))
                       .parameters(
-                          q.getParameters().entrySet().stream()
+                          q.getAllParameters().entrySet().stream()
                               .collect(
                                   Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue)))
                       .formats(
