@@ -9,10 +9,12 @@ package de.ii.ldproxy.cfg;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import de.ii.ogcapi.additional.metadata.app.AdditionalMetadataBuildingBlock;
 import de.ii.ogcapi.codelists.app.CodelistsBuildingBlock;
 import de.ii.ogcapi.collections.app.CollectionsBuildingBlock;
 import de.ii.ogcapi.collections.queryables.app.QueryablesBuildingBlock;
 import de.ii.ogcapi.collections.schema.app.SchemaBuildingBlock;
+import de.ii.ogcapi.collections.schema.validation.app.SchemaValidationBuildingBlock;
 import de.ii.ogcapi.common.domain.CommonBuildingBlock;
 import de.ii.ogcapi.crs.app.CrsBuildingBlock;
 import de.ii.ogcapi.crud.app.CrudBuildingBlock;
@@ -36,7 +38,11 @@ import de.ii.ogcapi.foundation.domain.FoundationBuildingBlock;
 import de.ii.ogcapi.geometry.simplification.app.GeometrySimplificationBuildingBlock;
 import de.ii.ogcapi.html.app.HtmlBuildingBlock;
 import de.ii.ogcapi.json.app.JsonBuildingBlock;
+import de.ii.ogcapi.mcp.app.McpBuildingBlock;
 import de.ii.ogcapi.oas30.app.OpenApiBuildingBlock;
+import de.ii.ogcapi.profile.codelist.app.ProfileCodelistBuildingBlock;
+import de.ii.ogcapi.profile.rel.app.ProfileRelBuildingBlock;
+import de.ii.ogcapi.profile.val.app.ProfileValBuildingBlock;
 import de.ii.ogcapi.projections.app.ProjectionsBuildingBlock;
 import de.ii.ogcapi.pubsub.app.PubSubBuildingBlock;
 import de.ii.ogcapi.resources.app.ResourcesBuildingBlock;
@@ -60,6 +66,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
   OgcApiExtensionRegistry(AppContext appContext) {
     this.apiExtensions =
         ImmutableSet.<ApiExtension>builder()
+            .add(new AdditionalMetadataBuildingBlock())
             .add(new CityJsonBuildingBlock())
             .add(new CodelistsBuildingBlock())
             .add(new CollectionsBuildingBlock())
@@ -81,7 +88,11 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new HtmlBuildingBlock(appContext))
             .add(new JsonBuildingBlock())
             .add(new JsonFgBuildingBlock())
+            .add(new McpBuildingBlock())
             .add(new OpenApiBuildingBlock())
+            .add(new ProfileCodelistBuildingBlock())
+            .add(new ProfileRelBuildingBlock())
+            .add(new ProfileValBuildingBlock())
             .add(new ProjectionsBuildingBlock())
             .add(new PubSubBuildingBlock(null, this, null, null))
             .add(new QueryablesBuildingBlock(null, null))
@@ -89,6 +100,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new ResultTypeBuildingBlock())
             .add(new RoutingBuildingBlock())
             .add(new SchemaBuildingBlock())
+            .add(new SchemaValidationBuildingBlock())
             .add(new SearchBuildingBlock())
             .add(new SortingBuildingBlock(null, null))
             .add(new StylesBuildingBlock(this)) // TODO: StyleFormatExtensions

@@ -26,6 +26,8 @@ import de.ii.xtraplatform.features.sql.infra.db.SqlDbmsAdapterPgis;
 import de.ii.xtraplatform.tiles.app.TileProviderFeaturesFactory;
 import de.ii.xtraplatform.tiles.app.TileProviderHttpFactory;
 import de.ii.xtraplatform.tiles.app.TileProviderMbTilesFactory;
+import de.ii.xtraplatform.tiles3d.app.Tile3dProviderFeaturesFactory;
+import de.ii.xtraplatform.tiles3d.app.Tile3dProviderFilesFactory;
 import de.ii.xtraplatform.web.app.HttpApache;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -160,7 +162,7 @@ public interface EntityFactories {
               public void addEntityGoneListener(Consumer<PersistentEntity> listener) {}
             })
         .add(
-            new OgcApiFactory(extensionRegistry) {
+            new Tile3dProviderFeaturesFactory() {
               @Override
               public CompletableFuture<PersistentEntity> createInstance(EntityData entityData) {
                 return CompletableFuture.completedFuture(null);
@@ -183,7 +185,30 @@ public interface EntityFactories {
               public void addEntityGoneListener(Consumer<PersistentEntity> listener) {}
             })
         .add(
-            new UserFactory(null) {
+            new Tile3dProviderFilesFactory() {
+              @Override
+              public CompletableFuture<PersistentEntity> createInstance(EntityData entityData) {
+                return CompletableFuture.completedFuture(null);
+              }
+
+              @Override
+              public CompletableFuture<PersistentEntity> updateInstance(
+                  EntityData entityData, boolean force) {
+                return CompletableFuture.completedFuture(null);
+              }
+
+              @Override
+              public void deleteInstance(String id) {}
+
+              @Override
+              public void addEntityListener(
+                  Consumer<PersistentEntity> listener, boolean existing) {}
+
+              @Override
+              public void addEntityGoneListener(Consumer<PersistentEntity> listener) {}
+            })
+        .add(
+            new OgcApiFactory(extensionRegistry) {
               @Override
               public CompletableFuture<PersistentEntity> createInstance(EntityData entityData) {
                 return CompletableFuture.completedFuture(null);
