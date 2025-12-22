@@ -119,7 +119,7 @@ public class GmlBuildingBlock implements ApiBuildingBlock {
         .featureCollectionElementName("sf:FeatureCollection")
         .featureMemberElementName("sf:featureMember")
         .supportsStandardResponseParameters(false)
-        .defaultProfiles(Map.of("rel", "rel-as-link"))
+        .defaultProfiles(Map.of("rel", "rel-as-link", "val", "val-as-code"))
         .build();
   }
 }
