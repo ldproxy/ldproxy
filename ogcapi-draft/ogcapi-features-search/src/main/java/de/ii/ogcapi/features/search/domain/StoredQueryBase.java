@@ -32,8 +32,8 @@ public interface StoredQueryBase extends StoredQueryComponent {
   @JsonInclude(Include.NON_EMPTY)
   List<StringOrParameter> getCollections();
 
-  // CQL2 filter object
-  Optional<Map<String, Object>> getFilter();
+  // CQL2-JSON filter expression (JSON object or boolean)
+  Optional<Object> getFilter();
 
   // CRS URI or a parameter
   Optional<StringOrParameter> getFilterCrs();
