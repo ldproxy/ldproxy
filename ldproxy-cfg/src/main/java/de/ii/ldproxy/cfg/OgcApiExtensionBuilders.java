@@ -7,6 +7,7 @@
  */
 package de.ii.ldproxy.cfg;
 
+import de.ii.ogcapi.additional.metadata.domain.ImmutableAdditionalMetadataConfiguration;
 import de.ii.ogcapi.codelists.domain.ImmutableCodelistsConfiguration;
 import de.ii.ogcapi.collections.domain.ImmutableCollectionsConfiguration;
 import de.ii.ogcapi.collections.queryables.domain.ImmutableQueryablesConfiguration;
@@ -32,6 +33,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableFoundationConfiguration;
 import de.ii.ogcapi.geometry.simplification.app.ImmutableGeometrySimplificationConfiguration;
 import de.ii.ogcapi.html.domain.ImmutableHtmlConfiguration;
 import de.ii.ogcapi.json.domain.ImmutableJsonConfiguration;
+import de.ii.ogcapi.mcp.domain.ImmutableMcpConfiguration;
 import de.ii.ogcapi.oas30.domain.ImmutableOas30Configuration;
 import de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration;
 import de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration;
@@ -46,6 +48,10 @@ import de.ii.ogcapi.xml.domain.ImmutableXmlConfiguration;
 import de.ii.xtraplatform.routes.sql.domain.ImmutableRoutesConfiguration;
 
 public interface OgcApiExtensionBuilders {
+
+  default ImmutableAdditionalMetadataConfiguration.Builder additionalMetadata() {
+    return new ImmutableAdditionalMetadataConfiguration.Builder();
+  }
 
   default ImmutableCodelistsConfiguration.Builder codelists() {
     return new ImmutableCodelistsConfiguration.Builder();
@@ -129,6 +135,10 @@ public interface OgcApiExtensionBuilders {
 
   default ImmutableJsonFgConfiguration.Builder jsonFg() {
     return new ImmutableJsonFgConfiguration.Builder();
+  }
+
+  default ImmutableMcpConfiguration.Builder mcp() {
+    return new ImmutableMcpConfiguration.Builder();
   }
 
   default ImmutableOas30Configuration.Builder oas30() {

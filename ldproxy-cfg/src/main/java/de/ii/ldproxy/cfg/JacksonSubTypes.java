@@ -8,10 +8,12 @@
 package de.ii.ldproxy.cfg;
 
 import com.google.common.collect.ImmutableSet;
+import de.ii.ogcapi.additional.metadata.app.JacksonSubTypeIdsAdditionalMetadata;
 import de.ii.ogcapi.codelists.app.JacksonSubTypeIdsCodelists;
 import de.ii.ogcapi.collections.app.JacksonSubTypeIdsOgcApiCollections;
 import de.ii.ogcapi.collections.queryables.app.JacksonSubTypeIdsQueryables;
 import de.ii.ogcapi.collections.schema.app.JacksonSubTypeIdsSchema;
+import de.ii.ogcapi.collections.schema.validation.app.JacksonSubTypeIdsSchemaValidation;
 import de.ii.ogcapi.common.domain.JacksonSubTypeIdsOgcApiCommon;
 import de.ii.ogcapi.crs.app.JacksonSubTypeIdsCrs;
 import de.ii.ogcapi.crud.app.JacksonSubTypeIdsCrud;
@@ -33,7 +35,11 @@ import de.ii.ogcapi.foundation.domain.JacksonSubTypeIdsFoundation;
 import de.ii.ogcapi.geometry.simplification.app.JacksonSubTypeIdsGeometrySimplification;
 import de.ii.ogcapi.html.app.JacksonSubTypeIdsHtml;
 import de.ii.ogcapi.json.app.JacksonSubTypeIdsJson;
+import de.ii.ogcapi.mcp.app.JacksonSubTypeIdsMcp;
 import de.ii.ogcapi.oas30.app.JacksonSubTypeIdsOas30;
+import de.ii.ogcapi.profile.codelist.app.JacksonSubTypeIdsProfileCodelist;
+import de.ii.ogcapi.profile.rel.app.JacksonSubTypeIdsProfileRel;
+import de.ii.ogcapi.profile.val.app.JacksonSubTypeIdsProfileVal;
 import de.ii.ogcapi.projections.app.JacksonSubTypeIdsProjections;
 import de.ii.ogcapi.pubsub.app.JacksonSubTypeIdsPubSub;
 import de.ii.ogcapi.resources.app.JacksonSubTypeIdsResources;
@@ -48,6 +54,7 @@ import de.ii.ogcapi.xml.app.JacksonSubTypeIdsXml;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
 import de.ii.xtraplatform.feature.changes.sql.app.JacksonSubTypeIdsFeatureChanges;
 import de.ii.xtraplatform.features.gml.app.JacksonSubTypeIdsWfs;
+import de.ii.xtraplatform.features.graphql.app.JacksonSubTypeIdsGraphQl;
 import de.ii.xtraplatform.features.sql.app.FeatureProviderRegisterSql;
 import de.ii.xtraplatform.routes.sql.app.JacksonSubTypeIdsRoutes;
 import de.ii.xtraplatform.schemas.ext.app.JacksonSubTypeIdsJsonSchema;
@@ -57,6 +64,8 @@ public interface JacksonSubTypes {
 
   static Set<JacksonSubTypeIds> ids() {
     return ImmutableSet.<JacksonSubTypeIds>builder()
+        .add(new JacksonSubTypeIds3dTiles())
+        .add(new JacksonSubTypeIdsAdditionalMetadata())
         .add(new JacksonSubTypeIdsCityJson())
         .add(new JacksonSubTypeIdsCodelists())
         .add(new JacksonSubTypeIdsCrs())
@@ -76,9 +85,13 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsHtml())
         .add(new JacksonSubTypeIdsJson())
         .add(new JacksonSubTypeIdsJsonFg())
+        .add(new JacksonSubTypeIdsMcp())
         .add(new JacksonSubTypeIdsOas30())
         .add(new JacksonSubTypeIdsOgcApiCollections())
         .add(new JacksonSubTypeIdsOgcApiCommon())
+        .add(new JacksonSubTypeIdsProfileCodelist())
+        .add(new JacksonSubTypeIdsProfileRel())
+        .add(new JacksonSubTypeIdsProfileVal())
         .add(new JacksonSubTypeIdsProjections())
         .add(new JacksonSubTypeIdsPubSub())
         .add(new JacksonSubTypeIdsQueryables())
@@ -92,13 +105,14 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsTextSearch())
         .add(new JacksonSubTypeIdsTileMatrixSets())
         .add(new JacksonSubTypeIdsTiles())
-        .add(new JacksonSubTypeIds3dTiles())
         .add(new JacksonSubTypeIdsXml())
         .add(new FeatureProviderRegisterSql())
+        .add(new JacksonSubTypeIdsGraphQl())
         .add(new JacksonSubTypeIdsWfs())
         .add(new JacksonSubTypeIdsFeatureChanges())
         .add(new JacksonSubTypeIdsJsonSchema())
         .add(new JacksonSubTypeIdsRoutes())
+        .add(new JacksonSubTypeIdsSchemaValidation())
         .add(new JacksonSubTypeIdsCatchAll())
         .build();
   }
