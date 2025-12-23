@@ -12,6 +12,12 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.sql.domain.FeatureProviderSql;
 import de.ii.xtraplatform.features.sql.domain.ImmutableFeatureProviderSqlData;
+import de.ii.xtraplatform.tiles.domain.ImmutableTileProviderFeaturesData;
+import de.ii.xtraplatform.tiles.domain.TileProviderData;
+import de.ii.xtraplatform.tiles.domain.TileProviderFeaturesData;
+import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dProviderFeaturesData;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dProviderData;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dProviderFeaturesData;
 
 public interface EntityDataBuilders {
 
@@ -26,5 +32,17 @@ public interface EntityDataBuilders {
         .entityStorageVersion(2)
         .providerType(FeatureProvider.PROVIDER_TYPE)
         .providerSubType(FeatureProviderSql.PROVIDER_SUB_TYPE);
+  }
+
+  default ImmutableTileProviderFeaturesData.Builder tiles() {
+    return new ImmutableTileProviderFeaturesData.Builder()
+        .providerType(TileProviderData.PROVIDER_TYPE)
+        .providerSubType(TileProviderFeaturesData.PROVIDER_SUBTYPE);
+  }
+
+  default ImmutableTile3dProviderFeaturesData.Builder tiles3d() {
+    return new ImmutableTile3dProviderFeaturesData.Builder()
+        .providerType(Tile3dProviderData.PROVIDER_TYPE)
+        .providerSubType(Tile3dProviderFeaturesData.PROVIDER_SUBTYPE);
   }
 }
