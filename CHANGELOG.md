@@ -1,5 +1,45 @@
 # Changelog
 
+## v4.6.0 (23/12/2025)
+#### Implemented enhancements
+
+-  add MCP support [#1536](https://github.com/ldproxy/ldproxy/issues/1536)
+-  tile seeding with multiple replicas [#1533](https://github.com/ldproxy/ldproxy/issues/1533)
+-  glTF: add options to declare the EXT_structural_metadata schema [#1529](https://github.com/ldproxy/ldproxy/issues/1529)
+-  GML: support srsDimension attribute [#1516](https://github.com/ldproxy/ldproxy/issues/1516)
+-  improve feature query performance: skip unnecessary pipeline steps [#1508](https://github.com/ldproxy/ldproxy/issues/1508)
+-  add license information to the landing page [#1506](https://github.com/ldproxy/ldproxy/issues/1506)
+-  provider for predefined 3D Tiles datasets [#1500](https://github.com/ldproxy/ldproxy/issues/1500)
+-  support custom translations for HTML pages [#1498](https://github.com/ldproxy/ldproxy/issues/1498)
+-  add internationalization for filter and sorting editors [#1493](https://github.com/ldproxy/ldproxy/issues/1493)
+-  add an editor for sortBy in html feature collections [#1491](https://github.com/ldproxy/ldproxy/issues/1491)
+-  control default sorting of features [#1479](https://github.com/ldproxy/ldproxy/issues/1479)
+-  Styles: support multiple sprites in MapLibre styles [#1475](https://github.com/ldproxy/ldproxy/issues/1475)
+
+#### Improvements
+
+-  web map popup with feature navigation [#1531](https://github.com/ldproxy/ldproxy/issues/1531)
+-  add metadata to MapLibre styles in other tile matrix sets [#1521](https://github.com/ldproxy/ldproxy/issues/1521)
+-  dedicated providers for 3D Tiles [#1499](https://github.com/ldproxy/ldproxy/issues/1499)
+
+#### Fixed bugs
+
+-  TileMatrixSets as JSON: suppress empty arrays [#1537](https://github.com/ldproxy/ldproxy/issues/1537)
+-  accessing a collection style results in an error [#1523](https://github.com/ldproxy/ldproxy/issues/1523)
+-  OpenLayers client always uses OSM background map [#1520](https://github.com/ldproxy/ldproxy/issues/1520)
+-  CRUD: geometry of inserted feature is null [#1519](https://github.com/ldproxy/ldproxy/issues/1519)
+-  tags in API catalog not working anymore [#1512](https://github.com/ldproxy/ldproxy/issues/1512)
+-  execution of stored queries takes a long time [#1510](https://github.com/ldproxy/ldproxy/issues/1510)
+
+#### Dependency updates
+
+* Update swagger to v2.2.41 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/299
+* Update dependency commons-codec:commons-codec to v1.20.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/297
+* Update dependency org.xerial:sqlite-jdbc to v3.51.0.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/415
+* Update commonmark to v0.27.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/409
+
+---
+
 ## v4.5.1 (05/11/2025)
 #### Improvements
 
