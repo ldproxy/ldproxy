@@ -349,8 +349,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
     Map<String, Object> asMap = getEntityDataStore().asMap(identifier, patched);
 
     Map<String, Object> withoutDefaults =
-        getEntityDataDefaultsStore()
-            .subtractDefaults(identifier, data.getEntitySubType(), asMap, List.of("enabled"));
+        getEntityDataDefaultsStore().subtractDefaults(identifier, data.getEntitySubType(), asMap);
 
     path.getParent().toFile().mkdirs();
     objectMapper.writeValue(path.toFile(), withoutDefaults);

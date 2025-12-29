@@ -24,6 +24,8 @@ import java.util.Map.Entry;
 
 public class MbStyleExpressionSerializer extends JsonSerializer<MbStyleExpression> {
 
+  public MbStyleExpressionSerializer() {}
+
   @Override
   public void serialize(MbStyleExpression value, JsonGenerator gen, SerializerProvider serializers)
       throws IOException {

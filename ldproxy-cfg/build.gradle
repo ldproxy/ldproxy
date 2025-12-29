@@ -184,6 +184,8 @@ tasks.register('rcExtract', de.interactive_instruments.xtraplatform.docs.Reflect
             //TODO: should be detected automatically
             "de.ii.xtraplatform.features.domain.FeatureProviderDataV2.Builder",
             "de.ii.xtraplatform.features.domain.PropertiesSchema.Builder",
-            "de.ii.xtraplatform.features.domain.ZoneIdFromString"
+            "de.ii.xtraplatform.features.domain.ZoneIdFromString",
+            "de.ii.ogcapi.styles.app.MbStyleExpressionSerializer",
+            "de.ii.ogcapi.styles.app.MbStyleExpressionDeserializer"
     ])
 }
