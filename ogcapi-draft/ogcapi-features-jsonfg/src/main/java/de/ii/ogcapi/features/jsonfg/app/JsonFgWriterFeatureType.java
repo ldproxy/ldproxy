@@ -75,7 +75,9 @@ public class JsonFgWriterFeatureType implements GeoJsonWriter {
 
     if (isEnabled && homogenous) {
       writeType(context, collectionMap.values().iterator().next());
-      writeSingleSchema(context, schemaMap.values().iterator().next());
+      if (schemaMap.size() == 1) {
+        writeSingleSchema(context, schemaMap.values().iterator().next());
+      }
       isEnabled = false; // disable further processing
     }
 
