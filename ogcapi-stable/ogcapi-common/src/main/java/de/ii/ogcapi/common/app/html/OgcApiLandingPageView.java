@@ -177,14 +177,11 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
   public List<Link> getTiles() {
     return rawLinks().stream()
         .filter(
-            link -> link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets-"))
-        .collect(Collectors.toUnmodifiableList());
-  }
-
-  public List<Link> getTiles3d() {
-    return rawLinks().stream()
-        .filter(link -> link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/0.0/tileset-"))
-        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
+            link ->
+                link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets")
+                    || link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/0.0/tileset-"))
+        .filter(
+            link -> "text/html".equalsIgnoreCase(link.getType()) || Objects.isNull(link.getType()))
         .collect(Collectors.toUnmodifiableList());
   }
 
