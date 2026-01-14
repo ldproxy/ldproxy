@@ -226,7 +226,8 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
             link ->
                 link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/1.0/tilesets")
                     || link.getRel().startsWith("http://www.opengis.net/def/rel/ogc/0.0/tileset-"))
-        .filter(link -> "text/html".equalsIgnoreCase(link.getType()))
+        .filter(
+            link -> "text/html".equalsIgnoreCase(link.getType()) || Objects.isNull(link.getType()))
         .filter(link -> !Objects.equals(items(), link))
         .collect(Collectors.toUnmodifiableList());
   }
