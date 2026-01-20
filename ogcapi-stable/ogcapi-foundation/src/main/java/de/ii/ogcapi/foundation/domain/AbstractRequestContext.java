@@ -35,16 +35,12 @@ public abstract class AbstractRequestContext implements ApiRequestContext {
   @Value.Derived
   @Override
   public URICustomizer getUriCustomizer() {
-    return new URICustomizer(getRequestContext().getUriInfo().getRequestUri())
-        .prependPathSegments(getBasePathSegments());
+    return ForwardedUri.from(getRequestContext(), getWebContext());
   }
 
   @Value.Derived
   @Override
   public URICustomizer getBaseUriCustomizer() {
-    return new URICustomizer(getRequestContext().getUriInfo().getRequestUri())
-        .setPathSegments(getBasePathSegments())
-        .ensureNoTrailingSlash()
-        .clearParameters();
+    return ForwardedUri.base(getRequestContext(), getWebContext());
   }
 }

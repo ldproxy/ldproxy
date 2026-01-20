@@ -172,13 +172,13 @@ const OpenLayers = ({
         <DynamicView tileMatrixSet={tms} update={previousTileMatrixSet !== currentTileMatrixSet} />
         <RLayerTile
           properties={{ label: "Base map" }}
-          url={styleConfig.backgroundUrl || baseUrl}
+          url={styleConfig?.backgroundUrl || baseUrl}
           attributions={styleConfig?.attributions || attribution}
         >
           {applyTmsToBackground && (
             <DynamicSource
               tileMatrixSet={tms}
-              dataUrl={styleConfig.backgroundUrl || baseUrl}
+              dataUrl={styleConfig?.backgroundUrl || baseUrl}
               dataType="raster"
               styleObject={undefined}
               update={previousTileMatrixSet !== currentTileMatrixSet}
