@@ -41,7 +41,7 @@ import org.immutables.value.Value;
  *     [Store](../../application/20-configuration/10-store-new.md) as resources with type
  *     `html/assets`.
  *     <p>For example the CSS file `resources/html/assets/my.css` could be included in
- *     `custom-head.mustache` with `<link href="{{urlPrefix}}/custom/assets/my.css"
+ *     `custom-head.mustache` with `<link href="{{assetsPrefix}}/custom/assets/my.css"
  *     rel="stylesheet">`.
  *     <p>#### Custom translations
  *     <p>It is also possible to change any static text in the HTML pages by providing custom
@@ -96,7 +96,8 @@ import org.immutables.value.Value;
  *     [Store](../../application/20-configuration/10-store-new.md) als Ressourcen mit Typ
  *     `html/assets`.
  *     <p>Zum Beispiel könnte die CSS-Datei `resources/html/assets/my.css` in `custom-head.mustache`
- *     eingebunden werden mit `<link href="{{urlPrefix}}/custom/assets/my.css" rel="stylesheet">`.
+ *     eingebunden werden mit `<link href="{{assetsPrefix}}/custom/assets/my.css"
+ *     rel="stylesheet">`.
  *     <p>#### Benutzerdefinierte Übersetzungen
  *     <p>Es ist auch möglich, alle statischen Texte in den HTML-Seiten durch benutzerdefinierte
  *     Übersetzungsdateien zu ändern. Die Dateien liegen im

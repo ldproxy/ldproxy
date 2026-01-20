@@ -41,6 +41,12 @@ public abstract class OgcApiView extends View {
     return apiPath() + StaticResourceHandler.PREFIX;
   }
 
+  @Deprecated(since = "4.6", forRemoval = true)
+  @Value.Derived
+  public String urlPrefix() {
+    return assetsPrefix();
+  }
+
   @Value.Default
   public boolean noIndex() {
     return Optional.ofNullable(htmlConfig()).map(HtmlConfiguration::getNoIndexEnabled).orElse(true);
