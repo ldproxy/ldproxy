@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.6.1 (24/01/2026)
+#### Fixed bugs
+
+-  tile seeding takes much longer [#1549](https://github.com/ldproxy/ldproxy/issues/1549)
+-  OpenLayers no longer working if no default style is set [#1548](https://github.com/ldproxy/ldproxy/issues/1548)
+-  mixed content error when loading OpenAPI documentation [#1543](https://github.com/ldproxy/ldproxy/issues/1543)
+-  tile buffer too small when using PGIS_TILES [#1542](https://github.com/ldproxy/ldproxy/issues/1542)
+-  HTML: Missing links to MVT tilesets in collection [#1540](https://github.com/ldproxy/ldproxy/issues/1540)
+-  JSON-FG: server error, if SCHEMA is not enabled [#1538](https://github.com/ldproxy/ldproxy/issues/1538)
+
+---
+
 ## v4.6.0 (23/12/2025)
 #### Implemented enhancements
 
