@@ -85,8 +85,6 @@ public class CleanupForValidation implements JsonSchemaTransformer {
     }
 
     return builder
-        .title(Optional.empty())
-        .description(Optional.empty())
         .readOnly(Optional.empty())
         .writeOnly(Optional.empty())
         .codelistUri(Optional.empty())

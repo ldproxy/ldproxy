@@ -34,7 +34,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
-import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpSchema;
 import de.ii.ogcapi.mcp.domain.McpServer;
@@ -54,6 +53,7 @@ import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
+import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.Schema;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -173,9 +173,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   tool.getName(),
                   tool.getDescription(),
                   objectMapper.readValue(
-                      objectMapper.writeValueAsString(tool.getInputSchema()),
+                      Json.pretty(tool.getInputSchema()),
                       io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
-                  null,
+                  objectMapper.readValue(Json.pretty(tool.getOutputSchema()), Map.class),
                   null,
                   null),
               (exchange, arguments) -> {
@@ -232,7 +232,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                               .findFirst()
                               .orElse(null);
                       Schema<?> schema =
-                          param != null ? param.getSchema(api.getData(), Optional.empty()) : null;
+                          param != null ? param.getSchema(api.getData(), collectionId) : null;
                       Object parsed = parseParameterValue(schema, e.getValue());
                       return parsed != null ? parsed.toString() : null;
                     }));
@@ -437,16 +437,23 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
       List<StoredQueryExpression> storedQueries = storedQueryRepository.getAll(apiData);
 
-      List<ImmutableMcpTool> storedQueryTools =
+      List<McpTool> storedQueryTools =
           McpToolUtils.filterAndCreateStoredQueries(
               storedQueries, mcpConfiguration, extensionRegistry, apiData);
 
-      List<ImmutableMcpTool> collectionTools =
+      List<McpTool> collectionTools =
           McpToolUtils.filterAndCreateCollections(
               mcpConfiguration,
-              apiData,
+              api,
               extensionRegistry,
-              List.of("bbox", "datetime", "limit", "offset", "sortby"));
+              List.of(
+                  "bbox",
+                  "datetime",
+                  "limit",
+                  "offset",
+                  "sortby",
+                  "properties",
+                  "exclude-properties"));
 
       schemas.put(
           apiData.getStableHash(),

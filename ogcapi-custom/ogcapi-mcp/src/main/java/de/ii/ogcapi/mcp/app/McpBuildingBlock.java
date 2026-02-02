@@ -62,7 +62,7 @@ public class McpBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new ImmutableMcpConfiguration.Builder().enabled(false).build();
+    return new ImmutableMcpConfiguration.Builder().enabled(false).addMetadataAsText(false).build();
   }
 
   @Override

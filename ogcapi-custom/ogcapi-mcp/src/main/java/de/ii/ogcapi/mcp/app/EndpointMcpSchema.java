@@ -25,6 +25,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpServer;
+import io.swagger.v3.core.util.Json;
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -103,6 +104,6 @@ public class EndpointMcpSchema extends Endpoint {
   @GET
   @Produces({"application/json"})
   public Response getMcpClasses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
-    return Response.ok(mcpServer.getSchema(api)).build();
+    return Response.ok(Json.pretty(mcpServer.getSchema(api))).build();
   }
 }

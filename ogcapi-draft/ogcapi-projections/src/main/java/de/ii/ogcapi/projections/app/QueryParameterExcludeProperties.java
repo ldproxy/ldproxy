@@ -96,7 +96,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
     int apiHashCode = apiData.hashCode();
     if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
     if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      schemaMap.get(apiHashCode).put("*", new ArraySchema().items(new StringSchema()));
+      schemaMap.get(apiHashCode).put("*", new ArraySchema().items(new StringSchema()).minItems(1));
     }
     return schemaMap.get(apiHashCode).get("*");
   }
@@ -113,7 +113,8 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
               new ArraySchema()
                   .items(
                       new StringSchema()
-                          ._enum(schemaInfo.getPropertyNames(apiData, collectionId, true, false))));
+                          ._enum(schemaInfo.getPropertyNames(apiData, collectionId, true, false)))
+                  .minItems(1));
     }
     return schemaMap.get(apiHashCode).get(collectionId);
   }
