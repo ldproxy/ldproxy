@@ -11,28 +11,25 @@ import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryabl
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
-import de.ii.ogcapi.foundation.domain.ApiOperation;
-import de.ii.ogcapi.foundation.domain.ApiResponse;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiResource;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
+import de.ii.ogcapi.mcp.domain.McpTool;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.ws.rs.HttpMethod;
 
 public class McpToolUtils {
 
@@ -43,7 +40,7 @@ public class McpToolUtils {
   private static final String COLLECTION_QUERY_PREFIX = "collection_";
   private static final String STORED_QUERY_PREFIX = "query_";
 
-  public static List filterAndCreateStoredQueries(
+  public static List<McpTool> filterAndCreateStoredQueries(
       List<StoredQueryExpression> storedQueries,
       McpConfiguration mcpConfiguration,
       ExtensionRegistry extensionRegistry,
@@ -68,7 +65,7 @@ public class McpToolUtils {
 
     List<StoredQueryExpression> filteredQueries;
 
-    if ((includedQueries == null || includedOpt.isEmpty()) && excludedQueries.isEmpty()) {
+    if (includedQueries == null && excludedQueries.isEmpty()) {
       filteredQueries = storedQueries;
     } else if (includedQueries == null) {
       filteredQueries = List.of();
@@ -139,6 +136,7 @@ public class McpToolUtils {
                     }
                   });
 
+              /* TODO fix output schema
               ObjectSchema outputSchema =
                   resourceMapByQueryId.get(queryId).getOperations().values().stream()
                       .filter(op -> op.getOperationId().contains("executeStoredQuery"))
@@ -179,35 +177,43 @@ public class McpToolUtils {
                           () ->
                               new IllegalStateException(
                                   "Output schema missing for queryId " + queryId));
+               */
+              ObjectSchema outputSchema = new ObjectSchema();
 
               if (inputSchema.getProperties() == null || inputSchema.getProperties().isEmpty()) {
                 throw new IllegalStateException(
                     "Cannot create McpTool for queryId " + queryId + ": inputSchema is missing");
               }
 
-              return new ImmutableMcpTool.Builder()
-                  .id(STORED_QUERY_PREFIX + queryId)
-                  .name("Stored Query - " + queryId)
-                  .description(
-                      filteredQueries.stream()
-                          .filter(q -> q.getId().equals(queryId))
-                          .findFirst()
-                          .flatMap(StoredQueryExpression::getDescription)
-                          .orElse("Tool for stored query: " + queryId))
-                  .inputSchema(inputSchema)
-                  .outputSchema(outputSchema)
-                  .queryParameters(parameters)
-                  .build();
+              return (McpTool)
+                  new ImmutableMcpTool.Builder()
+                      .id(STORED_QUERY_PREFIX + queryId)
+                      .name("Stored Query - " + queryId)
+                      .description(
+                          apiData
+                                  .getDescription()
+                                  .map(desc -> desc + System.lineSeparator())
+                                  .orElse("")
+                              + filteredQueries.stream()
+                                  .filter(q -> q.getId().equals(queryId))
+                                  .findFirst()
+                                  .flatMap(StoredQueryExpression::getDescription)
+                                  .orElse("Tool for stored query: " + queryId))
+                      .inputSchema(inputSchema)
+                      .outputSchema(outputSchema)
+                      .queryParameters(parameters)
+                      .build();
             })
         .toList();
   }
 
-  public static List filterAndCreateCollections(
+  public static List<McpTool> filterAndCreateCollections(
       McpConfiguration mcpConfiguration,
-      OgcApiDataV2 apiData,
+      OgcApi api,
       ExtensionRegistry extensionRegistry,
       List<String> allowedNames) {
 
+    OgcApiDataV2 apiData = api.getData();
     List<ApiEndpointDefinition> definitions =
         extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
             .filter(endpoint -> endpoint.isEnabledForApi(apiData))
@@ -264,6 +270,7 @@ public class McpToolUtils {
                                         || param instanceof QueryParameterTemplateQueryable)
                             .collect(Collectors.toList())));
 
+    /* TODO fix output schema
     Map<String, Schema<?>> globalParameters = new HashMap<>();
 
     for (ApiEndpointDefinition def : definitions) {
@@ -277,11 +284,13 @@ public class McpToolUtils {
               || "datetime".equals(name)
               || "offset".equals(name)
               || "limit".equals(name)
-              || "sortby".equals(name)) {
-            Object schema = param.getSchema(apiData, Optional.empty());
+              || "sortby".equals(name)
+              || "properties".equals(name)
+              || "exclude-properties".equals(name)) {
+            Schema<?> schema = param.getSchema(apiData, Optional.empty());
 
-            if (schema instanceof Schema<?> s) {
-              globalParameters.put(name, s);
+            if (schema != null) {
+              globalParameters.put(name, schema);
             }
           }
         }
@@ -294,24 +303,24 @@ public class McpToolUtils {
                 Collectors.toMap(
                     Entry::getKey,
                     e -> {
-                      Map<String, Schema<?>> props = new HashMap<>(globalParameters);
+                      Map<String, Schema> props = new HashMap<>(globalParameters);
                       List<OgcApiQueryParameter> params =
                           queryParametersByCollection.getOrDefault(e.getKey(), List.of());
                       for (OgcApiQueryParameter param : params) {
-                        Schema<?> schema = param.getSchema(apiData, Optional.empty());
+                        Schema<?> schema = param.getSchema(apiData, e.getValue().getCollectionId(apiData));
                         if (schema != null) {
                           props.put(param.getName(), schema);
                         }
                       }
                       ObjectSchema schema = new ObjectSchema();
-                      schema.setProperties((Map) props);
+                      schema.setProperties(props);
                       return schema;
                     }));
 
     for (Entry<String, List<OgcApiQueryParameter>> entry : queryParametersByCollection.entrySet()) {
       ObjectSchema objectSchema = new ObjectSchema();
       for (OgcApiQueryParameter param : entry.getValue()) {
-        Schema<?> schema = param.getSchema(apiData, Optional.empty());
+        Schema<?> schema = param.getSchema(apiData, entry.getKey());
         if (schema != null) {
           schema.setDescription(param.getDescription());
           objectSchema.addProperty(param.getName(), schema);
@@ -319,6 +328,7 @@ public class McpToolUtils {
       }
       collections.put(entry.getKey(), objectSchema);
     }
+     */
 
     return collectionMap.entrySet().stream()
         .map(
@@ -326,8 +336,16 @@ public class McpToolUtils {
               String collectionId = e.getKey();
               List<OgcApiQueryParameter> collectionQueryParameters =
                   queryParametersByCollection.getOrDefault(collectionId, List.of());
-              ObjectSchema inputSchema = collections.get(collectionId);
+              ObjectSchema inputSchema = new ObjectSchema();
+              for (OgcApiQueryParameter param : queryParametersByCollection.get(collectionId)) {
+                Schema<?> schema = param.getSchema(apiData, collectionId);
+                if (schema != null) {
+                  schema.setDescription(param.getDescription());
+                  inputSchema.addProperty(param.getName(), schema);
+                }
+              }
 
+              /* TODO fix output schema
               Schema<?> outputSchema = null;
               ApiOperation getOp = e.getValue().getOperations().get(HttpMethod.GET);
 
@@ -354,16 +372,6 @@ public class McpToolUtils {
                 outputSchema = new ObjectSchema().addProperty("value", new StringSchema());
               }
 
-              // Standard-Description
-              String description =
-                  apiData.getCollections().get(collectionId).getDescription().orElse("");
-
-              // Spezielle Anpassung für collection_unfaelle2
-              if ("unfaelle2".equals(collectionId)) {
-                description +=
-                    " Im Gegensatz zu collection_unfaelle werden hier auch nähere Angaben zu den Straßennummern/namen gemacht.";
-              }
-
               ObjectSchema outputObjectSchema;
               if (outputSchema instanceof ObjectSchema os) {
                 outputObjectSchema = os;
@@ -371,16 +379,61 @@ public class McpToolUtils {
                 outputObjectSchema = new ObjectSchema();
                 outputObjectSchema.addProperty("value", outputSchema);
               }
+               */
+              ObjectSchema outputObjectSchema = new ObjectSchema();
 
-              return new ImmutableMcpTool.Builder()
-                  .id(COLLECTION_QUERY_PREFIX + collectionId)
-                  .name(
-                      "Collection Query - " + apiData.getCollections().get(collectionId).getLabel())
-                  .description(description)
-                  .inputSchema(inputSchema)
-                  .outputSchema(outputObjectSchema)
-                  .queryParameters(collectionQueryParameters)
-                  .build();
+              // standard description
+              String description =
+                  apiData.getDescription().map(desc -> desc + System.lineSeparator()).orElse("")
+                      + apiData
+                          .getCollections()
+                          .get(collectionId)
+                          .getDescription()
+                          .map(s -> s + System.lineSeparator())
+                          .orElse("")
+                      + mcpConfiguration
+                          .getAddMetadataAsText()
+                          .filter(flag -> flag)
+                          .map(
+                              flag ->
+                                  "Metadata about the data in this collection: "
+                                      + api.getSpatialExtent(collectionId)
+                                          .map(
+                                              bbox ->
+                                                  "Spatial extent: Longitude between "
+                                                      + bbox.getXmin()
+                                                      + " and "
+                                                      + bbox.getXmax()
+                                                      + "; Latitude betweeen "
+                                                      + bbox.getYmin()
+                                                      + " and "
+                                                      + bbox.getYmax()
+                                                      + ". ")
+                                          .orElse("")
+                                      + api.getTemporalExtent(collectionId)
+                                          .map(
+                                              interval ->
+                                                  "Temporal extent: "
+                                                      + interval.humanReadable(Locale.US)
+                                                      + ". ")
+                                          .orElse("")
+                                      + api.getItemCount(collectionId)
+                                          .map(count -> "Number of objects: " + count + ". ")
+                                          .orElse("")
+                                      + System.lineSeparator())
+                          .orElse("");
+
+              return (McpTool)
+                  new ImmutableMcpTool.Builder()
+                      .id(COLLECTION_QUERY_PREFIX + collectionId)
+                      .name(
+                          "Collection Query - "
+                              + apiData.getCollections().get(collectionId).getLabel())
+                      .description(description)
+                      .inputSchema(inputSchema)
+                      .outputSchema(outputObjectSchema)
+                      .queryParameters(collectionQueryParameters)
+                      .build();
             })
         .toList();
   }

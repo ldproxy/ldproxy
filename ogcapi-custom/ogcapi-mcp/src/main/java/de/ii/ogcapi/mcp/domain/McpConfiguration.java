@@ -52,6 +52,14 @@ public interface McpConfiguration extends ExtensionConfiguration {
    */
   Optional<McpIncludeExclude> getExcluded();
 
+  /**
+   * @langEn TODO
+   * @langDe TODO
+   * @default false
+   * @since v4.7
+   */
+  Optional<Boolean> getAddMetadataAsText();
+
   @Value.Immutable
   @JsonDeserialize(builder = ImmutableMcpIncludeExclude.Builder.class)
   interface McpIncludeExclude {
