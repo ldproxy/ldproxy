@@ -135,8 +135,8 @@ public class EndpointVectorTileCollection extends EndpointSubCollection
                     .anyMatch(
                         collectionId ->
                             inputFormatExtension.isEnabledForApi(apiData, collectionId)))
+        .filter(inputFormatExtension -> !inputFormatExtension.isInternal())
         .map(FormatExtension::getContent)
-        .filter(Objects::nonNull)
         .collect(Collectors.toMap(c -> c.getOgcApiMediaType().type(), c -> c));
   }
 

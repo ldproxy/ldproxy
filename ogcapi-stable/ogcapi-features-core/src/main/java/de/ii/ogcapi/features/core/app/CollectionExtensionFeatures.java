@@ -19,9 +19,13 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.TemporalExtent;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -29,7 +33,6 @@ import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -65,7 +68,10 @@ public class CollectionExtensionFeatures implements CollectionExtension {
       List<ApiMediaType> alternateMediaTypes,
       Optional<Locale> language) {
 
-    if (!isEnabledForApi(api.getData(), featureType.getId())) {
+    final OgcApiDataV2 apiData = api.getData();
+    final String collectionId = featureType.getId();
+
+    if (!isEnabledForApi(apiData, collectionId)) {
       return collection;
     }
 
@@ -80,7 +86,7 @@ public class CollectionExtensionFeatures implements CollectionExtension {
                 .map(Enum::toString)
                 .orElse(FeaturesCoreConfiguration.ItemType.unknown.toString()));
 
-    api.getItemCount(featureType.getId())
+    api.getItemCount(collectionId)
         .filter(count -> count >= 0)
         .ifPresent(count -> collection.putExtensions("itemCount", count));
 
@@ -94,7 +100,7 @@ public class CollectionExtensionFeatures implements CollectionExtension {
               .href(
                   uriBuilder
                       .copy()
-                      .ensureLastPathSegments("collections", featureType.getId())
+                      .ensureLastPathSegments("collections", collectionId)
                       .removeParameters("f")
                       .toString())
               .rel("self")
@@ -106,27 +112,68 @@ public class CollectionExtensionFeatures implements CollectionExtension {
 
     List<ApiMediaType> featureMediaTypes =
         extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
-            .filter(outputFormatExtension -> outputFormatExtension.isEnabledForApi(api.getData()))
-            .map(outputFormatExtension -> outputFormatExtension.getMediaType())
-            .collect(Collectors.toList());
+            .filter(f -> f.isEnabledForApi(apiData, collectionId))
+            .filter(f -> !f.isInternal())
+            .map(FormatExtension::getMediaType)
+            .filter(type -> !type.parameter().equals("*"))
+            .toList();
 
-    featureMediaTypes.stream()
-        .forEach(
-            mtype ->
-                collection.addLinks(
-                    new ImmutableLink.Builder()
-                        .href(
-                            uriBuilder
-                                .ensureLastPathSegments("collections", featureType.getId(), "items")
-                                .setParameter("f", mtype.parameter())
-                                .toString())
-                        .rel("items")
-                        .type(mtype.type().toString())
-                        .title(
-                            i18n.get("itemsLink", language)
-                                .replace("{{collection}}", featureType.getLabel())
-                                .replace("{{type}}", mtype.label()))
-                        .build()));
+    List<ProfileSet> profileSets =
+        extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+            .filter(
+                profileSet ->
+                    profileSet.isEnabledForApi(apiData, collectionId)
+                        && profileSet.includeAlternateLinks())
+            .toList();
+
+    featureMediaTypes.forEach(
+        mtype -> {
+          List<Profile> profiles =
+              profileSets.stream()
+                  .filter(profileSet -> profileSet.getMediaType().equals(mtype.type()))
+                  .flatMap(
+                      profileSet ->
+                          profileSet.getProfiles(apiData, Optional.of(collectionId)).stream())
+                  .toList();
+          if (profiles.isEmpty()) {
+            collection.addLinks(
+                new ImmutableLink.Builder()
+                    .href(
+                        uriBuilder
+                            .copy()
+                            .ensureLastPathSegments("collections", collectionId, "items")
+                            .setParameter("f", mtype.parameter())
+                            .toString())
+                    .rel("items")
+                    .type(mtype.type().toString())
+                    .title(
+                        i18n.get("itemsLink", language)
+                            .replace("{{collection}}", featureType.getLabel())
+                            .replace("{{type}}", mtype.label()))
+                    .build());
+
+          } else {
+            profiles.forEach(
+                profile ->
+                    collection.addLinks(
+                        new ImmutableLink.Builder()
+                            .href(
+                                uriBuilder
+                                    .copy()
+                                    .ensureLastPathSegments("collections", collectionId, "items")
+                                    .setParameter("f", mtype.parameter())
+                                    .setParameter("profile", profile.getId())
+                                    .toString())
+                            .rel("items")
+                            .type(mtype.type().toString())
+                            .profile(profile.getId())
+                            .title(
+                                i18n.get("itemsLink", language)
+                                    .replace("{{collection}}", featureType.getLabel())
+                                    .replace("{{type}}", profile.getLabel()))
+                            .build()));
+          }
+        });
 
     Optional<String> describeFeatureTypeUrl = Optional.empty();
     if (describeFeatureTypeUrl.isPresent()) {
@@ -140,7 +187,7 @@ public class CollectionExtensionFeatures implements CollectionExtension {
     }
 
     // only add extents for cases where we can filter at least using 'bbox' / 'datetime'
-    Optional<FeatureSchema> featureSchema = providers.getFeatureSchema(api.getData(), featureType);
+    Optional<FeatureSchema> featureSchema = providers.getFeatureSchema(apiData, featureType);
     boolean isSpatial =
         featureSchema.map(schema -> schema.getPrimaryGeometry().isPresent()).orElse(false);
     boolean isTemporal =
@@ -151,8 +198,8 @@ public class CollectionExtensionFeatures implements CollectionExtension {
                         || schema.getPrimaryInterval().isPresent())
             .orElse(false);
 
-    Optional<BoundingBox> spatial = api.getSpatialExtent(featureType.getId());
-    Optional<TemporalExtent> temporal = api.getTemporalExtent(featureType.getId());
+    Optional<BoundingBox> spatial = api.getSpatialExtent(collectionId);
+    Optional<TemporalExtent> temporal = api.getTemporalExtent(collectionId);
     if (isSpatial && isTemporal) {
       collection.extent(OgcApiExtent.of(spatial, temporal));
     } else if (isSpatial) {
