@@ -9,6 +9,7 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
@@ -71,13 +72,12 @@ public abstract class Link {
   @XmlTransient
   public abstract ApiMediaType getMediaType();
 
-  @Nullable
-  @XmlAttribute
-  @Value.Default
-  public String getProfile() {
-    return getProfiles().isEmpty()
-        ? null
-        : getProfiles().stream().map(ProfileExtension::getUri).collect(Collectors.joining(" "));
+  @XmlTransient
+  @Value.Derived
+  @Value.Auxiliary
+  @JsonInclude(Include.NON_EMPTY)
+  public List<String> getProfile() {
+    return getProfiles().stream().map(ProfileExtension::getUri).toList();
   }
 
   @JsonIgnore
@@ -127,8 +127,10 @@ public abstract class Link {
     if (getType() != null && !getType().isEmpty()) {
       link.type(getType());
     }
-    if (getProfile() != null && !getProfile().isEmpty()) {
-      link.param("profile", getProfile());
+    if (!getProfiles().isEmpty()) {
+      link.param(
+          "profile",
+          getProfiles().stream().map(ProfileExtension::getUri).collect(Collectors.joining(" ")));
     }
     if (getHreflang() != null && !getHreflang().isEmpty()) {
       link.param("hreflang", getHreflang());

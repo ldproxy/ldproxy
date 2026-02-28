@@ -166,7 +166,7 @@ public class CollectionExtensionFeatures implements CollectionExtension {
                                     .toString())
                             .rel("items")
                             .type(mtype.type().toString())
-                            .profile(profile.getId())
+                            .addProfiles(profile)
                             .title(
                                 i18n.get("itemsLink", language)
                                     .replace("{{collection}}", featureType.getLabel())
