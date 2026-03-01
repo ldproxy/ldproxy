@@ -284,7 +284,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             collectionId,
             requestContext.getMediaType(),
             requestContext.getAlternateMediaTypes(),
-            queryInput.getProfiles());
+            profiles);
 
     List<Link> links =
         Objects.isNull(featureId)
