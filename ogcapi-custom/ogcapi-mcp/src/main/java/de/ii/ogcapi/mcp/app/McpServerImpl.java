@@ -52,6 +52,7 @@ import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
+import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.Schema;
@@ -176,7 +177,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                       Json.pretty(tool.getInputSchema()),
                       io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
                   objectMapper.readValue(Json.pretty(tool.getOutputSchema()), Map.class),
-                  null,
+                  new ToolAnnotations(tool.getName(), true, false, true, false, false),
                   null),
               (exchange, arguments) -> {
                 try {
