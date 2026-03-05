@@ -35,4 +35,9 @@ public abstract class ProfileGeoJson extends ProfileGeneric {
   public boolean isRestrictedToSimpleFeaturesGeometries() {
     return true;
   }
+
+  @Override
+  public boolean includeAlternateLinks() {
+    return true;
+  }
 }

@@ -47,6 +47,9 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
 
     uriBuilder.removeParameters("lang");
 
+    List<Profile> profilesToAddInLinks =
+        profiles.stream().filter(Profile::includeAlternateLinks).toList();
+
     // we have to create a next link here as we do not know numberMatched yet, but it will
     // be removed again in the feature transformer, if we are on the last page
     builder.add(
@@ -55,6 +58,7 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
             .rel("next")
             .mediaType(mediaType)
             .title(i18n.get("nextLink", language))
+            .profiles(profilesToAddInLinks)
             .build());
     if (offset > 0) {
       builder.add(
@@ -63,6 +67,7 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
               .rel("prev")
               .mediaType(mediaType)
               .title(i18n.get("prevLink", language))
+              .profiles(profilesToAddInLinks)
               .build());
       builder.add(
           new ImmutableLink.Builder()
@@ -70,6 +75,7 @@ public class FeaturesLinksGenerator extends DefaultLinksGenerator {
               .rel("first")
               .mediaType(mediaType)
               .title(i18n.get("firstLink", language))
+              .profiles(profilesToAddInLinks)
               .build());
     }
 

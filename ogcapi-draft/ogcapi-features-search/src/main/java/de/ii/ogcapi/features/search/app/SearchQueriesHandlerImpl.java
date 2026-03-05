@@ -955,7 +955,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                         finalQuery.getCrs().orElse(defaultCrs),
                                         false,
                                         outputFormat.requiresPropertiesInSequence(schema.get()),
-                                        outputFormat.supportsSecondaryGeometry(),
+                                        outputFormat.supportsSecondaryGeometry(profiles),
                                         outputFormat.supportsNullVsMissing(),
                                         finalQuery.getMaxAllowableOffset() > 0)))
                         .orElse(Set.of());

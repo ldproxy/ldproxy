@@ -112,6 +112,15 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   }
 
   @Override
+  public boolean supportsSecondaryGeometry(List<Profile> profiles) {
+    return profiles.stream()
+        .filter(p -> p instanceof ProfileGeoJson)
+        .findFirst()
+        .map(profile -> ((ProfileGeoJson) profile).writeSecondaryGeometry())
+        .orElse(true);
+  }
+
+  @Override
   public boolean supportsEmbedding() {
     return true;
   }
