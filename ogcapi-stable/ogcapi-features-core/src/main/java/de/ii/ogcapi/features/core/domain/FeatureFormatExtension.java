@@ -190,7 +190,7 @@ public abstract class FeatureFormatExtension implements FormatExtension {
     return false;
   }
 
-  public boolean supportsSecondaryGeometry() {
+  public boolean supportsSecondaryGeometry(List<Profile> profiles) {
     return false;
   }
 

@@ -395,7 +395,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                   query.getCrs().orElse(defaultCrs),
                   !sendResponseAsStream,
                   outputFormat.requiresPropertiesInSequence(schema),
-                  outputFormat.supportsSecondaryGeometry(),
+                  outputFormat.supportsSecondaryGeometry(profiles),
                   outputFormat.supportsNullVsMissing(),
                   query.getMaxAllowableOffset() > 0));
 
