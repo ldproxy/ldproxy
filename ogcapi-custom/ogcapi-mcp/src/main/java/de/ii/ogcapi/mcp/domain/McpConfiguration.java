@@ -53,8 +53,10 @@ public interface McpConfiguration extends ExtensionConfiguration {
   Optional<McpIncludeExclude> getExcluded();
 
   /**
-   * @langEn TODO
-   * @langDe TODO
+   * @langEn If set to `true`, the collection metadata (spatial and temporal extent, item count) is
+   *     included in the textual description.
+   * @langDe Wenn auf `true` gesetzt, werden die Metadaten der Sammlung (räumlicher und zeitlicher
+   *     Umfang, Anzahl der Objekte) in die Textbeschreibung aufgenommen.
    * @default false
    * @since v4.7
    */
