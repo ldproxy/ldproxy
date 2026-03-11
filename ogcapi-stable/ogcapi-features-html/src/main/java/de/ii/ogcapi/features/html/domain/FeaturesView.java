@@ -12,8 +12,10 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.common.domain.OgcApiDatasetView;
 import de.ii.ogcapi.features.html.app.CesiumDataFeatures;
+import de.ii.ogcapi.features.html.app.CrsEditor;
 import de.ii.ogcapi.features.html.app.FeatureHtml;
 import de.ii.ogcapi.features.html.app.FilterEditor;
+import de.ii.ogcapi.features.html.app.ImmutableCrsEditor;
 import de.ii.ogcapi.features.html.app.ImmutableFilterEditor.Builder;
 import de.ii.ogcapi.features.html.app.ImmutableSortingEditor;
 import de.ii.ogcapi.features.html.app.SortingEditor;
@@ -180,7 +182,11 @@ public abstract class FeaturesView extends OgcApiDatasetView {
           .data(
               new ImmutableSource.Builder()
                   .type(TYPE.geojson)
-                  .url(uriBuilder().removeParameters("f").ensureParameter("f", "json").toString())
+                  .url(
+                      uriBuilder()
+                          .removeParameters("f", "crs")
+                          .ensureParameter("f", "json")
+                          .toString())
                   .build())
           .popup(Popup.HOVER_ID)
           .featureTitles(
@@ -230,6 +236,26 @@ public abstract class FeaturesView extends OgcApiDatasetView {
       return null;
     }
     return new ImmutableSortingEditor.Builder().build();
+  }
+
+  @Value.Default
+  @Nullable
+  public CrsEditor crsEditor() {
+    if (collectionData().isEmpty()) {
+      return null;
+    }
+
+    boolean enabled =
+        collectionData()
+            .flatMap(collection -> collection.getExtension(FeaturesHtmlConfiguration.class))
+            .map(FeaturesHtmlConfiguration::getCrsSelector)
+            .orElse(false);
+
+    if (!enabled) {
+      return null;
+    }
+
+    return new ImmutableCrsEditor.Builder().build();
   }
 
   @Value.Derived

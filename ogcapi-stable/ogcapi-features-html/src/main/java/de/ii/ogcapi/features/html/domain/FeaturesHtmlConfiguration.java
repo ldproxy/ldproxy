@@ -268,6 +268,14 @@ public interface FeaturesHtmlConfiguration
   Boolean getPropertyTooltipsOnItems();
 
   /**
+   * @langEn If `true`, show a CRS selector on the items page.
+   * @langDe Bei `true` wird auf der Items-Seite ein CRS-Selector angezeigt.
+   * @default false
+   */
+  @Nullable
+  Boolean getCrsSelector();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set, such
    *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.

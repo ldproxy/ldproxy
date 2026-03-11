@@ -18,7 +18,7 @@ Filter
 {{/filterEditor}}
 
 {{#sortingEditor}}
-<div id="sf" class="mb-5">
+<div id="sf" class="mb-2">
 <div class="row mb-3">
 <div class="col-md-3 font-weight-bold py-1">
 Sorting
@@ -26,6 +26,16 @@ Sorting
 </div>
 </div>
 {{/sortingEditor}}
+
+{{#crsEditor}}
+<div id="crs" class="mb-2">
+<div class="row mb-3">
+<div class="col-md-3 font-weight-bold py-1">
+CRS
+</div>
+</div>
+</div>
+{{/crsEditor}}
 
 {{#isMapRight}}
     <div class="row">
@@ -96,5 +106,6 @@ Sorting
 
 {{> filterEditor}}
 {{> sortingEditor}}
+{{> crsEditor}}
 
 {{> footer}}
