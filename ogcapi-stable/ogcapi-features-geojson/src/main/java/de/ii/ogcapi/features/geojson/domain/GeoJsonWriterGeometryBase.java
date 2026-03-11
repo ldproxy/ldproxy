@@ -57,7 +57,9 @@ public abstract class GeoJsonWriterGeometryBase implements GeoJsonWriter {
                 new GeometryEncoderJson(
                     context.encoding().getJson(),
                     !writeJsonFgExtensions,
-                    context.encoding().getGeometryPrecision()));
+                    context.schema().get().isSecondaryGeometry()
+                        ? context.encoding().getWgs84GeometryPrecision()
+                        : context.encoding().getGeometryPrecision()));
             context.encoding().getJson().flush();
             context.encoding().continueBuffering();
           }

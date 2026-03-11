@@ -1,6 +1,6 @@
 [versions]
 node = "7.1.0"
-download = "5.6.0"
+download = "5.7.0"
 
 [plugins]
 node = { id = "com.github.node-gradle.node", version.ref = "node" }
