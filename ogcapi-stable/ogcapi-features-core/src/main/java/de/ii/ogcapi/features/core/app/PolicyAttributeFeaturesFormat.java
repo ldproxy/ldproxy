@@ -83,6 +83,11 @@ public class PolicyAttributeFeaturesFormat extends FeatureFormatExtension {
   }
 
   @Override
+  public boolean isInternal() {
+    return true;
+  }
+
+  @Override
   public Optional<PropertyTransformations> getPropertyTransformations(
       FeatureTypeConfigurationOgcApi collectionData) {
     Optional<PropertyTransformations> coreTransformations =

@@ -26,6 +26,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema
 import de.ii.xtraplatform.features.domain.SchemaBase
+import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -241,11 +242,19 @@ class OgcApiCoreSpecCollections extends Specification {
                         @Override
                         ApiMediaTypeContent getContent() {
                             return new ImmutableApiMediaTypeContent.Builder()
+                                    .schemaRef("/foo")
+                                    .schema(new StringSchema())
+                                    .ogcApiMediaType(getMediaType())
                                     .build()
                         }
 
                         @Override
                         boolean isEnabledForApi(OgcApiDataV2 apiData) {
+                            return true
+                        }
+
+                        @Override
+                        boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
                             return true
                         }
 

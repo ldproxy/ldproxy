@@ -62,4 +62,12 @@ public interface FormatExtension extends ApiExtension {
   default boolean isEnabledByDefault() {
     return true;
   }
+
+  /**
+   * @return {@code true}, if the format is only used internally and should not be advertised in the
+   *     API documentation or the response
+   */
+  default boolean isInternal() {
+    return false;
+  }
 }
