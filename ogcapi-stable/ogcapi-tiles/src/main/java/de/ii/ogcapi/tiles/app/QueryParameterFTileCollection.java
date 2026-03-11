@@ -95,7 +95,7 @@ public class QueryParameterFTileCollection extends QueryParameterF {
               f ->
                   apiData.getCollections().keySet().stream()
                       .anyMatch(collectionId -> f.isEnabledForApi(apiData, collectionId)))
-          .filter(f -> Objects.nonNull(f.getContent()))
+          .filter(f -> !f.isInternal())
           .filter(f -> !f.getMediaType().parameter().equals("*"))
           .map(f -> f.getMediaType().parameter())
           .distinct()

@@ -35,11 +35,6 @@ public class ProfileJsonFg extends ProfileGeoJson {
   }
 
   @Override
-  public boolean includeAlternateLinks() {
-    return true;
-  }
-
-  @Override
   public boolean writeJsonFgExtensions() {
     return true;
   }

@@ -35,11 +35,6 @@ public class ProfileRfc7946 extends ProfileGeoJson {
   }
 
   @Override
-  public boolean includeAlternateLinks() {
-    return true;
-  }
-
-  @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return JsonFgConfiguration.class;
   }

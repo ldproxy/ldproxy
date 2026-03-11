@@ -556,7 +556,7 @@ public class PubSubBuildingBlock
               .alternateMediaTypes(
                   formats.stream()
                       .filter(f -> f.isEnabledForApi(api.getData(), collectionId))
-                      .filter(f -> Objects.nonNull(f.getContent()))
+                      .filter(f -> !f.isInternal())
                       .map(FormatExtension::getMediaType)
                       .filter(
                           mediaType -> !"geo+json".equalsIgnoreCase(mediaType.type().getSubtype()))
