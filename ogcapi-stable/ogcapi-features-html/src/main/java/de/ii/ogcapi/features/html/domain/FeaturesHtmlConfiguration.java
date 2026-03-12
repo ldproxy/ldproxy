@@ -276,6 +276,17 @@ public interface FeaturesHtmlConfiguration
   Boolean getCrsSelector();
 
   /**
+   * @langEn Configures a limit editor on the items page. Positive values define select options. If
+   *     `0` is included, an additional free numeric input is enabled.
+   * @langDe Konfiguriert einen Limit-Editor auf der Items-Seite. Positive Werte definieren
+   *     Select-Optionen. Ist `0` enthalten, wird zusätzlich ein freies numerisches Eingabefeld
+   *     aktiviert.
+   * @default null
+   */
+  @Nullable
+  List<Integer> getLimitSelector();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set, such
    *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.

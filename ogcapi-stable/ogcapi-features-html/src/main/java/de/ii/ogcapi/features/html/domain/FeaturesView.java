@@ -11,13 +11,16 @@ import com.github.mustachejava.util.DecoratedCollection;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.common.domain.OgcApiDatasetView;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.html.app.CesiumDataFeatures;
 import de.ii.ogcapi.features.html.app.CrsEditor;
 import de.ii.ogcapi.features.html.app.FeatureHtml;
 import de.ii.ogcapi.features.html.app.FilterEditor;
 import de.ii.ogcapi.features.html.app.ImmutableCrsEditor;
 import de.ii.ogcapi.features.html.app.ImmutableFilterEditor.Builder;
+import de.ii.ogcapi.features.html.app.ImmutableLimitEditor;
 import de.ii.ogcapi.features.html.app.ImmutableSortingEditor;
+import de.ii.ogcapi.features.html.app.LimitEditor;
 import de.ii.ogcapi.features.html.app.SortingEditor;
 import de.ii.ogcapi.features.html.domain.FeaturesHtmlConfiguration.POSITION;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -35,6 +38,7 @@ import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,6 +48,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
@@ -256,6 +261,55 @@ public abstract class FeaturesView extends OgcApiDatasetView {
     }
 
     return new ImmutableCrsEditor.Builder().build();
+  }
+
+  @Value.Default
+  @Nullable
+  public LimitEditor limitEditor() {
+    if (collectionData().isEmpty()) {
+      return null;
+    }
+
+    Optional<FeaturesHtmlConfiguration> htmlConfiguration =
+        collectionData()
+            .flatMap(collection -> collection.getExtension(FeaturesHtmlConfiguration.class));
+
+    List<Integer> configuredLimits =
+        htmlConfiguration.flatMap(cfg -> Optional.ofNullable(cfg.getLimitSelector())).orElse(null);
+
+    if (Objects.isNull(configuredLimits) || configuredLimits.isEmpty()) {
+      return null;
+    }
+
+    boolean allowCustom = configuredLimits.stream().anyMatch(v -> Objects.nonNull(v) && v == 0);
+
+    List<Integer> limitOptions =
+        configuredLimits.stream()
+            .filter(Objects::nonNull)
+            .filter(v -> v > 0)
+            .distinct()
+            .sorted(Comparator.naturalOrder())
+            .collect(Collectors.toList());
+
+    Integer defaultLimit =
+        collectionData()
+            .flatMap(collection -> collection.getExtension(FeaturesCoreConfiguration.class))
+            .flatMap(cfg -> Optional.ofNullable(cfg.getDefaultPageSize()))
+            .orElse(null);
+
+    if (!limitOptions.isEmpty() && Objects.nonNull(defaultLimit) && defaultLimit > 0) {
+      limitOptions =
+          Stream.concat(limitOptions.stream(), Stream.of(defaultLimit))
+              .distinct()
+              .sorted(Comparator.naturalOrder())
+              .collect(Collectors.toList());
+    }
+
+    return new ImmutableLimitEditor.Builder()
+        .limitOptions(limitOptions)
+        .allowCustom(allowCustom)
+        .defaultLimit(defaultLimit)
+        .build();
   }
 
   @Value.Derived

@@ -1,0 +1,27 @@
+{{#limitEditor}}
+<script type="text/javascript">
+  globalThis._sortingfilter = globalThis._sortingfilter || {};
+  globalThis._sortingfilter.limitcontainer = 'limit';
+  globalThis._sortingfilter.limitOptions = [
+    {{#limitOptions}}
+      {{.}},
+    {{/limitOptions}}
+  ];
+  globalThis._sortingfilter.allowCustomLimit = {{allowCustom}};
+  {{#defaultLimit}}
+  globalThis._sortingfilter.defaultLimit = {{.}};
+  {{/defaultLimit}}
+  {{^defaultLimit}}
+  globalThis._sortingfilter.defaultLimit = null;
+  {{/defaultLimit}}
+  globalThis._sortingfilter.language = '{{{language}}}';
+  globalThis._sortingfilter.translations = {
+    {{#jsTranslations}}
+      '{{key}}': '{{{value}}}',
+    {{/jsTranslations}}
+  };
+</script>
+
+{{> app-limiteditor}}
+
+{{/limitEditor}}
