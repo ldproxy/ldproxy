@@ -65,10 +65,23 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
     return values.sort((a, b) => a - b);
   }, [hasConfiguredSelectOptions, normalizedOptions, normalizedDefault, initialApplied]);
 
+  const getSelectValueForLimit = (limit) => {
+    if (!optionsWithDefaults.length) {
+      return "";
+    }
+
+    if (Number.isInteger(limit) && optionsWithDefaults.includes(limit)) {
+      return String(limit);
+    }
+
+    return allowCustomLimit ? "" : String(optionsWithDefaults[0]);
+  };
+
   const [isOpen, setOpen] = useState(false);
   const [appliedLimit, setAppliedLimit] = useState(initialApplied);
   const [draftLimit, setDraftLimit] = useState(initialApplied);
   const [customInput, setCustomInput] = useState(initialApplied ? String(initialApplied) : "");
+  const [selectedOption, setSelectedOption] = useState(getSelectValueForLimit(initialApplied));
 
   const isDefaultApplied = Number.isInteger(normalizedDefault)
     ? appliedLimit === normalizedDefault
@@ -82,6 +95,7 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
     event.target.blur();
     setDraftLimit(appliedLimit);
     setCustomInput(appliedLimit ? String(appliedLimit) : "");
+    setSelectedOption(getSelectValueForLimit(appliedLimit));
     setOpen(!isOpen);
   };
 
@@ -89,6 +103,7 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
     event.target.blur();
     setDraftLimit(appliedLimit);
     setCustomInput(appliedLimit ? String(appliedLimit) : "");
+    setSelectedOption(getSelectValueForLimit(appliedLimit));
     setOpen(false);
   };
 
@@ -114,7 +129,15 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
   };
 
   const onSelectChange = (event) => {
-    const next = parsePositiveInteger(event.target.value);
+    const { value } = event.target;
+    setSelectedOption(value);
+
+    if (value === "") {
+      setDraftLimit(parsePositiveInteger(customInput));
+      return;
+    }
+
+    const next = parsePositiveInteger(value);
     setDraftLimit(next);
     setCustomInput(next ? String(next) : "");
   };
@@ -123,6 +146,9 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
     const nextValue = event.target.value;
     setCustomInput(nextValue);
     setDraftLimit(parsePositiveInteger(nextValue));
+    if (optionsWithDefaults.length > 0 && allowCustomLimit) {
+      setSelectedOption("");
+    }
   };
 
   if (!allowCustomLimit && optionsWithDefaults.length === 0) {
@@ -181,8 +207,8 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
                   type="select"
                   bsSize="sm"
                   className="d-inline-block mr-2"
-                  style={{ width: "130px", minWidth: "130px", maxWidth: "130px" }}
-                  value={parsePositiveInteger(draftLimit) || ""}
+                  style={{ width: "130px" }}
+                  value={selectedOption}
                   onChange={onSelectChange}
                 >
                   {allowCustomLimit && <option value="">{t("none")}</option>}
@@ -193,14 +219,14 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
                   ))}
                 </Input>
               )}
-              {allowCustomLimit && (
+              {allowCustomLimit && (optionsWithDefaults.length === 0 || selectedOption === "") && (
                 <Input
                   type="number"
                   bsSize="sm"
                   min="1"
                   step="1"
                   className="d-inline-block"
-                  style={{ width: "130px", minWidth: "130px", maxWidth: "130px" }}
+                  style={{ width: "130px" }}
                   value={customInput}
                   onChange={onCustomChange}
                   placeholder={t("limitPlaceholder")}
