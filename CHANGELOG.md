@@ -1,9 +1,6 @@
 # Changelog
 
 ## v4.6.2 (13/03/2026)
-#### Fixed bugs
-
--  JSON-FG: secondary geometry not handled properly [#1554](https://github.com/ldproxy/ldproxy/issues/1554)
 
 #### Dependency updates
 
