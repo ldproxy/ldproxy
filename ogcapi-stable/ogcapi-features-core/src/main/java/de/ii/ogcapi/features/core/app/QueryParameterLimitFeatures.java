@@ -116,9 +116,15 @@ public class QueryParameterLimitFeatures extends OgcApiQueryParameterBase
   @Override
   public String getDescription() {
     return "The optional limit parameter limits the number of items that are presented in the response document. "
+        + "If more items are selected, only the number of items as specified with the limit parameter are included in the response document. "
+        + "That is, the results is provided in pages ('paging'). "
         + "Only items are counted that are on the first level of the collection in the response document. "
         + "Nested objects contained within the explicitly requested items are not counted. "
-        + "If the value is higher than the maximum page size, the maximum page size is used instead of the parameter value.";
+        + "If the value is higher than the maximum value, the maximum value is used instead of the parameter value."
+        + System.lineSeparator()
+        + "If no parameter value is provided, the default value applies. "
+        + "If more items are available, a link to the next page with more results is provided with the response (link relation type: 'next'). "
+        + "To avoid receiving the result in pages, try to set the limit parameter to the maximum value.";
   }
 
   @Override
