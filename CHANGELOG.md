@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.6.2 (13/03/2026)
+#### Fixed bugs
+
+-  JSON-FG: secondary geometry not handled properly [#1554](https://github.com/ldproxy/ldproxy/issues/1554)
+
+#### Dependency updates
+
+* Update swagger to v2.2.45 (maintenance-6.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/340
+* Update dropwizard to v3.0.17 (maintenance-6.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/338
+* Update org.postgresql:postgresql to v42.7.10 (maintenance-7.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/446
+* Update commonmark to v0.27.1 (maintenance-7.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/444
+---
+
 ## v4.6.1 (24/01/2026)
 #### Fixed bugs
 
