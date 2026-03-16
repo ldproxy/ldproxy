@@ -56,7 +56,7 @@ const getCrsLabel = (crs) => {
 const CrsEditor = () => {
   const { t } = useTranslation();
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { language, translations } = globalThis._sortingfilter;
+  const { language, translations } = globalThis._crs_selector;
 
   const [crsValues, setCrsValues] = useState([]);
   const [isOpen, setOpen] = useState(false);

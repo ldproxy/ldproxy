@@ -270,6 +270,7 @@ public interface FeaturesHtmlConfiguration
   /**
    * @langEn If `true`, show a CRS selector on the items page.
    * @langDe Bei `true` wird auf der Items-Seite ein CRS-Selector angezeigt.
+   * @since v4.7
    * @default false
    */
   @Nullable
@@ -281,6 +282,7 @@ public interface FeaturesHtmlConfiguration
    * @langDe Konfiguriert einen Limit-Editor auf der Items-Seite. Positive Werte definieren
    *     Select-Optionen. Ist `0` enthalten, wird zusätzlich ein freies numerisches Eingabefeld
    *     aktiviert.
+   * @since v4.7
    * @default null
    */
   @Nullable

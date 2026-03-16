@@ -22,7 +22,7 @@ const parsePositiveInteger = (value) => {
 const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit = null }) => {
   const { t } = useTranslation();
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { language, translations } = globalThis._sortingfilter;
+  const { language, translations } = globalThis._limit_selector;
 
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {

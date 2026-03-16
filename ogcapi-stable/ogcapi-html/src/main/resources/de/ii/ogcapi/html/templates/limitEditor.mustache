@@ -1,24 +1,25 @@
 {{#limitEditor}}
 <script type="text/javascript">
-  globalThis._sortingfilter = globalThis._sortingfilter || {};
-  globalThis._sortingfilter.limitcontainer = 'limit';
-  globalThis._sortingfilter.limitOptions = [
-    {{#limitOptions}}
-      {{.}},
-    {{/limitOptions}}
-  ];
-  globalThis._sortingfilter.allowCustomLimit = {{allowCustom}};
-  {{#defaultLimit}}
-  globalThis._sortingfilter.defaultLimit = {{.}};
-  {{/defaultLimit}}
-  {{^defaultLimit}}
-  globalThis._sortingfilter.defaultLimit = null;
-  {{/defaultLimit}}
-  globalThis._sortingfilter.language = '{{{language}}}';
-  globalThis._sortingfilter.translations = {
+  globalThis._limit_selector = {
+    container: 'limit',
+    limitOptions: [
+      {{#limitOptions}}
+        {{.}},
+      {{/limitOptions}}
+    ],
+    allowCustomLimit: {{allowCustom}},
+    {{#defaultLimit}}
+    defaultLimit: {{.}},
+    {{/defaultLimit}}
+    {{^defaultLimit}}
+    defaultLimit: null,
+    {{/defaultLimit}}
+    language: '{{{language}}}',
+    translations: {
     {{#jsTranslations}}
       '{{key}}': '{{{value}}}',
     {{/jsTranslations}}
+    },
   };
 </script>
 
