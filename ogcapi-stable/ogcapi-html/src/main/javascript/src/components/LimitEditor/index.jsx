@@ -207,7 +207,7 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
                   type="select"
                   bsSize="sm"
                   className="d-inline-block mr-2"
-                  style={{ width: "130px" }}
+                  style={{ width: "120px" }}
                   value={selectedOption}
                   onChange={onSelectChange}
                 >
@@ -226,7 +226,7 @@ const LimitEditor = ({ limitOptions = [], allowCustomLimit = false, defaultLimit
                   min="1"
                   step="1"
                   className="d-inline-block"
-                  style={{ width: "130px" }}
+                  style={{ width: "120px" }}
                   value={customInput}
                   onChange={onCustomChange}
                   placeholder={t("limitPlaceholder")}

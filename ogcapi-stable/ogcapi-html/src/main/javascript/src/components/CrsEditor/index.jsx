@@ -200,7 +200,7 @@ const CrsEditor = () => {
             <Col md="7" className="px-0">
               <select
                 className="form-control form-control-sm d-inline-block w-auto"
-                style={{ minWidth: "260px" }}
+                style={{ minWidth: "247px" }}
                 value={draftCrs}
                 onChange={onDraftChange}
               >
