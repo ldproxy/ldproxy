@@ -3,11 +3,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import CrsEditor from "../../components/CrsEditor";
 
-if (globalThis._sortingfilter && globalThis._sortingfilter.crscontainer) {
+if (globalThis._crs_selector && globalThis._crs_selector.container) {
   ReactDOM.render(
     <React.StrictMode>
-      <CrsEditor {...globalThis._sortingfilter} />
+      <CrsEditor {...globalThis._crs_selector} />
     </React.StrictMode>,
-    document.getElementById(globalThis._sortingfilter.crscontainer)
+    document.getElementById(globalThis._crs_selector.container)
   );
 }

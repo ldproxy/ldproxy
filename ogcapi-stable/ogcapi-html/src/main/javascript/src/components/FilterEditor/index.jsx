@@ -56,7 +56,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
   const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { language, translations } = globalThis._sortingfilter;
+  const { language, translations } = globalThis._filter;
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {
       i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);

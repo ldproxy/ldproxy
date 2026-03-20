@@ -1,12 +1,13 @@
 {{#crsEditor}}
 <script type="text/javascript">
-  globalThis._sortingfilter = globalThis._sortingfilter || {};
-  globalThis._sortingfilter.crscontainer = 'crs';
-  globalThis._sortingfilter.language = '{{{language}}}';
-  globalThis._sortingfilter.translations = {
+  globalThis._crs_selector = {
+    container: 'crs',
+    language: '{{{language}}}',
+    translations: {
     {{#jsTranslations}}
       '{{key}}': '{{{value}}}',
     {{/jsTranslations}}
+    },
   };
 </script>
 

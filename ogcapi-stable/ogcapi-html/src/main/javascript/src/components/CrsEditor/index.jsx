@@ -56,7 +56,7 @@ const getCrsLabel = (crs) => {
 const CrsEditor = () => {
   const { t } = useTranslation();
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { language, translations } = globalThis._sortingfilter;
+  const { language, translations } = globalThis._crs_selector;
 
   const [crsValues, setCrsValues] = useState([]);
   const [isOpen, setOpen] = useState(false);
@@ -155,10 +155,14 @@ const CrsEditor = () => {
   return (
     <>
       <Row className="mb-1">
-        <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
-          <span className="font-weight-bold">{t("crs")}</span>
+        <Col
+          md="auto"
+          className="d-flex flex-row justify-content-start align-items-center flex-wrap"
+          style={{ width: "235px" }}
+        >
+          <span className="font-weight-bold text-nowrap">{t("crs")}</span>
         </Col>
-        <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+        <Col md="auto" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           <Button
             color={isOpen ? "primary" : "secondary"}
             outline={!isOpen}
@@ -169,7 +173,7 @@ const CrsEditor = () => {
             {isOpen ? t("apply") : t("edit")}
           </Button>
         </Col>
-        <Col md="9" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+        <Col className="d-flex flex-row justify-content-start align-items-center flex-wrap">
           {showBadge && (
             <Button
               key={badgeValue}
@@ -185,8 +189,12 @@ const CrsEditor = () => {
         </Col>
       </Row>
       <Row className="mb-3">
-        <Col md="1" className="d-flex flex-row justify-content-start align-items-center flex-wrap" />
-        <Col md="2" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+        <Col
+          md="auto"
+          className="d-flex flex-row justify-content-start align-items-center flex-wrap"
+          style={{ width: "235px" }}
+        />
+        <Col md="auto" className="d-flex flex-row justify-content-start align-items-center">
           {isOpen && (
             <Button color="danger" size="sm" className="py-0" onClick={cancel}>
               {t("cancel")}
@@ -200,7 +208,7 @@ const CrsEditor = () => {
             <Col md="7" className="px-0">
               <select
                 className="form-control form-control-sm d-inline-block w-auto"
-                style={{ minWidth: "260px" }}
+                style={{ minWidth: "247px" }}
                 value={draftCrs}
                 onChange={onDraftChange}
               >
