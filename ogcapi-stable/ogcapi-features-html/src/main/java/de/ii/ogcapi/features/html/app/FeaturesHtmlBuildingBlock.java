@@ -69,6 +69,7 @@ public class FeaturesHtmlBuildingBlock implements ApiBuildingBlock {
         .style("DEFAULT")
         .propertyTooltips(true)
         .propertyTooltipsOnItems(false)
+        .crsSelector(false)
         .defaultProfiles(Map.of("rel", "rel-as-link", "val", "val-as-title"))
         .build();
   }

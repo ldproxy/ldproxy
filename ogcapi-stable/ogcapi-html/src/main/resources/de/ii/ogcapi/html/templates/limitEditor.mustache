@@ -1,0 +1,28 @@
+{{#limitEditor}}
+<script type="text/javascript">
+  globalThis._limit_selector = {
+    container: 'limit',
+    limitOptions: [
+      {{#limitOptions}}
+        {{.}},
+      {{/limitOptions}}
+    ],
+    allowCustomLimit: {{allowCustom}},
+    {{#defaultLimit}}
+    defaultLimit: {{.}},
+    {{/defaultLimit}}
+    {{^defaultLimit}}
+    defaultLimit: null,
+    {{/defaultLimit}}
+    language: '{{{language}}}',
+    translations: {
+    {{#jsTranslations}}
+      '{{key}}': '{{{value}}}',
+    {{/jsTranslations}}
+    },
+  };
+</script>
+
+{{> app-limiteditor}}
+
+{{/limitEditor}}
