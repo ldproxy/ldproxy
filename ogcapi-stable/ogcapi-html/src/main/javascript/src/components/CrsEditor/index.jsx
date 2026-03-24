@@ -5,21 +5,7 @@ import { Button, Col, Row, Collapse } from "reactstrap";
 import i18n from "../../i18n";
 import { useApiInfo } from "../SortingEditor/hooks";
 import "../FilterEditor/Badge/style.css";
-
-const DEFAULT_CRS_URI = "http://www.opengis.net/def/crs/OGC/1.3/CRS84";
-
-const normalizeCrs = (crs) => {
-  if (!crs) {
-    return DEFAULT_CRS_URI;
-  }
-  if (crs === "CRS84" || crs === "OGC:CRS84") {
-    return DEFAULT_CRS_URI;
-  }
-  if (crs.endsWith("/OGC/0/CRS84") || crs.endsWith("/OGC/1.3/CRS84")) {
-    return DEFAULT_CRS_URI;
-  }
-  return crs;
-};
+import { DEFAULT_CRS_URI, normalizeCrs, toCanonicalCrsUri, transformBbox } from "../crs/util";
 
 const getBaseUrl = () => {
   let baseUrl = new URL(window.location.href);
@@ -79,7 +65,7 @@ const CrsEditor = () => {
       ...new Set(
         (collection.crs || [])
           .filter((crs) => !crs.startsWith("#"))
-          .map((crs) => normalizeCrs(crs))
+          .map((crs) => normalizeCrs(crs)),
       ),
     ];
     setCrsValues(values);
@@ -90,7 +76,7 @@ const CrsEditor = () => {
       qs.parse(window.location.search, {
         ignoreQueryPrefix: true,
       }),
-    []
+    [],
   );
 
   const [appliedCrs, setAppliedCrs] = useState(normalizeCrs(initialQuery.crs));
@@ -120,13 +106,45 @@ const CrsEditor = () => {
       ignoreQueryPrefix: true,
     });
 
-    if (draftCrs === DEFAULT_CRS_URI) {
+    const normalizedDraftCrs = normalizeCrs(draftCrs);
+
+    if (normalizedDraftCrs === DEFAULT_CRS_URI) {
       delete query.crs;
     } else {
-      query.crs = draftCrs;
+      query.crs = toCanonicalCrsUri(normalizedDraftCrs);
     }
 
-    setAppliedCrs(draftCrs);
+    if (query.bbox) {
+      const sourceBboxCrs = toCanonicalCrsUri(query["bbox-crs"] || DEFAULT_CRS_URI);
+      const targetBboxCrs =
+        normalizedDraftCrs === DEFAULT_CRS_URI
+          ? DEFAULT_CRS_URI
+          : toCanonicalCrsUri(normalizedDraftCrs);
+
+      try {
+        query.bbox = transformBbox(query.bbox, sourceBboxCrs, targetBboxCrs);
+        if (targetBboxCrs === DEFAULT_CRS_URI) {
+          delete query["bbox-crs"];
+        } else {
+          query["bbox-crs"] = targetBboxCrs;
+        }
+      } catch (transformError) {
+        if (sourceBboxCrs === DEFAULT_CRS_URI) {
+          delete query["bbox-crs"];
+        } else {
+          query["bbox-crs"] = sourceBboxCrs;
+        }
+        // eslint-disable-next-line no-console
+        console.warn(
+          "Failed to transform bbox after CRS change. Keeping existing bbox/bbox-crs.",
+          transformError,
+        );
+      }
+    } else {
+      delete query["bbox-crs"];
+    }
+
+    setAppliedCrs(normalizedDraftCrs);
 
     window.location.search = qs.stringify(query, {
       addQueryPrefix: true,
@@ -162,7 +180,10 @@ const CrsEditor = () => {
         >
           <span className="font-weight-bold text-nowrap">{t("crs")}</span>
         </Col>
-        <Col md="auto" className="d-flex flex-row justify-content-start align-items-center flex-wrap">
+        <Col
+          md="auto"
+          className="d-flex flex-row justify-content-start align-items-center flex-wrap"
+        >
           <Button
             color={isOpen ? "primary" : "secondary"}
             outline={!isOpen}

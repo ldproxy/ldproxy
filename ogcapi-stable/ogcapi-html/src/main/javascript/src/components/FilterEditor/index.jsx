@@ -8,6 +8,7 @@ import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
 import { useApiInfo } from "./hooks";
+import { DEFAULT_CRS_URI, toCanonicalCrsUri, transformBbox } from "../crs/util";
 
 const baseUrl = getBaseUrl();
 
@@ -36,7 +37,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     if (isOpen) {
       initialFilters.current = JSON.parse(JSON.stringify(filters));
     }
-  }, [isOpen]);
+  }, [filters, isOpen]);
 
   const urlSpatialTemporal = new URL(baseUrl.pathname.endsWith("/") ? "../" : "./", baseUrl.href);
   urlSpatialTemporal.search = "?f=json";
@@ -49,7 +50,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { start, end, temporal } = useMemo(
     () => extractInterval(spatialTemporal),
-    [spatialTemporal]
+    [spatialTemporal],
   );
   const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
 
@@ -61,11 +62,11 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     Object.entries(translations).forEach(([key, value]) => {
       i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
     });
-  }, []);
+  }, [language, translations]);
 
   const urlProperties = new URL(
     baseUrl.pathname.endsWith("/") ? "../queryables" : "./queryables",
-    baseUrl.href
+    baseUrl.href,
   );
   urlProperties.search = "?f=json";
 
@@ -77,7 +78,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { fields, code, integerKeys, booleanProperty } = useMemo(
     () => extractFields(properties),
-    [properties]
+    [properties],
   );
 
   const enabled =
@@ -91,15 +92,23 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
         .concat(["bbox", "datetime"])
         .reduce((reduced, field) => {
           if (query[field]) {
+            let value = query[field];
+            if (field === "bbox" && query["bbox-crs"]) {
+              try {
+                value = transformBbox(query.bbox, query["bbox-crs"], DEFAULT_CRS_URI);
+              } catch (error) {
+                // keep original value if transformation fails
+              }
+            }
             // eslint-disable-next-line no-param-reassign
             reduced[field] = {
-              value: query[field],
+              value,
               add: false,
               remove: false,
             };
           }
           return reduced;
-        }, {})
+        }, {}),
     );
   }, [fields]);
 
@@ -126,15 +135,35 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     }, {});
 
     delete query.offset;
+    delete query["bbox-crs"];
 
     Object.keys(fields)
-      .concat(["bbox", "datetime"])
+      .concat(["datetime"])
       .forEach((field) => {
         delete query[field];
         if (newFilters[field]) {
           query[field] = newFilters[field].value;
         }
       });
+
+    delete query.bbox;
+    if (newFilters.bbox) {
+      const selectedCrsUri = toCanonicalCrsUri(query.crs);
+      if (selectedCrsUri === DEFAULT_CRS_URI) {
+        query.bbox = newFilters.bbox.value;
+        delete query["bbox-crs"];
+      } else {
+        try {
+          query.bbox = transformBbox(newFilters.bbox.value, DEFAULT_CRS_URI, selectedCrsUri);
+          query["bbox-crs"] = selectedCrsUri;
+        } catch (error) {
+          query.bbox = newFilters.bbox.value;
+          delete query["bbox-crs"];
+          // eslint-disable-next-line no-console
+          console.warn("Failed to transform bbox to selected CRS. Falling back to CRS84.", error);
+        }
+      }
+    }
 
     // eslint-disable-next-line no-undef
     window.location.search = qs.stringify(query, {
