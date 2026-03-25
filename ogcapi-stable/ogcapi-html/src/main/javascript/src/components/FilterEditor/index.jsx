@@ -8,7 +8,7 @@ import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
 import { useApiInfo } from "./hooks";
-import { DEFAULT_CRS_URI, toCanonicalCrsUri, transformBbox } from "../crs/util";
+import { DEFAULT_CRS_URI, toCanonicalCrsUri } from "../crs/util";
 
 const baseUrl = getBaseUrl();
 
@@ -92,17 +92,9 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
         .concat(["bbox", "datetime"])
         .reduce((reduced, field) => {
           if (query[field]) {
-            let value = query[field];
-            if (field === "bbox" && query["bbox-crs"]) {
-              try {
-                value = transformBbox(query.bbox, query["bbox-crs"], DEFAULT_CRS_URI);
-              } catch (error) {
-                // keep original value if transformation fails
-              }
-            }
             // eslint-disable-next-line no-param-reassign
             reduced[field] = {
-              value,
+              value: query[field],
               add: false,
               remove: false,
             };
@@ -149,19 +141,12 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     delete query.bbox;
     if (newFilters.bbox) {
       const selectedCrsUri = toCanonicalCrsUri(query.crs);
+      query.bbox = newFilters.bbox.value;
+
       if (selectedCrsUri === DEFAULT_CRS_URI) {
-        query.bbox = newFilters.bbox.value;
         delete query["bbox-crs"];
       } else {
-        try {
-          query.bbox = transformBbox(newFilters.bbox.value, DEFAULT_CRS_URI, selectedCrsUri);
-          query["bbox-crs"] = selectedCrsUri;
-        } catch (error) {
-          query.bbox = newFilters.bbox.value;
-          delete query["bbox-crs"];
-          // eslint-disable-next-line no-console
-          console.warn("Failed to transform bbox to selected CRS. Falling back to CRS84.", error);
-        }
+        query["bbox-crs"] = DEFAULT_CRS_URI;
       }
     }
 

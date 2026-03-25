@@ -5,7 +5,7 @@ import { Button, Col, Row, Collapse } from "reactstrap";
 import i18n from "../../i18n";
 import { useApiInfo } from "../SortingEditor/hooks";
 import "../FilterEditor/Badge/style.css";
-import { DEFAULT_CRS_URI, normalizeCrs, toCanonicalCrsUri, transformBbox } from "../crs/util";
+import { DEFAULT_CRS_URI, normalizeCrs, toCanonicalCrsUri } from "../crs/util";
 
 const getBaseUrl = () => {
   let baseUrl = new URL(window.location.href);
@@ -114,34 +114,10 @@ const CrsEditor = () => {
       query.crs = toCanonicalCrsUri(normalizedDraftCrs);
     }
 
-    if (query.bbox) {
-      const sourceBboxCrs = toCanonicalCrsUri(query["bbox-crs"] || DEFAULT_CRS_URI);
-      const targetBboxCrs =
-        normalizedDraftCrs === DEFAULT_CRS_URI
-          ? DEFAULT_CRS_URI
-          : toCanonicalCrsUri(normalizedDraftCrs);
-
-      try {
-        query.bbox = transformBbox(query.bbox, sourceBboxCrs, targetBboxCrs);
-        if (targetBboxCrs === DEFAULT_CRS_URI) {
-          delete query["bbox-crs"];
-        } else {
-          query["bbox-crs"] = targetBboxCrs;
-        }
-      } catch (transformError) {
-        if (sourceBboxCrs === DEFAULT_CRS_URI) {
-          delete query["bbox-crs"];
-        } else {
-          query["bbox-crs"] = sourceBboxCrs;
-        }
-        // eslint-disable-next-line no-console
-        console.warn(
-          "Failed to transform bbox after CRS change. Keeping existing bbox/bbox-crs.",
-          transformError,
-        );
-      }
-    } else {
+    if (!query.bbox || normalizedDraftCrs === DEFAULT_CRS_URI) {
       delete query["bbox-crs"];
+    } else {
+      query["bbox-crs"] = DEFAULT_CRS_URI;
     }
 
     setAppliedCrs(normalizedDraftCrs);
