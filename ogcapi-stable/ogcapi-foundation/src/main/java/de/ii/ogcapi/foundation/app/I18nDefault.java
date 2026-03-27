@@ -47,7 +47,7 @@ public class I18nDefault implements I18n, AppLifeCycle {
       Pattern.compile("i18n_([0-9a-zA-Z]{2,8})\\.properties");
   private static final Map<Locale, ResourceBundle> PREDEFINED_BUNDLES =
       Map.of(
-          Locale.ENGLISH, ResourceBundle.getBundle("i18n", Locale.ENGLISH),
+          Locale.ENGLISH, ResourceBundle.getBundle("i18n", Locale.ROOT),
           Locale.GERMAN, ResourceBundle.getBundle("i18n", Locale.GERMAN));
 
   private final Map<Locale, ResourceBundle> i18nBundles;

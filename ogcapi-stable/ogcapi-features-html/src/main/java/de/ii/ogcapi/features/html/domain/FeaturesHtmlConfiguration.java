@@ -268,6 +268,27 @@ public interface FeaturesHtmlConfiguration
   Boolean getPropertyTooltipsOnItems();
 
   /**
+   * @langEn If `true`, show a CRS selector on the items page.
+   * @langDe Bei `true` wird auf der Items-Seite ein CRS-Selector angezeigt.
+   * @since v4.7
+   * @default false
+   */
+  @Nullable
+  Boolean getCrsSelector();
+
+  /**
+   * @langEn Configures a limit editor on the items page. Positive values define select options. If
+   *     `0` is included, an additional free numeric input is enabled.
+   * @langDe Konfiguriert einen Limit-Editor auf der Items-Seite. Positive Werte definieren
+   *     Select-Optionen. Ist `0` enthalten, wird zusätzlich ein freies numerisches Eingabefeld
+   *     aktiviert.
+   * @since v4.7
+   * @default null
+   */
+  @Nullable
+  List<Integer> getLimitSelector();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set, such
    *     as `rel`, and the value is the default profile for the profile set, e.g., `rel-as-key`.

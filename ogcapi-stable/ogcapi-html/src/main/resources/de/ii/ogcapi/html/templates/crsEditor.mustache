@@ -1,0 +1,16 @@
+{{#crsEditor}}
+<script type="text/javascript">
+  globalThis._crs_selector = {
+    container: 'crs',
+    language: '{{{language}}}',
+    translations: {
+    {{#jsTranslations}}
+      '{{key}}': '{{{value}}}',
+    {{/jsTranslations}}
+    },
+  };
+</script>
+
+{{> app-crseditor}}
+
+{{/crsEditor}}
