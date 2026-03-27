@@ -8,7 +8,7 @@ import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
 import { useApiInfo } from "./hooks";
-import { DEFAULT_CRS_URI, toCanonicalCrsUri } from "../crs/util";
+import { CRS84_URI, getDefaultCollectionCrs, normalizeCrs } from "../crs/util";
 
 const baseUrl = getBaseUrl();
 
@@ -53,6 +53,10 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     [spatialTemporal],
   );
   const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
+  const defaultCollectionCrs = useMemo(
+    () => getDefaultCollectionCrs(spatialTemporal?.crs),
+    [spatialTemporal],
+  );
 
   const { t } = useTranslation();
 
@@ -140,13 +144,14 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
     delete query.bbox;
     if (newFilters.bbox) {
-      const selectedCrsUri = toCanonicalCrsUri(query.crs);
+      const selectedCrsUri = normalizeCrs(query.crs, defaultCollectionCrs);
+      const hasExplicitCrs = Boolean(query.crs);
       query.bbox = newFilters.bbox.value;
 
-      if (selectedCrsUri === DEFAULT_CRS_URI) {
+      if (!hasExplicitCrs || selectedCrsUri === CRS84_URI) {
         delete query["bbox-crs"];
       } else {
-        query["bbox-crs"] = DEFAULT_CRS_URI;
+        query["bbox-crs"] = CRS84_URI;
       }
     }
 

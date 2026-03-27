@@ -5,7 +5,7 @@ import { Button, Col, Row, Collapse } from "reactstrap";
 import i18n from "../../i18n";
 import { useApiInfo } from "../SortingEditor/hooks";
 import "../FilterEditor/Badge/style.css";
-import { DEFAULT_CRS_URI, normalizeCrs, toCanonicalCrsUri } from "../crs/util";
+import { CRS84_URI, getDefaultCollectionCrs, normalizeCrs, toCanonicalCrsUri } from "../crs/util";
 
 const getBaseUrl = () => {
   let baseUrl = new URL(window.location.href);
@@ -49,6 +49,10 @@ const CrsEditor = () => {
 
   const collectionUrl = useMemo(() => getCollectionUrl(getBaseUrl()), []);
   const { obj: collection, isLoaded, error } = useApiInfo(collectionUrl);
+  const defaultCollectionCrs = useMemo(
+    () => getDefaultCollectionCrs(collection?.crs),
+    [collection],
+  );
 
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {
@@ -79,10 +83,20 @@ const CrsEditor = () => {
     [],
   );
 
-  const [appliedCrs, setAppliedCrs] = useState(normalizeCrs(initialQuery.crs));
-  const [draftCrs, setDraftCrs] = useState(normalizeCrs(initialQuery.crs));
+  const [appliedCrs, setAppliedCrs] = useState(defaultCollectionCrs);
+  const [draftCrs, setDraftCrs] = useState(defaultCollectionCrs);
 
-  const isDefaultApplied = appliedCrs === DEFAULT_CRS_URI;
+  useEffect(() => {
+    if (!isLoaded || !collection) {
+      return;
+    }
+    const initialCrs = normalizeCrs(initialQuery.crs, defaultCollectionCrs);
+
+    setAppliedCrs(initialCrs);
+    setDraftCrs(initialCrs);
+  }, [collection, defaultCollectionCrs, initialQuery.crs, isLoaded]);
+
+  const isDefaultApplied = appliedCrs === defaultCollectionCrs;
   const isDraftChanged = draftCrs !== appliedCrs;
 
   let badgeColor = "primary";
@@ -108,16 +122,16 @@ const CrsEditor = () => {
 
     const normalizedDraftCrs = normalizeCrs(draftCrs);
 
-    if (normalizedDraftCrs === DEFAULT_CRS_URI) {
+    if (normalizedDraftCrs === defaultCollectionCrs) {
       delete query.crs;
     } else {
       query.crs = toCanonicalCrsUri(normalizedDraftCrs);
     }
 
-    if (!query.bbox || normalizedDraftCrs === DEFAULT_CRS_URI) {
+    if (!query.bbox || normalizedDraftCrs === defaultCollectionCrs) {
       delete query["bbox-crs"];
     } else {
-      query["bbox-crs"] = DEFAULT_CRS_URI;
+      query["bbox-crs"] = CRS84_URI;
     }
 
     setAppliedCrs(normalizedDraftCrs);
@@ -209,11 +223,11 @@ const CrsEditor = () => {
                 value={draftCrs}
                 onChange={onDraftChange}
               >
-                <option value={DEFAULT_CRS_URI}>
-                  {`${getCrsLabel(DEFAULT_CRS_URI)} (${t("crsDefault")})`}
+                <option value={defaultCollectionCrs}>
+                  {`${getCrsLabel(defaultCollectionCrs)} (${t("crsDefault")})`}
                 </option>
                 {crsValues
-                  .filter((crs) => crs !== DEFAULT_CRS_URI)
+                  .filter((crs) => crs !== defaultCollectionCrs)
                   .map((crs) => (
                     <option key={crs} value={crs}>
                       {getCrsLabel(crs)}
