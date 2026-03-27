@@ -318,7 +318,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
         features(),
         uriBuilder()
             .copy()
-            .removeParameters("f")
+            .removeParameters("f", "crs")
             .ensureParameter("f", "glb")
             // must be true as long as no terrain is used in the Cesium viewer
             .ensureParameter("clampToEllipsoid", "true")
