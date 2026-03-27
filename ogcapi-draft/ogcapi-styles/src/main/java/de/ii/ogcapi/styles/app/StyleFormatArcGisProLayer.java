@@ -64,7 +64,7 @@ public class StyleFormatArcGisProLayer implements StyleFormatExtension {
 
   @Override
   public String getFileExtension() {
-    return "lyr";
+    return "lyrx";
   }
 
   @Override
