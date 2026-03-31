@@ -122,8 +122,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
     this.eventSubscriptions = new EventSubscriptionsSync();
     EventStoreDriver storeDriver = new EventStoreDriverFs(dataDirectory);
     EventStore eventStore =
-        new EventStoreDefault(
-            new StoreImpl(dataDirectory, storeConfiguration), storeDriver, eventSubscriptions);
+        new EventStoreDefault(new StoreImpl(storeConfiguration), storeDriver, eventSubscriptions);
     ((EventStoreDefault) eventStore).onStart(false).toCompletableFuture().join();
     this.entityIdentifiers = new ArrayList<>();
     this.defaultIdentifiers = new ArrayList<>();

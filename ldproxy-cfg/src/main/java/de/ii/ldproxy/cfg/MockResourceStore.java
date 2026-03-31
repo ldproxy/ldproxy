@@ -43,6 +43,11 @@ class MockResourceStore implements ResourceStore, BlobWriterReader {
   }
 
   @Override
+  public boolean canHandle(Path path) {
+    return true;
+  }
+
+  @Override
   public boolean has(Path path) throws IOException {
     return false;
   }
