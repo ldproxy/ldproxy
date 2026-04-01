@@ -57,10 +57,8 @@ import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.LastModified;
-import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Comparator;
@@ -95,7 +93,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
   private final KeyValueStore<Tiles3dStylesheet> tiles3dStylesStore;
   private final I18n i18n;
   private final DefaultLinksGenerator defaultLinkGenerator;
-  private final URI servicesUri;
+  private final ServicesContext servicesContext;
   private final FeaturesCoreProviders providers;
   private final Values<Codelist> codelistStore;
   private final VolatileRegistry volatileRegistry;
@@ -120,7 +118,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
     this.tiles3dStylesStore = valueStore.forTypeWritable(Tiles3dStylesheet.class);
     this.i18n = i18n;
     this.extensionRegistry = extensionRegistry;
-    this.servicesUri = servicesContext.getUri();
+    this.servicesContext = servicesContext;
     this.providers = providers;
     this.codelistStore = valueStore.forType(Codelist.class);
     this.volatileRegistry = volatileRegistry;
@@ -463,6 +461,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
               .deriveCollectionStyle(
                   getStylesheetContent(apiData, Optional.empty(), styleId, styleFormat),
                   apiData,
+                  servicesContext.getApiUri(apiData),
                   collectionId.get(),
                   styleId)
               .isPresent();
@@ -562,6 +561,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
           styleFormat.deriveCollectionStyle(
               getStylesheet(apiData, Optional.empty(), styleId, styleFormat, requestContext),
               apiData,
+              requestContext.getApiUri(),
               collectionId.get(),
               styleId);
       if (stylesheet.isPresent()) return stylesheet.get();
@@ -622,15 +622,12 @@ public class StyleRepositoryFiles extends AbstractVolatile
                     getStylesheet(
                         apiData, collectionId, styleId, styleFormatExtension, requestContext, true),
                     apiData,
+                    requestContext.getApiUri(),
                     providers,
                     codelistStore)));
     StyleMetadata metadata = builder.build();
 
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
-    return metadata.replaceParameters(serviceUrl);
+    return metadata.replaceParameters(requestContext.getApiUri());
   }
 
   @Override
@@ -889,7 +886,12 @@ public class StyleRepositoryFiles extends AbstractVolatile
               StylesheetContent stylesheetContent =
                   getStylesheet(apiData, Optional.empty(), styleId, format, requestContext);
               Optional<StylesheetContent> derivedStylesheet =
-                  format.deriveCollectionStyle(stylesheetContent, apiData, collectionId, styleId);
+                  format.deriveCollectionStyle(
+                      stylesheetContent,
+                      apiData,
+                      requestContext.getApiUri(),
+                      collectionId,
+                      styleId);
               if (derivedStylesheet.isEmpty()) return;
 
               builder.addAllLinks(

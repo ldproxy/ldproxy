@@ -25,11 +25,9 @@ import de.ii.ogcapi.tiles.domain.TileSet.DataType;
 import de.ii.ogcapi.tiles.domain.TileSets;
 import de.ii.ogcapi.tiles.domain.TileSetsFormatExtension;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,18 +42,13 @@ import javax.inject.Singleton;
 public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
 
   private final I18n i18n;
-  private final URI servicesUri;
   private final TileMatrixSetRepository tileMatrixSetRepository;
   private final StyleReader styleReader;
 
   @Inject
   public TileSetsFormatHtml(
-      I18n i18n,
-      ServicesContext servicesContext,
-      TileMatrixSetRepository tileMatrixSetRepository,
-      StyleReader styleReader) {
+      I18n i18n, TileMatrixSetRepository tileMatrixSetRepository, StyleReader styleReader) {
     this.i18n = i18n;
-    this.servicesUri = servicesContext.getUri();
     this.tileMatrixSetRepository = tileMatrixSetRepository;
     this.styleReader = styleReader;
   }
@@ -269,10 +262,6 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
             : api.getData().getExtension(TilesConfiguration.class, collectionId.get());
     MapClient.Type mapClientType =
         tilesConfig.map(TilesConfiguration::getMapClientType).orElse(MapClient.Type.MAP_LIBRE);
-    String serviceUrl =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new))
-            .toString();
     String styleUrl =
         tiles.getTilesets().stream().allMatch(t -> t.getDataType() == DataType.vector)
             ? htmlConfig
@@ -282,7 +271,7 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
                             tilesConfig.map(TilesConfiguration::getStyle),
                             collectionId,
                             api.getId(),
-                            serviceUrl,
+                            requestContext.getApiUri(),
                             mapClientType,
                             cfg.getDefaultStyle(),
                             api.getData()))

@@ -35,13 +35,10 @@ import de.ii.ogcapi.styles.domain.StyleLayer;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.codelists.domain.Codelist;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.values.domain.Values;
-import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -75,18 +72,14 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
           .fileExtension("json")
           .build();
 
-  private final URI servicesUri;
   private final Schema<?> schemaStyle;
   private final Map<String, Schema<?>> referencedSchemas;
   private final ExtensionRegistry extensionRegistry;
 
   @Inject
   public StyleFormatMbStyle(
-      ExtensionRegistry extensionRegistry,
-      ServicesContext servicesContext,
-      ClassSchemaCache classSchemaCache) {
+      ExtensionRegistry extensionRegistry, ClassSchemaCache classSchemaCache) {
     this.extensionRegistry = extensionRegistry;
-    this.servicesUri = servicesContext.getUri();
     this.schemaStyle = classSchemaCache.getSchema(MbStyleStylesheet.class);
     referencedSchemas = classSchemaCache.getReferencedSchemas(MbStyleStylesheet.class);
   }
@@ -152,15 +145,14 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
       String styleId,
       Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
     MbStyleStylesheet stylesheet =
         stylesheetContent
             .getMbStyle()
-            .map(mbs -> mbs.adjustForTileMatrixSetIfNecessary(tileMatrixSet, serviceUrl))
-            .map(mbs -> mbs.replaceParameters(serviceUrl))
+            .map(
+                mbs ->
+                    mbs.adjustForTileMatrixSetIfNecessary(
+                        tileMatrixSet, requestContext.getApiUri()))
+            .map(mbs -> mbs.replaceParameters(requestContext.getApiUri()))
             .orElseThrow(NotFoundException::new);
 
     if (collectionId
@@ -182,14 +174,11 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
   public Optional<StylesheetContent> deriveCollectionStyle(
       StylesheetContent stylesheetContent,
       OgcApiDataV2 apiData,
+      String apiUri,
       String collectionId,
       String styleId) {
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
     Optional<MbStyleStylesheet> mbStyleOriginal =
-        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(serviceUrl));
+        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(apiUri));
     if (mbStyleOriginal.isEmpty()
         || mbStyleOriginal.get().getLayers().stream()
             .noneMatch(
@@ -234,14 +223,11 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
   public List<StyleLayer> deriveLayerMetadata(
       StylesheetContent stylesheetContent,
       OgcApiDataV2 apiData,
+      String apiUri,
       FeaturesCoreProviders providers,
       Values<Codelist> codelistStore) {
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
     Optional<MbStyleStylesheet> mbStyle =
-        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(serviceUrl));
+        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(apiUri));
     if (mbStyle.isEmpty()) return ImmutableList.of();
 
     List<JsonSchemaExtension> jsonSchemaExtensions =
