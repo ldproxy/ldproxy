@@ -16,7 +16,6 @@ import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.services.domain.ServicesContext;
-import java.net.URI;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,11 +24,11 @@ import javax.inject.Singleton;
 @AutoBind
 public class CodelistsInSchema implements JsonSchemaExtension {
 
-  private final URI serviceUri;
+  private final ServicesContext servicesContext;
 
   @Inject
   public CodelistsInSchema(ServicesContext servicesContext) {
-    this.serviceUri = servicesContext.getUri();
+    this.servicesContext = servicesContext;
   }
 
   @Override
@@ -49,6 +48,6 @@ public class CodelistsInSchema implements JsonSchemaExtension {
       OgcApiDataV2 apiData,
       String collectionId,
       List<Profile> profiles) {
-    return jsonSchema.accept(new WithCodelistUri(serviceUri, apiData));
+    return jsonSchema.accept(new WithCodelistUri(servicesContext.getApiUri(apiData)));
   }
 }

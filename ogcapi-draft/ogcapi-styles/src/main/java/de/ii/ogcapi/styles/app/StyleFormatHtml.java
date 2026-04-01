@@ -15,7 +15,6 @@ import com.google.common.collect.ArrayListMultimap;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -31,10 +30,8 @@ import de.ii.ogcapi.styles.domain.MbStyleVectorSource;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -54,14 +51,8 @@ public class StyleFormatHtml implements StyleFormatExtension {
   private static final Logger LOGGER = LoggerFactory.getLogger(StyleFormatHtml.class);
   public static final String MEDIA_TYPE_STRING = "application/vnd.mapbox.style+json";
 
-  private final ClassSchemaCache classSchemaCache;
-  private final URI servicesUri;
-
   @Inject
-  public StyleFormatHtml(ClassSchemaCache classSchemaCache, ServicesContext servicesContext) {
-    this.classSchemaCache = classSchemaCache;
-    this.servicesUri = servicesContext.getUri();
-  }
+  public StyleFormatHtml() {}
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
@@ -119,14 +110,11 @@ public class StyleFormatHtml implements StyleFormatExtension {
   public Optional<StylesheetContent> deriveCollectionStyle(
       StylesheetContent stylesheetContent,
       OgcApiDataV2 apiData,
+      String apiUri,
       String collectionId,
       String styleId) {
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
     Optional<MbStyleStylesheet> mbStyleOriginal =
-        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(serviceUrl));
+        stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(apiUri));
     if (mbStyleOriginal.isEmpty()
         || mbStyleOriginal.get().getLayers().stream()
             .noneMatch(
