@@ -24,10 +24,8 @@ import de.ii.ogcapi.tiles3d.domain.Format3dTilesTileset;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
-import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
-import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,12 +46,10 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
 
   private static final String SCHEMA_REF = "#/components/schemas/htmlSchema";
   private final Schema<?> schema;
-  private final URI servicesUri;
   private final StyleReader styleReader;
 
   @Inject
   public Format3DTilesTilesetHtml(ServicesContext servicesContext, StyleReader styleReader) {
-    this.servicesUri = servicesContext.getUri();
     this.styleReader = styleReader;
     this.schema = new StringSchema().example("<html>...</html>");
   }
@@ -97,11 +93,6 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
       Optional<String> collectionId,
       OgcApi api,
       ApiRequestContext requestContext) {
-
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(api.getData().getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
     Tiles3dConfiguration tiles3dConfig =
         collectionId.isPresent()
             ? api.getData()
@@ -118,7 +109,7 @@ public class Format3DTilesTilesetHtml implements Format3dTilesTileset {
                 Optional.of(Objects.requireNonNullElse(tiles3dConfig.getStyle(), "DEFAULT")),
                 collectionId,
                 api.getData().getId(),
-                serviceUrl,
+                requestContext.getApiUri(),
                 MapClient.Type.CESIUM,
                 htmlConfig.getDefaultStyle(),
                 api.getData()));

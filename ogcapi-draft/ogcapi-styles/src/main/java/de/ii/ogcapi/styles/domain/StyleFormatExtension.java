@@ -101,6 +101,7 @@ public interface StyleFormatExtension extends FormatExtension {
   /**
    * @param stylesheetContent
    * @param apiData - the api, source must use the API Id
+   * @param apiUri
    * @param collectionId - the collection, all layers of other collections will be removed,
    *     source-layer must use the collectionId
    * @return
@@ -108,6 +109,7 @@ public interface StyleFormatExtension extends FormatExtension {
   default Optional<StylesheetContent> deriveCollectionStyle(
       StylesheetContent stylesheetContent,
       OgcApiDataV2 apiData,
+      String apiUri,
       String collectionId,
       String styleId) {
     return Optional.empty();
@@ -126,6 +128,7 @@ public interface StyleFormatExtension extends FormatExtension {
   default List<StyleLayer> deriveLayerMetadata(
       StylesheetContent stylesheetContent,
       OgcApiDataV2 apiData,
+      String apiUri,
       FeaturesCoreProviders providers,
       Values<Codelist> entityRegistry) {
     return ImmutableList.of();

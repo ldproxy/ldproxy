@@ -24,7 +24,6 @@ import de.ii.xtraplatform.entities.domain.EntityDataBuilder;
 import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.services.domain.Service;
 import de.ii.xtraplatform.services.domain.ServiceData;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
@@ -51,11 +50,8 @@ public class ApiCatalogProviderHtml extends ApiCatalogProvider {
 
   @Inject
   public ApiCatalogProviderHtml(
-      ServicesContext servicesContext,
-      I18n i18n,
-      EntityDataDefaultsStore defaultsStore,
-      ExtensionRegistry extensionRegistry) {
-    super(servicesContext, i18n, defaultsStore, extensionRegistry);
+      I18n i18n, EntityDataDefaultsStore defaultsStore, ExtensionRegistry extensionRegistry) {
+    super(i18n, defaultsStore, extensionRegistry);
   }
 
   private HtmlConfiguration getHtmlConfigurationDefaults() {

@@ -14,7 +14,6 @@ import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.services.domain.Service;
 import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.services.domain.ServiceListingProvider;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
@@ -31,17 +30,12 @@ import javax.ws.rs.core.Response;
 
 public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiExtension {
 
-  protected final URI servicesUri;
   protected final I18n i18n;
   protected final EntityDataDefaultsStore defaultsStore;
   protected final ExtensionRegistry extensionRegistry;
 
   public ApiCatalogProvider(
-      ServicesContext servicesContext,
-      I18n i18n,
-      EntityDataDefaultsStore defaultsStore,
-      ExtensionRegistry extensionRegistry) {
-    this.servicesUri = servicesContext.getUri();
+      I18n i18n, EntityDataDefaultsStore defaultsStore, ExtensionRegistry extensionRegistry) {
     this.i18n = i18n;
     this.defaultsStore = defaultsStore;
     this.extensionRegistry = extensionRegistry;

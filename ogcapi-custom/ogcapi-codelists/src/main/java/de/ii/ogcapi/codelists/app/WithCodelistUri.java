@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.codelists.app;
 
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaOneOf;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString;
@@ -17,17 +16,14 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchemaOneOf;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaTransformer;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.net.URI;
 import java.net.URISyntaxException;
 
 public class WithCodelistUri implements JsonSchemaTransformer {
 
-  private final URI serviceUri;
-  private final OgcApiDataV2 apiData;
+  private final String apiUri;
 
-  public WithCodelistUri(URI serviceUri, OgcApiDataV2 apiData) {
-    this.serviceUri = serviceUri;
-    this.apiData = apiData;
+  public WithCodelistUri(String apiUri) {
+    this.apiUri = apiUri;
   }
 
   @Override
@@ -36,9 +32,8 @@ public class WithCodelistUri implements JsonSchemaTransformer {
       String codelistId = schema.getCodelistId().get();
       try {
         String codelistUri =
-            new URICustomizer(serviceUri)
+            new URICustomizer(apiUri)
                 .ensureNoTrailingSlash()
-                .ensureLastPathSegments(apiData.getSubPath().toArray(new String[0]))
                 .ensureLastPathSegments("codelists", codelistId)
                 .build()
                 .toString();
