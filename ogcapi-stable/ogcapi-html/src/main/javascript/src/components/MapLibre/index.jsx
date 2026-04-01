@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
 import { Map } from "react-maplibre-ui";
@@ -8,7 +8,7 @@ import "./custom.css";
 import Configuration from "./Configuration";
 import CanvasPlugin from "./CanvasPlugin";
 import LayerControl from "./LayerControl";
-import { baseStyle, emptyStyle } from "./styles";
+import { emptyStyle, resolveWireframeBaseStyle } from "./styles";
 import { polygonFromBounds } from "./geojson";
 
 export { Configuration, CanvasPlugin, polygonFromBounds };
@@ -36,16 +36,46 @@ const MapLibre = ({
   layerGroupControl,
   children,
 }) => {
-  const style = styleUrl
-    ? emptyStyle()
-    : baseStyle(
-        backgroundUrl,
-        attribution,
-        MapLibre.defaultProps.backgroundUrl,
-        MapLibre.defaultProps.attribution
-      );
+  const [style, setStyle] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (styleUrl) {
+      setStyle(emptyStyle());
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    resolveWireframeBaseStyle({
+      backgroundUrl,
+      attribution,
+      defaultUrl: MapLibre.defaultProps.backgroundUrl,
+      defaultAttribution: MapLibre.defaultProps.attribution,
+    }).then((nextStyle) => {
+      if (!cancelled) {
+        setStyle(nextStyle);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [styleUrl, backgroundUrl, attribution]);
 
   const data = drawBounds && bounds ? polygonFromBounds(bounds) : dataUrl;
+
+  if (!style) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+        }}
+      />
+    );
+  }
 
   return (
     <Map

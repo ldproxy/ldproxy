@@ -4,20 +4,38 @@ export const emptyStyle = () => ({
   layers: [],
 });
 
-export const baseStyle = (url, attribution, defaultUrl, defaultAttribution) => {
-  const baseAttribution =
-    url === defaultUrl && attribution !== defaultAttribution
-      ? [attribution, defaultAttribution]
-      : attribution || defaultAttribution;
+const normalizedUrl = (url = "") => {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+};
+
+const hasPlaceholder = (url, key) => new RegExp(`\\{${key}\\}`, "i").test(url);
+
+export const isRasterTileUrl = (url = "") => {
+  const decoded = normalizedUrl(url);
+  return (
+    hasPlaceholder(decoded, "z") && hasPlaceholder(decoded, "x") && hasPlaceholder(decoded, "y")
+  );
+};
+
+const getBaseAttribution = (url, attribution, defaultUrl, defaultAttribution) =>
+  url === defaultUrl && attribution !== defaultAttribution
+    ? [attribution, defaultAttribution]
+    : attribution || defaultAttribution;
+
+const expandTileServers = (url) =>
+  url.indexOf("{s}") > -1 || url.indexOf("{a-c}") > -1
+    ? ["a", "b", "c"].map((prefix) => url.replace(/\{s\}/, prefix).replace(/\{a-c\}/, prefix))
+    : [url];
+
+export const rasterBaseStyle = (url, attribution, defaultUrl, defaultAttribution) => {
+  const baseAttribution = getBaseAttribution(url, attribution, defaultUrl, defaultAttribution);
 
   const finalUrl = url || defaultUrl;
-
-  const servers =
-    finalUrl.indexOf("{s}") > -1 || finalUrl.indexOf("{a-c}") > -1
-      ? ["a", "b", "c"].map((prefix) =>
-          finalUrl.replace(/\{s\}/, prefix).replace(/\{a-c\}/, prefix)
-        )
-      : [finalUrl];
+  const servers = expandTileServers(finalUrl);
 
   return {
     version: 8,
@@ -38,6 +56,64 @@ export const baseStyle = (url, attribution, defaultUrl, defaultAttribution) => {
     ],
   };
 };
+
+const isObject = (value) => typeof value === "object" && value !== null;
+
+export const isValidStyle = (style) =>
+  isObject(style) &&
+  typeof style.version === "number" &&
+  isObject(style.sources) &&
+  Array.isArray(style.layers);
+
+export const sanitizeBasemapStyle = (style) => {
+  if (!isValidStyle(style)) {
+    return null;
+  }
+
+  return {
+    ...style,
+    version: style.version || 8,
+    sources: style.sources || {},
+    layers: style.layers || [],
+  };
+};
+
+export const fetchBasemapStyle = async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to load basemap style: ${response.status}`);
+  }
+  const style = await response.json();
+  const sanitizedStyle = sanitizeBasemapStyle(style);
+
+  if (!sanitizedStyle) {
+    throw new Error("Invalid basemap style");
+  }
+
+  return sanitizedStyle;
+};
+
+export const resolveWireframeBaseStyle = async ({
+  backgroundUrl,
+  attribution,
+  defaultUrl,
+  defaultAttribution,
+}) => {
+  const finalUrl = backgroundUrl || defaultUrl;
+
+  if (isRasterTileUrl(finalUrl)) {
+    return rasterBaseStyle(backgroundUrl, attribution, defaultUrl, defaultAttribution);
+  }
+
+  try {
+    return await fetchBasemapStyle(finalUrl);
+  } catch {
+    return rasterBaseStyle(null, attribution, defaultUrl, defaultAttribution);
+  }
+};
+
+// backward-compatible export name
+export const baseStyle = rasterBaseStyle;
 
 export const hoverLayers = ["points", "lines", "polygons"];
 
@@ -86,14 +162,7 @@ const lineLayers = (color, opacity, lineWidth, minZoom, maxZoom) => [
   },
 ];
 
-const polygonLayers = (
-  color,
-  opacity,
-  fillOpacity,
-  outlineWidth,
-  minZoom,
-  maxZoom
-) => [
+const polygonLayers = (color, opacity, fillOpacity, outlineWidth, minZoom, maxZoom) => [
   {
     id: "polygons",
     type: "fill",
@@ -147,31 +216,18 @@ export const geoJsonLayers = ({
     switch (geometryType) {
       case "Point":
         return withFilter(
-          circleLayers(
-            color,
-            opacity,
-            circleRadius,
-            circleMinZoom,
-            circleMaxZoom
-          ),
-          geometryType
+          circleLayers(color, opacity, circleRadius, circleMinZoom, circleMaxZoom),
+          geometryType,
         );
       case "LineString":
         return withFilter(
           lineLayers(color, opacity, lineWidth, lineMinZoom, lineMaxZoom),
-          geometryType
+          geometryType,
         );
       case "Polygon":
         return withFilter(
-          polygonLayers(
-            color,
-            opacity,
-            fillOpacity,
-            outlineWidth,
-            polygonMinZoom,
-            polygonMaxZoom
-          ),
-          geometryType
+          polygonLayers(color, opacity, fillOpacity, outlineWidth, polygonMinZoom, polygonMaxZoom),
+          geometryType,
         );
       default:
         return [];
@@ -203,40 +259,27 @@ export const vectorLayers = (
     outlineWidth,
     polygonMinZoom,
     polygonMaxZoom,
-  }
+  },
 ) =>
   geometryTypes.flatMap((geometryType) => {
     switch (geometryType) {
       case "points":
         return withSourceAndFilter(
-          circleLayers(
-            color,
-            opacity,
-            circleRadius,
-            circleMinZoom,
-            circleMaxZoom
-          ),
+          circleLayers(color, opacity, circleRadius, circleMinZoom, circleMaxZoom),
           source,
-          "Point"
+          "Point",
         );
       case "lines":
         return withSourceAndFilter(
           lineLayers(color, opacity, lineWidth, lineMinZoom, lineMaxZoom),
           source,
-          "LineString"
+          "LineString",
         );
       case "polygons":
         return withSourceAndFilter(
-          polygonLayers(
-            color,
-            opacity,
-            fillOpacity,
-            outlineWidth,
-            polygonMinZoom,
-            polygonMaxZoom
-          ),
+          polygonLayers(color, opacity, fillOpacity, outlineWidth, polygonMinZoom, polygonMaxZoom),
           source,
-          "Polygon"
+          "Polygon",
         );
       default:
         return [];
