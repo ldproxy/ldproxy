@@ -8,6 +8,7 @@ import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
 import { getBaseUrl, extractFields, extractInterval, extractSpatial } from "./util";
 import { useApiInfo } from "./hooks";
+import { CRS84_URI, getDefaultCollectionCrs, normalizeCrs } from "../crs/util";
 
 const baseUrl = getBaseUrl();
 
@@ -36,7 +37,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     if (isOpen) {
       initialFilters.current = JSON.parse(JSON.stringify(filters));
     }
-  }, [isOpen]);
+  }, [filters, isOpen]);
 
   const urlSpatialTemporal = new URL(baseUrl.pathname.endsWith("/") ? "../" : "./", baseUrl.href);
   urlSpatialTemporal.search = "?f=json";
@@ -49,23 +50,27 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { start, end, temporal } = useMemo(
     () => extractInterval(spatialTemporal),
-    [spatialTemporal]
+    [spatialTemporal],
   );
   const { spatial } = useMemo(() => extractSpatial(spatialTemporal), [spatialTemporal]);
+  const defaultCollectionCrs = useMemo(
+    () => getDefaultCollectionCrs(spatialTemporal?.crs),
+    [spatialTemporal],
+  );
 
   const { t } = useTranslation();
 
   // eslint-disable-next-line no-undef, no-underscore-dangle
-  const { language, translations } = globalThis._sortingfilter;
+  const { language, translations } = globalThis._filter;
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {
       i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
     });
-  }, []);
+  }, [language, translations]);
 
   const urlProperties = new URL(
     baseUrl.pathname.endsWith("/") ? "../queryables" : "./queryables",
-    baseUrl.href
+    baseUrl.href,
   );
   urlProperties.search = "?f=json";
 
@@ -77,7 +82,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
 
   const { fields, code, integerKeys, booleanProperty } = useMemo(
     () => extractFields(properties),
-    [properties]
+    [properties],
   );
 
   const enabled =
@@ -99,7 +104,7 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
             };
           }
           return reduced;
-        }, {})
+        }, {}),
     );
   }, [fields]);
 
@@ -126,15 +131,29 @@ const FilterEditor = ({ backgroundUrl, attribution }) => {
     }, {});
 
     delete query.offset;
+    delete query["bbox-crs"];
 
     Object.keys(fields)
-      .concat(["bbox", "datetime"])
+      .concat(["datetime"])
       .forEach((field) => {
         delete query[field];
         if (newFilters[field]) {
           query[field] = newFilters[field].value;
         }
       });
+
+    delete query.bbox;
+    if (newFilters.bbox) {
+      const selectedCrsUri = normalizeCrs(query.crs, defaultCollectionCrs);
+      const hasExplicitCrs = Boolean(query.crs);
+      query.bbox = newFilters.bbox.value;
+
+      if (!hasExplicitCrs || selectedCrsUri === CRS84_URI) {
+        delete query["bbox-crs"];
+      } else {
+        query["bbox-crs"] = CRS84_URI;
+      }
+    }
 
     // eslint-disable-next-line no-undef
     window.location.search = qs.stringify(query, {
