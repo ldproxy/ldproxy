@@ -311,8 +311,11 @@ public interface HtmlConfiguration extends ExtensionConfiguration {
   String getDefaultStyle();
 
   /**
-   * @langEn URL template for background map tiles.
-   * @langDe Das URL-Template für die Kacheln einer Hintergrundkarte.
+   * @langEn URL template for background map tiles. Can also be a MapLibre style URL if the map
+   *     client is MapLibre, e.g. to use a vector tile basemap.
+   * @langDe Das URL-Template für die Kacheln einer Hintergrundkarte. Kann auch eine MapLibre Style
+   *     URL sein, wenn MapLibre der Map-Client ist, z.B. um eine Vektorkachel-Basiskarte zu
+   *     verwenden.
    * @default https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
    */
   @Nullable
