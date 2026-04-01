@@ -181,13 +181,11 @@ public class StyleFormatHtml implements StyleFormatExtension {
       Optional<TileMatrixSet> tileMatrixSet,
       ApiRequestContext requestContext) {
     OgcApiDataV2 apiData = api.getData();
-    URICustomizer uriCustomizer =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new));
-    String serviceUrl = uriCustomizer.toString();
+    URICustomizer uriCustomizer = requestContext.getApiUriCustomizer().copy();
 
-    if (collectionId.isPresent())
+    if (collectionId.isPresent()) {
       uriCustomizer.ensureLastPathSegments("collections", collectionId.get());
+    }
     uriCustomizer.ensureLastPathSegments("styles", styleId).addParameter("f", "mbs");
     String styleUrl = uriCustomizer.toString();
 
@@ -210,7 +208,10 @@ public class StyleFormatHtml implements StyleFormatExtension {
     ArrayListMultimap<String, String> layerMap = ArrayListMultimap.create();
     if (layerControl) {
       MbStyleStylesheet mbStyle =
-          stylesheetContent.getMbStyle().map(mbs -> mbs.replaceParameters(serviceUrl)).get();
+          stylesheetContent
+              .getMbStyle()
+              .map(mbs -> mbs.replaceParameters(requestContext.getApiUri()))
+              .get();
       if (allLayers) {
         Map<String, FeatureTypeConfigurationOgcApi> collectionData = apiData.getCollections();
         mbStyle.getLayers().stream()

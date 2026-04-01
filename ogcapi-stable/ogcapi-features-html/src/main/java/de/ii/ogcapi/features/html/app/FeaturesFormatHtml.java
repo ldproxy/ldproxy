@@ -53,12 +53,9 @@ import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformat
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
-import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
-import de.ii.xtraplatform.web.domain.Http;
-import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.web.domain.MustacheRenderer;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
@@ -94,9 +91,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
   private final Values<Codelist> codelistStore;
   private final I18n i18n;
   private final FeaturesCoreValidation featuresCoreValidator;
-  private final URI servicesUri;
   private final MustacheRenderer mustacheRenderer;
-  private final HttpClient httpClient;
   private final StyleReader styleReader;
 
   @Inject
@@ -107,16 +102,12 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       I18n i18n,
       FeaturesCoreProviders providers,
       FeaturesCoreValidation featuresCoreValidator,
-      ServicesContext servicesContext,
-      Http http,
       StyleReader styleReader) {
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.i18n = i18n;
     this.featuresCoreValidator = featuresCoreValidator;
-    this.servicesUri = servicesContext.getUri();
     this.mustacheRenderer = mustacheRenderer;
-    this.httpClient = http.getDefaultClient();
     this.styleReader = styleReader;
   }
 
@@ -265,6 +256,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
     OgcApi api = transformationContext.getApi();
     OgcApiDataV2 apiData = transformationContext.getApiData();
+    String apiUrl = transformationContext.getOgcApiRequest().getApiUri();
     String basePath = transformationContext.getOgcApiRequest().getBasePath();
     String apiPath = transformationContext.getOgcApiRequest().getApiPath();
     URICustomizer uriCustomizer = transformationContext.getOgcApiRequest().getUriCustomizer();
@@ -285,6 +277,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               transformationContext.getQueryTitle().orElse(queryId),
               transformationContext.getQueryDescription().orElse(null),
               uriCustomizer.copy(),
+              apiUrl,
               basePath,
               apiPath,
               language,
@@ -319,6 +312,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 api,
                 apiData.getCollections().get(collectionName),
                 uriCustomizer.copy(),
+                apiUrl,
                 basePath,
                 apiPath,
                 language,
@@ -339,6 +333,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                 transformationContext.getLinks(),
                 apiData.getLabel(),
                 uriCustomizer.getLastPathSegment(),
+                apiUrl,
                 basePath,
                 apiPath,
                 language,
@@ -383,6 +378,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       OgcApi api,
       FeatureTypeConfigurationOgcApi featureType,
       URICustomizer uriCustomizer,
+      String apiUrl,
       String basePath,
       String apiPath,
       Optional<Locale> language,
@@ -414,10 +410,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         featureType.getExtension(FeaturesHtmlConfiguration.class);
     MapClient.Type mapClientType =
         config.map(FeaturesHtmlConfiguration::getMapClientType).orElse(MapClient.Type.MAP_LIBRE);
-    String serviceUrl =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new))
-            .toString();
     Optional<String> styleUrl =
         Optional.ofNullable(
             htmlConfig
@@ -427,7 +419,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                             config.map(FeaturesHtmlConfiguration::getStyle),
                             Optional.of(featureType.getId()),
                             apiData.getId(),
-                            serviceUrl,
+                            apiUrl,
                             mapClientType,
                             cfg.getDefaultStyle(),
                             apiData))
@@ -507,6 +499,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       List<Link> links,
       String apiLabel,
       String featureId,
+      String apiUrl,
       String basePath,
       String apiPath,
       Optional<Locale> language,
@@ -543,10 +536,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         featureType.getExtension(FeaturesHtmlConfiguration.class);
     MapClient.Type mapClientType =
         config.map(FeaturesHtmlConfiguration::getMapClientType).orElse(MapClient.Type.MAP_LIBRE);
-    String serviceUrl =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new))
-            .toString();
     Optional<String> styleUrl =
         htmlConfig.map(
             cfg ->
@@ -554,7 +543,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                     config.map(FeaturesHtmlConfiguration::getStyle),
                     Optional.of(featureType.getId()),
                     apiData.getId(),
-                    serviceUrl,
+                    apiUrl,
                     mapClientType,
                     cfg.getDefaultStyle(),
                     apiData));
@@ -629,6 +618,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String title,
       String description,
       URICustomizer uriCustomizer,
+      String apiUrl,
       String basePath,
       String apiPath,
       Optional<Locale> language,
@@ -654,10 +644,6 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
         apiData.getExtension(FeaturesHtmlConfiguration.class);
     MapClient.Type mapClientType =
         config.map(FeaturesHtmlConfiguration::getMapClientType).orElse(MapClient.Type.MAP_LIBRE);
-    String serviceUrl =
-        new URICustomizer(servicesUri)
-            .ensureLastPathSegments(apiData.getSubPath().toArray(String[]::new))
-            .toString();
     String styleUrl =
         htmlConfig
             .map(
@@ -666,7 +652,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
                         config.map(FeaturesHtmlConfiguration::getStyle),
                         Optional.empty(),
                         apiData.getId(),
-                        serviceUrl,
+                        apiUrl,
                         mapClientType,
                         cfg.getDefaultStyle(),
                         apiData))

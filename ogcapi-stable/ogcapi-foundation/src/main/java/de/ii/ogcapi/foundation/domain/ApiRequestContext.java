@@ -78,6 +78,15 @@ public interface ApiRequestContext {
   }
 
   @Value.Derived
+  default URICustomizer getApiUriCustomizer() {
+    return (URICustomizer)
+        getBaseUriCustomizer()
+            .copy()
+            .appendPathSegments(getApi().getData().getSubPath().toArray(new String[0]))
+            .clearParameters();
+  }
+
+  @Value.Derived
   default String getApiPath() {
     return getBaseUriCustomizer()
         .copy()
