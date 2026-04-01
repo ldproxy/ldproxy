@@ -8,16 +8,25 @@
 package de.ii.ogcapi.features.html.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.html.domain.FeaturesHtmlConfiguration;
 import de.ii.ogcapi.features.html.domain.FeaturesHtmlConfiguration.POSITION;
 import de.ii.ogcapi.features.html.domain.ImmutableFeaturesHtmlConfiguration.Builder;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import de.ii.ogcapi.html.domain.MapClient;
+import de.ii.xtraplatform.entities.domain.ValidationResult;
+import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @title Features - HTML
@@ -50,6 +59,8 @@ import javax.inject.Singleton;
 @AutoBind
 public class FeaturesHtmlBuildingBlock implements ApiBuildingBlock {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FeaturesHtmlBuildingBlock.class);
+
   public static final Optional<SpecificationMaturity> MATURITY =
       Optional.of(SpecificationMaturity.STABLE_OGC);
   public static final Optional<ExternalDocumentation> SPEC =
@@ -70,7 +81,29 @@ public class FeaturesHtmlBuildingBlock implements ApiBuildingBlock {
         .propertyTooltips(true)
         .propertyTooltipsOnItems(false)
         .crsSelector(false)
+        .limitSelector(List.of())
         .defaultProfiles(Map.of("rel", "rel-as-link", "val", "val-as-title"))
         .build();
+  }
+
+  // TODO: remove when CRS selector is supported for Cesium map client
+  @Override
+  public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
+    Optional<FeaturesHtmlConfiguration> htmlConfiguration =
+        api.getData()
+            .getExtension(FeaturesHtmlConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled);
+
+    if (htmlConfiguration.isPresent()
+        && Objects.nonNull(htmlConfiguration.get().getMapClientType())
+        && Objects.nonNull(htmlConfiguration.get().getCrsSelector())) {
+
+      if (htmlConfiguration.get().getMapClientType() == MapClient.Type.CESIUM
+          && htmlConfiguration.get().getCrsSelector() == true) {
+        LOGGER.warn("CRS selector is currently not supported for Cesium map client, disabling.");
+      }
+    }
+
+    return ValidationResult.of();
   }
 }

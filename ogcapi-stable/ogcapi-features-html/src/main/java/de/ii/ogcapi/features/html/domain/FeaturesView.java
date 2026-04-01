@@ -250,6 +250,12 @@ public abstract class FeaturesView extends OgcApiDatasetView {
       return null;
     }
 
+    // TODO: currently CRS selector is not supported in Cesium, since the boundingVolume is not yet
+    // transformed to CRS84h when selecting a different CRS
+    if (mapClientType().equals(MapClient.Type.CESIUM)) {
+      return null;
+    }
+
     boolean enabled =
         collectionData()
             .flatMap(collection -> collection.getExtension(FeaturesHtmlConfiguration.class))
