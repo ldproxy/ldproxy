@@ -3,6 +3,15 @@
   "extends": ["ldproxy/renovate-config:xtraplatform", "ldproxy/renovate-config:maintenance2(4.6,4.5)"],
   "packageRules": [
     {
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["com.networknt:json-schema-validator"],
+      "allowedVersions": "< 3.0.0"
+    },
+    {
       "groupName": "flatgeobuf",
       "matchPackageNames": ["/flatgeobuf/", "/flatbuffers/"]
     }
