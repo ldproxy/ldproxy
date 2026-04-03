@@ -1,5 +1,32 @@
 # Changelog
 
+## v4.7.0 (03/04/2026)
+
+#### Implemented enhancements
+
+-  Page size and CRS selection in HTML view [#1561](https://github.com/ldproxy/ldproxy/issues/1561)
+-  Support vector tile basemaps [#782](https://github.com/ldproxy/ldproxy/issues/782)
+
+#### Fixed bugs
+
+-  ArcGIS Pro styles not listed [#1569](https://github.com/ldproxy/ldproxy/issues/1569)
+-  JSON-FG: secondary geometry not handled properly [#1554](https://github.com/ldproxy/ldproxy/issues/1554)
+
+#### Dependency updates
+
+* Update dependency commons-codec:commons-codec to v1.21.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/328
+* Update dependency com.fasterxml.uuid:java-uuid-generator to v5.2.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/302
+* Update dropwizard to v3.0.17 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/325
+* Update dependency io.minio:minio to v9 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/342
+* Update dependency redis.clients:jedis to v7.4.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/304
+* Update swagger to v2.2.46 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/345
+* Update dependency org.postgresql:postgresql to v42.7.10 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/430
+* fix(deps): update commonmark to v0.28.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/459
+* Update dependency org.spdx:java-spdx-library to v2.0.3 (master) by @renovate[bot] in https://github.com/ldproxy/ldproxy/pull/1558
+* Update dependency org.wololo:flatgeobuf to v3.29.0 (master) by @renovate[bot] in https://github.com/ldproxy/ldproxy/pull/1572
+
+---
+
 ## v4.6.2 (13/03/2026)
 
 #### Dependency updates
@@ -8,9 +35,11 @@
 * Update dropwizard to v3.0.17 (maintenance-6.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/338
 * Update org.postgresql:postgresql to v42.7.10 (maintenance-7.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/446
 * Update commonmark to v0.27.1 (maintenance-7.6) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/444
+
 ---
 
 ## v4.6.1 (24/01/2026)
+
 #### Fixed bugs
 
 -  tile seeding takes much longer [#1549](https://github.com/ldproxy/ldproxy/issues/1549)
