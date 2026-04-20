@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import io.swagger.v3.oas.models.media.ArraySchema;
@@ -42,7 +43,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
@@ -64,12 +64,23 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
   private static final List<FunctionDef> BUILT_IN_NON_STANDARD_FUNCTIONS =
       ImmutableList.of(
-          new FunctionDef("UPPER", ImmutableList.of("STRING"), "STRING"),
-          new FunctionDef("LOWER", ImmutableList.of("STRING"), "STRING"),
-          new FunctionDef("POSITION", ImmutableList.of(), "INTEGER"),
-          new FunctionDef("DIAMETER2D", ImmutableList.of("GEOMETRY"), "FLOAT"),
-          new FunctionDef("DIAMETER3D", ImmutableList.of("GEOMETRY"), "FLOAT"),
-          new FunctionDef("ALIKE", ImmutableList.of("VALUE_ARRAY", "STRING"), "BOOLEAN"));
+          new FunctionDef(
+              "UPPER", ImmutableList.of(ImmutableList.of("STRING")), ImmutableList.of("STRING")),
+          new FunctionDef(
+              "LOWER", ImmutableList.of(ImmutableList.of("STRING")), ImmutableList.of("STRING")),
+          new FunctionDef("POSITION", ImmutableList.of(), ImmutableList.of("INTEGER")),
+          new FunctionDef(
+              "DIAMETER2D",
+              ImmutableList.of(ImmutableList.of("GEOMETRY")),
+              ImmutableList.of("FLOAT")),
+          new FunctionDef(
+              "DIAMETER3D",
+              ImmutableList.of(ImmutableList.of("GEOMETRY")),
+              ImmutableList.of("FLOAT")),
+          new FunctionDef(
+              "ALIKE",
+              ImmutableList.of(ImmutableList.of("VALUE_ARRAY"), ImmutableList.of("STRING")),
+              ImmutableList.of("BOOLEAN")));
 
   private static final ApiMediaTypeContent FUNCTIONS_CONTENT =
       new ImmutableApiMediaTypeContent.Builder()
@@ -218,74 +229,54 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
         .map(FeatureProvider::queries)
         .filter(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::isSupported)
         .map(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::get)
-        .map(this::extractCustomFunctionsReflective)
+        .map(this::extractCustomFunctions)
         .orElse(ImmutableList.of());
   }
 
-  private List<FunctionDef> extractCustomFunctionsReflective(FeatureQueries queries) {
-    try {
-      Object customFunctions = queries.getClass().getMethod("getCustomFunctions").invoke(queries);
-      if (!(customFunctions instanceof Collection<?> collection)) {
-        return ImmutableList.of();
+  private List<FunctionDef> extractCustomFunctions(FeatureQueries queries) {
+    Set<String> seen = new HashSet<>();
+    ImmutableList.Builder<FunctionDef> builder = ImmutableList.builder();
+    for (CustomFunction function : queries.getCql2Functions()) {
+      FunctionDef def = mapCustomFunction(function);
+      String key = def.name().toUpperCase(Locale.ROOT);
+      if (!seen.contains(key)) {
+        seen.add(key);
+        builder.add(def);
       }
-
-      Set<String> seen = new HashSet<>();
-      ImmutableList.Builder<FunctionDef> builder = ImmutableList.builder();
-      for (Object function : collection) {
-        Optional<FunctionDef> mapped = mapCustomFunctionReflective(function);
-        mapped.ifPresent(
-            def -> {
-              String key = def.name().toUpperCase(Locale.ROOT);
-              if (!seen.contains(key)) {
-                seen.add(key);
-                builder.add(def);
-              }
-            });
-      }
-      return builder.build();
-    } catch (ReflectiveOperationException ignored) {
-      return ImmutableList.of();
     }
+    return builder.build();
   }
 
-  private Optional<FunctionDef> mapCustomFunctionReflective(@Nullable Object function) {
-    if (function == null) {
-      return Optional.empty();
-    }
-
-    try {
-      Object name = function.getClass().getMethod("getName").invoke(function);
-      Object argumentTypes = function.getClass().getMethod("getArgumentTypes").invoke(function);
-      Object returnType = function.getClass().getMethod("getReturnType").invoke(function);
-
-      if (!(name instanceof String)
-          || !(argumentTypes instanceof List<?>)
-          || !(returnType instanceof String)) {
-        return Optional.empty();
-      }
-
-      @SuppressWarnings("unchecked")
-      List<String> args =
-          ((List<?>) argumentTypes)
-              .stream().filter(String.class::isInstance).map(String.class::cast).toList();
-
-      return Optional.of(new FunctionDef((String) name, args, (String) returnType));
-    } catch (ReflectiveOperationException ignored) {
-      return Optional.empty();
-    }
+  private FunctionDef mapCustomFunction(CustomFunction function) {
+    List<List<String>> argTypes =
+        function.getArguments().stream()
+            .map(arg -> arg.getType().stream().map(String::toLowerCase).toList())
+            .toList();
+    List<String> returnTypes = function.getReturns().stream().map(String::toLowerCase).toList();
+    return new FunctionDef(function.getName(), argTypes, returnTypes);
   }
 
   private Optional<Map<String, Object>> toFunctionDefinition(FunctionDef function) {
     List<Map<String, List<String>>> arguments =
         function.argumentTypes().stream()
+            .map(
+                typeList ->
+                    Map.of(
+                        "type",
+                        typeList.stream()
+                            .map(this::toFunctionType)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .toList()))
+            .toList();
+
+    List<String> returnTypes =
+        function.returnTypes().stream()
             .map(this::toFunctionType)
             .filter(Optional::isPresent)
             .map(Optional::get)
-            .map(type -> Map.of("type", List.of(type)))
             .toList();
-
-    Optional<String> returnType = toFunctionType(function.returnType());
-    if (returnType.isEmpty()) {
+    if (returnTypes.isEmpty()) {
       return Optional.empty();
     }
 
@@ -296,7 +287,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
             "arguments",
             arguments,
             "returns",
-            ImmutableList.of(returnType.get())));
+            returnTypes));
   }
 
   private Optional<String> toFunctionType(String schemaType) {
@@ -315,5 +306,6 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
     };
   }
 
-  private record FunctionDef(String name, List<String> argumentTypes, String returnType) {}
+  private record FunctionDef(
+      String name, List<List<String>> argumentTypes, List<String> returnTypes) {}
 }

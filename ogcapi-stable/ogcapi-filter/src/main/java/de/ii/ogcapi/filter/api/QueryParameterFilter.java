@@ -365,7 +365,7 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
         .map(FeatureProvider::queries)
         .filter(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::isSupported)
         .map(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::get)
-        .map(FeatureQueries::getCustomFunctions)
+        .map(FeatureQueries::getCql2Functions)
         .orElse(List.of());
   }
 
