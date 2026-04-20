@@ -190,7 +190,9 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
   @GET
   public Response getFunctions(@Context OgcApi api, @Context ApiRequestContext requestContext) {
-    return Response.ok(ImmutableMap.of("functions", getFunctionDefinitions(api.getData()))).build();
+    return Response.ok(ImmutableMap.of("functions", getFunctionDefinitions(api.getData())))
+        .type(MediaType.APPLICATION_JSON)
+        .build();
   }
 
   private boolean supportsCql2(
