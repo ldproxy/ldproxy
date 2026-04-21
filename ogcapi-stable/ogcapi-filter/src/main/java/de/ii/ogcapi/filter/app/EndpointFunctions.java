@@ -214,12 +214,14 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
       }
 
       Map<String, Object> argumentDefinition = new LinkedHashMap<>();
-      if (argument.getName() != null && !argument.getName().isBlank()) {
-        argumentDefinition.put("name", argument.getName());
-      }
-      if (argument.getDescription() != null && !argument.getDescription().isBlank()) {
-        argumentDefinition.put("description", argument.getDescription());
-      }
+      argumentDefinition.put(
+          "name",
+          argument.getName() != null && !argument.getName().isBlank() ? argument.getName() : "");
+      argumentDefinition.put(
+          "description",
+          argument.getDescription() != null && !argument.getDescription().isBlank()
+              ? argument.getDescription()
+              : "");
       argumentDefinition.put("type", argumentTypes);
       arguments.add(argumentDefinition);
     }
@@ -236,9 +238,11 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
     Map<String, Object> functionDefinition = new LinkedHashMap<>();
     functionDefinition.put("name", function.getName().toLowerCase(Locale.ROOT));
-    if (function.getDescription() != null && !function.getDescription().isBlank()) {
-      functionDefinition.put("description", function.getDescription());
-    }
+    functionDefinition.put(
+        "description",
+        function.getDescription() != null && !function.getDescription().isBlank()
+            ? function.getDescription()
+            : "");
     functionDefinition.put("arguments", arguments);
     functionDefinition.put("returns", returnTypes);
 
