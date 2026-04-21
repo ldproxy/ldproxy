@@ -11,11 +11,9 @@ import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.filter.domain.FunctionsFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ApiMediaType;
-import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
@@ -25,7 +23,6 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -34,9 +31,7 @@ import de.ii.xtraplatform.cql.domain.CqlBuiltInFunctions;
 import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.StringSchema;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -48,8 +43,9 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotAcceptableException;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
@@ -57,53 +53,13 @@ import javax.ws.rs.core.Response;
  * @path functions
  * @langEn List of non-standard CQL2 functions supported by this API.
  * @langDe Liste der von dieser API unterstützten nicht-standardisierten CQL2-Funktionen.
+ * @ref:formats {@link de.ii.ogcapi.filter.domain.FunctionsFormatExtension}
  */
 @Singleton
 @AutoBind
 public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
   private static final List<String> TAGS = ImmutableList.of("Capabilities");
-
-  private static final ApiMediaTypeContent FUNCTIONS_CONTENT =
-      new ImmutableApiMediaTypeContent.Builder()
-          .schema(
-              new ObjectSchema()
-                  .addRequiredItem("functions")
-                  .addProperty(
-                      "functions",
-                      new ArraySchema()
-                          .items(
-                              new ObjectSchema()
-                                  .addRequiredItem("name")
-                                  .addRequiredItem("returns")
-                                  .addProperty("name", new StringSchema())
-                                  .addProperty("description", new StringSchema())
-                                  .addProperty(
-                                      "arguments",
-                                      new ArraySchema()
-                                          .items(
-                                              new ObjectSchema()
-                                                  .addProperty("name", new StringSchema())
-                                                  .addProperty("description", new StringSchema())
-                                                  .addRequiredItem("type")
-                                                  .addProperty("type", new ArraySchema())))
-                                  .addProperty("returns", new ArraySchema()))))
-          .schemaRef(FormatExtension.OBJECT_SCHEMA_REF)
-          .ogcApiMediaType(ApiMediaType.JSON_MEDIA_TYPE)
-          .build();
-
-  private static final FormatExtension JSON_FORMAT =
-      new FormatExtension() {
-        @Override
-        public ApiMediaType getMediaType() {
-          return ApiMediaType.JSON_MEDIA_TYPE;
-        }
-
-        @Override
-        public ApiMediaTypeContent getContent() {
-          return FUNCTIONS_CONTENT;
-        }
-      };
 
   private final FeaturesCoreProviders providers;
 
@@ -120,7 +76,10 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    return ImmutableList.of(JSON_FORMAT);
+    if (formats == null) {
+      formats = extensionRegistry.getExtensionsForType(FunctionsFormatExtension.class);
+    }
+    return formats;
   }
 
   @Override
@@ -157,7 +116,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
             false,
             queryParameters,
             ImmutableList.of(),
-            ImmutableMap.of(MediaType.APPLICATION_JSON_TYPE, FUNCTIONS_CONTENT),
+            getResponseContent(apiData),
             operationSummary,
             operationDescription,
             Optional.empty(),
@@ -173,10 +132,22 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   }
 
   @GET
+  @Produces({"application/json", "text/html"})
   public Response getFunctions(@Context OgcApi api, @Context ApiRequestContext requestContext) {
-    return Response.ok(ImmutableMap.of("functions", getFunctionDefinitions(api.getData())))
-        .type(MediaType.APPLICATION_JSON)
-        .build();
+    FunctionsFormatExtension outputFormat =
+        api.getOutputFormat(
+                FunctionsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    Object entity =
+        outputFormat.getEntity(getFunctionDefinitions(api.getData()), api, requestContext);
+
+    return Response.ok(entity).type(outputFormat.getMediaType().type()).build();
   }
 
   private boolean supportsCql2(

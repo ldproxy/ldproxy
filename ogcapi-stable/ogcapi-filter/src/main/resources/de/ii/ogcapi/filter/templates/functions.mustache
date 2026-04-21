@@ -1,0 +1,44 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+  <span>{{{description}}}</span>
+  <br/>
+  <br/>
+
+  {{#functions}}
+  <div class="row my-3">
+    <div class="col-md-3">
+      <div class="font-weight-bold">{{name}}</div>
+    </div>
+    <div class="col-md-9">
+      <ul class="list-unstyled">
+        {{#description}}<li>{{.}}</li>{{/description}}
+        <li>
+          <span class="font-weight-bold">arguments:</span>
+          {{#arguments}}
+            <div class="ml-3">
+              {{#name}}{{name}}: {{/name}}
+              {{#type}}<code>{{.}}</code> {{/type}}
+              {{#description}}- {{.}}{{/description}}
+            </div>
+          {{/arguments}}
+          {{^arguments}}
+            <span>{{none}}</span>
+          {{/arguments}}
+        </li>
+        <li>
+          <span class="font-weight-bold">returns:</span>
+          {{#returns}}<code>{{.}}</code> {{/returns}}
+        </li>
+      </ul>
+    </div>
+  </div>
+  {{/functions}}
+
+  {{^functions}}
+  <div>{{none}}</div>
+  {{/functions}}
+</div>
+
+{{> footer}}
