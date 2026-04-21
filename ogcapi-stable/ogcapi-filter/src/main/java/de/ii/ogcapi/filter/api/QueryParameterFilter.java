@@ -351,11 +351,7 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
       FeatureTypeConfigurationOgcApi collectionData) {
     List<CustomFunction> customFunctions = getCustomFunctions(api, collectionData);
 
-    if (!customFunctions.isEmpty()) {
-      cql.checkTypes(cql2Expression, propertyTypes, customFunctions);
-    } else {
-      cql.checkTypes(cql2Expression, propertyTypes);
-    }
+    cql.checkTypes(cql2Expression, propertyTypes, customFunctions);
   }
 
   private List<CustomFunction> getCustomFunctions(

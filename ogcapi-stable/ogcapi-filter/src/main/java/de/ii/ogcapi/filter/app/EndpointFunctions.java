@@ -215,7 +215,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
       Map<String, Object> argumentDefinition = new LinkedHashMap<>();
       argumentDefinition.put(
-          "name",
+          "title",
           argument.getName() != null && !argument.getName().isBlank() ? argument.getName() : "");
       argumentDefinition.put(
           "description",

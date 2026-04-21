@@ -50,7 +50,7 @@ public class FunctionsFormatJson implements FunctionsFormatExtension {
                                       new ArraySchema()
                                           .items(
                                               new ObjectSchema()
-                                                  .addProperty("name", new StringSchema())
+                                                  .addProperty("title", new StringSchema())
                                                   .addProperty("description", new StringSchema())
                                                   .addRequiredItem("type")
                                                   .addProperty(
