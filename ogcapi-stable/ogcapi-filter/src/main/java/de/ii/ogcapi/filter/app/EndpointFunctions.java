@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.xtraplatform.cql.domain.CqlBuiltInFunctions;
 import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
@@ -61,26 +62,6 @@ import javax.ws.rs.core.Response;
 public class EndpointFunctions extends Endpoint implements ConformanceClass {
 
   private static final List<String> TAGS = ImmutableList.of("Capabilities");
-
-  private static final List<FunctionDef> BUILT_IN_NON_STANDARD_FUNCTIONS =
-      ImmutableList.of(
-          new FunctionDef(
-              "UPPER", ImmutableList.of(ImmutableList.of("STRING")), ImmutableList.of("STRING")),
-          new FunctionDef(
-              "LOWER", ImmutableList.of(ImmutableList.of("STRING")), ImmutableList.of("STRING")),
-          new FunctionDef("POSITION", ImmutableList.of(), ImmutableList.of("INTEGER")),
-          new FunctionDef(
-              "DIAMETER2D",
-              ImmutableList.of(ImmutableList.of("GEOMETRY")),
-              ImmutableList.of("FLOAT")),
-          new FunctionDef(
-              "DIAMETER3D",
-              ImmutableList.of(ImmutableList.of("GEOMETRY")),
-              ImmutableList.of("FLOAT")),
-          new FunctionDef(
-              "ALIKE",
-              ImmutableList.of(ImmutableList.of("VALUE_ARRAY"), ImmutableList.of("STRING")),
-              ImmutableList.of("BOOLEAN")));
 
   private static final ApiMediaTypeContent FUNCTIONS_CONTENT =
       new ImmutableApiMediaTypeContent.Builder()
@@ -204,12 +185,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   }
 
   private List<Map<String, Object>> getFunctionDefinitions(OgcApiDataV2 apiData) {
-    Map<String, FunctionDef> functions =
-        BUILT_IN_NON_STANDARD_FUNCTIONS.stream()
-            .collect(
-                LinkedHashMap::new,
-                (map, function) -> map.put(function.name().toUpperCase(Locale.ROOT), function),
-                Map::putAll);
+    Map<String, FunctionDef> functions = new LinkedHashMap<>();
 
     apiData.getCollections().values().stream()
         .filter(collection -> supportsCql2(apiData, collection))
@@ -238,7 +214,8 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   private List<FunctionDef> extractCustomFunctions(FeatureQueries queries) {
     Set<String> seen = new HashSet<>();
     ImmutableList.Builder<FunctionDef> builder = ImmutableList.builder();
-    for (CustomFunction function : queries.getCql2Functions()) {
+    for (CustomFunction function :
+        CqlBuiltInFunctions.prependBuiltInFunctions(queries.getCql2Functions())) {
       FunctionDef def = mapCustomFunction(function);
       String key = def.name().toUpperCase(Locale.ROOT);
       if (!seen.contains(key)) {
