@@ -36,6 +36,7 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -75,13 +76,15 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
                               new ObjectSchema()
                                   .addRequiredItem("name")
                                   .addRequiredItem("returns")
-                                  .addProperty(
-                                      "name", new io.swagger.v3.oas.models.media.StringSchema())
+                                  .addProperty("name", new StringSchema())
+                                  .addProperty("description", new StringSchema())
                                   .addProperty(
                                       "arguments",
                                       new ArraySchema()
                                           .items(
                                               new ObjectSchema()
+                                                  .addProperty("name", new StringSchema())
+                                                  .addProperty("description", new StringSchema())
                                                   .addRequiredItem("type")
                                                   .addProperty("type", new ArraySchema())))
                                   .addProperty("returns", new ArraySchema()))))
@@ -185,13 +188,13 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   }
 
   private List<Map<String, Object>> getFunctionDefinitions(OgcApiDataV2 apiData) {
-    Map<String, FunctionDef> functions = new LinkedHashMap<>();
+    Map<String, CustomFunction> functions = new LinkedHashMap<>();
 
     apiData.getCollections().values().stream()
         .filter(collection -> supportsCql2(apiData, collection))
         .map(collection -> getCustomFunctions(apiData, collection))
         .flatMap(Collection::stream)
-        .forEach(function -> functions.put(function.name().toUpperCase(Locale.ROOT), function));
+        .forEach(function -> functions.put(function.getName().toUpperCase(Locale.ROOT), function));
 
     return functions.values().stream()
         .map(this::toFunctionDefinition)
@@ -200,7 +203,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
         .toList();
   }
 
-  private List<FunctionDef> getCustomFunctions(
+  private List<CustomFunction> getCustomFunctions(
       OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
     return providers
         .getFeatureProvider(apiData, collectionData)
@@ -211,46 +214,47 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
         .orElse(ImmutableList.of());
   }
 
-  private List<FunctionDef> extractCustomFunctions(FeatureQueries queries) {
+  private List<CustomFunction> extractCustomFunctions(FeatureQueries queries) {
     Set<String> seen = new HashSet<>();
-    ImmutableList.Builder<FunctionDef> builder = ImmutableList.builder();
+    ImmutableList.Builder<CustomFunction> builder = ImmutableList.builder();
     for (CustomFunction function :
         CqlBuiltInFunctions.prependBuiltInFunctions(queries.getCql2Functions())) {
-      FunctionDef def = mapCustomFunction(function);
-      String key = def.name().toUpperCase(Locale.ROOT);
+      String key = function.getName().toUpperCase(Locale.ROOT);
       if (!seen.contains(key)) {
         seen.add(key);
-        builder.add(def);
+        builder.add(function);
       }
     }
     return builder.build();
   }
 
-  private FunctionDef mapCustomFunction(CustomFunction function) {
-    List<List<String>> argTypes =
-        function.getArguments().stream()
-            .map(arg -> arg.getType().stream().map(String::toLowerCase).toList())
-            .toList();
-    List<String> returnTypes = function.getReturns().stream().map(String::toLowerCase).toList();
-    return new FunctionDef(function.getName(), argTypes, returnTypes);
-  }
+  private Optional<Map<String, Object>> toFunctionDefinition(CustomFunction function) {
+    List<Map<String, Object>> arguments = new java.util.ArrayList<>();
+    for (de.ii.xtraplatform.cql.domain.Cql2FunctionArgument argument : function.getArguments()) {
+      List<String> argumentTypes =
+          argument.getType().stream()
+              .map(this::toFunctionType)
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .toList();
 
-  private Optional<Map<String, Object>> toFunctionDefinition(FunctionDef function) {
-    List<Map<String, List<String>>> arguments =
-        function.argumentTypes().stream()
-            .map(
-                typeList ->
-                    Map.of(
-                        "type",
-                        typeList.stream()
-                            .map(this::toFunctionType)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .toList()))
-            .toList();
+      if (argumentTypes.isEmpty()) {
+        return Optional.empty();
+      }
+
+      Map<String, Object> argumentDefinition = new LinkedHashMap<>();
+      if (argument.getName() != null && !argument.getName().isBlank()) {
+        argumentDefinition.put("name", argument.getName());
+      }
+      if (argument.getDescription() != null && !argument.getDescription().isBlank()) {
+        argumentDefinition.put("description", argument.getDescription());
+      }
+      argumentDefinition.put("type", argumentTypes);
+      arguments.add(argumentDefinition);
+    }
 
     List<String> returnTypes =
-        function.returnTypes().stream()
+        function.getReturns().stream()
             .map(this::toFunctionType)
             .filter(Optional::isPresent)
             .map(Optional::get)
@@ -259,14 +263,15 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
       return Optional.empty();
     }
 
-    return Optional.of(
-        ImmutableMap.of(
-            "name",
-            function.name().toLowerCase(Locale.ROOT),
-            "arguments",
-            arguments,
-            "returns",
-            returnTypes));
+    Map<String, Object> functionDefinition = new LinkedHashMap<>();
+    functionDefinition.put("name", function.getName().toLowerCase(Locale.ROOT));
+    if (function.getDescription() != null && !function.getDescription().isBlank()) {
+      functionDefinition.put("description", function.getDescription());
+    }
+    functionDefinition.put("arguments", arguments);
+    functionDefinition.put("returns", returnTypes);
+
+    return Optional.of(functionDefinition);
   }
 
   private Optional<String> toFunctionType(String schemaType) {
@@ -284,7 +289,4 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
       default -> Optional.empty();
     };
   }
-
-  private record FunctionDef(
-      String name, List<List<String>> argumentTypes, List<String> returnTypes) {}
 }
