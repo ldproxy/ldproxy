@@ -13,8 +13,10 @@ import de.ii.ogcapi.filter.domain.FunctionsFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.FormatHtml;
@@ -83,6 +85,15 @@ public class FunctionsFormatHtml implements FunctionsFormatExtension, FormatHtml
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
 
+    List<Link> links =
+        new DefaultLinksGenerator()
+            .generateLinks(
+                requestContext.getUriCustomizer(),
+                requestContext.getMediaType(),
+                requestContext.getAlternateMediaTypes(),
+                i18n,
+                requestContext.getLanguage());
+
     return new ImmutableFunctionsView.Builder()
         .apiData(api.getData())
         .breadCrumbs(breadCrumbs)
@@ -93,7 +104,10 @@ public class FunctionsFormatHtml implements FunctionsFormatExtension, FormatHtml
         .title(i18n.get("functionsTitle", requestContext.getLanguage()))
         .description(i18n.get("functionsDescription", requestContext.getLanguage()))
         .none(i18n.get("none", requestContext.getLanguage()))
+        .argumentsTitle(i18n.get("functionsArgumentsTitle", requestContext.getLanguage()))
+        .returnsTitle(i18n.get("functionsReturnsTitle", requestContext.getLanguage()))
         .functions(functionDefinitions)
+        .rawLinks(links)
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .user(requestContext.getUser())
         .build();

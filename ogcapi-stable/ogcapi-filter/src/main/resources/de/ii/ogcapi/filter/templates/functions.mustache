@@ -15,7 +15,7 @@
       <ul class="list-unstyled">
         {{#description}}<li>{{.}}</li>{{/description}}
         <li>
-          <span class="font-weight-bold">arguments:</span>
+          <span class="font-weight-bold">{{argumentsTitle}}:</span>
           {{#arguments}}
             <div class="ml-3">
               {{#title}}{{title}}: {{/title}}
@@ -28,7 +28,7 @@
           {{/arguments}}
         </li>
         <li>
-          <span class="font-weight-bold">returns:</span>
+          <span class="font-weight-bold">{{returnsTitle}}:</span>
           {{#returns}}<code>{{.}}</code> {{/returns}}
         </li>
       </ul>

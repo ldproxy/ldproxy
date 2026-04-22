@@ -132,7 +132,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   }
 
   @GET
-  @Produces({"application/json", "text/html"})
+  @Produces({"application/schema+json", "text/html"})
   public Response getFunctions(@Context OgcApi api, @Context ApiRequestContext requestContext) {
     FunctionsFormatExtension outputFormat =
         api.getOutputFormat(
@@ -237,7 +237,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
     }
 
     Map<String, Object> functionDefinition = new LinkedHashMap<>();
-    functionDefinition.put("name", function.getName().toLowerCase(Locale.ROOT));
+    functionDefinition.put("name", function.getName());
     functionDefinition.put(
         "description",
         function.getDescription() != null && !function.getDescription().isBlank()

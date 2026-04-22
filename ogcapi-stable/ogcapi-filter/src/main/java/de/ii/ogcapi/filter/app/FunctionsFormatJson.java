@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.filter.app;
 
+import static de.ii.ogcapi.foundation.domain.ApiMediaType.JSON_SCHEMA_MEDIA_TYPE;
+
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.filter.domain.FunctionsFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -59,7 +61,7 @@ public class FunctionsFormatJson implements FunctionsFormatExtension {
                                   .addProperty(
                                       "returns", new ArraySchema().items(new StringSchema())))))
           .schemaRef(FormatExtension.OBJECT_SCHEMA_REF)
-          .ogcApiMediaType(ApiMediaType.JSON_MEDIA_TYPE)
+          .ogcApiMediaType(JSON_SCHEMA_MEDIA_TYPE)
           .build();
 
   @Inject
@@ -67,7 +69,7 @@ public class FunctionsFormatJson implements FunctionsFormatExtension {
 
   @Override
   public ApiMediaType getMediaType() {
-    return ApiMediaType.JSON_MEDIA_TYPE;
+    return JSON_SCHEMA_MEDIA_TYPE;
   }
 
   @Override

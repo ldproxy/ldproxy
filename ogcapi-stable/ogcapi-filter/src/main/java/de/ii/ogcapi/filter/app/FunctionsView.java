@@ -27,4 +27,8 @@ public abstract class FunctionsView extends OgcApiView {
   public abstract List<Map<String, Object>> functions();
 
   public abstract String none();
+
+  public abstract String argumentsTitle();
+
+  public abstract String returnsTitle();
 }
