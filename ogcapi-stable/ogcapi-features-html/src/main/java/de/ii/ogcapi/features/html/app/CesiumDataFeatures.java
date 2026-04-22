@@ -92,35 +92,6 @@ public class CesiumDataFeatures {
       maxLat = Math.min(minMax[1][1], 90.0);
       minHeight = minMax[0][2];
       maxHeight = minMax[1][2];
-
-      /*
-      List<Coordinate> coordinates =
-          geometries.stream()
-              .map(Geometry::getCoordinatesFlat)
-              .map(
-                  coords -> {
-                    if (!clampToEllipsoid) {
-                      return coords;
-                    }
-                    final Optional<Double> optionalMin = getMin(coords, 2);
-                    if (optionalMin.isEmpty()) {
-                      return coords;
-                    }
-                    final double min = optionalMin.get();
-                    return coords.stream()
-                        .map(coord -> Position.of(coord.get(0), coord.get(1), coord.get(2) - min))
-                        .collect(Collectors.toUnmodifiableList());
-                  })
-              .flatMap(List::stream)
-              .collect(Collectors.toUnmodifiableList());
-      minLon = getMin(coordinates, 0).orElse(-180.0);
-      maxLon = getMax(coordinates, 0).orElse(180.0);
-      minLat = getMin(coordinates, 1).orElse(-90.0);
-      maxLat = getMax(coordinates, 1).orElse(90.0);
-      minHeight = getMin(coordinates, 2).orElse(0.0);
-      maxHeight = getMax(coordinates, 2).orElse(0.0);
-
-       */
     }
   }
 
@@ -142,14 +113,4 @@ public class CesiumDataFeatures {
         .flatMap(Collection::stream)
         .collect(Collectors.toUnmodifiableList());
   }
-
-  /*
-  private Optional<Double> getMin(List<Geometry.Coordinate> coordinates, int axis) {
-    return coordinates.stream().map(coord -> coord.get(axis)).min(Comparator.naturalOrder());
-  }
-
-  private Optional<Double> getMax(List<Geometry.Coordinate> coordinates, int axis) {
-    return coordinates.stream().map(coord -> coord.get(axis)).max(Comparator.naturalOrder());
-  }
-   */
 }

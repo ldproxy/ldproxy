@@ -622,6 +622,15 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                         .orElse(hCrs))
             .orElse(queryInput.getDefaultCrs());
 
+    if (requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE)) {
+      if (!crs.equals(queryInput.getDefaultCrs())) {
+        // For HTML the requested CRS is not relevant. The only geometries in the HTML
+        // representation are the schema.org annotations, for which the request must use the
+        // default CRS. Force the use of the default CRS.
+        crs = queryInput.getDefaultCrs();
+      }
+    }
+
     MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
 
     List<String> collectionIds =
