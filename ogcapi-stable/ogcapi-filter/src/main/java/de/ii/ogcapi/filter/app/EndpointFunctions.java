@@ -132,7 +132,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
   }
 
   @GET
-  @Produces({"application/schema+json", "text/html"})
+  @Produces({"application/json", "text/html"})
   public Response getFunctions(@Context OgcApi api, @Context ApiRequestContext requestContext) {
     FunctionsFormatExtension outputFormat =
         api.getOutputFormat(
