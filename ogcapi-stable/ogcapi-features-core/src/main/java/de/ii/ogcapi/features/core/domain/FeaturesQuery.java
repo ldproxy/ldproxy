@@ -29,7 +29,8 @@ public interface FeaturesQuery extends Volatile2 {
       QueryParameterSet queryParameterSet,
       String featureId,
       Optional<ETag.Type> withETag,
-      SchemaBase.Scope withScope);
+      SchemaBase.Scope withScope,
+      boolean ignoreCrsParameter);
 
   FeatureQuery requestToFeatureQuery(
       OgcApiDataV2 apiData,
@@ -37,7 +38,8 @@ public interface FeaturesQuery extends Volatile2 {
       EpsgCrs defaultCrs,
       Map<String, Integer> coordinatePrecision,
       int defaultPageSize,
-      QueryParameterSet queryParameterSet);
+      QueryParameterSet queryParameterSet,
+      boolean ignoreCrsParameter);
 
   FeatureQuery requestToBareFeatureQuery(
       OgcApiDataV2 apiData,
@@ -45,7 +47,8 @@ public interface FeaturesQuery extends Volatile2 {
       EpsgCrs defaultCrs,
       Map<String, Integer> coordinatePrecision,
       int defaultPageSize,
-      QueryParameterSet queryParameterSet);
+      QueryParameterSet queryParameterSet,
+      boolean ignoreCrsParameter);
 
   Optional<String> validateFilter(
       String filter, Format filterLang, EpsgCrs filterCrs, Map<String, FeatureSchema> queryables);

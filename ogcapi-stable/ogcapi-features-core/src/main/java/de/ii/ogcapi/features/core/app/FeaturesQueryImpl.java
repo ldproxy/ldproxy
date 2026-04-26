@@ -70,7 +70,8 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
       QueryParameterSet queryParameterSet,
       String featureId,
       Optional<ETag.Type> withEtag,
-      SchemaBase.Scope withScope) {
+      SchemaBase.Scope withScope,
+      boolean ignoreCrsParameter) {
     final ImmutableFeatureQuery.Builder queryBuilder =
         ImmutableFeatureQuery.builder()
             .type(
@@ -85,7 +86,12 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
             .schemaScope(withScope);
 
     return processParameters(
-        queryBuilder, apiData, collectionData, coordinatePrecision, queryParameterSet);
+        queryBuilder,
+        apiData,
+        collectionData,
+        coordinatePrecision,
+        queryParameterSet,
+        ignoreCrsParameter);
   }
 
   @Override
@@ -95,7 +101,8 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
       EpsgCrs defaultCrs,
       Map<String, Integer> coordinatePrecision,
       int defaultPageSize,
-      QueryParameterSet queryParameterSet) {
+      QueryParameterSet queryParameterSet,
+      boolean ignoreCrsParameter) {
     final ImmutableFeatureQuery.Builder queryBuilder =
         ImmutableFeatureQuery.builder()
             .type(
@@ -107,7 +114,12 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
             .limit(defaultPageSize);
 
     return processParameters(
-        queryBuilder, apiData, collectionData, coordinatePrecision, queryParameterSet);
+        queryBuilder,
+        apiData,
+        collectionData,
+        coordinatePrecision,
+        queryParameterSet,
+        ignoreCrsParameter);
   }
 
   @Override
@@ -117,12 +129,14 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
       EpsgCrs defaultCrs,
       Map<String, Integer> coordinatePrecision,
       int defaultPageSize,
-      QueryParameterSet queryParameterSet) {
+      QueryParameterSet queryParameterSet,
+      boolean ignoreCrsParameter) {
 
     final ImmutableFeatureQuery.Builder queryBuilder =
         ImmutableFeatureQuery.builder().type(featureTypeId).crs(defaultCrs).limit(defaultPageSize);
 
-    return processParameters(queryBuilder, apiData, null, coordinatePrecision, queryParameterSet);
+    return processParameters(
+        queryBuilder, apiData, null, coordinatePrecision, queryParameterSet, ignoreCrsParameter);
   }
 
   @Override
@@ -160,11 +174,14 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
       Map<String, Integer> coordinatePrecision,
-      QueryParameterSet queryParameterSet) {
+      QueryParameterSet queryParameterSet,
+      boolean ignoreCrsParameter) {
     for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
-      if (parameter instanceof FeatureQueryParameter) {
-        ((FeatureQueryParameter) parameter)
-            .applyTo(queryBuilder, queryParameterSet, apiData, collectionData);
+      if (parameter instanceof FeatureQueryParameter queryParameter) {
+        if (ignoreCrsParameter && "crs".equals(queryParameter.getName())) {
+          continue;
+        }
+        queryParameter.applyTo(queryBuilder, queryParameterSet, apiData, collectionData);
       }
     }
 

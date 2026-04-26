@@ -56,6 +56,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
@@ -301,7 +302,8 @@ public class EndpointFeatures extends EndpointFeaturesDefinition
             coreConfiguration.getDefaultEpsgCrs(),
             coreConfiguration.getCoordinatePrecision(),
             defaultPageSize,
-            queryParameterSet);
+            queryParameterSet,
+            requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE));
     FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
         new Builder()
             .from(getGenericQueryInput(api.getData()))

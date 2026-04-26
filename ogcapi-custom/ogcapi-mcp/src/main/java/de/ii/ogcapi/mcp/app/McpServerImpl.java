@@ -268,7 +268,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             coreConfiguration.getDefaultEpsgCrs(),
             coreConfiguration.getCoordinatePrecision(),
             defaultPageSize,
-            parameterSet);
+            parameterSet,
+            false);
 
     FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
         new ImmutableQueryInputFeatures.Builder()

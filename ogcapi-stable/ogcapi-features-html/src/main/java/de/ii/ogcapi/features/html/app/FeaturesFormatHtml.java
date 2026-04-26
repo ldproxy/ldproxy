@@ -264,7 +264,12 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     ModifiableFeatureCollectionView featureTypeDataset;
 
     boolean hideMap =
-        transformationContext.getFeatureSchema().flatMap(SchemaBase::getPrimaryGeometry).isEmpty();
+        transformationContext.getFeatureSchemas().values().stream()
+            .flatMap(Optional::stream)
+            .map(SchemaBase::getPrimaryGeometry)
+            .flatMap(Optional::stream)
+            .findAny()
+            .isEmpty();
 
     if (transformationContext.isQueryExpression()) {
       // Features - Search
