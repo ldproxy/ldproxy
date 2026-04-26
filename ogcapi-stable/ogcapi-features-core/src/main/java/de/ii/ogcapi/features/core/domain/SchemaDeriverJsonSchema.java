@@ -504,8 +504,16 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
   protected JsonSchema withRefWrapper(JsonSchema schema, String objectType) {
     return new ImmutableJsonSchemaRef.Builder()
         .name(schema.getName())
+        .title(schema.getTitle())
+        .description(schema.getDescription())
         .ref(String.format("#/$defs/%s", objectType))
-        .def(new ImmutableJsonSchemaObject.Builder().from(schema).name(objectType).build())
+        .def(
+            new ImmutableJsonSchemaObject.Builder()
+                .from(schema)
+                .name(objectType)
+                .title(Optional.empty())
+                .description(Optional.empty())
+                .build())
         .build();
   }
 
