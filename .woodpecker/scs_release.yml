@@ -8,13 +8,13 @@ when:
 steps:
 
   dtrack:
-    image: eclipse-temurin:17
+    image: eclipse-temurin:21@sha256:e58e492628c1428ceb838afc1a1b8762673d5eaa09296f560c363daea0fdcf3b
     commands:
       - ./gradlew publishSbom -Prelease=true -PdtrackApiUrl=https://dtrack.ldproxy.net/api/v1/bom -PdtrackApiKey=$DTRACK_API_KEY
     secrets: [ dtrack_api_key ]
 
   github:
-    image: meltwaterfoundation/github-cli:2.29.0
+    image: meltwaterfoundation/github-cli:2.37.0@sha256:9b0e59b7a9b92188376121abce74604f70b9942f79ff4badf776910121f4519c
     commands:
       - gh release upload $CI_COMMIT_TAG "build/reports/sbom.json#CycloneDX SBOM"
     secrets: [ github_token ]
