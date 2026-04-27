@@ -8,6 +8,10 @@
       "automerge": true
     },
     {
+      "matchUpdateTypes": ["digest"],
+      "automerge": true
+    },
+    {
       "matchPackageNames": ["com.networknt:json-schema-validator"],
       "allowedVersions": "< 3.0.0"
     },

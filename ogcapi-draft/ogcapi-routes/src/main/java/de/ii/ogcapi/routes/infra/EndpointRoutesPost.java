@@ -378,7 +378,8 @@ public class EndpointRoutesPost extends Endpoint implements ConformanceClass, Ap
             defaultCrs,
             coordinatePrecision,
             LIMIT,
-            queryParameterSet);
+            queryParameterSet,
+            requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE));
 
     RouteDefinition definition;
     try {

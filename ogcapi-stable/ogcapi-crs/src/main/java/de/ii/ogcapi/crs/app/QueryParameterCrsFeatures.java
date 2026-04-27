@@ -127,7 +127,7 @@ public class QueryParameterCrsFeatures extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The coordinate reference system of the response geometries. Default is WGS84 longitude/latitude (with or without height).";
+    return "The coordinate reference system of the response geometries. Default is WGS84 longitude/latitude (with or without height). The parameter is ignored for HTML output as the HTML representation only supports the default coordinate reference system.";
   }
 
   @Override

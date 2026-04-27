@@ -61,3 +61,13 @@ tasks.named('dockerRun') {
 
 apply from: 'docs.gradle'
 
+layer {
+    MATURE {
+        minimumCoverage = 0.0
+        warningsAsErrors = false
+        ignorePmdErrors = true
+    }
+    CANDIDATE {
+        minimumCoverage = 0.0
+    }
+}

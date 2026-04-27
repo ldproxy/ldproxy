@@ -527,7 +527,8 @@ public class EndpointCrud extends EndpointSubCollection
             queryParameterSet,
             featureId,
             Optional.empty(),
-            SchemaBase.Scope.RECEIVABLE);
+            SchemaBase.Scope.RECEIVABLE,
+            false);
 
     final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
 
@@ -613,7 +614,8 @@ public class EndpointCrud extends EndpointSubCollection
             queryParameterSet,
             featureId,
             Optional.empty(),
-            SchemaBase.Scope.RECEIVABLE);
+            SchemaBase.Scope.RECEIVABLE,
+            false);
 
     final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
 
@@ -680,7 +682,8 @@ public class EndpointCrud extends EndpointSubCollection
             queryParameterSet,
             featureId,
             Optional.empty(),
-            SchemaBase.Scope.RECEIVABLE);
+            SchemaBase.Scope.RECEIVABLE,
+            false);
 
     QueryInputFeatureDelete queryInput =
         ImmutableQueryInputFeatureDelete.builder()

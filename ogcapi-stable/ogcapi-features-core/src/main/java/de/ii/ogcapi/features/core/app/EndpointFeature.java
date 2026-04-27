@@ -45,6 +45,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 /**
@@ -165,7 +166,8 @@ public class EndpointFeature extends EndpointFeaturesDefinition
             queryParameterSet,
             featureId,
             Optional.of(Type.STRONG),
-            Scope.RETURNABLE);
+            Scope.RETURNABLE,
+            requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE));
 
     Builder queryInputBuilder =
         new Builder()

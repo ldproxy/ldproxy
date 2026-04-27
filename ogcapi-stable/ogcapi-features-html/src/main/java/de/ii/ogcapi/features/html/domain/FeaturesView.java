@@ -188,10 +188,15 @@ public abstract class FeaturesView extends OgcApiDatasetView {
               new ImmutableSource.Builder()
                   .type(TYPE.geojson)
                   .url(
-                      uriBuilder()
-                          .removeParameters("f", "crs")
-                          .ensureParameter("f", "json")
-                          .toString())
+                      fromStoredQuery()
+                          ? uriBuilder()
+                              .removeParameters("f")
+                              .ensureParameter("f", "json")
+                              .toString()
+                          : uriBuilder()
+                              .removeParameters("f", "crs")
+                              .ensureParameter("f", "json")
+                              .toString())
                   .build())
           .popup(Popup.HOVER_ID)
           .featureTitles(
@@ -247,12 +252,6 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   @Nullable
   public CrsEditor crsEditor() {
     if (collectionData().isEmpty()) {
-      return null;
-    }
-
-    // TODO: currently CRS selector is not supported in Cesium, since the boundingVolume is not yet
-    // transformed to CRS84h when selecting a different CRS
-    if (mapClientType().equals(MapClient.Type.CESIUM)) {
       return null;
     }
 

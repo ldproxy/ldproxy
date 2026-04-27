@@ -26,7 +26,7 @@ public interface FeatureTransformationContextHtml extends FeatureTransformationC
 
   @Value.Derived
   default boolean isSchemaOrgEnabled() {
-    return Objects.equals(htmlConfiguration().getSchemaOrgEnabled(), true);
+    return Objects.equals(htmlConfiguration().getSchemaOrgEnabled(), true) && !isQueryExpression();
   }
 
   @Value.Derived

@@ -268,10 +268,8 @@ public interface FeaturesHtmlConfiguration
   Boolean getPropertyTooltipsOnItems();
 
   /**
-   * @langEn If `true`, show a CRS selector on the items page. Currently, this is only supported for
-   *     MapLibre and will be ignored for Cesium.
-   * @langDe Bei `true` wird auf der Items-Seite ein CRS-Selector angezeigt. Derzeit wird dies nur
-   *     für MapLibre unterstützt und für Cesium ignoriert.
+   * @langEn If `true`, show a CRS selector on the items page.
+   * @langDe Bei `true` wird auf der Items-Seite ein CRS-Selector angezeigt.
    * @since v4.7
    * @default false
    */
