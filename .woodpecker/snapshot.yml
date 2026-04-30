@@ -12,7 +12,7 @@ steps:
     secrets: [ snapshot_user, snapshot_pass]
 
   docs:
-    image: williamjackson/netlify-cli:15.5.1@sha256:06941834a0c8edd9df7d414c8866fcc81a7f192bcc302c39f989c44d4cd08777
+    image: williamjackson/netlify-cli:17.34.0@sha256:b7624eb453a961667786873480b137ef9952cf12af1b6c07b6fe76fb37f87a31
     environment:
       - XDG_CONFIG_HOME=/home/node
     commands:
