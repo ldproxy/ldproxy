@@ -60,27 +60,31 @@ public class GmlWriterProperties implements GmlWriter {
       FeatureSchema schema = context.schema().orElseThrow();
 
       String elementNameProperty = schema.getName();
-      context.encoding().write("<");
-      context.encoding().write(elementNameProperty);
+      // Open the property element; its '>' is still pending (lazy emission)
+      context.encoding().writeStartElement(elementNameProperty);
 
       String objectType = schema.getObjectType().orElse("FIX:ME");
 
       if ("Link".equals(objectType) || schema.isFeatureRef()) {
-        // rel-as-link is the only profile supported by the GML format
+        // rel-as-link is the only profile supported by the GML format.
+        // xlink:* attributes are added to this element by writeLinkAttribute()
+        // and the element is closed by onObjectEnd().
         context.encoding().getState().setInLink(true);
       } else if ("Measure".equals(objectType)) {
+        // The uom attribute and character value are written together once both
+        // sub-properties have been seen (writeMeasure). The element is closed
+        // by onObjectEnd().
         context.encoding().getState().setInMeasure(true);
         context.encoding().getState().setFirstMeasureProperty(Optional.empty());
-        context.encoding().pushElement(elementNameProperty);
       } else {
+        // Normal GML object: <propName><objectElement placeholder>…</objectElement></propName>
         String elementNameObject = context.encoding().startGmlObject(schema);
-
-        context.encoding().write("><");
-        context.encoding().write(elementNameObject);
+        // writeStartElement for the inner element flushes the pending '>' of propName
+        context.encoding().writeStartElement(elementNameObject);
+        // Inject XML-attribute placeholder in the pending start tag of objectElement
         context.encoding().writeXmlAttPlaceholder();
-        context.encoding().write(">");
-
-        context.encoding().pushElement(elementNameProperty, elementNameObject);
+        // Force the '>' of objectElement to be emitted
+        context.encoding().closeStartElement();
       }
     }
 
@@ -95,22 +99,17 @@ public class GmlWriterProperties implements GmlWriter {
       boolean inMeasure = context.encoding().getState().getInMeasure();
 
       if (inLink) {
-        context.encoding().write("/>");
+        // Closes <propName xlink:href="…" …/>
+        context.encoding().writeEndElement();
         context.encoding().getState().setInLink(false);
       } else if (inMeasure) {
-        context.encoding().write("</");
-        context.encoding().write(context.encoding().popElement());
-        context.encoding().write(">");
+        // Closes <propName uom="…">value</propName>
+        context.encoding().writeEndElement();
         context.encoding().getState().setInMeasure(false);
       } else {
-        context.encoding().write("</");
-        context.encoding().write(context.encoding().popElement());
-        context.encoding().write(">");
-
-        context.encoding().write("</");
-        context.encoding().write(context.encoding().popElement());
-        context.encoding().write(">");
-
+        // Closes </objectElement> then </propName>
+        context.encoding().writeEndElement();
+        context.encoding().writeEndElement();
         context.encoding().closeGmlObject();
       }
     }
@@ -137,28 +136,19 @@ public class GmlWriterProperties implements GmlWriter {
           writeMeasure(context, schema, value);
         } else {
           if (context.encoding().getXmlAttributes().contains(schema.getFullPathAsString())) {
-            // encode as XML attribute
+            // encode as XML attribute of the parent object element
             context.encoding().writeAsXmlAtt(schema.getName(), value);
           } else {
-            // opening tag of property element
-            context.encoding().write("<");
+            // <propName [name="…"] [uom="…"]>value</propName>
             String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
-            context.encoding().write(name[0]);
+            context.encoding().writeStartElement(name[0]);
             if (name.length == 2) {
-              context.encoding().write(" name=\"");
-              context.encoding().write(name[1]);
-              context.encoding().write("\"");
+              context.encoding().writeAttribute("name", name[1]);
             }
             writeUnitIfNecessary(context, schema);
-            context.encoding().write(">");
-
-            // value
+            // writeCharacters emits the pending '>' and writes the (escaped) value
             writeValue(context, value, schema.getType());
-
-            // closing tag
-            context.encoding().write("</");
-            context.encoding().write(name[0]);
-            context.encoding().write(">");
+            context.encoding().writeEndElement();
           }
         }
       } else {
@@ -185,49 +175,39 @@ public class GmlWriterProperties implements GmlWriter {
             });
   }
 
-  private void writeUnitIfNecessary(EncodingAwareContextGml context, FeatureSchema schema) {
+  private void writeUnitIfNecessary(EncodingAwareContextGml context, FeatureSchema schema)
+      throws IOException {
     if (schema.getType() == Type.FLOAT || schema.getType() == Type.INTEGER) {
       // write as gml:MeasureType, if we have a numeric property with a 'unit'
       // property in the provider schema
       schema
           .getUnit()
-          .ifPresent(
-              consumerMayThrow(
-                  uom -> {
-                    context.encoding().write(" uom=\"");
-                    context.encoding().write(uom);
-                    context.encoding().write("\"");
-                  }));
+          .ifPresent(consumerMayThrow(uom -> context.encoding().writeAttribute("uom", uom)));
     }
   }
 
-  private void writeMeasure(EncodingAwareContextGml context, FeatureSchema schema, String value) {
+  private void writeMeasure(EncodingAwareContextGml context, FeatureSchema schema, String value)
+      throws IOException {
     ModifiableStateGml state = context.encoding().getState();
-    state
-        .getFirstMeasureProperty()
-        .ifPresentOrElse(
-            consumerMayThrow(
-                other -> {
-                  String uom = "uom".equals(schema.getName()) ? value : other;
-                  String val = "value".equals(schema.getName()) ? value : other;
-                  context.encoding().write(" uom=\"");
-                  context.encoding().write(uom);
-                  context.encoding().write("\"");
-                  context.encoding().write(">");
-                  writeValue(context, val, schema.getType());
-                }),
-            () -> state.setFirstMeasureProperty(Optional.ofNullable(value)));
+    if (state.getFirstMeasureProperty().isPresent()) {
+      String other = state.getFirstMeasureProperty().get();
+      String uom = "uom".equals(schema.getName()) ? value : other;
+      String val = "value".equals(schema.getName()) ? value : other;
+      // Still in START_ELEMENT state for the property element: add uom attribute, then write value
+      context.encoding().writeAttribute("uom", uom);
+      writeValue(context, val, schema.getType());
+    } else {
+      state.setFirstMeasureProperty(Optional.ofNullable(value));
+    }
   }
 
   private void writeLinkAttribute(
-      EncodingAwareContextGml context, String xlinkAttribute, String value) {
-    // we are already in the property element that has the link object as its value,
-    // just add the XLink attribute
-    context.encoding().write(" xlink:");
-    context.encoding().write(xlinkAttribute);
-    context.encoding().write("=\"");
+      EncodingAwareContextGml context, String xlinkAttribute, String value) throws IOException {
+    // Still in START_ELEMENT state for the property element; add an xlink:* attribute.
+    // XMLStreamWriter handles value escaping automatically.
+    String attrValue;
     if (xlinkAttribute.equals("href") && context.encoding().getAllLinksAreLocal()) {
-      String localHref =
+      attrValue =
           context.encoding().getIdsIncludeCollectionId()
               ? String.format(
                   "#%s%s",
@@ -237,11 +217,10 @@ public class GmlWriterProperties implements GmlWriter {
                   "#%s%s",
                   context.encoding().getGmlIdPrefix().orElse(""),
                   value.substring(value.indexOf("/items/") + 7));
-      writeValue(context, localHref, Type.STRING);
     } else {
-      writeValue(context, value, Type.STRING);
+      attrValue = value;
     }
-    context.encoding().write("\"");
+    context.encoding().writeAttribute("xlink:" + xlinkAttribute, attrValue);
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {
@@ -253,21 +232,18 @@ public class GmlWriterProperties implements GmlWriter {
         && Objects.nonNull(context.value());
   }
 
-  private void writeValue(EncodingAwareContextGml context, String value, Type type) {
+  /**
+   * Writes a property value using XMLStreamWriter, which handles XML escaping automatically.
+   * Replaces the former manual {@code escapeText()} approach.
+   */
+  private void writeValue(EncodingAwareContextGml context, String value, Type type)
+      throws IOException {
     if (type == Type.BOOLEAN) {
-      context
-          .encoding()
-          .write(Boolean.parseBoolean(value) || value.equalsIgnoreCase("t") || value.equals("1"));
+      boolean boolValue =
+          Boolean.parseBoolean(value) || value.equalsIgnoreCase("t") || value.equals("1");
+      context.encoding().writeCharacters(String.valueOf(boolValue));
     } else {
-      context.encoding().write(escapeText(value));
+      context.encoding().writeCharacters(value);
     }
-  }
-
-  private String escapeText(String text) {
-    return text.replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll("\"", "&quot;")
-        .replaceAll("'", "&apos;");
   }
 }

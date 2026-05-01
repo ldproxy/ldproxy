@@ -77,14 +77,8 @@ public class GmlWriterGeometry implements GmlWriter {
     FeatureSchema schema = context.schema().orElseThrow();
 
     String elementNameProperty = schema.getName();
-    context.encoding().write("<");
-    context.encoding().write(elementNameProperty);
-    context.encoding().write(">");
-
+    context.encoding().writeStartElement(elementNameProperty);
     context.geometry().accept(encoder);
-
-    context.encoding().write("</");
-    context.encoding().write(elementNameProperty);
-    context.encoding().write(">");
+    context.encoding().writeEndElement();
   }
 }
