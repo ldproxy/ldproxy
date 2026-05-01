@@ -495,12 +495,12 @@ public interface TilesConfiguration
 
   /**
    * @langEn Controls which formats are supported for the tileset resources. Available are [OGC
-   *     TileSetMetadata](https://docs.ogc.org/DRAFTS/17-083r3.html#tsmd-json-encoding) ("JSON") and
-   *     [TileJSON](https://github.com/mapbox/tilejson-spec) ("TileJSON").
+   *     TileSetMetadata](https://docs.ogc.org/is/17-083r4/17-083r4.html#json-tilesetmetadata-requirements-class)
+   *     ("JSON") and [TileJSON](https://github.com/mapbox/tilejson-spec) ("TileJSON").
    * @langDe Steuert, welche Formate für die Tileset-Ressourcen unterstützt werden sollen. Zur
    *     Verfügung stehen [OGC
-   *     TileSetMetadata](https://docs.ogc.org/DRAFTS/17-083r3.html#tsmd-json-encoding) ("JSON") und
-   *     [TileJSON](https://github.com/mapbox/tilejson-spec) ("TileJSON").
+   *     TileSetMetadata](https://docs.ogc.org/is/17-083r4/17-083r4.html#json-tilesetmetadata-requirements-class)
+   *     ("JSON") und [TileJSON](https://github.com/mapbox/tilejson-spec) ("TileJSON").
    * @default [ "JSON", "TileJSON" ]
    */
   List<String> getTileSetEncodings();
