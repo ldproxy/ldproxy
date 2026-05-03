@@ -17,8 +17,8 @@ import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.ogcapi.oas30.domain.OpenApiExtension;
 import io.swagger.v3.oas.models.OpenAPI;
 import java.util.Comparator;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

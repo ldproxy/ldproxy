@@ -30,7 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import javax.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestContext;
 
 public abstract class QueryParameterF extends OgcApiQueryParameterBase
     implements TypedQueryParameter<ApiMediaType>, HttpRequestOverrideQueryParameter {

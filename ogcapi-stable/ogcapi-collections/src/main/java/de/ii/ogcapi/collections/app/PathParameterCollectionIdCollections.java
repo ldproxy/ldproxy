@@ -10,8 +10,8 @@ package de.ii.ogcapi.collections.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.domain.AbstractPathParameterCollectionId;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title collectionId

@@ -20,8 +20,8 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import java.util.Optional;
 import java.util.function.Function;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

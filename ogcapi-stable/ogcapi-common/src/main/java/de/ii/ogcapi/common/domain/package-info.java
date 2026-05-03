@@ -14,5 +14,5 @@ package de.ii.ogcapi.common.domain;
 
 import com.github.azahnen.dagger.annotations.AutoModule;
 import de.ii.xtraplatform.entities.domain.maptobuilder.encoding.BuildableMapEncodingEnabled;
-import javax.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.ext.MessageBodyWriter;
 import org.immutables.value.Value;

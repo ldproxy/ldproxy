@@ -23,8 +23,8 @@ import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSets;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsFormatExtension;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title HTML

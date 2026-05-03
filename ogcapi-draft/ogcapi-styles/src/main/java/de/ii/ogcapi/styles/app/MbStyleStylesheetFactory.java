@@ -15,8 +15,8 @@ import de.ii.xtraplatform.values.domain.AutoValue;
 import de.ii.xtraplatform.values.domain.AutoValueFactory;
 import de.ii.xtraplatform.values.domain.ValueFactoryAuto;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

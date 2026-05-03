@@ -19,8 +19,8 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

@@ -15,8 +15,8 @@ import de.ii.xtraplatform.web.domain.StaticResources;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

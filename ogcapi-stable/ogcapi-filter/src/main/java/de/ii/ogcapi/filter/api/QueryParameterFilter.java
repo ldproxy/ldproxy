@@ -53,8 +53,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 // TODO
 // @endpoints {@link de.ii.ogcapi.features.core.app.EndpointFeatures},{@link

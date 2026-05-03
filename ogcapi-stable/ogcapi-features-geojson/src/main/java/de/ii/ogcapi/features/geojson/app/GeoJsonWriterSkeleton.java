@@ -13,8 +13,8 @@ import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import java.io.IOException;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @author zahnen

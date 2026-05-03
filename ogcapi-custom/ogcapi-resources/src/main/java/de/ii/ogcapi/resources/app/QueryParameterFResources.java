@@ -17,8 +17,8 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @langEn Select the output format of the response. If no value is provided, the standard HTTP

@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Context;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Context;
 
 public abstract class EndpointSubCollection extends Endpoint {
 

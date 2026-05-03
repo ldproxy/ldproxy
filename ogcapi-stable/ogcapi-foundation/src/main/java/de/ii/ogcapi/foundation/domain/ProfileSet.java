@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.MediaType;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * The following types of profile extensions are distinguished:

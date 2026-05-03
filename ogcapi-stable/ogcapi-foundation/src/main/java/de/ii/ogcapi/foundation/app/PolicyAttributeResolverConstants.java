@@ -15,8 +15,8 @@ import de.ii.ogcapi.foundation.domain.ApiSecurity.PolicyAttribute;
 import de.ii.ogcapi.foundation.domain.PolicyAttributeResolver;
 import java.util.Map;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

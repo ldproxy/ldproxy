@@ -14,9 +14,9 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.tiles.domain.MapTileFormatExtension;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * @title WEBP

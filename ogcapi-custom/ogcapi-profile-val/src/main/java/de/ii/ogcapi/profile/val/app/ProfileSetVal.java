@@ -16,9 +16,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.val.domain.ProfileValConfiguration;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 @Singleton
 @AutoBind

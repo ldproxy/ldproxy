@@ -18,7 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.ws.rs.core.Request;
+import jakarta.ws.rs.core.Request;
 import org.immutables.value.Value;
 
 public interface ApiRequestContext {

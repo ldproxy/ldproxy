@@ -23,8 +23,8 @@ import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title HTML

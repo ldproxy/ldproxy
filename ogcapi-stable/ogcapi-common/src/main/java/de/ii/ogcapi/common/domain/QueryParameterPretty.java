@@ -21,7 +21,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestContext;
 
 public abstract class QueryParameterPretty extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Boolean>, HttpRequestOverrideQueryParameter {

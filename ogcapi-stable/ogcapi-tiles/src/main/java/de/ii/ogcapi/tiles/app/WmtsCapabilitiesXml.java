@@ -26,9 +26,9 @@ import de.ii.ogcapi.tiles.domain.WmtsCapabilitiesFormatExtension;
 import de.ii.ogcapi.tiles.domain.WmtsServiceMetadata;
 import de.ii.xtraplatform.tiles.domain.JacksonXmlAnnotation.XmlIgnore;
 import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * @title WMTS 1.0.0 Capabilities

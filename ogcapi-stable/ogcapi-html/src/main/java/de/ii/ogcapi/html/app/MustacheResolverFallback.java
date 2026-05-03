@@ -12,8 +12,8 @@ import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.xtraplatform.web.domain.PartialMustacheResolver;
 import de.ii.xtraplatform.web.domain.PerClassMustacheResolver;
 import java.io.Reader;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /** Reuse the per class loader, but switch to the HTML module context. */
 @Singleton

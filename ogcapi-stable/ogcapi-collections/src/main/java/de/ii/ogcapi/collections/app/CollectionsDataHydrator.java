@@ -20,8 +20,8 @@ import de.ii.xtraplatform.services.domain.ServicesContext;
 import java.net.URI;
 import java.util.AbstractMap;
 import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

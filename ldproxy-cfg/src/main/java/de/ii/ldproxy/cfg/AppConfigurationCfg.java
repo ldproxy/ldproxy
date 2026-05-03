@@ -22,7 +22,7 @@ import de.ii.xtraplatform.base.domain.RedisConfiguration;
 import de.ii.xtraplatform.base.domain.ServerConfiguration;
 import de.ii.xtraplatform.base.domain.StoreConfiguration;
 import java.util.Map;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 
 class AppConfigurationCfg extends AppConfiguration {
 

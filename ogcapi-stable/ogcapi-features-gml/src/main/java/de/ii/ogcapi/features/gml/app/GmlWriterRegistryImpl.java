@@ -14,8 +14,8 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
 import java.util.List;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

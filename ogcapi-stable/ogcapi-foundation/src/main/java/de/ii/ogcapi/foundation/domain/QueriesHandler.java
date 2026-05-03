@@ -24,13 +24,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Variant;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Variant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -196,7 +196,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
 
     if (Objects.nonNull(links)) {
       // skip URI templates in the Link header as these are not RFC 8288 links
-      List<javax.ws.rs.core.Link> headerLinks =
+      List<jakarta.ws.rs.core.Link> headerLinks =
           links.stream()
               .filter(link -> link.getTemplated() == null || !link.getTemplated())
               .sorted(Link.COMPARATOR_LINKS)
@@ -245,10 +245,10 @@ public interface QueriesHandler<T extends QueryIdentifier> {
   default void applyLinks(
       Response.ResponseBuilder response,
       int maxResponseLinkHeaderSize,
-      List<javax.ws.rs.core.Link> headerLinks,
+      List<jakarta.ws.rs.core.Link> headerLinks,
       List<String> headerLinkTemplates) {
 
-    List<javax.ws.rs.core.Link> links = headerLinks;
+    List<jakarta.ws.rs.core.Link> links = headerLinks;
     List<String> linkTemplates = headerLinkTemplates;
 
     if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
@@ -272,7 +272,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
     linkTemplates.forEach(template -> response.header("Link-Template", template));
   }
 
-  default int linksSize(List<javax.ws.rs.core.Link> links, List<String> linkTemplates) {
+  default int linksSize(List<jakarta.ws.rs.core.Link> links, List<String> linkTemplates) {
     return links.stream().map(l -> l.toString().length()).mapToInt(Integer::intValue).sum()
         + linkTemplates.stream().map(String::length).mapToInt(Integer::intValue).sum();
   }

@@ -31,8 +31,8 @@ import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title HTML

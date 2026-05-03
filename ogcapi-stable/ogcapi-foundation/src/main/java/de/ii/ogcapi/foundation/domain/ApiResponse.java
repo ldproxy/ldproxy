@@ -15,7 +15,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import org.immutables.value.Value;
 
 /**

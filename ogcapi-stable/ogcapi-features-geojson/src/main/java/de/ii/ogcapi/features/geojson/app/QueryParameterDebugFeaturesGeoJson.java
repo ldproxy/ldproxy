@@ -26,8 +26,8 @@ import io.swagger.v3.oas.models.media.Schema;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @langEn Debug option in development environments: Log debug information for the GeoJSON output.

@@ -14,8 +14,8 @@ import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.xtraplatform.base.domain.ImmutableJacksonSubType;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

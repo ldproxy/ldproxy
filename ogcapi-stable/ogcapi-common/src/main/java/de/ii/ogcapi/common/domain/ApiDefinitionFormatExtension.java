@@ -12,7 +12,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 @AutoMultiBind
 public interface ApiDefinitionFormatExtension extends FormatExtension {

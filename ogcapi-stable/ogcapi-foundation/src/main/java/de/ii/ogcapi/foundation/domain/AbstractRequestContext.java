@@ -11,8 +11,8 @@ import de.ii.xtraplatform.web.domain.ForwardedUri;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.Request;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Request;
 import org.immutables.value.Value;
 
 @Value.Immutable

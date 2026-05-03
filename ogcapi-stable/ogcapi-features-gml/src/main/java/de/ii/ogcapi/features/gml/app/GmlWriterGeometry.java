@@ -17,8 +17,8 @@ import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @SuppressWarnings("ConstantConditions")
 @Singleton

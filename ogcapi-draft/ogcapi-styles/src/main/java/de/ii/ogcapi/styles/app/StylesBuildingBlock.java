@@ -26,8 +26,8 @@ import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title Styles

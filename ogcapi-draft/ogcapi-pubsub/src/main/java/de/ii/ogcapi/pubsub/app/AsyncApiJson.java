@@ -19,9 +19,9 @@ import de.ii.ogcapi.pubsub.domain.AsyncApiDefinitionFormatExtension;
 import de.ii.ogcapi.pubsub.domain.asyncapi.AsyncApi;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * @title JSON

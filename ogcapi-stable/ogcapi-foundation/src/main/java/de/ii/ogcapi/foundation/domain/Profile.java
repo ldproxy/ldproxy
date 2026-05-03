@@ -12,7 +12,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import java.util.Arrays;
 import java.util.List;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @AutoMultiBind
 public interface Profile extends ApiExtension {

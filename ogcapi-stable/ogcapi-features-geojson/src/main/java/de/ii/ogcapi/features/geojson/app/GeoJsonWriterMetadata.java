@@ -15,8 +15,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.OptionalLong;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @author zahnen

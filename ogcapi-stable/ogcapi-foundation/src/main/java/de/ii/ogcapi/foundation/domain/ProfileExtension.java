@@ -12,7 +12,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import java.util.List;
 import java.util.Optional;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * The following types of profile extensions are distinguished:

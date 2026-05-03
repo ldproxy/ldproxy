@@ -19,8 +19,8 @@ import de.ii.xtraplatform.base.domain.util.Tuple;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

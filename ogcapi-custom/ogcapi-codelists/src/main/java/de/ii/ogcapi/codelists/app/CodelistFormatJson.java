@@ -21,8 +21,8 @@ import de.ii.xtraplatform.codelists.domain.Codelist;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
 import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title JSON

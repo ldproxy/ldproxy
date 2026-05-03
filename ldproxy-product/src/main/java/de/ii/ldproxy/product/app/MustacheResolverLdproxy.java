@@ -11,8 +11,8 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.xtraplatform.web.domain.PartialMustacheResolver;
 import de.ii.xtraplatform.web.domain.PerClassMustacheResolver;
 import java.io.Reader;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

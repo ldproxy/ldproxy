@@ -7,12 +7,12 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import static javax.ws.rs.core.MediaType.MEDIA_TYPE_WILDCARD;
+import static jakarta.ws.rs.core.MediaType.MEDIA_TYPE_WILDCARD;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

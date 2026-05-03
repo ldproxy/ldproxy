@@ -18,9 +18,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles.domain.MapTileFormatExtension;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 /**
  * @title PNG

@@ -9,10 +9,10 @@ package de.ii.ogcapi.foundation.infra.rest;
 
 import java.util.Locale;
 import java.util.Optional;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.UriInfo;
 
 public interface ContentNegotiationLanguage {
   Optional<Locale> negotiateLanguage(ContainerRequestContext requestContext);
