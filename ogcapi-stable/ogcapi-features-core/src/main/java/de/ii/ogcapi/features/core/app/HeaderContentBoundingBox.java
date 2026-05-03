@@ -19,11 +19,11 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

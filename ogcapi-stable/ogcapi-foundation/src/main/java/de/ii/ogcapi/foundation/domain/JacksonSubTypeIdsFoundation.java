@@ -11,9 +11,9 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.xtraplatform.base.domain.ImmutableJacksonSubType;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @AutoBind

@@ -17,6 +17,8 @@ import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.features.geojson.ld.domain.GeoJsonLdConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +26,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

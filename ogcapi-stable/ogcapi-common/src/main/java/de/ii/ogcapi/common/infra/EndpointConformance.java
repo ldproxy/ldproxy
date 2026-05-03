@@ -32,13 +32,13 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @title Conformance Declaration

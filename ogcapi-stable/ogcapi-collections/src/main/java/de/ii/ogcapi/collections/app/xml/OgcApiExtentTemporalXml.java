@@ -9,10 +9,10 @@ package de.ii.ogcapi.collections.app.xml;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import javax.annotation.Nullable;
 import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlType;
+import javax.annotation.Nullable;
 
 @XmlType(propOrder = {"begin", "end"})
 public class OgcApiExtentTemporalXml {

@@ -17,9 +17,9 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.routes.domain.ImmutableHtmlForm;
 import de.ii.ogcapi.routes.domain.ImmutableRoutingConfiguration;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 /**
  * @title Routing

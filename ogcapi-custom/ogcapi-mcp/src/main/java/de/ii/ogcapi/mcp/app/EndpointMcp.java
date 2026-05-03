@@ -24,9 +24,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpServer;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.ServletException;
@@ -34,6 +31,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.core.Context;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @title MCP

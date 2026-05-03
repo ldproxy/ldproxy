@@ -22,11 +22,11 @@ import de.ii.ogcapi.tiles.domain.TileSet;
 import de.ii.ogcapi.tiles.domain.TileSetFormatExtension;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.Map;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @title JSON

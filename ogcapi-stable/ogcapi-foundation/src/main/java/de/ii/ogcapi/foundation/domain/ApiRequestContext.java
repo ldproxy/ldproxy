@@ -12,13 +12,13 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.WebContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.ws.rs.core.Request;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import jakarta.ws.rs.core.Request;
 import org.immutables.value.Value;
 
 public interface ApiRequestContext {

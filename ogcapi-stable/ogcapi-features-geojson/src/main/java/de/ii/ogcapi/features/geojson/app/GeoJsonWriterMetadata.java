@@ -10,13 +10,13 @@ package de.ii.ogcapi.features.geojson.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.OptionalLong;
 import java.util.function.Consumer;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @author zahnen

@@ -14,9 +14,9 @@ import de.ii.ogcapi.features.core.domain.ItemTypeSpecificConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.oas30.domain.Oas30Configuration;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -98,6 +98,14 @@ import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
 import de.ii.xtraplatform.tiles.domain.WithCenter.LonLat;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServerErrorException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.MessageFormat;
@@ -111,14 +119,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.ServerErrorException;
-import jakarta.ws.rs.core.EntityTag;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 @Singleton
 @AutoBind
@@ -249,7 +249,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             .map(this::getTileMatrixSetById)
             .filter(
                 tileMatrixSet ->
-                    !onlyWebMercatorQuad || tileMatrixSet.getId().equals("WebMercatorQuad"))
+                    !onlyWebMercatorQuad || "WebMercatorQuad".equals(tileMatrixSet.getId()))
             .collect(Collectors.toUnmodifiableList());
 
     dataType.ifPresent(
@@ -278,7 +278,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
                 || (collectionId.isEmpty()
                         ? apiData.getExtension(HtmlConfiguration.class)
                         : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
@@ -368,7 +368,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
                 || (collectionId.isEmpty()
                         ? apiData.getExtension(HtmlConfiguration.class)
                         : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))

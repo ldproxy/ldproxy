@@ -27,14 +27,14 @@ import de.ii.xtraplatform.tiles.domain.TileProvider;
 import de.ii.xtraplatform.tiles.domain.TileProviderData;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @langEn The parameter restricts the number of features that are included in the tile.
@@ -73,8 +73,8 @@ public class QueryParameterLimitTile extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals(
-        "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+        .equals(definitionPath);
   }
 
   private final ConcurrentMap<Integer, Map<String, Schema<?>>> schemaMap =
@@ -152,7 +152,7 @@ public class QueryParameterLimitTile extends OgcApiQueryParameterBase
                           defaults ->
                               Optional.ofNullable(
                                   ((TileGenerationOptions) defaults).getFeatureLimit())))
-          .filter(limit -> limit != 100000)
+          .filter(limit -> limit != 100_000)
           .orElse(null);
     }
 

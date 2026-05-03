@@ -14,9 +14,9 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.docs.DocIgnore;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 @DocIgnore
 @Singleton

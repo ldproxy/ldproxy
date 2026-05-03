@@ -32,6 +32,8 @@ import de.ii.xtraplatform.features.domain.SortKey.Direction;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -40,8 +42,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title sortby

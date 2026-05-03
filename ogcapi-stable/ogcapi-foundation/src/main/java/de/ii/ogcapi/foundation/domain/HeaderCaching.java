@@ -7,9 +7,9 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import jakarta.ws.rs.core.EntityTag;
 import java.util.Date;
 import java.util.Optional;
-import jakarta.ws.rs.core.EntityTag;
 import org.immutables.value.Value;
 
 @Value.Immutable

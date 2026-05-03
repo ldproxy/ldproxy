@@ -23,11 +23,11 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /** add a link to the 3D Tiles tileset to the collection */
 @Singleton

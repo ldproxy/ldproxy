@@ -16,9 +16,9 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpConfiguration;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 /**
  * @title MCP

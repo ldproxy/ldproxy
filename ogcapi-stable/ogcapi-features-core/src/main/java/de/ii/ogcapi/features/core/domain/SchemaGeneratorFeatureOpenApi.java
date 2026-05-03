@@ -24,14 +24,14 @@ import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

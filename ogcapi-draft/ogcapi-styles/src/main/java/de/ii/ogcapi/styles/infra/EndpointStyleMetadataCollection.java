@@ -33,10 +33,6 @@ import de.ii.ogcapi.styles.domain.QueriesHandlerStyles;
 import de.ii.ogcapi.styles.domain.StyleMetadataFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -46,6 +42,10 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +106,7 @@ public class EndpointStyleMetadataCollection extends EndpointSubCollection
     final List<OgcApiPathParameter> pathParameters =
         getPathParameters(extensionRegistry, apiData, path);
     final Optional<OgcApiPathParameter> optCollectionIdParam =
-        pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
     if (!optCollectionIdParam.isPresent()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"

@@ -17,9 +17,9 @@ import de.ii.ogcapi.foundation.domain.ProfileFilter;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @AutoBind

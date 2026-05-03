@@ -30,7 +30,7 @@ public class PathParameterCollectionIdCollections extends AbstractPathParameterC
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}");
+    return "/collections/{collectionId}".equals(definitionPath);
   }
 
   @Override

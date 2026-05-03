@@ -16,11 +16,11 @@ import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
 import de.ii.ogcapi.foundation.domain.PolicyObligationFulfiller;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.util.Tuple;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

@@ -18,10 +18,10 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +81,7 @@ public class PathParameterFeatureIdFeatures implements OgcApiPathParameter {
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
-        && definitionPath.equals("/collections/{collectionId}/items/{featureId}");
+        && "/collections/{collectionId}/items/{featureId}".equals(definitionPath);
   }
 
   @Override

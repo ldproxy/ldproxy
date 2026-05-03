@@ -11,8 +11,8 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.Optional;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface QueriesHandlerStylesManager

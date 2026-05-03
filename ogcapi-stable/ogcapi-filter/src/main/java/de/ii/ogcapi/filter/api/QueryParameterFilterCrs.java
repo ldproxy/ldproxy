@@ -29,6 +29,8 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,8 +38,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title filter-crs
@@ -88,10 +88,10 @@ public class QueryParameterFilterCrs extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}")
-        || definitionPath.equals(
-            "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}".equals(definitionPath)
+        || "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+            .equals(definitionPath);
   }
 
   @Override
@@ -121,7 +121,7 @@ public class QueryParameterFilterCrs extends OgcApiQueryParameterBase
     if (collectionData
             .map(cd -> !crsSupport.isSupported(api.getData(), cd, filterCrs))
             .orElse(!crsSupport.isSupported(api.getData(), filterCrs))
-        && !filterCrs.equals(OgcCrs.CRS84)) {
+        && !OgcCrs.CRS84.equals(filterCrs)) {
       throw new IllegalArgumentException(
           String.format(
               "The parameter '%s' is invalid: the crs '%s' is not supported",

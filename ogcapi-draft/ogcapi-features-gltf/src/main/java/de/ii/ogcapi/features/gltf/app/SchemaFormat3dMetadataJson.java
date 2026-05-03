@@ -18,10 +18,10 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Map;
 
 @Singleton
 @AutoBind

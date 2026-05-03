@@ -90,6 +90,16 @@ import de.ii.xtraplatform.streams.domain.Reactive.Sink;
 import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
@@ -108,16 +118,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.EntityTag;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.StreamingOutput;
 
 @Singleton
 @AutoBind
@@ -538,7 +538,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private boolean sendEtag(ApiMediaType format, OgcApiDataV2 apiData) {
-    return !format.type().equals(MediaType.TEXT_HTML_TYPE)
+    return !MediaType.TEXT_HTML_TYPE.equals(format.type())
         || apiData
             .getExtension(HtmlConfiguration.class)
             .map(HtmlConfiguration::getSendEtags)

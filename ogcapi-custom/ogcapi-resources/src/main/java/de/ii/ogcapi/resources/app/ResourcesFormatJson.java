@@ -16,9 +16,9 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.resources.domain.ResourcesFormatExtension;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Map;
 
 /**
  * @title JSON

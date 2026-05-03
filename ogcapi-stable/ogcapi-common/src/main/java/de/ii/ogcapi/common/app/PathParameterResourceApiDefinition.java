@@ -16,12 +16,12 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,7 @@ public class PathParameterResourceApiDefinition implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData) && definitionPath.equals("/api/{resource}");
+    return isEnabledForApi(apiData) && "/api/{resource}".equals(definitionPath);
   }
 
   @Override

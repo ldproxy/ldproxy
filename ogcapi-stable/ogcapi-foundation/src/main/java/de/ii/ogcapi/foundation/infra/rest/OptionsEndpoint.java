@@ -19,11 +19,6 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.auth.domain.User;
 import io.dropwizard.auth.Auth;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
@@ -34,6 +29,11 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 @AutoBind
@@ -94,7 +94,7 @@ public class OptionsEndpoint implements EndpointExtension {
     // which methods are supported.
     Set<String> supportedMethods =
         Arrays.stream(HttpMethods.values())
-            .filter(method -> !method.equals(HttpMethods.OPTIONS))
+            .filter(method -> !HttpMethods.OPTIONS.equals(method))
             .map(Enum::toString)
             .filter(method -> findEndpoint(apiData, entrypoint, subPath, method).isPresent())
             .collect(Collectors.toSet());

@@ -25,10 +25,10 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tiles.domain.WmtsCapabilitiesFormatExtension;
 import de.ii.ogcapi.tiles.domain.WmtsServiceMetadata;
 import de.ii.xtraplatform.tiles.domain.JacksonXmlAnnotation.XmlIgnore;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Map;
 
 /**
  * @title WMTS 1.0.0 Capabilities

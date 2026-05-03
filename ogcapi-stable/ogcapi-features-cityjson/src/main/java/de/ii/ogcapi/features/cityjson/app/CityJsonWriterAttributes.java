@@ -12,11 +12,11 @@ import de.ii.ogcapi.features.cityjson.domain.CityJsonWriter;
 import de.ii.ogcapi.features.cityjson.domain.EncodingAwareContextCityJson;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -153,7 +153,7 @@ public class CityJsonWriterAttributes implements CityJsonWriter {
           && !(context.getState().inBuildingPart() && CityJsonWriter.ID.equals(schema.getName()))
           && context.getState().getAttributesBuffer().isPresent()) {
         String name = schema.getName();
-        if (!name.equals("gml_id")) {
+        if (!"gml_id".equals(name)) {
           context.getState().getAttributesBuffer().get().writeFieldName(name);
           context.encoding().writeAttributeValue(value, schema.getType());
         }

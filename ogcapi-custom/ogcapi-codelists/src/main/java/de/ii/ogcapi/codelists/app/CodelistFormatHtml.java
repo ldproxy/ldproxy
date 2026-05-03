@@ -22,13 +22,13 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title HTML

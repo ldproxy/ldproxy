@@ -23,12 +23,12 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title offset

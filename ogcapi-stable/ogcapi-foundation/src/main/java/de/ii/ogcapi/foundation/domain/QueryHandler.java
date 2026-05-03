@@ -7,8 +7,8 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import java.util.function.BiFunction;
 import jakarta.ws.rs.core.Response;
+import java.util.function.BiFunction;
 import org.immutables.value.Value;
 
 @Value.Immutable

@@ -18,10 +18,10 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.styles.app.StylesBuildingBlock;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
-import java.util.Objects;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Objects;
+import java.util.Optional;
 
 @Singleton
 @AutoBind

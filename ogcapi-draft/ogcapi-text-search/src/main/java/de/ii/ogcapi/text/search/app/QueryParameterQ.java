@@ -33,6 +33,8 @@ import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -41,8 +43,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title q
@@ -110,7 +110,7 @@ public class QueryParameterQ extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items");
+    return "/collections/{collectionId}/items".equals(definitionPath);
   }
 
   @Override

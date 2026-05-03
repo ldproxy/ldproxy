@@ -30,14 +30,14 @@ import de.ii.xtraplatform.tiles.domain.TileGenerationSchema;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @langEn The collections of the dataset that should be included in the tile. The parameter value
@@ -80,7 +80,7 @@ public class QueryParameterCollections extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}".equals(definitionPath);
   }
 
   private final Map<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();

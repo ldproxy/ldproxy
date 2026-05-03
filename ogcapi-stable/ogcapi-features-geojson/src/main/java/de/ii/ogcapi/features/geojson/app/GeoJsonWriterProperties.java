@@ -15,11 +15,11 @@ import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.geometries.domain.transcode.json.GeometryEncoderJson;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @author zahnen
@@ -201,7 +201,7 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       case BOOLEAN:
         // TODO: normalize in decoder
         json.writeBoolean(
-            value.equalsIgnoreCase("t") || value.equalsIgnoreCase("true") || value.equals("1"));
+            value.equalsIgnoreCase("t") || value.equalsIgnoreCase("true") || "1".equals(value));
         break;
       case INTEGER:
         try {

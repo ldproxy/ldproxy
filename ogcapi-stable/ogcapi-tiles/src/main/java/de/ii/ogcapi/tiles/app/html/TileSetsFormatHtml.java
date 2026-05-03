@@ -28,11 +28,11 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title HTML

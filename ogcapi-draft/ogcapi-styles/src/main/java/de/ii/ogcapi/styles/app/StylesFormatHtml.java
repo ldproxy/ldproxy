@@ -21,10 +21,10 @@ import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.styles.domain.Styles;
 import de.ii.ogcapi.styles.domain.StylesFormatExtension;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @title HTML

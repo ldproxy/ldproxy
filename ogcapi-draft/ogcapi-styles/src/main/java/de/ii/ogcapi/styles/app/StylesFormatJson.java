@@ -17,10 +17,10 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.styles.domain.Styles;
 import de.ii.ogcapi.styles.domain.StylesFormatExtension;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.Map;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @title JSON

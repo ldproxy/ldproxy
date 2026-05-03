@@ -16,16 +16,16 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 @Singleton
 @AutoBind

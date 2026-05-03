@@ -41,7 +41,7 @@ public class QueryParameterFCollections extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections");
+    return "/collections".equals(definitionPath);
   }
 
   @Override

@@ -41,12 +41,6 @@ import de.ii.ogcapi.styles.domain.manager.QueriesHandlerStylesManager;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,6 +54,12 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +129,7 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
     String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     Optional<OgcApiPathParameter> optCollectionIdParam =
-        pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
     if (!optCollectionIdParam.isPresent()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"
@@ -202,7 +202,7 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
     path = "/collections/{collectionId}" + subSubPath;
     pathParameters = getPathParameters(extensionRegistry, apiData, path);
     optCollectionIdParam =
-        pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
     if (!optCollectionIdParam.isPresent()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"

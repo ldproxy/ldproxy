@@ -18,11 +18,11 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title tileCol

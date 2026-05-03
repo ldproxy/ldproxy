@@ -23,11 +23,11 @@ import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import io.dropwizard.auth.oauth.OAuthCredentialAuthFilter;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
-import java.util.Map;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @title token

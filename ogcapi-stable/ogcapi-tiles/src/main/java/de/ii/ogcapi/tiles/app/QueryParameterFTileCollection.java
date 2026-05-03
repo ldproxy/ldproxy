@@ -22,14 +22,14 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title f
@@ -96,7 +96,7 @@ public class QueryParameterFTileCollection extends QueryParameterF {
                   apiData.getCollections().keySet().stream()
                       .anyMatch(collectionId -> f.isEnabledForApi(apiData, collectionId)))
           .filter(f -> !f.isInternal())
-          .filter(f -> !f.getMediaType().parameter().equals("*"))
+          .filter(f -> !"*".equals(f.getMediaType().parameter()))
           .map(f -> f.getMediaType().parameter())
           .distinct()
           .sorted()

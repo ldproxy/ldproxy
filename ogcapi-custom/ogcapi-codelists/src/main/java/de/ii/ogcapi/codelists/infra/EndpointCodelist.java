@@ -32,9 +32,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -44,6 +41,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +100,7 @@ public class EndpointCodelist extends Endpoint implements ApiExtensionHealth {
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path);
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    if (pathParameters.stream().noneMatch(param -> param.getName().equals("codelistId"))) {
+    if (pathParameters.stream().noneMatch(param -> "codelistId".equals(param.getName()))) {
       LOGGER.error(
           "Path parameter 'codelistId' missing for resource at path '{}'. The GET method will not be available.",
           path);

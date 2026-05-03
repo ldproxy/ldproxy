@@ -48,6 +48,9 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -57,9 +60,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.core.MediaType;
 
 @AutoBind
 @Singleton
@@ -270,7 +270,7 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
             && solid.isSpatial()
             && solid
                 .getGeometryType()
-                .filter(gt -> gt.equals(GeometryType.MULTI_POLYGON))
+                .filter(gt -> GeometryType.MULTI_POLYGON.equals(gt))
                 .isPresent();
     if (!valid) {
       builder.addErrors(
@@ -296,15 +296,15 @@ public class FeaturesFormatGltfBinary extends FeatureFormatExtension {
     //noinspection ConstantConditions
     boolean valid =
         Objects.nonNull(surfaces)
-            && surfaces.getType().equals(Type.OBJECT_ARRAY)
+            && Type.OBJECT_ARRAY.equals(surfaces.getType())
             && surfaces.getPropertyMap().containsKey("surfaceType")
-            && surfaces.getPropertyMap().get("surfaceType").getType().equals(Type.STRING)
+            && Type.STRING.equals(surfaces.getPropertyMap().get("surfaceType").getType())
             && surfaces.getPropertyMap().containsKey("lod2MultiSurface")
             && surfaces
                 .getPropertyMap()
                 .get("lod2MultiSurface")
                 .getGeometryType()
-                .filter(gt -> gt.equals(GeometryType.MULTI_POLYGON))
+                .filter(gt -> GeometryType.MULTI_POLYGON.equals(gt))
                 .isPresent();
     if (!valid) {
       builder.addErrors(

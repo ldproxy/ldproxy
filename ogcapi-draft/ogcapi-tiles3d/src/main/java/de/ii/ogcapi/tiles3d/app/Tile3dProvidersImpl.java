@@ -16,9 +16,9 @@ import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 @Singleton
 @AutoBind

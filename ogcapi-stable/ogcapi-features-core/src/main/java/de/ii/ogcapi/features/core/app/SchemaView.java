@@ -120,9 +120,9 @@ public abstract class SchemaView extends OgcApiView implements FormatHtml {
     if (value instanceof JsonSchemaString) {
       Optional<String> format = ((JsonSchemaString) value).getFormat();
       if (format.isPresent()) {
-        if (format.get().equals("date-time")) {
+        if ("date-time".equals(format.get())) {
           builder2.type("date-time");
-        } else if (format.get().equals("date")) {
+        } else if ("date".equals(format.get())) {
           builder2.type("date");
         } else {
           builder2.type("string");

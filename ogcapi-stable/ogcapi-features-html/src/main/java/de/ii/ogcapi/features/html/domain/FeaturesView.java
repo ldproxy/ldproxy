@@ -178,7 +178,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
 
   @Value.Derived
   public MapClient mapClient() {
-    if (mapClientType().equals(MapClient.Type.MAP_LIBRE)) {
+    if (MapClient.Type.MAP_LIBRE.equals(mapClientType())) {
 
       return new ImmutableMapClient.Builder()
           .backgroundUrl(Optional.ofNullable(htmlConfig().getBasemapUrl()))
@@ -207,7 +207,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
           .removeZoomLevelConstraints(removeZoomLevelConstraints())
           .useBounds(true)
           .build();
-    } else if (mapClientType().equals(MapClient.Type.CESIUM)) {
+    } else if (MapClient.Type.CESIUM.equals(mapClientType())) {
       return new ImmutableMapClient.Builder()
           .type(mapClientType())
           .backgroundUrl(
@@ -393,7 +393,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
       List<NameValuePair> query =
           new URIBuilder(RawQuery())
               .getQueryParams().stream()
-                  .filter(kvp -> !kvp.getName().equals("offset") && !kvp.getName().equals("limit"))
+                  .filter(kvp -> !"offset".equals(kvp.getName()) && !"limit".equals(kvp.getName()))
                   .collect(Collectors.toList());
 
       if (query.isEmpty()) {

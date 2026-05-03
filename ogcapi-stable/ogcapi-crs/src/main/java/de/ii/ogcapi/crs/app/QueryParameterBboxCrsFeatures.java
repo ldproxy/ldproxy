@@ -24,6 +24,8 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,8 +33,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title bbox-crs
@@ -94,7 +94,7 @@ public class QueryParameterBboxCrsFeatures extends OgcApiQueryParameterBase
     }
     // CRS84 is always supported
     if (!crsSupport.isSupported(api.getData(), collectionData, bboxCrs)
-        && !bboxCrs.equals(OgcCrs.CRS84)) {
+        && !OgcCrs.CRS84.equals(bboxCrs)) {
       throw new IllegalArgumentException(
           String.format(
               "The parameter '%s' is invalid: the coordinate reference system '%s' is not supported",
@@ -111,7 +111,7 @@ public class QueryParameterBboxCrsFeatures extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items");
+    return "/collections/{collectionId}/items".equals(definitionPath);
   }
 
   private final ConcurrentMap<Integer, ConcurrentMap<String, Schema<?>>> schemaMap =

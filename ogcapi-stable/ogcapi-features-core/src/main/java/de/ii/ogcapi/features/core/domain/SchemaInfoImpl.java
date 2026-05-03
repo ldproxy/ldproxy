@@ -14,6 +14,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Vector;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

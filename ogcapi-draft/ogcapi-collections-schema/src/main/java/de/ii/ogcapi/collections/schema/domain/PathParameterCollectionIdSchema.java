@@ -14,9 +14,9 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 /**
  * @title collectionId
@@ -40,7 +40,7 @@ public class PathParameterCollectionIdSchema extends AbstractPathParameterCollec
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/schema");
+    return "/collections/{collectionId}/schema".equals(definitionPath);
   }
 
   @Override

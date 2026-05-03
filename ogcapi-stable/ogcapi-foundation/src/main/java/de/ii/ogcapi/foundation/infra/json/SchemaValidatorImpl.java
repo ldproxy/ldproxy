@@ -19,11 +19,11 @@ import com.networknt.schema.SpecVersion;
 import com.networknt.schema.SpecVersionDetector;
 import com.networknt.schema.ValidationMessage;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

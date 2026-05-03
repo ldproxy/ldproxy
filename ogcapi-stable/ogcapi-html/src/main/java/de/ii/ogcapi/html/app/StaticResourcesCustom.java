@@ -12,11 +12,11 @@ import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.web.domain.StaticResourceReader;
 import de.ii.xtraplatform.web.domain.StaticResourceReader.CachedResource;
 import de.ii.xtraplatform.web.domain.StaticResources;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

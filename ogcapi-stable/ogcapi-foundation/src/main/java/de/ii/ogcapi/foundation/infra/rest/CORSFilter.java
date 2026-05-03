@@ -9,13 +9,13 @@ package de.ii.ogcapi.foundation.infra.rest;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.util.Objects;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import java.io.IOException;
+import java.util.Objects;
 
 @Singleton
 @AutoBind

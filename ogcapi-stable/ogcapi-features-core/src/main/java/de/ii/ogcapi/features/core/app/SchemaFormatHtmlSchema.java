@@ -22,9 +22,9 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @AutoBind

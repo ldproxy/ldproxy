@@ -24,11 +24,11 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration.WmtsScope;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /** add tiling information to the dataset metadata */
 @Singleton

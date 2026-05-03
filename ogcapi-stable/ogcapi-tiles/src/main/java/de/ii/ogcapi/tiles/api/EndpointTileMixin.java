@@ -37,16 +37,16 @@ import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.xtraplatform.tiles.domain.MinMax;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServerErrorException;
+import jakarta.ws.rs.core.MediaType;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.ServerErrorException;
-import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +76,7 @@ public interface EndpointTileMixin {
     final List<OgcApiPathParameter> pathParameters =
         endpoint.getPathParameters(extensionRegistry, apiData, path);
     final Optional<OgcApiPathParameter> optCollectionIdParam =
-        pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
     if (optCollectionIdParam.isEmpty()) {
       LOGGER.error(
           "Path parameter 'collectionId' missing for resource at path '"
@@ -294,7 +294,7 @@ public interface EndpointTileMixin {
                 optionalCollectionId
                     .map(
                         collectionId ->
-                            collectionId.equals("{collectionId}")
+                            "{collectionId}".equals(collectionId)
                                 ? apiData.getCollections().keySet().stream()
                                     .anyMatch(
                                         cid ->

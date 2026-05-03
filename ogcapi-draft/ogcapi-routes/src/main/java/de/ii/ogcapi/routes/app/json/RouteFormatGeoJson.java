@@ -24,11 +24,11 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.routes.domain.Route;
 import de.ii.ogcapi.routes.domain.RouteFormatExtension;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.List;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

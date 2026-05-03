@@ -122,7 +122,7 @@ public interface GmlConfiguration
 
   @Value.Derived
   default Conformance getConformance() {
-    if (!Objects.requireNonNullElse(getGmlVersion(), GML32).equals(GML32)) {
+    if (!GML32.equals(Objects.requireNonNullElse(getGmlVersion(), GML32))) {
       return Conformance.NONE;
     }
 

@@ -12,14 +12,14 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.custom.extensions.domain.Geometry;
 import de.ii.ogcapi.features.custom.extensions.domain.GeometryHelperWKT;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Objects;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -121,7 +121,7 @@ public class GeometryHelperWKTImpl implements GeometryHelperWKT {
     throw new IllegalStateException(
         String.format(
             "WKT cannot be converted to a geometry, unsupported geometry type '%s'.",
-            wkt.substring(0, wkt.indexOf("("))));
+            wkt.substring(0, wkt.indexOf('('))));
   }
 
   private Geometry.Coordinate extractPosition(String text) {
@@ -310,9 +310,9 @@ public class GeometryHelperWKTImpl implements GeometryHelperWKT {
           "Could not parse geometry from JSON string. The 'type' property is not a value.");
     } else {
       String type = typeNode.asText();
-      if (type.equals("Feature") && Objects.nonNull(geoJsonNode.get("geometry"))) {
+      if ("Feature".equals(type) && Objects.nonNull(geoJsonNode.get("geometry"))) {
         return convertGeoJsonToWkt(geoJsonNode.get("geometry"));
-      } else if (type.equals("FeatureCollection")
+      } else if ("FeatureCollection".equals(type)
           && Objects.nonNull(geoJsonNode.get("features"))
           && geoJsonNode.get("features").isArray()) {
         // pick the first feature
@@ -321,17 +321,17 @@ public class GeometryHelperWKTImpl implements GeometryHelperWKT {
         else
           throw new IllegalStateException(
               "Could not parse geometry from GeoJSON string. Empty feature collection.");
-      } else if (type.equals("Point")) {
+      } else if ("Point".equals(type)) {
         geom = this.createPoint(geoJsonNode.get("coordinates"));
-      } else if (type.equals("LineString")) {
+      } else if ("LineString".equals(type)) {
         geom = this.createLineString(geoJsonNode.get("coordinates"));
-      } else if (type.equals("Polygon")) {
+      } else if ("Polygon".equals(type)) {
         geom = this.createPolygon(geoJsonNode.get("coordinates"));
-      } else if (type.equals("MultiPoint")) {
+      } else if ("MultiPoint".equals(type)) {
         geom = this.createMultiPoint(geoJsonNode.get("coordinates"));
-      } else if (type.equals("MultiLineString")) {
+      } else if ("MultiLineString".equals(type)) {
         geom = this.createMultiLineString(geoJsonNode.get("coordinates"));
-      } else if (type.equals("MultiPolygon")) {
+      } else if ("MultiPolygon".equals(type)) {
         geom = this.createMultiPolygon(geoJsonNode.get("coordinates"));
       } else {
         throw new IllegalStateException(

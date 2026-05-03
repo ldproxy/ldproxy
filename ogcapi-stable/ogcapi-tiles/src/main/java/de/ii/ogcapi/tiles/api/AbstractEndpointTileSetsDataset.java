@@ -30,10 +30,10 @@ import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesQueriesHandler;
 import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
-import java.util.List;
-import java.util.Optional;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
 
 public abstract class AbstractEndpointTileSetsDataset extends Endpoint {
 

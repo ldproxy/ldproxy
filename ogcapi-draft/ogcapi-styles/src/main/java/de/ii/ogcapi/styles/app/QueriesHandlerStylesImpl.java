@@ -38,13 +38,6 @@ import de.ii.xtraplatform.blobs.domain.Blob;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.web.domain.LastModified;
-import java.text.MessageFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
@@ -52,6 +45,13 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 @AutoBind
@@ -126,7 +126,7 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
 
     Date lastModified = styles.getLastModified().orElse(null);
     EntityTag etag =
-        !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(format.getMediaType().type())
                 || (collectionId.isEmpty()
                         ? apiData.getExtension(HtmlConfiguration.class)
                         : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
@@ -199,7 +199,7 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
     Date lastModified =
         styleRepository.getStylesheetLastModified(apiData, collectionId, styleId, format, true);
     EntityTag etag =
-        !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(format.getMediaType().type())
                 || (collectionId.isEmpty()
                         ? apiData.getExtension(HtmlConfiguration.class)
                         : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))
@@ -253,7 +253,7 @@ public class QueriesHandlerStylesImpl extends AbstractVolatileComposed
     Date lastModified =
         styleRepository.getStyleLastModified(apiData, collectionId, queryInput.getStyleId());
     EntityTag etag =
-        !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(format.getMediaType().type())
                 || (collectionId.isEmpty()
                         ? apiData.getExtension(HtmlConfiguration.class)
                         : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))

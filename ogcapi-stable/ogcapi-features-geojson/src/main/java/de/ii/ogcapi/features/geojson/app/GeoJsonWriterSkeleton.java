@@ -11,10 +11,10 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import java.io.IOException;
-import java.util.function.Consumer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.io.IOException;
+import java.util.function.Consumer;
 
 /**
  * @author zahnen

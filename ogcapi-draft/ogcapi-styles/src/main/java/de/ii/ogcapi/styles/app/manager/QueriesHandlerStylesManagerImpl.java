@@ -23,13 +23,6 @@ import de.ii.ogcapi.styles.domain.manager.QueriesHandlerStylesManager;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Date;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
@@ -37,6 +30,13 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Date;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 @Singleton
 @AutoBind
@@ -149,7 +149,7 @@ public class QueriesHandlerStylesManagerImpl extends AbstractVolatileComposed
       Date lastModified =
           styleRepository.getStylesheetLastModified(apiData, collectionId, styleId, format, true);
       EntityTag etag =
-          !format.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+          !MediaType.TEXT_HTML_TYPE.equals(format.getMediaType().type())
                   || (collectionId.isEmpty()
                           ? apiData.getExtension(HtmlConfiguration.class)
                           : apiData.getExtension(HtmlConfiguration.class, collectionId.get()))

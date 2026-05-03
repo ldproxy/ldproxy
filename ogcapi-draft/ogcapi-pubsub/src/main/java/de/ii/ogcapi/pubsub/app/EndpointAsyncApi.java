@@ -31,14 +31,14 @@ import de.ii.ogcapi.pubsub.domain.QueriesHandlerPubSub.Query;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * @title AsyncAPI Definition

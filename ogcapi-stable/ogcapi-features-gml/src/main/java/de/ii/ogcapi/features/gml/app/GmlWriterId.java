@@ -11,11 +11,11 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

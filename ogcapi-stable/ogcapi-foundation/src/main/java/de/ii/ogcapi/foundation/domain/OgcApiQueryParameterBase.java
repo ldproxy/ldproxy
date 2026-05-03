@@ -17,7 +17,7 @@ public abstract class OgcApiQueryParameterBase extends ApiExtensionCache
         () ->
             matchesPath(definitionPath)
                 && isEnabledForApi(apiData)
-                && method.equals(HttpMethods.GET));
+                && HttpMethods.GET.equals(method));
   }
 
   @Override
@@ -32,6 +32,6 @@ public abstract class OgcApiQueryParameterBase extends ApiExtensionCache
         () ->
             matchesPath(definitionPath)
                 && isEnabledForApi(apiData, collectionId)
-                && method.equals(HttpMethods.GET));
+                && HttpMethods.GET.equals(method));
   }
 }

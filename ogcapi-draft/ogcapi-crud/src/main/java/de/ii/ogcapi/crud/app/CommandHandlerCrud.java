@@ -13,8 +13,8 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
-import java.io.InputStream;
 import jakarta.ws.rs.core.Response;
+import java.io.InputStream;
 import org.immutables.value.Value;
 
 public interface CommandHandlerCrud extends Volatile2 {

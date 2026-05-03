@@ -17,9 +17,9 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetFormatExtension;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetOgcApi;
 import io.swagger.v3.oas.models.media.Schema;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Map;
 
 /**
  * @title JSON

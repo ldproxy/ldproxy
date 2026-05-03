@@ -33,13 +33,13 @@ import de.ii.xtraplatform.cql.domain.TIntersects;
 import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParametersTransient;
 import de.ii.xtraplatform.tiles.domain.TileGenerationSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title datetime
@@ -64,8 +64,8 @@ public class QueryParameterDatetimeTile extends AbstractQueryParameterDatetime
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals(
-        "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+        .equals(definitionPath);
   }
 
   @Override

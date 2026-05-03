@@ -40,6 +40,13 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import de.ii.xtraplatform.values.domain.ValueStore;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Comparator;
 import java.util.Date;
@@ -48,13 +55,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.core.EntityTag;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 
 @Singleton
 @AutoBind
@@ -148,7 +148,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
 
     Optional<String> schemaUri =
         links.stream()
-            .filter(link -> link.getRel().equals("self"))
+            .filter(link -> "self".equals(link.getRel()))
             .map(Link::getHref)
             .map(link -> !link.contains("?") ? link : link.substring(0, link.indexOf("?")))
             .findAny();
@@ -174,7 +174,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
                 || apiData
                     .getExtension(HtmlConfiguration.class, collectionId)
                     .map(HtmlConfiguration::getSendEtags)

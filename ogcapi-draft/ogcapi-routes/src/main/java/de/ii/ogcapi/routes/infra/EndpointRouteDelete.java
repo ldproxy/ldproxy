@@ -34,9 +34,6 @@ import de.ii.ogcapi.routes.domain.RoutingConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DELETE;
@@ -44,6 +41,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +99,7 @@ public class EndpointRouteDelete extends Endpoint implements ApiExtensionHealth 
     ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
         new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
-    if (pathParameters.stream().noneMatch(param -> param.getName().equals("routeId"))) {
+    if (pathParameters.stream().noneMatch(param -> "routeId".equals(param.getName()))) {
       LOGGER.error(
           "Path parameter 'routeId' missing for resource at path '"
               + path

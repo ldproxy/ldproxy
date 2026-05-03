@@ -31,6 +31,7 @@ import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import jakarta.ws.rs.core.MediaType;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -39,7 +40,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +138,7 @@ public abstract class EndpointFeaturesDefinition extends EndpointSubCollection {
     String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     Optional<OgcApiPathParameter> optCollectionIdParam =
-        pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+        pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
 
     if (optCollectionIdParam.isEmpty()) {
       LOGGER.error(
@@ -262,7 +262,7 @@ public abstract class EndpointFeaturesDefinition extends EndpointSubCollection {
             getResourceFormats(),
             apiData,
             collectionId.startsWith("{") ? Optional.empty() : Optional.of(collectionId),
-            path.equals("/collections/{collectionId}/items"));
+            "/collections/{collectionId}/items".equals(path));
     ApiOperation.getResource(
             apiData,
             resourcePath,

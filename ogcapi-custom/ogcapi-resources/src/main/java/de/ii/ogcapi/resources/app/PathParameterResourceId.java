@@ -16,9 +16,9 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,7 @@ public class PathParameterResourceId implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData) && definitionPath.equals("/resources/{resourceId}");
+    return isEnabledForApi(apiData) && "/resources/{resourceId}".equals(definitionPath);
   }
 
   @Override

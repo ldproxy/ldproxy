@@ -15,10 +15,10 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.codelist.domain.ProfileCodelistConfiguration;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Optional;
 
 @Singleton
 @AutoBind

@@ -31,12 +31,12 @@ import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.Map;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,7 +178,7 @@ public class ExtendableOpenApiDefinitionImpl implements ExtendableOpenApiDefinit
           .sorted(Comparator.comparing(OpenApiExtension::getSortPriority))
           .forEachOrdered(openApiExtension -> openApiExtension.process(openAPI, apiData));
 
-      if (StringUtils.isNotBlank(type) && type.trim().equalsIgnoreCase("yaml")) {
+      if (StringUtils.isNotBlank(type) && "yaml".equalsIgnoreCase(type.trim())) {
         return Response.ok()
             .entity(pretty ? Yaml.pretty(openAPI) : Yaml.mapper().writeValueAsString(openAPI))
             .type(OpenApiYaml.MEDIA_TYPE.type())

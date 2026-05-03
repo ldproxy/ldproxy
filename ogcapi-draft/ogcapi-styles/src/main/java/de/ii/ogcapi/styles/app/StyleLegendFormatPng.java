@@ -16,10 +16,10 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.styles.domain.StyleLegendFormatExtension;
 import de.ii.xtraplatform.blobs.domain.Blob;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Optional;
 
 /**
  * @title PNG

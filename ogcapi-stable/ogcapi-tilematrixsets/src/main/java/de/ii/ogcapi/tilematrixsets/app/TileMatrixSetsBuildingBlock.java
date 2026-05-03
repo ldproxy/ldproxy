@@ -21,10 +21,10 @@ import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsConfiguration;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @title Tile Matrix Sets

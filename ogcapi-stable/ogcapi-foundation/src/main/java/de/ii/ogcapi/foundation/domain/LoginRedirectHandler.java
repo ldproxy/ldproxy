@@ -11,13 +11,13 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.xtraplatform.auth.domain.SplitCookie;
 import de.ii.xtraplatform.web.domain.LoginHandler;
 import io.dropwizard.auth.oauth.OAuthCredentialAuthFilter;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.ResponseBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.ResponseBuilder;
 import org.apache.hc.core5.net.URIBuilder;
 
 @AutoMultiBind

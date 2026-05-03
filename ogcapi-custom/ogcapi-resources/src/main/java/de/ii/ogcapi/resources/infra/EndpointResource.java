@@ -31,9 +31,6 @@ import de.ii.ogcapi.resources.domain.QueriesHandlerResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -43,6 +40,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +100,7 @@ public class EndpointResource extends Endpoint implements ApiExtensionHealth {
         getQueryParameters(extensionRegistry, apiData, path);
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
     if (!pathParameters.stream()
-        .filter(param -> param.getName().equals("resourceId"))
+        .filter(param -> "resourceId".equals(param.getName()))
         .findAny()
         .isPresent()) {
       LOGGER.error(

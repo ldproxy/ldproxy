@@ -7,12 +7,12 @@
  */
 package de.ii.ogcapi.foundation.infra.rest;
 
-import java.util.Locale;
-import java.util.Optional;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.UriInfo;
+import java.util.Locale;
+import java.util.Optional;
 
 public interface ContentNegotiationLanguage {
   Optional<Locale> negotiateLanguage(ContainerRequestContext requestContext);

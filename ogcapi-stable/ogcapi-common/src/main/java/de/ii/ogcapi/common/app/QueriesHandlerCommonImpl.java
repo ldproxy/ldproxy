@@ -35,6 +35,12 @@ import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -42,12 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.core.EntityTag;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import org.immutables.value.Value;
 
 @Singleton
@@ -157,7 +157,7 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormatExtension.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormatExtension.getMediaType().type())
                 || api.getData()
                     .getExtension(HtmlConfiguration.class)
                     .map(HtmlConfiguration::getSendEtags)
@@ -248,7 +248,7 @@ public class QueriesHandlerCommonImpl implements QueriesHandlerCommon {
             conformanceDeclaration, requestContext.getApi(), requestContext);
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormatExtension.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormatExtension.getMediaType().type())
                 || requestContext
                     .getApi()
                     .getData()

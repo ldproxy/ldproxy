@@ -17,6 +17,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.ParameterExtension;
 import de.ii.ogcapi.foundation.domain.RuntimeQueryParametersExtension;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Context;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Comparator;
@@ -24,9 +27,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.core.Context;
 
 public abstract class EndpointSubCollection extends Endpoint {
 
@@ -72,7 +72,7 @@ public abstract class EndpointSubCollection extends Endpoint {
       String definitionPath,
       String collectionId,
       HttpMethods method) {
-    if (collectionId.equals("{collectionId}")) {
+    if ("{collectionId}".equals(collectionId)) {
       Optional<String> representativeCollectionId = getRepresentativeCollectionId(apiData);
       if (representativeCollectionId.isEmpty())
         return getQueryParameters(extensionRegistry, apiData, definitionPath, method);

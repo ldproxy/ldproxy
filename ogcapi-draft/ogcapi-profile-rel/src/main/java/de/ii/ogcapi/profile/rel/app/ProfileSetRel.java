@@ -17,10 +17,10 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.profile.rel.domain.ProfileRelConfiguration;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
 
 @Singleton
 @AutoBind

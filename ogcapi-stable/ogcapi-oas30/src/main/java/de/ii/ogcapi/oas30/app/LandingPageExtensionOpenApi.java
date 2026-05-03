@@ -20,12 +20,12 @@ import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -77,7 +77,7 @@ public class LandingPageExtensionOpenApi implements LandingPageExtension {
                         .type(f.getMediaType().type().toString())
                         .title(
                             i18n.get(
-                                f.getRel().get().equals("service-desc")
+                                "service-desc".equals(f.getRel().get())
                                     ? "serviceDescLink"
                                     : "serviceDocLink",
                                 language))

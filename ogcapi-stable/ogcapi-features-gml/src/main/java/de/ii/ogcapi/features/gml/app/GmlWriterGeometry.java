@@ -14,11 +14,11 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Consumer;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @SuppressWarnings("ConstantConditions")
 @Singleton

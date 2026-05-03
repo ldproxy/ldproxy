@@ -9,10 +9,10 @@ package de.ii.ogcapi.foundation.domain;
 
 import static jakarta.ws.rs.core.MediaType.MEDIA_TYPE_WILDCARD;
 
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import jakarta.ws.rs.core.MediaType;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,8 +94,8 @@ public interface ApiMediaType {
         || level == CompatibilityLevel.STRICT_SUBTYPES
         || level == CompatibilityLevel.PARAMETERS) {
       result =
-          accepted.getType().equals(MEDIA_TYPE_WILDCARD)
-              || provided.getType().equals(MEDIA_TYPE_WILDCARD)
+          MEDIA_TYPE_WILDCARD.equals(accepted.getType())
+              || MEDIA_TYPE_WILDCARD.equals(provided.getType())
               || accepted.getType().equalsIgnoreCase(provided.getType());
     }
 
@@ -104,8 +104,8 @@ public interface ApiMediaType {
             || level == CompatibilityLevel.STRICT_SUBTYPES
             || level == CompatibilityLevel.PARAMETERS)) {
       result =
-          accepted.getSubtype().equals(MEDIA_TYPE_WILDCARD)
-              || provided.getSubtype().equals(MEDIA_TYPE_WILDCARD)
+          MEDIA_TYPE_WILDCARD.equals(accepted.getSubtype())
+              || MEDIA_TYPE_WILDCARD.equals(provided.getSubtype())
               || accepted.getSubtype().equalsIgnoreCase(provided.getSubtype())
               || provided.getSubtype().endsWith("+" + accepted.getSubtype());
     }
@@ -114,8 +114,8 @@ public interface ApiMediaType {
         && (level == CompatibilityLevel.STRICT_SUBTYPES
             || level == CompatibilityLevel.PARAMETERS)) {
       result =
-          accepted.getSubtype().equals(MEDIA_TYPE_WILDCARD)
-              || provided.getSubtype().equals(MEDIA_TYPE_WILDCARD)
+          MEDIA_TYPE_WILDCARD.equals(accepted.getSubtype())
+              || MEDIA_TYPE_WILDCARD.equals(provided.getSubtype())
               || accepted.getSubtype().equalsIgnoreCase(provided.getSubtype());
     }
 

@@ -9,10 +9,10 @@ package de.ii.ogcapi.foundation.domain;
 
 import de.ii.xtraplatform.web.domain.ForwardedUri;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.util.List;
-import java.util.Optional;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Request;
+import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable

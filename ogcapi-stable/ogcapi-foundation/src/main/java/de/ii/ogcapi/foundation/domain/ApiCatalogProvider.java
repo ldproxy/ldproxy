@@ -16,6 +16,7 @@ import de.ii.xtraplatform.services.domain.ServiceData;
 import de.ii.xtraplatform.services.domain.ServiceListingProvider;
 import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.Principal;
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import jakarta.ws.rs.core.Response;
 
 public abstract class ApiCatalogProvider implements ServiceListingProvider, ApiExtension {
 

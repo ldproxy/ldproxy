@@ -14,9 +14,9 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiDataHydratorExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.services.domain.ServicesContext;
-import java.net.URI;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

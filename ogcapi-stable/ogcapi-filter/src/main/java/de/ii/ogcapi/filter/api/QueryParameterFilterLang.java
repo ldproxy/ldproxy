@@ -26,11 +26,11 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * @title filter-lang
@@ -100,10 +100,10 @@ public class QueryParameterFilterLang extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}")
-        || definitionPath.equals(
-            "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}".equals(definitionPath)
+        || "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+            .equals(definitionPath);
   }
 
   @Override

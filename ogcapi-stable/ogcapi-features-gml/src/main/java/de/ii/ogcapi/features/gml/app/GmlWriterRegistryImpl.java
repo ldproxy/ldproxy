@@ -12,10 +12,10 @@ import com.google.common.collect.ImmutableList;
 import dagger.Lazy;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
-import java.util.List;
-import java.util.Set;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Set;
 
 @Singleton
 @AutoBind

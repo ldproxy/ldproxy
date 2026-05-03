@@ -62,16 +62,6 @@ import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import de.ii.xtraplatform.streams.domain.Reactive;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.constraints.NotNull;
@@ -82,6 +72,16 @@ import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 @Singleton
 @AutoBind
@@ -373,7 +373,7 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormatExtension.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormatExtension.getMediaType().type())
                 || apiData
                     .getExtension(HtmlConfiguration.class)
                     .map(HtmlConfiguration::getSendEtags)

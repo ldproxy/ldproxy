@@ -15,9 +15,9 @@ import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.profile.codelist.domain.ProfileCodelistConfiguration;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @AutoBind

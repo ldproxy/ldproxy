@@ -17,10 +17,10 @@ import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
-import java.util.List;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @title profile
@@ -54,7 +54,7 @@ public class QueryParameterProfileSortables extends QueryParameterProfile
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/sortables");
+    return "/collections/{collectionId}/sortables".equals(definitionPath);
   }
 
   @Override

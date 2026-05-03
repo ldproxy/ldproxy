@@ -22,9 +22,9 @@ import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSets;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsFormatExtension;
 import de.ii.xtraplatform.web.domain.URICustomizer;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 /**
  * @title HTML

@@ -13,10 +13,10 @@ import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ApiSecurity.PolicyAttribute;
 import de.ii.ogcapi.foundation.domain.PolicyAttributeResolver;
-import java.util.Map;
-import java.util.Optional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Map;
+import java.util.Optional;
 
 @Singleton
 @AutoBind

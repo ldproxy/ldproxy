@@ -18,6 +18,10 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ApiSecurity.PolicyAttribute;
 import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
 import de.ii.ogcapi.foundation.domain.PolicyAttributeResolver;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
@@ -28,10 +32,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.StreamingOutput;
 
 @Singleton
 @AutoBind

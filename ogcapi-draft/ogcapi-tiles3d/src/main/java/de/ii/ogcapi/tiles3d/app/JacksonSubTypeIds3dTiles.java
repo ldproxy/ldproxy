@@ -13,9 +13,9 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableJacksonSubType;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
-import java.util.List;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 
 @AutoBind
 @Singleton

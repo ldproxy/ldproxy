@@ -83,7 +83,7 @@ public class CityJsonBuildingBlock implements ApiBuildingBlock {
                               && config.getTextSequences().orElse(false)
                               && config
                                   .getVersion()
-                                  .filter(v -> v.equals(CityJsonConfiguration.Version.V10))
+                                  .filter(v -> CityJsonConfiguration.Version.V10.equals(v))
                                   .isPresent()) {
                             builder.addErrors(
                                 "CityJSON Text Sequences can only be enabled for CityJSON 1.1 or later, not for CityJSON 1.0.");
