@@ -77,7 +77,7 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
         Schema schema = schemaGenerator.getSchema(featureSchema, collectionData)
         then:
         Objects.nonNull(schema)
-        schema.getRequired() == ["type", "geometry", "properties"]
+        schema.getRequired() == ["geometry", "properties", "type"]
         schema.getTitle() == "foo"
         schema.getDescription() == "bar"
         schema.getProperties().get("id").getType() == "integer"

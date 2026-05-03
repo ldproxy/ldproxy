@@ -12,7 +12,7 @@ import de.ii.ogcapi.tiles.infra.EndpointVectorTileSetsCollection
 import spock.lang.Ignore
 import spock.lang.Specification
 
-import javax.ws.rs.NotFoundException
+import jakarta.ws.rs.NotFoundException
 
 @Ignore //TODO
 class EndpointTileSetsSingleCollectionSpec extends Specification{
