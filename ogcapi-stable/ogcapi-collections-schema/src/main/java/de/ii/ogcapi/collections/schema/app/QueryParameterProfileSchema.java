@@ -5,9 +5,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.sorting.app;
+package de.ii.ogcapi.collections.schema.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.common.domain.QueryParameterProfile;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -16,7 +17,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -24,7 +24,7 @@ import javax.inject.Singleton;
 
 /**
  * @title profile
- * @endpoints Sortables
+ * @endpoints Schema
  * @langEn This query parameter supports requesting variations in the representation of data in the
  *     same format, depending on the intended use of the data. If a format does not support the
  *     requested profile, the best match for the requested profile is used depending on the format.
@@ -38,23 +38,22 @@ import javax.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class QueryParameterProfileSortables extends QueryParameterProfile
-    implements ConformanceClass {
+public class QueryParameterProfileSchema extends QueryParameterProfile implements ConformanceClass {
 
   @Inject
-  public QueryParameterProfileSortables(
+  public QueryParameterProfileSchema(
       ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
     super(extensionRegistry, schemaValidator);
   }
 
   @Override
   public String getId(String collectionId) {
-    return "profileSortables_" + collectionId;
+    return "profileSchema_" + collectionId;
   }
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/sortables");
+    return definitionPath.equals("/collections/{collectionId}/schema");
   }
 
   @Override
@@ -64,7 +63,7 @@ public class QueryParameterProfileSortables extends QueryParameterProfile
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return SortingConfiguration.class;
+    return SchemaConfiguration.class;
   }
 
   @Override
@@ -79,6 +78,6 @@ public class QueryParameterProfileSortables extends QueryParameterProfile
 
   @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return Optional.of(SpecificationMaturity.DRAFT_OGC);
+    return SchemaBuildingBlock.MATURITY;
   }
 }

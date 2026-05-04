@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
+import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -54,5 +55,10 @@ public class ProfileSetJsonSchemaForValidation extends ProfileSet {
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return SchemaValidationConfiguration.class;
+  }
+
+  @Override
+  public Optional<SpecificationMaturity> getSpecificationMaturity() {
+    return SchemaValidationBuildingBlock.MATURITY;
   }
 }

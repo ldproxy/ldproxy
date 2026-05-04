@@ -62,7 +62,7 @@ public class QueryParameterProfileFeatures extends QueryParameterProfile
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return List.of("http://www.opengis.net/spec/ogcapi-features-5/0.0/conf/profile-parameter");
+    return List.of("http://www.opengis.net/spec/ogcapi-common-3/1.0/conf/profile-parameter");
   }
 
   @Override
@@ -82,6 +82,6 @@ public class QueryParameterProfileFeatures extends QueryParameterProfile
 
   @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return Optional.of(SpecificationMaturity.DRAFT_OGC);
+    return Optional.of(SpecificationMaturity.STABLE_OGC);
   }
 }
