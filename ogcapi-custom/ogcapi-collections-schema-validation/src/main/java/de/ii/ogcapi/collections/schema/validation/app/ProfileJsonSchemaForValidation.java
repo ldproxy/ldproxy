@@ -10,8 +10,10 @@ package de.ii.ogcapi.collections.schema.validation.app;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
+import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import java.util.Optional;
 import javax.validation.constraints.NotNull;
 
 public abstract class ProfileJsonSchemaForValidation extends ProfileGeneric {
@@ -39,5 +41,10 @@ public abstract class ProfileJsonSchemaForValidation extends ProfileGeneric {
 
   public boolean supportJsonFgExtensions() {
     return false;
+  }
+
+  @Override
+  public Optional<SpecificationMaturity> getSpecificationMaturity() {
+    return SchemaValidationBuildingBlock.MATURITY;
   }
 }
