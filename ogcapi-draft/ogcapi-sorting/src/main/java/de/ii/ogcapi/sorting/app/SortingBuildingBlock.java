@@ -42,13 +42,14 @@ import java.util.stream.Stream;
  * @title Sorting
  * @langEn Sort features in a response.
  * @langDe Sortieren von Features in Rückgaben.
- * @conformanceEn *Sorting* implements the conformance class "Sortables" of the [draft of OGC API -
- *     Features - Part 5: Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html#rc_sortables) as well
- *     as the conformance classes "Sorting" and "Features Sorting" of the [draft of OGC API -
- *     Features - Part 8: Sorting](https://docs.ogc.org/DRAFTS/24-030.html).
- * @conformanceDe Der Baustein *Sorting* implementiert die Konformitätsklasse "Sortables" des
- *     [Entwurfs OGC API - Features - Part 5:
- *     Schemas](https://docs.ogc.org/DRAFTS/23-058r1.html#rc_sortables) sowie die
+ * @conformanceEn *Sorting* implements the conformance class "Sortables" of [OGC API - Features -
+ *     Part 5/OGC API - Common - Part 3:
+ *     Schemas](https://docs.ogc.org/is/23-058r2/23-058r2.html#rc_sortables) as well as the
+ *     conformance classes "Sorting" and "Features Sorting" of the [draft of OGC API - Features -
+ *     Part 8: Sorting](https://docs.ogc.org/DRAFTS/24-030.html).
+ * @conformanceDe Der Baustein *Sorting* implementiert die Konformitätsklasse "Sortables" von [OGC
+ *     API - Features - Part 5/OGC API - Common - Part 3:
+ *     Schemas](https://docs.ogc.org/is/23-058r2/23-058r2.html#rc_sortables) sowie die
  *     Konformitätsklassen "Sorting" und "Features Sorting" des [Entwurfs OGC API - Features - Part
  *     8: Sorting](https://docs.ogc.org/DRAFTS/24-030.html).
  * @ref:endpoints {@link de.ii.ogcapi.sorting.app.EndpointSortables}

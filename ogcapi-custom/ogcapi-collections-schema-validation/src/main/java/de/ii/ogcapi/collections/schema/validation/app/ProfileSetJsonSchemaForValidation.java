@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.ProfileSet;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import java.util.Optional;
 
 @Singleton
@@ -54,5 +55,10 @@ public class ProfileSetJsonSchemaForValidation extends ProfileSet {
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return SchemaValidationConfiguration.class;
+  }
+
+  @Override
+  public Optional<SpecificationMaturity> getSpecificationMaturity() {
+    return SchemaValidationBuildingBlock.MATURITY;
   }
 }

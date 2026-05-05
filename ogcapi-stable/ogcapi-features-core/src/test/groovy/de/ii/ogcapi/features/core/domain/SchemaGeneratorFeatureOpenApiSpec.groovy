@@ -77,12 +77,12 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
         Schema schema = schemaGenerator.getSchema(featureSchema, collectionData)
         then:
         Objects.nonNull(schema)
-        schema.getRequired() == ["geometry", "properties", "type"]
+        schema.getRequired().toSet() == Set.of("geometry", "properties", "type")
         schema.getTitle() == "foo"
         schema.getDescription() == "bar"
         schema.getProperties().get("id").getType() == "integer"
         ObjectSchema properties = schema.getProperties().get("properties") as ObjectSchema
-        properties.getRequired() == ["string"]
+        properties.getRequired().toSet() == Set.of("string")
         properties.getProperties().get("string").getType() == "string"
         properties.getProperties().get("string").getTitle() == "foo"
         properties.getProperties().get("string").getDescription() == "bar"

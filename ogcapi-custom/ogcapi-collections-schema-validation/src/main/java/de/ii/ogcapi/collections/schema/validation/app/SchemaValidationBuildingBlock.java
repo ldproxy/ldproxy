@@ -10,7 +10,6 @@ package de.ii.ogcapi.collections.schema.validation.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
-import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,12 +46,7 @@ import java.util.Optional;
 public class SchemaValidationBuildingBlock implements ApiBuildingBlock {
 
   public static final Optional<SpecificationMaturity> MATURITY =
-      Optional.of(SpecificationMaturity.DRAFT_OGC);
-  public static final Optional<ExternalDocumentation> SPEC =
-      Optional.of(
-          ExternalDocumentation.of(
-              "https://docs.ogc.org/DRAFTS/23-058r1.html",
-              "OGC API - Features - Part 5: Schemas (DRAFT)"));
+      Optional.of(SpecificationMaturity.DRAFT_LDPROXY);
 
   @Inject
   public SchemaValidationBuildingBlock() {}
