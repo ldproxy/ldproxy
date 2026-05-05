@@ -19,13 +19,13 @@ import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsConfiguration;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title tileMatrixSetId
@@ -63,7 +63,7 @@ public class PathParameterTileMatrixSetId implements OgcApiPathParameter {
         .filter(
             tms ->
                 !TileMatrixSetRepository.PREDEFINED_TILE_MATRIX_SETS.contains(tms)
-                    || tms.equals("WebMercatorQuad")
+                    || "WebMercatorQuad".equals(tms)
                     || cfg.getIncludePredefined().contains(tms))
         .sorted()
         .collect(Collectors.toUnmodifiableList());
@@ -113,7 +113,7 @@ public class PathParameterTileMatrixSetId implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData) && definitionPath.equals("/tileMatrixSets/{tileMatrixSetId}");
+    return isEnabledForApi(apiData) && "/tileMatrixSets/{tileMatrixSetId}".equals(definitionPath);
   }
 
   @Override

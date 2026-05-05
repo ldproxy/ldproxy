@@ -10,10 +10,10 @@ package de.ii.ogcapi.common.app.xml;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import de.ii.ogcapi.common.domain.ConformanceDeclaration;
 import de.ii.ogcapi.common.domain.xml.OgcApiXml;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "ConformsTo", namespace = "http://www.opengis.net/ogcapi-features-1/1.0")
 public class OgcApiConformanceClassesXml implements OgcApiXml {

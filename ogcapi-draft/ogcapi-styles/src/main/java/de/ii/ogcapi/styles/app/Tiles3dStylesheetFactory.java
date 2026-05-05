@@ -10,8 +10,8 @@ package de.ii.ogcapi.styles.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.styles.domain.Tiles3dStylesheet;
 import de.ii.xtraplatform.values.domain.ValueFactoryAuto;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

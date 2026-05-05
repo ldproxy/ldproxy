@@ -61,8 +61,8 @@ public interface StyleReader {
       @Deprecated(forRemoval = true) OgcApiDataV2 apiData) {
     Optional<String> styleId =
         requestedStyle
-            .map(s -> s.equals("DEFAULT") ? Objects.requireNonNullElse(defaultStyle, "NONE") : s)
-            .filter(s -> !s.equals("NONE"));
+            .map(s -> "DEFAULT".equals(s) ? Objects.requireNonNullElse(defaultStyle, "NONE") : s)
+            .filter(s -> !"NONE".equals(s));
     StyleFormat f =
         switch (mapClientType) {
           case MAP_LIBRE -> StyleFormat.MBS;

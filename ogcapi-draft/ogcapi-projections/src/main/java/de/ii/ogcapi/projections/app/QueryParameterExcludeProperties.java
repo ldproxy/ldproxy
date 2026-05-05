@@ -28,6 +28,8 @@ import de.ii.xtraplatform.tiles.domain.TileGenerationSchema;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,8 +37,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title exclude-properties
@@ -82,10 +82,10 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/collections/{collectionId}/items/{featureId}")
-        || definitionPath.equals(
-            "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/collections/{collectionId}/items/{featureId}".equals(definitionPath)
+        || "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+            .equals(definitionPath);
   }
 
   private ConcurrentMap<Integer, ConcurrentMap<String, Schema<?>>> schemaMap =

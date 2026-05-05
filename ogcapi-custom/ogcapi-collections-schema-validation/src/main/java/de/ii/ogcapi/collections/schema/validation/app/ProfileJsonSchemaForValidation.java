@@ -13,8 +13,8 @@ import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.xtraplatform.features.domain.SchemaBase.Scope;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import jakarta.validation.constraints.NotNull;
 import java.util.Optional;
-import javax.validation.constraints.NotNull;
 
 public abstract class ProfileJsonSchemaForValidation extends ProfileGeneric {
 

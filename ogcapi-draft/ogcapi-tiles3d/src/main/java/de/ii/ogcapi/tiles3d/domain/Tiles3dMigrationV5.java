@@ -71,7 +71,7 @@ public class Tiles3dMigrationV5 extends EntityMigration<OgcApiDataV2, OgcApiData
         .exists(
             identifier ->
                 Objects.equals(identifier.id(), Tile3dProviders.to3dTilesId(apiData.getId()))
-                    && identifier.path().get(identifier.path().size() - 1).equals("providers"));
+                    && "providers".equals(identifier.path().get(identifier.path().size() - 1)));
   }
 
   @Override

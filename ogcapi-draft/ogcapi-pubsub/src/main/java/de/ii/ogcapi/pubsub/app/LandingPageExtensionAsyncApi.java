@@ -18,12 +18,12 @@ import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.pubsub.domain.AsyncApiDefinitionFormatExtension;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -74,7 +74,7 @@ public class LandingPageExtensionAsyncApi implements LandingPageExtension {
                         .type(f.getMediaType().type().toString())
                         .title(
                             i18n.get(
-                                f.getRel().get().equals("service-desc")
+                                "service-desc".equals(f.getRel().get())
                                     ? "serviceDescLinkPubSub"
                                     : "serviceDocLinkPubSub",
                                 language))

@@ -29,9 +29,9 @@ import de.ii.ogcapi.tiles.domain.TileSetFormatExtension;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
 import de.ii.ogcapi.tiles.domain.TilesQueriesHandler;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
 
 public abstract class AbstractEndpointTileSetDataset extends Endpoint {
 

@@ -26,12 +26,12 @@ import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
 
 @Singleton
 @AutoBind

@@ -30,11 +30,11 @@ import de.ii.ogcapi.foundation.domain.TemporalExtent;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -115,7 +115,7 @@ public class CollectionExtensionFeatures implements CollectionExtension {
             .filter(f -> f.isEnabledForApi(apiData, collectionId))
             .filter(f -> !f.isInternal())
             .map(FormatExtension::getMediaType)
-            .filter(type -> !type.parameter().equals("*"))
+            .filter(type -> !"*".equals(type.parameter()))
             .toList();
 
     List<ProfileSet> profileSets =

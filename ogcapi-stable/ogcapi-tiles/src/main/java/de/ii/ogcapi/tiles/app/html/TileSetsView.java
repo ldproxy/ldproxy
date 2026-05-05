@@ -122,8 +122,8 @@ public abstract class TileSetsView extends OgcApiView {
     return tiles().getTilesets().stream()
         .filter(
             tms ->
-                mapClientType().equals(MapClient.Type.OPEN_LAYERS)
-                    || tms.getTileMatrixSetId().equals("WebMercatorQuad"))
+                MapClient.Type.OPEN_LAYERS.equals(mapClientType())
+                    || "WebMercatorQuad".equals(tms.getTileMatrixSetId()))
         .map(
             tms -> {
               String tmsId = tms.getTileMatrixSetId();
@@ -274,10 +274,10 @@ public abstract class TileSetsView extends OgcApiView {
   @Value.Derived
   public MapClient mapClient() {
     if (tiles().getTilesets().size() >= 1) {
-      if (mapClientType().equals(MapClient.Type.MAP_LIBRE)) {
+      if (MapClient.Type.MAP_LIBRE.equals(mapClientType())) {
         Optional<TileSet> tileSet =
             tiles().getTilesets().stream()
-                .filter(ts -> ts.getTileMatrixSetId().equals("WebMercatorQuad"))
+                .filter(ts -> "WebMercatorQuad".equals(ts.getTileMatrixSetId()))
                 .findAny();
         if (tileSet.isPresent()) {
           Multimap<String, List<String>> layers = getLayers(tileSet.get());
@@ -296,7 +296,7 @@ public abstract class TileSetsView extends OgcApiView {
               "WebMercatorQuad");
           return null;
         }
-      } else if (mapClientType().equals(MapClient.Type.OPEN_LAYERS)) {
+      } else if (MapClient.Type.OPEN_LAYERS.equals(mapClientType())) {
         Multimap<String, List<String>> layers = getLayers(tiles().getTilesets().get(0));
 
         return buildMapClient(
@@ -359,8 +359,8 @@ public abstract class TileSetsView extends OgcApiView {
         .map(TileSet::getTileMatrixSetId)
         .filter(
             tileMatrixSetId ->
-                mapClientType().equals(MapClient.Type.OPEN_LAYERS)
-                    || tileMatrixSetId.equals("WebMercatorQuad"))
+                MapClient.Type.OPEN_LAYERS.equals(mapClientType())
+                    || "WebMercatorQuad".equals(tileMatrixSetId))
         .collect(Collectors.toList());
   }
 
@@ -429,7 +429,7 @@ public abstract class TileSetsView extends OgcApiView {
     int defaultLevel = 0;
     double dx = 360;
     while (dx > lonDiff && defaultLevel <= maxLevel) {
-      dx = dx / 2.0;
+      dx /= 2.0;
       defaultLevel++;
     }
     return String.valueOf(defaultLevel);

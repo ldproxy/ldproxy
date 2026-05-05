@@ -28,6 +28,8 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery.Builder;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,8 +37,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title crs
@@ -110,7 +110,7 @@ public class QueryParameterCrsRoutes extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/routes");
+    return "/routes".equals(definitionPath);
   }
 
   @Override
@@ -139,7 +139,7 @@ public class QueryParameterCrsRoutes extends OgcApiQueryParameterBase
               .map(RoutingConfiguration::getDefaultCrs)
               .map(
                   crs ->
-                      crs.equals(FeaturesCoreConfiguration.DefaultCrs.CRS84)
+                      FeaturesCoreConfiguration.DefaultCrs.CRS84.equals(crs)
                           ? OgcCrs.CRS84_URI
                           : OgcCrs.CRS84h_URI)
               .orElse(OgcCrs.CRS84_URI);

@@ -16,8 +16,8 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title Features - CityJSON
@@ -83,7 +83,7 @@ public class CityJsonBuildingBlock implements ApiBuildingBlock {
                               && config.getTextSequences().orElse(false)
                               && config
                                   .getVersion()
-                                  .filter(v -> v.equals(CityJsonConfiguration.Version.V10))
+                                  .filter(v -> CityJsonConfiguration.Version.V10.equals(v))
                                   .isPresent()) {
                             builder.addErrors(
                                 "CityJSON Text Sequences can only be enabled for CityJSON 1.1 or later, not for CityJSON 1.0.");

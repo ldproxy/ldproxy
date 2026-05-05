@@ -18,14 +18,14 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.xtraplatform.features.gml.domain.XMLNamespaceNormalizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -184,11 +184,11 @@ public class GmlWriterSkeleton implements GmlWriter {
                     (!"sf".equals(entry.getKey()) || "sf".equals(rootElementPrefix))
                         && (!"wfs".equals(entry.getKey()) || "wfs".equals(rootElementPrefix))
                         && (!"gml21".equals(entry.getKey())
-                            || context.encoding().getGmlVersion().equals(GML21))
+                            || GML21.equals(context.encoding().getGmlVersion()))
                         && (!"gml31".equals(entry.getKey())
-                            || context.encoding().getGmlVersion().equals(GML31))
+                            || GML31.equals(context.encoding().getGmlVersion()))
                         && (!"gml".equals(entry.getKey())
-                            || context.encoding().getGmlVersion().equals(GML32)))
+                            || GML32.equals(context.encoding().getGmlVersion())))
             .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
     XMLNamespaceNormalizer namespaceNormalizer = new XMLNamespaceNormalizer(effectiveNamespaces);

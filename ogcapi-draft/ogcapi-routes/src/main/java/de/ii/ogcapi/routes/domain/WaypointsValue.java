@@ -34,7 +34,7 @@ public abstract class WaypointsValue {
   @Value.Check
   void check() {
     Preconditions.checkState(
-        getType().equals("MultiPoint"),
+        "MultiPoint".equals(getType()),
         "WaypointsValue is not a MultiPoint geometry. Found: {}.",
         getType());
     Preconditions.checkState(

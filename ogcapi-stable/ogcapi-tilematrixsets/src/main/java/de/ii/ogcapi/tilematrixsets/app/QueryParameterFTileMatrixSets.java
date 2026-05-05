@@ -15,8 +15,8 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsConfiguration;
 import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsFormatExtension;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title f
@@ -43,8 +43,8 @@ public class QueryParameterFTileMatrixSets extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/tileMatrixSets")
-        || definitionPath.equals("/tileMatrixSets/{tileMatrixSetId}");
+    return "/tileMatrixSets".equals(definitionPath)
+        || "/tileMatrixSets/{tileMatrixSetId}".equals(definitionPath);
   }
 
   @Override

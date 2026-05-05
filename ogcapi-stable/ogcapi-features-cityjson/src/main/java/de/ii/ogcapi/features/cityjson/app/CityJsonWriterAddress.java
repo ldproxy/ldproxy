@@ -17,11 +17,11 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.geometries.domain.MultiPoint;
 import de.ii.xtraplatform.geometries.domain.Point;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -68,7 +68,7 @@ public class CityJsonWriterAddress implements CityJsonWriter {
           .changeSection(FeatureTransformationContextCityJson.StateCityJson.Section.IN_ADDRESS);
       context.encoding().startAddress();
       addressSeen = false;
-      onlyFirstAddress = context.encoding().getVersion().equals(CityJsonConfiguration.Version.V10);
+      onlyFirstAddress = CityJsonConfiguration.Version.V10.equals(context.encoding().getVersion());
     }
 
     next.accept(context);

@@ -44,12 +44,15 @@ public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpress
       if (op instanceof StringValue opStringValue) {
         String opString = opStringValue.getValue();
         return switch (opString) {
-          case "step" -> ImmutableArrayValue.of(
-              process(arrayValue.getValue(), opString, 1, i -> i > 2 && i % 2 == 1));
-          case "interpolate", "interpolate-hcl", "interpolate-lab" -> ImmutableArrayValue.of(
-              process(arrayValue.getValue(), opString, 2, i -> i > 2 && i % 2 == 1));
-          default -> ImmutableArrayValue.of(
-              arrayValue.getValue().stream().map(exp -> exp.accept(this)).toList());
+          case "step" ->
+              ImmutableArrayValue.of(
+                  process(arrayValue.getValue(), opString, 1, i -> i > 2 && i % 2 == 1));
+          case "interpolate", "interpolate-hcl", "interpolate-lab" ->
+              ImmutableArrayValue.of(
+                  process(arrayValue.getValue(), opString, 2, i -> i > 2 && i % 2 == 1));
+          default ->
+              ImmutableArrayValue.of(
+                  arrayValue.getValue().stream().map(exp -> exp.accept(this)).toList());
         };
       }
     } else if (expression instanceof ObjectValue objectValue) {
@@ -59,7 +62,7 @@ public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpress
       Map<String, MbStyleExpression> newMap = new HashMap<>();
       for (Entry<String, MbStyleExpression> entry : objectValue.getValue().entrySet()) {
         MbStyleExpression value = entry.getValue();
-        if (entry.getKey().equals("stops")) {
+        if ("stops".equals(entry.getKey())) {
           if (value instanceof ArrayValue stopsArray) {
             Builder<ArrayValue> newStopsBuilder = ImmutableList.builder();
             for (MbStyleExpression stopValue : stopsArray.getValue()) {
@@ -106,7 +109,7 @@ public class AdjustZoomLevels implements MbStyleExpressionVisitor<MbStyleExpress
     MbStyleExpression input = expression.get(inputIndex);
     if (input instanceof ArrayValue inputArray) {
       if (inputArray.getValue().get(0) instanceof StringValue inputString
-          && inputString.getValue().equals("zoom")) {
+          && "zoom".equals(inputString.getValue())) {
         // Adjust zoom levels in the expression
         // Keep the other arguments unchanged
         return IntStream.range(0, expression.size())

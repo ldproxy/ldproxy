@@ -13,11 +13,11 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import de.ii.ogcapi.collections.domain.OgcApiCollection;
 import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.foundation.domain.Link;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 import java.util.Objects;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 @JsonInclude(Include.NON_NULL)
 @XmlRootElement(name = "Collection", namespace = "http://www.opengis.net/ogcapi-features-1/1.0")

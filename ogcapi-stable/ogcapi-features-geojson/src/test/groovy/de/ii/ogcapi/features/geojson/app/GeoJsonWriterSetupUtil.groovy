@@ -18,7 +18,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.web.domain.URICustomizer
 
-import javax.ws.rs.core.Request
+import jakarta.ws.rs.core.Request
 import java.nio.charset.StandardCharsets
 
 class GeoJsonWriterSetupUtil {

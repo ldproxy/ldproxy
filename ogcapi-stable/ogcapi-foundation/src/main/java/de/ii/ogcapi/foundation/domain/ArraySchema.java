@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class ArraySchema extends io.swagger.v3.oas.models.media.ArraySchema {
   public ArraySchema(
