@@ -8,7 +8,7 @@
 package de.ii.ogcapi.mcp.domain;
 
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServlet;
 
 public interface McpServer {
 

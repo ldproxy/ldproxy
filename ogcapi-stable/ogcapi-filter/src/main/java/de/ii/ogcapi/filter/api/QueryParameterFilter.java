@@ -47,6 +47,8 @@ import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParametersTransien
 import de.ii.xtraplatform.tiles.domain.TileGenerationSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +56,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 // TODO
 // @endpoints {@link de.ii.ogcapi.features.core.app.EndpointFeatures},{@link
@@ -188,10 +188,10 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}")
-        || definitionPath.equals(
-            "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}".equals(definitionPath)
+        || "/collections/{collectionId}/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}"
+            .equals(definitionPath);
   }
 
   private final Schema<String> schema = new StringSchema();

@@ -23,11 +23,11 @@ import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.xtraplatform.base.domain.AppContext;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @langEn Debug option in development environments: Log debug information for the GeoJSON output.
@@ -73,8 +73,8 @@ public class QueryParameterDebugFeaturesGeoJson extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/collections/{collectionId}/items/{featureId}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/collections/{collectionId}/items/{featureId}".equals(definitionPath);
   }
 
   @Override

@@ -21,8 +21,8 @@ import de.ii.xtraplatform.base.domain.ModulesConfiguration.Startup;
 import de.ii.xtraplatform.base.domain.RedisConfiguration;
 import de.ii.xtraplatform.base.domain.ServerConfiguration;
 import de.ii.xtraplatform.base.domain.StoreConfiguration;
+import jakarta.validation.Valid;
 import java.util.Map;
-import javax.validation.Valid;
 
 class AppConfigurationCfg extends AppConfiguration {
 

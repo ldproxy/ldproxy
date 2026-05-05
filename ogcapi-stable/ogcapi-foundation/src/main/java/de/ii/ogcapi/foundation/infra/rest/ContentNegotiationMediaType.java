@@ -8,12 +8,12 @@
 package de.ii.ogcapi.foundation.infra.rest;
 
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.UriInfo;
 import java.util.Optional;
 import java.util.Set;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.UriInfo;
 
 public interface ContentNegotiationMediaType {
   Optional<ApiMediaType> negotiateMediaType(

@@ -10,8 +10,8 @@ package de.ii.ogcapi.profile.val.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind

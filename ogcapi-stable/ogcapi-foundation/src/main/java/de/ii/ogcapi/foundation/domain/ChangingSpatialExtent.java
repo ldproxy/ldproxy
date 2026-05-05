@@ -41,7 +41,7 @@ public interface ChangingSpatialExtent extends ChangingValue<BoundingBox> {
 
     return Optional.of(
         ChangingSpatialExtent.of(
-            deltaExtent.getEpsgCrs().equals(OgcCrs.CRS84)
+            OgcCrs.CRS84.equals(deltaExtent.getEpsgCrs())
                 ? BoundingBox.of(
                     Math.min(getValue().getXmin(), deltaExtent.getXmin()),
                     Math.min(getValue().getYmin(), deltaExtent.getYmin()),

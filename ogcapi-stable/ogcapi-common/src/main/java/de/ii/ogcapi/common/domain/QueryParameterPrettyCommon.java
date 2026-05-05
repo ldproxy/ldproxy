@@ -10,8 +10,8 @@ package de.ii.ogcapi.common.domain;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title pretty
@@ -35,8 +35,8 @@ public class QueryParameterPrettyCommon extends QueryParameterPretty {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return !definitionPath.equals("/collections/{collectionId}/items")
-        && !definitionPath.equals("/collections/{collectionId}/items/{featureId}");
+    return !"/collections/{collectionId}/items".equals(definitionPath)
+        && !"/collections/{collectionId}/items/{featureId}".equals(definitionPath);
   }
 
   @Override

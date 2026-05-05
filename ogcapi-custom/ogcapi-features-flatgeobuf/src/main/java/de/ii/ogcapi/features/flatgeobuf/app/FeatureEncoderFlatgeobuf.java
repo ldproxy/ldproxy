@@ -154,8 +154,8 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
   @Override
   public void onEnd(ModifiableContext context) {
     if (LOGGER.isTraceEnabled()) {
-      long transformerDuration = (System.nanoTime() - transformerStart) / 1000000;
-      long processingDuration = (System.nanoTime() - processingStart) / 1000000;
+      long transformerDuration = (System.nanoTime() - transformerStart) / 1_000_000;
+      long processingDuration = (System.nanoTime() - processingStart) / 1_000_000;
       LOGGER.trace(
           String.format(
               "Collection %s, features returned: %d, written: %d, total duration: %dms, processing: %dms, feature processing: %dms.",
@@ -164,7 +164,7 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
               written,
               transformerDuration,
               processingDuration,
-              featureDuration / 1000000));
+              featureDuration / 1_000_000));
     }
   }
 
@@ -189,17 +189,17 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
                           (byte)
                               switch (t) {
                                 case POINT -> GeometryConversions.toGeometryType(Point.class);
-                                case MULTI_POINT -> GeometryConversions.toGeometryType(
-                                    MultiPoint.class);
-                                case LINE_STRING -> GeometryConversions.toGeometryType(
-                                    LineString.class);
-                                case MULTI_LINE_STRING -> GeometryConversions.toGeometryType(
-                                    MultiLineString.class);
+                                case MULTI_POINT ->
+                                    GeometryConversions.toGeometryType(MultiPoint.class);
+                                case LINE_STRING ->
+                                    GeometryConversions.toGeometryType(LineString.class);
+                                case MULTI_LINE_STRING ->
+                                    GeometryConversions.toGeometryType(MultiLineString.class);
                                 case POLYGON -> GeometryConversions.toGeometryType(Polygon.class);
-                                case MULTI_POLYGON -> GeometryConversions.toGeometryType(
-                                    MultiPolygon.class);
-                                case GEOMETRY_COLLECTION -> GeometryConversions.toGeometryType(
-                                    GeometryCollection.class);
+                                case MULTI_POLYGON ->
+                                    GeometryConversions.toGeometryType(MultiPolygon.class);
+                                case GEOMETRY_COLLECTION ->
+                                    GeometryConversions.toGeometryType(GeometryCollection.class);
                                 default -> GeometryType.Unknown;
                               })
                   .orElse((byte) GeometryType.Unknown);
@@ -238,7 +238,7 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
       case DATETIME:
         column.type = ColumnType.DateTime;
         break;
-        // Flatgeobuf can handle only primitives; map objects and arrays to strings
+      // Flatgeobuf can handle only primitives; map objects and arrays to strings
       case OBJECT:
       case OBJECT_ARRAY:
       case VALUE_ARRAY:
@@ -260,7 +260,7 @@ public class FeatureEncoderFlatgeobuf extends FeatureEncoderSfFlat {
         .getConstraints()
         .flatMap(SchemaConstraints::getRequired)
         .ifPresent(b -> column.nullable = !b);
-    schema.getRole().ifPresent(r -> column.unique = r.equals(SchemaBase.Role.ID));
+    schema.getRole().ifPresent(r -> column.unique = SchemaBase.Role.ID.equals(r));
     return column;
   }
 

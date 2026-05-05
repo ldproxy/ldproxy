@@ -8,7 +8,7 @@
 package de.ii.ogcapi.features.core.app;
 
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public interface PolicyAttributeFeaturesGetter {
   Response getItems(ApiRequestContext requestContext, String collectionId);

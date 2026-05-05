@@ -18,21 +18,21 @@ import de.ii.ogcapi.foundation.domain.FormatNotSupportedException;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
 import io.dropwizard.jersey.errors.LoggingExceptionMapper;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Request;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.UriInfo;
+import jakarta.ws.rs.ext.Provider;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.ServiceUnavailableException;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Request;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.ext.Provider;
 import org.glassfish.jersey.message.internal.MessageBodyProviderNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,9 +210,9 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
       WebApplicationException exception, ExceptionFormatExtension exceptionFormat, String msg) {
     final Response response = exception.getResponse();
     Response.Status.Family family = response.getStatusInfo().getFamily();
-    if (family.equals(Response.Status.Family.REDIRECTION)) {
+    if (Response.Status.Family.REDIRECTION.equals(family)) {
       return response;
-    } else if (family.equals(Response.Status.Family.CLIENT_ERROR)) {
+    } else if (Response.Status.Family.CLIENT_ERROR.equals(family)) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             CLIENT_ERROR_TEMPLATE,
@@ -282,6 +282,6 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
   private String getRequestPath(@SuppressWarnings("SameParameterValue") boolean queryParameters) {
     String s =
         queryParameters ? uriInfo.getRequestUri().toString() : uriInfo.getAbsolutePath().toString();
-    return s.substring(s.indexOf("/", s.indexOf("//") + 1));
+    return s.substring(s.indexOf('/', s.indexOf("//") + 1));
   }
 }

@@ -13,11 +13,11 @@ import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProcessExtension;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.ws.rs.core.MediaType;
 
 // TODO
 public interface FeatureProcess extends ProcessExtension {

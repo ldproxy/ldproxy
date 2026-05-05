@@ -47,7 +47,7 @@ public class FeatureProcessChain {
   public boolean includes(String... processNames) {
     for (String name : processNames) {
       if (processes.stream()
-          .anyMatch(process -> process.getName().equals(name) || name.equals("*"))) return true;
+          .anyMatch(process -> process.getName().equals(name) || "*".equals(name))) return true;
     }
     return false;
   }

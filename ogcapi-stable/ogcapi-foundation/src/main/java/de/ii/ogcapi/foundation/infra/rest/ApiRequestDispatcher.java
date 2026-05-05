@@ -33,6 +33,22 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
 import io.dropwizard.auth.Auth;
 import io.dropwizard.jetty.HttpConnectorFactory;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Form;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Request;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -43,22 +59,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.NotAllowedException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.ServiceUnavailableException;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Form;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Request;
 import org.glassfish.jersey.message.internal.FormProvider;
 import org.glassfish.jersey.server.internal.routing.UriRoutingContext;
 
@@ -219,8 +219,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
   private static MultivaluedMap<String, String> getActualQueryParameters(
       ContainerRequestContext requestContext, Optional<byte[]> body) {
 
-    if (requestContext.getMethod().equals("POST")
-        && requestContext.getMediaType().equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+    if ("POST".equals(requestContext.getMethod())
+        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(requestContext.getMediaType())
         && body.isPresent()) {
       // for a form request, get the query parameters from the body
       try {
@@ -248,8 +248,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       MediaType mediaType,
       EndpointExtension ogcApiEndpoint,
       Optional<byte[]> body) {
-    if (method.equals("POST")
-        && mediaType.equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+    if ("POST".equals(method)
+        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(mediaType)
         && body.isPresent()) {
       // get allowed query parameters from the associated GET request
       return extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()

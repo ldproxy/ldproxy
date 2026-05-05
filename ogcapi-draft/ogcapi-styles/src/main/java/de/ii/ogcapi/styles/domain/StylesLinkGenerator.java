@@ -47,7 +47,7 @@ public class StylesLinkGenerator {
             .title(i18n.get("stylesLink", language))
             .build());
 
-    if (defaultStyle.isPresent() && !defaultStyle.get().equals("NONE"))
+    if (defaultStyle.isPresent() && !"NONE".equals(defaultStyle.get()))
       builder.add(
           new ImmutableLink.Builder()
               .href(
@@ -137,7 +137,7 @@ public class StylesLinkGenerator {
               .rel("stylesheet")
               .type(mediaType.type().toString())
               .title(
-                  mediaType.label().equals("HTML")
+                  "HTML".equals(mediaType.label())
                       ? i18n.get("stylesheetLinkMap", language)
                       : i18n.get("stylesheetLink", language)
                           .replace("{{format}}", mediaType.label()))

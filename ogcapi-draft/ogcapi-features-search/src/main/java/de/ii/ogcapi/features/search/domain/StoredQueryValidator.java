@@ -194,7 +194,7 @@ public class StoredQueryValidator implements StoredQueryVisitor<List<String>> {
                                 "The parameter schema for the filter operator must be a string limited to the values 'AND' and 'OR'. Found: %s",
                                 String.join(", ", string.getEnums().get())));
                   } else if (string.getEnums().get().stream()
-                      .anyMatch(item -> !item.equals("AND") && !item.equals("OR"))) {
+                      .anyMatch(item -> !"AND".equals(item) && !"OR".equals(item))) {
                     errors =
                         List.of(
                             String.format(

@@ -57,6 +57,11 @@ import de.ii.xtraplatform.values.domain.KeyValueStore;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import de.ii.xtraplatform.web.domain.LastModified;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.MediaType;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -71,11 +76,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,7 +178,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
             styleFormat ->
                 stylesheetExists(apiData, collectionId, styleId, styleFormat, includeDerived)
                     || (includeHtml
-                        && styleFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)))
+                        && MediaType.TEXT_HTML_TYPE.equals(styleFormat.getMediaType().type())))
         .map(StyleFormatExtension::getMediaType)
         .collect(Collectors.toList());
   }
@@ -693,7 +693,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
               .getExtension(HtmlConfiguration.class)
               .map(HtmlConfiguration::getDefaultStyle)
               .orElse("NONE");
-      if (!defaultStyle.equals("NONE")) {
+      if (!"NONE".equals(defaultStyle)) {
         boolean exists =
             getStyleFormatStream(apiData, collectionId)
                 .filter(StyleFormatExtension::getAsDefault)
@@ -720,7 +720,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
                 .getExtension(FeaturesHtmlConfiguration.class, collectionId.get())
                 .map(FeaturesHtmlConfiguration::getStyle)
                 .orElse(defaultStyle);
-        if (!style.equals("NONE") && !style.equals("DEFAULT")) {
+        if (!"NONE".equals(style) && !"DEFAULT".equals(style)) {
           boolean exists =
               getStyleFormatStream(apiData, collectionId)
                   .filter(StyleFormatExtension::getAsDefault)
@@ -740,7 +740,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
                   : apiData.getExtension(TilesConfiguration.class, collectionId.get()))
               .map(TilesConfiguration::getStyle)
               .orElse(defaultStyle);
-      if (!style.equals("NONE") && !style.equals("DEFAULT")) {
+      if (!"NONE".equals(style) && !"DEFAULT".equals(style)) {
         boolean exists =
             getStyleFormatStream(apiData, collectionId)
                 .filter(StyleFormatExtension::getAsDefault)

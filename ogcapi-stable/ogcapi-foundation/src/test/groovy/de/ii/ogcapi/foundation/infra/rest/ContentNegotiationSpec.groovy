@@ -13,7 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.ws.rs.core.MediaType
+import jakarta.ws.rs.core.MediaType
 
 class ContentNegotiationSpec extends Specification {
 

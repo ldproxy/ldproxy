@@ -19,11 +19,11 @@ import de.ii.xtraplatform.geometries.domain.Geometry;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
 import de.ii.xtraplatform.geometries.domain.transcode.json.GeoJsonGeometryType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -74,7 +74,7 @@ public class GeoJsonWriterGeometry extends GeoJsonWriterGeometryBase {
     if (writeJsonFgExtensions
         && ((geometry.getType() == GeometryType.POLYHEDRAL_SURFACE
                 && ((PolyhedralSurface) geometry).isClosed())
-            || !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+            || !(OgcCrs.CRS84.equals(transformationContext.getTargetCrs())
                 || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h)))) {
       return writeSecondaryGeometry
           ? schema.getAllNestedProperties().stream()
@@ -100,7 +100,7 @@ public class GeoJsonWriterGeometry extends GeoJsonWriterGeometryBase {
     if (writeJsonFgExtensions
         && ((geometry.getType() == GeometryType.POLYHEDRAL_SURFACE
                 && ((PolyhedralSurface) geometry).isClosed())
-            || !(transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+            || !(OgcCrs.CRS84.equals(transformationContext.getTargetCrs())
                 || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h)))) {
       return schema.getAllNestedProperties().stream()
           .filter(SchemaBase::isEmbeddedSecondaryGeometry)

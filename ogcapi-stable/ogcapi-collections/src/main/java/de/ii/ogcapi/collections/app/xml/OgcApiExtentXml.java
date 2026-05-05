@@ -12,10 +12,10 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.common.domain.OgcApiExtentSpatial;
 import de.ii.ogcapi.common.domain.OgcApiExtentTemporal;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.Locale;
 import java.util.Objects;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlType;
 
 /**
  * @author zahnen

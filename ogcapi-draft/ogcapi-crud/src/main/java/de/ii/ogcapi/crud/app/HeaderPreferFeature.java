@@ -16,9 +16,9 @@ import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -47,9 +47,9 @@ public class HeaderPreferFeature extends HeaderPrefer {
         () ->
             isEnabledForApi(apiData)
                 && ((method == HttpMethods.PUT
-                        && definitionPath.equals("/collections/{collectionId}/items/{featureId}"))
+                        && "/collections/{collectionId}/items/{featureId}".equals(definitionPath))
                     || (method == HttpMethods.POST
-                        && definitionPath.equals("/collections/{collectionId}/items"))));
+                        && "/collections/{collectionId}/items".equals(definitionPath))));
   }
 
   @Override

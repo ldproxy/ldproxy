@@ -12,11 +12,11 @@ import de.ii.ogcapi.features.cityjson.domain.CityJsonWriter;
 import de.ii.ogcapi.features.cityjson.domain.EncodingAwareContextCityJson;
 import de.ii.ogcapi.features.cityjson.domain.FeatureTransformationContextCityJson;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
