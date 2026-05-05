@@ -394,65 +394,65 @@ public class ForValidation implements JsonSchemaTransformer {
     return switch (format) {
       case "point" -> POINT;
       case "multipoint" -> MULTIPOINT;
-      case "point-or-multipoint" -> new ImmutableJsonSchemaOneOf.Builder()
-          .addOneOf(POINT, MULTIPOINT)
-          .build();
+      case "point-or-multipoint" ->
+          new ImmutableJsonSchemaOneOf.Builder().addOneOf(POINT, MULTIPOINT).build();
       case "linestring" -> LINESTRING;
       case "circularstring" -> simpleFeatures ? LINESTRING : CIRCULARSTRING;
-      case "curve" -> simpleFeatures
-          ? LINESTRING
-          : new ImmutableJsonSchemaOneOf.Builder()
-              .addOneOf(LINESTRING, CIRCULARSTRING, COMPOUNDCURVE)
-              .build();
+      case "curve" ->
+          simpleFeatures
+              ? LINESTRING
+              : new ImmutableJsonSchemaOneOf.Builder()
+                  .addOneOf(LINESTRING, CIRCULARSTRING, COMPOUNDCURVE)
+                  .build();
       case "compoundcurve" -> simpleFeatures ? LINESTRING : COMPOUNDCURVE;
       case "multilinestring" -> MULTILINESTRING;
-      case "linestring-or-multilinestring" -> new ImmutableJsonSchemaOneOf.Builder()
-          .addOneOf(LINESTRING, MULTILINESTRING)
-          .build();
+      case "linestring-or-multilinestring" ->
+          new ImmutableJsonSchemaOneOf.Builder().addOneOf(LINESTRING, MULTILINESTRING).build();
       case "polygon" -> POLYGON;
       case "multipolygon", "polyhedralsurface" -> MULTIPOLYGON;
-      case "polygon-or-multipolygon" -> new ImmutableJsonSchemaOneOf.Builder()
-          .addOneOf(POLYGON, MULTIPOLYGON)
-          .build();
+      case "polygon-or-multipolygon" ->
+          new ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYGON, MULTIPOLYGON).build();
       case "curvepolygon" -> simpleFeatures ? POLYGON : CURVEPOLYGON;
-      case "surface" -> simpleFeatures
-          ? POLYGON
-          : new ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYGON, CURVEPOLYGON).build();
+      case "surface" ->
+          simpleFeatures
+              ? POLYGON
+              : new ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYGON, CURVEPOLYGON).build();
       case "multicurve" -> simpleFeatures ? MULTILINESTRING : MULTICURVE;
       case "multisurface" -> simpleFeatures ? MULTIPOLYGON : MULTISURFACE;
-        // case "polyhedron" -> POLYHEDRON;
-        // case "multipolyhedron" -> MULTIPOLYHEDRON;
-        // case "polyhedron-or-multipolyhedron" -> new
-        // ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYHEDRON, MULTIPOLYHEDRON).build();
+      // case "polyhedron" -> POLYHEDRON;
+      // case "multipolyhedron" -> MULTIPOLYHEDRON;
+      // case "polyhedron-or-multipolyhedron" -> new
+      // ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYHEDRON, MULTIPOLYHEDRON).build();
       case "geometrycollection" -> GEOMETRYCOLLECTION;
-      case "any" -> simpleFeatures
-          ? new ImmutableJsonSchemaOneOf.Builder()
-              .addOneOf(
-                  POINT,
-                  MULTIPOINT,
-                  LINESTRING,
-                  MULTILINESTRING,
-                  POLYGON,
-                  MULTIPOLYGON,
-                  GEOMETRYCOLLECTION)
-              .build()
-          : new ImmutableJsonSchemaOneOf.Builder()
-              .addOneOf(
-                  POINT,
-                  MULTIPOINT,
-                  LINESTRING,
-                  CIRCULARSTRING,
-                  COMPOUNDCURVE,
-                  MULTILINESTRING,
-                  MULTICURVE,
-                  POLYGON,
-                  CURVEPOLYGON,
-                  MULTIPOLYGON,
-                  MULTISURFACE,
-                  GEOMETRYCOLLECTION)
-              .build();
-      default -> throw new IllegalStateException(
-          "Unexpected format value: " + geometry.getFormat());
+      case "any" ->
+          simpleFeatures
+              ? new ImmutableJsonSchemaOneOf.Builder()
+                  .addOneOf(
+                      POINT,
+                      MULTIPOINT,
+                      LINESTRING,
+                      MULTILINESTRING,
+                      POLYGON,
+                      MULTIPOLYGON,
+                      GEOMETRYCOLLECTION)
+                  .build()
+              : new ImmutableJsonSchemaOneOf.Builder()
+                  .addOneOf(
+                      POINT,
+                      MULTIPOINT,
+                      LINESTRING,
+                      CIRCULARSTRING,
+                      COMPOUNDCURVE,
+                      MULTILINESTRING,
+                      MULTICURVE,
+                      POLYGON,
+                      CURVEPOLYGON,
+                      MULTIPOLYGON,
+                      MULTISURFACE,
+                      GEOMETRYCOLLECTION)
+                  .build();
+      default ->
+          throw new IllegalStateException("Unexpected format value: " + geometry.getFormat());
     };
   }
 

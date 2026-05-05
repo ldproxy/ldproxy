@@ -40,6 +40,7 @@ import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.services.domain.AbstractService;
 import de.ii.xtraplatform.services.domain.Service;
 import de.ii.xtraplatform.services.domain.ServicesContext;
+import jakarta.ws.rs.core.MediaType;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
@@ -47,7 +48,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

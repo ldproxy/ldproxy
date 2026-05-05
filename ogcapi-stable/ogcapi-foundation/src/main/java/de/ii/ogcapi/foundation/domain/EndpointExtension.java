@@ -12,14 +12,14 @@ import static de.ii.ogcapi.foundation.domain.ApiEndpointDefinition.SORT_PRIORITY
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServerErrorException;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.ServerErrorException;
 
 @AutoMultiBind
 public interface EndpointExtension extends ApiExtension {

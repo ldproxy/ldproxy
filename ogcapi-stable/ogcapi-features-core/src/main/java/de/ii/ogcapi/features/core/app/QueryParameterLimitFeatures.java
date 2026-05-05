@@ -24,14 +24,14 @@ import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery.Builder;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title limit
@@ -129,7 +129,7 @@ public class QueryParameterLimitFeatures extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items");
+    return "/collections/{collectionId}/items".equals(definitionPath);
   }
 
   private final ConcurrentMap<Integer, ConcurrentMap<String, Schema<?>>> schemaMap =

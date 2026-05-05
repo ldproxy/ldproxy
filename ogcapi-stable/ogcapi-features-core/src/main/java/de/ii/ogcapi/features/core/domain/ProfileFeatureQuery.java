@@ -10,7 +10,7 @@ package de.ii.ogcapi.features.core.domain;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public abstract class ProfileFeatureQuery extends ProfileGeneric {
 

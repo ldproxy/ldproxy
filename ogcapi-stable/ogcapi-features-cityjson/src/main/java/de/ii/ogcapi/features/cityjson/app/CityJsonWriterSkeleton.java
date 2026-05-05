@@ -12,11 +12,11 @@ import de.ii.ogcapi.features.cityjson.domain.CityJsonConfiguration;
 import de.ii.ogcapi.features.cityjson.domain.CityJsonWriter;
 import de.ii.ogcapi.features.cityjson.domain.EncodingAwareContextCityJson;
 import de.ii.ogcapi.features.cityjson.domain.ModifiableStateCityJson;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -100,7 +100,7 @@ public class CityJsonWriterSkeleton implements CityJsonWriter {
         .getJson()
         .writeStringField(
             CityJsonWriter.REFERENCE_SYSTEM,
-            context.encoding().getVersion().equals(CityJsonConfiguration.Version.V10)
+            CityJsonConfiguration.Version.V10.equals(context.encoding().getVersion())
                 ? context.encoding().getCrs().toUrnString()
                 : context.encoding().getCrs().toUriString());
 

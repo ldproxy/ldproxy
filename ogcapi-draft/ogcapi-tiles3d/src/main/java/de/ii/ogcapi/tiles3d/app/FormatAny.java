@@ -13,7 +13,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import io.swagger.v3.oas.models.media.Schema;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 
 public class FormatAny implements FormatExtension {
   public static final FormatAny INSTANCE = new FormatAny();

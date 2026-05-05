@@ -15,9 +15,9 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExceptionFormatExtension;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import io.dropwizard.jersey.errors.ErrorEntityWriter;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 
 @Singleton
 @AutoBind(

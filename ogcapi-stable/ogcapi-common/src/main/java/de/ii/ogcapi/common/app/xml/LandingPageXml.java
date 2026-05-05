@@ -11,10 +11,10 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.xml.OgcApiXml;
 import de.ii.ogcapi.foundation.domain.Link;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 @XmlRootElement(name = "LandingPage", namespace = "http://www.opengis.net/ogcapi-features-1/1.0")
 @XmlType(propOrder = {"title", "description", "links"})

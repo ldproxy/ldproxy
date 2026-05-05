@@ -10,9 +10,9 @@ package de.ii.ogcapi.foundation.domain;
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
-import javax.validation.constraints.NotNull;
 
 /**
  * The following types of profile extensions are distinguished:

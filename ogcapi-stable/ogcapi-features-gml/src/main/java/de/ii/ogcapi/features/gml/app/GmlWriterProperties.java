@@ -15,12 +15,12 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @SuppressWarnings({
   "ConstantConditions",
@@ -226,7 +226,7 @@ public class GmlWriterProperties implements GmlWriter {
     context.encoding().write(" xlink:");
     context.encoding().write(xlinkAttribute);
     context.encoding().write("=\"");
-    if (xlinkAttribute.equals("href") && context.encoding().getAllLinksAreLocal()) {
+    if ("href".equals(xlinkAttribute) && context.encoding().getAllLinksAreLocal()) {
       String localHref =
           context.encoding().getIdsIncludeCollectionId()
               ? String.format(
@@ -257,7 +257,7 @@ public class GmlWriterProperties implements GmlWriter {
     if (type == Type.BOOLEAN) {
       context
           .encoding()
-          .write(Boolean.parseBoolean(value) || value.equalsIgnoreCase("t") || value.equals("1"));
+          .write(Boolean.parseBoolean(value) || "t".equalsIgnoreCase(value) || "1".equals(value));
     } else {
       context.encoding().write(escapeText(value));
     }

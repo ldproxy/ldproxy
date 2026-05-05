@@ -25,14 +25,14 @@ import de.ii.xtraplatform.geometries.domain.LineString;
 import de.ii.xtraplatform.geometries.domain.MultiPolygon;
 import de.ii.xtraplatform.geometries.domain.Polygon;
 import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +82,7 @@ public class CityJsonWriterGeometry implements CityJsonWriter {
 
     EpsgCrs crs = context.encoding().getCrs();
     Optional<BoundingBox> bbox =
-        crs.equals(OgcCrs.CRS84h) || crs.equals(OgcCrs.CRS84)
+        crs.equals(OgcCrs.CRS84h) || OgcCrs.CRS84.equals(crs)
             ? context.encoding().getApi().getSpatialExtent(context.encoding().getCollectionId())
             : context
                 .encoding()

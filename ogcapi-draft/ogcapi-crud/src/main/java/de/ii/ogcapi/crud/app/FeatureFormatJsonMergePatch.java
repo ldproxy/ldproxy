@@ -12,8 +12,8 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import jakarta.ws.rs.core.MediaType;
 import java.util.Map;
-import javax.ws.rs.core.MediaType;
 
 /**
  * This is not implemented as a FeatureFormat since it is only relevant for PATCH requests and

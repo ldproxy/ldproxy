@@ -22,6 +22,7 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import javax.ws.rs.container.ContainerRequestContext;
 
 public abstract class QueryParameterF extends OgcApiQueryParameterBase
     implements TypedQueryParameter<ApiMediaType>, HttpRequestOverrideQueryParameter {
@@ -120,7 +120,7 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
       extensionRegistry.getExtensionsForType(getFormatClass()).stream()
           .filter(f -> f.isEnabledForApi(apiData))
           .filter(f -> !f.isInternal())
-          .filter(f -> !f.getMediaType().parameter().equals("*"))
+          .filter(f -> !"*".equals(f.getMediaType().parameter()))
           .map(f -> f.getMediaType().parameter())
           .distinct()
           .sorted()
@@ -139,7 +139,7 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
       extensionRegistry.getExtensionsForType(getFormatClass()).stream()
           .filter(f -> f.isEnabledForApi(apiData, collectionId))
           .filter(f -> !f.isInternal())
-          .filter(f -> !f.getMediaType().parameter().equals("*"))
+          .filter(f -> !"*".equals(f.getMediaType().parameter()))
           .map(f -> f.getMediaType().parameter())
           .distinct()
           .sorted()

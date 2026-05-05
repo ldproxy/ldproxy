@@ -50,7 +50,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FeatureEncoderRoutes.class);
 
-  private static final double R = 6378137.0;
+  private static final double R = 6_378_137.0;
 
   private final FeatureTransformationContextRoutes transformationContext;
   private final ImmutableRoute.Builder builder;
@@ -199,7 +199,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
               aggCost += cost;
             });
     feature.getProperties().stream()
-        .filter(p -> p.getPropertyPath().get(0).equals("data"))
+        .filter(p -> "data".equals(p.getPropertyPath().get(0)))
         .filter(p -> p.getSchema().filter(SchemaBase::isSpatial).isEmpty())
         .forEach(
             p -> {
@@ -219,43 +219,43 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
 
     SchemaBase.Type type =
         p.getSchema().map(FeatureSchema::getType).orElse(SchemaBase.Type.UNKNOWN);
-    if (p.getType().equals(PropertyBase.Type.OBJECT)) {
+    if (PropertyBase.Type.OBJECT.equals(p.getType())) {
       for (PropertyRoutes p2 : p.getNestedProperties()) {
         propertyBuilder = processProperty(id, p2, propertyBuilder);
       }
-    } else if (!p.getType().equals(PropertyBase.Type.VALUE)) {
+    } else if (!PropertyBase.Type.VALUE.equals(p.getType())) {
       LOGGER.debug("Property '{}' of segment '{}' is not a value and is ignored.", p.getName(), id);
-    } else if (type.equals(SchemaBase.Type.BOOLEAN)) {
+    } else if (SchemaBase.Type.BOOLEAN.equals(type)) {
       propertyBuilder.put(p.getName(), Boolean.parseBoolean(p.getFirstValue()));
-    } else if (type.equals(SchemaBase.Type.FLOAT)) {
+    } else if (SchemaBase.Type.FLOAT.equals(type)) {
       String name = p.getName();
       double value = Double.parseDouble(p.getFirstValue());
-      if (name.equals("length_m")) {
+      if ("length_m".equals(name)) {
         propertyBuilder.put(name, round(value));
         aggLength += value;
-      } else if (name.equals("maxHeight_m") || name.equals("maxWeight_t")) {
+      } else if ("maxHeight_m".equals(name) || "maxWeight_t".equals(name)) {
         propertyBuilder.put(name, String.format(Locale.US, "%.1f", value));
-      } else if (name.equals("duration_forward_s") && !isReverse) {
+      } else if ("duration_forward_s".equals(name) && !isReverse) {
         propertyBuilder.put("duration_s", round(value));
         aggDuration += value;
-      } else if (name.equals("duration_backward_s") && isReverse) {
+      } else if ("duration_backward_s".equals(name) && isReverse) {
         value = abs(value);
         propertyBuilder.put("duration_s", value);
         aggDuration += value;
-      } else if (name.equals("maxspeed_forward") && !isReverse) {
+      } else if ("maxspeed_forward".equals(name) && !isReverse) {
         propertyBuilder.put("maxSpeed", round(value));
         propertyBuilder.put("maxSpeedUnit", speedLimitUnit);
-      } else if (name.equals("maxspeed_backward") && isReverse) {
+      } else if ("maxspeed_backward".equals(name) && isReverse) {
         propertyBuilder.put("maxSpeed", round(value));
         propertyBuilder.put("maxSpeedUnit", speedLimitUnit);
       }
-    } else if (type.equals(SchemaBase.Type.INTEGER)) {
+    } else if (SchemaBase.Type.INTEGER.equals(type)) {
       String name = p.getName();
       int value = Integer.parseInt(p.getFirstValue());
-      if (!name.equals("source") && !name.equals("target")) propertyBuilder.put(name, value);
-    } else if (type.equals(SchemaBase.Type.STRING)
-        || type.equals(SchemaBase.Type.DATE)
-        || type.equals(SchemaBase.Type.DATETIME)) {
+      if (!"source".equals(name) && !"target".equals(name)) propertyBuilder.put(name, value);
+    } else if (SchemaBase.Type.STRING.equals(type)
+        || SchemaBase.Type.DATE.equals(type)
+        || SchemaBase.Type.DATETIME.equals(type)) {
       if (!p.getFirstValue().isEmpty()) {
         propertyBuilder.put(p.getName(), p.getFirstValue());
       }
@@ -283,7 +283,7 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
 
     builder.bbox(computeBbox());
     long processingDuration =
-        (System.nanoTime() - transformationContext.getStartTimeNano()) / 1000000;
+        (System.nanoTime() - transformationContext.getStartTimeNano()) / 1_000_000;
     ImmutableMap.Builder<String, Object> propertyBuilder = ImmutableMap.builder();
     if (aggLength > 0.0) propertyBuilder.put("length_m", round(aggLength));
     if (aggDuration > 0.0) propertyBuilder.put("duration_s", round(aggDuration));
@@ -322,13 +322,13 @@ public class FeatureEncoderRoutes extends FeatureObjectEncoder<PropertyRoutes, F
     EpsgCrs crs = transformationContext.getCrs();
     List<Unit<?>> units = crsInfo.getAxisUnits(crs);
     boolean degree =
-        units.size() >= 2 && units.get(0).equals(Units.DEGREE) && units.get(1).equals(Units.DEGREE);
+        units.size() >= 2 && Units.DEGREE.equals(units.get(0)) && Units.DEGREE.equals(units.get(1));
     boolean latAxisY = false;
     if (degree) {
       List<String> axesAbbrev = crsInfo.getAxisAbbreviations(crs);
-      if (axesAbbrev.get(0).equalsIgnoreCase("lat")) {
+      if ("lat".equalsIgnoreCase(axesAbbrev.get(0))) {
         latAxisY = false;
-      } else if (axesAbbrev.get(1).equalsIgnoreCase("lat")) {
+      } else if ("lat".equalsIgnoreCase(axesAbbrev.get(1))) {
         latAxisY = true;
       } else {
         degree = false;

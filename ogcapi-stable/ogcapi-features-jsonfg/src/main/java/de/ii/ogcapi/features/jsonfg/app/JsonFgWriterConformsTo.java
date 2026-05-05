@@ -16,11 +16,11 @@ import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -109,12 +109,12 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
         .flatMap(SchemaBase::getPrimaryGeometry)
         .filter(
             s ->
-                (s.getGeometryType().map(t -> t.equals(GeometryType.MULTI_POLYGON)).orElse(false)
+                (s.getGeometryType().map(t -> GeometryType.MULTI_POLYGON.equals(t)).orElse(false)
                         && s.getConstraints()
                             .map(c -> c.isClosed() && c.isComposite())
                             .orElse(false))
                     || (s.getGeometryType()
-                            .map(t -> t.equals(GeometryType.POLYHEDRAL_SURFACE))
+                            .map(t -> GeometryType.POLYHEDRAL_SURFACE.equals(t))
                             .orElse(false)
                         && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)))
         .isPresent();

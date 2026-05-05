@@ -45,13 +45,13 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.measure.Unit;
 import org.kortforsyningen.proj.Units;
 
@@ -68,7 +68,7 @@ public class QueryParameterBbox extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Cql2Expression>, FeatureQueryParameter {
 
   private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults();
-  private static final double BUFFER_DEGREE = 0.00001;
+  private static final double BUFFER_DEGREE = 0.000_01;
   private static final double BUFFER_METRE = 10.0;
 
   private final Schema<?> baseSchema;
@@ -266,7 +266,7 @@ public class QueryParameterBbox extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items");
+    return "/collections/{collectionId}/items".equals(definitionPath);
   }
 
   @Override

@@ -61,8 +61,8 @@ public class FeatureEncoderGltf extends FeatureObjectEncoder<PropertyGltf, Featu
   private static final String KHR_MESH_QUANTIZATION = "KHR_mesh_quantization";
   private static final String EXT_STRUCTURAL_METADATA = "EXT_structural_metadata";
   private static final String EXT_MESH_FEATURES = "EXT_mesh_features";
-  private static final int INITIAL_SIZE = 1_024;
-  private static final int WARNING_THRESHOLD_FEATURES_PER_FILE = 5_000;
+  private static final int INITIAL_SIZE = 1024;
+  private static final int WARNING_THRESHOLD_FEATURES_PER_FILE = 5000;
   private static final int MATERIAL = 0;
   private static final String FEATURE_ID = "_featureId";
   private static final String INDICES = "_indices";

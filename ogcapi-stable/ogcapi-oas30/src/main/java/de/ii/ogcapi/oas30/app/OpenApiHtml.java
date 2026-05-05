@@ -26,13 +26,13 @@ import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.xtraplatform.auth.domain.Oidc;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.Response;
 
 /**
  * @title HTML

@@ -20,8 +20,8 @@ import de.ii.xtraplatform.tiles.domain.MinMax
 import spock.lang.Ignore
 import spock.lang.Specification
 
-import javax.ws.rs.NotAcceptableException
-import javax.ws.rs.NotFoundException
+import jakarta.ws.rs.NotAcceptableException
+import jakarta.ws.rs.NotFoundException
 
 @Ignore
 //TODO

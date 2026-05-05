@@ -15,9 +15,9 @@ import de.ii.ogcapi.features.core.domain.processing.FeatureProcessInfo;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind

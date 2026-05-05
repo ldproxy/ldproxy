@@ -11,7 +11,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public interface ResourceFormatExtension extends FormatExtension {
 

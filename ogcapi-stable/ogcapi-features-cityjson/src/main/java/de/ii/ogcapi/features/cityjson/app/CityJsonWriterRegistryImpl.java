@@ -12,10 +12,10 @@ import com.google.common.collect.ImmutableList;
 import dagger.Lazy;
 import de.ii.ogcapi.features.cityjson.domain.CityJsonWriter;
 import de.ii.ogcapi.features.cityjson.domain.CityJsonWriterRegistry;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 @AutoBind

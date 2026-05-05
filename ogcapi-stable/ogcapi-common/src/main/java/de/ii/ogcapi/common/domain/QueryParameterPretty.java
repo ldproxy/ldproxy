@@ -18,10 +18,10 @@ import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.xtraplatform.web.domain.JsonPretty;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.ws.rs.container.ContainerRequestContext;
 
 public abstract class QueryParameterPretty extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Boolean>, HttpRequestOverrideQueryParameter {
