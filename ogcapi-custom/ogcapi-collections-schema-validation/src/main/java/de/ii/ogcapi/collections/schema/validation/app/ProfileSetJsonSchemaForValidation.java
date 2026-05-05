@@ -12,10 +12,10 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
+import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
-import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import java.util.Optional;
 
 @Singleton
