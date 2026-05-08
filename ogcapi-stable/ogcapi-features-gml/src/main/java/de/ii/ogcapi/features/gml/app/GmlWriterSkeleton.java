@@ -25,6 +25,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind
@@ -164,11 +166,11 @@ public class GmlWriterSkeleton implements GmlWriter {
                     (!"sf".equals(entry.getKey()) || "sf".equals(rootElementPrefix))
                         && (!"wfs".equals(entry.getKey()) || "wfs".equals(rootElementPrefix))
                         && (!"gml21".equals(entry.getKey())
-                            || GML21.equals(context.encoding().getGmlVersion()))
+                            || context.encoding().getGmlVersion().equals(GML21))
                         && (!"gml31".equals(entry.getKey())
-                            || GML31.equals(context.encoding().getGmlVersion()))
+                            || context.encoding().getGmlVersion().equals(GML31))
                         && (!"gml".equals(entry.getKey())
-                            || GML32.equals(context.encoding().getGmlVersion())))
+                            || context.encoding().getGmlVersion().equals(GML32)))
             .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
     for (Map.Entry<String, String> entry : effectiveNamespaces.entrySet()) {

@@ -450,6 +450,32 @@ public interface GmlConfiguration
   Boolean getSrsDimension();
 
   /**
+   * @langEn If enabled, simple polygons are encoded as {@code gml:Surface} with a single {@code
+   *     gml:PolygonPatch} instead of {@code gml:Polygon}, and simple line strings are encoded as
+   *     {@code gml:Curve} with a single {@code gml:LineStringSegment} instead of {@code
+   *     gml:LineString}. All rings are encoded as {@code gml:Ring} with a single {@code
+   *     gml:LineStringSegment} curve member instead of {@code gml:LinearRing}. This option is
+   *     useful when the target GML application schema requires these geometry types.
+   * @langDe Wenn aktiviert, werden einfache Polygone statt als {@code gml:Polygon} als {@code
+   *     gml:Surface} mit genau einem {@code gml:PolygonPatch} kodiert, und einfache Linienzüge
+   *     statt als {@code gml:LineString} als {@code gml:Curve} mit genau einem {@code
+   *     gml:LineStringSegment}. Alle Ringe werden als {@code gml:Ring} mit genau einem {@code
+   *     gml:LineStringSegment} als Curve-Member statt als {@code gml:LinearRing} kodiert. Diese
+   *     Option ist nützlich, wenn das Ziel-GML-Anwendungsschema diese Geometrietypen erfordert.
+   * @default false
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   useSurfaceAndCurve: true
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  Boolean getUseSurfaceAndCurve();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set and
    *     the value is the default profile for the profile set. These defaults override the defaults

@@ -52,6 +52,9 @@ public class GmlWriterGeometry implements GmlWriter {
     if (context.encoding().getSrsDimension()) {
       options.add(Options.WITH_SRS_DIMENSION);
     }
+    if (context.encoding().getUseSurfaceAndCurve()) {
+      options.add(Options.USE_SURFACE_RING_CURVE);
+    }
     encoder =
         new GeometryEncoderGml(
             context.encoding().getWriter(),

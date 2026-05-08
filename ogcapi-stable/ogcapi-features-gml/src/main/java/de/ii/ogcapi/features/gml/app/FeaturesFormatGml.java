@@ -360,6 +360,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Objects.requireNonNullElse(config.getSupportsStandardResponseParameters(), false))
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
+            .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
             .xmlAttributes(config.getXmlAttributes())
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .build();
