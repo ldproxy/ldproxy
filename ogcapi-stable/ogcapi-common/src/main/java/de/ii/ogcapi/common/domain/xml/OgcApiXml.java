@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.common.domain.xml;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlAttribute;
 
 public interface OgcApiXml {
 

@@ -36,7 +36,7 @@ public abstract class ObstaclesValue {
   @Value.Check
   void check() {
     Preconditions.checkState(
-        getType().equals("MultiPolygon"),
+        "MultiPolygon".equals(getType()),
         "WaypointsValue is not a MultiPolygon geometry. Found: {}.",
         getType());
     Preconditions.checkState(

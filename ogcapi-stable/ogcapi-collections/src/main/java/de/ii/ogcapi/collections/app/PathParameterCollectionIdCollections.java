@@ -10,8 +10,8 @@ package de.ii.ogcapi.collections.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.collections.domain.AbstractPathParameterCollectionId;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 /**
  * @title collectionId
@@ -30,7 +30,7 @@ public class PathParameterCollectionIdCollections extends AbstractPathParameterC
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}");
+    return "/collections/{collectionId}".equals(definitionPath);
   }
 
   @Override

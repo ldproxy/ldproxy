@@ -19,11 +19,11 @@ import de.ii.xtraplatform.geometries.domain.Geometry;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
 import de.ii.xtraplatform.geometries.domain.transcode.json.JsonFgGeometryType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +75,7 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
     if (geometry.getType().isSimpleFeature()
         && (geometry.getType() != GeometryType.POLYHEDRAL_SURFACE
             || !((PolyhedralSurface) geometry).isClosed())
-        && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+        && (OgcCrs.CRS84.equals(transformationContext.getTargetCrs())
             || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
       return Set.of();
     }
@@ -97,7 +97,7 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
     if (geometry.getType().isSimpleFeature()
         && (geometry.getType() != GeometryType.POLYHEDRAL_SURFACE
             || !((PolyhedralSurface) geometry).isClosed())
-        && (transformationContext.getTargetCrs().equals(OgcCrs.CRS84)
+        && (OgcCrs.CRS84.equals(transformationContext.getTargetCrs())
             || transformationContext.getTargetCrs().equals(OgcCrs.CRS84h))) {
       return Set.of();
     }

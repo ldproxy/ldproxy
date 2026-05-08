@@ -23,12 +23,12 @@ import de.ii.ogcapi.styles.domain.StyleRepository;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.StylesLinkGenerator;
 import de.ii.xtraplatform.web.domain.URICustomizer;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.MediaType;
 
 /** add styles information to the landing page */
 @Singleton
@@ -68,12 +68,12 @@ public class StylesOnLandingPage implements LandingPageExtension {
         apiData
             .getExtension(HtmlConfiguration.class)
             .map(HtmlConfiguration::getDefaultStyle)
-            .filter(s -> !s.equals("NONE"));
+            .filter(s -> !"NONE".equals(s));
     if (defaultStyle.isPresent()) {
       Optional<StyleFormatExtension> htmlStyleFormat =
           styleRepo
               .getStyleFormatStream(apiData, Optional.empty())
-              .filter(f -> f.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE))
+              .filter(f -> MediaType.TEXT_HTML_TYPE.equals(f.getMediaType().type()))
               .findAny();
       if (htmlStyleFormat.isPresent()
           && !styleRepo.stylesheetExists(

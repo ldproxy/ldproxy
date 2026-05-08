@@ -14,12 +14,12 @@ import de.ii.ogcapi.features.core.domain.FeatureTransformationContext.Event;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoderDefault;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

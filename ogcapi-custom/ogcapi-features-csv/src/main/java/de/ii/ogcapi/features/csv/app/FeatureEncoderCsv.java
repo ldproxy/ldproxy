@@ -98,8 +98,8 @@ public class FeatureEncoderCsv extends FeatureEncoderSfFlat {
   @Override
   public void onEnd(ModifiableContext context) {
     if (LOGGER.isTraceEnabled()) {
-      long transformerDuration = (System.nanoTime() - transformerStart) / 1000000;
-      long processingDuration = (System.nanoTime() - processingStart) / 1000000;
+      long transformerDuration = (System.nanoTime() - transformerStart) / 1_000_000;
+      long processingDuration = (System.nanoTime() - processingStart) / 1_000_000;
       LOGGER.trace(
           String.format(
               "Collection %s, features returned: %d, written: %d, total duration: %dms, processing: %dms, feature processing: %dms.",
@@ -108,7 +108,7 @@ public class FeatureEncoderCsv extends FeatureEncoderSfFlat {
               written,
               transformerDuration,
               processingDuration,
-              featureDuration / 1000000));
+              featureDuration / 1_000_000));
     }
   }
 }

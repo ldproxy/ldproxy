@@ -29,6 +29,8 @@ import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProviderData;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Map;
@@ -36,8 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title 3D Tiles

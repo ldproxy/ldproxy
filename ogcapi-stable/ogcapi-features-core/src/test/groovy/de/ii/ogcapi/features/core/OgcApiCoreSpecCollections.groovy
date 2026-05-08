@@ -30,7 +30,7 @@ import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.ws.rs.core.MediaType
+import jakarta.ws.rs.core.MediaType
 import java.util.stream.Collectors
 
 class OgcApiCoreSpecCollections extends Specification {

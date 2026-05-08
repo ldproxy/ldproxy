@@ -58,6 +58,11 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import de.ii.xtraplatform.values.domain.ValueStore;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Date;
@@ -70,11 +75,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.Response;
 
 @Singleton
 @AutoBind

@@ -338,7 +338,7 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
     }
 
     String tmsId = tileMatrixSet.get().getId();
-    BigDecimal scaleDenominatorLevel0WebMercatorQuad = BigDecimal.valueOf(559082264.028717);
+    BigDecimal scaleDenominatorLevel0WebMercatorQuad = BigDecimal.valueOf(559_082_264.028_717);
     BigDecimal scaleDenominatorLevel0Target =
         BigDecimal.valueOf(tileMatrixSet.get().getInitialScaleDenominator());
     BigDecimal ratio =

@@ -66,6 +66,16 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Date;
@@ -78,16 +88,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.ServiceUnavailableException;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,7 +198,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    if (outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+    if (MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
         && !api.getData()
             .getExtension(HtmlConfiguration.class, collectionId)
             .map(HtmlConfiguration::getSendEtags)
@@ -214,7 +214,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     boolean sendResponseAsStream =
-        outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
             && api.getData()
                 .getExtension(HtmlConfiguration.class, collectionId)
                 .map(HtmlConfiguration::getSendEtags)

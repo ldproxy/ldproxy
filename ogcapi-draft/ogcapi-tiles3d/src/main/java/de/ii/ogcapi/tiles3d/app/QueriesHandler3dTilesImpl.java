@@ -36,6 +36,14 @@ import de.ii.xtraplatform.tiles3d.domain.Tile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dQuery;
 import de.ii.xtraplatform.tiles3d.domain.spec.Tileset3d;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Date;
@@ -43,14 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.InternalServerErrorException;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 @Singleton
 @AutoBind
@@ -248,7 +248,7 @@ public class QueriesHandler3dTilesImpl implements QueriesHandler3dTiles {
 
   private boolean shouldProvideEntityTag(
       OgcApiDataV2 apiData, Optional<String> collectionId, FormatExtension outputFormat) {
-    return !outputFormat.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+    return !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
         || (collectionId.isPresent()
                 ? apiData.getExtension(HtmlConfiguration.class, collectionId.get())
                 : apiData.getExtension(HtmlConfiguration.class))

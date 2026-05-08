@@ -110,9 +110,9 @@ class LayoutImpl implements Layout {
 
         DataSize size = DataSize.bytes(sum);
 
-        if (sum > 1073741824) {
+        if (sum > 1_073_741_824) {
           return size.toGigabytes() + "GB";
-        } else if (sum > 1048576) {
+        } else if (sum > 1_048_576) {
           return size.toMegabytes() + "MB";
         }
 

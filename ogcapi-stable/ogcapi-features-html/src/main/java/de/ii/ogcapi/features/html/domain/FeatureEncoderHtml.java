@@ -317,7 +317,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
                     valueProperty ->
                         valueProperty
                             .getSchema()
-                            .filter(schema -> schema.getName().equals("href"))
+                            .filter(schema -> "href".equals(schema.getName()))
                             .isPresent())
                 .findFirst()
                 .flatMap(valueProperty -> Optional.ofNullable(valueProperty.getValue()))
@@ -328,7 +328,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
                     valueProperty ->
                         valueProperty
                             .getSchema()
-                            .filter(schema -> schema.getName().equals("title"))
+                            .filter(schema -> "title".equals(schema.getName()))
                             .isPresent())
                 .findFirst()
                 .flatMap(valueProperty -> Optional.ofNullable(valueProperty.getValue()))

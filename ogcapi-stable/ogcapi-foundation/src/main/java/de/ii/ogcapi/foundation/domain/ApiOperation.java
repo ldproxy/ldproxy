@@ -20,13 +20,13 @@ import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.MediaType;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -471,7 +471,7 @@ public interface ApiOperation {
         if (getRequestBody().isPresent()) {
           Set<MediaType> mediaTypes = getRequestBody().get().getContent().keySet();
           if (mediaTypes.size() == 1
-              && mediaTypes.iterator().next().equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)) {
+              && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(mediaTypes.iterator().next())) {
             // URL-encoded form
             isMutation = false;
             errorCodes.add(406);

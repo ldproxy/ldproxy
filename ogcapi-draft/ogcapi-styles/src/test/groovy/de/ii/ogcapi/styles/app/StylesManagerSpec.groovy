@@ -12,7 +12,7 @@ import de.ii.ogcapi.styles.infra.manager.EndpointStylesManager
 import spock.lang.Ignore
 import spock.lang.Specification
 
-import javax.ws.rs.BadRequestException
+import jakarta.ws.rs.BadRequestException
 
 class StylesManagerSpec extends Specification{
 

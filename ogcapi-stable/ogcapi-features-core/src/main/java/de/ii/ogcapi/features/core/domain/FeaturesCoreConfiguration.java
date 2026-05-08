@@ -137,7 +137,7 @@ public interface FeaturesCoreConfiguration
 
   int MINIMUM_PAGE_SIZE = 1;
   int DEFAULT_PAGE_SIZE = 10;
-  int MAX_PAGE_SIZE = 10000;
+  int MAX_PAGE_SIZE = 10_000;
   String PARAMETER_BBOX = "bbox";
   String PARAMETER_DATETIME = "datetime";
   String DATETIME_INTERVAL_SEPARATOR = "/";

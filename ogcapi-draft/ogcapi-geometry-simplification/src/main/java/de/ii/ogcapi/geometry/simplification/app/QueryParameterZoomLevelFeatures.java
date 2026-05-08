@@ -26,13 +26,13 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery.Builder;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.kortforsyningen.proj.Units;
 
 /**
@@ -103,13 +103,13 @@ public class QueryParameterZoomLevelFeatures extends OgcApiQueryParameterBase
         .getValue(this)
         .ifPresent(
             level -> {
-              double maxAllowableOffset = 559082264.028717 / 4096 / Math.pow(2, level);
+              double maxAllowableOffset = 559_082_264.028_717 / 4096 / Math.pow(2, level);
               EpsgCrs crs =
                   parameters.getTypedValues().containsKey("crs")
                       ? (EpsgCrs) parameters.getTypedValues().get("crs")
                       : OgcCrs.CRS84;
-              if (crsInfo.getUnit(crs).equals(Units.DEGREE)) {
-                maxAllowableOffset /= 111319.5;
+              if (Units.DEGREE.equals(crsInfo.getUnit(crs))) {
+                maxAllowableOffset /= 111_319.5;
               }
               queryBuilder.maxAllowableOffset(maxAllowableOffset);
 
@@ -126,8 +126,8 @@ public class QueryParameterZoomLevelFeatures extends OgcApiQueryParameterBase
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.equals("/collections/{collectionId}/items")
-        || definitionPath.equals("/collections/{collectionId}/items/{featureId}");
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/collections/{collectionId}/items/{featureId}".equals(definitionPath);
   }
 
   private final Schema<?> schema =

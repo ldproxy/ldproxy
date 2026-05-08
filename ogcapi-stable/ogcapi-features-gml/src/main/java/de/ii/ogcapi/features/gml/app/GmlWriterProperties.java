@@ -15,12 +15,12 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @SuppressWarnings({
   "ConstantConditions",
@@ -206,7 +206,7 @@ public class GmlWriterProperties implements GmlWriter {
     // Still in START_ELEMENT state for the property element; add an xlink:* attribute.
     // XMLStreamWriter handles value escaping automatically.
     String attrValue;
-    if (xlinkAttribute.equals("href") && context.encoding().getAllLinksAreLocal()) {
+    if ("href".equals(xlinkAttribute) && context.encoding().getAllLinksAreLocal()) {
       attrValue =
           context.encoding().getIdsIncludeCollectionId()
               ? String.format(
@@ -240,7 +240,7 @@ public class GmlWriterProperties implements GmlWriter {
       throws IOException {
     if (type == Type.BOOLEAN) {
       boolean boolValue =
-          Boolean.parseBoolean(value) || value.equalsIgnoreCase("t") || value.equals("1");
+          Boolean.parseBoolean(value) || "t".equalsIgnoreCase(value) || "1".equals(value);
       context.encoding().writeCharacters(String.valueOf(boolValue));
     } else {
       context.encoding().writeCharacters(value);

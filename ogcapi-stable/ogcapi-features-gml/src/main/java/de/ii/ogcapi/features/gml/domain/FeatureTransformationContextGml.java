@@ -507,10 +507,10 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   @Value.Auxiliary
   public String getGmlPrefix() {
     final GmlVersion v = getGmlVersion();
-    if (v.equals(GmlVersion.GML21)) {
+    if (GmlVersion.GML21.equals(v)) {
       return "gml21";
     }
-    if (v.equals(GmlVersion.GML31)) {
+    if (GmlVersion.GML31.equals(v)) {
       return "gml31";
     }
     return "gml";

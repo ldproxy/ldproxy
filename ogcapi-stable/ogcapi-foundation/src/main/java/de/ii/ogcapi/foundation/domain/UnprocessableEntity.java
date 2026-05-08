@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 
 public class UnprocessableEntity extends WebApplicationException {
 

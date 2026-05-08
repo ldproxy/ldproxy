@@ -18,7 +18,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs
 import io.swagger.v3.oas.models.media.ObjectSchema
 import spock.lang.Specification
 
-import javax.ws.rs.core.MediaType
+import jakarta.ws.rs.core.MediaType
 
 class LandingPageSpec extends Specification {
 

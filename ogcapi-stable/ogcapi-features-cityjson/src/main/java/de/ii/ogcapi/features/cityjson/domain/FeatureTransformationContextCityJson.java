@@ -106,14 +106,14 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
     TokenBuffer buffer = createJsonBuffer();
     getState().setAddressBuffer(buffer);
     buffer.writeFieldName("address");
-    if (!getVersion().equals(CityJsonConfiguration.Version.V10)) {
+    if (!CityJsonConfiguration.Version.V10.equals(getVersion())) {
       buffer.writeStartArray();
     }
     buffer.writeStartObject();
   }
 
   public final void nextAddress() throws IOException {
-    if (!getVersion().equals(CityJsonConfiguration.Version.V10)) {
+    if (!CityJsonConfiguration.Version.V10.equals(getVersion())) {
       TokenBuffer buffer = Objects.requireNonNull(getState()).getAddressBuffer().orElse(null);
       if (Objects.nonNull(buffer)) {
         buffer.writeEndObject();
@@ -126,7 +126,7 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
     TokenBuffer buffer = Objects.requireNonNull(getState()).getAddressBuffer().orElse(null);
     if (Objects.nonNull(buffer)) {
       buffer.writeEndObject();
-      if (!getVersion().equals(CityJsonConfiguration.Version.V10)) {
+      if (!CityJsonConfiguration.Version.V10.equals(getVersion())) {
         buffer.writeEndArray();
       }
     }
@@ -186,7 +186,7 @@ public abstract class FeatureTransformationContextCityJson implements FeatureTra
       case BOOLEAN:
         // TODO: normalize in decoder
         buffer.writeBoolean(
-            value.equalsIgnoreCase("t") || value.equalsIgnoreCase("true") || value.equals("1"));
+            value.equalsIgnoreCase("t") || value.equalsIgnoreCase("true") || "1".equals(value));
         break;
       case INTEGER:
         try {

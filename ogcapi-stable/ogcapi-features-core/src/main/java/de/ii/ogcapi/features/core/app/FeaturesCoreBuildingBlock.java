@@ -52,13 +52,13 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchemaRef;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
 import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -341,7 +341,7 @@ public class FeaturesCoreBuildingBlock
   }
 
   private Optional<BoundingBox> transformToCrs84(BoundingBox boundingBox) {
-    if (!boundingBox.getEpsgCrs().equals(OgcCrs.CRS84)) {
+    if (!OgcCrs.CRS84.equals(boundingBox.getEpsgCrs())) {
       Optional<CrsTransformer> transformer =
           crsTransformerFactory.getTransformer(boundingBox.getEpsgCrs(), OgcCrs.CRS84);
       if (transformer.isPresent()) {
@@ -374,7 +374,7 @@ public class FeaturesCoreBuildingBlock
       if (spatialExtent.isPresent()) {
 
         BoundingBox boundingBox = spatialExtent.get();
-        if (!boundingBox.getEpsgCrs().equals(OgcCrs.CRS84)
+        if (!OgcCrs.CRS84.equals(boundingBox.getEpsgCrs())
             && !boundingBox.getEpsgCrs().equals(OgcCrs.CRS84h)) {
           Optional<CrsTransformer> transformer =
               boundingBox.is3d()

@@ -34,18 +34,18 @@ import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.core.EntityTag;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import org.immutables.value.Value;
 
 @Singleton
@@ -147,7 +147,7 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormatExtension.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormatExtension.getMediaType().type())
                 || api.getData()
                     .getExtension(HtmlConfiguration.class)
                     .map(HtmlConfiguration::getSendEtags)
@@ -230,7 +230,7 @@ public class QueriesHandlerCollectionsImpl implements QueriesHandlerCollections 
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        !outputFormatExtension.getMediaType().type().equals(MediaType.TEXT_HTML_TYPE)
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormatExtension.getMediaType().type())
                 || api.getData()
                     .getExtension(HtmlConfiguration.class, collectionId)
                     .map(HtmlConfiguration::getSendEtags)

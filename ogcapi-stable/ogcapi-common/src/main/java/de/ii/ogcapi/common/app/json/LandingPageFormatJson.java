@@ -21,11 +21,11 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title JSON
@@ -70,7 +70,7 @@ public class LandingPageFormatJson implements LandingPageFormatExtension, Confor
         .from(apiLandingPage)
         .extensions(
             apiLandingPage.getExtensions().entrySet().stream()
-                .filter(entry -> !entry.getKey().equals("datasetDownloadLinks"))
+                .filter(entry -> !"datasetDownloadLinks".equals(entry.getKey()))
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
         .build();
   }

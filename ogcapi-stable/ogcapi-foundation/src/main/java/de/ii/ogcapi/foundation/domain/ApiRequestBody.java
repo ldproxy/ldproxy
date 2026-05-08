@@ -12,9 +12,9 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
+import jakarta.ws.rs.core.MediaType;
 import java.util.Map;
 import java.util.Optional;
-import javax.ws.rs.core.MediaType;
 import org.immutables.value.Value;
 
 @Value.Immutable

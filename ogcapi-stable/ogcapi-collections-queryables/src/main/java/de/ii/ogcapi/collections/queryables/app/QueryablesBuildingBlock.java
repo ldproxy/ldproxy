@@ -28,6 +28,8 @@ import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.List;
@@ -37,8 +39,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * @title Feature Collections - Queryables

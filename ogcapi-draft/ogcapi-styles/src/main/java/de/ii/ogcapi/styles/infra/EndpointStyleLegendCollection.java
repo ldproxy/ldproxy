@@ -31,18 +31,18 @@ import de.ii.ogcapi.styles.domain.QueriesHandlerStyles;
 import de.ii.ogcapi.styles.domain.StyleLegendFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,14 +103,14 @@ public class EndpointStyleLegendCollection extends EndpointSubCollection
     final String subSubPath = "/styles/{styleId}/legend";
     final String path = "/collections/{collectionId}" + subSubPath;
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    if (pathParameters.stream().noneMatch(param -> param.getName().equals("styleId"))) {
+    if (pathParameters.stream().noneMatch(param -> "styleId".equals(param.getName()))) {
       LOGGER.error(
           "Path parameter 'styleId' missing for resource at path '"
               + path
               + "'. The GET method will not be available.");
     } else {
       final Optional<OgcApiPathParameter> optCollectionIdParam =
-          pathParameters.stream().filter(param -> param.getName().equals("collectionId")).findAny();
+          pathParameters.stream().filter(param -> "collectionId".equals(param.getName())).findAny();
       if (optCollectionIdParam.isEmpty()) {
         LOGGER.error(
             "Path parameter 'collectionId' missing for resource at path '"
