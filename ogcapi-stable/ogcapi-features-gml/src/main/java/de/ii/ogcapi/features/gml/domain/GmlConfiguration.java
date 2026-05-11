@@ -55,6 +55,56 @@ import org.immutables.value.Value;
  *           rename: 'ns2:someOtherAtt'
  * ```
  *     </code>
+ * @langEn ## Example: AdV NAS (AAA) profile
+ *     <p>The following example combines all options that are typically required to publish data
+ *     according to the AdV-GeoInfoDok / AFIS-ALKIS-ATKIS NAS application schema. Each option is
+ *     individually opt-in and reusable for other GML application schemas.
+ * @langDe ## Beispiel: AdV-NAS-(AAA-)Profil
+ *     <p>Das folgende Beispiel kombiniert alle Optionen, die üblicherweise benötigt werden, um
+ *     Daten gemäß dem AdV-GeoInfoDok-/AFIS-ALKIS-ATKIS-NAS-Anwendungsschema bereitzustellen. Jede
+ *     Option ist einzeln aktivierbar und auch für andere GML-Anwendungsschemata nutzbar.
+ * @examplesAll <code>
+ * ```yaml
+ * - buildingBlock: GML
+ *   enabled: true
+ *   useSurfaceAndCurve: true
+ *   applicationNamespaces:
+ *     aaa: 'http://www.adv-online.de/namespaces/adv/gid/7.1'
+ *   defaultNamespace: aaa
+ *   schemaLocations:
+ *     aaa: 'https://repository.gdi-de.org/schemas/adv/nas/7.1/aaa.xsd'
+ *   featureRefTemplate: 'urn:adv:oid:{{value}}'
+ *   gmlIdentifier:
+ *     codeSpace: 'http://www.adv-online.de/'
+ *     valueTemplate: 'urn:adv:oid:{{value}}'
+ *   appendTemporalSuffixToGmlId: true
+ *   srsNameStyle: TEMPLATE
+ *   srsNameMappings:
+ *     - crs:
+ *         code: 25832
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:ETRS89_UTM32'
+ *     - crs:
+ *         code: 25833
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:ETRS89_UTM33'
+ *   uomStyle: TEMPLATE
+ *   uomMappings:
+ *     - uom: 'm'
+ *       value: 'urn:adv:uom:m'
+ *     - uom: 'grad'
+ *       value: 'urn:adv:uom:grad'
+ *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+ *   codelistProperties:
+ *     bauwerk.funktion: AX_Funktion_Bauwerk
+ * collections:
+ *   ax_flurstueck:
+ *     api:
+ *     - buildingBlock: GML
+ *       codelistProperties:
+ *         art_der_flurstuecksgrenze: AX_ArtDerFlurstuecksgrenze
+ * ```
+ *     </code>
  */
 @Value.Immutable
 @Value.Style(builder = "new", deepImmutablesDetection = true, attributeBuilderDetection = true)
@@ -67,6 +117,16 @@ public interface GmlConfiguration
     NONE,
     GMLSF0,
     GMLSF2
+  }
+
+  enum SrsNameStyle {
+    OGC,
+    TEMPLATE
+  }
+
+  enum UomStyle {
+    RAW,
+    TEMPLATE
   }
 
   /**
@@ -497,6 +557,206 @@ public interface GmlConfiguration
    */
   @Override
   Map<String, String> getDefaultProfiles();
+
+  /**
+   * @langEn Controls how the {@code srsName} attribute on geometries is rendered. {@code OGC} (the
+   *     default) emits the OGC URI form (e.g. {@code http://www.opengis.net/def/crs/EPSG/0/25832}).
+   *     {@code TEMPLATE} looks up the CRS in {@code srsNameMappings} and uses the mapped value; CRS
+   *     without a mapping fall back to the {@code OGC} form.
+   * @langDe Steuert, wie das {@code srsName}-Attribut von Geometrien gerendert wird. {@code OGC}
+   *     (Standard) erzeugt die OGC-URI-Form (z.B. {@code
+   *     http://www.opengis.net/def/crs/EPSG/0/25832}). {@code TEMPLATE} sucht das CRS in {@code
+   *     srsNameMappings} und verwendet den zugeordneten Wert; CRS ohne Mapping fallen auf die
+   *     {@code OGC}-Form zurück.
+   * @default OGC
+   * @since v4.9
+   */
+  @Nullable
+  SrsNameStyle getSrsNameStyle();
+
+  /**
+   * @langEn Mapping list used when {@code srsNameStyle} is {@code TEMPLATE}. Each entry binds a CRS
+   *     to a fixed {@code srsName} value. Useful for application schemas that require non-OGC URIs
+   *     (e.g. AdV: {@code urn:adv:crs:ETRS89_UTM32}).
+   * @langDe Mapping-Liste für {@code srsNameStyle: TEMPLATE}. Jeder Eintrag bindet ein CRS an einen
+   *     festen {@code srsName}-Wert. Nützlich für Anwendungsschemata, die Nicht-OGC-URIs verlangen
+   *     (z.B. AdV: {@code urn:adv:crs:ETRS89_UTM32}).
+   * @default []
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   srsNameStyle: TEMPLATE
+   *   srsNameMappings:
+   *     - crs:
+   *         code: 25832
+   *         forceAxisOrder: NONE
+   *       value: 'urn:adv:crs:ETRS89_UTM32'
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  List<SrsNameMapping> getSrsNameMappings();
+
+  /**
+   * @langEn Controls how the {@code uom} attribute on measure-typed properties is rendered. {@code
+   *     RAW} (the default) writes the unit string from the provider schema verbatim. {@code
+   *     TEMPLATE} looks up the unit in {@code uomMappings} and uses the mapped value; units without
+   *     a mapping fall back to the raw value.
+   * @langDe Steuert, wie das {@code uom}-Attribut bei Measure-Eigenschaften gerendert wird. {@code
+   *     RAW} (Standard) schreibt den Einheitenwert aus dem Provider-Schema unverändert. {@code
+   *     TEMPLATE} sucht die Einheit in {@code uomMappings} und verwendet den zugeordneten Wert;
+   *     Einheiten ohne Mapping fallen auf den Rohwert zurück.
+   * @default RAW
+   * @since v4.9
+   */
+  @Nullable
+  UomStyle getUomStyle();
+
+  /**
+   * @langEn Mapping list used when {@code uomStyle} is {@code TEMPLATE}. Each entry binds a unit
+   *     string to a fixed {@code uom} value. Useful for application schemas that require non-UCUM
+   *     identifiers (e.g. AdV: {@code urn:adv:uom:m}).
+   * @langDe Mapping-Liste für {@code uomStyle: TEMPLATE}. Jeder Eintrag bindet einen
+   *     Einheiten-String an einen festen {@code uom}-Wert. Nützlich für Anwendungsschemata, die
+   *     Nicht-UCUM-Bezeichner verlangen (z.B. AdV: {@code urn:adv:uom:m}).
+   * @default []
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   uomStyle: TEMPLATE
+   *   uomMappings:
+   *     - uom: 'm'
+   *       value: 'urn:adv:uom:m'
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  List<UomMapping> getUomMappings();
+
+  /**
+   * @langEn URI/URN template applied to {@code xlink:href} of feature reference properties (i.e.
+   *     properties with {@code refType}). The placeholder {@code {{value}}} is replaced with the
+   *     referenced feature id (the segment after {@code /items/} in the original href). Default
+   *     {@code null} keeps the original href. Useful for application schemas that require URN-style
+   *     references (e.g. AdV: {@code urn:adv:oid:{{value}}}). Does not affect links inside generic
+   *     {@code Link} objects.
+   * @langDe URI/URN-Template für {@code xlink:href} von Feature-Referenz-Eigenschaften (d.h.
+   *     Properties mit {@code refType}). Der Platzhalter {@code {{value}}} wird durch die
+   *     referenzierte Feature-ID (das Segment nach {@code /items/} in der Original-URL) ersetzt.
+   *     Standardwert {@code null} belässt die Original-URL. Nützlich für Anwendungsschemata, die
+   *     URN-Referenzen verlangen (z.B. AdV: {@code urn:adv:oid:{{value}}}). Wirkt nicht auf Links
+   *     in generischen {@code Link}-Objekten.
+   * @default null
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   featureRefTemplate: 'urn:adv:oid:{{value}}'
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  @Nullable
+  String getFeatureRefTemplate();
+
+  /**
+   * @langEn If set, a {@code gml:identifier} child element is emitted as the first child of every
+   *     feature with the configured {@code codeSpace} attribute. The element's text value is the
+   *     raw feature id from the provider, optionally substituted into {@code valueTemplate} (where
+   *     {@code {{value}}} is replaced with the raw id). Useful for application schemas that mandate
+   *     {@code gml:identifier} (e.g. AdV NAS).
+   * @langDe Wenn gesetzt, wird ein {@code gml:identifier}-Kindelement als erstes Kind jedes
+   *     Features mit dem konfigurierten {@code codeSpace}-Attribut ausgegeben. Der Textinhalt des
+   *     Elements ist die rohe Feature-ID aus dem Provider, optional eingesetzt in {@code
+   *     valueTemplate} (wobei {@code {{value}}} durch die rohe ID ersetzt wird). Nützlich für
+   *     Anwendungsschemata, die {@code gml:identifier} verlangen (z.B. AdV NAS).
+   * @default null
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   gmlIdentifier:
+   *     codeSpace: 'http://www.adv-online.de/'
+   *     valueTemplate: 'urn:adv:oid:{{value}}'
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  @Nullable
+  GmlIdentifier getGmlIdentifier();
+
+  /**
+   * @langEn If {@code true} and the request's {@code datetime} parameter is an interval (contains
+   *     {@code /}), the {@code gml:id} of every feature is suffixed with the feature's primary
+   *     temporal property value formatted as {@code yyyyMMddTHHmmssX}. The source property is the
+   *     one with role {@code PRIMARY_INSTANT}, falling back to {@code PRIMARY_INTERVAL_START}.
+   *     Useful for application schemas that require {@code gml:id} to be unique per feature version
+   *     (e.g. AdV NAS time-series queries). Does not affect {@code gml:identifier}.
+   * @langDe Wenn {@code true} und der {@code datetime}-Parameter der Anfrage ein Intervall ist
+   *     (enthält {@code /}), wird die {@code gml:id} jedes Features um den Wert der primären
+   *     zeitlichen Eigenschaft formatiert als {@code yyyyMMddTHHmmssX} ergänzt. Quelle ist die
+   *     Eigenschaft mit Rolle {@code PRIMARY_INSTANT}, ersatzweise {@code PRIMARY_INTERVAL_START}.
+   *     Nützlich für Anwendungsschemata, die je Feature-Version eine eindeutige {@code gml:id}
+   *     verlangen (z.B. AdV NAS Zeitreihen-Anfragen). Wirkt nicht auf {@code gml:identifier}.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getAppendTemporalSuffixToGmlId();
+
+  /**
+   * @langEn URI template used to construct the {@code xlink:href} for properties that carry a
+   *     codelist value. The template may contain the placeholders {@code {{codelistId}}} (replaced
+   *     with the codelist id from {@code codelistProperties}) and {@code {{value}}} (replaced with
+   *     the raw property value). When set together with {@code codelistProperties}, the matching
+   *     property is encoded as an empty element {@code <prop xlink:href="..." xlink:title="..."/>}
+   *     where {@code xlink:title} is the codelist label looked up from the resolved codelist
+   *     (falling back to the raw value if no label is found).
+   * @langDe URI-Template zum Aufbau des {@code xlink:href} für Eigenschaften mit Codelist-Werten.
+   *     Das Template darf die Platzhalter {@code {{codelistId}}} (ersetzt durch die Codelist-ID aus
+   *     {@code codelistProperties}) und {@code {{value}}} (ersetzt durch den rohen
+   *     Eigenschaftswert) enthalten. Wenn zusammen mit {@code codelistProperties} gesetzt, wird die
+   *     betroffene Eigenschaft als leeres Element {@code <prop xlink:href="..."
+   *     xlink:title="..."/>} kodiert, wobei {@code xlink:title} das Codelist-Label aus der
+   *     aufgelösten Codelist ist (Fallback ist der rohe Wert, wenn kein Label gefunden wird).
+   * @default null
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  @Nullable
+  String getCodelistUriTemplate();
+
+  /**
+   * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()}) to a
+   *     codelist id. Properties listed here are encoded as xlink elements using {@code
+   *     codelistUriTemplate} instead of the raw value being written as element text. Entries
+   *     defined at the building-block (API) level apply to all collections; per-collection entries
+   *     are merged on top.
+   * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()}) auf
+   *     eine Codelist-ID ab. Hier aufgeführte Eigenschaften werden als xlink-Elemente mittels
+   *     {@code codelistUriTemplate} kodiert anstatt den rohen Wert als Elementtext zu schreiben.
+   *     Auf Building-Block-Ebene (API) definierte Einträge gelten für alle Collections; Einträge
+   *     auf Collection-Ebene werden ergänzt.
+   * @default {}
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   codelistProperties:
+   *     bauwerk.funktion: AX_Funktion_Bauwerk
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  Map<String, String> getCodelistProperties();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

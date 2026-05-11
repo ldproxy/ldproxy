@@ -70,6 +70,9 @@ public class GmlWriterProperties implements GmlWriter {
         // xlink:* attributes are added to this element by writeLinkAttribute()
         // and the element is closed by onObjectEnd().
         context.encoding().getState().setInLink(true);
+        if (schema.isFeatureRef()) {
+          context.encoding().getState().setInFeatureRef(true);
+        }
       } else if ("Measure".equals(objectType)) {
         // The uom attribute and character value are written together once both
         // sub-properties have been seen (writeMeasure). The element is closed
@@ -102,6 +105,7 @@ public class GmlWriterProperties implements GmlWriter {
         // Closes <propName xlink:href="…" …/>
         context.encoding().writeEndElement();
         context.encoding().getState().setInLink(false);
+        context.encoding().getState().setInFeatureRef(false);
       } else if (inMeasure) {
         // Closes <propName uom="…">value</propName>
         context.encoding().writeEndElement();
@@ -138,6 +142,11 @@ public class GmlWriterProperties implements GmlWriter {
           if (context.encoding().getXmlAttributes().contains(schema.getFullPathAsString())) {
             // encode as XML attribute of the parent object element
             context.encoding().writeAsXmlAtt(schema.getName(), value);
+          } else if (context
+              .encoding()
+              .getCodelistProperties()
+              .containsKey(schema.getFullPathAsString())) {
+            writeCodelistXlink(context, schema, value);
           } else {
             // <propName [name="…"] [uom="…"]>value</propName>
             String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
@@ -182,7 +191,9 @@ public class GmlWriterProperties implements GmlWriter {
       // property in the provider schema
       schema
           .getUnit()
-          .ifPresent(consumerMayThrow(uom -> context.encoding().writeAttribute("uom", uom)));
+          .ifPresent(
+              consumerMayThrow(
+                  uom -> context.encoding().writeAttribute("uom", context.encoding().mapUom(uom))));
     }
   }
 
@@ -194,7 +205,7 @@ public class GmlWriterProperties implements GmlWriter {
       String uom = "uom".equals(schema.getName()) ? value : other;
       String val = "value".equals(schema.getName()) ? value : other;
       // Still in START_ELEMENT state for the property element: add uom attribute, then write value
-      context.encoding().writeAttribute("uom", uom);
+      context.encoding().writeAttribute("uom", context.encoding().mapUom(uom));
       writeValue(context, val, schema.getType());
     } else {
       state.setFirstMeasureProperty(Optional.ofNullable(value));
@@ -206,6 +217,10 @@ public class GmlWriterProperties implements GmlWriter {
     // Still in START_ELEMENT state for the property element; add an xlink:* attribute.
     // XMLStreamWriter handles value escaping automatically.
     String attrValue;
+    boolean isFeatureRefHref =
+        "href".equals(xlinkAttribute) && context.encoding().getState().getInFeatureRef();
+    Optional<String> template =
+        isFeatureRefHref ? context.encoding().getFeatureRefTemplate() : Optional.empty();
     if ("href".equals(xlinkAttribute) && context.encoding().getAllLinksAreLocal()) {
       attrValue =
           context.encoding().getIdsIncludeCollectionId()
@@ -217,10 +232,39 @@ public class GmlWriterProperties implements GmlWriter {
                   "#%s%s",
                   context.encoding().getGmlIdPrefix().orElse(""),
                   value.substring(value.indexOf("/items/") + 7));
+    } else if (template.isPresent()) {
+      attrValue = applyFeatureRefTemplate(value, template.get());
     } else {
       attrValue = value;
     }
     context.encoding().writeAttribute("xlink:" + xlinkAttribute, attrValue);
+  }
+
+  private void writeCodelistXlink(
+      EncodingAwareContextGml context, FeatureSchema schema, String value) throws IOException {
+    String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
+    context.encoding().writeStartElement(name[0]);
+    if (name.length == 2) {
+      context.encoding().writeAttribute("name", name[1]);
+    }
+    String propPath = schema.getFullPathAsString();
+    Optional<String> href = context.encoding().resolveCodelistUri(propPath, value);
+    if (href.isPresent()) {
+      context.encoding().writeAttribute("xlink:href", href.get());
+      context
+          .encoding()
+          .writeAttribute("xlink:title", context.encoding().resolveCodelistLabel(propPath, value));
+      context.encoding().writeEndElement();
+    } else {
+      writeValue(context, value, schema.getType());
+      context.encoding().writeEndElement();
+    }
+  }
+
+  static String applyFeatureRefTemplate(String hrefValue, String template) {
+    int idx = hrefValue.indexOf("/items/");
+    String refId = idx >= 0 ? hrefValue.substring(idx + 7) : hrefValue;
+    return template.replace("{{value}}", refId);
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {

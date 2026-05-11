@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.gml.domain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
+import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
@@ -41,6 +42,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   private static final String XML_ATTRIBUTE_PLACEHOLDER = "_zz_XML_ATTRIBUTE_i_zz_";
   private static final String GML_ID_PLACEHOLDER = "_zz_GML_ID_i_zz_";
+  private static final String GML_IDENTIFIER_VALUE_PLACEHOLDER = "_zz_GML_IDENTIFIER_VALUE_i_zz_";
   private static final String OBJECT_ELEMENT_PLACEHOLDER = "_zz_OBJECT_ELEMENT_i_zz_";
   private static final String SURFACE_MEMBER_PLACEHOLDER = "_zz_SURFACE_MEMBER_i_zz_";
 
@@ -112,6 +114,82 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   public abstract List<String> getXmlAttributes();
 
   public abstract Optional<String> getGmlIdPrefix();
+
+  public abstract Optional<GmlConfiguration.SrsNameStyle> getSrsNameStyle();
+
+  public abstract List<SrsNameMapping> getSrsNameMappings();
+
+  public abstract Optional<GmlConfiguration.UomStyle> getUomStyle();
+
+  public abstract List<UomMapping> getUomMappings();
+
+  public abstract Optional<String> getFeatureRefTemplate();
+
+  public abstract Optional<GmlIdentifier> getGmlIdentifier();
+
+  @Value.Default
+  public boolean getAppendTemporalSuffixToGmlId() {
+    return false;
+  }
+
+  public abstract Optional<String> getCodelistUriTemplate();
+
+  @Value.Default
+  public Map<String, String> getCodelistProperties() {
+    return ImmutableMap.of();
+  }
+
+  @Value.Default
+  public Map<String, Codelist> getCodelists() {
+    return ImmutableMap.of();
+  }
+
+  @Value.Derived
+  @Value.Auxiliary
+  public Optional<String> resolveCodelistUri(String propPath, String value) {
+    if (value == null || getCodelistUriTemplate().isEmpty()) {
+      return Optional.empty();
+    }
+    String codelistId = getCodelistProperties().get(propPath);
+    if (codelistId == null) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        getCodelistUriTemplate()
+            .get()
+            .replace("{{codelistId}}", codelistId)
+            .replace("{{value}}", value));
+  }
+
+  @Value.Derived
+  @Value.Auxiliary
+  public String resolveCodelistLabel(String propPath, String value) {
+    if (value == null) {
+      return value;
+    }
+    String codelistId = getCodelistProperties().get(propPath);
+    if (codelistId == null) {
+      return value;
+    }
+    Codelist cl = getCodelists().get(codelistId);
+    return cl == null ? value : cl.getValue(value);
+  }
+
+  @Value.Derived
+  @Value.Auxiliary
+  public String mapUom(String raw) {
+    if (raw == null
+        || getUomStyle().orElse(GmlConfiguration.UomStyle.RAW)
+            != GmlConfiguration.UomStyle.TEMPLATE) {
+      return raw;
+    }
+    for (UomMapping m : getUomMappings()) {
+      if (raw.equals(m.getUom())) {
+        return m.getValue();
+      }
+    }
+    return raw;
+  }
 
   /** Returns the underlying buffer, used by GeometryEncoderGml which requires a StringBuilder. */
   @Value.Derived
@@ -295,18 +373,14 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
                         });
               });
 
-      if (buffer.indexOf("_$zz") == -1) {
-        // write buffer
+      int unresolvedPos = buffer.indexOf("_zz_");
+      if (unresolvedPos == -1) {
         getOutputStream().write(buffer.toString().getBytes());
       } else {
         if (LOGGER.isErrorEnabled()) {
-          int errorPos = buffer.indexOf("_$$_");
-          if (errorPos == -1) {
-            errorPos = buffer.indexOf("_zz_OBJECT_ELEMENT");
-          }
           LOGGER.error(
               "GML feature buffer for a feature contains unresolved placeholders, the feature is ignored: {}",
-              buffer.substring(0, Math.min(errorPos + 50, buffer.length())));
+              buffer.substring(0, Math.min(unresolvedPos + 50, buffer.length())));
         }
       }
 
@@ -384,7 +458,44 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
    */
   public void setCurrentGmlId(String value) {
     int i = getState().getLastObject();
-    getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), value);
+    getState().putCurrentRawGmlIds(i, value);
+    String suffix = getState().getCurrentGmlIdSuffixes().getOrDefault(i, "");
+    getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), value + suffix);
+    getGmlIdentifier()
+        .ifPresent(
+            cfg -> {
+              String resolved =
+                  cfg.getValueTemplate() == null
+                      ? value
+                      : cfg.getValueTemplate().replace("{{value}}", value);
+              getState()
+                  .putPlaceholders(
+                      GML_IDENTIFIER_VALUE_PLACEHOLDER.replace("i", String.valueOf(i)), resolved);
+            });
+  }
+
+  public void appendGmlIdSuffix(String suffix) {
+    int i = getState().getLastObject();
+    getState().putCurrentGmlIdSuffixes(i, suffix);
+    String raw = getState().getCurrentRawGmlIds().get(i);
+    if (raw != null) {
+      getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), raw + suffix);
+    }
+  }
+
+  @Value.Auxiliary
+  public void writeGmlIdentifierElement() throws IOException {
+    if (getGmlIdentifier().isEmpty()) {
+      return;
+    }
+    GmlIdentifier cfg = getGmlIdentifier().get();
+    int i = getState().getLastObject();
+    String placeholder = GML_IDENTIFIER_VALUE_PLACEHOLDER.replace("i", String.valueOf(i));
+    getState().putPlaceholders(placeholder, "");
+    writeStartElement(getGmlPrefix() + ":identifier");
+    writeAttribute("codeSpace", cfg.getCodeSpace());
+    writeCharacters(placeholder);
+    writeEndElement();
   }
 
   /** Get the gml:id of the current feature. */
@@ -527,6 +638,11 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     }
 
     @Value.Default
+    public boolean getInFeatureRef() {
+      return false;
+    }
+
+    @Value.Default
     public boolean getInMeasure() {
       return false;
     }
@@ -584,6 +700,16 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
     @Value.Default
     public Map<String, String> getVariableNameMapping() {
+      return ImmutableMap.of();
+    }
+
+    @Value.Default
+    public Map<Integer, String> getCurrentRawGmlIds() {
+      return ImmutableMap.of();
+    }
+
+    @Value.Default
+    public Map<Integer, String> getCurrentGmlIdSuffixes() {
       return ImmutableMap.of();
     }
   }
