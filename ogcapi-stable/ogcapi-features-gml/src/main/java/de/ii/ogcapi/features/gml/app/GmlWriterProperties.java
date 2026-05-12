@@ -18,6 +18,7 @@ import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -148,15 +149,26 @@ public class GmlWriterProperties implements GmlWriter {
               .containsKey(schema.getFullPathAsString())) {
             writeCodelistXlink(context, schema, value);
           } else {
-            // <propName [name="…"] [uom="…"]>value</propName>
+            // <propName [name="…"] [uom="…"]><wrap…>value</wrap…></propName>
             String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
             context.encoding().writeStartElement(name[0]);
             if (name.length == 2) {
               context.encoding().writeAttribute("name", name[1]);
             }
             writeUnitIfNecessary(context, schema);
+            List<String> wrapElements =
+                context
+                    .encoding()
+                    .getValueWrap()
+                    .getOrDefault(schema.getFullPathAsString(), List.of());
+            for (String wrapEl : wrapElements) {
+              context.encoding().writeStartElement(wrapEl);
+            }
             // writeCharacters emits the pending '>' and writes the (escaped) value
             writeValue(context, value, schema.getType());
+            for (int i = wrapElements.size() - 1; i >= 0; i--) {
+              context.encoding().writeEndElement();
+            }
             context.encoding().writeEndElement();
           }
         }

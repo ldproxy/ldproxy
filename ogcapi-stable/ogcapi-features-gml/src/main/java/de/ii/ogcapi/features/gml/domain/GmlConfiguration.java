@@ -96,7 +96,21 @@ import org.immutables.value.Value;
  *       value: 'urn:adv:uom:grad'
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
  *   codelistProperties:
- *     bauwerk.funktion: AX_Funktion_Bauwerk
+ *     anlass: AX_Anlassart
+ *   objectTypeNamespaces:
+ *     LI_Lineage: gmd
+ *     LI_ProcessStep: gmd
+ *     LI_Source: gmd
+ *   valueWrap:
+ *     lebenszeitintervall:
+ *       - aaa:AA_Lebenszeitintervall
+ *       - aaa:beginnt
+ *     qualitaetsangaben.herkunft.gmd:processStep.gmd:description:
+ *       - AX_LI_ProcessStep_Punktort_Description
+ *     qualitaetsangaben.herkunft.gmd:processStep.gmd:dateTime:
+ *       - gco:DateTime
+ *     qualitaetsangaben.herkunft.gmd:processStep.gmd:source.gmd:description:
+ *       - AX_Datenerhebung_Punktort
  * collections:
  *   ax_flurstueck:
  *     api:
@@ -757,6 +771,37 @@ public interface GmlConfiguration
    * @since v4.9
    */
   Map<String, String> getCodelistProperties();
+
+  /**
+   * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()} at encoding
+   *     time, i.e. after any {@code rename} transformations) to a list of XML element names
+   *     (outer to inner) that wrap the scalar value. When a path matches, the property element
+   *     content is encoded as {@code <wrapper1>...<wrapperN>value</wrapperN>...</wrapper1>}
+   *     instead of the plain value. Element names may be namespace-qualified (e.g. {@code
+   *     gco:DateTime}), provided the prefix is declared in {@code applicationNamespaces}.
+   * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()} zum
+   *     Kodierungszeitpunkt, d.h. nach eventuellen {@code rename}-Transformationen) auf eine Liste
+   *     von XML-Elementnamen ab (von außen nach innen), die den skalaren Wert einschließen. Bei
+   *     einem Treffer wird der Inhalt des Eigenschaftselements als
+   *     {@code <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert
+   *     kodiert. Elementnamen können Namespace-Präfixe tragen (z.B. {@code gco:DateTime}), sofern
+   *     das Präfix in {@code applicationNamespaces} deklariert ist.
+   * @default {}
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   valueWrap:
+   *     someProperty:
+   *       - ns1:WrapperType
+   *       - ns1:wrapperChild
+   *     anotherProperty:
+   *       - gco:DateTime
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  Map<String, List<String>> getValueWrap();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

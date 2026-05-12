@@ -140,6 +140,11 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   }
 
   @Value.Default
+  public Map<String, List<String>> getValueWrap() {
+    return ImmutableMap.of();
+  }
+
+  @Value.Default
   public Map<String, Codelist> getCodelists() {
     return ImmutableMap.of();
   }

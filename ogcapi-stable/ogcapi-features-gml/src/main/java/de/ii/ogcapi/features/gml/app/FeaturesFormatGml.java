@@ -375,6 +375,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
             .codelistProperties(config.getCodelistProperties())
             .codelists(resolveCodelists(config.getCodelistProperties()))
+            .valueWrap(config.getValueWrap())
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
