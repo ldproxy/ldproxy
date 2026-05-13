@@ -273,15 +273,20 @@ public class FeaturesCoreBuildingBlock
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
 
-    final Optional<CollectionExtent> optionalExtent = apiData.getExtent(collectionId);
+    final Optional<FeaturesCoreConfiguration> featuresCoreConfig =
+        collectionData != null
+            ? collectionData.getExtension(FeaturesCoreConfiguration.class)
+            : Optional.empty();
 
-    optionalExtent
-        .flatMap(extent -> extent.isSpatialComputed() ? Optional.empty() : extent.getSpatial())
+    featuresCoreConfig
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getSpatial)
         .or(() -> computeBbox(apiData, collectionId))
         .ifPresent(bbox -> api.setSpatialExtent(collectionId, bbox));
 
-    optionalExtent
-        .flatMap(extent -> extent.isTemporalComputed() ? Optional.empty() : extent.getTemporal())
+    featuresCoreConfig
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getTemporal)
         .or(() -> computeInterval(apiData, collectionId))
         .ifPresent(interval -> api.setTemporalExtent(collectionId, interval));
 

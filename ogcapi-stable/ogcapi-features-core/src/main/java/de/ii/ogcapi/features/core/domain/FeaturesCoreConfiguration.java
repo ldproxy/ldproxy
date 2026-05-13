@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.foundation.domain.CachingConfiguration;
+import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
@@ -230,6 +231,15 @@ public interface FeaturesCoreConfiguration
   Boolean getValidateCoordinatesInQueries();
 
   Optional<ItemType> getItemType();
+
+  /**
+   * @langEn Fixed spatial and/or temporal extent for this collection. If set, the extent is not
+   *     computed from the data.
+   * @langDe Fester räumlicher und/oder zeitlicher Extent für diese Collection. Wenn gesetzt, wird
+   *     der Extent nicht aus den Daten berechnet.
+   * @default {}
+   */
+  Optional<CollectionExtent> getExtent();
 
   /**
    * @langEn Controls whether coordinates are limited to a certain number of places depending on the
