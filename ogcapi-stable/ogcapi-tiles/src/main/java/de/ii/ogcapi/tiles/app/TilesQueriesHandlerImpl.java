@@ -859,10 +859,21 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     tileQueryBuilder
         .generationParametersBuilder()
         .clipBoundingBox(
-            requestContext
-                .getApi()
-                .getSpatialExtent(
-                    queryInput.getCollectionId(), queryInput.getBoundingBox().getEpsgCrs()))
+            collectionData
+                .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
+                .flatMap(TilesConfiguration::getExtent)
+                .or(
+                    () ->
+                        apiData
+                            .getExtension(TilesConfiguration.class)
+                            .flatMap(TilesConfiguration::getExtent))
+                .or(
+                    () ->
+                        requestContext
+                            .getApi()
+                            .getSpatialExtent(
+                                queryInput.getCollectionId(),
+                                queryInput.getBoundingBox().getEpsgCrs())))
         .substitutions(
             FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(requestContext.getApiUri()));
 
@@ -947,8 +958,16 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     BoundingBox boundingBox = null;
     try {
       boundingBox =
-          tilesetMetadata
-              .flatMap(TilesetMetadata::getBounds)
+          collectionId
+              .flatMap(apiData::getCollectionData)
+              .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
+              .flatMap(TilesConfiguration::getExtent)
+              .or(
+                  () ->
+                      apiData
+                          .getExtension(TilesConfiguration.class)
+                          .flatMap(TilesConfiguration::getExtent))
+              .or(() -> tilesetMetadata.flatMap(TilesetMetadata::getBounds))
               .orElse(
                   api.getSpatialExtent(collectionId)
                       .orElse(tileMatrixSet.getBoundingBoxCrs84(crsTransformerFactory)));

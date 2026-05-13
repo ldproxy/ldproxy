@@ -280,16 +280,20 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       }
       getTilesConfiguration(apiData, cid)
           .filter(cfg -> cfg.hasCollectionTiles(tilesProviders, apiData, cid))
-          .map(cfg -> cfg.getCollectionTileset(cid))
           .ifPresent(
-              tileset -> requiredTilesets.putIfAbsent(tileset, () -> api.getSpatialExtent(cid)));
+              cfg ->
+                  requiredTilesets.putIfAbsent(
+                      cfg.getCollectionTileset(cid),
+                      () -> cfg.getExtent().or(() -> api.getSpatialExtent(cid))));
     }
 
     apiData
         .getExtension(TilesConfiguration.class)
         .filter(cfg -> cfg.hasDatasetVectorTiles(tilesProviders, apiData))
-        .map(TilesConfiguration::getDatasetTileset)
-        .ifPresent(tileset -> requiredTilesets.putIfAbsent(tileset, api::getSpatialExtent));
+        .ifPresent(
+            cfg ->
+                requiredTilesets.putIfAbsent(
+                    cfg.getDatasetTileset(), () -> cfg.getExtent().or(api::getSpatialExtent)));
 
     for (String tileset : getSourceTilesets(tileProvider, requiredTilesets.keySet())) {
       requiredTilesets.putIfAbsent(tileset, Optional::empty);
