@@ -10,6 +10,14 @@ allprojects {
 
 apply from: 'version.gradle'
 
+application {
+    applicationDefaultJvmArgs = [
+            '--enable-native-access=de.ii.xtraplatform.nativ.loader',
+            '--enable-native-access=de.ii.xtraplatform.proj.tpl',
+    ]
+}
+
+
 tasks.check {
     dependsOn project.gradle.includedBuild('ogcapi-stable').task(':checkAll')
     dependsOn project.gradle.includedBuild('ogcapi-draft').task(':checkAll')
@@ -56,7 +64,7 @@ tasks.named('dockerRun') {
     List<String> vars = ['EXTERNAL_URL', 'DB_HOST'] + envDocker.tokenize(',')
     List<String> cl = vars.collectMany { ['-e', it] }
 
-    commandLine = commandLine.plus(commandLine.size()-1, cl)
+    commandLine = commandLine.plus(commandLine.size() - 1, cl)
 }
 
 apply from: 'docs.gradle'
