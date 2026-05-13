@@ -142,6 +142,24 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(allBoundaries)
     }
 
+    def "Functions endpoint includes built-in functions"() {
+        when: "The functions endpoint is requested"
+        def functionsResponse = getRequest(restClient, API_PATH_DARAA + "/functions", null)
+
+        then: "Success and returns JSON"
+        assertSuccess(functionsResponse)
+
+        and: "A functions array is present"
+        functionsResponse.responseData.functions instanceof List
+        !functionsResponse.responseData.functions.isEmpty()
+
+        and: "Known built-in functions are listed"
+        def functionNames = functionsResponse.responseData.functions.collect { it.name?.toUpperCase() }
+        functionNames.contains("UPPER")
+        functionNames.contains("LOWER")
+        functionNames.contains("POSITION")
+    }
+
     // Comparison predicates
 
     def "Operator eq"() {
