@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcResourceMetadata;
@@ -349,8 +348,7 @@ public abstract class TileSetsView extends OgcApiView {
                     tBbox.getLowerLeft()[1].doubleValue(),
                     tBbox.getUpperRight()[0].doubleValue(),
                     tBbox.getUpperRight()[1].doubleValue(),
-                    OgcCrs.CRS84))
-        .or(() -> apiData().getDefaultExtent().flatMap(CollectionExtent::getSpatial));
+                    OgcCrs.CRS84));
   }
 
   @Value.Derived
