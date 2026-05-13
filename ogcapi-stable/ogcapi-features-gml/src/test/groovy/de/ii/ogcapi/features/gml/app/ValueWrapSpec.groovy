@@ -25,14 +25,15 @@ class ValueWrapSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.gmd:processStep.gmd:dateTime': ['gco:DateTime']]
+        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.dateTime': ['gco:DateTime']]
+        encoding.qualifyPropertyElementName(_) >> { String n -> 'gmd:' + n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true
             isId() >> false
-            getName() >> 'gmd:dateTime'
+            getName() >> 'dateTime'
             getType() >> Type.DATETIME
-            getFullPathAsString() >> 'qualitaetsangaben.herkunft.gmd:processStep.gmd:dateTime'
+            getFullPathAsString() >> 'qualitaetsangaben.herkunft.processStep.dateTime'
             getUnit() >> Optional.empty()
         }
         def context = Stub(EncodingAwareContextGml) {
@@ -59,6 +60,7 @@ class ValueWrapSpec extends Specification {
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getValueWrap() >> ['lebenszeitintervall': ['aaa:AA_Lebenszeitintervall', 'aaa:beginnt']]
+        encoding.qualifyPropertyElementName(_) >> { String n -> n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true
@@ -93,6 +95,7 @@ class ValueWrapSpec extends Specification {
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getValueWrap() >> [:]
+        encoding.qualifyPropertyElementName(_) >> { String n -> n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true

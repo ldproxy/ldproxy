@@ -25,13 +25,16 @@ import org.immutables.value.Value;
 /**
  * @buildingBlock GML
  * @langEn By default, every GML property element will receive the property name from the feature
- *     schema. That is, the element will be in the default namespace. A different name can be set
- *     using the `rename` transformation, which can be used to change the name, but also supports to
- *     add a namespace prefix.
+ *     schema. The element is placed in the namespace of its containing object type (declared via
+ *     `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element
+ *     stays in the default namespace. A different name or an explicit namespace can be set using
+ *     the `rename` transformation, which takes precedence over the inherited namespace.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
- *     Feature-Schema. Das heißt, das Element wird im Standard-Namensraum liegen. Ein anderer Name
- *     kann mit der Transformation `rename` festgelegt werden, die zum Ändern des Namens verwendet
- *     werden kann, aber auch das Hinzufügen eines Namensraumpräfixes unterstützt.
+ *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
+ *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
+ *     definiert, verbleibt das Element im Standard-Namensraum. Ein anderer Name oder ein expliziter
+ *     Namensraum kann mit der Transformation `rename` festgelegt werden, die Vorrang vor dem
+ *     geerbten Namensraum hat.
  * @examplesAll <code>
  * ```yaml
  * - buildingBlock: GML
@@ -118,11 +121,11 @@ import org.immutables.value.Value;
  *     lebenszeitintervall:
  *       - aaa:AA_Lebenszeitintervall
  *       - aaa:beginnt
- *     qualitaetsangaben.herkunft.gmd:processStep.gmd:description:
+ *     qualitaetsangaben.herkunft.processStep.description:
  *       - AX_LI_ProcessStep_Punktort_Description
- *     qualitaetsangaben.herkunft.gmd:processStep.gmd:dateTime:
+ *     qualitaetsangaben.herkunft.processStep.dateTime:
  *       - gco:DateTime
- *     qualitaetsangaben.herkunft.gmd:processStep.gmd:source.gmd:description:
+ *     qualitaetsangaben.herkunft.processStep.source.description:
  *       - AX_Datenerhebung_Punktort
  * collections:
  *   ax_flurstueck:
@@ -330,12 +333,26 @@ public interface GmlConfiguration
    *     unqualified name of the GML object element.
    *     <p>If the GML object element is not in the default namespace, this configuration parameter
    *     assigns a namespace prefix to an object type.
+   *     <p>The mapped prefix is also applied to the property elements declared by that object type
+   *     (its child elements in the schema tree). This matches the XML Schema convention
+   *     `elementFormDefault="qualified"`: a property element lives in the target namespace of the
+   *     complex type that declares it. Property names (or their aliases) should therefore be
+   *     unprefixed in the provider schema; the namespace is added automatically from the parent
+   *     object type's mapping. An explicit `prefix:name` in the schema name or alias still takes
+   *     precedence.
    * @langDe Alle Objekt/Datentyp-Instanzen werden durch ein GML-Objektelement dargestellt.
    *     <p>Im Provider-Schema muss für jedes OBJEKT in der Eigenschaft `objectType` ein Name
    *     angegeben werden, auch für den Feature-Typ selbst. Standardmäßig wird dieser Name für den
    *     unqualifizierten Namen des GML-Objektelements verwendet.
    *     <p>Wenn das GML-Objektelement nicht im Standard-Namensraum liegt, spezifiziert dieser
    *     Konfigurationsparameter den Namensraumpräfix zu einem Objekttyp.
+   *     <p>Der zugeordnete Präfix wird auch auf die Eigenschaftselemente angewendet, die dieser
+   *     Objekttyp deklariert (seine Kindelemente im Schema-Baum). Das entspricht der XML-Schema-
+   *     Konvention `elementFormDefault="qualified"`: ein Eigenschaftselement liegt im
+   *     Ziel-Namensraum des komplexen Typs, der es deklariert. Eigenschaftsnamen (bzw. ihre Aliase)
+   *     sollten daher im Provider-Schema ohne Präfix angegeben werden; der Namensraum wird
+   *     automatisch aus dem Mapping des übergeordneten Objekttyps ergänzt. Ein explizit angegebenes
+   *     `prefix:name` im Schema-Namen oder Alias hat weiterhin Vorrang.
    * @default {}
    * @examplesAll <code>
    * ```yaml

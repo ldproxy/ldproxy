@@ -226,6 +226,35 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   }
 
   /**
+   * Returns the property element name qualified with the namespace of the containing object type.
+   *
+   * <p>If {@code name} already contains a {@code :}, it is returned unchanged (explicit prefix
+   * takes precedence). Otherwise, the namespace prefix is looked up in {@link
+   * #getObjectTypeNamespaces()} using the object type currently on top of the object-type stack
+   * (the containing object). If no mapping is found, the name is returned unchanged (default
+   * namespace).
+   */
+  @Value.Auxiliary
+  public String qualifyPropertyElementName(String name) {
+    return qualifyPropertyElementName(
+        name, getState().getObjectTypeStack(), getObjectTypeNamespaces());
+  }
+
+  /** Pure-function variant of {@link #qualifyPropertyElementName(String)}, exposed for testing. */
+  public static String qualifyPropertyElementName(
+      String name, List<String> objectTypeStack, Map<String, String> objectTypeNamespaces) {
+    if (name == null || name.indexOf(':') >= 0 || objectTypeStack.isEmpty()) {
+      return name;
+    }
+    String parentObjectType = objectTypeStack.get(objectTypeStack.size() - 1);
+    if (parentObjectType == null) {
+      return name;
+    }
+    String nsPrefix = objectTypeNamespaces.get(parentObjectType);
+    return nsPrefix == null ? name : nsPrefix + ":" + name;
+  }
+
+  /**
    * Writes an XML start element. Supports qualified names (prefix:localName); the namespace URI is
    * resolved from {@link #getNamespaces()}.
    */
@@ -542,6 +571,14 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
       getState().setVariableNameProperty(Optional.empty());
       getState().unsetVariableNameMapping();
     }
+
+    getState()
+        .setObjectTypeStack(
+            ImmutableList.<String>builder()
+                .addAll(getState().getObjectTypeStack())
+                .add(objectType)
+                .build());
+
     return elementName;
   }
 
@@ -560,6 +597,11 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
       getState().unsetObjects();
     } else {
       getState().setObjects(newList);
+    }
+
+    List<String> types = getState().getObjectTypeStack();
+    if (!types.isEmpty()) {
+      getState().setObjectTypeStack(ImmutableList.copyOf(types.subList(0, types.size() - 1)));
     }
   }
 
@@ -693,6 +735,11 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
     @Value.Default
     public List<Integer> getObjects() {
+      return ImmutableList.of();
+    }
+
+    @Value.Default
+    public List<String> getObjectTypeStack() {
       return ImmutableList.of();
     }
 
