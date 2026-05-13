@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -18,6 +19,7 @@ import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.FeatureSchemaAliases;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
@@ -149,25 +151,43 @@ public abstract class FeatureFormatExtension implements FormatExtension {
       FeatureTypeConfigurationOgcApi collectionData,
       Optional<FeatureSchema> schema,
       List<Profile> profiles) {
+    Optional<PropertyTransformations> result;
     if (profiles.isEmpty() || schema.isEmpty()) {
-      return getPropertyTransformations(collectionData);
+      result = getPropertyTransformations(collectionData);
+    } else {
+      ImmutableProfileTransformations.Builder builder =
+          new ImmutableProfileTransformations.Builder();
+
+      schema.ifPresent(
+          s ->
+              profiles.forEach(
+                  profile ->
+                      profile.addPropertyTransformations(
+                          s, getMediaType().type().toString(), builder)));
+
+      ProfileTransformations profileTransformations = builder.build();
+
+      result =
+          Optional.of(
+              getPropertyTransformations(collectionData)
+                  .map(pts -> pts.mergeInto(profileTransformations))
+                  .orElse(profileTransformations));
     }
 
-    ImmutableProfileTransformations.Builder builder = new ImmutableProfileTransformations.Builder();
+    if (schema.isPresent() && isUseAlias(collectionData)) {
+      FeatureSchema s = schema.get();
+      result = result.map(pts -> FeatureSchemaAliases.injectAliasRenames(pts, s));
+    }
 
-    schema.ifPresent(
-        s ->
-            profiles.forEach(
-                profile ->
-                    profile.addPropertyTransformations(
-                        s, getMediaType().type().toString(), builder)));
+    return result;
+  }
 
-    ProfileTransformations profileTransformations = builder.build();
-
-    return Optional.of(
-        getPropertyTransformations(collectionData)
-            .map(pts -> pts.mergeInto(profileTransformations))
-            .orElse(profileTransformations));
+  private boolean isUseAlias(FeatureTypeConfigurationOgcApi collectionData) {
+    return collectionData
+        .getExtension(getBuildingBlockConfigurationType())
+        .filter(c -> c instanceof AliasConfiguration)
+        .map(c -> ((AliasConfiguration) c).isUseAlias())
+        .orElse(false);
   }
 
   public boolean supportsHitsOnly() {

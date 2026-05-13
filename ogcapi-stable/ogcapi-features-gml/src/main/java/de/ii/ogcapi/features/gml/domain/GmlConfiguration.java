@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.gml.domain;
 import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
@@ -59,14 +60,26 @@ import org.immutables.value.Value;
  *     <p>The following example combines all options that are typically required to publish data
  *     according to the AdV-GeoInfoDok / AFIS-ALKIS-ATKIS NAS application schema. Each option is
  *     individually opt-in and reusable for other GML application schemas.
+ *     <p>The `useAlias: true` option causes every feature-schema property that declares an `alias`
+ *     (see the `alias` field in the feature provider schema) to be encoded under its alias instead
+ *     of its short technical name. This is the preferred way to publish NAS data with the mnemonic
+ *     property names (e.g. `anlass` instead of `anl`) without having to maintain a large
+ *     per-property `rename` transformation map.
  * @langDe ## Beispiel: AdV-NAS-(AAA-)Profil
  *     <p>Das folgende Beispiel kombiniert alle Optionen, die üblicherweise benötigt werden, um
  *     Daten gemäß dem AdV-GeoInfoDok-/AFIS-ALKIS-ATKIS-NAS-Anwendungsschema bereitzustellen. Jede
  *     Option ist einzeln aktivierbar und auch für andere GML-Anwendungsschemata nutzbar.
+ *     <p>Die Option `useAlias: true` bewirkt, dass jede Eigenschaft des Feature-Schemas, für die
+ *     ein `alias` angegeben ist (siehe das `alias`-Feld im Provider-Schema), unter ihrem Alias
+ *     anstelle des kurzen technischen Namens kodiert wird. Dies ist die bevorzugte Methode, um
+ *     NAS-Daten mit den mnemotechnischen Eigenschaftsnamen (z.B. `anlass` statt `anl`)
+ *     bereitzustellen, ohne eine umfangreiche `rename`-Transformationsliste pro Eigenschaft pflegen
+ *     zu müssen.
  * @examplesAll <code>
  * ```yaml
  * - buildingBlock: GML
  *   enabled: true
+ *   useAlias: true
  *   useSurfaceAndCurve: true
  *   applicationNamespaces:
  *     aaa: 'http://www.adv-online.de/namespaces/adv/gid/7.1'
@@ -125,7 +138,10 @@ import org.immutables.value.Value;
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "GML")
 @JsonDeserialize(builder = ImmutableGmlConfiguration.Builder.class)
 public interface GmlConfiguration
-    extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
+    extends ExtensionConfiguration,
+        ProfilesConfiguration,
+        PropertyTransformations,
+        AliasConfiguration {
 
   enum Conformance {
     NONE,
@@ -774,18 +790,18 @@ public interface GmlConfiguration
 
   /**
    * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()} at encoding
-   *     time, i.e. after any {@code rename} transformations) to a list of XML element names
-   *     (outer to inner) that wrap the scalar value. When a path matches, the property element
-   *     content is encoded as {@code <wrapper1>...<wrapperN>value</wrapperN>...</wrapper1>}
-   *     instead of the plain value. Element names may be namespace-qualified (e.g. {@code
-   *     gco:DateTime}), provided the prefix is declared in {@code applicationNamespaces}.
+   *     time, i.e. after any {@code rename} transformations) to a list of XML element names (outer
+   *     to inner) that wrap the scalar value. When a path matches, the property element content is
+   *     encoded as {@code <wrapper1>...<wrapperN>value</wrapperN>...</wrapper1>} instead of the
+   *     plain value. Element names may be namespace-qualified (e.g. {@code gco:DateTime}), provided
+   *     the prefix is declared in {@code applicationNamespaces}.
    * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()} zum
    *     Kodierungszeitpunkt, d.h. nach eventuellen {@code rename}-Transformationen) auf eine Liste
    *     von XML-Elementnamen ab (von außen nach innen), die den skalaren Wert einschließen. Bei
-   *     einem Treffer wird der Inhalt des Eigenschaftselements als
-   *     {@code <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert
-   *     kodiert. Elementnamen können Namespace-Präfixe tragen (z.B. {@code gco:DateTime}), sofern
-   *     das Präfix in {@code applicationNamespaces} deklariert ist.
+   *     einem Treffer wird der Inhalt des Eigenschaftselements als {@code
+   *     <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert kodiert.
+   *     Elementnamen können Namespace-Präfixe tragen (z.B. {@code gco:DateTime}), sofern das Präfix
+   *     in {@code applicationNamespaces} deklariert ist.
    * @default {}
    * @examplesAll <code>
    * ```yaml
@@ -823,6 +839,7 @@ public interface GmlConfiguration
             ProfilesConfiguration.super
                 .mergeInto((ProfilesConfiguration) source)
                 .getDefaultProfiles())
+        .useAlias(AliasConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias())
         .build();
   }
 }

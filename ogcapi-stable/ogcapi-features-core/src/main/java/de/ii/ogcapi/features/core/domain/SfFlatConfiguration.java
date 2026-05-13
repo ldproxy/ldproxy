@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.core.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
@@ -18,7 +19,10 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 public interface SfFlatConfiguration
-    extends ExtensionConfiguration, PropertyTransformations, ProfilesConfiguration {
+    extends ExtensionConfiguration,
+        ProfilesConfiguration,
+        PropertyTransformations,
+        AliasConfiguration {
 
   /**
    * @langEn If the feature schema includes array properties, `maxMultiplicity` properties will be
