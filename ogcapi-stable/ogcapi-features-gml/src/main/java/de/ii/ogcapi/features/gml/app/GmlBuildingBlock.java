@@ -42,17 +42,14 @@ import java.util.Optional;
  *   child of every feature, with the configured `codeSpace` attribute and the feature id
  *   (optionally substituted into `valueTemplate`) as text.
  * - Geometry properties are mapped to GML 3.2 elements depending on the geometry type:
- *   - `Point` → `gml:Point` (with `gml:pos`)
- *   - `MultiPoint` → `gml:MultiPoint`
- *   - `LineString` → `gml:LineString` (with `gml:posList`)
- *   - `CircularString` → `gml:Curve` with a `gml:Arc` segment (three control points) or
- *     `gml:ArcString` segment (more than three control points)
- *   - `CompoundCurve` → `gml:Curve` with multiple segments
- *   - `MultiLineString` / `MultiCurve` → `gml:MultiCurve`
- *   - `Polygon` / `CurvePolygon` → `gml:Polygon` with `gml:LinearRing` rings
- *   - `MultiPolygon` / `MultiSurface` → `gml:MultiSurface`
- *   - `PolyhedralSurface` → `gml:Solid` (when closed) or `gml:PolyhedralSurface` (when open)
- *   - `GeometryCollection` → `gml:MultiGeometry`
+ *   `Point` is mapped to `gml:Point` (with `gml:pos`); `MultiPoint` to `gml:MultiPoint`;
+ *   `LineString` to `gml:LineString` (with `gml:posList`); `CircularString` to `gml:Curve`
+ *   with a `gml:Arc` segment (three control points) or `gml:ArcString` segment (more than
+ *   three control points); `CompoundCurve` to `gml:Curve` with multiple segments;
+ *   `MultiLineString` and `MultiCurve` to `gml:MultiCurve`; `Polygon` and `CurvePolygon` to
+ *   `gml:Polygon` with `gml:LinearRing` rings; `MultiPolygon` and `MultiSurface` to
+ *   `gml:MultiSurface`; `PolyhedralSurface` to `gml:Solid` (when closed) or
+ *   `gml:PolyhedralSurface` (when open); and `GeometryCollection` to `gml:MultiGeometry`.
  *   With `useSurfaceAndCurve: true`, the following alternative encodings are used: simple
  *   line strings as `gml:Curve` with one `gml:LineStringSegment`; simple polygons (and
  *   `CurvePolygon`) as `gml:Surface` with one `gml:PolygonPatch`; compound curves as
@@ -84,8 +81,8 @@ import java.util.Optional;
  *   transformation takes precedence over both the inherited namespace and the alias.
  * - Properties listed in `valueWrap` have their scalar value wrapped in one or more nested
  *   XML elements declared in the configuration (outer to inner), with the value appearing
- *   inside the innermost wrapper — useful for application schemas that nest atomic values
- *   inside wrapper types.
+ *   inside the innermost wrapper. This is useful for application schemas that nest atomic
+ *   values inside wrapper types.
  *     </code>
  * @scopeDe Bei einem WFS-Feature-Provider werden die Features als GML vom WFS abgerufen und in die
  *     Antwort umgeschrieben. Im Falle von *Features* ist das Wurzelelement `sf:FeatureCollection`.
@@ -107,20 +104,16 @@ import java.util.Optional;
  * - Wenn `gmlIdentifier` konfiguriert ist, wird ein `gml:identifier`-Element als erstes
  *   Kindelement jedes Features ausgegeben, mit dem konfigurierten `codeSpace`-Attribut und
  *   der Feature-ID (optional eingesetzt in `valueTemplate`) als Textinhalt.
- * - Geometrieeigenschaften werden je nach Geometrietyp auf folgende GML-3.2-Elemente
- *   abgebildet:
- *   - `Point` → `gml:Point` (mit `gml:pos`)
- *   - `MultiPoint` → `gml:MultiPoint`
- *   - `LineString` → `gml:LineString` (mit `gml:posList`)
- *   - `CircularString` → `gml:Curve` mit einem `gml:Arc`-Segment (drei Kontrollpunkte) oder
- *     `gml:ArcString`-Segment (mehr als drei Kontrollpunkte)
- *   - `CompoundCurve` → `gml:Curve` mit mehreren Segmenten
- *   - `MultiLineString` / `MultiCurve` → `gml:MultiCurve`
- *   - `Polygon` / `CurvePolygon` → `gml:Polygon` mit `gml:LinearRing`-Ringen
- *   - `MultiPolygon` / `MultiSurface` → `gml:MultiSurface`
- *   - `PolyhedralSurface` → `gml:Solid` (wenn geschlossen) oder `gml:PolyhedralSurface`
- *     (wenn offen)
- *   - `GeometryCollection` → `gml:MultiGeometry`
+ * - Geometrieeigenschaften werden je nach Geometrietyp auf GML-3.2-Elemente abgebildet:
+ *   `Point` wird auf `gml:Point` (mit `gml:pos`) abgebildet; `MultiPoint` auf
+ *   `gml:MultiPoint`; `LineString` auf `gml:LineString` (mit `gml:posList`); `CircularString`
+ *   auf `gml:Curve` mit einem `gml:Arc`-Segment (drei Kontrollpunkte) oder
+ *   `gml:ArcString`-Segment (mehr als drei Kontrollpunkte); `CompoundCurve` auf `gml:Curve`
+ *   mit mehreren Segmenten; `MultiLineString` und `MultiCurve` auf `gml:MultiCurve`;
+ *   `Polygon` und `CurvePolygon` auf `gml:Polygon` mit `gml:LinearRing`-Ringen;
+ *   `MultiPolygon` und `MultiSurface` auf `gml:MultiSurface`; `PolyhedralSurface` auf
+ *   `gml:Solid` (wenn geschlossen) oder `gml:PolyhedralSurface` (wenn offen); und
+ *   `GeometryCollection` auf `gml:MultiGeometry`.
  *   Mit `useSurfaceAndCurve: true` werden folgende alternative Kodierungen verwendet:
  *   einfache Linienzüge als `gml:Curve` mit einem `gml:LineStringSegment`; einfache Polygone
  *   (und `CurvePolygon`) als `gml:Surface` mit einem `gml:PolygonPatch`; CompoundCurves als
@@ -154,8 +147,8 @@ import java.util.Optional;
  *   oder eine `rename`-Transformation hat Vorrang vor dem geerbten Namensraum und dem Alias.
  * - Eigenschaften, die in `valueWrap` aufgeführt sind, haben ihren skalaren Wert in ein oder
  *   mehrere geschachtelte XML-Elemente eingebettet, die in der Konfiguration deklariert sind
- *   (von außen nach innen); der Wert steht innerhalb des innersten Wrappers — nützlich für
- *   Anwendungsschemata, die atomare Werte in Wrappertypen einbetten.
+ *   (von außen nach innen); der Wert steht innerhalb des innersten Wrappers. Dies ist
+ *   nützlich für Anwendungsschemata, die atomare Werte in Wrappertypen einbetten.
  *     </code>
  * @conformanceEn In general, *Features GML* implements all requirements of conformance class
  *     *Geography Markup Language (GML), Simple Features Profile, Level 0* and *Geography Markup
