@@ -97,11 +97,11 @@ import org.immutables.value.Value;
  *     - crs:
  *         code: 4326
  *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:WGS84-Lat-Lon'
+ *       value: 'urn:adv:crs:WGS84_Lat-Lon'
  *     - crs:
  *         code: 4326
  *         forceAxisOrder: LON_LAT
- *       value: 'urn:adv:crs:WGS84-Lon-Lat'
+ *       value: 'urn:adv:crs:WGS84_Lon-Lat'
  *   uomStyle: TEMPLATE
  *   uomMappings:
  *     - uom: 'm'
@@ -192,11 +192,11 @@ import org.immutables.value.Value;
  *     - crs:
  *         code: 4326
  *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:WGS84-Lat-Lon'
+ *       value: 'urn:adv:crs:WGS84_Lat-Lon'
  *     - crs:
  *         code: 4326
  *         forceAxisOrder: LON_LAT
- *       value: 'urn:adv:crs:WGS84-Lon-Lat'
+ *       value: 'urn:adv:crs:WGS84_Lon-Lat'
  *   uomStyle: TEMPLATE
  *   uomMappings:
  *     - uom: 'm'
