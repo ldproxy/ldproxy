@@ -34,18 +34,58 @@ import java.util.Optional;
  *     <p><code>
  * - The feature property with the role `ID` in the provider schema is mapped to the `gml:id`
  *   attribute of the feature. These properties must be a direct property of the feature type.
- * - Geometry properties will be mapped to the corresponding GML 3.2 geometry (`gml:Point` and
- *   `gml:MultiPoint` with `gml:pos`; `gml:LineString`, `gml:MultiCurve`, `gml:Polygon`, and
- *   `gml:MultiSurface` with `gml:posList`). No `gml:id` attribute is added to geometry
- *   elements. The `srsName` attribute is set in each geometry.
+ *   If `gmlIdPrefix` is set, the prefix is prepended to every `gml:id` value to keep them
+ *   valid XML IDs. If `appendTemporalSuffixToGmlId` is `true` and the request's `datetime`
+ *   parameter is an interval, the value of the primary temporal property is appended to the
+ *   `gml:id` formatted as `yyyyMMddTHHmmssX`.
+ * - If `gmlIdentifier` is configured, a `gml:identifier` element is emitted as the first
+ *   child of every feature, with the configured `codeSpace` attribute and the feature id
+ *   (optionally substituted into `valueTemplate`) as text.
+ * - Geometry properties are mapped to GML 3.2 elements depending on the geometry type:
+ *   - `Point` → `gml:Point` (with `gml:pos`)
+ *   - `MultiPoint` → `gml:MultiPoint`
+ *   - `LineString` → `gml:LineString` (with `gml:posList`)
+ *   - `CircularString` → `gml:Curve` with a `gml:Arc` segment (three control points) or
+ *     `gml:ArcString` segment (more than three control points)
+ *   - `CompoundCurve` → `gml:Curve` with multiple segments
+ *   - `MultiLineString` / `MultiCurve` → `gml:MultiCurve`
+ *   - `Polygon` / `CurvePolygon` → `gml:Polygon` with `gml:LinearRing` rings
+ *   - `MultiPolygon` / `MultiSurface` → `gml:MultiSurface`
+ *   - `PolyhedralSurface` → `gml:Solid` (when closed) or `gml:PolyhedralSurface` (when open)
+ *   - `GeometryCollection` → `gml:MultiGeometry`
+ *   With `useSurfaceAndCurve: true`, the following alternative encodings are used: simple
+ *   line strings as `gml:Curve` with one `gml:LineStringSegment`; simple polygons (and
+ *   `CurvePolygon`) as `gml:Surface` with one `gml:PolygonPatch`; compound curves as
+ *   `gml:CompositeCurve`; and all rings inside polygons as `gml:Ring` with one or more
+ *   `gml:LineStringSegment` curve members instead of `gml:LinearRing`. No `gml:id` is added
+ *   to geometry elements unless `gmlIdOnGeometries: true`. The `srsName` attribute is set on
+ *   every geometry; with `srsNameStyle: TEMPLATE`, the value is taken from `srsNameMappings`
+ *   instead of the OGC URI form. With `srsDimension: true`, a `srsDimension` attribute is
+ *   also added to `pos` and `posList`.
  * - Properties that are `OBJECT`s with object type `Link` will be mapped to a `gml:Reference`
- *   value with `xlink:href` and `xmlnk:title` attributes, if set.
+ *   value with `xlink:href` and `xlink:title` attributes, if set. For feature-reference
+ *   properties (declared with `refType`), `featureRefTemplate` can rewrite `xlink:href` into
+ *   a URN-style identifier (e.g. `urn:adv:oid:{{value}}`).
  * - Properties that are `OBJECT`s with object type `Measure` will be mapped to a
  *   `gml:MeasureType` value. The object must have the properties `value` and `uom`, which
  *   both must be present in the data.
  * - Properties that are `FLOAT` or `INTEGER` values with a `unit` property in the provider
- *   schema are mapped to a `gml:MeasureType` value, too. The value of `unit` is mapped to the
- *   `uom` attribute.
+ *   schema are also mapped to a `gml:MeasureType` value. The value of `unit` is mapped to
+ *   the `uom` attribute. With `uomStyle: TEMPLATE`, the unit string is resolved via
+ *   `uomMappings`.
+ * - Properties listed in `codelistProperties` are encoded as empty XML elements with
+ *   `xlink:href` (constructed from `codelistUriTemplate`) and `xlink:title` (the codelist
+ *   label, falling back to the raw value if no label is found), instead of writing the raw
+ *   value as element text.
+ * - Each property element is named after the property in the feature schema; with
+ *   `useAlias: true`, properties that declare an `alias` are encoded under that alias
+ *   instead. The element is placed in the namespace of its parent object type as declared by
+ *   `objectTypeNamespaces`. An explicit `prefix:name` in the schema or a `rename`
+ *   transformation takes precedence over both the inherited namespace and the alias.
+ * - Properties listed in `valueWrap` have their scalar value wrapped in one or more nested
+ *   XML elements declared in the configuration (outer to inner), with the value appearing
+ *   inside the innermost wrapper — useful for application schemas that nest atomic values
+ *   inside wrapper types.
  *     </code>
  * @scopeDe Bei einem WFS-Feature-Provider werden die Features als GML vom WFS abgerufen und in die
  *     Antwort umgeschrieben. Im Falle von *Features* ist das Wurzelelement `sf:FeatureCollection`.
@@ -60,19 +100,62 @@ import java.util.Optional;
  *     <p><code>
  * - Die Feature-Eigenschaft mit der Rolle `ID` im Provider-Schema wird auf das Attribut `gml:id`
  *   des Features abgebildet. Diese Eigenschaften müssen eine direkte Eigenschaft des Featuretyps
- *   sein.
- * - Geometrieeigenschaften werden auf die entsprechende GML 3.2 Geometrie abgebildet (`gml:Point`
- *   und `gml:MultiPoint` mit `gml:pos`; `gml:LineString`, `gml:MultiCurve`, `gml:Polygon` und
- *   `gml:MultiSurface` mit `gml:posList`). Das Attribut `gml:id` wird den Geometrieelementen
- *   nicht hinzugefügt. Das Attribut "srsName" wird in jeder Geometrie gesetzt.
- * - Eigenschaften, die `OBJECT`s mit dem Objekttyp `Link` sind, werden auf einen `gml:Reference`-
- *   Wert mit den Attributen `xlink:href` und `xmlnk:title` abgebildet, falls gesetzt.
+ *   sein. Wenn `gmlIdPrefix` gesetzt ist, wird das Präfix jedem `gml:id`-Wert vorangestellt,
+ *   um gültige XML-IDs zu gewährleisten. Wenn `appendTemporalSuffixToGmlId: true` gesetzt ist
+ *   und der `datetime`-Parameter der Anfrage ein Intervall ist, wird der Wert der primären
+ *   zeitlichen Eigenschaft im Format `yyyyMMddTHHmmssX` an die `gml:id` angehängt.
+ * - Wenn `gmlIdentifier` konfiguriert ist, wird ein `gml:identifier`-Element als erstes
+ *   Kindelement jedes Features ausgegeben, mit dem konfigurierten `codeSpace`-Attribut und
+ *   der Feature-ID (optional eingesetzt in `valueTemplate`) als Textinhalt.
+ * - Geometrieeigenschaften werden je nach Geometrietyp auf folgende GML-3.2-Elemente
+ *   abgebildet:
+ *   - `Point` → `gml:Point` (mit `gml:pos`)
+ *   - `MultiPoint` → `gml:MultiPoint`
+ *   - `LineString` → `gml:LineString` (mit `gml:posList`)
+ *   - `CircularString` → `gml:Curve` mit einem `gml:Arc`-Segment (drei Kontrollpunkte) oder
+ *     `gml:ArcString`-Segment (mehr als drei Kontrollpunkte)
+ *   - `CompoundCurve` → `gml:Curve` mit mehreren Segmenten
+ *   - `MultiLineString` / `MultiCurve` → `gml:MultiCurve`
+ *   - `Polygon` / `CurvePolygon` → `gml:Polygon` mit `gml:LinearRing`-Ringen
+ *   - `MultiPolygon` / `MultiSurface` → `gml:MultiSurface`
+ *   - `PolyhedralSurface` → `gml:Solid` (wenn geschlossen) oder `gml:PolyhedralSurface`
+ *     (wenn offen)
+ *   - `GeometryCollection` → `gml:MultiGeometry`
+ *   Mit `useSurfaceAndCurve: true` werden folgende alternative Kodierungen verwendet:
+ *   einfache Linienzüge als `gml:Curve` mit einem `gml:LineStringSegment`; einfache Polygone
+ *   (und `CurvePolygon`) als `gml:Surface` mit einem `gml:PolygonPatch`; CompoundCurves als
+ *   `gml:CompositeCurve`; und alle Ringe innerhalb von Polygonen als `gml:Ring` mit einem
+ *   oder mehreren `gml:LineStringSegment`-Curve-Membern statt `gml:LinearRing`. Das Attribut
+ *   `gml:id` wird den Geometrieelementen nicht hinzugefügt, sofern nicht
+ *   `gmlIdOnGeometries: true` gesetzt ist. Das Attribut `srsName` wird in jeder Geometrie
+ *   gesetzt; mit `srsNameStyle: TEMPLATE` wird der Wert aus `srsNameMappings` übernommen
+ *   statt der OGC-URI-Form. Mit `srsDimension: true` wird zusätzlich ein
+ *   `srsDimension`-Attribut bei `pos` und `posList` hinzugefügt.
+ * - Eigenschaften, die `OBJECT`s mit dem Objekttyp `Link` sind, werden auf einen
+ *   `gml:Reference`-Wert mit den Attributen `xlink:href` und `xlink:title` abgebildet, falls
+ *   gesetzt. Für Feature-Referenz-Eigenschaften (mit `refType` deklariert) kann
+ *   `featureRefTemplate` `xlink:href` zu einem URN-Bezeichner umschreiben (z.B.
+ *   `urn:adv:oid:{{value}}`).
  * - Eigenschaften, die `OBJECT`s mit dem Objekttyp `Measure` sind, werden auf einen
  *   `gml:MeasureType`-Wert abgebildet. Das Objekt muss die Eigenschaften `value` und `uom`
  *   haben, die beide in den Daten vorhanden sein müssen.
  * - Eigenschaften, die `FLOAT`- oder `INTEGER`-Werte mit einer `unit`-Eigenschaft im
  *   Provider-Schema sind, werden ebenfalls auf einen `gml:MeasureType`-Wert abgebildet.
- *   Der Wert von `unit` wird auf das Attribut `uom` abgebildet.
+ *   Der Wert von `unit` wird auf das Attribut `uom` abgebildet. Mit `uomStyle: TEMPLATE`
+ *   wird die Einheit über `uomMappings` aufgelöst.
+ * - Eigenschaften, die in `codelistProperties` aufgeführt sind, werden als leere
+ *   XML-Elemente mit `xlink:href` (aus `codelistUriTemplate` aufgebaut) und `xlink:title`
+ *   (das Codelist-Label, ersatzweise der Rohwert) kodiert, statt den rohen Wert als
+ *   Elementtext zu schreiben.
+ * - Jedes Eigenschaftselement erhält den Namen der Eigenschaft aus dem Feature-Schema; mit
+ *   `useAlias: true` werden Eigenschaften, die einen `alias` deklarieren, unter diesem Alias
+ *   kodiert. Das Element wird im Namensraum seines übergeordneten Objekttyps platziert, wie
+ *   in `objectTypeNamespaces` deklariert. Ein explizit angegebenes `prefix:name` im Schema
+ *   oder eine `rename`-Transformation hat Vorrang vor dem geerbten Namensraum und dem Alias.
+ * - Eigenschaften, die in `valueWrap` aufgeführt sind, haben ihren skalaren Wert in ein oder
+ *   mehrere geschachtelte XML-Elemente eingebettet, die in der Konfiguration deklariert sind
+ *   (von außen nach innen); der Wert steht innerhalb des innersten Wrappers — nützlich für
+ *   Anwendungsschemata, die atomare Werte in Wrappertypen einbetten.
  *     </code>
  * @conformanceEn In general, *Features GML* implements all requirements of conformance class
  *     *Geography Markup Language (GML), Simple Features Profile, Level 0* and *Geography Markup

@@ -35,7 +35,10 @@ import org.immutables.value.Value;
  *     definiert, verbleibt das Element im Standard-Namensraum. Ein anderer Name oder ein expliziter
  *     Namensraum kann mit der Transformation `rename` festgelegt werden, die Vorrang vor dem
  *     geerbten Namensraum hat.
- * @examplesAll <code>
+ * @examplesEn The following example shows a basic declaration of namespaces and their schema
+ *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
+ *     specific configuration options for a feature type.
+ *     <p><code>
  * ```yaml
  * - buildingBlock: GML
  *   enabled: true
@@ -59,26 +62,13 @@ import org.immutables.value.Value;
  *           rename: 'ns2:someOtherAtt'
  * ```
  *     </code>
- * @langEn ## Example: AdV NAS (AAA) profile
  *     <p>The following example combines all options that are typically required to publish data
- *     according to the AdV-GeoInfoDok / AFIS-ALKIS-ATKIS NAS application schema. Each option is
- *     individually opt-in and reusable for other GML application schemas.
+ *     according to the German AFIS-ALKIS-ATKIS NAS application schema. Each option is individually
+ *     opt-in and reusable for other GML application schemas.
  *     <p>The `useAlias: true` option causes every feature-schema property that declares an `alias`
  *     (see the `alias` field in the feature provider schema) to be encoded under its alias instead
- *     of its short technical name. This is the preferred way to publish NAS data with the mnemonic
- *     property names (e.g. `anlass` instead of `anl`) without having to maintain a large
- *     per-property `rename` transformation map.
- * @langDe ## Beispiel: AdV-NAS-(AAA-)Profil
- *     <p>Das folgende Beispiel kombiniert alle Optionen, die üblicherweise benötigt werden, um
- *     Daten gemäß dem AdV-GeoInfoDok-/AFIS-ALKIS-ATKIS-NAS-Anwendungsschema bereitzustellen. Jede
- *     Option ist einzeln aktivierbar und auch für andere GML-Anwendungsschemata nutzbar.
- *     <p>Die Option `useAlias: true` bewirkt, dass jede Eigenschaft des Feature-Schemas, für die
- *     ein `alias` angegeben ist (siehe das `alias`-Feld im Provider-Schema), unter ihrem Alias
- *     anstelle des kurzen technischen Namens kodiert wird. Dies ist die bevorzugte Methode, um
- *     NAS-Daten mit den mnemotechnischen Eigenschaftsnamen (z.B. `anlass` statt `anl`)
- *     bereitzustellen, ohne eine umfangreiche `rename`-Transformationsliste pro Eigenschaft pflegen
- *     zu müssen.
- * @examplesAll <code>
+ *     of its short three-letter code, if that is used in the provider schema.
+ *     <p><code>
  * ```yaml
  * - buildingBlock: GML
  *   enabled: true
@@ -104,6 +94,14 @@ import org.immutables.value.Value;
  *         code: 25833
  *         forceAxisOrder: NONE
  *       value: 'urn:adv:crs:ETRS89_UTM33'
+ *     - crs:
+ *         code: 4326
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:WGS84-Lat-Lon'
+ *     - crs:
+ *         code: 4326
+ *         forceAxisOrder: LON_LAT
+ *       value: 'urn:adv:crs:WGS84-Lon-Lat'
  *   uomStyle: TEMPLATE
  *   uomMappings:
  *     - uom: 'm'
@@ -119,20 +117,109 @@ import org.immutables.value.Value;
  *     LI_Source: gmd
  *   valueWrap:
  *     lebenszeitintervall:
- *       - aaa:AA_Lebenszeitintervall
- *       - aaa:beginnt
+ *       - AA_Lebenszeitintervall
+ *       - beginnt
  *     qualitaetsangaben.herkunft.processStep.description:
  *       - AX_LI_ProcessStep_Punktort_Description
  *     qualitaetsangaben.herkunft.processStep.dateTime:
  *       - gco:DateTime
  *     qualitaetsangaben.herkunft.processStep.source.description:
  *       - AX_Datenerhebung_Punktort
+ * ```
+ *     </code>
+ * @examplesDe Das folgende Beispiel zeigt eine grundlegende Deklaration von Namespaces und deren
+ *     Schema-Speicherorten, die Konfiguration eines gml:id-Präfixes zur Gewährleistung der
+ *     XML-ID-Kompatibilität sowie spezifische Konfigurationsoptionen für eine Objektart.
+ *     <p><code>
+ * ```yaml
+ * - buildingBlock: GML
+ *   enabled: true
+ *   applicationNamespaces:
+ *     ns1: http://www.example.com/ns/ns1/1.0
+ *     ns2: http://www.example.com/ns/ns2/1.0
+ *   defaultNamespace: ns1
+ *   schemaLocations:
+ *     ns1: '{{serviceUrl}}/resources/ns1.xsd'
+ *     ns2: '{{serviceUrl}}/resources/ns2.xsd'
+ *   gmlIdPrefix: '_'
  * collections:
- *   ax_flurstueck:
+ *   some_type:
+ *     ...
  *     api:
  *     - buildingBlock: GML
- *       codelistProperties:
- *         art_der_flurstuecksgrenze: AX_ArtDerFlurstuecksgrenze
+ *       xmlAttributes:
+ *         - someAtt
+ *       transformations:
+ *         someOtherAtt:
+ *           rename: 'ns2:someOtherAtt'
+ * ```
+ *     </code>
+ *     <p>Das folgende Beispiel kombiniert alle Optionen, die üblicherweise benötigt werden, um
+ *     Daten gemäß dem AdV-GeoInfoDok-/AFIS-ALKIS-ATKIS-NAS-Anwendungsschema bereitzustellen. Jede
+ *     Option ist einzeln aktivierbar und auch für andere GML-Anwendungsschemata nutzbar.
+ *     <p>Die Option `useAlias: true` bewirkt, dass jede Eigenschaft des Feature-Schemas, für die
+ *     ein `alias` angegeben ist (siehe das `alias`-Feld im Provider-Schema), unter ihrem Alias
+ *     anstelle des Attributcodes aus drei Zeichen kodiert wird, sofern der Code im Provider-Schema
+ *     verwendet wird. Dies ist die bevorzugte Methode, um NAS-Daten mit den mnemotechnischen
+ *     Eigenschaftsnamen (z.B. `anlass` statt `anl`) bereitzustellen, ohne eine umfangreiche
+ *     `rename`-Transformationsliste pro Eigenschaft pflegen zu müssen.
+ *     <p><code>
+ * ```yaml
+ * - buildingBlock: GML
+ *   enabled: true
+ *   useAlias: true
+ *   useSurfaceAndCurve: true
+ *   applicationNamespaces:
+ *     aaa: 'http://www.adv-online.de/namespaces/adv/gid/7.1'
+ *   defaultNamespace: aaa
+ *   schemaLocations:
+ *     aaa: 'https://repository.gdi-de.org/schemas/adv/nas/7.1/aaa.xsd'
+ *   featureRefTemplate: 'urn:adv:oid:{{value}}'
+ *   gmlIdentifier:
+ *     codeSpace: 'http://www.adv-online.de/'
+ *     valueTemplate: 'urn:adv:oid:{{value}}'
+ *   appendTemporalSuffixToGmlId: true
+ *   srsNameStyle: TEMPLATE
+ *   srsNameMappings:
+ *     - crs:
+ *         code: 25832
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:ETRS89_UTM32'
+ *     - crs:
+ *         code: 25833
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:ETRS89_UTM33'
+ *     - crs:
+ *         code: 4326
+ *         forceAxisOrder: NONE
+ *       value: 'urn:adv:crs:WGS84-Lat-Lon'
+ *     - crs:
+ *         code: 4326
+ *         forceAxisOrder: LON_LAT
+ *       value: 'urn:adv:crs:WGS84-Lon-Lat'
+ *   uomStyle: TEMPLATE
+ *   uomMappings:
+ *     - uom: 'm'
+ *       value: 'urn:adv:uom:m'
+ *     - uom: 'grad'
+ *       value: 'urn:adv:uom:grad'
+ *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+ *   codelistProperties:
+ *     anlass: AX_Anlassart
+ *   objectTypeNamespaces:
+ *     LI_Lineage: gmd
+ *     LI_ProcessStep: gmd
+ *     LI_Source: gmd
+ *   valueWrap:
+ *     lebenszeitintervall:
+ *       - AA_Lebenszeitintervall
+ *       - beginnt
+ *     qualitaetsangaben.herkunft.processStep.description:
+ *       - AX_LI_ProcessStep_Punktort_Description
+ *     qualitaetsangaben.herkunft.processStep.dateTime:
+ *       - gco:DateTime
+ *     qualitaetsangaben.herkunft.processStep.source.description:
+ *       - AX_Datenerhebung_Punktort
  * ```
  *     </code>
  */

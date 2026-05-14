@@ -15,13 +15,13 @@ public interface AliasConfiguration {
    * @langEn If `true`, properties of the feature schema that declare an `alias` are encoded under
    *     their alias instead of their schema name. Useful for application schemas where each
    *     property carries both a short technical name and a longer mnemonic name (e.g. AdV NAS:
-   *     `anl` / `anlass`). An explicit `rename` transformation on a property still takes precedence
-   *     over the alias. The flag only affects feature encoding output; queryables, sortables and
-   *     other schema-derivation paths always use the schema names.
+   *     `arf` / `artDerFlurstuecksgrenze`). An explicit `rename` transformation on a property still
+   *     takes precedence over the alias. The flag only affects feature encoding output; queryables,
+   *     sortables and other schema-derivation paths always use the schema names.
    * @langDe Wenn `true`, werden Eigenschaften des Feature-Schemas, für die ein `alias` angegeben
    *     ist, unter dem Alias anstelle des Schemanamens kodiert. Hilfreich für Anwendungsschemata,
    *     in denen jede Eigenschaft sowohl einen kurzen technischen Namen als auch einen längeren
-   *     mnemotechnischen Namen trägt (z.B. AdV-NAS: `anl` / `anlass`). Eine explizite
+   *     eingängigen Namen hat (z.B. AdV-NAS: `arf` / `artDerFlurstuecksgrenze`). Eine explizite
    *     `rename`-Transformation für eine Eigenschaft hat weiterhin Vorrang vor dem Alias. Die
    *     Option wirkt nur auf die Feature-Kodierung; Queryables, Sortables und andere
    *     Schema-Ableitungen verwenden immer die Schemanamen.
