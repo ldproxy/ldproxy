@@ -58,7 +58,6 @@ import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -467,25 +466,26 @@ public class FeaturesCoreBuildingBlock
                       .orElse(collectionData.getId());
 
               FeatureSchema schema = providerData.getTypes().get(featureType);
-              return schema != null ? getConfiguredExtentReflective(schema) : Optional.empty();
+              return schema != null
+                  ? toFoundationCollectionExtent(schema.getExtent())
+                  : Optional.empty();
             });
   }
 
   private Optional<CollectionExtent> getConfiguredProviderGlobalExtent(
       OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
-    return getProviderData(apiData, collectionData).flatMap(this::getConfiguredExtentReflective);
+    return getProviderData(apiData, collectionData)
+        .flatMap(providerData -> toFoundationCollectionExtent(providerData.getExtent()));
   }
 
-  private Optional<CollectionExtent> getConfiguredExtentReflective(Object source) {
-    return invokeOptionalNoArg(source, "getExtent").flatMap(this::toFoundationCollectionExtent);
-  }
-
-  private Optional<CollectionExtent> toFoundationCollectionExtent(Object extent) {
+  private Optional<CollectionExtent> toFoundationCollectionExtent(
+      Optional<de.ii.xtraplatform.features.domain.CollectionExtent> extent) {
     Optional<BoundingBox> spatial =
-        invokeOptionalNoArg(extent, "getSpatial").map(BoundingBox.class::cast);
+        extent.flatMap(de.ii.xtraplatform.features.domain.CollectionExtent::getSpatial);
     Optional<TemporalExtent> temporal =
-        invokeOptionalNoArg(extent, "getTemporal")
-            .flatMap(this::toFoundationTemporalExtentReflective);
+        extent
+            .flatMap(de.ii.xtraplatform.features.domain.CollectionExtent::getTemporal)
+            .map(this::toFoundationTemporalExtent);
 
     if (spatial.isEmpty() && temporal.isEmpty()) {
       return Optional.empty();
@@ -495,32 +495,9 @@ public class FeaturesCoreBuildingBlock
         new ImmutableCollectionExtent.Builder().spatial(spatial).temporal(temporal).build());
   }
 
-  private Optional<TemporalExtent> toFoundationTemporalExtentReflective(Object temporalExtent) {
-    try {
-      Method getStart = temporalExtent.getClass().getMethod("getStart");
-      Method getEnd = temporalExtent.getClass().getMethod("getEnd");
-
-      Long start = (Long) getStart.invoke(temporalExtent);
-      Long end = (Long) getEnd.invoke(temporalExtent);
-
-      return Optional.of(TemporalExtent.of(start, end));
-    } catch (ReflectiveOperationException e) {
-      return Optional.empty();
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private Optional<Object> invokeOptionalNoArg(Object source, String methodName) {
-    try {
-      Method method = source.getClass().getMethod(methodName);
-      Object value = method.invoke(source);
-      if (value instanceof Optional<?>) {
-        return (Optional<Object>) value;
-      }
-    } catch (ReflectiveOperationException e) {
-      // ignore: method not available in this dependency version
-    }
-    return Optional.empty();
+  private TemporalExtent toFoundationTemporalExtent(
+      de.ii.xtraplatform.features.domain.TemporalExtent temporalExtent) {
+    return TemporalExtent.of(temporalExtent.getStart(), temporalExtent.getEnd());
   }
 
   private Optional<FeatureProviderDataV2> getProviderData(
