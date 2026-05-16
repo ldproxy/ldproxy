@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.crud.app;
+package de.ii.ogcapi.features.geojson.app;
 
 import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
 import de.ii.ogcapi.features.core.domain.SchemaDeriverFeatures;
@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class SchemaCacheCrud extends JsonSchemaCache {
+public class ReceivablesJsonSchemaCache extends JsonSchemaCache {
 
   private final Supplier<Map<String, Codelist>> codelistSupplier;
   private static final WithTransformationsApplied WITH_TRANSFORMATIONS_APPLIED =
@@ -33,7 +33,7 @@ public class SchemaCacheCrud extends JsonSchemaCache {
   private static final WithScope WITH_SCOPE_SCHEMA =
       new WithScope(EnumSet.of(SchemaBase.Scope.RECEIVABLE));
 
-  public SchemaCacheCrud(Supplier<Map<String, Codelist>> codelistSupplier) {
+  public ReceivablesJsonSchemaCache(Supplier<Map<String, Codelist>> codelistSupplier) {
     super();
     this.codelistSupplier = codelistSupplier;
   }

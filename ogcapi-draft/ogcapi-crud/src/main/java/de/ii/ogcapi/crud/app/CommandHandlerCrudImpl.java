@@ -7,38 +7,36 @@
  */
 package de.ii.ogcapi.crud.app;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
+import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
-import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
-import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
-import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.QueryInputSchema;
-import de.ii.ogcapi.features.core.domain.SchemaType;
-import de.ii.ogcapi.foundation.domain.ApiMediaType;
+import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
+import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
+import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
-import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
-import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureChange.Action;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureTokenSource;
 import de.ii.xtraplatform.features.domain.FeatureTransactions;
@@ -47,7 +45,6 @@ import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
-import de.ii.xtraplatform.values.domain.ValueStore;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.constraints.NotNull;
@@ -61,6 +58,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -78,34 +76,25 @@ import org.threeten.extra.Interval;
 public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements CommandHandlerCrud {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandlerCrudImpl.class);
-  private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
   private final FeaturesCoreQueriesHandler queriesHandler;
+  private final FeaturesCoreProviders providers;
   private final ExtensionRegistry extensionRegistry;
   private final CrsInfo crsInfo;
-  private final QueriesHandlerSchema schemaHandler;
-  private final JsonSchemaCache schemaCache;
-  private final SchemaValidator schemaValidator;
   private List<? extends FormatExtension> formats;
 
   @Inject
   public CommandHandlerCrudImpl(
       FeaturesCoreQueriesHandler queriesHandler,
+      FeaturesCoreProviders providers,
       CrsInfo crsInfo,
-      QueriesHandlerSchema schemaHandler,
-      ValueStore valueStore,
       ExtensionRegistry extensionRegistry,
-      VolatileRegistry volatileRegistry,
-      SchemaValidator schemaValidator) {
+      VolatileRegistry volatileRegistry) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
     this.queriesHandler = queriesHandler;
+    this.providers = providers;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
-    this.schemaHandler = schemaHandler;
-    // note that we need a separate cache to avoid are circular dependency between the schemas and
-    // crud modules
-    this.schemaCache = new SchemaCacheCrud(valueStore.forType(Codelist.class)::asMap);
-    this.schemaValidator = schemaValidator;
 
     onVolatileStart();
 
@@ -117,23 +106,40 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   @Override
   public Response postItemsResponse(
       QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
+    FeatureTokenSource featureTokenSource = getFeatureTokenSource(queryInput, requestContext);
+
+    return createFeature(queryInput, featureTokenSource, requestContext, Optional.empty());
+  }
+
+  private FeatureTokenSource getFeatureTokenSource(
+      QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
     InputStream contentStream = queryInput.getRequestBody();
 
     if (queryInput.getValidate()) {
-      final String requestBody = getAsString(contentStream);
-      validate(requestBody, queryInput.getCollectionId(), queryInput.getJsonFg(), requestContext);
+      FeatureFormatExtension format = resolveFormat(queryInput.getContentType());
+      ValidatorContext vctx = buildValidatorContext(queryInput, requestContext);
 
-      // "rewind" request body stream
-      contentStream = new ByteArrayInputStream(requestBody.getBytes(StandardCharsets.UTF_8));
+      final String body;
+      try {
+        body = new String(contentStream.readAllBytes(), StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new IllegalStateException(
+            "Could not read content stream. Reasons: " + e.getMessage(), e);
+      }
+      format.validate(body, vctx);
+      contentStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
     }
 
     EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
-    FeatureTokenSource featureTokenSource =
-        getFeatureSource(requestContext.getMediaType(), contentStream, Optional.empty(), crs, axes);
-
-    return createFeature(queryInput, featureTokenSource, requestContext, Optional.empty());
+    return getFeatureSource(
+        queryInput.getContentType(),
+        contentStream,
+        requestContext.getApi().getData(),
+        queryInput.getCollectionId(),
+        crs,
+        axes);
   }
 
   private Response createFeature(
@@ -151,29 +157,20 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
-    List<String> ids;
-    Response response;
-
-    if (featureId.isPresent()) {
-      ids = List.of(featureId.get());
-      response = Response.noContent().build();
-    } else {
-      ids = result.getIds();
-
-      URI firstFeature = null;
-      try {
-        firstFeature =
-            requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
-      } catch (URISyntaxException e) {
-        // ignore
-      }
-
-      response = Response.created(firstFeature).build();
-    }
+    List<String> ids = featureId.map(List::of).orElseGet(result::getIds);
 
     if (ids.isEmpty()) {
       throw new IllegalArgumentException("No features found in input");
     }
+
+    URI location = null;
+    try {
+      location = requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
+    } catch (URISyntaxException e) {
+      // ignore
+    }
+
+    Response response = Response.created(location).build();
 
     handleChange(
         queryInput.getFeatureProvider(),
@@ -191,21 +188,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   @Override
   public Response putItemResponse(
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
-    InputStream contentStream = queryInput.getRequestBody();
-
-    if (queryInput.getValidate()) {
-      final String requestBody = getAsString(contentStream);
-      validate(requestBody, queryInput.getCollectionId(), queryInput.getJsonFg(), requestContext);
-
-      // "rewind" request body stream
-      contentStream = new ByteArrayInputStream(requestBody.getBytes(StandardCharsets.UTF_8));
-    }
-
-    EpsgCrs crs = queryInput.getCrs();
-    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
-
-    FeatureTokenSource featureTokenSource =
-        getFeatureSource(requestContext.getMediaType(), contentStream, Optional.empty(), crs, axes);
+    FeatureTokenSource featureTokenSource = getFeatureTokenSource(queryInput, requestContext);
     Response previousFeature = null;
 
     try {
@@ -274,7 +257,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   public Response patchItemResponse(
       QueryInputFeatureReplace queryInput, ApiRequestContext requestContext) {
 
-    EpsgCrs crs = queryInput.getQuery().getCrs().orElseGet(queryInput::getDefaultCrs);
+    EpsgCrs crs = queryInput.getCrs();
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
@@ -299,13 +282,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
           "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
     }
 
-    FeatureTokenSource mergedSource =
-        getFeatureSource(
-            requestContext.getMediaType(),
-            merged,
-            Optional.of(FeatureTransactions.PATCH_NULL_VALUE),
-            crs,
-            axes);
+    FeatureTokenSource mergedSource = getMergePatchSource(merged, crs, axes);
 
     FeatureTransactions.MutationResult result =
         queryInput
@@ -507,82 +484,99 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     return Optional.of(Interval.of(beginInstant, endInstant));
   }
 
-  // TODO: to InputFormat extension matching the mediaType
-  private static FeatureTokenSource getFeatureSource(
-      ApiMediaType mediaType,
+  private FeatureTokenSource getFeatureSource(
+      MediaType contentType,
       InputStream requestBody,
-      Optional<String> nullValue,
+      OgcApiDataV2 apiData,
+      String collectionId,
       EpsgCrs crs,
       Axes axes) {
 
-    FeatureTokenDecoderGeoJson featureTokenDecoderGeoJson =
-        new FeatureTokenDecoderGeoJson(nullValue, crs, axes);
+    FeatureFormatExtension format = resolveFormat(contentType);
 
-    return Source.inputStream(requestBody).via(featureTokenDecoderGeoJson);
-  }
+    FeatureSchema featureSchema =
+        providers
+            .getFeatureSchema(apiData, apiData.getCollections().get(collectionId))
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "No feature schema for collection '" + collectionId + "'"));
 
-  private static String getAsString(InputStream contentStream) {
-    final String requestBody;
-    try {
-      requestBody = new String(contentStream.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new IllegalStateException("Could not read request body. Reasons: " + e.getMessage(), e);
-    }
-    return requestBody;
-  }
-
-  private void validate(
-      String requestBody, String collectionId, boolean jsonfg, ApiRequestContext requestContext) {
-    Optional<Profile> requestedProfile =
-        extensionRegistry.getExtensionsForType(Profile.class).stream()
-            .filter(
-                profile ->
-                    jsonfg
-                        ? "validation-receivables-jsonfg".equals(profile.getId())
-                        : "validation-receivables-geojson".equals(profile.getId()))
-            .findFirst();
-
-    Optional<SchemaConfiguration> schemaConfiguration =
-        requestContext.getApi().getData().getExtension(SchemaConfiguration.class, collectionId);
-
-    Map<String, String> defaultProfiles =
-        schemaConfiguration.map(SchemaConfiguration::getDefaultProfiles).orElse(Map.of());
-    List<Profile> defaultProfilesSchema =
-        extensionRegistry.getExtensionsForType(Profile.class).stream()
-            .filter(
-                profile ->
-                    defaultProfiles.containsKey(profile.getProfileSet())
-                        && profile.getId().equals(defaultProfiles.get(profile.getProfileSet())))
-            .toList();
-
-    QueryInputSchema queryInputSchema =
-        new ImmutableQueryInputSchema.Builder()
+    DecoderContext ctx =
+        new ImmutableDecoderContext.Builder()
+            .apiData(apiData)
             .collectionId(collectionId)
-            .profiles(List.of(requestedProfile.get()))
-            .defaultProfilesResource(defaultProfilesSchema)
-            .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
-            .schemaCache(this.schemaCache)
+            .featureSchema(featureSchema)
+            .crs(crs)
+            .axes(axes)
+            .mediaType(contentType)
             .build();
 
-    String schema;
-    try (Response response =
-        schemaHandler.handle(QueriesHandlerSchema.Query.SCHEMA, queryInputSchema, requestContext)) {
-      schema = MAPPER.writeValueAsString(response.getEntity());
-    } catch (JsonProcessingException e) {
-      throw new IllegalArgumentException(
-          "Could not validate request body against the JSON Schema. Reason: " + e.getMessage());
-    }
+    return Source.inputStream(requestBody).via(format.getFeatureDecoder(ctx).get());
+  }
 
-    Optional<String> validationResult;
-    try {
-      validationResult = schemaValidator.validate(schema, requestBody);
-    } catch (IOException e) {
-      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
-    }
+  private static FeatureTokenSource getMergePatchSource(
+      InputStream requestBody, EpsgCrs crs, Axes axes) {
+    return Source.inputStream(requestBody)
+        .via(
+            new FeatureTokenDecoderGeoJson(
+                Optional.of(FeatureTransactions.PATCH_NULL_VALUE), crs, axes));
+  }
 
-    if (validationResult.isPresent()) {
-      throw new IllegalArgumentException(
-          "Request body is invalid, feature creation is rejected: " + validationResult.get());
-    }
+  private FeatureFormatExtension resolveFormat(MediaType mediaType) {
+    return extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+        .filter(FeatureFormatExtension::canSupportTransactions)
+        .filter(f -> f.getMediaType().type().isCompatible(mediaType))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No transaction-capable feature format for media type " + mediaType));
+  }
+
+  private ValidatorContext buildValidatorContext(
+      QueryInputFeatureCreate queryInput, ApiRequestContext requestContext) {
+    return new ImmutableValidatorContext.Builder()
+        .apiData(requestContext.getApi().getData())
+        .collectionId(queryInput.getCollectionId())
+        .mediaType(queryInput.getContentType())
+        .type(ValidatorContext.Type.RECEIVABLES)
+        .requestContext(requestContext)
+        .declaredProfiles(
+            queryInput.getLinkHeaders().stream()
+                .flatMap(s -> Arrays.stream(s.split(",")))
+                .filter(l -> l.contains("rel=\"profile\"") || l.contains("rel=profile"))
+                .map(
+                    l -> {
+                      int start = l.indexOf('<');
+                      int end = l.indexOf('>');
+                      return start >= 0 && end > start ? l.substring(start + 1, end) : "";
+                    })
+                .map(
+                    url ->
+                        extensionRegistry.getExtensionsForType(Profile.class).stream()
+                            .filter(p -> url.equals(ProfileExtension.getUri(p)))
+                            .findFirst())
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList())
+        .defaultProfiles(
+            resolveDefaultProfilesSchema(
+                requestContext.getApi().getData(), queryInput.getCollectionId()))
+        .build();
+  }
+
+  private List<Profile> resolveDefaultProfilesSchema(OgcApiDataV2 apiData, String collectionId) {
+    Map<String, String> defaults =
+        apiData
+            .getExtension(SchemaConfiguration.class, collectionId)
+            .map(SchemaConfiguration::getDefaultProfiles)
+            .orElse(Map.of());
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(
+            p ->
+                defaults.containsKey(p.getProfileSet())
+                    && p.getId().equals(defaults.get(p.getProfileSet())))
+        .toList();
   }
 }
