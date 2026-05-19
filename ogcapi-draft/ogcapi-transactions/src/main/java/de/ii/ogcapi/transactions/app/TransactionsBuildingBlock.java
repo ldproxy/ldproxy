@@ -45,72 +45,61 @@ import org.slf4j.LoggerFactory;
  *     <p>Zur Interoperabilität mit WFS 2.0-Produzenten (insbesondere NBA-Nachrichten gemäß
  *     GeoInfoDok) kann der Baustein zusätzlich `wfs:Transaction`-XML-Payloads im atomaren Modus
  *     entgegennehmen.
- * @limitationsEn
- *     <p>Provider and request scope:
- *     <ul>
- *       <li>Only feature types from an SQL feature provider that supports mutations
- *           (`datasetChanges.mode` `CRUD`) are supported.
- *       <li>Asynchronous transactions are not supported.
- *       <li>Responses are always JSON; the WFS `wfs:TransactionResponse` XML response is not
- *           produced.
- *       <li>`wfs:Transaction` XML payloads are accepted in atomic mode only.
- *     </ul>
- *     <p>Filters in `update`, `replace`, and `delete` actions:
- *     <ul>
- *       <li>Filters are restricted to selecting features by id. JSON action bodies accept only a
- *           CQL2 `id IN (...)` expression (the `_ID_` placeholder); other CQL2 predicates
- *           (comparison, spatial, temporal, or boolean operators on regular properties) are
- *           rejected with a 4xx error.
- *       <li>`wfs:Transaction` XML accepts only `fes:ResourceId/@rid`; no other `fes:Filter` element
- *           types are recognised.
- *     </ul>
- *     <p>`update` semantics:
- *     <ul>
- *       <li>Updates are applied as an RFC 7396 JSON Merge Patch over a GeoJSON representation of
- *           the current feature, regardless of the payload encoding.
- *       <li>In an atomic transaction, an `update` cannot target a feature that was inserted,
- *           replaced, updated, or deleted earlier in the same transaction; the action is rejected
- *           up front, because the read inside the `update` goes through the provider's normal query
- *           path and cannot see the transaction's still-uncommitted writes.
- *       <li>In a `wfs:Update`, the `wfs:ValueReference` of each `wfs:Property` must be the GeoJSON
- *           property name (the wire name), not the underlying GML element or schema name; an
- *           unknown name is silently ignored and the property is not changed.
- *     </ul>
- *
- * @limitationsDe
- *     <p>Provider und Anfragebereich:
- *     <ul>
- *       <li>Es werden nur Objektarten von einem SQL-Feature-Provider unterstützt, der Mutationen
- *           erlaubt (`datasetChanges.mode` `CRUD`).
- *       <li>Asynchrone Transaktionen werden nicht unterstützt.
- *       <li>Antworten werden ausschließlich als JSON geliefert; die WFS
- *           `wfs:TransactionResponse`-XML-Antwort wird nicht erzeugt.
- *       <li>`wfs:Transaction`-XML-Payloads werden nur im atomaren Modus akzeptiert.
- *     </ul>
- *     <p>Filter in `update`-, `replace`- und `delete`-Aktionen:
- *     <ul>
- *       <li>Filter sind auf die Auswahl von Objekten über deren Id beschränkt. JSON-Aktionen
- *           akzeptieren nur einen CQL2-Ausdruck der Form `id IN (...)` (Platzhalter `_ID_`); andere
- *           CQL2-Prädikate (Vergleichs-, Raum-, Zeit- oder boolesche Operatoren auf normalen
- *           Eigenschaften) werden mit einem 4xx-Fehler abgelehnt.
- *       <li>`wfs:Transaction`-XML akzeptiert ausschließlich `fes:ResourceId/@rid`; andere
- *           `fes:Filter`-Elementtypen werden nicht erkannt.
- *     </ul>
- *     <p>Semantik von `update`:
- *     <ul>
- *       <li>Updates werden als RFC 7396 JSON Merge Patch über einer GeoJSON-Repräsentation der
- *           aktuellen Objektinstanz angewendet, unabhängig von der Payload-Kodierung.
- *       <li>In einer atomaren Transaktion darf ein `update` keine Objektinstanz betreffen, die im
- *           selben Vorgang bereits eingefügt, ersetzt, aktualisiert oder gelöscht wurde; die Aktion
- *           wird vorab abgewiesen, da der Lesezugriff innerhalb eines `update` über den normalen
- *           Abfragepfad des Providers geht und noch nicht festgeschriebene Schreibvorgänge
- *           derselben Transaktion nicht sehen kann.
- *       <li>In einem `wfs:Update` muss `wfs:ValueReference` jeder `wfs:Property` den GeoJSON-Namen
- *           der Eigenschaft (den Wire-Namen) verwenden, nicht den zugrundeliegenden GML-Element-
- *           oder Schemanamen; ein unbekannter Name wird stillschweigend ignoriert und die
- *           Eigenschaft bleibt unverändert.
- *     </ul>
- *
+ * @limitationsEn The following restrictions apply:
+ *     <p><code>
+ * - Provider and request scope:
+ *   - Only feature types from an SQL feature provider that supports mutations
+ *     (`datasetChanges.mode` `CRUD`) are supported.
+ *   - Asynchronous transactions are not supported.
+ *   - Responses are always JSON; the WFS `wfs:TransactionResponse` XML response is not produced.
+ *   - `wfs:Transaction` XML payloads are accepted in atomic mode only.
+ * - Filters in `update`, `replace`, and `delete` actions:
+ *   - Filters are restricted to selecting features by id. JSON action bodies accept only a CQL2
+ *     `id IN (...)` expression (the `_ID_` placeholder); other CQL2 predicates (comparison,
+ *     spatial, temporal, or boolean operators on regular properties) are rejected with a 4xx
+ *     error.
+ *   - `wfs:Transaction` XML accepts only `fes:ResourceId/@rid`; no other `fes:Filter` element
+ *     types are recognised.
+ * - `update` semantics:
+ *   - Updates are applied as an RFC 7396 JSON Merge Patch over a GeoJSON representation of the
+ *     current feature, regardless of the payload encoding.
+ *   - In an atomic transaction, an `update` cannot target a feature that was inserted, replaced,
+ *     updated, or deleted earlier in the same transaction; the action is rejected up front,
+ *     because the read inside the `update` goes through the provider's normal query path and
+ *     cannot see the transaction's still-uncommitted writes.
+ *   - In a `wfs:Update`, the `wfs:ValueReference` of each `wfs:Property` must be the GeoJSON
+ *     property name (the wire name), not the underlying GML element or schema name; an unknown
+ *     name is silently ignored and the property is not changed.
+ *     </code>
+ * @limitationsDe Es gelten die folgenden Einschränkungen:
+ *     <p><code>
+ * - Provider und Anfragebereich:
+ *   - Es werden nur Objektarten von einem SQL-Feature-Provider unterstützt, der Mutationen
+ *     erlaubt (`datasetChanges.mode` `CRUD`).
+ *   - Asynchrone Transaktionen werden nicht unterstützt.
+ *   - Antworten werden ausschließlich als JSON geliefert; die WFS
+ *     `wfs:TransactionResponse`-XML-Antwort wird nicht erzeugt.
+ *   - `wfs:Transaction`-XML-Payloads werden nur im atomaren Modus akzeptiert.
+ * - Filter in `update`-, `replace`- und `delete`-Aktionen:
+ *   - Filter sind auf die Auswahl von Objekten über deren Id beschränkt. JSON-Aktionen
+ *     akzeptieren nur einen CQL2-Ausdruck der Form `id IN (...)` (Platzhalter `_ID_`); andere
+ *     CQL2-Prädikate (Vergleichs-, Raum-, Zeit- oder boolesche Operatoren auf normalen
+ *     Eigenschaften) werden mit einem 4xx-Fehler abgelehnt.
+ *   - `wfs:Transaction`-XML akzeptiert ausschließlich `fes:ResourceId/@rid`; andere
+ *     `fes:Filter`-Elementtypen werden nicht erkannt.
+ * - Semantik von `update`:
+ *   - Updates werden als RFC 7396 JSON Merge Patch über einer GeoJSON-Repräsentation der
+ *     aktuellen Objektinstanz angewendet, unabhängig von der Payload-Kodierung.
+ *   - In einer atomaren Transaktion darf ein `update` keine Objektinstanz betreffen, die im
+ *     selben Vorgang bereits eingefügt, ersetzt, aktualisiert oder gelöscht wurde; die Aktion
+ *     wird vorab abgewiesen, da der Lesezugriff innerhalb eines `update` über den normalen
+ *     Abfragepfad des Providers geht und noch nicht festgeschriebene Schreibvorgänge derselben
+ *     Transaktion nicht sehen kann.
+ *   - In einem `wfs:Update` muss `wfs:ValueReference` jeder `wfs:Property` den GeoJSON-Namen
+ *     der Eigenschaft (den Wire-Namen) verwenden, nicht den zugrundeliegenden GML-Element-
+ *     oder Schemanamen; ein unbekannter Name wird stillschweigend ignoriert und die
+ *     Eigenschaft bleibt unverändert.
+ *     </code>
  * @conformanceEn The building block is based on the conformance classes "Transactions", "Atomic
  *     Semantics", "Batch Semantics", "JSON Encoding" and "Features" from the [Draft OGC API -
  *     Features - Part 11: Atomic and Batch Transactions](https://docs.ogc.org/DRAFTS/26-018.html).
