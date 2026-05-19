@@ -15,6 +15,7 @@ import de.ii.ogcapi.transactions.domain.ImmutableNameValue;
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete;
 import de.ii.ogcapi.transactions.domain.ImmutableTxReplace;
 import de.ii.ogcapi.transactions.domain.ImmutableTxUpdate;
+import de.ii.ogcapi.transactions.domain.InsertItem;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TxAction;
@@ -262,23 +263,29 @@ public class WfsTransactionParser implements TransactionParser {
             // idle. Children of different collection types in the same wfs:Insert produce one
             // BufferedInsert per group, queued in pendingActions.
             Optional<String> handle = Optional.ofNullable(attribute(start, "handle"));
-            Map<String, List<byte[]>> byCollection = new LinkedHashMap<>();
+            Map<String, List<BufferedItem>> byCollection = new LinkedHashMap<>();
+            int featureIndex = 0;
             while (reader.hasNext()) {
               XMLEvent e = reader.nextEvent();
               if (e.isEndElement() && isWfs(e.asEndElement().getName(), "Insert")) break;
               if (!e.isStartElement()) continue;
               StartElement feature = e.asStartElement();
               String collectionId = feature.getName().getLocalPart();
+              Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
               byte[] payload = copySubtree(reader, feature, root, start);
-              byCollection.computeIfAbsent(collectionId, k -> new ArrayList<>()).add(payload);
+              featureIndex++;
+              byCollection
+                  .computeIfAbsent(collectionId, k -> new ArrayList<>())
+                  .add(new BufferedItem(gmlId, featureIndex, payload));
             }
             if (byCollection.isEmpty()) {
               continue; // empty wfs:Insert — move on to next sibling
             }
-            Iterator<Map.Entry<String, List<byte[]>>> entries = byCollection.entrySet().iterator();
-            Map.Entry<String, List<byte[]>> first = entries.next();
+            Iterator<Map.Entry<String, List<BufferedItem>>> entries =
+                byCollection.entrySet().iterator();
+            Map.Entry<String, List<BufferedItem>> first = entries.next();
             while (entries.hasNext()) {
-              Map.Entry<String, List<byte[]>> ent = entries.next();
+              Map.Entry<String, List<BufferedItem>> ent = entries.next();
               pendingActions.add(new BufferedInsert(ent.getKey(), handle, ent.getValue()));
             }
             return new BufferedInsert(first.getKey(), handle, first.getValue());
@@ -577,12 +584,12 @@ public class WfsTransactionParser implements TransactionParser {
 
     private final String collectionId;
     private final Optional<String> actionId;
-    private final List<byte[]> payloads;
+    private final List<BufferedItem> items;
 
-    BufferedInsert(String collectionId, Optional<String> actionId, List<byte[]> payloads) {
+    BufferedInsert(String collectionId, Optional<String> actionId, List<BufferedItem> items) {
       this.collectionId = collectionId;
       this.actionId = actionId;
-      this.payloads = payloads;
+      this.items = items;
     }
 
     @Override
@@ -611,8 +618,8 @@ public class WfsTransactionParser implements TransactionParser {
     }
 
     @Override
-    public Iterator<InputStream> items() {
-      Iterator<byte[]> src = payloads.iterator();
+    public Iterator<InsertItem> items() {
+      Iterator<BufferedItem> src = items.iterator();
       return new Iterator<>() {
         @Override
         public boolean hasNext() {
@@ -620,16 +627,36 @@ public class WfsTransactionParser implements TransactionParser {
         }
 
         @Override
-        public InputStream next() {
+        public InsertItem next() {
           if (!src.hasNext()) throw new NoSuchElementException();
-          return new ByteArrayInputStream(src.next());
+          BufferedItem b = src.next();
+          return new InsertItem(b.gmlId, b.indexInInsert, new ByteArrayInputStream(b.payload));
         }
       };
     }
   }
 
+  /** Internal triple held by {@link BufferedInsert} — one feature child of a wfs:Insert. */
+  private static final class BufferedItem {
+    final Optional<String> gmlId;
+    final int indexInInsert;
+    final byte[] payload;
+
+    BufferedItem(Optional<String> gmlId, int indexInInsert, byte[] payload) {
+      this.gmlId = gmlId;
+      this.indexInInsert = indexInInsert;
+      this.payload = payload;
+    }
+  }
+
   private static String attribute(StartElement element, String localName) {
     Attribute attr = element.getAttributeByName(new QName(localName));
+    return attr == null ? null : attr.getValue();
+  }
+
+  /** Returns the {@code gml:id} attribute value, regardless of which prefix was used. */
+  private static String gmlIdAttribute(StartElement element) {
+    Attribute attr = element.getAttributeByName(new QName("http://www.opengis.net/gml/3.2", "id"));
     return attr == null ? null : attr.getValue();
   }
 

@@ -99,8 +99,10 @@ class WfsTransactionParserSpec extends Specification {
         def it = tx.actions()
         def insert = (TxInsert) it.next()
         def items = insert.items()
-        def firstBytes = items.next().readAllBytes()
-        def secondBytes = items.next().readAllBytes()
+        def firstItem = items.next()
+        def secondItem = items.next()
+        def firstBytes = firstItem.payload().readAllBytes()
+        def secondBytes = secondItem.payload().readAllBytes()
 
         then: 'a single TxInsert covers the whole wfs:Insert'
         insert.collectionId == 'AX_Buildings'
@@ -133,7 +135,7 @@ class WfsTransactionParserSpec extends Specification {
         when:
         def tx = parser.parse(bytes(body), XML)
         def insert = (TxInsert) tx.actions().next()
-        def payload = new String(insert.items().next().readAllBytes(), 'UTF-8')
+        def payload = new String(insert.items().next().payload().readAllBytes(), 'UTF-8')
 
         then: 'the gml: prefix bound on the ancestor is preserved on the feature element'
         // re-parse the payload as a standalone document - prefix must resolve

@@ -30,6 +30,7 @@ import de.ii.ogcapi.transactions.domain.ActionStatus;
 import de.ii.ogcapi.transactions.domain.ExecutionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableActionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableExecutionResult;
+import de.ii.ogcapi.transactions.domain.InsertItem;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionExecutor;
 import de.ii.ogcapi.transactions.domain.TxAction;
@@ -272,28 +273,29 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     List<String> ids = new ArrayList<>();
 
     List<FeatureTokenSource> batch = new ArrayList<>(INSERT_BATCH_SIZE);
-    Iterator<InputStream> items = action.items();
+    List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
+    Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
-      try (InputStream item = items.next()) {
+      InsertItem item = items.next();
+      try (InputStream payload = item.payload()) {
         FeatureTokenSource source =
             decodeFeature(
-                action.getMediaType(), item, apiData, action.getCollectionId(), crs, axes);
+                action.getMediaType(), payload, apiData, action.getCollectionId(), crs, axes);
         batch.add(source);
+        batchItems.add(item);
       } catch (java.io.IOException e) {
-        throw new RuntimeException("Failed to read insert item: " + e.getMessage(), e);
+        return failedInsert(action, apiData, batchItems, e);
       }
       if (batch.size() >= INSERT_BATCH_SIZE) {
-        MutationResult mr = session.createFeatures(featureType, batch, crs);
-        rejectIfError(mr);
-        ids.addAll(mr.getIds());
-        batch.clear();
+        ActionResult failed =
+            flushInsertBatch(action, apiData, session, featureType, batch, batchItems, crs, ids);
+        if (failed != null) return failed;
       }
     }
     if (!batch.isEmpty()) {
-      MutationResult mr = session.createFeatures(featureType, batch, crs);
-      rejectIfError(mr);
-      ids.addAll(mr.getIds());
-      batch.clear();
+      ActionResult failed =
+          flushInsertBatch(action, apiData, session, featureType, batch, batchItems, crs, ids);
+      if (failed != null) return failed;
     }
 
     return new ImmutableActionResult.Builder()
@@ -302,6 +304,53 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(ids)
+        .build();
+  }
+
+  /**
+   * Commit one batch. On failure, build a FAILED ActionResult carrying the candidate feature ids
+   * (and 1-based positions) of every item that was in the failing batch — the broken one is among
+   * them but cannot be pinpointed further from a batch-level error.
+   */
+  private ActionResult flushInsertBatch(
+      TxInsert action,
+      OgcApiDataV2 apiData,
+      Session session,
+      String featureType,
+      List<FeatureTokenSource> batch,
+      List<InsertItem> batchItems,
+      EpsgCrs crs,
+      List<String> ids) {
+    try {
+      MutationResult mr = session.createFeatures(featureType, batch, crs);
+      rejectIfError(mr);
+      ids.addAll(mr.getIds());
+      batch.clear();
+      batchItems.clear();
+      return null;
+    } catch (RuntimeException e) {
+      return failedInsert(action, apiData, batchItems, e);
+    }
+  }
+
+  private static ActionResult failedInsert(
+      TxInsert action, OgcApiDataV2 apiData, List<InsertItem> batchItems, Throwable error) {
+    List<String> candidateIds = new ArrayList<>(batchItems.size());
+    List<Integer> candidateIndexes = new ArrayList<>(batchItems.size());
+    for (InsertItem it : batchItems) {
+      it.featureId().ifPresent(candidateIds::add);
+      candidateIndexes.add(it.indexInInsert());
+    }
+    String message =
+        error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+    return new ImmutableActionResult.Builder()
+        .type(TxActionType.INSERT)
+        .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
+        .actionId(action.getActionId())
+        .status(ActionStatus.FAILED)
+        .error(message)
+        .failedFeatureIds(candidateIds)
+        .failedFeatureIndexes(candidateIndexes)
         .build();
   }
 
@@ -938,9 +987,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   private static void drainQuietly(TxAction action) {
     if (action instanceof TxInsert) {
-      Iterator<InputStream> it = ((TxInsert) action).items();
+      Iterator<InsertItem> it = ((TxInsert) action).items();
       while (it.hasNext()) {
-        try (InputStream in = it.next()) {
+        try (InputStream in = it.next().payload()) {
           in.transferTo(java.io.OutputStream.nullOutputStream());
         } catch (java.io.IOException ignored) {
           // best-effort: parser will surface real errors on the next pull

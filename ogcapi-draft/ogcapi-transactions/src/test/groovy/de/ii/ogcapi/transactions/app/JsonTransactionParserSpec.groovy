@@ -236,7 +236,7 @@ class JsonTransactionParserSpec extends Specification {
         def tx = parser.parse(bytes(body), JSON)
         def action = (TxInsert) tx.actions().next()
         def featureBlobs = []
-        action.items().forEachRemaining { is -> featureBlobs << new String(is.readAllBytes(), 'UTF-8') }
+        action.items().forEachRemaining { item -> featureBlobs << new String(item.payload().readAllBytes(), 'UTF-8') }
 
         then:
         action.collectionId == 'buildings'
@@ -260,7 +260,7 @@ class JsonTransactionParserSpec extends Specification {
         }'''
         def tx = parser.parse(bytes(body), JSON)
         def action = (TxInsert) tx.actions().next()
-        action.items().forEachRemaining { is -> is.readAllBytes() }
+        action.items().forEachRemaining { item -> item.payload().readAllBytes() }
 
         when:
         action.items()
@@ -290,7 +290,7 @@ class JsonTransactionParserSpec extends Specification {
         def it = tx.actions()
         def first = (TxInsert) it.next()
         def firstFeature = first.items().next()  // pull just one, abandon the rest
-        firstFeature.readAllBytes()
+        firstFeature.payload().readAllBytes()
         def second = it.next()  // forces drain of the abandoned tail
 
         then:

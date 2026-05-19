@@ -350,42 +350,22 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   private Response buildResponse(
       ExecutionResult result, PreferReturn ret, ApiRequestContext requestContext) {
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
+    boolean failed = !result.isSuccess();
+    int status = (atomic && failed) ? 422 : 200;
 
-    if (atomic && !result.isSuccess()) {
-      ActionResult failed =
-          result.getActionResults().stream()
-              .filter(r -> r.getStatus() == ActionStatus.FAILED)
-              .findFirst()
-              .orElse(null);
-      ObjectNode problem = MAPPER.createObjectNode();
-      problem.put("type", "about:blank");
-      problem.put("title", "Transaction failed");
-      problem.put("status", 422);
-      if (failed != null) {
-        problem.put(
-            "detail",
-            "Action "
-                + failed.getActionId().orElse(failed.getType() + "@" + failed.getCollectionId())
-                + " failed: "
-                + failed.getError().orElse("unknown error"));
-        failed.getActionId().ifPresent(id -> problem.put("actionId", id));
-        problem.put("collectionId", failed.getCollectionId());
-        problem.put("action", failed.getType().toString().toLowerCase(java.util.Locale.ROOT));
-      } else {
-        problem.put("detail", "Transaction could not be committed");
-      }
-      return Response.status(422).type(PROBLEM_JSON).entity(toJson(problem)).build();
-    }
-
-    if (ret == PreferReturn.NONE) {
+    // Always emit the Transaction Response body when there are exceptions to report — even when the
+    // client asked for "return=none". Without the body the caller can't identify the failed
+    // action / feature, which is the whole point of the exceptions array.
+    if (ret == PreferReturn.NONE && !failed) {
       return Response.noContent().header("Preference-Applied", "return=none").build();
     }
 
     ObjectNode body = renderBody(result, ret, requestContext);
-    Response.ResponseBuilder rb =
-        Response.ok(toJson(body), APPLICATION_JSON)
-            .header("Preference-Applied", "return=" + ret.headerValue());
-    return rb.build();
+    return Response.status(status)
+        .type(APPLICATION_JSON)
+        .header("Preference-Applied", "return=" + ret.headerValue())
+        .entity(toJson(body))
+        .build();
   }
 
   private static ObjectNode renderBody(
@@ -399,26 +379,20 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     summary.put("totalUpdated", result.getUpdatedCount());
     summary.put("totalDeleted", result.getDeletedCount());
 
-    if (ret == PreferReturn.MINIMAL) {
-      return body;
-    }
-
     ArrayNode insertResults = body.putArray("insertResults");
     ArrayNode replaceResults = body.putArray("replaceResults");
     ArrayNode updateResults = body.putArray("updateResults");
     ArrayNode deleteResults = body.putArray("deleteResults");
     ArrayNode exceptions = MAPPER.createArrayNode();
 
+    boolean wantDetails = ret != PreferReturn.MINIMAL;
+
     for (ActionResult r : result.getActionResults()) {
       if (r.getStatus() == ActionStatus.FAILED) {
-        ObjectNode ex = exceptions.addObject();
-        r.getActionId().ifPresent(id -> ex.put("actionId", id));
-        ex.put("collectionId", r.getCollectionId());
-        ex.put("action", r.getType().toString().toLowerCase(java.util.Locale.ROOT));
-        ex.put("message", r.getError().orElse("unknown error"));
+        exceptions.add(renderException(r));
         continue;
       }
-      if (r.getStatus() != ActionStatus.SUCCESS) {
+      if (r.getStatus() != ActionStatus.SUCCESS || !wantDetails) {
         continue;
       }
       ArrayNode bucket =
@@ -428,10 +402,44 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       }
     }
 
+    if (ret == PreferReturn.MINIMAL) {
+      body.remove("insertResults");
+      body.remove("replaceResults");
+      body.remove("updateResults");
+      body.remove("deleteResults");
+    }
+
     if (!exceptions.isEmpty()) {
       body.set("exceptions", exceptions);
     }
     return body;
+  }
+
+  /**
+   * Render one FAILED ActionResult as an RFC-7807 problem entry, with OGC API Features Part 11
+   * extension members ({@code collectionId}, {@code action}, {@code actionId}, {@code featureIds},
+   * {@code featureIndexes}). {@code featureIds} / {@code featureIndexes} list every feature that
+   * was in the failing insert batch — the broken one is among them.
+   */
+  private static ObjectNode renderException(ActionResult r) {
+    String action = r.getType().toString().toLowerCase(java.util.Locale.ROOT);
+    ObjectNode ex = MAPPER.createObjectNode();
+    ex.put("type", "about:blank");
+    ex.put("title", "Action " + action + " on '" + r.getCollectionId() + "' failed");
+    ex.put("status", 422);
+    ex.put("detail", r.getError().orElse("unknown error"));
+    r.getActionId().ifPresent(id -> ex.put("actionId", id));
+    ex.put("collectionId", r.getCollectionId());
+    ex.put("action", action);
+    if (!r.getFailedFeatureIds().isEmpty()) {
+      ArrayNode ids = ex.putArray("featureIds");
+      r.getFailedFeatureIds().forEach(ids::add);
+    }
+    if (!r.getFailedFeatureIndexes().isEmpty()) {
+      ArrayNode idx = ex.putArray("featureIndexes");
+      r.getFailedFeatureIndexes().forEach(idx::add);
+    }
+    return ex;
   }
 
   private static ArrayNode bucketFor(

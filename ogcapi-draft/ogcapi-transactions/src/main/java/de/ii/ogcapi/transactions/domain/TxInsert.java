@@ -8,14 +8,14 @@
 package de.ii.ogcapi.transactions.domain;
 
 import jakarta.ws.rs.core.MediaType;
-import java.io.InputStream;
 import java.util.Iterator;
 
 /**
  * Insert action. {@link #items()} is a single-use, lazily-pulled iterator over the insert payload;
- * each element is a fresh {@link InputStream} positioned at the start of one feature in the
- * declared {@link #getMediaType()}. The executor must fully drain the iterator before requesting
- * the next action from {@link Transaction#actions()}.
+ * each element is an {@link InsertItem} carrying a fresh {@code InputStream} positioned at the
+ * start of one feature in the declared {@link #getMediaType()}, plus identifying context ({@code
+ * featureId} when known, 1-based {@code indexInInsert}). The executor must fully drain the iterator
+ * before requesting the next action from {@link Transaction#actions()}.
  *
  * <p>Memory bound: at most one feature is held in memory at a time.
  */
@@ -29,8 +29,8 @@ public interface TxInsert extends TxAction {
   MediaType getMediaType();
 
   /**
-   * @return single-use iterator over the feature payloads. Must be drained before any further calls
-   *     on the parent {@link Transaction#actions()} iterator.
+   * @return single-use iterator over the feature payloads with identifying context. Must be drained
+   *     before any further calls on the parent {@link Transaction#actions()} iterator.
    */
-  Iterator<InputStream> items();
+  Iterator<InsertItem> items();
 }

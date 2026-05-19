@@ -17,6 +17,7 @@ import de.ii.ogcapi.transactions.domain.ImmutableNameValue;
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete;
 import de.ii.ogcapi.transactions.domain.ImmutableTxReplace;
 import de.ii.ogcapi.transactions.domain.ImmutableTxUpdate;
+import de.ii.ogcapi.transactions.domain.InsertItem;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TxAction;
@@ -639,14 +640,15 @@ public class JsonTransactionParser implements TransactionParser {
     }
 
     @Override
-    public Iterator<InputStream> items() {
+    public Iterator<InsertItem> items() {
       if (itemsConsumed) {
         throw new IllegalStateException(
             "items() has already been called on transaction[" + actionIndex + "]");
       }
       itemsConsumed = true;
       return new Iterator<>() {
-        private InputStream next;
+        private InsertItem next;
+        private int featureIndex = 0;
 
         @Override
         public boolean hasNext() {
@@ -663,7 +665,15 @@ public class JsonTransactionParser implements TransactionParser {
                   "transaction[" + actionIndex + "].items must contain JSON Feature objects");
             }
             JsonNode feature = MAPPER.readTree(parser);
-            next = new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature));
+            featureIndex++;
+            JsonNode idNode = feature.get("id");
+            Optional<String> featureId =
+                idNode == null || idNode.isNull() ? Optional.empty() : Optional.of(idNode.asText());
+            next =
+                new InsertItem(
+                    featureId,
+                    featureIndex,
+                    new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature)));
             return true;
           } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -671,9 +681,9 @@ public class JsonTransactionParser implements TransactionParser {
         }
 
         @Override
-        public InputStream next() {
+        public InsertItem next() {
           if (!hasNext()) throw new NoSuchElementException();
-          InputStream r = next;
+          InsertItem r = next;
           next = null;
           return r;
         }

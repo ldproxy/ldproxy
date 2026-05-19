@@ -36,4 +36,25 @@ public interface ActionResult {
    * additional structured metadata via a follow-up extension.
    */
   Optional<String> getError();
+
+  /**
+   * Source-side identifiers (e.g. gml:id, GeoJSON id) of the features that may have caused a FAILED
+   * outcome. For inserts that fail at batch commit time, this is the full set of feature ids in the
+   * failing batch — the broken one is among them but cannot be narrowed further from a batch error.
+   * Empty when no candidate ids are known.
+   */
+  @Value.Default
+  default List<String> getFailedFeatureIds() {
+    return List.of();
+  }
+
+  /**
+   * 1-based positions within the originating wfs:Insert / GeoJSON items array of the candidate
+   * features in {@link #getFailedFeatureIds()}, in the same order. Useful when the source payload
+   * does not carry feature ids. Empty when not known.
+   */
+  @Value.Default
+  default List<Integer> getFailedFeatureIndexes() {
+    return List.of();
+  }
 }
