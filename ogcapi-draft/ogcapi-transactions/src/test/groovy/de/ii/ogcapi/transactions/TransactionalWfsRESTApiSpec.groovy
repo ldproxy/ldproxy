@@ -62,10 +62,17 @@ import java.time.Duration
  * <ol>
  *   <li>Insert all five AX_Flurstueck fixtures in one atomic transaction.
  *   <li>Replace one of them with a payload whose properties differ slightly.
- *   <li>Apply a {@code wfs:Update} (property-level) to another. <em>The executor currently
- *       throws {@link UnsupportedOperationException} on UPDATE, so this phase is expected to
- *       return HTTP 422 with an atomic problem+json body. The assertion locks that behaviour so
- *       you see the day UPDATE landing changes it.</em>
+ *   <li>Apply a {@code wfs:Update} (property-level) to another and assert {@code totalUpdated == 1}.
+ *   <li>Exercise the RFC 7240 {@code Prefer} header against {@code wfs:Replace} (phases 3a–3d):
+ *       <ul>
+ *         <li>{@code respond-async} → 501 Not Implemented (short-circuited before body parsing)
+ *         <li>{@code return=minimal} → 200, {@code Preference-Applied: return=minimal}, summary
+ *             populated but per-action arrays empty
+ *         <li>{@code return=none} → 204 No Content, {@code Preference-Applied: return=none},
+ *             empty body
+ *         <li>{@code return=representation} → 200, {@code Preference-Applied: return=representation},
+ *             full per-action details
+ *       </ul>
  *   <li>Delete all five to restore the prior state.
  * </ol>
  *
@@ -106,6 +113,10 @@ class TransactionalWfsRESTApiSpec extends Specification {
     @Shared List<String> testIds = (0..<5).collect { i -> String.format('%s%08d', idPrefix, i) }
     @Shared List<byte[]> fixtures = loadFixtures()
 
+    // @Shared so the client is available in cleanupSpec — Spock does not guarantee instance-field
+    // visibility from cleanupSpec, which previously caused the cleanup delete to be silently
+    // dropped (NPE swallowed by deleteAllQuietly's try/catch), leaving test features in the DB.
+    @Shared
     HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build()
@@ -117,12 +128,24 @@ class TransactionalWfsRESTApiSpec extends Specification {
     String transactionsUrl() { sutUrl + sutPath + '/transactions' }
 
     HttpResponse<String> postTransaction(String body) {
+        return postTransactionWithPrefer(body, [])
+    }
+
+    /**
+     * POST a wfs:Transaction with one or more {@code Prefer} header values. Each entry of
+     * {@code preferTokens} becomes a separate {@code Prefer} request header — that mirrors the
+     * RFC 7240 wire form where multiple Prefer headers may be sent — so the executor's parser sees
+     * the same multi-header shape as a real client. Pass an empty list to omit the header
+     * entirely.
+     */
+    HttpResponse<String> postTransactionWithPrefer(String body, List<String> preferTokens) {
         def builder = HttpRequest.newBuilder(URI.create(transactionsUrl()))
                 .header('Content-Type', XML_CONTENT_TYPE)
                 .header('Accept', 'application/json, application/problem+json')
         if (sutContentCrs != null && !sutContentCrs.isEmpty()) {
             builder.header('Content-Crs', sutContentCrs)
         }
+        preferTokens.each { token -> builder.header('Prefer', token) }
         builder.POST(BodyPublishers.ofString(body, java.nio.charset.StandardCharsets.UTF_8))
         return httpClient.send(builder.build(), BodyHandlers.ofString())
     }
@@ -267,21 +290,78 @@ class TransactionalWfsRESTApiSpec extends Specification {
         doc.replaceResults[0].toString().endsWith('/items/' + testIds[0])
     }
 
-    def 'phase 3: wfs:Update currently returns 422 (UPDATE not yet wired into the executor)'() {
-        // The parser accepts wfs:Update and produces a TxUpdate action, but TransactionExecutor's
-        // dispatch throws UnsupportedOperationException for UPDATE today. Atomic semantics turn
-        // that into HTTP 422 with an application/problem+json body. The test locks the current
-        // behaviour so the day UPDATE lands you will see this fail and update the spec to assert
-        // 200 + totalUpdated == 1.
+    def 'phase 3: wfs:Update succeeds and reports one updated feature'() {
         when:
         def r = postTransaction(buildUpdate(1, 'flurstueckskennzeichen', '999999'))
 
         then:
-        r.statusCode() == 422
-        r.headers().firstValue('Content-Type').orElse('').startsWith('application/problem+json')
+        r.statusCode() == 200
         def doc = new JsonSlurper().parseText(r.body())
-        doc.status == 422
-        doc.action == 'update'
+        doc.semantic == 'atomic'
+        doc.summary.totalUpdated == 1
+        doc.updateResults instanceof List
+        doc.updateResults.size() == 1
+        doc.updateResults[0].toString().endsWith('/items/' + testIds[1])
+    }
+
+    // ---- Prefer header phases ----------------------------------------------------------------
+    //
+    // These run a wfs:Replace of one of the inserted fixtures with a different Prefer value each,
+    // so we can lock both the Preference-Applied response header and the shape of the response
+    // body. respond-async is intentionally first: its 501 short-circuit happens before the body
+    // is read, so it doesn't disturb the dataset.
+
+    def 'phase 3a: Prefer: respond-async returns 501 Not Implemented without parsing the body'() {
+        when:
+        // The endpoint short-circuits before reading the request body, so any payload is fine.
+        def r = postTransactionWithPrefer('<irrelevant-not-even-xml/>', ['respond-async'])
+
+        then:
+        r.statusCode() == 501
+        r.headers().firstValue('Content-Type').orElse('').startsWith('text/plain')
+        r.body().contains('Asynchronous')
+    }
+
+    def 'phase 3b: Prefer: return=minimal echoes Preference-Applied and omits per-action arrays'() {
+        when:
+        def r = postTransactionWithPrefer(buildReplace(2), ['return=minimal'])
+
+        then:
+        r.statusCode() == 200
+        r.headers().firstValue('Preference-Applied').orElse('') == 'return=minimal'
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.semantic == 'atomic'
+        doc.summary.totalReplaced == 1
+        // The endpoint strips the four per-action arrays entirely (rather than emitting empty
+        // arrays) when return=minimal — see EndpointTransactions.renderBody().
+        !doc.containsKey('insertResults')
+        !doc.containsKey('replaceResults')
+        !doc.containsKey('updateResults')
+        !doc.containsKey('deleteResults')
+    }
+
+    def 'phase 3c: Prefer: return=none returns 204 No Content with Preference-Applied and empty body'() {
+        when:
+        def r = postTransactionWithPrefer(buildReplace(3), ['return=none'])
+
+        then:
+        r.statusCode() == 204
+        r.headers().firstValue('Preference-Applied').orElse('') == 'return=none'
+        r.body().isEmpty()
+    }
+
+    def 'phase 3d: Prefer: return=representation echoes Preference-Applied with full details'() {
+        when:
+        def r = postTransactionWithPrefer(buildReplace(4), ['return=representation'])
+
+        then:
+        r.statusCode() == 200
+        r.headers().firstValue('Preference-Applied').orElse('') == 'return=representation'
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.summary.totalReplaced == 1
+        doc.replaceResults instanceof List
+        doc.replaceResults.size() == 1
+        doc.replaceResults[0].toString().endsWith('/items/' + testIds[4])
     }
 
     def 'phase 4: delete all five test features to restore the prior state'() {

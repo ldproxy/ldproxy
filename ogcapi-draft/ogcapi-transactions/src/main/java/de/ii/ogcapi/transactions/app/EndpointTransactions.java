@@ -19,6 +19,7 @@ import dagger.Lazy;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -187,6 +188,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     String path = "/transactions";
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path, HttpMethods.POST);
+    List<ApiHeader> headers = getHeaders(extensionRegistry, apiData, path, HttpMethods.POST);
     String operationSummary = "execute a transaction";
     Optional<String> operationDescription =
         Optional.of(
@@ -207,7 +209,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
             HttpMethods.POST,
             requestContent,
             queryParameters,
-            ImmutableList.of(),
+            headers,
             operationSummary,
             operationDescription,
             Optional.empty(),
@@ -240,7 +242,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
-    if (containsPreferToken(prefer, "respond-async")) {
+    if (PreferHeader.containsPreferToken(prefer, "respond-async")) {
       return Response.status(Response.Status.NOT_IMPLEMENTED)
           .type(MediaType.TEXT_PLAIN_TYPE)
           .entity("Asynchronous transactions are not supported by this API.")
@@ -287,7 +289,8 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
     ExecutionResult result = executor.execute(transaction, api, requestContext, requestCrs);
 
-    PreferReturn ret = parseReturn(prefer, PreferReturn.REPRESENTATION);
+    PreferHeader.PreferReturn ret =
+        PreferHeader.parseReturn(prefer, PreferHeader.PreferReturn.REPRESENTATION);
     return buildResponse(result, ret, requestContext);
   }
 
@@ -348,7 +351,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   }
 
   private Response buildResponse(
-      ExecutionResult result, PreferReturn ret, ApiRequestContext requestContext) {
+      ExecutionResult result, PreferHeader.PreferReturn ret, ApiRequestContext requestContext) {
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
     boolean failed = !result.isSuccess();
     int status = (atomic && failed) ? 422 : 200;
@@ -356,7 +359,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     // Always emit the Transaction Response body when there are exceptions to report — even when the
     // client asked for "return=none". Without the body the caller can't identify the failed
     // action / feature, which is the whole point of the exceptions array.
-    if (ret == PreferReturn.NONE && !failed) {
+    if (ret == PreferHeader.PreferReturn.NONE && !failed) {
       return Response.noContent().header("Preference-Applied", "return=none").build();
     }
 
@@ -369,7 +372,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   }
 
   private static ObjectNode renderBody(
-      ExecutionResult result, PreferReturn ret, ApiRequestContext requestContext) {
+      ExecutionResult result, PreferHeader.PreferReturn ret, ApiRequestContext requestContext) {
     ObjectNode body = MAPPER.createObjectNode();
     body.put("semantic", result.getSemantic().toString().toLowerCase(java.util.Locale.ROOT));
 
@@ -385,7 +388,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     ArrayNode deleteResults = body.putArray("deleteResults");
     ArrayNode exceptions = MAPPER.createArrayNode();
 
-    boolean wantDetails = ret != PreferReturn.MINIMAL;
+    boolean wantDetails = ret != PreferHeader.PreferReturn.MINIMAL;
 
     for (ActionResult r : result.getActionResults()) {
       if (r.getStatus() == ActionStatus.FAILED) {
@@ -402,7 +405,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       }
     }
 
-    if (ret == PreferReturn.MINIMAL) {
+    if (ret == PreferHeader.PreferReturn.MINIMAL) {
       body.remove("insertResults");
       body.remove("replaceResults");
       body.remove("updateResults");
@@ -482,59 +485,5 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     } catch (Exception e) {
       throw new RuntimeException("Failed to serialise transaction response", e);
     }
-  }
-
-  // --- Prefer header parsing ------------------------------------------------
-
-  private enum PreferReturn {
-    NONE("none"),
-    MINIMAL("minimal"),
-    REPRESENTATION("representation");
-
-    private final String header;
-
-    PreferReturn(String header) {
-      this.header = header;
-    }
-
-    String headerValue() {
-      return header;
-    }
-
-    static Optional<PreferReturn> fromHeader(String value) {
-      if (value == null) return Optional.empty();
-      String v = value.trim().toLowerCase(java.util.Locale.ROOT);
-      for (PreferReturn r : values()) {
-        if (r.header.equals(v)) return Optional.of(r);
-      }
-      return Optional.empty();
-    }
-  }
-
-  private static PreferReturn parseReturn(List<String> preferHeaders, PreferReturn fallback) {
-    if (preferHeaders == null) return fallback;
-    for (String header : preferHeaders) {
-      for (String token : header.split(",")) {
-        String t = token.trim();
-        if (t.regionMatches(true, 0, "return", 0, "return".length())) {
-          int eq = t.indexOf('=');
-          if (eq > 0) {
-            Optional<PreferReturn> r = PreferReturn.fromHeader(t.substring(eq + 1).trim());
-            if (r.isPresent()) return r.get();
-          }
-        }
-      }
-    }
-    return fallback;
-  }
-
-  private static boolean containsPreferToken(List<String> preferHeaders, String token) {
-    if (preferHeaders == null) return false;
-    for (String header : preferHeaders) {
-      for (String t : header.split(",")) {
-        if (token.equalsIgnoreCase(t.trim())) return true;
-      }
-    }
-    return false;
   }
 }

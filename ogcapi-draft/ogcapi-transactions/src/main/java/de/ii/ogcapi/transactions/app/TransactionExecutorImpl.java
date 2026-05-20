@@ -747,7 +747,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     for (String id : targetIds) {
       MutationResult mr = session.deleteFeature(featureType, id);
       rejectIfError(mr);
-      deleted.add(id);
+      // SqlMutationSession.deleteFeature only populates getIds() when the SQL DELETE actually
+      // matched a row. Treat an empty result as a no-op so totalDeleted / deleteResults reflect
+      // only features that were really removed, not every rid the caller named in the filter.
+      if (!mr.getIds().isEmpty()) {
+        deleted.add(id);
+      }
     }
 
     return new ImmutableActionResult.Builder()
