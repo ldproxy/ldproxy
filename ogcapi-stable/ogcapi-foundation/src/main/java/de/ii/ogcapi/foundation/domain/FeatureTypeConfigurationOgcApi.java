@@ -12,9 +12,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.entities.domain.maptobuilder.Buildable;
 import de.ii.xtraplatform.entities.domain.maptobuilder.BuildableBuilder;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
+import de.ii.xtraplatform.features.domain.FeatureTypeExtent;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -80,6 +82,10 @@ public interface FeatureTypeConfigurationOgcApi
    * @default null
    */
   Optional<String> getPersistentUriTemplate();
+
+  // this option is only set at runtime
+  @DocIgnore
+  Optional<FeatureTypeExtent> getExtent();
 
   /**
    * @langEn Array of additional link objects, required keys are `href` (the URI), `label` and `rel`
