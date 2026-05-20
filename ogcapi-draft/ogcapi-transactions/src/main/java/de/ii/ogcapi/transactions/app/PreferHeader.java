@@ -10,6 +10,7 @@ package de.ii.ogcapi.transactions.app;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Function;
 
 /** RFC 7240 {@code Prefer} header parsing helpers used by {@link EndpointTransactions}. */
 final class PreferHeader {
@@ -39,17 +40,50 @@ final class PreferHeader {
     }
   }
 
+  enum PreferHandling {
+    STRICT("strict"),
+    LENIENT("lenient");
+
+    private final String header;
+
+    PreferHandling(String header) {
+      this.header = header;
+    }
+
+    String headerValue() {
+      return header;
+    }
+
+    static Optional<PreferHandling> fromHeader(String value) {
+      if (value == null) return Optional.empty();
+      String v = value.trim().toLowerCase(Locale.ROOT);
+      for (PreferHandling h : values()) {
+        if (h.header.equals(v)) return Optional.of(h);
+      }
+      return Optional.empty();
+    }
+  }
+
   private PreferHeader() {}
 
   static PreferReturn parseReturn(List<String> preferHeaders, PreferReturn fallback) {
+    return parseParameterised(preferHeaders, "return", PreferReturn::fromHeader, fallback);
+  }
+
+  static PreferHandling parseHandling(List<String> preferHeaders, PreferHandling fallback) {
+    return parseParameterised(preferHeaders, "handling", PreferHandling::fromHeader, fallback);
+  }
+
+  private static <T> T parseParameterised(
+      List<String> preferHeaders, String name, Function<String, Optional<T>> parser, T fallback) {
     if (preferHeaders == null) return fallback;
     for (String header : preferHeaders) {
       for (String token : header.split(",")) {
         String t = token.trim();
-        if (t.regionMatches(true, 0, "return", 0, "return".length())) {
+        if (t.regionMatches(true, 0, name, 0, name.length())) {
           int eq = t.indexOf('=');
-          if (eq > 0) {
-            Optional<PreferReturn> r = PreferReturn.fromHeader(t.substring(eq + 1).trim());
+          if (eq > 0 && t.substring(name.length(), eq).trim().isEmpty()) {
+            Optional<T> r = parser.apply(t.substring(eq + 1).trim());
             if (r.isPresent()) return r.get();
           }
         }

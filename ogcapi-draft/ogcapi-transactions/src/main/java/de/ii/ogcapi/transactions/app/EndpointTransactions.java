@@ -63,6 +63,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -277,9 +279,28 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
     EpsgCrs requestCrs = resolveRequestCrs(contentCrsHeader, apiData);
 
+    PreferHeader.PreferHandling handling =
+        PreferHeader.parseHandling(prefer, PreferHeader.PreferHandling.LENIENT);
+
+    InputStream parseStream = requestBody;
+    if (handling == PreferHeader.PreferHandling.STRICT) {
+      byte[] buffered;
+      try {
+        buffered = requestBody.readAllBytes();
+      } catch (IOException e) {
+        throw new BadRequestException("Could not read transaction body: " + e.getMessage());
+      }
+      try {
+        parser.validateEnvelope(buffered, contentType);
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException("Transaction envelope is invalid: " + e.getMessage());
+      }
+      parseStream = new ByteArrayInputStream(buffered);
+    }
+
     Transaction transaction;
     try {
-      transaction = parser.parse(requestBody, contentType);
+      transaction = parser.parse(parseStream, contentType);
     } catch (IllegalArgumentException e) {
       throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
     }
@@ -287,7 +308,9 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     enforceSemanticPolicy(transaction, config);
     enforceActionLimit(transaction, config);
 
-    ExecutionResult result = executor.execute(transaction, api, requestContext, requestCrs);
+    boolean validate = handling == PreferHeader.PreferHandling.STRICT;
+    ExecutionResult result =
+        executor.execute(transaction, api, requestContext, requestCrs, validate);
 
     PreferHeader.PreferReturn ret =
         PreferHeader.parseReturn(prefer, PreferHeader.PreferReturn.REPRESENTATION);
@@ -391,10 +414,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     boolean wantDetails = ret != PreferHeader.PreferReturn.MINIMAL;
 
     for (ActionResult r : result.getActionResults()) {
-      if (r.getStatus() == ActionStatus.FAILED) {
-        exceptions.add(renderException(r));
-        continue;
-      }
+      addExceptionsFor(r, exceptions);
       if (r.getStatus() != ActionStatus.SUCCESS || !wantDetails) {
         continue;
       }
@@ -416,6 +436,72 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       body.set("exceptions", exceptions);
     }
     return body;
+  }
+
+  /**
+   * Append RFC-7807 entries to {@code exceptions} for any rejected items in this action.
+   *
+   * <p>When per-feature error messages are available ({@link ActionResult#getFailedFeatureErrors()}
+   * non-empty — produced by {@code Prefer: handling=strict} validation), each rejected feature gets
+   * its own entry with its specific {@code detail} message and (when known) its {@code featureId}
+   * and 1-based {@code featureIndex}. This covers both the all-rejected case (action {@code
+   * FAILED}, every item is in {@code exceptions}) and partial success (action {@code SUCCESS}, only
+   * the rejected items are in {@code exceptions} while the surviving items appear in {@code
+   * insertResults}).
+   *
+   * <p>When per-feature errors are not available — e.g. a batch commit raised a single aggregate
+   * error — the {@code FAILED} action contributes one aggregate entry listing every candidate
+   * feature in the failing batch.
+   */
+  private static void addExceptionsFor(ActionResult r, ArrayNode exceptions) {
+    if (!r.getFailedFeatureErrors().isEmpty()) {
+      int size = r.getFailedFeatureErrors().size();
+      for (int i = 0; i < size; i++) {
+        Optional<String> fid =
+            i < r.getFailedFeatureIds().size()
+                ? Optional.of(r.getFailedFeatureIds().get(i))
+                : Optional.empty();
+        Optional<Integer> idx =
+            i < r.getFailedFeatureIndexes().size()
+                ? Optional.of(r.getFailedFeatureIndexes().get(i))
+                : Optional.empty();
+        exceptions.add(renderItemException(r, fid, idx, r.getFailedFeatureErrors().get(i)));
+      }
+      return;
+    }
+    if (r.getStatus() == ActionStatus.FAILED) {
+      exceptions.add(renderException(r));
+    }
+  }
+
+  /**
+   * RFC-7807 entry for a single rejected feature within an action. {@code detail} is the
+   * feature-specific validation message; {@code featureIds} and {@code featureIndexes} are
+   * single-element arrays to keep the key shape consistent with the aggregate {@link
+   * #renderException} entry.
+   */
+  private static ObjectNode renderItemException(
+      ActionResult r, Optional<String> featureId, Optional<Integer> featureIndex, String message) {
+    String action = r.getType().toString().toLowerCase(java.util.Locale.ROOT);
+    ObjectNode ex = MAPPER.createObjectNode();
+    ex.put("type", "about:blank");
+    ex.put("title", "Action " + action + " on '" + r.getCollectionId() + "' rejected a feature");
+    ex.put("status", 422);
+    ex.put("detail", message);
+    r.getActionId().ifPresent(id -> ex.put("actionId", id));
+    ex.put("collectionId", r.getCollectionId());
+    ex.put("action", action);
+    featureId.ifPresent(
+        id -> {
+          ArrayNode ids = ex.putArray("featureIds");
+          ids.add(id);
+        });
+    featureIndex.ifPresent(
+        idx -> {
+          ArrayNode indexes = ex.putArray("featureIndexes");
+          indexes.add(idx);
+        });
+    return ex;
   }
 
   /**

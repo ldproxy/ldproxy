@@ -1,0 +1,253 @@
+{
+  "$id" : "urn:ldproxy:ogcapi:transactions:envelope",
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "allOf" : [ {
+    "properties" : {
+      "description" : {
+        "type" : "string"
+      },
+      "id" : {
+        "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
+        "type" : "string"
+      },
+      "title" : {
+        "type" : "string"
+      }
+    },
+    "type" : "object"
+  }, {
+    "properties" : {
+      "semantic" : {
+        "default" : "atomic",
+        "enum" : [ "atomic", "batch" ],
+        "type" : "string"
+      },
+      "transaction" : {
+        "items" : {
+          "oneOf" : [ {
+            "allOf" : [ {
+              "properties" : {
+                "description" : {
+                  "type" : "string"
+                },
+                "id" : {
+                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
+                  "type" : "string"
+                },
+                "title" : {
+                  "type" : "string"
+                }
+              },
+              "type" : "object"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "insert",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "items" : {
+                  "items" : {
+                    "type" : "object"
+                  },
+                  "type" : "array"
+                }
+              },
+              "required" : [ "action", "collection", "items" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "properties" : {
+                "description" : {
+                  "type" : "string"
+                },
+                "id" : {
+                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
+                  "type" : "string"
+                },
+                "title" : {
+                  "type" : "string"
+                }
+              },
+              "type" : "object"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "replace",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "oneOf" : [ {
+                    "type" : "string"
+                  }, {
+                    "type" : "object"
+                  } ]
+                },
+                "filter-crs" : {
+                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+                  "type" : "string"
+                },
+                "filter-lang" : {
+                  "default" : "cql2-json",
+                  "type" : "string"
+                },
+                "properties" : {
+                  "properties" : {
+                    "feature" : {
+                      "type" : "object"
+                    }
+                  },
+                  "type" : "object"
+                }
+              },
+              "required" : [ "action", "collection", "properties" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "properties" : {
+                "description" : {
+                  "type" : "string"
+                },
+                "id" : {
+                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
+                  "type" : "string"
+                },
+                "title" : {
+                  "type" : "string"
+                }
+              },
+              "type" : "object"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "update",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "oneOf" : [ {
+                    "type" : "string"
+                  }, {
+                    "type" : "object"
+                  } ]
+                },
+                "filter-crs" : {
+                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+                  "type" : "string"
+                },
+                "filter-lang" : {
+                  "default" : "cql2-json",
+                  "type" : "string"
+                },
+                "properties" : {
+                  "properties" : {
+                    "add" : {
+                      "items" : {
+                        "properties" : {
+                          "name" : {
+                            "type" : "string"
+                          },
+                          "value" : {
+                            "oneOf" : [ {
+                              "type" : "string"
+                            }, {
+                              "type" : "object"
+                            } ]
+                          }
+                        },
+                        "type" : "object"
+                      },
+                      "type" : "array"
+                    },
+                    "delete" : {
+                      "items" : {
+                        "type" : "string"
+                      },
+                      "type" : "array"
+                    },
+                    "modify" : {
+                      "items" : {
+                        "properties" : {
+                          "name" : {
+                            "type" : "string"
+                          },
+                          "value" : {
+                            "oneOf" : [ {
+                              "type" : "string"
+                            }, {
+                              "type" : "object"
+                            } ]
+                          }
+                        },
+                        "type" : "object"
+                      },
+                      "type" : "array"
+                    }
+                  },
+                  "type" : "object"
+                }
+              },
+              "required" : [ "action", "collection", "properties" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "properties" : {
+                "description" : {
+                  "type" : "string"
+                },
+                "id" : {
+                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
+                  "type" : "string"
+                },
+                "title" : {
+                  "type" : "string"
+                }
+              },
+              "type" : "object"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "delete",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "oneOf" : [ {
+                    "type" : "string"
+                  }, {
+                    "type" : "object"
+                  } ]
+                },
+                "filter-crs" : {
+                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+                  "type" : "string"
+                },
+                "filter-lang" : {
+                  "default" : "cql2-json",
+                  "type" : "string"
+                }
+              },
+              "required" : [ "action", "collection" ],
+              "type" : "object"
+            } ]
+          } ]
+        },
+        "type" : "array"
+      }
+    },
+    "required" : [ "transaction" ],
+    "type" : "object"
+  } ]
+}

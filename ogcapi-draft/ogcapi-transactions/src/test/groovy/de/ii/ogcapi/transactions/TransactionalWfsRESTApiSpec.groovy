@@ -73,7 +73,24 @@ import java.time.Duration
  *         <li>{@code return=representation} → 200, {@code Preference-Applied: return=representation},
  *             full per-action details
  *       </ul>
- *   <li>Delete all five to restore the prior state.
+ *   <li>Exercise {@code Prefer: handling=strict} end-to-end (phases 3e–3i):
+ *       <ul>
+ *         <li>WFS payload + strict + valid feature → 200 (per-feature validation runs without
+ *             breaking the happy path)
+ *         <li>{@code application/ogc-tx+json} envelope + strict + valid empty transaction → 200
+ *             (envelope JSON Schema accepts the body)
+ *         <li>{@code application/ogc-tx+json} envelope + strict + envelope missing the required
+ *             {@code transaction} array → 400 (envelope JSON Schema rejects the body)
+ *         <li>batch JSON insert with every item invalid → FAILED action, one entry per
+ *             rejected feature in {@code exceptions[]} carrying that feature's own validation
+ *             message in {@code detail}
+ *         <li>batch JSON insert with one valid + two invalid items → SUCCESS action with the
+ *             valid item in {@code insertResults} and one {@code exceptions[]} entry per
+ *             rejected feature (so {@code exceptions} carries the per-feature messages
+ *             regardless of whether the action overall succeeded or failed)
+ *       </ul>
+ *   <li>Delete the six inserted test features (five from phase 1 + the one from phase 3i) to
+ *       restore the prior state.
  * </ol>
  *
  * <h3>Safety</h3>
@@ -111,6 +128,8 @@ class TransactionalWfsRESTApiSpec extends Specification {
     @Shared String idPrefix = System.getenv('SUT_TX_ID_PREFIX') ?: 'TXTESTAA'
 
     @Shared List<String> testIds = (0..<5).collect { i -> String.format('%s%08d', idPrefix, i) }
+    /** Separate test id used only by the strict-mode mixed-batch JSON phase (3i). */
+    @Shared String partialOkId = String.format('%s%08d', idPrefix, 99)
     @Shared List<byte[]> fixtures = loadFixtures()
 
     // @Shared so the client is available in cleanupSpec — Spock does not guarantee instance-field
@@ -139,8 +158,13 @@ class TransactionalWfsRESTApiSpec extends Specification {
      * entirely.
      */
     HttpResponse<String> postTransactionWithPrefer(String body, List<String> preferTokens) {
+        return postTransactionWithPrefer(body, preferTokens, XML_CONTENT_TYPE)
+    }
+
+    HttpResponse<String> postTransactionWithPrefer(
+            String body, List<String> preferTokens, String contentType) {
         def builder = HttpRequest.newBuilder(URI.create(transactionsUrl()))
-                .header('Content-Type', XML_CONTENT_TYPE)
+                .header('Content-Type', contentType)
                 .header('Accept', 'application/json, application/problem+json')
         if (sutContentCrs != null && !sutContentCrs.isEmpty()) {
             builder.header('Content-Crs', sutContentCrs)
@@ -235,11 +259,48 @@ class TransactionalWfsRESTApiSpec extends Specification {
         body << "<wfs:Transaction xmlns:wfs=\"${NS_WFS}\" xmlns:fes=\"${NS_FES}\" xmlns:adv=\"${NS_ADV}\">\n"
         body << "  <wfs:Delete typeName=\"adv:${collectionElement}\" handle=\"del-all\">\n"
         body << '    <fes:Filter>\n'
-        testIds.each { id -> body << "      <fes:ResourceId rid=\"${id}\"/>\n" }
+        (testIds + [partialOkId]).each { id -> body << "      <fes:ResourceId rid=\"${id}\"/>\n" }
         body << '    </fes:Filter>\n'
         body << '  </wfs:Delete>\n'
         body << '</wfs:Transaction>'
         return body.toString()
+    }
+
+    /** Canonical (lowercase) collection id ldproxy uses on the JSON paths. */
+    String jsonCollectionId() { collectionElement.toLowerCase(java.util.Locale.ROOT) }
+
+    /**
+     * Fetches one of the inserted test features as a write-ready GeoJSON document. Uses the
+     * receivable-properties profile and the storage CRS so the body can be re-inserted without
+     * dropping readOnly fields or reprojecting.
+     */
+    String fetchReceivableFeature(String featureId) {
+        // The Content-Crs header carries the URI wrapped in angle brackets; the query parameter
+        // needs the bare URI, so strip those if present.
+        String storageCrsUri = sutContentCrs
+                .replaceFirst(/^</, '')
+                .replaceFirst(/>$/, '')
+        String url =
+                sutUrl + sutPath + '/collections/' + jsonCollectionId()
+                + '/items/' + featureId
+                + '?f=json&profile=all-as-receivable&crs=' + URLEncoder.encode(storageCrsUri, 'UTF-8')
+        def req = HttpRequest.newBuilder(URI.create(url))
+                .header('Accept', 'application/geo+json, application/json')
+                .GET()
+                .build()
+        def resp = httpClient.send(req, BodyHandlers.ofString())
+        if (resp.statusCode() != 200) {
+            throw new IllegalStateException(
+                    "GET ${url} returned ${resp.statusCode()}: ${resp.body()}")
+        }
+        return resp.body()
+    }
+
+    /** Replace the GeoJSON feature's top-level "id" with the given value. */
+    static String rewriteJsonId(String featureJson, String newId) {
+        def feature = new JsonSlurper().parseText(featureJson)
+        feature.id = newId
+        return groovy.json.JsonOutput.toJson(feature)
     }
 
     /** Best-effort delete of every generated id; tolerates partial state from a failed run. */
@@ -364,15 +425,160 @@ class TransactionalWfsRESTApiSpec extends Specification {
         doc.replaceResults[0].toString().endsWith('/items/' + testIds[4])
     }
 
-    def 'phase 4: delete all five test features to restore the prior state'() {
+    // ---- handling=strict phases --------------------------------------------------------------
+    //
+    // The three phases below exercise the Prefer: handling=strict path end-to-end:
+    //   * 3e: WFS payload + strict + valid feature — proves the strict wiring does not break the
+    //     happy path. Per-feature GML validation runs via FeaturesFormatGml.validate; if the
+    //     dataset has no GmlConfiguration.schemaLocations configured, that validator logs a WARN
+    //     and silently skips, so this phase still passes.
+    //   * 3f and 3g: switch the content type to application/ogc-tx+json and exercise the JSON
+    //     envelope JSON Schema check. These don't require a GeoJSON-capable collection because
+    //     the envelope step runs before any per-feature decoding or DB access.
+
+    def 'phase 3e: Prefer: handling=strict + valid wfs:Replace passes per-feature validation'() {
         when:
+        def r = postTransactionWithPrefer(buildReplace(0), ['handling=strict'])
+
+        then:
+        r.statusCode() == 200
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.summary.totalReplaced == 1
+        doc.replaceResults instanceof List
+        doc.replaceResults.size() == 1
+        doc.replaceResults[0].toString().endsWith('/items/' + testIds[0])
+    }
+
+    def 'phase 3f: Prefer: handling=strict + valid empty ogc-tx+json envelope is accepted'() {
+        when:
+        def r = postTransactionWithPrefer(
+                '{"semantic": "atomic", "transaction": []}',
+                ['handling=strict'],
+                'application/ogc-tx+json')
+
+        then:
+        r.statusCode() == 200
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.semantic == 'atomic'
+        doc.summary.totalInserted == 0
+        doc.summary.totalReplaced == 0
+        doc.summary.totalUpdated == 0
+        doc.summary.totalDeleted == 0
+    }
+
+    def 'phase 3g: Prefer: handling=strict rejects an ogc-tx+json envelope missing the transaction array'() {
+        when:
+        def r = postTransactionWithPrefer(
+                '{"semantic": "atomic"}',
+                ['handling=strict'],
+                'application/ogc-tx+json')
+
+        then:
+        r.statusCode() == 400
+        // The endpoint maps IllegalArgumentException from validateEnvelope to a BadRequestException
+        // whose message is "Transaction envelope is invalid: …". Body shape is the API's default
+        // 400 representation — assert on the substring rather than a particular JSON layout.
+        r.body().toLowerCase().contains('envelope')
+    }
+
+    def 'phase 3h: handling=strict + batch JSON insert where every item is invalid → FAILED action, one exception per item'() {
+        given:
+        // Two clearly-invalid GeoJSON items: one with a non-Feature type, one with no type at all.
+        // Both should fail FeaturesFormatGeoJson.validate against the collection's receivables
+        // schema, so the executor returns a FAILED insert action with per-item error messages
+        // surfaced as separate entries in exceptions[] — one per rejected feature.
+        String body = """
+            {
+              "semantic": "batch",
+              "transaction": [{
+                "action": "insert",
+                "collection": "${jsonCollectionId()}",
+                "items": [
+                  {"type": "NotAFeature"},
+                  {"foo": "bar"}
+                ]
+              }]
+            }
+        """
+
+        when:
+        def r = postTransactionWithPrefer(body, ['handling=strict'], 'application/ogc-tx+json')
+
+        then:
+        r.statusCode() == 200
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.semantic == 'batch'
+        doc.summary.totalInserted == 0
+        doc.exceptions instanceof List
+        // One exception entry per rejected feature, carrying that feature's own validation
+        // message in detail. Items are reported in input order.
+        doc.exceptions.size() == 2
+        doc.exceptions.every { it.action == 'insert' && it.status == 422 }
+        doc.exceptions[0].featureIndexes == [1]
+        doc.exceptions[1].featureIndexes == [2]
+        // Each entry carries its own non-empty detail message (the format validator's
+        // per-feature error). We don't pin the exact text — just confirm it's populated and
+        // non-trivial.
+        doc.exceptions.every { it.detail instanceof String && !((String) it.detail).isEmpty() }
+    }
+
+    def 'phase 3i: handling=strict + batch JSON insert with one valid + two invalid items → SUCCESS plus per-item exceptions for the rejected ones'() {
+        given:
+        // Build a known-good GeoJSON insert payload by fetching one of the test features in
+        // receivable-properties form and rewriting its id to a fresh value so the insert does not
+        // collide with the existing testIds[*]. The fresh id is included in deleteAllQuietly().
+        String validFeature = rewriteJsonId(fetchReceivableFeature(testIds[0]), partialOkId)
+        String body = """
+            {
+              "semantic": "batch",
+              "transaction": [{
+                "action": "insert",
+                "collection": "${jsonCollectionId()}",
+                "items": [
+                  ${validFeature},
+                  {"type": "NotAFeature"},
+                  {"foo": "bar"}
+                ]
+              }]
+            }
+        """
+
+        when:
+        def r = postTransactionWithPrefer(body, ['handling=strict'], 'application/ogc-tx+json')
+
+        then:
+        r.statusCode() == 200
+        def doc = new JsonSlurper().parseText(r.body())
+        doc.semantic == 'batch'
+        doc.summary.totalInserted == 1
+        // The action is SUCCESS — at least one item wrote — and the valid item appears in
+        // insertResults.
+        doc.insertResults instanceof List
+        doc.insertResults.size() == 1
+        doc.insertResults[0].toString().endsWith('/items/' + partialOkId)
+        // The two rejected items appear in exceptions[], one entry per rejected feature with its
+        // own detail message. The first input item (the valid one) is not in exceptions.
+        doc.exceptions instanceof List
+        doc.exceptions.size() == 2
+        doc.exceptions.every { it.action == 'insert' && it.status == 422 }
+        doc.exceptions[0].featureIndexes == [2]
+        doc.exceptions[1].featureIndexes == [3]
+        doc.exceptions.every { it.detail instanceof String && !((String) it.detail).isEmpty() }
+    }
+
+    def 'phase 4: delete all six inserted test features to restore the prior state'() {
+        when:
+        // The filter covers testIds[0..4] (inserted in phase 1) plus partialOkId (inserted by the
+        // strict-mode mixed-batch phase 3i). Cleanup is idempotent — non-existent ids are
+        // tolerated by ldproxy's delete-by-filter, but with the full Stepwise sequence all six
+        // should be present.
         def r = postTransaction(buildDeleteAll())
 
         then:
         r.statusCode() == 200
         def doc = new JsonSlurper().parseText(r.body())
-        doc.summary.totalDeleted == 5
+        doc.summary.totalDeleted == 6
         doc.deleteResults instanceof List
-        doc.deleteResults.size() == 5
+        doc.deleteResults.size() == 6
     }
 }

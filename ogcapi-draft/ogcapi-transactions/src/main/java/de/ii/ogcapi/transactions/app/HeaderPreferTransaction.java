@@ -31,7 +31,12 @@ public class HeaderPreferTransaction extends HeaderPrefer {
       new StringSchema()
           ._enum(
               ImmutableList.of(
-                  "respond-async", "return=minimal", "return=none", "return=representation"))
+                  "respond-async",
+                  "return=minimal",
+                  "return=none",
+                  "return=representation",
+                  "handling=strict",
+                  "handling=lenient"))
           ._default("return=representation");
 
   @Inject
@@ -51,7 +56,11 @@ public class HeaderPreferTransaction extends HeaderPrefer {
         + "with per-action results. 'return=minimal' returns the Transaction Response without the "
         + "per-action details. 'return=none' returns 204 No Content on success (a Transaction "
         + "Response is still returned when the transaction failed, so that exceptions can be "
-        + "reported). 'respond-async' is not supported and results in 501 Not Implemented.";
+        + "reported). 'handling=strict' validates the transaction envelope and each feature "
+        + "payload against its schema before any provider write; the transaction is rejected with "
+        + "400 Bad Request if validation fails. 'handling=lenient' (the default) skips up-front "
+        + "validation and only fails on errors raised by the provider. 'respond-async' is not "
+        + "supported and results in 501 Not Implemented.";
   }
 
   @Override

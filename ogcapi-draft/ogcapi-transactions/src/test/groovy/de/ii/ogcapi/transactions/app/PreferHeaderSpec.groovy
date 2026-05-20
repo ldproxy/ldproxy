@@ -18,6 +18,8 @@ import spock.lang.Unroll
  *   <li>whether a client asked for {@code respond-async} (currently answered with 501)
  *   <li>which {@code return=…} value (none / minimal / representation) shapes the response body
  *       and the echoed {@code Preference-Applied} header
+ *   <li>which {@code handling=…} value (strict / lenient) decides whether the transaction
+ *       envelope and feature payloads are schema-validated before any provider write
  * </ul>
  *
  * The contract under test:
@@ -120,5 +122,73 @@ class PreferHeaderSpec extends Specification {
         expect:
         !PreferHeader.containsPreferToken(["respond-async-xyz"], "respond-async")
         !PreferHeader.containsPreferToken(["return=respond-async"], "respond-async")
+    }
+
+    def "parseHandling returns the fallback when the header list is null or empty"() {
+        expect:
+        PreferHeader.parseHandling(null, PreferHeader.PreferHandling.LENIENT) ==
+                PreferHeader.PreferHandling.LENIENT
+        PreferHeader.parseHandling([], PreferHeader.PreferHandling.LENIENT) ==
+                PreferHeader.PreferHandling.LENIENT
+    }
+
+    @Unroll
+    def "parseHandling parses '#header' as #expected"() {
+        expect:
+        PreferHeader.parseHandling([header], PreferHeader.PreferHandling.LENIENT) == expected
+
+        where:
+        header                || expected
+        "handling=strict"     || PreferHeader.PreferHandling.STRICT
+        "handling=lenient"    || PreferHeader.PreferHandling.LENIENT
+        "Handling=Strict"     || PreferHeader.PreferHandling.STRICT
+        "HANDLING=LENIENT"    || PreferHeader.PreferHandling.LENIENT
+        " handling = strict " || PreferHeader.PreferHandling.STRICT
+    }
+
+    def "parseHandling picks the handling token out of a multi-value header"() {
+        expect:
+        PreferHeader.parseHandling(
+                ["respond-async, return=minimal, handling=strict"],
+                PreferHeader.PreferHandling.LENIENT) == PreferHeader.PreferHandling.STRICT
+    }
+
+    def "parseHandling honours repeated Prefer headers"() {
+        expect:
+        PreferHeader.parseHandling(
+                ["return=minimal", "handling=strict"],
+                PreferHeader.PreferHandling.LENIENT) == PreferHeader.PreferHandling.STRICT
+    }
+
+    def "parseHandling falls back when the handling value is unknown or malformed"() {
+        expect:
+        PreferHeader.parseHandling([header], PreferHeader.PreferHandling.LENIENT) ==
+                PreferHeader.PreferHandling.LENIENT
+
+        where:
+        header << [
+                "handling=loose",         // unknown enum value
+                "handling=",              // empty value
+                "handling",               // no '=' at all
+                "return=minimal",         // unrelated token
+                "respond-async",          // unrelated token
+                "",                       // empty string
+                "  "                      // whitespace only
+        ]
+    }
+
+    def "parseHandling returns the first recognised handling token when several are present"() {
+        expect:
+        PreferHeader.parseHandling(
+                ["handling=strict, handling=lenient"],
+                PreferHeader.PreferHandling.LENIENT) == PreferHeader.PreferHandling.STRICT
+    }
+
+    def "parseHandling rejects parameterised tokens whose name only prefix-matches 'handling'"() {
+        // 'handlingmode=strict' must not be parsed as 'handling=strict'
+        expect:
+        PreferHeader.parseHandling(
+                ["handlingmode=strict"],
+                PreferHeader.PreferHandling.LENIENT) == PreferHeader.PreferHandling.LENIENT
     }
 }

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.transactions.app
 
+import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.ogcapi.transactions.domain.TxActionType
 import de.ii.ogcapi.transactions.domain.TxDelete
 import de.ii.ogcapi.transactions.domain.TxInsert
@@ -38,7 +39,7 @@ class JsonTransactionParserSpec extends Specification {
     JsonTransactionParser parser
 
     def setupSpec() {
-        parser = new JsonTransactionParser(new CqlImpl())
+        parser = new JsonTransactionParser(new CqlImpl(), new SchemaValidatorImpl())
     }
 
     private static InputStream bytes(String s) {
@@ -350,5 +351,93 @@ class JsonTransactionParserSpec extends Specification {
 
         cleanup:
         tx.close()
+    }
+
+    // --- validateEnvelope (Prefer: handling=strict) --------------------------
+
+    private static byte[] utf8(String s) {
+        return s.getBytes('UTF-8')
+    }
+
+    def 'bundled envelope schema resource loads and parses as JSON'() {
+        // Smoke check that the runtime resource exists, is valid JSON, and declares the JSON
+        // Schema draft. The behavioural assertions further down exercise the schema content.
+        given:
+        def stream = JsonTransactionParser.classLoader.getResourceAsStream(
+                'de/ii/ogcapi/transactions/transaction-envelope.json')
+
+        expect:
+        stream != null
+        def root = new groovy.json.JsonSlurper().parse(stream)
+        root.'$schema' == 'https://json-schema.org/draft/2020-12/schema'
+        root.allOf instanceof List
+        !root.allOf.isEmpty()
+    }
+
+    def 'validateEnvelope accepts a well-formed transaction body'() {
+        given:
+        def body = '''{
+            "semantic": "batch",
+            "transaction": [
+              {"action": "delete", "collection": "c"},
+              {"action": "insert", "collection": "c", "items": [{"type": "Feature", "properties": {}}]}
+            ]
+        }'''
+
+        when:
+        parser.validateEnvelope(utf8(body), JSON)
+
+        then:
+        noExceptionThrown()
+    }
+
+    def 'validateEnvelope rejects a body that is not a JSON object'() {
+        when:
+        parser.validateEnvelope(utf8('[]'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'validateEnvelope rejects a body missing the required transaction array'() {
+        when:
+        parser.validateEnvelope(utf8('{"semantic": "atomic"}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'validateEnvelope rejects an unknown semantic enum value'() {
+        when:
+        parser.validateEnvelope(utf8('{"semantic": "eventually", "transaction": []}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'validateEnvelope rejects an action whose action discriminator is unknown'() {
+        when:
+        parser.validateEnvelope(
+                utf8('{"transaction": [{"action": "annihilate", "collection": "c"}]}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'validateEnvelope rejects an insert action without items'() {
+        when:
+        parser.validateEnvelope(
+                utf8('{"transaction": [{"action": "insert", "collection": "c"}]}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'validateEnvelope rejects malformed JSON'() {
+        when:
+        parser.validateEnvelope(utf8('{not json'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
     }
 }

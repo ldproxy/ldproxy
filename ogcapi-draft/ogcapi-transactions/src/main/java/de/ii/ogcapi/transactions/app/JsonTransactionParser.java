@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.transactions.domain.ImmutableNameValue;
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete;
 import de.ii.ogcapi.transactions.domain.ImmutableTxReplace;
@@ -37,6 +38,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -66,12 +68,31 @@ public class JsonTransactionParser implements TransactionParser {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String DEFAULT_FILTER_LANG_JSON = "cql2-json";
   private static final String FILTER_LANG_CQL2_TEXT = "cql2-text";
+  private static final String ENVELOPE_SCHEMA_RESOURCE =
+      "/de/ii/ogcapi/transactions/transaction-envelope.json";
 
   private final Cql cql;
+  private final SchemaValidator schemaValidator;
+  private final String envelopeSchema;
 
   @Inject
-  public JsonTransactionParser(Cql cql) {
+  public JsonTransactionParser(Cql cql, SchemaValidator schemaValidator) {
     this.cql = cql;
+    this.schemaValidator = schemaValidator;
+    this.envelopeSchema = loadEnvelopeSchema();
+  }
+
+  private static String loadEnvelopeSchema() {
+    try (InputStream in =
+        JsonTransactionParser.class.getResourceAsStream(ENVELOPE_SCHEMA_RESOURCE)) {
+      if (in == null) {
+        throw new IllegalStateException(
+            "Bundled envelope schema resource not found: " + ENVELOPE_SCHEMA_RESOURCE);
+      }
+      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not load bundled envelope schema", e);
+    }
   }
 
   @Override
@@ -82,6 +103,20 @@ public class JsonTransactionParser implements TransactionParser {
     return MEDIA_TYPE_OGC_TX_JSON.equalsIgnoreCase(
             mediaType.getType() + "/" + mediaType.getSubtype())
         || MediaType.APPLICATION_JSON_TYPE.isCompatible(mediaType);
+  }
+
+  @Override
+  public void validateEnvelope(byte[] body, MediaType mediaType) {
+    String json = new String(body, StandardCharsets.UTF_8);
+    Optional<String> error;
+    try {
+      error = schemaValidator.validate(envelopeSchema, json);
+    } catch (IOException e) {
+      throw new IllegalArgumentException(e.getMessage(), e);
+    }
+    if (error.isPresent()) {
+      throw new IllegalArgumentException(error.get());
+    }
   }
 
   @Override

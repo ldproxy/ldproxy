@@ -57,4 +57,17 @@ public interface ActionResult {
   default List<Integer> getFailedFeatureIndexes() {
     return List.of();
   }
+
+  /**
+   * Per-feature error messages, parallel to {@link #getFailedFeatureIndexes()} (and to {@link
+   * #getFailedFeatureIds()} when ids are known). Populated for fine-grained failures such as
+   * per-item schema validation under {@code Prefer: handling=strict}, where each rejected feature
+   * has its own diagnostic message. Empty when the action carries only an aggregate error (e.g. a
+   * batch commit that failed without identifying a specific item) — in that case consult {@link
+   * #getError()} instead.
+   */
+  @Value.Default
+  default List<String> getFailedFeatureErrors() {
+    return List.of();
+  }
 }

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -19,12 +20,15 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
+import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
+import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.transactions.domain.ActionResult;
 import de.ii.ogcapi.transactions.domain.ActionStatus;
 import de.ii.ogcapi.transactions.domain.ExecutionResult;
@@ -62,6 +66,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -112,18 +117,26 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   @Override
   public ExecutionResult execute(
-      Transaction transaction, OgcApi api, ApiRequestContext requestContext, EpsgCrs requestCrs) {
+      Transaction transaction,
+      OgcApi api,
+      ApiRequestContext requestContext,
+      EpsgCrs requestCrs,
+      boolean validate) {
     try (transaction) {
       return transaction.getSemantic() == TxSemantic.ATOMIC
-          ? executeAtomic(transaction, api, requestContext, requestCrs)
-          : executeBatch(transaction, api, requestContext, requestCrs);
+          ? executeAtomic(transaction, api, requestContext, requestCrs, validate)
+          : executeBatch(transaction, api, requestContext, requestCrs, validate);
     }
   }
 
   // --- atomic ---------------------------------------------------------------
 
   private ExecutionResult executeAtomic(
-      Transaction transaction, OgcApi api, ApiRequestContext ctx, EpsgCrs requestCrs) {
+      Transaction transaction,
+      OgcApi api,
+      ApiRequestContext ctx,
+      EpsgCrs requestCrs,
+      boolean validate) {
     Map<String, Session> sessionsByProvider = new LinkedHashMap<>();
     List<ActionResult> results = new ArrayList<>();
     // Ids touched by earlier successful actions in this atomic transaction, keyed by canonical
@@ -149,7 +162,16 @@ public class TransactionExecutorImpl implements TransactionExecutor {
             sessionsByProvider.computeIfAbsent(
                 provider.getId(), id -> openSession(provider, action.getCollectionId()));
         results.add(
-            runAction(action, provider, session, api, ctx, requestCrs, touchedIdsByCollection));
+            runAction(
+                action,
+                provider,
+                session,
+                api,
+                ctx,
+                requestCrs,
+                touchedIdsByCollection,
+                validate,
+                false));
         ActionResult lastResult = last(results);
         if (lastResult.getStatus() == ActionStatus.FAILED) {
           firstError =
@@ -190,7 +212,11 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   // --- batch ----------------------------------------------------------------
 
   private ExecutionResult executeBatch(
-      Transaction transaction, OgcApi api, ApiRequestContext ctx, EpsgCrs requestCrs) {
+      Transaction transaction,
+      OgcApi api,
+      ApiRequestContext ctx,
+      EpsgCrs requestCrs,
+      boolean validate) {
     List<ActionResult> results = new ArrayList<>();
 
     Iterator<TxAction> actions = transaction.actions();
@@ -202,7 +228,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         session = openSession(provider, action.getCollectionId());
         // Batch semantics commit between actions, so each action sees a fresh committed
         // snapshot — no need to track touched ids across actions.
-        ActionResult r = runAction(action, provider, session, api, ctx, requestCrs, Map.of());
+        ActionResult r =
+            runAction(action, provider, session, api, ctx, requestCrs, Map.of(), validate, true);
         if (r.getStatus() == ActionStatus.SUCCESS) {
           session.commit();
         } else {
@@ -244,13 +271,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      Map<String, Set<String>> touchedIdsByCollection) {
+      Map<String, Set<String>> touchedIdsByCollection,
+      boolean validate,
+      boolean skipInvalid) {
     try {
       switch (action.getType()) {
         case INSERT:
-          return runInsert((TxInsert) action, session, api, ctx, requestCrs);
+          return runInsert((TxInsert) action, session, api, ctx, requestCrs, validate, skipInvalid);
         case REPLACE:
-          return runReplace((TxReplace) action, session, api, ctx, requestCrs);
+          return runReplace((TxReplace) action, session, api, ctx, requestCrs, validate);
         case UPDATE:
           return runUpdate(
               (TxUpdate) action, provider, session, api, ctx, requestCrs, touchedIdsByCollection);
@@ -265,12 +294,27 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private ActionResult runInsert(
-      TxInsert action, Session session, OgcApi api, ApiRequestContext ctx, EpsgCrs requestCrs) {
+      TxInsert action,
+      Session session,
+      OgcApi api,
+      ApiRequestContext ctx,
+      EpsgCrs requestCrs,
+      boolean validate,
+      boolean skipInvalid) {
     EpsgCrs crs = requestCrs;
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     List<String> ids = new ArrayList<>();
+    List<String> skippedIds = new ArrayList<>();
+    List<Integer> skippedIndexes = new ArrayList<>();
+    List<String> skippedErrors = new ArrayList<>();
+
+    FeatureFormatExtension format = validate ? resolveFormat(action.getMediaType()) : null;
+    ValidatorContext vctx =
+        validate
+            ? buildValidatorContext(apiData, action.getCollectionId(), action.getMediaType(), ctx)
+            : null;
 
     List<FeatureTokenSource> batch = new ArrayList<>(INSERT_BATCH_SIZE);
     List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
@@ -278,9 +322,25 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     while (items.hasNext()) {
       InsertItem item = items.next();
       try (InputStream payload = item.payload()) {
+        byte[] bytes = validate ? payload.readAllBytes() : null;
+        if (validate) {
+          try {
+            format.validate(new String(bytes, StandardCharsets.UTF_8), vctx);
+          } catch (IllegalArgumentException ve) {
+            if (!skipInvalid) {
+              throw ve;
+            }
+            item.featureId().ifPresent(skippedIds::add);
+            skippedIndexes.add(item.indexInInsert());
+            skippedErrors.add(
+                ve.getMessage() != null ? ve.getMessage() : ve.getClass().getSimpleName());
+            continue;
+          }
+        }
+        InputStream decodeStream = validate ? new ByteArrayInputStream(bytes) : payload;
         FeatureTokenSource source =
             decodeFeature(
-                action.getMediaType(), payload, apiData, action.getCollectionId(), crs, axes);
+                action.getMediaType(), decodeStream, apiData, action.getCollectionId(), crs, axes);
         batch.add(source);
         batchItems.add(item);
       } catch (java.io.IOException e) {
@@ -298,12 +358,30 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       if (failed != null) return failed;
     }
 
+    // When validate-and-skip is on and every item was invalid, nothing was written — report FAILED
+    // so the batch executor rolls back the (empty) session and the response reflects the failure.
+    if (ids.isEmpty() && !skippedIndexes.isEmpty()) {
+      return new ImmutableActionResult.Builder()
+          .type(TxActionType.INSERT)
+          .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
+          .actionId(action.getActionId())
+          .status(ActionStatus.FAILED)
+          .error("All items failed schema validation under Prefer: handling=strict")
+          .failedFeatureIds(skippedIds)
+          .failedFeatureIndexes(skippedIndexes)
+          .failedFeatureErrors(skippedErrors)
+          .build();
+    }
+
     return new ImmutableActionResult.Builder()
         .type(TxActionType.INSERT)
         .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(ids)
+        .failedFeatureIds(skippedIds)
+        .failedFeatureIndexes(skippedIndexes)
+        .failedFeatureErrors(skippedErrors)
         .build();
   }
 
@@ -355,7 +433,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private ActionResult runReplace(
-      TxReplace action, Session session, OgcApi api, ApiRequestContext ctx, EpsgCrs requestCrs) {
+      TxReplace action,
+      Session session,
+      OgcApi api,
+      ApiRequestContext ctx,
+      EpsgCrs requestCrs,
+      boolean validate) {
     EpsgCrs crs = requestCrs;
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
@@ -386,6 +469,13 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + "'.");
     }
     String id = targetIds.get(0);
+
+    if (validate) {
+      FeatureFormatExtension format = resolveFormat(action.getMediaType());
+      ValidatorContext vctx =
+          buildValidatorContext(apiData, action.getCollectionId(), action.getMediaType(), ctx);
+      format.validate(new String(action.getFeature(), StandardCharsets.UTF_8), vctx);
+    }
 
     FeatureTokenSource source =
         decodeFeature(
@@ -816,6 +906,47 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     return provider.mutations().get().openSession();
   }
 
+  private FeatureFormatExtension resolveFormat(MediaType contentType) {
+    return extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+        .filter(FeatureFormatExtension::canSupportTransactions)
+        .filter(f -> f.getMediaType().type().isCompatible(contentType))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No transaction-capable feature format for media type " + contentType));
+  }
+
+  private ValidatorContext buildValidatorContext(
+      OgcApiDataV2 apiData,
+      String collectionId,
+      MediaType mediaType,
+      ApiRequestContext requestContext) {
+    return new ImmutableValidatorContext.Builder()
+        .apiData(apiData)
+        .collectionId(collectionId)
+        .mediaType(mediaType)
+        .type(ValidatorContext.Type.RECEIVABLES)
+        .requestContext(requestContext)
+        .declaredProfiles(List.of())
+        .defaultProfiles(resolveDefaultProfilesSchema(apiData, collectionId))
+        .build();
+  }
+
+  private List<Profile> resolveDefaultProfilesSchema(OgcApiDataV2 apiData, String collectionId) {
+    Map<String, String> defaults =
+        apiData
+            .getExtension(SchemaConfiguration.class, collectionId)
+            .map(SchemaConfiguration::getDefaultProfiles)
+            .orElse(Map.of());
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(
+            p ->
+                defaults.containsKey(p.getProfileSet())
+                    && p.getId().equals(defaults.get(p.getProfileSet())))
+        .toList();
+  }
+
   private FeatureTokenSource decodeFeature(
       MediaType contentType,
       InputStream body,
@@ -823,15 +954,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       String collectionId,
       EpsgCrs crs,
       Axes axes) {
-    FeatureFormatExtension format =
-        extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
-            .filter(FeatureFormatExtension::canSupportTransactions)
-            .filter(f -> f.getMediaType().type().isCompatible(contentType))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "No transaction-capable feature format for media type " + contentType));
+    FeatureFormatExtension format = resolveFormat(contentType);
     de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
         resolveCollection(apiData, collectionId);
     FeatureSchema featureSchema =

@@ -12,7 +12,6 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 
 /** Executes a parsed {@link Transaction} against the feature providers backing the API. */
-@FunctionalInterface
 public interface TransactionExecutor {
 
   /**
@@ -21,8 +20,18 @@ public interface TransactionExecutor {
    * @param api target API
    * @param requestContext request context (used for collection/provider lookups)
    * @param requestCrs CRS to assume for feature payloads when not otherwise specified
+   * @param validate when {@code true}, each insert / replace payload is validated against its
+   *     target feature type's schema (via {@code FeatureFormatExtension.validate}) before any
+   *     provider write. Set by the endpoint when the client sends {@code Prefer: handling=strict}.
+   *     Per-feature failures inside an atomic transaction abort the transaction; failures inside a
+   *     batch transaction skip the offending item and surface it through {@link
+   *     ActionResult#getFailedFeatureIds()} / {@link ActionResult#getFailedFeatureIndexes()}.
    * @return summary of what happened, in request order
    */
   ExecutionResult execute(
-      Transaction transaction, OgcApi api, ApiRequestContext requestContext, EpsgCrs requestCrs);
+      Transaction transaction,
+      OgcApi api,
+      ApiRequestContext requestContext,
+      EpsgCrs requestCrs,
+      boolean validate);
 }
