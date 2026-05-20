@@ -31,6 +31,8 @@ import java.util.Optional;
  * - `DIAMETER2D(Geometry): Double` returns the diameter of a geometry with 2D coordinates.
  * - `DIAMETER3D(Geometry): Double` returns the diameter of a geometry with 3D coordinates.
  *     </code>
+ *     <p>The configuration of custom CQL2 functions is documented in [Feature
+ *     Providers](../../providers/feature/#custom-cql2-functions).
  * @scopeDe Dieser Baustein bietet Abfrageparameter zum Filtern von Features mit CQL2 (in Text- oder
  *     JSON-Kodierung).
  *     <p>Zusätzlich zu den in CQL2 spezifizierten Standardfunktionen werden auch die folgenden
@@ -41,6 +43,8 @@ import java.util.Optional;
  * - `DIAMETER2D(Geometry): Double` gibt den Durchmesser einer Geometrie mit 2D-Koordinaten zurück.
  * - `DIAMETER3D(Geometry): Double` gibt den Durchmesser einer Geometrie mit 3D-Koordinaten zurück.
  *     </code>
+ *     <p>Die Konfiguration benutzerdefinierter CQL2-Funktionen ist unter [Feature
+ *     Providern](../../providers/feature/#benutzerdefinierte-cql2-funktionen) dokumentiert.
  * @conformanceEn This building block implements requirements of the conformance classes *Filter*
  *     and *Features Filter* from the standard [OGC API - Features - Part 3:
  *     Filtering](https://docs.ogc.org/is/19-079r2/19-079r2.html) as well as the conformance classes
