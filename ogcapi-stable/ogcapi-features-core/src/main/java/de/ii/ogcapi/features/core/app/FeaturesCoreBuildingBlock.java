@@ -34,6 +34,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsTransformationException;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
@@ -45,6 +46,8 @@ import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
 import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.FeatureTypeExtent;
+import de.ii.xtraplatform.features.domain.SpatialExtent;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
@@ -59,6 +62,8 @@ import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -467,7 +472,8 @@ public class FeaturesCoreBuildingBlock
 
               FeatureSchema schema = providerData.getTypes().get(featureType);
               return schema != null
-                  ? toFoundationCollectionExtent(schema.getExtent())
+                  ? toFoundationCollectionExtent(
+                      schema.getExtent(), providerData.getNativeCrs().orElse(OgcCrs.CRS84))
                   : Optional.empty();
             });
   }
@@ -475,17 +481,20 @@ public class FeaturesCoreBuildingBlock
   private Optional<CollectionExtent> getConfiguredProviderGlobalExtent(
       OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
     return getProviderData(apiData, collectionData)
-        .flatMap(providerData -> toFoundationCollectionExtent(providerData.getExtent()));
+        .flatMap(
+            providerData ->
+                toFoundationCollectionExtent(
+                    providerData.getExtent(), providerData.getNativeCrs().orElse(OgcCrs.CRS84)));
   }
 
   private Optional<CollectionExtent> toFoundationCollectionExtent(
-      Optional<de.ii.xtraplatform.features.domain.CollectionExtent> extent) {
+      Optional<FeatureTypeExtent> extent, EpsgCrs nativeCrs) {
     Optional<BoundingBox> spatial =
-        extent.flatMap(de.ii.xtraplatform.features.domain.CollectionExtent::getSpatial);
-    Optional<TemporalExtent> temporal =
         extent
-            .flatMap(de.ii.xtraplatform.features.domain.CollectionExtent::getTemporal)
-            .map(this::toFoundationTemporalExtent);
+            .flatMap(FeatureTypeExtent::getSpatial)
+            .flatMap(value -> toBoundingBox(value, nativeCrs));
+    Optional<TemporalExtent> temporal =
+        extent.flatMap(FeatureTypeExtent::getTemporal).map(this::toFoundationTemporalExtent);
 
     if (spatial.isEmpty() && temporal.isEmpty()) {
       return Optional.empty();
@@ -495,9 +504,38 @@ public class FeaturesCoreBuildingBlock
         new ImmutableCollectionExtent.Builder().spatial(spatial).temporal(temporal).build());
   }
 
+  private Optional<BoundingBox> toBoundingBox(SpatialExtent extent, EpsgCrs nativeCrs) {
+    if (extent.getZmin() != null && extent.getZmax() != null) {
+      return Optional.of(
+          BoundingBox.of(
+              extent.getXmin(),
+              extent.getYmin(),
+              extent.getZmin(),
+              extent.getXmax(),
+              extent.getYmax(),
+              extent.getZmax(),
+              nativeCrs));
+    }
+
+    return Optional.of(
+        BoundingBox.of(
+            extent.getXmin(), extent.getYmin(), extent.getXmax(), extent.getYmax(), nativeCrs));
+  }
+
   private TemporalExtent toFoundationTemporalExtent(
       de.ii.xtraplatform.features.domain.TemporalExtent temporalExtent) {
-    return TemporalExtent.of(temporalExtent.getStart(), temporalExtent.getEnd());
+    Long start =
+        Optional.ofNullable(temporalExtent.getStart())
+            .map(LocalDate::parse)
+            .map(date -> date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
+            .orElse(null);
+    Long end =
+        Optional.ofNullable(temporalExtent.getEnd())
+            .map(LocalDate::parse)
+            .map(date -> date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
+            .orElse(null);
+
+    return TemporalExtent.of(start, end);
   }
 
   private Optional<FeatureProviderDataV2> getProviderData(
