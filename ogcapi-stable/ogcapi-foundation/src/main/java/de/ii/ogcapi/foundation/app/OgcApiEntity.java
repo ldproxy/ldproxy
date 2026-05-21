@@ -227,6 +227,13 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
 
   @Override
   public Optional<BoundingBox> getSpatialExtent() {
+    Optional<BoundingBox> configuredApiExtent =
+        getChangingData().get(ChangingSpatialExtent.class, "UNKNOWN").map(ChangingValue::getValue);
+
+    if (configuredApiExtent.isPresent()) {
+      return configuredApiExtent;
+    }
+
     return getChangingData().get(ChangingSpatialExtent.class).map(ChangingValue::getValue);
   }
 
@@ -278,6 +285,13 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
 
   @Override
   public Optional<TemporalExtent> getTemporalExtent() {
+    Optional<TemporalExtent> configuredApiExtent =
+        getChangingData().get(ChangingTemporalExtent.class, "UNKNOWN").map(ChangingValue::getValue);
+
+    if (configuredApiExtent.isPresent()) {
+      return configuredApiExtent;
+    }
+
     return getChangingData().get(ChangingTemporalExtent.class).map(ChangingValue::getValue);
   }
 
