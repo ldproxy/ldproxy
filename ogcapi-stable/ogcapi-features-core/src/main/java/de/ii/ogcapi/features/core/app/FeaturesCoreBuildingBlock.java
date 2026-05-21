@@ -227,6 +227,8 @@ public class FeaturesCoreBuildingBlock
             collectionId ->
                 initMetadata(api, collectionId, Instant.now().truncatedTo(ChronoUnit.SECONDS)));
 
+    initApiMetadata(api);
+
     providers
         .getFeatureProvider(apiData)
         .ifPresent(provider -> updateChangeListeners(provider.changes(), api));
@@ -268,6 +270,20 @@ public class FeaturesCoreBuildingBlock
     return ValidationResult.of();
   }
 
+  private void initApiMetadata(OgcApi api) {
+    api.getData()
+        .getExtension(FeaturesCoreConfiguration.class)
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getSpatial)
+        .ifPresent(api::setSpatialExtent);
+
+    api.getData()
+        .getExtension(FeaturesCoreConfiguration.class)
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getTemporal)
+        .ifPresent(extent -> api.setTemporalExtent("UNKNOWN", extent));
+  }
+
   @Override
   public void onShutdown(OgcApi api) {
     providers
@@ -282,38 +298,49 @@ public class FeaturesCoreBuildingBlock
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
 
-    final Optional<FeaturesCoreConfiguration> featuresCoreConfig =
+    final Optional<FeaturesCoreConfiguration> collectionFeaturesCoreConfig =
         collectionData != null
             ? collectionData.getExtension(FeaturesCoreConfiguration.class)
             : Optional.empty();
 
-    featuresCoreConfig
+    final Optional<FeaturesCoreConfiguration> apiFeaturesCoreConfig =
+        apiData.getExtension(FeaturesCoreConfiguration.class);
+
+    collectionFeaturesCoreConfig
         .flatMap(FeaturesCoreConfiguration::getExtent)
         .flatMap(CollectionExtent::getSpatial)
         .or(
             () ->
+                apiFeaturesCoreConfig
+                    .flatMap(FeaturesCoreConfiguration::getExtent)
+                    .flatMap(CollectionExtent::getSpatial))
+        .or(
+            () ->
                 getConfiguredProviderTypeExtent(apiData, collectionData)
                     .flatMap(CollectionExtent::getSpatial))
         .or(
             () ->
                 getConfiguredProviderGlobalExtent(apiData, collectionData)
                     .flatMap(CollectionExtent::getSpatial))
-        .or(() -> apiData.getDefaultExtent().flatMap(CollectionExtent::getSpatial))
         .or(() -> computeBbox(apiData, collectionId))
         .ifPresent(bbox -> api.setSpatialExtent(collectionId, bbox));
 
-    featuresCoreConfig
+    collectionFeaturesCoreConfig
         .flatMap(FeaturesCoreConfiguration::getExtent)
         .flatMap(CollectionExtent::getTemporal)
         .or(
             () ->
+                apiFeaturesCoreConfig
+                    .flatMap(FeaturesCoreConfiguration::getExtent)
+                    .flatMap(CollectionExtent::getTemporal))
+        .or(
+            () ->
                 getConfiguredProviderTypeExtent(apiData, collectionData)
                     .flatMap(CollectionExtent::getTemporal))
         .or(
             () ->
                 getConfiguredProviderGlobalExtent(apiData, collectionData)
                     .flatMap(CollectionExtent::getTemporal))
-        .or(() -> apiData.getDefaultExtent().flatMap(CollectionExtent::getTemporal))
         .or(() -> computeInterval(apiData, collectionId))
         .ifPresent(interval -> api.setTemporalExtent(collectionId, interval));
 
@@ -554,13 +581,17 @@ public class FeaturesCoreBuildingBlock
             .flatMap(FeaturesCoreConfiguration::getExtent)
             .flatMap(CollectionExtent::getSpatial)
             .isPresent()
+        || apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getSpatial)
+            .isPresent()
         || getConfiguredProviderTypeExtent(apiData, collectionData)
             .flatMap(CollectionExtent::getSpatial)
             .isPresent()
         || getConfiguredProviderGlobalExtent(apiData, collectionData)
             .flatMap(CollectionExtent::getSpatial)
-            .isPresent()
-        || apiData.getDefaultExtent().flatMap(CollectionExtent::getSpatial).isPresent();
+            .isPresent();
   }
 
   private boolean hasConfiguredTemporalExtent(
@@ -570,13 +601,17 @@ public class FeaturesCoreBuildingBlock
             .flatMap(FeaturesCoreConfiguration::getExtent)
             .flatMap(CollectionExtent::getTemporal)
             .isPresent()
+        || apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getTemporal)
+            .isPresent()
         || getConfiguredProviderTypeExtent(apiData, collectionData)
             .flatMap(CollectionExtent::getTemporal)
             .isPresent()
         || getConfiguredProviderGlobalExtent(apiData, collectionData)
             .flatMap(CollectionExtent::getTemporal)
-            .isPresent()
-        || apiData.getDefaultExtent().flatMap(CollectionExtent::getTemporal).isPresent();
+            .isPresent();
   }
 
   @Override
