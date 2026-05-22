@@ -24,6 +24,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -56,8 +57,8 @@ public abstract class OgcApiDatasetView extends OgcApiView {
         .map(
             v -> {
               ImmutableTemporalExtent.Builder builder = new ImmutableTemporalExtent.Builder();
-              if (Objects.nonNull(v[0])) builder.start(v[0].toEpochMilli());
-              if (Objects.nonNull(v[1])) builder.end(v[1].toEpochMilli());
+              if (Objects.nonNull(v[0])) builder.start(DateTimeFormatter.ISO_INSTANT.format(v[0]));
+              if (Objects.nonNull(v[1])) builder.end(DateTimeFormatter.ISO_INSTANT.format(v[1]));
               return builder.build();
             });
   }
