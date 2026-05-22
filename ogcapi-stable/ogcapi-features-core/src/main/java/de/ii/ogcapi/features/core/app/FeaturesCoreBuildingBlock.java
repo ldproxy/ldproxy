@@ -47,7 +47,6 @@ import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTypeExtent;
-import de.ii.xtraplatform.features.domain.SpatialExtent;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
@@ -518,7 +517,7 @@ public class FeaturesCoreBuildingBlock
     Optional<BoundingBox> spatial =
         extent
             .flatMap(FeatureTypeExtent::getSpatial)
-            .flatMap(value -> toBoundingBox(value, nativeCrs));
+            .flatMap(value -> value.toBoundingBox(nativeCrs));
     Optional<TemporalExtent> temporal =
         extent.flatMap(FeatureTypeExtent::getTemporal).map(this::toFoundationTemporalExtent);
 
@@ -530,33 +529,15 @@ public class FeaturesCoreBuildingBlock
         new ImmutableCollectionExtent.Builder().spatial(spatial).temporal(temporal).build());
   }
 
-  private Optional<BoundingBox> toBoundingBox(SpatialExtent extent, EpsgCrs nativeCrs) {
-    if (extent.getZmin() != null && extent.getZmax() != null) {
-      return Optional.of(
-          BoundingBox.of(
-              extent.getXmin(),
-              extent.getYmin(),
-              extent.getZmin(),
-              extent.getXmax(),
-              extent.getYmax(),
-              extent.getZmax(),
-              nativeCrs));
-    }
-
-    return Optional.of(
-        BoundingBox.of(
-            extent.getXmin(), extent.getYmin(), extent.getXmax(), extent.getYmax(), nativeCrs));
-  }
-
   private TemporalExtent toFoundationTemporalExtent(
       de.ii.xtraplatform.features.domain.TemporalExtent temporalExtent) {
-    Long start =
+    Instant start =
         Optional.ofNullable(temporalExtent.getStart())
-            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)).toEpochMilli())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)))
             .orElse(null);
-    Long end =
+    Instant end =
         Optional.ofNullable(temporalExtent.getEnd())
-            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)).toEpochMilli())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)))
             .orElse(null);
 
     return TemporalExtent.of(start, end);
