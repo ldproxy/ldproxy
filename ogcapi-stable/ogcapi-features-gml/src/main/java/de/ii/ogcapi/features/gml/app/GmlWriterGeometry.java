@@ -10,15 +10,22 @@ package de.ii.ogcapi.features.gml.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
+import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
+import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @SuppressWarnings("ConstantConditions")
 @Singleton
@@ -52,6 +59,9 @@ public class GmlWriterGeometry implements GmlWriter {
     if (context.encoding().getSrsDimension()) {
       options.add(Options.WITH_SRS_DIMENSION);
     }
+    if (context.encoding().getUseSurfaceAndCurve()) {
+      options.add(Options.USE_SURFACE_RING_CURVE);
+    }
     encoder =
         new GeometryEncoderGml(
             context.encoding().getWriter(),
@@ -59,7 +69,25 @@ public class GmlWriterGeometry implements GmlWriter {
             options.build(),
             Optional.of(context.encoding().getGmlPrefix()),
             context.encoding().getGmlIdPrefix(),
-            context.encoding().getGeometryPrecision());
+            context.encoding().getGeometryPrecision(),
+            buildSrsNameMapper(
+                context.encoding().getSrsNameStyle().orElse(GmlConfiguration.SrsNameStyle.OGC),
+                context.encoding().getSrsNameMappings()));
+  }
+
+  private static Function<EpsgCrs, String> buildSrsNameMapper(
+      GmlConfiguration.SrsNameStyle style, List<SrsNameMapping> mappings) {
+    if (style != GmlConfiguration.SrsNameStyle.TEMPLATE || mappings.isEmpty()) {
+      return EpsgCrs::toUriString;
+    }
+    Map<EpsgCrs, String> table = new HashMap<>();
+    for (SrsNameMapping m : mappings) {
+      table.put(m.getCrs(), m.getValue());
+    }
+    return crs -> {
+      String mapped = table.get(crs);
+      return mapped != null ? mapped : crs.toUriString();
+    };
   }
 
   @Override
@@ -77,14 +105,8 @@ public class GmlWriterGeometry implements GmlWriter {
     FeatureSchema schema = context.schema().orElseThrow();
 
     String elementNameProperty = schema.getName();
-    context.encoding().write("<");
-    context.encoding().write(elementNameProperty);
-    context.encoding().write(">");
-
+    context.encoding().writeStartElement(elementNameProperty);
     context.geometry().accept(encoder);
-
-    context.encoding().write("</");
-    context.encoding().write(elementNameProperty);
-    context.encoding().write(">");
+    context.encoding().writeEndElement();
   }
 }

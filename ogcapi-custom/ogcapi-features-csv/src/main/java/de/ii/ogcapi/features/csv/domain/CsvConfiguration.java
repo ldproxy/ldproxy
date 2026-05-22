@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.csv.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.features.core.domain.SfFlatConfiguration;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
@@ -123,6 +124,7 @@ public interface CsvConfiguration extends SfFlatConfiguration {
             SfFlatConfiguration.super
                 .mergeInto((ProfilesConfiguration) source)
                 .getDefaultProfiles())
+        .useAlias(SfFlatConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias())
         .build();
   }
 }
