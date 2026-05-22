@@ -62,8 +62,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -553,13 +552,11 @@ public class FeaturesCoreBuildingBlock
       de.ii.xtraplatform.features.domain.TemporalExtent temporalExtent) {
     Long start =
         Optional.ofNullable(temporalExtent.getStart())
-            .map(LocalDate::parse)
-            .map(date -> date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)).toEpochMilli())
             .orElse(null);
     Long end =
         Optional.ofNullable(temporalExtent.getEnd())
-            .map(LocalDate::parse)
-            .map(date -> date.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)).toEpochMilli())
             .orElse(null);
 
     return TemporalExtent.of(start, end);
