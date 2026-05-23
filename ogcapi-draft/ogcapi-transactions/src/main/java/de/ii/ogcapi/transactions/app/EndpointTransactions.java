@@ -233,10 +233,11 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
    *   <li>{@code "type": ["X", "null"]} → {@code "type": "X", "nullable": true}
    *   <li>{@code "type": ["X", "Y", ...]} (no {@code null}) → drop {@code type} and add an {@code
    *       oneOf} of single-type schemas
+   *   <li>{@code "const": X} → {@code "enum": [X]}
    * </ul>
    *
-   * Other 3.1-only idioms ({@code const}, {@code prefixItems}, etc.) are left alone — the
-   * deserializer tolerates them as schema extensions or extras.
+   * Other 3.1-only idioms ({@code prefixItems}, etc.) are left alone — the deserializer tolerates
+   * them as schema extensions or extras.
    */
   private static void normaliseForOpenApi30(JsonNode node) {
     if (node instanceof ObjectNode obj) {
@@ -270,6 +271,11 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
         if (nullable) {
           obj.put("nullable", true);
         }
+      }
+      JsonNode constNode = obj.remove("const");
+      if (constNode != null && !obj.has("enum")) {
+        ArrayNode enumArr = obj.withArray("enum");
+        enumArr.add(constNode);
       }
       obj.fields().forEachRemaining(e -> normaliseForOpenApi30(e.getValue()));
     } else if (node instanceof ArrayNode arr) {
