@@ -39,6 +39,7 @@ import de.ii.ogcapi.features.geojson.domain.ImmutableFeatureTransformationContex
 import de.ii.ogcapi.features.geojson.domain.ProfileGeoJson;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
+import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -77,6 +78,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * @title GeoJSON
@@ -108,6 +111,8 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   private final SchemaValidator schemaValidator;
   private final JsonSchemaCache schemaCacheReceivables;
   private final JsonSchemaCache schemaCacheReturnables;
+  private final ConcurrentMap<Integer, ConcurrentMap<String, CompiledJsonSchema>>
+      compiledSchemaCache = new ConcurrentHashMap<>();
 
   @Inject
   public FeaturesFormatGeoJson(
@@ -367,6 +372,36 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     boolean jsonFg =
         ctx.getDeclaredProfiles().stream().anyMatch(profile -> "jsonfg".equals(profile.getId()));
 
+    CompiledJsonSchema compiledSchema = getOrCompileSchema(ctx, jsonFg);
+
+    Optional<String> validationResult;
+    try {
+      validationResult = schemaValidator.validate(compiledSchema, content);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
+    }
+
+    if (validationResult.isPresent()) {
+      throw new IllegalArgumentException(
+          "Request body is invalid, feature mutation is rejected: " + validationResult.get());
+    }
+  }
+
+  private CompiledJsonSchema getOrCompileSchema(ValidatorContext ctx, boolean jsonFg) {
+    int apiHashCode = ctx.getApiData().hashCode();
+    String cacheKey = ctx.getCollectionId() + "\0" + ctx.getType() + "\0" + jsonFg;
+    ConcurrentMap<String, CompiledJsonSchema> perKey =
+        compiledSchemaCache.computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>());
+    CompiledJsonSchema cached = perKey.get(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    CompiledJsonSchema compiled = compileSchema(ctx, jsonFg);
+    perKey.put(cacheKey, compiled);
+    return compiled;
+  }
+
+  private CompiledJsonSchema compileSchema(ValidatorContext ctx, boolean jsonFg) {
     Optional<Profile> requestedProfile =
         extensionRegistry.getExtensionsForType(Profile.class).stream()
             .filter(
@@ -402,16 +437,11 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
           "Could not validate content against the JSON Schema. Reason: " + e.getMessage());
     }
 
-    Optional<String> validationResult;
     try {
-      validationResult = schemaValidator.validate(schema, content);
+      return schemaValidator.compile(schema);
     } catch (IOException e) {
-      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
-    }
-
-    if (validationResult.isPresent()) {
-      throw new IllegalArgumentException(
-          "Request body is invalid, feature mutation is rejected: " + validationResult.get());
+      throw new IllegalStateException(
+          "Could not compile JSON Schema for validation. Reason: " + e.getMessage(), e);
     }
   }
 
