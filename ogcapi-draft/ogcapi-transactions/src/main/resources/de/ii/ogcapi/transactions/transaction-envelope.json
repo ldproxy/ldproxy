@@ -1,20 +1,7 @@
 {
-  "$id" : "urn:ldproxy:ogcapi:transactions:envelope",
   "$schema" : "https://json-schema.org/draft/2020-12/schema",
   "allOf" : [ {
-    "properties" : {
-      "description" : {
-        "type" : "string"
-      },
-      "id" : {
-        "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
-        "type" : "string"
-      },
-      "title" : {
-        "type" : "string"
-      }
-    },
-    "type" : "object"
+    "$ref" : "#/$defs/action-metadata"
   }, {
     "properties" : {
       "semantic" : {
@@ -26,19 +13,7 @@
         "items" : {
           "oneOf" : [ {
             "allOf" : [ {
-              "properties" : {
-                "description" : {
-                  "type" : "string"
-                },
-                "id" : {
-                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
-                  "type" : "string"
-                },
-                "title" : {
-                  "type" : "string"
-                }
-              },
-              "type" : "object"
+              "$ref" : "#/$defs/action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -50,7 +25,7 @@
                 },
                 "items" : {
                   "items" : {
-                    "type" : "object"
+                    "$ref": "#/$defs/feature"
                   },
                   "type" : "array"
                 }
@@ -60,19 +35,7 @@
             } ]
           }, {
             "allOf" : [ {
-              "properties" : {
-                "description" : {
-                  "type" : "string"
-                },
-                "id" : {
-                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
-                  "type" : "string"
-                },
-                "title" : {
-                  "type" : "string"
-                }
-              },
-              "type" : "object"
+              "$ref" : "#/$defs/action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -83,47 +46,24 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "oneOf" : [ {
-                    "type" : "string"
-                  }, {
-                    "type" : "object"
-                  } ]
+                  "$ref": "#/$defs/cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-crs"
                 },
                 "filter-lang" : {
-                  "default" : "cql2-json",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-lang"
                 },
-                "properties" : {
-                  "properties" : {
-                    "feature" : {
-                      "type" : "object"
-                    }
-                  },
-                  "type" : "object"
+                "feature" : {
+                  "$ref": "#/$defs/feature"
                 }
               },
-              "required" : [ "action", "collection", "properties" ],
+              "required" : [ "action", "collection", "feature" ],
               "type" : "object"
             } ]
           }, {
             "allOf" : [ {
-              "properties" : {
-                "description" : {
-                  "type" : "string"
-                },
-                "id" : {
-                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
-                  "type" : "string"
-                },
-                "title" : {
-                  "type" : "string"
-                }
-              },
-              "type" : "object"
+              "$ref" : "#/$defs/action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -134,37 +74,19 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "oneOf" : [ {
-                    "type" : "string"
-                  }, {
-                    "type" : "object"
-                  } ]
+                  "$ref": "#/$defs/cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-crs"
                 },
                 "filter-lang" : {
-                  "default" : "cql2-json",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-lang"
                 },
                 "properties" : {
                   "properties" : {
                     "add" : {
                       "items" : {
-                        "properties" : {
-                          "name" : {
-                            "type" : "string"
-                          },
-                          "value" : {
-                            "oneOf" : [ {
-                              "type" : "string"
-                            }, {
-                              "type" : "object"
-                            } ]
-                          }
-                        },
-                        "type" : "object"
+                        "$ref": "#/$defs/nameValuePair"
                       },
                       "type" : "array"
                     },
@@ -176,19 +98,7 @@
                     },
                     "modify" : {
                       "items" : {
-                        "properties" : {
-                          "name" : {
-                            "type" : "string"
-                          },
-                          "value" : {
-                            "oneOf" : [ {
-                              "type" : "string"
-                            }, {
-                              "type" : "object"
-                            } ]
-                          }
-                        },
-                        "type" : "object"
+                        "$ref": "#/$defs/nameValuePair"
                       },
                       "type" : "array"
                     }
@@ -201,19 +111,7 @@
             } ]
           }, {
             "allOf" : [ {
-              "properties" : {
-                "description" : {
-                  "type" : "string"
-                },
-                "id" : {
-                  "description" : "An optional identifier for the action that may be used, for example,\nto identify the action in an exception report.",
-                  "type" : "string"
-                },
-                "title" : {
-                  "type" : "string"
-                }
-              },
-              "type" : "object"
+              "$ref" : "#/$defs/action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -224,19 +122,13 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "oneOf" : [ {
-                    "type" : "string"
-                  }, {
-                    "type" : "object"
-                  } ]
+                  "$ref": "#/$defs/cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-crs"
                 },
                 "filter-lang" : {
-                  "default" : "cql2-json",
-                  "type" : "string"
+                  "$ref": "#/$defs/filter-lang"
                 }
               },
               "required" : [ "action", "collection" ],
@@ -249,5 +141,71 @@
     },
     "required" : [ "transaction" ],
     "type" : "object"
-  } ]
+  } ],
+  "$defs" : {
+    "action-metadata" : {
+      "properties" : {
+        "description" : {
+          "type" : "string"
+        },
+        "id" : {
+          "description" : "An optional identifier for the action that may be used, for example, to identify the action in an exception report.",
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "feature": {
+      "type" : "object",
+      "properties" : {
+        "type": {
+          "const": "Feature",
+          "type": "string"
+        },
+        "id" : {
+          "type" : ["string", "integer"]
+        },
+        "properties" : {
+          "type" : ["object", "null"]
+        },
+        "geometry" : {
+          "type" : ["object", "null"]
+        }
+      },
+      "required" : [ "type", "properties", "geometry" ]
+    },
+    "filter-crs" : {
+      "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+      "type" : "string"
+    },
+    "filter-lang" : {
+      "const" : "cql2-json",
+      "default": "cql2-json",
+      "type" : "string"
+    },
+    "cql2JsonFilter": {
+      "oneOf" : [ {
+        "type" : "boolean"
+      }, {
+        "type" : "object"
+      } ]
+    },
+    "nameValuePair": {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "value" : {
+        }
+      },
+      "required" : [
+        "name",
+        "value"
+      ]
+    }
+  }
 }

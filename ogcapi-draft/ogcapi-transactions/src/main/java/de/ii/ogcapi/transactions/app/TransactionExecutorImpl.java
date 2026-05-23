@@ -275,19 +275,16 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       boolean validate,
       boolean skipInvalid) {
     try {
-      switch (action.getType()) {
-        case INSERT:
-          return runInsert((TxInsert) action, session, api, ctx, requestCrs, validate, skipInvalid);
-        case REPLACE:
-          return runReplace((TxReplace) action, session, api, ctx, requestCrs, validate);
-        case UPDATE:
-          return runUpdate(
-              (TxUpdate) action, provider, session, api, ctx, requestCrs, touchedIdsByCollection);
-        case DELETE:
-          return runDelete((TxDelete) action, session, api);
-        default:
-          throw new IllegalArgumentException("Unknown action type: " + action.getType());
-      }
+      return switch (action.getType()) {
+        case INSERT ->
+            runInsert((TxInsert) action, session, api, ctx, requestCrs, validate, skipInvalid);
+        case REPLACE -> runReplace((TxReplace) action, session, api, ctx, requestCrs, validate);
+        case UPDATE ->
+            runUpdate(
+                (TxUpdate) action, provider, session, api, ctx, requestCrs, touchedIdsByCollection);
+        case DELETE -> runDelete((TxDelete) action, session, api);
+        default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
+      };
     } catch (RuntimeException e) {
       return failed(action, e);
     }
@@ -301,8 +298,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       EpsgCrs requestCrs,
       boolean validate,
       boolean skipInvalid) {
-    EpsgCrs crs = requestCrs;
-    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
+    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     List<String> ids = new ArrayList<>();
@@ -340,7 +336,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         InputStream decodeStream = validate ? new ByteArrayInputStream(bytes) : payload;
         FeatureTokenSource source =
             decodeFeature(
-                action.getMediaType(), decodeStream, apiData, action.getCollectionId(), crs, axes);
+                action.getMediaType(),
+                decodeStream,
+                apiData,
+                action.getCollectionId(),
+                requestCrs,
+                axes);
         batch.add(source);
         batchItems.add(item);
       } catch (java.io.IOException e) {
@@ -348,13 +349,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
       if (batch.size() >= INSERT_BATCH_SIZE) {
         ActionResult failed =
-            flushInsertBatch(action, apiData, session, featureType, batch, batchItems, crs, ids);
+            flushInsertBatch(
+                action, apiData, session, featureType, batch, batchItems, requestCrs, ids);
         if (failed != null) return failed;
       }
     }
     if (!batch.isEmpty()) {
       ActionResult failed =
-          flushInsertBatch(action, apiData, session, featureType, batch, batchItems, crs, ids);
+          flushInsertBatch(
+              action, apiData, session, featureType, batch, batchItems, requestCrs, ids);
       if (failed != null) return failed;
     }
 
@@ -439,8 +442,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       boolean validate) {
-    EpsgCrs crs = requestCrs;
-    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
+    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
 
@@ -483,9 +485,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
             new ByteArrayInputStream(action.getFeature()),
             apiData,
             action.getCollectionId(),
-            crs,
+            requestCrs,
             axes);
-    MutationResult mr = session.updateFeature(featureType, id, source, crs, false);
+    MutationResult mr = session.updateFeature(featureType, id, source, requestCrs, false);
     rejectIfError(mr);
 
     return new ImmutableActionResult.Builder()

@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.transactions.app
 
-import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.ogcapi.transactions.domain.TxActionType
 import de.ii.ogcapi.transactions.domain.TxDelete
 import de.ii.ogcapi.transactions.domain.TxInsert
@@ -39,7 +38,7 @@ class JsonTransactionParserSpec extends Specification {
     JsonTransactionParser parser
 
     def setupSpec() {
-        parser = new JsonTransactionParser(new CqlImpl(), new SchemaValidatorImpl())
+        parser = new JsonTransactionParser(new CqlImpl())
     }
 
     private static InputStream bytes(String s) {
@@ -104,12 +103,20 @@ class JsonTransactionParserSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def 'delete action: filter parsed as cql2-text (string filter, default lang)'() {
+    def 'envelope rejects null semantic value'() {
+        when:
+        parser.parse(bytes('{"semantic": null, "transaction": []}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'delete action: filter parsed as cql2-json (CQL2 filter, default lang)'() {
         given:
         def body = '''{
           "transaction": [
             {"action": "delete", "collection": "buildings", "id": "a1",
-             "filter": "id = '17'"}
+             "filter": { "op": "=", "args": [ { "property": "id" }, "9" ] }}
           ]
         }'''
 
@@ -129,12 +136,12 @@ class JsonTransactionParserSpec extends Specification {
         tx.close()
     }
 
-    def 'replace action: requires properties.feature object'() {
+    def 'replace action: requires feature object'() {
         given:
         def body = '''{
           "transaction": [
             {"action": "replace", "collection": "buildings",
-             "properties": {"not_a_feature": true}}
+             "feature": {"not_a_feature": true}}
           ]
         }'''
 
@@ -154,7 +161,7 @@ class JsonTransactionParserSpec extends Specification {
         def body = '''{
           "transaction": [
             {"action": "replace", "collection": "buildings",
-             "properties": {"feature": {"type": "Feature", "id": "42", "properties": {"name": "X"}}}}
+             "feature": {"type": "Feature", "id": "42", "properties": {"name": "X"}, "geometry": null}}
           ]
         }'''
 
@@ -226,9 +233,9 @@ class JsonTransactionParserSpec extends Specification {
         def body = '''{
           "transaction": [
             {"action": "insert", "collection": "buildings", "items": [
-               {"type": "Feature", "id": "1", "properties": {"n": 1}},
-               {"type": "Feature", "id": "2", "properties": {"n": 2}},
-               {"type": "Feature", "id": "3", "properties": {"n": 3}}
+               {"type": "Feature", "id": "1", "properties": {"n": 1}, "geometry": null},
+               {"type": "Feature", "id": "2", "properties": {"n": 2}, "geometry": null},
+               {"type": "Feature", "id": "3", "properties": {"n": 3}, "geometry": null}
             ]}
           ]
         }'''
@@ -255,7 +262,7 @@ class JsonTransactionParserSpec extends Specification {
         def body = '''{
           "transaction": [
             {"action": "insert", "collection": "buildings", "items": [
-               {"type": "Feature", "id": "1", "properties": {}}
+               {"type": "Feature", "id": "1", "properties": {}, "geometry": null}
             ]}
           ]
         }'''
@@ -278,11 +285,11 @@ class JsonTransactionParserSpec extends Specification {
         def body = '''{
           "transaction": [
             {"action": "insert", "collection": "buildings", "items": [
-               {"type": "Feature", "id": "1", "properties": {}},
-               {"type": "Feature", "id": "2", "properties": {}},
-               {"type": "Feature", "id": "3", "properties": {}}
+               {"type": "Feature", "id": "1", "properties": {}, "geometry": null},
+               {"type": "Feature", "id": "2", "properties": null, "geometry": null},
+               {"type": "Feature", "id": "3", "properties": null, "geometry": null}
             ]},
-            {"action": "delete", "collection": "buildings", "filter": "id = '9'"}
+            {"action": "delete", "collection": "buildings", "filter": { "op": "=", "args": [ { "property": "id" }, "9" ] }}
           ]
         }'''
 
@@ -307,7 +314,7 @@ class JsonTransactionParserSpec extends Specification {
         given: 'streaming requires action+collection before items'
         def body = '''{
           "transaction": [
-            {"items": [{"type": "Feature", "id": "1", "properties": {}}],
+            {"items": [{"type": "Feature", "id": "1", "properties": null, "geometry": null}]},
              "action": "insert", "collection": "buildings"}
           ]
         }'''
@@ -353,89 +360,74 @@ class JsonTransactionParserSpec extends Specification {
         tx.close()
     }
 
-    // --- validateEnvelope (Prefer: handling=strict) --------------------------
-
-    private static byte[] utf8(String s) {
-        return s.getBytes('UTF-8')
-    }
-
-    def 'bundled envelope schema resource loads and parses as JSON'() {
-        // Smoke check that the runtime resource exists, is valid JSON, and declares the JSON
-        // Schema draft. The behavioural assertions further down exercise the schema content.
+    def 'action object rejects non-textual collection property'() {
         given:
-        def stream = JsonTransactionParser.classLoader.getResourceAsStream(
-                'de/ii/ogcapi/transactions/transaction-envelope.json')
+        def body = '{"transaction": [{"action": "delete", "collection": 7}]}'
 
-        expect:
-        stream != null
-        def root = new groovy.json.JsonSlurper().parse(stream)
-        root.'$schema' == 'https://json-schema.org/draft/2020-12/schema'
-        root.allOf instanceof List
-        !root.allOf.isEmpty()
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        tx.actions().next()
+
+        then:
+        thrown(IllegalArgumentException)
+
+        cleanup:
+        tx?.close()
     }
 
-    def 'validateEnvelope accepts a well-formed transaction body'() {
+    def 'action object rejects non-textual filter-lang property'() {
         given:
         def body = '''{
-            "semantic": "batch",
-            "transaction": [
-              {"action": "delete", "collection": "c"},
-              {"action": "insert", "collection": "c", "items": [{"type": "Feature", "properties": {}}]}
-            ]
+          "transaction": [
+            {"action": "delete", "collection": "buildings", "filter-lang": 2,
+             "filter": { "op": "=", "args": [ { "property": "id" }, "9" ] }}
+          ]
         }'''
 
         when:
-        parser.validateEnvelope(utf8(body), JSON)
-
-        then:
-        noExceptionThrown()
-    }
-
-    def 'validateEnvelope rejects a body that is not a JSON object'() {
-        when:
-        parser.validateEnvelope(utf8('[]'), JSON)
+        def tx = parser.parse(bytes(body), JSON)
+        tx.actions().next()
 
         then:
         thrown(IllegalArgumentException)
+
+        cleanup:
+        tx?.close()
     }
 
-    def 'validateEnvelope rejects a body missing the required transaction array'() {
+    def 'action object with unknown action discriminator is rejected while iterating'() {
+        given:
+        def body = '{"transaction": [{"action": "annihilate", "collection": "c"}]}'
+
         when:
-        parser.validateEnvelope(utf8('{"semantic": "atomic"}'), JSON)
+        def tx = parser.parse(bytes(body), JSON)
+        tx.actions().next()
 
         then:
         thrown(IllegalArgumentException)
+
+        cleanup:
+        tx?.close()
     }
 
-    def 'validateEnvelope rejects an unknown semantic enum value'() {
+    def 'insert action without items is rejected while iterating'() {
+        given:
+        def body = '{"transaction": [{"action": "insert", "collection": "c"}]}'
+
         when:
-        parser.validateEnvelope(utf8('{"semantic": "eventually", "transaction": []}'), JSON)
+        def tx = parser.parse(bytes(body), JSON)
+        tx.actions().next()
 
         then:
         thrown(IllegalArgumentException)
+
+        cleanup:
+        tx?.close()
     }
 
-    def 'validateEnvelope rejects an action whose action discriminator is unknown'() {
+    def 'malformed JSON is rejected during parse'() {
         when:
-        parser.validateEnvelope(
-                utf8('{"transaction": [{"action": "annihilate", "collection": "c"}]}'), JSON)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
-    def 'validateEnvelope rejects an insert action without items'() {
-        when:
-        parser.validateEnvelope(
-                utf8('{"transaction": [{"action": "insert", "collection": "c"}]}'), JSON)
-
-        then:
-        thrown(IllegalArgumentException)
-    }
-
-    def 'validateEnvelope rejects malformed JSON'() {
-        when:
-        parser.validateEnvelope(utf8('{not json'), JSON)
+        parser.parse(bytes('{not json'), JSON)
 
         then:
         thrown(IllegalArgumentException)

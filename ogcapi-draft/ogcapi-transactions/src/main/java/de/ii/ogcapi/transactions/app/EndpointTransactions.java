@@ -9,15 +9,14 @@ package de.ii.ogcapi.transactions.app;
 
 import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP_DATA_WRITE;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import dagger.Lazy;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
-import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -37,19 +36,14 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.transactions.domain.ActionResult;
-import de.ii.ogcapi.transactions.domain.ActionStatus;
-import de.ii.ogcapi.transactions.domain.ExecutionResult;
-import de.ii.ogcapi.transactions.domain.Transaction;
-import de.ii.ogcapi.transactions.domain.TransactionExecutor;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
-import de.ii.ogcapi.transactions.domain.TxActionType;
-import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import io.dropwizard.auth.Auth;
+import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,15 +57,17 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @title Transactions
@@ -86,27 +82,39 @@ import java.util.Set;
 @Path("/transactions")
 public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
-  private static final List<String> TAGS = ImmutableList.of("Mutate data");
-  private static final MediaType APPLICATION_JSON = MediaType.APPLICATION_JSON_TYPE;
-  private static final MediaType PROBLEM_JSON = new MediaType("application", "problem+json");
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointTransactions.class);
 
-  private static final ObjectMapper MAPPER =
-      new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+  private static final List<String> TAGS = ImmutableList.of("Mutate data");
+
+  private static final String ENVELOPE_SCHEMA_RESOURCE =
+      "/de/ii/ogcapi/transactions/transaction-envelope.json";
+  private static final String JSON_DEFS_PREFIX = "ogc-tx-";
+  private static volatile JsonEnvelopeSchema cachedJsonEnvelope;
+
+  static final class JsonEnvelopeSchema {
+    final Schema<?> top;
+    final Map<String, Schema<?>> defs;
+
+    JsonEnvelopeSchema(Schema<?> top, Map<String, Schema<?>> defs) {
+      this.top = top;
+      this.defs = defs;
+    }
+  }
 
   private final Lazy<Set<TransactionParser>> parsers;
-  private final TransactionExecutor executor;
-  private final FeaturesCoreProviders providers;
+  private final CommandHandlerTransactions commandHandler;
+  private final CrsSupport crsSupport;
 
   @Inject
   public EndpointTransactions(
       ExtensionRegistry extensionRegistry,
       Lazy<Set<TransactionParser>> parsers,
-      TransactionExecutor executor,
-      FeaturesCoreProviders providers) {
+      CommandHandlerTransactions commandHandler,
+      CrsSupport crsSupport) {
     super(extensionRegistry);
     this.parsers = parsers;
-    this.executor = executor;
-    this.providers = providers;
+    this.commandHandler = commandHandler;
+    this.crsSupport = crsSupport;
   }
 
   @Override
@@ -140,8 +148,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
         apiData
             .getExtension(TransactionsConfiguration.class)
             .map(TransactionsConfiguration::getWfsTransaction)
-            .orElse(Boolean.FALSE)
-            .booleanValue();
+            .orElse(Boolean.FALSE);
     if (wfsEnabled) {
       MediaType xml = MediaType.APPLICATION_XML_TYPE;
       content.put(xml, transactionContent(xml, "xml", "XML", "wfs-transaction-xml"));
@@ -153,29 +160,154 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       MediaType type, String parameter, String label, String schemaName) {
     ApiMediaType ogcApiMediaType =
         new ImmutableApiMediaType.Builder().type(type).label(label).parameter(parameter).build();
-    return new ImmutableApiMediaTypeContent.Builder()
-        .ogcApiMediaType(ogcApiMediaType)
-        .schema(
-            type.getSubtype().endsWith("xml")
-                ? new StringSchema().example("<wfs:Transaction>...</wfs:Transaction>")
-                : new ObjectSchema())
-        .schemaRef("#/components/schemas/" + schemaName)
-        .build();
+    ImmutableApiMediaTypeContent.Builder builder =
+        new ImmutableApiMediaTypeContent.Builder()
+            .ogcApiMediaType(ogcApiMediaType)
+            .schemaRef("#/components/schemas/" + schemaName);
+    if (type.getSubtype().endsWith("xml")) {
+      builder.schema(new StringSchema().example("<wfs:Transaction>...</wfs:Transaction>"));
+    } else {
+      JsonEnvelopeSchema envelope = jsonEnvelopeSchema();
+      builder.schema(envelope.top).referencedSchemas(envelope.defs);
+    }
+    return builder.build();
+  }
+
+  static JsonEnvelopeSchema jsonEnvelopeSchema() {
+    JsonEnvelopeSchema cached = cachedJsonEnvelope;
+    if (cached == null) {
+      cached = loadJsonEnvelopeSchema();
+      cachedJsonEnvelope = cached;
+    }
+    return cached;
+  }
+
+  private static JsonEnvelopeSchema loadJsonEnvelopeSchema() {
+    try (InputStream in =
+        EndpointTransactions.class.getResourceAsStream(ENVELOPE_SCHEMA_RESOURCE)) {
+      if (in == null) {
+        LOGGER.warn(
+            "Bundled envelope schema resource not found ({}); falling back to an empty object schema in the OpenAPI document",
+            ENVELOPE_SCHEMA_RESOURCE);
+        return new JsonEnvelopeSchema(new ObjectSchema(), Map.of());
+      }
+      ObjectMapper jsonMapper = Json.mapper();
+      JsonNode root = jsonMapper.readTree(in);
+      if (!(root instanceof ObjectNode rootObj)) {
+        LOGGER.warn(
+            "Envelope schema {} is not a JSON object; falling back to an empty object schema",
+            ENVELOPE_SCHEMA_RESOURCE);
+        return new JsonEnvelopeSchema(new ObjectSchema(), Map.of());
+      }
+      rootObj.remove("$schema");
+      JsonNode defsNode = rootObj.remove("$defs");
+      rewriteDefRefs(rootObj);
+      normaliseForOpenApi30(rootObj);
+      Map<String, Schema<?>> defs = new LinkedHashMap<>();
+      if (defsNode instanceof ObjectNode defsObj) {
+        Iterator<Map.Entry<String, JsonNode>> it = defsObj.fields();
+        while (it.hasNext()) {
+          Map.Entry<String, JsonNode> entry = it.next();
+          JsonNode defNode = entry.getValue();
+          rewriteDefRefs(defNode);
+          normaliseForOpenApi30(defNode);
+          Schema<?> defSchema = jsonMapper.treeToValue(defNode, Schema.class);
+          defs.put(JSON_DEFS_PREFIX + entry.getKey(), defSchema);
+        }
+      }
+      Schema<?> topSchema = jsonMapper.treeToValue(rootObj, Schema.class);
+      return new JsonEnvelopeSchema(topSchema, Map.copyOf(defs));
+    } catch (IOException e) {
+      LOGGER.warn(
+          "Could not load bundled envelope schema; falling back to an empty object schema: {}",
+          e.getMessage());
+      return new JsonEnvelopeSchema(new ObjectSchema(), Map.of());
+    }
+  }
+
+  /**
+   * Rewrites JSON Schema 2020-12 idioms the envelope uses into shapes the OpenAPI 3.0 {@link
+   * Schema} deserializer accepts:
+   *
+   * <ul>
+   *   <li>{@code "type": ["X", "null"]} → {@code "type": "X", "nullable": true}
+   *   <li>{@code "type": ["X", "Y", ...]} (no {@code null}) → drop {@code type} and add an {@code
+   *       oneOf} of single-type schemas
+   * </ul>
+   *
+   * Other 3.1-only idioms ({@code const}, {@code prefixItems}, etc.) are left alone — the
+   * deserializer tolerates them as schema extensions or extras.
+   */
+  private static void normaliseForOpenApi30(JsonNode node) {
+    if (node instanceof ObjectNode obj) {
+      JsonNode typeNode = obj.get("type");
+      if (typeNode instanceof ArrayNode typeArr) {
+        List<String> types = new java.util.ArrayList<>();
+        boolean nullable = false;
+        typeArr.forEach(
+            t -> {
+              if (t.isTextual()) {
+                if ("null".equals(t.asText())) {
+                  // sentinel; handled outside
+                } else {
+                  types.add(t.asText());
+                }
+              }
+            });
+        nullable =
+            java.util.stream.StreamSupport.stream(typeArr.spliterator(), false)
+                .anyMatch(t -> t.isTextual() && "null".equals(t.asText()));
+        obj.remove("type");
+        if (types.size() == 1) {
+          obj.put("type", types.get(0));
+        } else if (types.size() > 1) {
+          ArrayNode oneOf = obj.withArray("oneOf");
+          for (String t : types) {
+            ObjectNode branch = oneOf.addObject();
+            branch.put("type", t);
+          }
+        }
+        if (nullable) {
+          obj.put("nullable", true);
+        }
+      }
+      obj.fields().forEachRemaining(e -> normaliseForOpenApi30(e.getValue()));
+    } else if (node instanceof ArrayNode arr) {
+      arr.elements().forEachRemaining(EndpointTransactions::normaliseForOpenApi30);
+    }
+  }
+
+  private static void rewriteDefRefs(JsonNode node) {
+    if (node instanceof ObjectNode obj) {
+      JsonNode ref = obj.get("$ref");
+      if (ref != null && ref.isTextual()) {
+        String value = ref.asText();
+        String prefix = "#/$defs/";
+        if (value.startsWith(prefix)) {
+          obj.put(
+              "$ref",
+              "#/components/schemas/" + JSON_DEFS_PREFIX + value.substring(prefix.length()));
+        }
+      }
+      obj.fields().forEachRemaining(e -> rewriteDefRefs(e.getValue()));
+    } else if (node instanceof ArrayNode arr) {
+      arr.elements().forEachRemaining(EndpointTransactions::rewriteDefRefs);
+    }
   }
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    ImmutableList.Builder<String> builder = new ImmutableList.Builder<String>();
-    builder.add("http://www.opengis.net/spec/ogcapi-features-11/1.0/conf/transactions");
-    builder.add("http://www.opengis.net/spec/ogcapi-features-11/1.0/conf/json-transactions");
-    builder.add("http://www.opengis.net/spec/ogcapi-features-11/1.0/conf/features");
+    ImmutableList.Builder<String> builder = new ImmutableList.Builder<>();
+    builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/transactions");
+    builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/json-transactions");
+    builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/features");
 
     Optional<TransactionsConfiguration> cfg = apiData.getExtension(TransactionsConfiguration.class);
     if (cfg.map(c -> !Objects.equals(c.getAtomic(), false)).orElse(true)) {
-      builder.add("http://www.opengis.net/spec/ogcapi-features-11/1.0/conf/atomic-transactions");
+      builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/atomic-transactions");
     }
     if (cfg.map(c -> !Objects.equals(c.getBatch(), false)).orElse(true)) {
-      builder.add("http://www.opengis.net/spec/ogcapi-features-11/1.0/conf/batch-transactions");
+      builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/batch-transactions");
     }
     return builder.build();
   }
@@ -228,12 +360,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   }
 
   @POST
-  @Consumes({
-    "application/ogc-tx+json",
-    "application/json",
-    "application/xml",
-    "application/gml+xml"
-  })
+  @Consumes({"application/ogc-tx+json", "application/xml"})
   @Produces({"application/json", "application/problem+json"})
   public Response postTransaction(
       @Auth Optional<User> optionalUser,
@@ -244,7 +371,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
-    if (PreferHeader.containsPreferToken(prefer, "respond-async")) {
+    if (HeaderPreferTransaction.containsToken(prefer, "respond-async")) {
       return Response.status(Response.Status.NOT_IMPLEMENTED)
           .type(MediaType.TEXT_PLAIN_TYPE)
           .entity("Asynchronous transactions are not supported by this API.")
@@ -272,49 +399,31 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
     if (parser instanceof WfsTransactionParser
         && !Boolean.TRUE.equals(config.getWfsTransaction())) {
-      throw new BadRequestException(
-          "wfs:Transaction payloads are not enabled for this API "
-              + "(set 'wfsTransaction: true' on the TRANSACTIONS building block)");
+      throw new BadRequestException("wfs:Transaction payloads are not enabled for this API");
     }
 
-    EpsgCrs requestCrs = resolveRequestCrs(contentCrsHeader, apiData);
+    EpsgCrs requestCrs = HeaderContentCrsTransaction.parse(contentCrsHeader, apiData, crsSupport);
 
-    PreferHeader.PreferHandling handling =
-        PreferHeader.parseHandling(prefer, PreferHeader.PreferHandling.LENIENT);
+    HeaderPreferTransaction.PreferHandling handling =
+        HeaderPreferTransaction.parseHandling(
+            prefer, HeaderPreferTransaction.PreferHandling.LENIENT);
 
-    InputStream parseStream = requestBody;
-    if (handling == PreferHeader.PreferHandling.STRICT) {
-      byte[] buffered;
-      try {
-        buffered = requestBody.readAllBytes();
-      } catch (IOException e) {
-        throw new BadRequestException("Could not read transaction body: " + e.getMessage());
-      }
-      try {
-        parser.validateEnvelope(buffered, contentType);
-      } catch (IllegalArgumentException e) {
-        throw new BadRequestException("Transaction envelope is invalid: " + e.getMessage());
-      }
-      parseStream = new ByteArrayInputStream(buffered);
-    }
+    HeaderPreferTransaction.PreferReturn ret =
+        HeaderPreferTransaction.parseReturn(
+            prefer, HeaderPreferTransaction.PreferReturn.REPRESENTATION);
 
-    Transaction transaction;
-    try {
-      transaction = parser.parse(parseStream, contentType);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
-    }
+    CommandHandlerTransactions.QueryInputTransaction queryInput =
+        ImmutableQueryInputTransaction.builder()
+            .parser(parser)
+            .requestBody(requestBody)
+            .contentType(contentType)
+            .config(config)
+            .requestCrs(requestCrs)
+            .handling(handling)
+            .returnPreference(ret)
+            .build();
 
-    enforceSemanticPolicy(transaction, config);
-    enforceActionLimit(transaction, config);
-
-    boolean validate = handling == PreferHeader.PreferHandling.STRICT;
-    ExecutionResult result =
-        executor.execute(transaction, api, requestContext, requestCrs, validate);
-
-    PreferHeader.PreferReturn ret =
-        PreferHeader.parseReturn(prefer, PreferHeader.PreferReturn.REPRESENTATION);
-    return buildResponse(result, ret, requestContext);
+    return commandHandler.processTransaction(queryInput, requestContext);
   }
 
   // --- helpers --------------------------------------------------------------
@@ -327,249 +436,6 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       return MediaType.valueOf(header);
     } catch (IllegalArgumentException e) {
       throw new BadRequestException("Invalid Content-Type header: " + header);
-    }
-  }
-
-  private EpsgCrs resolveRequestCrs(String header, OgcApiDataV2 apiData) {
-    if (header != null && !header.isBlank()) {
-      String value = header.trim();
-      if (value.startsWith("<") && value.endsWith(">")) {
-        value = value.substring(1, value.length() - 1);
-      }
-      try {
-        return EpsgCrs.fromString(value);
-      } catch (RuntimeException e) {
-        throw new BadRequestException("Invalid Content-Crs header: " + header);
-      }
-    }
-    return providers
-        .getFeatureProvider(apiData)
-        .flatMap(
-            fp ->
-                apiData.getCollections().values().stream()
-                    .findFirst()
-                    .flatMap(cd -> cd.getExtension(FeaturesCoreConfiguration.class))
-                    .map(FeaturesCoreConfiguration::getDefaultEpsgCrs))
-        .orElse(de.ii.xtraplatform.crs.domain.OgcCrs.CRS84);
-  }
-
-  private static void enforceSemanticPolicy(Transaction tx, TransactionsConfiguration config) {
-    if (tx.getSemantic() == TxSemantic.ATOMIC && Objects.equals(config.getAtomic(), false)) {
-      throw new BadRequestException("Atomic transactions are not enabled for this API");
-    }
-    if (tx.getSemantic() == TxSemantic.BATCH && Objects.equals(config.getBatch(), false)) {
-      throw new BadRequestException("Batch transactions are not enabled for this API");
-    }
-  }
-
-  private static void enforceActionLimit(Transaction tx, TransactionsConfiguration config) {
-    Integer max = config.getMaxActionsPerRequest();
-    if (max == null || max <= 0) {
-      return;
-    }
-    // counting actions consumes the iterator; since the parser is lazy we instead defer to
-    // executor-side enforcement only when the limit is wired into the action iterator wrapper.
-    // For now this is a no-op so we don't break streaming; a follow-up will add a counting
-    // wrapper around Transaction#actions that aborts past the limit.
-  }
-
-  private Response buildResponse(
-      ExecutionResult result, PreferHeader.PreferReturn ret, ApiRequestContext requestContext) {
-    boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
-    boolean failed = !result.isSuccess();
-    int status = (atomic && failed) ? 422 : 200;
-
-    // Always emit the Transaction Response body when there are exceptions to report — even when the
-    // client asked for "return=none". Without the body the caller can't identify the failed
-    // action / feature, which is the whole point of the exceptions array.
-    if (ret == PreferHeader.PreferReturn.NONE && !failed) {
-      return Response.noContent().header("Preference-Applied", "return=none").build();
-    }
-
-    ObjectNode body = renderBody(result, ret, requestContext);
-    return Response.status(status)
-        .type(APPLICATION_JSON)
-        .header("Preference-Applied", "return=" + ret.headerValue())
-        .entity(toJson(body))
-        .build();
-  }
-
-  private static ObjectNode renderBody(
-      ExecutionResult result, PreferHeader.PreferReturn ret, ApiRequestContext requestContext) {
-    ObjectNode body = MAPPER.createObjectNode();
-    body.put("semantic", result.getSemantic().toString().toLowerCase(java.util.Locale.ROOT));
-
-    ObjectNode summary = body.putObject("summary");
-    summary.put("totalInserted", result.getInsertedCount());
-    summary.put("totalReplaced", result.getReplacedCount());
-    summary.put("totalUpdated", result.getUpdatedCount());
-    summary.put("totalDeleted", result.getDeletedCount());
-
-    ArrayNode insertResults = body.putArray("insertResults");
-    ArrayNode replaceResults = body.putArray("replaceResults");
-    ArrayNode updateResults = body.putArray("updateResults");
-    ArrayNode deleteResults = body.putArray("deleteResults");
-    ArrayNode exceptions = MAPPER.createArrayNode();
-
-    boolean wantDetails = ret != PreferHeader.PreferReturn.MINIMAL;
-
-    for (ActionResult r : result.getActionResults()) {
-      addExceptionsFor(r, exceptions);
-      if (r.getStatus() != ActionStatus.SUCCESS || !wantDetails) {
-        continue;
-      }
-      ArrayNode bucket =
-          bucketFor(r.getType(), insertResults, replaceResults, updateResults, deleteResults);
-      for (String id : r.getFeatureIds()) {
-        bucket.add(featureUri(requestContext, r.getCollectionId(), id));
-      }
-    }
-
-    if (ret == PreferHeader.PreferReturn.MINIMAL) {
-      body.remove("insertResults");
-      body.remove("replaceResults");
-      body.remove("updateResults");
-      body.remove("deleteResults");
-    }
-
-    if (!exceptions.isEmpty()) {
-      body.set("exceptions", exceptions);
-    }
-    return body;
-  }
-
-  /**
-   * Append RFC-7807 entries to {@code exceptions} for any rejected items in this action.
-   *
-   * <p>When per-feature error messages are available ({@link ActionResult#getFailedFeatureErrors()}
-   * non-empty — produced by {@code Prefer: handling=strict} validation), each rejected feature gets
-   * its own entry with its specific {@code detail} message and (when known) its {@code featureId}
-   * and 1-based {@code featureIndex}. This covers both the all-rejected case (action {@code
-   * FAILED}, every item is in {@code exceptions}) and partial success (action {@code SUCCESS}, only
-   * the rejected items are in {@code exceptions} while the surviving items appear in {@code
-   * insertResults}).
-   *
-   * <p>When per-feature errors are not available — e.g. a batch commit raised a single aggregate
-   * error — the {@code FAILED} action contributes one aggregate entry listing every candidate
-   * feature in the failing batch.
-   */
-  private static void addExceptionsFor(ActionResult r, ArrayNode exceptions) {
-    if (!r.getFailedFeatureErrors().isEmpty()) {
-      int size = r.getFailedFeatureErrors().size();
-      for (int i = 0; i < size; i++) {
-        Optional<String> fid =
-            i < r.getFailedFeatureIds().size()
-                ? Optional.of(r.getFailedFeatureIds().get(i))
-                : Optional.empty();
-        Optional<Integer> idx =
-            i < r.getFailedFeatureIndexes().size()
-                ? Optional.of(r.getFailedFeatureIndexes().get(i))
-                : Optional.empty();
-        exceptions.add(renderItemException(r, fid, idx, r.getFailedFeatureErrors().get(i)));
-      }
-      return;
-    }
-    if (r.getStatus() == ActionStatus.FAILED) {
-      exceptions.add(renderException(r));
-    }
-  }
-
-  /**
-   * RFC-7807 entry for a single rejected feature within an action. {@code detail} is the
-   * feature-specific validation message; {@code featureIds} and {@code featureIndexes} are
-   * single-element arrays to keep the key shape consistent with the aggregate {@link
-   * #renderException} entry.
-   */
-  private static ObjectNode renderItemException(
-      ActionResult r, Optional<String> featureId, Optional<Integer> featureIndex, String message) {
-    String action = r.getType().toString().toLowerCase(java.util.Locale.ROOT);
-    ObjectNode ex = MAPPER.createObjectNode();
-    ex.put("type", "about:blank");
-    ex.put("title", "Action " + action + " on '" + r.getCollectionId() + "' rejected a feature");
-    ex.put("status", 422);
-    ex.put("detail", message);
-    r.getActionId().ifPresent(id -> ex.put("actionId", id));
-    ex.put("collectionId", r.getCollectionId());
-    ex.put("action", action);
-    featureId.ifPresent(
-        id -> {
-          ArrayNode ids = ex.putArray("featureIds");
-          ids.add(id);
-        });
-    featureIndex.ifPresent(
-        idx -> {
-          ArrayNode indexes = ex.putArray("featureIndexes");
-          indexes.add(idx);
-        });
-    return ex;
-  }
-
-  /**
-   * Render one FAILED ActionResult as an RFC-7807 problem entry, with OGC API Features Part 11
-   * extension members ({@code collectionId}, {@code action}, {@code actionId}, {@code featureIds},
-   * {@code featureIndexes}). {@code featureIds} / {@code featureIndexes} list every feature that
-   * was in the failing insert batch — the broken one is among them.
-   */
-  private static ObjectNode renderException(ActionResult r) {
-    String action = r.getType().toString().toLowerCase(java.util.Locale.ROOT);
-    ObjectNode ex = MAPPER.createObjectNode();
-    ex.put("type", "about:blank");
-    ex.put("title", "Action " + action + " on '" + r.getCollectionId() + "' failed");
-    ex.put("status", 422);
-    ex.put("detail", r.getError().orElse("unknown error"));
-    r.getActionId().ifPresent(id -> ex.put("actionId", id));
-    ex.put("collectionId", r.getCollectionId());
-    ex.put("action", action);
-    if (!r.getFailedFeatureIds().isEmpty()) {
-      ArrayNode ids = ex.putArray("featureIds");
-      r.getFailedFeatureIds().forEach(ids::add);
-    }
-    if (!r.getFailedFeatureIndexes().isEmpty()) {
-      ArrayNode idx = ex.putArray("featureIndexes");
-      r.getFailedFeatureIndexes().forEach(idx::add);
-    }
-    return ex;
-  }
-
-  private static ArrayNode bucketFor(
-      TxActionType type,
-      ArrayNode insertResults,
-      ArrayNode replaceResults,
-      ArrayNode updateResults,
-      ArrayNode deleteResults) {
-    switch (type) {
-      case INSERT:
-        return insertResults;
-      case REPLACE:
-        return replaceResults;
-      case UPDATE:
-        return updateResults;
-      case DELETE:
-        return deleteResults;
-      default:
-        throw new IllegalStateException("Unknown action type: " + type);
-    }
-  }
-
-  private static String featureUri(
-      ApiRequestContext requestContext, String collectionId, String featureId) {
-    try {
-      return requestContext
-          .getApiUriCustomizer()
-          .copy()
-          .ensureLastPathSegments("collections", collectionId, "items", featureId)
-          .build()
-          .toString();
-    } catch (Exception e) {
-      return "/collections/" + collectionId + "/items/" + featureId;
-    }
-  }
-
-  private static String toJson(Object node) {
-    try {
-      return MAPPER.writeValueAsString(node);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to serialise transaction response", e);
     }
   }
 }

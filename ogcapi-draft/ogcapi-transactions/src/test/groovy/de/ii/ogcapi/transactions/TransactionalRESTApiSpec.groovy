@@ -525,8 +525,8 @@ class TransactionalRESTApiSpec extends Specification {
     //     dataset has no GmlConfiguration.schemaLocations configured, that validator logs a WARN
     //     and silently skips, so this phase still passes.
     //   * 3f and 3g: switch the content type to application/ogc-tx+json and exercise the JSON
-    //     envelope JSON Schema check. These don't require a GeoJSON-capable collection because
-    //     the envelope step runs before any per-feature decoding or DB access.
+    //     envelope checks performed by the streaming parser. These don't require a GeoJSON-capable
+    //     collection because malformed envelope structure is rejected before DB access.
 
     def 'phase 3e: Prefer: handling=strict + valid wfs:Replace passes per-feature validation'() {
         when:
@@ -567,10 +567,9 @@ class TransactionalRESTApiSpec extends Specification {
 
         then:
         r.statusCode() == 400
-        // The endpoint maps IllegalArgumentException from validateEnvelope to a BadRequestException
-        // whose message is "Transaction envelope is invalid: …". Body shape is the API's default
-        // 400 representation — assert on the substring rather than a particular JSON layout.
-        r.body().toLowerCase().contains('envelope')
+        // The endpoint maps parser IllegalArgumentException to BadRequestException. Body shape is
+        // the API's default 400 representation, so assert on the request-specific text.
+        r.body().toLowerCase().contains('transaction')
     }
 
     def 'phase 3h: handling=strict + batch JSON insert where every item is invalid → FAILED action, one exception per item'() {

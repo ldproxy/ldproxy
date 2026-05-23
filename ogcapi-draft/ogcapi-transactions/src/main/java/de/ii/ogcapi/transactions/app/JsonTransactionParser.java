@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.transactions.domain.ImmutableNameValue;
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete;
 import de.ii.ogcapi.transactions.domain.ImmutableTxReplace;
@@ -38,7 +37,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -68,31 +66,12 @@ public class JsonTransactionParser implements TransactionParser {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String DEFAULT_FILTER_LANG_JSON = "cql2-json";
   private static final String FILTER_LANG_CQL2_TEXT = "cql2-text";
-  private static final String ENVELOPE_SCHEMA_RESOURCE =
-      "/de/ii/ogcapi/transactions/transaction-envelope.json";
 
   private final Cql cql;
-  private final SchemaValidator schemaValidator;
-  private final String envelopeSchema;
 
   @Inject
-  public JsonTransactionParser(Cql cql, SchemaValidator schemaValidator) {
+  public JsonTransactionParser(Cql cql) {
     this.cql = cql;
-    this.schemaValidator = schemaValidator;
-    this.envelopeSchema = loadEnvelopeSchema();
-  }
-
-  private static String loadEnvelopeSchema() {
-    try (InputStream in =
-        JsonTransactionParser.class.getResourceAsStream(ENVELOPE_SCHEMA_RESOURCE)) {
-      if (in == null) {
-        throw new IllegalStateException(
-            "Bundled envelope schema resource not found: " + ENVELOPE_SCHEMA_RESOURCE);
-      }
-      return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new IllegalStateException("Could not load bundled envelope schema", e);
-    }
   }
 
   @Override
@@ -103,20 +82,6 @@ public class JsonTransactionParser implements TransactionParser {
     return MEDIA_TYPE_OGC_TX_JSON.equalsIgnoreCase(
             mediaType.getType() + "/" + mediaType.getSubtype())
         || MediaType.APPLICATION_JSON_TYPE.isCompatible(mediaType);
-  }
-
-  @Override
-  public void validateEnvelope(byte[] body, MediaType mediaType) {
-    String json = new String(body, StandardCharsets.UTF_8);
-    Optional<String> error;
-    try {
-      error = schemaValidator.validate(envelopeSchema, json);
-    } catch (IOException e) {
-      throw new IllegalArgumentException(e.getMessage(), e);
-    }
-    if (error.isPresent()) {
-      throw new IllegalArgumentException(error.get());
-    }
   }
 
   @Override
@@ -155,12 +120,10 @@ public class JsonTransactionParser implements TransactionParser {
       String field = parser.currentName();
       JsonToken value = parser.nextToken();
       if ("semantic".equals(field)) {
-        if (value != JsonToken.VALUE_STRING && value != JsonToken.VALUE_NULL) {
+        if (value != JsonToken.VALUE_STRING) {
           throw new IllegalArgumentException("'semantic' must be a string");
         }
-        if (value == JsonToken.VALUE_STRING) {
-          semantic = TxSemantic.fromJsonValue(parser.getValueAsString());
-        }
+        semantic = TxSemantic.fromJsonValue(parser.getText());
       } else if ("transaction".equals(field)) {
         if (value != JsonToken.START_ARRAY) {
           throw new IllegalArgumentException("'transaction' must be a JSON array of actions");
@@ -290,6 +253,7 @@ public class JsonTransactionParser implements TransactionParser {
       String filterLang = null;
       Optional<EpsgCrs> filterCrs = Optional.empty();
       JsonNode properties = null;
+      JsonNode feature = null;
       int actionIndex = index;
 
       while (parser.nextToken() == JsonToken.FIELD_NAME) {
@@ -297,31 +261,34 @@ public class JsonTransactionParser implements TransactionParser {
         parser.nextToken();
         switch (field) {
           case "action":
-            action = parser.getValueAsString();
+            action = stringValue(parser, actionIndex, "action");
             break;
           case "collection":
-            collectionId = parser.getValueAsString();
+            collectionId = stringValue(parser, actionIndex, "collection");
             break;
           case "id":
-            actionId = stringOpt(parser);
+            actionId = stringOpt(parser, actionIndex, "id");
             break;
           case "title":
-            title = stringOpt(parser);
+            title = stringOpt(parser, actionIndex, "title");
             break;
           case "description":
-            description = stringOpt(parser);
+            description = stringOpt(parser, actionIndex, "description");
             break;
           case "filter":
             filterNode = MAPPER.readTree(parser);
             break;
           case "filter-lang":
-            filterLang = parser.getValueAsString();
+            filterLang = nullableStringValue(parser, actionIndex, "filter-lang");
             break;
           case "filter-crs":
-            filterCrs = parseFilterCrs(parser.getValueAsString());
+            filterCrs = parseFilterCrs(nullableStringValue(parser, actionIndex, "filter-crs"));
             break;
           case "properties":
             properties = MAPPER.readTree(parser);
+            break;
+          case "feature":
+            feature = MAPPER.readTree(parser);
             break;
           case "items":
             return startStreamingInsert(
@@ -352,7 +319,7 @@ public class JsonTransactionParser implements TransactionParser {
               actionId,
               title,
               description,
-              properties,
+              feature,
               filterNode,
               filterLang,
               filterCrs);
@@ -417,20 +384,20 @@ public class JsonTransactionParser implements TransactionParser {
         Optional<String> actionId,
         Optional<String> title,
         Optional<String> description,
-        JsonNode properties,
+        JsonNode feature,
         JsonNode filterNode,
         String filterLang,
         Optional<EpsgCrs> filterCrs) {
-      if (properties == null || !properties.isObject()) {
-        throw new IllegalArgumentException(
-            "transaction[" + actionIndex + "] (replace) requires a 'properties' object");
-      }
-      JsonNode feature = properties.get("feature");
-      if (feature == null || !feature.isObject()) {
+      if (feature == null
+          || !feature.isObject()
+          || feature.get("type") == null
+          || !"Feature".equals(feature.get("type").asText())
+          || !feature.has("properties")
+          || !feature.has("geometry")) {
         throw new IllegalArgumentException(
             "transaction["
                 + actionIndex
-                + "] (replace) requires 'properties.feature' to be a GeoJSON Feature");
+                + "] (replace) requires 'feature' to be a GeoJSON Feature");
       }
       return new ImmutableTxReplace.Builder()
           .collectionId(collectionId)
@@ -601,10 +568,27 @@ public class JsonTransactionParser implements TransactionParser {
       return out.build();
     }
 
-    private static Optional<String> stringOpt(JsonParser parser) throws IOException {
+    private static String stringValue(JsonParser parser, int actionIndex, String field)
+        throws IOException {
+      if (parser.currentToken() != JsonToken.VALUE_STRING) {
+        throw new IllegalArgumentException(
+            "transaction[" + actionIndex + "]." + field + " must be a string");
+      }
+      return parser.getText();
+    }
+
+    private static String nullableStringValue(JsonParser parser, int actionIndex, String field)
+        throws IOException {
       JsonToken t = parser.currentToken();
-      if (t == JsonToken.VALUE_NULL) return Optional.empty();
-      return Optional.ofNullable(parser.getValueAsString());
+      if (t == JsonToken.VALUE_NULL) {
+        return null;
+      }
+      return stringValue(parser, actionIndex, field);
+    }
+
+    private static Optional<String> stringOpt(JsonParser parser, int actionIndex, String field)
+        throws IOException {
+      return Optional.ofNullable(nullableStringValue(parser, actionIndex, field));
     }
 
     private static byte[] toBytes(JsonNode node, String pointer) {

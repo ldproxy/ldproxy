@@ -45,7 +45,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     `semantic`-Parameter oder mit `semantic=atomic` werden in einer einzigen
    *     Datenbanktransaktion ausgeführt; jeder Fehler führt zum Rollback der gesamten Anfrage.
    * @default true
-   * @since v4.5
+   * @since v4.8
    */
   @Nullable
   Boolean getAtomic();
@@ -58,7 +58,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     `semantic=batch` führen jede Aktion unabhängig aus und melden Ergebnisse pro Aktion, inkl.
    *     Ausnahmen bei Fehlern.
    * @default true
-   * @since v4.5
+   * @since v4.8
    */
   @Nullable
   Boolean getBatch();
@@ -71,7 +71,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     /transactions`. Nur zulässig, wenn `atomic` aktiv und der GML-Baustein aktiviert ist. Wird
    *     für den Empfang von NBA-Nachrichten gemäß GeoInfoDok verwendet.
    * @default false
-   * @since v4.5
+   * @since v4.8
    */
   @Nullable
   Boolean getWfsTransaction();
@@ -82,7 +82,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    * @langDe Semantik, die für Anfragen ohne explizite Angabe verwendet wird. Der Standard
    *     entspricht der Vorgabe aus OGC API Features Part 11.
    * @default ATOMIC
-   * @since v4.5
+   * @since v4.8
    */
   @Nullable
   Semantic getDefaultSemantic();
@@ -93,7 +93,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    * @langDe Optionale Obergrenze für die Anzahl der Aktionen pro Anfrage. Der Wert `0` oder `null`
    *     deaktiviert die Begrenzung.
    * @default 0
-   * @since v4.5
+   * @since v4.8
    */
   @Nullable
   Integer getMaxActionsPerRequest();
