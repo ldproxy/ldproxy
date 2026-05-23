@@ -924,14 +924,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       String collectionId,
       MediaType mediaType,
       ApiRequestContext requestContext) {
+    String canonical = canonicalCollectionId(apiData, collectionId);
     return new ImmutableValidatorContext.Builder()
         .apiData(apiData)
-        .collectionId(collectionId)
+        .collectionId(canonical)
         .mediaType(mediaType)
         .type(ValidatorContext.Type.RECEIVABLES)
         .requestContext(requestContext)
         .declaredProfiles(List.of())
-        .defaultProfiles(resolveDefaultProfilesSchema(apiData, collectionId))
+        .defaultProfiles(resolveDefaultProfilesSchema(apiData, canonical))
         .build();
   }
 

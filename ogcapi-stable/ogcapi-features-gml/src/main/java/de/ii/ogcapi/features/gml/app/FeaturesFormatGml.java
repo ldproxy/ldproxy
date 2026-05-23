@@ -61,6 +61,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -73,13 +76,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.ls.LSInput;
+import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -180,6 +188,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private final FeaturesCoreValidation featuresCoreValidator;
   private final GmlWriterRegistry gmlWriterRegistry;
   private final SchemaFactory factory;
+  private final ConcurrentMap<Integer, ConcurrentMap<String, Schema>> schemaCache =
+      new ConcurrentHashMap<>();
 
   @Inject
   public FeaturesFormatGml(
@@ -193,6 +203,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     this.featuresCoreValidator = featuresCoreValidator;
     this.gmlWriterRegistry = gmlWriterRegistry;
     this.factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    this.factory.setResourceResolver(new HttpsUpgradingResolver());
+  }
+
+  private static String upgradeToHttps(String url) {
+    return url != null && url.startsWith("http://") ? "https://" + url.substring(7) : url;
   }
 
   @Override
@@ -451,7 +466,43 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   @Override
   public void validate(String content, ValidatorContext ctx) {
-    ctx.getApiData()
+    Schema schema = getOrBuildSchema(ctx);
+    if (schema == null) {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "No schema available for validating GML input for collection '{}', skipping validation.",
+            ctx.getCollectionId());
+      }
+      return;
+    }
+    try {
+      schema.newValidator().validate(new StreamSource(new StringReader(content)));
+    } catch (SAXException e) {
+      throw new IllegalArgumentException(
+          "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
+    }
+  }
+
+  private Schema getOrBuildSchema(ValidatorContext ctx) {
+    int apiHashCode = ctx.getApiData().hashCode();
+    String collectionId = ctx.getCollectionId();
+    ConcurrentMap<String, Schema> perCollection =
+        schemaCache.computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>());
+    Schema cached = perCollection.get(collectionId);
+    if (cached != null) {
+      return cached;
+    }
+    Schema built = buildSchema(ctx).orElse(null);
+    if (built != null) {
+      perCollection.put(collectionId, built);
+    }
+    return built;
+  }
+
+  private Optional<Schema> buildSchema(ValidatorContext ctx) {
+    return ctx.getApiData()
         .getCollectionData(ctx.getCollectionId())
         .flatMap(
             collectionData ->
@@ -462,29 +513,27 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                         urls -> {
                           try {
                             return Optional.of(
-                                factory
-                                    .newSchema(
-                                        urls.stream()
-                                            .map(
-                                                url -> {
-                                                  try {
-                                                    return new StreamSource(
-                                                        new URL(url).openStream(),
-                                                        url.substring(url.lastIndexOf('/') + 1));
-                                                  } catch (IOException e) {
-                                                    if (LOGGER.isWarnEnabled()) {
-                                                      LOGGER.warn(
-                                                          "Could not load schema from location '{}' for validating GML input for collection '{}'. Reason: {}",
-                                                          url,
-                                                          ctx.getCollectionId(),
-                                                          e.getMessage());
-                                                    }
-                                                  }
-                                                  return null;
-                                                })
-                                            .filter(Objects::nonNull)
-                                            .toArray(StreamSource[]::new))
-                                    .newValidator());
+                                factory.newSchema(
+                                    urls.stream()
+                                        .map(
+                                            url -> {
+                                              String resolved = upgradeToHttps(url);
+                                              try {
+                                                return new StreamSource(
+                                                    new URL(resolved).openStream(), resolved);
+                                              } catch (IOException e) {
+                                                if (LOGGER.isWarnEnabled()) {
+                                                  LOGGER.warn(
+                                                      "Could not load schema from location '{}' for validating GML input for collection '{}'. Reason: {}",
+                                                      resolved,
+                                                      ctx.getCollectionId(),
+                                                      e.getMessage());
+                                                }
+                                              }
+                                              return null;
+                                            })
+                                        .filter(Objects::nonNull)
+                                        .toArray(StreamSource[]::new)));
                           } catch (SAXParseException e) {
                             if (LOGGER.isWarnEnabled()) {
                               LOGGER.warn(
@@ -502,26 +551,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                             }
                           }
                           return Optional.empty();
-                        }))
-        .ifPresentOrElse(
-            validator -> {
-              try {
-                validator.validate(new StreamSource(content));
-              } catch (SAXException e) {
-                throw new IllegalArgumentException(
-                    "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
-              } catch (IOException e) {
-                throw new IllegalStateException(
-                    "Could not validate feature. Reason: " + e.getMessage(), e);
-              }
-            },
-            () -> {
-              if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn(
-                    "No schema available for validating GML input for collection '{}', skipping validation.",
-                    ctx.getCollectionId());
-              }
-            });
+                        }));
   }
 
   private static QName featureTypeQName(
@@ -607,5 +637,122 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   @Override
   public boolean supportsNullVsMissing() {
     return true;
+  }
+
+  // Rewrites http:// schemaLocation references to https:// so XSD imports that still use the
+  // historical http://schemas.opengis.net/... URLs resolve through the redirect-free https mirror.
+  private static final class HttpsUpgradingResolver implements LSResourceResolver {
+    @Override
+    public LSInput resolveResource(
+        String type, String namespaceURI, String publicId, String systemId, String baseURI) {
+      if (systemId == null || !systemId.startsWith("http://")) {
+        return null;
+      }
+      String upgraded = upgradeToHttps(systemId);
+      try {
+        InputStream stream = new URL(upgraded).openStream();
+        return new SimpleLSInput(stream, upgraded, publicId, baseURI);
+      } catch (IOException e) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Could not upgrade schema location '{}' to https. Reason: {}",
+              systemId,
+              e.getMessage());
+        }
+        return null;
+      }
+    }
+  }
+
+  private static final class SimpleLSInput implements LSInput {
+    private InputStream byteStream;
+    private String systemId;
+    private String publicId;
+    private String baseURI;
+    private String encoding;
+    private boolean certifiedText;
+
+    SimpleLSInput(InputStream byteStream, String systemId, String publicId, String baseURI) {
+      this.byteStream = byteStream;
+      this.systemId = systemId;
+      this.publicId = publicId;
+      this.baseURI = baseURI;
+    }
+
+    @Override
+    public Reader getCharacterStream() {
+      return null;
+    }
+
+    @Override
+    public void setCharacterStream(Reader characterStream) {}
+
+    @Override
+    public InputStream getByteStream() {
+      return byteStream;
+    }
+
+    @Override
+    public void setByteStream(InputStream byteStream) {
+      this.byteStream = byteStream;
+    }
+
+    @Override
+    public String getStringData() {
+      return null;
+    }
+
+    @Override
+    public void setStringData(String stringData) {}
+
+    @Override
+    public String getSystemId() {
+      return systemId;
+    }
+
+    @Override
+    public void setSystemId(String systemId) {
+      this.systemId = systemId;
+    }
+
+    @Override
+    public String getPublicId() {
+      return publicId;
+    }
+
+    @Override
+    public void setPublicId(String publicId) {
+      this.publicId = publicId;
+    }
+
+    @Override
+    public String getBaseURI() {
+      return baseURI;
+    }
+
+    @Override
+    public void setBaseURI(String baseURI) {
+      this.baseURI = baseURI;
+    }
+
+    @Override
+    public String getEncoding() {
+      return encoding;
+    }
+
+    @Override
+    public void setEncoding(String encoding) {
+      this.encoding = encoding;
+    }
+
+    @Override
+    public boolean getCertifiedText() {
+      return certifiedText;
+    }
+
+    @Override
+    public void setCertifiedText(boolean certifiedText) {
+      this.certifiedText = certifiedText;
+    }
   }
 }
