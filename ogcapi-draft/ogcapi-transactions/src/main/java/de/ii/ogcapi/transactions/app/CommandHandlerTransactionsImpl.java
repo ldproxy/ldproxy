@@ -80,7 +80,8 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
       }
 
-      return buildResponse(result, queryInput.getReturnPreference(), requestContext);
+      return buildResponse(
+          result, queryInput.getReturnPreference(), queryInput.getHandling(), requestContext);
     } finally {
       if (transaction != null) {
         transaction.close();
@@ -175,21 +176,32 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
   private Response buildResponse(
       ExecutionResult result,
       HeaderPreferTransaction.PreferReturn ret,
+      HeaderPreferTransaction.PreferHandling handling,
       ApiRequestContext requestContext) {
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
     boolean failed = !result.isSuccess();
     int status = (atomic && failed) ? 422 : 200;
+    String preferenceApplied = preferenceApplied(ret, handling);
 
     if (ret == HeaderPreferTransaction.PreferReturn.NONE && !failed) {
-      return Response.noContent().header("Preference-Applied", "return=none").build();
+      return Response.noContent().header("Preference-Applied", preferenceApplied).build();
     }
 
     ObjectNode body = renderBody(result, ret, requestContext);
     return Response.status(status)
         .type(APPLICATION_JSON)
-        .header("Preference-Applied", "return=" + ret.headerValue())
+        .header("Preference-Applied", preferenceApplied)
         .entity(toJson(body))
         .build();
+  }
+
+  private static String preferenceApplied(
+      HeaderPreferTransaction.PreferReturn ret, HeaderPreferTransaction.PreferHandling handling) {
+    String value = "return=" + ret.headerValue();
+    if (handling == HeaderPreferTransaction.PreferHandling.STRICT) {
+      value += ", handling=strict";
+    }
+    return value;
   }
 
   private static ObjectNode renderBody(
