@@ -88,7 +88,6 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
   private static final String ENVELOPE_SCHEMA_RESOURCE =
       "/de/ii/ogcapi/transactions/transaction-envelope.json";
-  private static final String JSON_DEFS_PREFIX = "ogc-tx-";
   private static volatile JsonEnvelopeSchema cachedJsonEnvelope;
 
   static final class JsonEnvelopeSchema {
@@ -212,7 +211,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
           rewriteDefRefs(defNode);
           normaliseForOpenApi30(defNode);
           Schema<?> defSchema = jsonMapper.treeToValue(defNode, Schema.class);
-          defs.put(JSON_DEFS_PREFIX + entry.getKey(), defSchema);
+          defs.put(entry.getKey(), defSchema);
         }
       }
       Schema<?> topSchema = jsonMapper.treeToValue(rootObj, Schema.class);
@@ -290,9 +289,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
         String value = ref.asText();
         String prefix = "#/$defs/";
         if (value.startsWith(prefix)) {
-          obj.put(
-              "$ref",
-              "#/components/schemas/" + JSON_DEFS_PREFIX + value.substring(prefix.length()));
+          obj.put("$ref", "#/components/schemas/" + value.substring(prefix.length()));
         }
       }
       obj.fields().forEachRemaining(e -> rewriteDefRefs(e.getValue()));

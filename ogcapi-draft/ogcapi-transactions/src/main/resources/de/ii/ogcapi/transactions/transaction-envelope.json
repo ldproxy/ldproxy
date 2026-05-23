@@ -1,7 +1,7 @@
 {
   "$schema" : "https://json-schema.org/draft/2020-12/schema",
   "allOf" : [ {
-    "$ref" : "#/$defs/action-metadata"
+    "$ref" : "#/$defs/tx-action-metadata"
   }, {
     "properties" : {
       "semantic" : {
@@ -13,7 +13,7 @@
         "items" : {
           "oneOf" : [ {
             "allOf" : [ {
-              "$ref" : "#/$defs/action-metadata"
+              "$ref" : "#/$defs/tx-action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -25,7 +25,7 @@
                 },
                 "items" : {
                   "items" : {
-                    "$ref": "#/$defs/feature"
+                    "$ref": "#/$defs/tx-feature"
                   },
                   "type" : "array"
                 }
@@ -35,7 +35,7 @@
             } ]
           }, {
             "allOf" : [ {
-              "$ref" : "#/$defs/action-metadata"
+              "$ref" : "#/$defs/tx-action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -46,16 +46,16 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "$ref": "#/$defs/cql2JsonFilter"
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "$ref": "#/$defs/filter-crs"
+                  "$ref": "#/$defs/tx-filter-crs"
                 },
                 "filter-lang" : {
-                  "$ref": "#/$defs/filter-lang"
+                  "$ref": "#/$defs/tx-filter-lang"
                 },
                 "feature" : {
-                  "$ref": "#/$defs/feature"
+                  "$ref": "#/$defs/tx-feature"
                 }
               },
               "required" : [ "action", "collection", "feature" ],
@@ -63,7 +63,7 @@
             } ]
           }, {
             "allOf" : [ {
-              "$ref" : "#/$defs/action-metadata"
+              "$ref" : "#/$defs/tx-action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -74,19 +74,19 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "$ref": "#/$defs/cql2JsonFilter"
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "$ref": "#/$defs/filter-crs"
+                  "$ref": "#/$defs/tx-filter-crs"
                 },
                 "filter-lang" : {
-                  "$ref": "#/$defs/filter-lang"
+                  "$ref": "#/$defs/tx-filter-lang"
                 },
                 "properties" : {
                   "properties" : {
                     "add" : {
                       "items" : {
-                        "$ref": "#/$defs/nameValuePair"
+                        "$ref": "#/$defs/tx-nameValuePair"
                       },
                       "type" : "array"
                     },
@@ -98,7 +98,7 @@
                     },
                     "modify" : {
                       "items" : {
-                        "$ref": "#/$defs/nameValuePair"
+                        "$ref": "#/$defs/tx-nameValuePair"
                       },
                       "type" : "array"
                     }
@@ -111,7 +111,7 @@
             } ]
           }, {
             "allOf" : [ {
-              "$ref" : "#/$defs/action-metadata"
+              "$ref" : "#/$defs/tx-action-metadata"
             }, {
               "properties" : {
                 "action" : {
@@ -122,13 +122,13 @@
                   "type" : "string"
                 },
                 "filter" : {
-                  "$ref": "#/$defs/cql2JsonFilter"
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
                 },
                 "filter-crs" : {
-                  "$ref": "#/$defs/filter-crs"
+                  "$ref": "#/$defs/tx-filter-crs"
                 },
                 "filter-lang" : {
-                  "$ref": "#/$defs/filter-lang"
+                  "$ref": "#/$defs/tx-filter-lang"
                 }
               },
               "required" : [ "action", "collection" ],
@@ -143,7 +143,7 @@
     "type" : "object"
   } ],
   "$defs" : {
-    "action-metadata" : {
+    "tx-action-metadata" : {
       "properties" : {
         "description" : {
           "type" : "string"
@@ -158,7 +158,7 @@
       },
       "type" : "object"
     },
-    "feature": {
+    "tx-feature": {
       "type" : "object",
       "properties" : {
         "type": {
@@ -177,23 +177,23 @@
       },
       "required" : [ "type", "properties", "geometry" ]
     },
-    "filter-crs" : {
+    "tx-filter-crs" : {
       "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
       "type" : "string"
     },
-    "filter-lang" : {
+    "tx-filter-lang" : {
       "const" : "cql2-json",
       "default": "cql2-json",
       "type" : "string"
     },
-    "cql2JsonFilter": {
+    "tx-cql2JsonFilter": {
       "oneOf" : [ {
         "type" : "boolean"
       }, {
         "type" : "object"
       } ]
     },
-    "nameValuePair": {
+    "tx-nameValuePair": {
       "type" : "object",
       "properties" : {
         "name" : {

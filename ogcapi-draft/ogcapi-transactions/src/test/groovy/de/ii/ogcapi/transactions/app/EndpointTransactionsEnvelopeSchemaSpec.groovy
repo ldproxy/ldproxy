@@ -36,21 +36,21 @@ class EndpointTransactionsEnvelopeSchemaSpec extends Specification {
         !envelope.top.allOf.isEmpty()
     }
 
-    def "envelope loader lifts every 'defs' entry into referencedSchemas with the ogc-tx- prefix"() {
+    def "envelope loader lifts every 'defs' entry into referencedSchemas with the tx- prefix"() {
         when:
         EndpointTransactions.JsonEnvelopeSchema envelope = EndpointTransactions.jsonEnvelopeSchema()
 
         then:
-        envelope.defs.containsKey('ogc-tx-feature')
-        envelope.defs.containsKey('ogc-tx-action-metadata')
-        envelope.defs.containsKey('ogc-tx-cql2JsonFilter')
-        envelope.defs.containsKey('ogc-tx-nameValuePair')
-        envelope.defs.containsKey('ogc-tx-filter-crs')
-        envelope.defs.containsKey('ogc-tx-filter-lang')
+        envelope.defs.containsKey('tx-feature')
+        envelope.defs.containsKey('tx-action-metadata')
+        envelope.defs.containsKey('tx-cql2JsonFilter')
+        envelope.defs.containsKey('tx-nameValuePair')
+        envelope.defs.containsKey('tx-filter-crs')
+        envelope.defs.containsKey('tx-filter-lang')
         envelope.defs.every { _, schema -> schema instanceof Schema }
     }
 
-    def "envelope loader rewrites defs refs into #/components/schemas/ogc-tx- refs"() {
+    def "envelope loader rewrites defs refs into #/components/schemas/tx- refs"() {
         // Walk the JSON representation Swagger emits and assert that no #/$defs/ ref survives.
         given:
         EndpointTransactions.JsonEnvelopeSchema envelope = EndpointTransactions.jsonEnvelopeSchema()
@@ -62,7 +62,7 @@ class EndpointTransactionsEnvelopeSchemaSpec extends Specification {
         !defsJson.contains('#/$defs/')
         // At least one ref into the lifted components must remain — otherwise we forgot to
         // rewrite anything and the assertion above would be vacuously true.
-        topJson.contains('#/components/schemas/ogc-tx-') || defsJson.contains('#/components/schemas/ogc-tx-')
+        topJson.contains('#/components/schemas/tx-') || defsJson.contains('#/components/schemas/tx-')
     }
 
     def "envelope loader is idempotent across calls (cache returns same instance)"() {
