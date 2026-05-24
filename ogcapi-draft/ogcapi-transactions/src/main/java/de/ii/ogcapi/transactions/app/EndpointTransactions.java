@@ -28,6 +28,7 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -374,7 +375,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
-    if (HeaderPreferTransaction.containsToken(prefer, "respond-async")) {
+    if (HeaderPrefer.containsToken(prefer, "respond-async")) {
       return Response.status(Response.Status.NOT_IMPLEMENTED)
           .type(MediaType.TEXT_PLAIN_TYPE)
           .entity("Asynchronous transactions are not supported by this API.")
@@ -407,13 +408,10 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
     EpsgCrs requestCrs = HeaderContentCrsTransaction.parse(contentCrsHeader, apiData, crsSupport);
 
-    HeaderPreferTransaction.PreferHandling handling =
-        HeaderPreferTransaction.parseHandling(
-            prefer, HeaderPreferTransaction.PreferHandling.LENIENT);
+    HeaderPrefer.Handling handling =
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);
 
-    HeaderPreferTransaction.PreferReturn ret =
-        HeaderPreferTransaction.parseReturn(
-            prefer, HeaderPreferTransaction.PreferReturn.REPRESENTATION);
+    HeaderPrefer.Return ret = HeaderPrefer.parseReturn(prefer, HeaderPrefer.Return.REPRESENTATION);
 
     CommandHandlerTransactions.QueryInputTransaction queryInput =
         ImmutableQueryInputTransaction.builder()

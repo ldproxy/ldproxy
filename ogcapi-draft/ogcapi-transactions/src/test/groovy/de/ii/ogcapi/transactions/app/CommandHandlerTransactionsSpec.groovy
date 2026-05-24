@@ -8,6 +8,7 @@
 package de.ii.ogcapi.transactions.app
 
 import de.ii.ogcapi.foundation.domain.ApiRequestContext
+import de.ii.ogcapi.foundation.domain.HeaderPrefer
 import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.transactions.domain.ExecutionResult
 import de.ii.ogcapi.transactions.domain.ImmutableExecutionResult
@@ -38,7 +39,7 @@ class CommandHandlerTransactionsSpec extends Specification {
 
         when:
         def response = handler.processTransaction(
-                queryInput(parser, body, config(0), HeaderPreferTransaction.PreferHandling.STRICT),
+                queryInput(parser, body, config(0), HeaderPrefer.Handling.STRICT),
                 requestContext())
 
         then:
@@ -56,7 +57,7 @@ class CommandHandlerTransactionsSpec extends Specification {
 
         when:
         handler.processTransaction(
-                queryInput(parser, '{"transaction":[]}', config(1), HeaderPreferTransaction.PreferHandling.LENIENT),
+                queryInput(parser, '{"transaction":[]}', config(1), HeaderPrefer.Handling.LENIENT),
                 requestContext())
 
         then:
@@ -73,7 +74,7 @@ class CommandHandlerTransactionsSpec extends Specification {
 
         when:
         def response = handler.processTransaction(
-                queryInput(parser, '{"transaction":[]}', config(1), HeaderPreferTransaction.PreferHandling.LENIENT),
+                queryInput(parser, '{"transaction":[]}', config(1), HeaderPrefer.Handling.LENIENT),
                 requestContext())
 
         then:
@@ -85,7 +86,7 @@ class CommandHandlerTransactionsSpec extends Specification {
             RecordingParser parser,
             String body,
             TransactionsConfiguration config,
-            HeaderPreferTransaction.PreferHandling handling) {
+            HeaderPrefer.Handling handling) {
         return ImmutableQueryInputTransaction.builder()
                 .parser(parser)
                 .requestBody(new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)))
@@ -93,7 +94,7 @@ class CommandHandlerTransactionsSpec extends Specification {
                 .config(config)
                 .requestCrs(OgcCrs.CRS84)
                 .handling(handling)
-                .returnPreference(HeaderPreferTransaction.PreferReturn.REPRESENTATION)
+                .returnPreference(HeaderPrefer.Return.REPRESENTATION)
                 .build()
     }
 

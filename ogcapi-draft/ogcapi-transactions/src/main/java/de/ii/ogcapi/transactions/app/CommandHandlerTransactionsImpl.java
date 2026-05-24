@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction;
 import de.ii.ogcapi.transactions.domain.ActionResult;
 import de.ii.ogcapi.transactions.domain.ActionStatus;
@@ -52,7 +53,7 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
   @Override
   public Response processTransaction(
       QueryInputTransaction queryInput, ApiRequestContext requestContext) {
-    boolean validate = queryInput.getHandling() == HeaderPreferTransaction.PreferHandling.STRICT;
+    boolean validate = queryInput.getHandling() == HeaderPrefer.Handling.STRICT;
     Transaction transaction = null;
 
     try {
@@ -175,15 +176,15 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
 
   private Response buildResponse(
       ExecutionResult result,
-      HeaderPreferTransaction.PreferReturn ret,
-      HeaderPreferTransaction.PreferHandling handling,
+      HeaderPrefer.Return ret,
+      HeaderPrefer.Handling handling,
       ApiRequestContext requestContext) {
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
     boolean failed = !result.isSuccess();
     int status = (atomic && failed) ? 422 : 200;
     String preferenceApplied = preferenceApplied(ret, handling);
 
-    if (ret == HeaderPreferTransaction.PreferReturn.NONE && !failed) {
+    if (ret == HeaderPrefer.Return.NONE && !failed) {
       return Response.noContent().header("Preference-Applied", preferenceApplied).build();
     }
 
@@ -195,19 +196,16 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
         .build();
   }
 
-  private static String preferenceApplied(
-      HeaderPreferTransaction.PreferReturn ret, HeaderPreferTransaction.PreferHandling handling) {
+  private static String preferenceApplied(HeaderPrefer.Return ret, HeaderPrefer.Handling handling) {
     String value = "return=" + ret.headerValue();
-    if (handling == HeaderPreferTransaction.PreferHandling.STRICT) {
+    if (handling == HeaderPrefer.Handling.STRICT) {
       value += ", handling=strict";
     }
     return value;
   }
 
   private static ObjectNode renderBody(
-      ExecutionResult result,
-      HeaderPreferTransaction.PreferReturn ret,
-      ApiRequestContext requestContext) {
+      ExecutionResult result, HeaderPrefer.Return ret, ApiRequestContext requestContext) {
     ObjectNode body = MAPPER.createObjectNode();
     body.put("semantic", result.getSemantic().toString().toLowerCase(java.util.Locale.ROOT));
 
@@ -223,7 +221,7 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
     ArrayNode deleteResults = body.putArray("deleteResults");
     ArrayNode exceptions = MAPPER.createArrayNode();
 
-    boolean wantDetails = ret != HeaderPreferTransaction.PreferReturn.MINIMAL;
+    boolean wantDetails = ret != HeaderPrefer.Return.MINIMAL;
 
     for (ActionResult r : result.getActionResults()) {
       addExceptionsFor(r, exceptions);
@@ -237,7 +235,7 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
       }
     }
 
-    if (ret == HeaderPreferTransaction.PreferReturn.MINIMAL) {
+    if (ret == HeaderPrefer.Return.MINIMAL) {
       body.remove("insertResults");
       body.remove("replaceResults");
       body.remove("updateResults");

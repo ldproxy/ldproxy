@@ -21,63 +21,11 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Function;
 
 @Singleton
 @AutoBind
 public class HeaderPreferTransaction extends HeaderPrefer {
-
-  public enum PreferReturn {
-    NONE("none"),
-    MINIMAL("minimal"),
-    REPRESENTATION("representation");
-
-    private final String header;
-
-    PreferReturn(String header) {
-      this.header = header;
-    }
-
-    public String headerValue() {
-      return header;
-    }
-
-    static Optional<PreferReturn> fromHeader(String value) {
-      if (value == null) return Optional.empty();
-      String v = value.trim().toLowerCase(Locale.ROOT);
-      for (PreferReturn r : values()) {
-        if (r.header.equals(v)) return Optional.of(r);
-      }
-      return Optional.empty();
-    }
-  }
-
-  public enum PreferHandling {
-    STRICT("strict"),
-    LENIENT("lenient");
-
-    private final String header;
-
-    PreferHandling(String header) {
-      this.header = header;
-    }
-
-    public String headerValue() {
-      return header;
-    }
-
-    static Optional<PreferHandling> fromHeader(String value) {
-      if (value == null) return Optional.empty();
-      String v = value.trim().toLowerCase(Locale.ROOT);
-      for (PreferHandling h : values()) {
-        if (h.header.equals(v)) return Optional.of(h);
-      }
-      return Optional.empty();
-    }
-  }
 
   private final Schema<?> schema =
       new StringSchema()
@@ -143,41 +91,5 @@ public class HeaderPreferTransaction extends HeaderPrefer {
   @Override
   public Optional<ExternalDocumentation> getSpecificationRef() {
     return TransactionsBuildingBlock.SPEC;
-  }
-
-  public static PreferReturn parseReturn(List<String> preferHeaders, PreferReturn fallback) {
-    return parseParameterised(preferHeaders, "return", PreferReturn::fromHeader, fallback);
-  }
-
-  public static PreferHandling parseHandling(List<String> preferHeaders, PreferHandling fallback) {
-    return parseParameterised(preferHeaders, "handling", PreferHandling::fromHeader, fallback);
-  }
-
-  public static boolean containsToken(List<String> preferHeaders, String token) {
-    if (preferHeaders == null) return false;
-    for (String header : preferHeaders) {
-      for (String t : header.split(",")) {
-        if (token.equalsIgnoreCase(t.trim())) return true;
-      }
-    }
-    return false;
-  }
-
-  private static <T> T parseParameterised(
-      List<String> preferHeaders, String name, Function<String, Optional<T>> parser, T fallback) {
-    if (preferHeaders == null) return fallback;
-    for (String header : preferHeaders) {
-      for (String token : header.split(",")) {
-        String t = token.trim();
-        if (t.regionMatches(true, 0, name, 0, name.length())) {
-          int eq = t.indexOf('=');
-          if (eq > 0 && t.substring(name.length(), eq).trim().isEmpty()) {
-            Optional<T> r = parser.apply(t.substring(eq + 1).trim());
-            if (r.isPresent()) return r.get();
-          }
-        }
-      }
-    }
-    return fallback;
   }
 }

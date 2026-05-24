@@ -22,6 +22,7 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -51,7 +52,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -209,7 +209,9 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
         new ImmutableQueryInputResourceCreateReplace.Builder()
             .requestBody(requestBody)
             .resourceId(resourceId)
-            .strict(strictHandling(Collections.enumeration(prefer)))
+            .strict(
+                HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+                    == HeaderPrefer.Handling.STRICT)
             .ifMatch(Optional.ofNullable(ifMatch))
             .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 

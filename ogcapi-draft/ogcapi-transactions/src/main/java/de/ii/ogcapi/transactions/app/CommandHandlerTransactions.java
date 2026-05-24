@@ -8,6 +8,7 @@
 package de.ii.ogcapi.transactions.app;
 
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -33,8 +34,8 @@ public interface CommandHandlerTransactions {
 
     EpsgCrs getRequestCrs();
 
-    HeaderPreferTransaction.PreferHandling getHandling();
+    HeaderPrefer.Handling getHandling();
 
-    HeaderPreferTransaction.PreferReturn getReturnPreference();
+    HeaderPrefer.Return getReturnPreference();
   }
 }
