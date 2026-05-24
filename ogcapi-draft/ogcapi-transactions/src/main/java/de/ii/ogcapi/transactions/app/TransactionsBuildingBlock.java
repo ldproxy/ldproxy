@@ -35,6 +35,19 @@ import org.slf4j.LoggerFactory;
  *     report per-action results.
  *     <p>For interoperability with WFS 2.0 producers (notably NBA messages per GeoInfoDok), the
  *     building block can additionally accept `wfs:Transaction` XML payloads in atomic mode.
+ *     <p>The `Prefer` request header is honoured per RFC 7240: `return=representation` (the
+ *     default), `return=minimal`, or `return=none` controls how much of the transaction response is
+ *     returned; `handling=strict` validates every `insert` and `replace` payload against the
+ *     feature-type schema before any provider write (this only takes effect when the collection has
+ *     schema validation configured — JSON Schema for GeoJSON payloads, XSD for GML payloads).
+ *     `respond-async` is rejected with `501`.
+ *     <p>The `Content-Crs` request header declares the CRS of coordinates in the request body. When
+ *     omitted, the API's default CRS (CRS84 unless overridden) is assumed; values that are
+ *     syntactically invalid or name a CRS not in the API's supported list are rejected with a `4xx`
+ *     error.
+ *     <p>Both successful and atomic-failed responses use the same Part 11 *Transaction Response*
+ *     document shape (with `summary`, the per-action result arrays, and an `exceptions[]` array
+ *     when applicable), so clients do not need to branch on the response status to parse the body.
  * @scopeDe Stellt eine einzelne Ressource `POST /transactions` bereit, die ein Transaktionsdokument
  *     mit einer oder mehreren `insert`-, `replace`-, `update`- oder `delete`-Aktionen über eine
  *     oder mehrere Objektarten der API entgegennimmt. Die kanonische Anfragecodierung ist
@@ -45,6 +58,20 @@ import org.slf4j.LoggerFactory;
  *     <p>Zur Interoperabilität mit WFS 2.0-Produzenten (insbesondere NBA-Nachrichten gemäß
  *     GeoInfoDok) kann der Baustein zusätzlich `wfs:Transaction`-XML-Payloads im atomaren Modus
  *     entgegennehmen.
+ *     <p>Der Anfrage-Header `Prefer` wird gemäß RFC 7240 ausgewertet: `return=representation`
+ *     (Standard), `return=minimal` oder `return=none` steuert den Umfang der Transaktionsantwort;
+ *     `handling=strict` validiert jeden `insert`- und `replace`-Payload vor dem Schreiben gegen das
+ *     Schema der Objektart (greift nur, wenn die Objektart eine Schema-Validierung konfiguriert hat
+ *     — JSON Schema für GeoJSON-Payloads, XSD für GML-Payloads). `respond-async` wird mit `501`
+ *     abgelehnt.
+ *     <p>Der Anfrage-Header `Content-Crs` gibt das CRS der Koordinaten im Anfragetext an. Fehlt der
+ *     Header, wird das Standard-CRS der API angenommen (CRS84, sofern nicht überschrieben);
+ *     syntaktisch ungültige Werte oder ein nicht von der API unterstütztes CRS werden mit einem
+ *     `4xx`-Fehler abgelehnt.
+ *     <p>Erfolgreiche und atomar fehlgeschlagene Antworten verwenden dieselbe Dokumentstruktur des
+ *     Part-11-*Transaction-Response* (mit `summary`, den pro Aktion gegliederten Ergebnis-Arrays
+ *     und gegebenenfalls einem `exceptions[]`-Array), so dass Clients zum Auswerten der Antwort
+ *     nicht nach Statuscode unterscheiden müssen.
  * @limitationsEn The following restrictions apply:
  *     <p><code>
  * - Provider and request scope:
