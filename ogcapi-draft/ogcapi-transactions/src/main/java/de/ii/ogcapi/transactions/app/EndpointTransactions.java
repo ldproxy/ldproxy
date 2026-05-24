@@ -17,6 +17,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import dagger.Lazy;
 import de.ii.ogcapi.crs.domain.CrsSupport;
+import de.ii.ogcapi.crs.domain.HeaderContentCrs;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -406,7 +407,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       throw new BadRequestException("wfs:Transaction payloads are not enabled for this API");
     }
 
-    EpsgCrs requestCrs = HeaderContentCrsTransaction.parse(contentCrsHeader, apiData, crsSupport);
+    EpsgCrs requestCrs = HeaderContentCrs.parse(contentCrsHeader, apiData, crsSupport);
 
     HeaderPrefer.Handling handling =
         HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);

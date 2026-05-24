@@ -5,13 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.crud.app;
+package de.ii.ogcapi.crs.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.crs.domain.CrsConfiguration;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.crs.domain.HeaderContentCrs;
-import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
@@ -24,25 +23,25 @@ import java.util.Optional;
 
 @Singleton
 @AutoBind
-public class HeaderContentCrsCrud extends HeaderContentCrs {
+public class HeaderContentCrsFeatures extends HeaderContentCrs {
 
   @Inject
-  HeaderContentCrsCrud(SchemaValidator schemaValidator, CrsSupport crsSupport) {
+  HeaderContentCrsFeatures(SchemaValidator schemaValidator, CrsSupport crsSupport) {
     super(schemaValidator, crsSupport);
   }
 
   @Override
   public String getId() {
-    return "ContentCrsCrudFeature";
+    return "ContentCrsFeatures";
   }
 
   @Override
   public String getDescription() {
-    return "The coordinate reference system of coordinates in the request.";
+    return "The coordinate reference system of coordinates in the response.";
   }
 
   @Override
-  public boolean isRequestHeader() {
+  public boolean isResponseHeader() {
     return true;
   }
 
@@ -52,29 +51,28 @@ public class HeaderContentCrsCrud extends HeaderContentCrs {
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
-                && ((method == HttpMethods.POST && definitionPath.endsWith("/items"))
-                    || (method == HttpMethods.PUT
-                        && definitionPath.endsWith("/items/{featureId}"))));
+                && method == HttpMethods.GET
+                && (definitionPath.endsWith("/items")
+                    || definitionPath.endsWith("/items/{featureId}")));
   }
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return isExtensionEnabled(apiData, CrudConfiguration.class)
-        && isExtensionEnabled(apiData, CrsConfiguration.class);
+    return isExtensionEnabled(apiData, CrsConfiguration.class);
   }
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return CrudConfiguration.class;
+    return CrsConfiguration.class;
   }
 
   @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return CrudBuildingBlock.MATURITY;
+    return CrsBuildingBlock.MATURITY;
   }
 
   @Override
   public Optional<ExternalDocumentation> getSpecificationRef() {
-    return CrudBuildingBlock.SPEC;
+    return CrsBuildingBlock.SPEC;
   }
 }
