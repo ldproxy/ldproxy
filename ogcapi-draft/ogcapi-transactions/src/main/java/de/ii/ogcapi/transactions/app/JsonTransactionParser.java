@@ -56,6 +56,11 @@ import java.util.Optional;
  *   <li>Any {@code id}/{@code title}/{@code description} appearing after {@code items} is silently
  *       skipped, as the action header has already been emitted to the executor.
  * </ul>
+ *
+ * <p>Consecutive insert actions that target the same collection and that carry no distinguishing
+ * identity ({@code id}/{@code title}/{@code description}) are coalesced into one {@link TxInsert}
+ * so the executor's batch path covers them. An action that sets one of those fields keeps its own
+ * {@link TxInsert} so the response can map an {@code ActionResult} back to it.
  */
 @Singleton
 @AutoBind
@@ -219,7 +224,7 @@ public class JsonTransactionParser implements TransactionParser {
           throw new IllegalArgumentException(
               "transaction[" + index + "] must be a JSON object, got " + t);
         }
-        pending = parseAction();
+        pending = parseAction(null);
         index++;
         return true;
       } catch (IOException e) {
@@ -239,11 +244,58 @@ public class JsonTransactionParser implements TransactionParser {
     }
 
     /**
+     * Called by a {@link StreamingInsert} whose own {@code items[]} array has just been drained and
+     * whose enclosing action object has been read to {@code END_OBJECT}. Peeks the next
+     * transaction-array element: if it is another insert action targeting {@code
+     * coalesceCollectionId} and carrying no distinguishing identity ({@code id}/{@code
+     * title}/{@code description}), the parser is advanced into that action's {@code items[]} array
+     * and {@code true} is returned, so the caller can keep pulling features into the same {@link
+     * TxInsert}. Otherwise the next action is fully parsed and stashed in {@link #pending} (or the
+     * iterator is marked exhausted) and {@code false} is returned.
+     *
+     * <p>Coalescing skips actions that carry a distinguishing identity so that response-shape (one
+     * ActionResult per identifying action) is preserved when callers opt in by setting one of those
+     * fields; the common bulk-insert case where they are all absent still collapses to a single
+     * {@code Session.createFeatures} batch.
+     */
+    boolean tryContinueInsert(String coalesceCollectionId) throws IOException {
+      JsonToken t = parser.nextToken();
+      if (t == JsonToken.END_ARRAY) {
+        exhausted = true;
+        return false;
+      }
+      if (t != JsonToken.START_OBJECT) {
+        throw new IllegalArgumentException(
+            "transaction[" + index + "] must be a JSON object, got " + t);
+      }
+      TxAction next = parseAction(coalesceCollectionId);
+      index++;
+      if (next == null) {
+        // Coalesced: parser is positioned inside the next action's items[] array; the current
+        // StreamingInsert's iterator continues. previous (the original StreamingInsert) stays
+        // unchanged — its drainRemainder() will drain whichever action object is current when
+        // the merged iterator finally stops.
+        return true;
+      }
+      pending = next;
+      return false;
+    }
+
+    /**
      * Parses one action object. Parser is at START_OBJECT on entry; on return it is at END_OBJECT
      * (eager actions) or at the start of {@code items}'s value array (streaming insert; the
      * returned {@link StreamingInsert} will drain to END_OBJECT lazily).
+     *
+     * <p>When {@code coalesceCollectionId} is non-null, this is being called from {@link
+     * #tryContinueInsert(String)} on behalf of an in-flight {@link StreamingInsert}. If the parsed
+     * action turns out to be an indistinguishable insert ({@code action == "insert"}, same
+     * collection, no {@code id}/{@code title}/{@code description}), this method returns {@code
+     * null} with the parser positioned at the {@code START_ARRAY} of the next action's {@code
+     * items} — the caller's iterator keeps reading features into the merged TxInsert. In every
+     * other case the next action is parsed and returned normally so the caller can stash it as a
+     * separate pending action.
      */
-    private TxAction parseAction() throws IOException {
+    private TxAction parseAction(String coalesceCollectionId) throws IOException {
       String action = null;
       String collectionId = null;
       Optional<String> actionId = Optional.empty();
@@ -291,6 +343,19 @@ public class JsonTransactionParser implements TransactionParser {
             feature = MAPPER.readTree(parser);
             break;
           case "items":
+            if (coalesceCollectionId != null
+                && action != null
+                && TxActionType.INSERT.toJsonValue().equalsIgnoreCase(action)
+                && coalesceCollectionId.equals(collectionId)
+                && actionId.isEmpty()
+                && title.isEmpty()
+                && description.isEmpty()) {
+              if (parser.currentToken() != JsonToken.START_ARRAY) {
+                throw new IllegalArgumentException(
+                    "transaction[" + actionIndex + "].items must be an array");
+              }
+              return null;
+            }
             return startStreamingInsert(
                 actionIndex, action, collectionId, actionId, title, description);
           default:
@@ -375,7 +440,8 @@ public class JsonTransactionParser implements TransactionParser {
         throw new IllegalArgumentException(
             "transaction[" + actionIndex + "].items must be an array");
       }
-      return new StreamingInsert(parser, collectionId, actionId, title, description, actionIndex);
+      return new StreamingInsert(
+          this, parser, collectionId, actionId, title, description, actionIndex);
     }
 
     private TxAction buildReplace(
@@ -608,6 +674,7 @@ public class JsonTransactionParser implements TransactionParser {
    */
   private static final class StreamingInsert implements TxInsert {
 
+    private final JsonActionIterator parent;
     private final JsonParser parser;
     private final String collectionId;
     private final Optional<String> actionId;
@@ -615,16 +682,21 @@ public class JsonTransactionParser implements TransactionParser {
     private final Optional<String> description;
     private final int actionIndex;
     private boolean itemsConsumed;
+    // arrayDrained / objectDrained refer to the action object that the parser is currently
+    // inside. They reset across each successful coalesce step so drainRemainder() always
+    // targets the right action object.
     private boolean arrayDrained;
     private boolean objectDrained;
 
     StreamingInsert(
+        JsonActionIterator parent,
         JsonParser parser,
         String collectionId,
         Optional<String> actionId,
         Optional<String> title,
         Optional<String> description,
         int actionIndex) {
+      this.parent = parent;
       this.parser = parser;
       this.collectionId = collectionId;
       this.actionId = actionId;
@@ -667,33 +739,49 @@ public class JsonTransactionParser implements TransactionParser {
       itemsConsumed = true;
       return new Iterator<>() {
         private InsertItem next;
+        // featureIndex spans coalesced action boundaries so callers see continuous 1-based
+        // positions across a merged TxInsert.
         private int featureIndex = 0;
 
         @Override
         public boolean hasNext() {
           if (next != null) return true;
-          if (arrayDrained) return false;
           try {
-            JsonToken t = parser.nextToken();
-            if (t == JsonToken.END_ARRAY) {
-              arrayDrained = true;
-              return false;
+            while (true) {
+              if (arrayDrained) {
+                return false;
+              }
+              JsonToken t = parser.nextToken();
+              if (t == JsonToken.END_ARRAY) {
+                arrayDrained = true;
+                objectDrained = false;
+                drainObjectTail();
+                if (parent.tryContinueInsert(collectionId)) {
+                  // Parser now sits inside the next action's items[] array.
+                  arrayDrained = false;
+                  objectDrained = false;
+                  continue;
+                }
+                return false;
+              }
+              if (t != JsonToken.START_OBJECT) {
+                throw new IllegalArgumentException(
+                    "transaction[" + actionIndex + "].items must contain JSON Feature objects");
+              }
+              JsonNode feature = MAPPER.readTree(parser);
+              featureIndex++;
+              JsonNode idNode = feature.get("id");
+              Optional<String> featureId =
+                  idNode == null || idNode.isNull()
+                      ? Optional.empty()
+                      : Optional.of(idNode.asText());
+              next =
+                  new InsertItem(
+                      featureId,
+                      featureIndex,
+                      new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature)));
+              return true;
             }
-            if (t != JsonToken.START_OBJECT) {
-              throw new IllegalArgumentException(
-                  "transaction[" + actionIndex + "].items must contain JSON Feature objects");
-            }
-            JsonNode feature = MAPPER.readTree(parser);
-            featureIndex++;
-            JsonNode idNode = feature.get("id");
-            Optional<String> featureId =
-                idNode == null || idNode.isNull() ? Optional.empty() : Optional.of(idNode.asText());
-            next =
-                new InsertItem(
-                    featureId,
-                    featureIndex,
-                    new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature)));
-            return true;
           } catch (IOException e) {
             throw new UncheckedIOException(e);
           }
@@ -712,7 +800,8 @@ public class JsonTransactionParser implements TransactionParser {
     /**
      * Consumes any tokens remaining in this action's JSON object so the parent action iterator can
      * read the next action cleanly. Safe to call even if items() was never invoked or was only
-     * partially consumed.
+     * partially consumed. After coalescing, "this action" is whichever merged action object the
+     * parser is currently inside — drainRemainder targets that one.
      */
     void drainRemainder() throws IOException {
       if (!arrayDrained) {
@@ -726,8 +815,16 @@ public class JsonTransactionParser implements TransactionParser {
         }
         arrayDrained = true;
       }
+      drainObjectTail();
+    }
+
+    /**
+     * Drains any remaining FIELD_NAME / value pairs of the current action object up to and
+     * including its END_OBJECT. Precondition: the items array of the current action has already
+     * been fully consumed (arrayDrained semantics).
+     */
+    void drainObjectTail() throws IOException {
       if (objectDrained) return;
-      // drain any remaining FIELD_NAME / value pairs until END_OBJECT
       while (true) {
         JsonToken t = parser.nextToken();
         if (t == null || t == JsonToken.END_OBJECT) {

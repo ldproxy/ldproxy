@@ -300,6 +300,104 @@ class WfsTransactionParserSpec extends Specification {
         tx.close()
     }
 
+    def 'coalesce: consecutive wfs:Insert siblings of the same collection merge into one TxInsert with continuous indices'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert handle="ins-1">
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>2</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>3</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def it = tx.actions()
+        def merged = (TxInsert) it.next()
+        def items = merged.items()
+        def payloads = []
+        def indexes = []
+        while (items.hasNext()) {
+            def i = items.next()
+            indexes << i.indexInInsert()
+            payloads << new String(i.payload().readAllBytes(), 'UTF-8')
+        }
+
+        then:
+        merged.collectionId == 'AX_Buildings'
+        merged.actionId.orElse(null) == 'ins-1'
+        indexes == [1, 2, 3]
+        payloads[0].contains('<ax:id>1</ax:id>')
+        payloads[1].contains('<ax:id>2</ax:id>')
+        payloads[2].contains('<ax:id>3</ax:id>')
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'coalesce stops at a wfs:Insert sibling of a different collection: two TxInserts emitted'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Insert>
+                <ax:AX_Roads><ax:id>r1</ax:id></ax:AX_Roads>
+              </wfs:Insert>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def it = tx.actions()
+        def first = (TxInsert) it.next()
+        def second = (TxInsert) it.next()
+
+        then:
+        first.collectionId == 'AX_Buildings'
+        second.collectionId == 'AX_Roads'
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'coalesce skips a wfs:Insert sibling that carries its own handle (per-action identity preserved)'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert handle="ins-1">
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Insert handle="ins-2">
+                <ax:AX_Buildings><ax:id>2</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def it = tx.actions()
+        def first = (TxInsert) it.next()
+        def second = (TxInsert) it.next()
+
+        then:
+        first.actionId.orElse(null) == 'ins-1'
+        second.actionId.orElse(null) == 'ins-2'
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
     def 'multiple actions stream in document order across Insert/Update/Delete'() {
         given:
         def body = '''<?xml version="1.0"?>

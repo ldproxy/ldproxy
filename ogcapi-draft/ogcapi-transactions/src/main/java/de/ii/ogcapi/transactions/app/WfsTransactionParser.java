@@ -62,6 +62,11 @@ import javax.xml.stream.events.XMLEvent;
  * wfs:Update}, {@code wfs:Replace} and {@code wfs:Delete} are buffered eagerly (one feature for
  * replace; metadata only for the others).
  *
+ * <p>Consecutive sibling {@code wfs:Insert} elements that all carry features of the same single
+ * collection and that do not declare their own {@code handle} are additionally coalesced into one
+ * {@code TxInsert}, so the batch path keeps spanning them. A sibling with a {@code handle}
+ * preserves per-action identity and stops the merge.
+ *
  * <p>Supports only {@code fes:ResourceId@rid} filters per GeoInfoDok §§ 5.1.5 and 5.4. The local
  * part of {@code typeName} (or root element QName) is stored as the action's {@code collectionId} —
  * for ALKIS/NAS this matches the ldproxy collection id directly.
@@ -262,21 +267,21 @@ public class WfsTransactionParser implements TransactionParser {
             // would land as its own SingleItemInsert (N=1) and the multi-row INSERT path stays
             // idle. Children of different collection types in the same wfs:Insert produce one
             // BufferedInsert per group, queued in pendingActions.
+            //
+            // Coalesce extension: consecutive sibling wfs:Insert elements (no handle on the
+            // sibling, so per-action identity isn't being relied on) whose features all map to
+            // the single collection bucket already being built are absorbed into the same
+            // BufferedInsert — that way the executor batch path covers them too. The handle on
+            // the first wfs:Insert (if any) becomes the merged action's actionId; further
+            // siblings that bring in a different collection or carry their own handle stop the
+            // coalesce loop.
             Optional<String> handle = Optional.ofNullable(attribute(start, "handle"));
             Map<String, List<BufferedItem>> byCollection = new LinkedHashMap<>();
-            int featureIndex = 0;
-            while (reader.hasNext()) {
-              XMLEvent e = reader.nextEvent();
-              if (e.isEndElement() && isWfs(e.asEndElement().getName(), "Insert")) break;
-              if (!e.isStartElement()) continue;
-              StartElement feature = e.asStartElement();
-              String collectionId = feature.getName().getLocalPart();
-              Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
-              byte[] payload = copySubtree(reader, feature, root, start);
-              featureIndex++;
-              byCollection
-                  .computeIfAbsent(collectionId, k -> new ArrayList<>())
-                  .add(new BufferedItem(gmlId, featureIndex, payload));
+            int[] featureIndex = {0};
+            consumeWfsInsertChildren(start, byCollection, featureIndex);
+            while (byCollection.size() == 1 && nextSiblingIsCoalescableInsert(reader)) {
+              StartElement nextInsertStart = reader.nextEvent().asStartElement();
+              consumeWfsInsertChildren(nextInsertStart, byCollection, featureIndex);
             }
             if (byCollection.isEmpty()) {
               continue; // empty wfs:Insert — move on to next sibling
@@ -300,6 +305,55 @@ public class WfsTransactionParser implements TransactionParser {
             break;
         }
       }
+    }
+
+    /**
+     * Reads every feature child of one {@code wfs:Insert} into {@code byCollection}, keyed by the
+     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag. {@code
+     * featureIndex} is a single-element int holding the running 1-based position used across one or
+     * more wfs:Insert elements that get merged into the same TxInsert.
+     */
+    private void consumeWfsInsertChildren(
+        StartElement insertStart, Map<String, List<BufferedItem>> byCollection, int[] featureIndex)
+        throws XMLStreamException {
+      while (reader.hasNext()) {
+        XMLEvent e = reader.nextEvent();
+        if (e.isEndElement() && isWfs(e.asEndElement().getName(), "Insert")) return;
+        if (!e.isStartElement()) continue;
+        StartElement feature = e.asStartElement();
+        String collectionId = feature.getName().getLocalPart();
+        Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
+        byte[] payload = copySubtree(reader, feature, root, insertStart);
+        featureIndex[0]++;
+        byCollection
+            .computeIfAbsent(collectionId, k -> new ArrayList<>())
+            .add(new BufferedItem(gmlId, featureIndex[0], payload));
+      }
+    }
+
+    /**
+     * Peeks past whitespace/comments to the next sibling event of the enclosing wfs:Transaction
+     * (does not consume non-trivial events). Returns true iff the next event is a {@code
+     * <wfs:Insert>} start tag with no {@code handle} attribute — i.e. a candidate for being merged
+     * into the in-flight TxInsert. A handle on the sibling signals the caller cares about
+     * per-action identity, so it stops the merge.
+     */
+    private boolean nextSiblingIsCoalescableInsert(XMLEventReader reader)
+        throws XMLStreamException {
+      while (reader.hasNext()) {
+        XMLEvent peeked = reader.peek();
+        if (peeked == null) return false;
+        if (peeked.isStartElement()) {
+          StartElement se = peeked.asStartElement();
+          if (!isWfs(se.getName(), "Insert")) return false;
+          return attribute(se, "handle") == null;
+        }
+        if (peeked.isEndElement()) {
+          return false;
+        }
+        reader.nextEvent();
+      }
+      return false;
     }
 
     private TxAction parseReplace(StartElement replaceStart) throws XMLStreamException {

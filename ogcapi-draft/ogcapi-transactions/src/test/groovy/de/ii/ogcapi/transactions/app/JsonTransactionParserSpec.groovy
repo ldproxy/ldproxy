@@ -432,4 +432,138 @@ class JsonTransactionParserSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
+
+    def 'coalesce: consecutive identity-free same-collection inserts merge into one TxInsert with continuous indices'() {
+        // given: three back-to-back inserts targeting the same collection, no id/title/description
+        def body = '''{
+          "transaction": [
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "1", "properties": null, "geometry": null},
+               {"type": "Feature", "id": "2", "properties": null, "geometry": null}
+            ]},
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "3", "properties": null, "geometry": null}
+            ]},
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "4", "properties": null, "geometry": null}
+            ]}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def it = tx.actions()
+        def merged = (TxInsert) it.next()
+        def itemIds = []
+        def itemIndexes = []
+        merged.items().forEachRemaining { item ->
+            itemIndexes << item.indexInInsert()
+            itemIds << item.featureId().orElse(null)
+            item.payload().readAllBytes() // drain to keep parser advancing
+        }
+
+        then: 'parent iterator sees one TxInsert; merged action carries all four features'
+        merged.collectionId == 'buildings'
+        itemIds == ['1', '2', '3', '4']
+        and: '1-based positions span coalesced actions continuously'
+        itemIndexes == [1, 2, 3, 4]
+        and: 'no further actions remain'
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'coalesce stops at a different collection: produces two TxInserts'() {
+        given:
+        def body = '''{
+          "transaction": [
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "1", "properties": null, "geometry": null}
+            ]},
+            {"action": "insert", "collection": "roads", "items": [
+               {"type": "Feature", "id": "a", "properties": null, "geometry": null}
+            ]}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def it = tx.actions()
+        def first = (TxInsert) it.next()
+        first.items().forEachRemaining { item -> item.payload().readAllBytes() }
+        def second = (TxInsert) it.next()
+        second.items().forEachRemaining { item -> item.payload().readAllBytes() }
+
+        then:
+        first.collectionId == 'buildings'
+        second.collectionId == 'roads'
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'coalesce stops at a non-insert action interleaved between same-collection inserts'() {
+        given:
+        def body = '''{
+          "transaction": [
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "1", "properties": null, "geometry": null}
+            ]},
+            {"action": "delete", "collection": "buildings", "filter": { "op": "=", "args": [ { "property": "id" }, "9" ] }},
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "2", "properties": null, "geometry": null}
+            ]}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def it = tx.actions()
+        def first = (TxInsert) it.next()
+        first.items().forEachRemaining { item -> item.payload().readAllBytes() }
+        def second = it.next()
+        def third = (TxInsert) it.next()
+        third.items().forEachRemaining { item -> item.payload().readAllBytes() }
+
+        then:
+        first.type == TxActionType.INSERT
+        second.type == TxActionType.DELETE
+        third.type == TxActionType.INSERT
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'coalesce skips an insert that declares its own id (per-action identity preserved)'() {
+        given:
+        def body = '''{
+          "transaction": [
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "1", "properties": null, "geometry": null}
+            ]},
+            {"action": "insert", "collection": "buildings", "id": "a2", "items": [
+               {"type": "Feature", "id": "2", "properties": null, "geometry": null}
+            ]}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def it = tx.actions()
+        def first = (TxInsert) it.next()
+        first.items().forEachRemaining { item -> item.payload().readAllBytes() }
+        def second = (TxInsert) it.next()
+        second.items().forEachRemaining { item -> item.payload().readAllBytes() }
+
+        then: 'each action becomes its own TxInsert, identifying id flows through to the second one'
+        first.actionId.orElse(null) == null
+        second.actionId.orElse(null) == 'a2'
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
 }
