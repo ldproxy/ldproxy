@@ -190,6 +190,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private final SchemaFactory factory;
   private final ConcurrentMap<Integer, ConcurrentMap<String, Schema>> schemaCache =
       new ConcurrentHashMap<>();
+  private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
+      new ConcurrentHashMap<>();
 
   @Inject
   public FeaturesFormatGml(
@@ -451,13 +453,19 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     Map<String, String> namespaces = new LinkedHashMap<>(STANDARD_NAMESPACES);
     namespaces.putAll(config.getApplicationNamespaces());
 
+    SchemaMapping mapping =
+        schemaMappingCache
+            .computeIfAbsent(decoderContext.getApiData().hashCode(), k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(
+                decoderContext.getCollectionId(), k -> SchemaMapping.of(featureSchema));
+
     return Optional.of(
         new FeatureTokenDecoderGml(
             namespaces,
             List.of(featureTypeQName(featureSchema, config, namespaces)),
             featureSchema,
             ImmutableFeatureQuery.builder().type(featureSchema.getName()).build(),
-            Map.of(featureSchema.getName(), SchemaMapping.of(featureSchema)),
+            Map.of(featureSchema.getName(), mapping),
             decoderContext.getCrs(),
             Optional.empty(),
             Optional.empty(),
