@@ -47,15 +47,19 @@ import de.ii.ogcapi.transactions.domain.TxUpdate;
 import de.ii.xtraplatform.cql.domain.In;
 import de.ii.xtraplatform.cql.domain.Scalar;
 import de.ii.xtraplatform.cql.domain.ScalarLiteral;
+import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenSource;
 import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.MutationResult;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.Session;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
@@ -67,6 +71,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -74,10 +79,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.threeten.extra.Interval;
 
 @Singleton
 @AutoBind
@@ -188,9 +195,11 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
     }
 
+    boolean commitSucceeded = false;
     if (firstError == null) {
       try {
         sessionsByProvider.values().forEach(Session::commit);
+        commitSucceeded = true;
       } catch (RuntimeException e) {
         // commit failed — flip every recorded SUCCESS to FAILED with the commit error,
         // rollback whatever can still be rolled back
@@ -202,6 +211,10 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       rollbackQuietly(sessionsByProvider.values());
     }
     closeQuietly(sessionsByProvider.values());
+
+    if (commitSucceeded) {
+      emitChanges(api, results);
+    }
 
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.ATOMIC)
@@ -255,6 +268,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         }
       }
     }
+
+    emitChanges(api, results);
 
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.BATCH)
@@ -314,6 +329,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
     List<FeatureTokenSource> batch = new ArrayList<>(INSERT_BATCH_SIZE);
     List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
+    ExtentAccumulator extents = new ExtentAccumulator();
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       InsertItem item = items.next();
@@ -350,14 +366,14 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       if (batch.size() >= INSERT_BATCH_SIZE) {
         ActionResult failed =
             flushInsertBatch(
-                action, apiData, session, featureType, batch, batchItems, requestCrs, ids);
+                action, apiData, session, featureType, batch, batchItems, requestCrs, ids, extents);
         if (failed != null) return failed;
       }
     }
     if (!batch.isEmpty()) {
       ActionResult failed =
           flushInsertBatch(
-              action, apiData, session, featureType, batch, batchItems, requestCrs, ids);
+              action, apiData, session, featureType, batch, batchItems, requestCrs, ids, extents);
       if (failed != null) return failed;
     }
 
@@ -385,6 +401,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .failedFeatureIds(skippedIds)
         .failedFeatureIndexes(skippedIndexes)
         .failedFeatureErrors(skippedErrors)
+        .newBoundingBox(extents.bbox())
+        .newInterval(extents.intervalMillis())
         .build();
   }
 
@@ -401,11 +419,13 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       List<FeatureTokenSource> batch,
       List<InsertItem> batchItems,
       EpsgCrs crs,
-      List<String> ids) {
+      List<String> ids,
+      ExtentAccumulator extents) {
     try {
       MutationResult mr = session.createFeatures(featureType, batch, crs);
       rejectIfError(mr);
       ids.addAll(mr.getIds());
+      extents.merge(mr.getSpatialExtent(), mr.getTemporalExtent());
       batch.clear();
       batchItems.clear();
       return null;
@@ -496,6 +516,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(mr.getIds().isEmpty() ? List.of(id) : mr.getIds())
+        .newBoundingBox(mr.getSpatialExtent())
+        .newInterval(toIntervalMillis(mr.getTemporalExtent()))
         .build();
   }
 
@@ -569,6 +591,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     }
 
     List<String> updatedIds = new ArrayList<>();
+    ExtentAccumulator extents = new ExtentAccumulator();
     for (String id : targetIds) {
       // Apply the JSON-merge-patch and write the FULL merged document through the partial-
       // update path. The provider's partial-update is delete-then-reinsert from the body, so
@@ -597,6 +620,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       } else {
         updatedIds.addAll(mr.getIds());
       }
+      extents.merge(mr.getSpatialExtent(), mr.getTemporalExtent());
     }
 
     return new ImmutableActionResult.Builder()
@@ -605,6 +629,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(updatedIds)
+        .newBoundingBox(extents.bbox())
+        .newInterval(extents.intervalMillis())
         .build();
   }
 
@@ -856,6 +882,162 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .build();
   }
 
+  // --- change emission ------------------------------------------------------
+
+  /**
+   * Aggregate successful action results by (collection, mapped {@link FeatureChange.Action}) and
+   * dispatch one {@link FeatureChange} per group to the affected provider. Mirrors the post-write
+   * hook in {@code CommandHandlerCrudImpl} so collection metadata (item count, spatial extent,
+   * temporal extent, lastModified) stays in sync after a transaction. Mapping: INSERT→CREATE,
+   * REPLACE/UPDATE→UPDATE, DELETE→DELETE. Aggregating across actions yields the "effective" delta
+   * per collection — both atomic transactions and batch transactions with multiple successful
+   * same-collection actions emit a single event per (collection, action). Failures are swallowed:
+   * change emission is best-effort and must never break the response.
+   *
+   * <p>Package-private to enable direct exercise from {@code TransactionExecutorChangesSpec}.
+   */
+  void emitChanges(OgcApi api, List<ActionResult> results) {
+    try {
+      Map<ChangeKey, ChangeAggregate> aggregates = new LinkedHashMap<>();
+      for (ActionResult r : results) {
+        if (r.getStatus() != ActionStatus.SUCCESS) continue;
+        if (r.getFeatureIds().isEmpty()) continue;
+        FeatureChange.Action mapped = mapAction(r.getType());
+        ChangeKey key = new ChangeKey(r.getCollectionId(), mapped);
+        aggregates
+            .computeIfAbsent(key, k -> new ChangeAggregate())
+            .add(r.getFeatureIds(), r.getNewBoundingBox(), r.getNewInterval());
+      }
+      for (Map.Entry<ChangeKey, ChangeAggregate> e : aggregates.entrySet()) {
+        ChangeKey key = e.getKey();
+        ChangeAggregate agg = e.getValue();
+        de.ii.xtraplatform.features.domain.FeatureChanges sink;
+        try {
+          sink = resolveChanges(api, key.collectionId);
+        } catch (RuntimeException re) {
+          LOGGER.warn(
+              "Could not resolve feature provider for collection '{}' while emitting change: {}",
+              key.collectionId,
+              re.getMessage());
+          continue;
+        }
+        FeatureChange change =
+            ImmutableFeatureChange.builder()
+                .action(key.action)
+                .featureType(key.collectionId)
+                .featureIds(List.copyOf(agg.ids))
+                .newBoundingBox(agg.bbox)
+                .newInterval(agg.interval)
+                .build();
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Feature Change: {}", change);
+        }
+        try {
+          sink.handle(change);
+        } catch (RuntimeException re) {
+          LOGGER.warn(
+              "Dispatching feature change for collection '{}' failed: {}",
+              key.collectionId,
+              re.getMessage());
+        }
+      }
+    } catch (RuntimeException e) {
+      LOGGER.warn("Emitting transaction feature changes failed", e);
+    }
+  }
+
+  private static FeatureChange.Action mapAction(TxActionType type) {
+    return switch (type) {
+      case INSERT -> FeatureChange.Action.CREATE;
+      case REPLACE, UPDATE -> FeatureChange.Action.UPDATE;
+      case DELETE -> FeatureChange.Action.DELETE;
+    };
+  }
+
+  private static Optional<Interval> toIntervalMillis(Optional<Tuple<Long, Long>> extent) {
+    if (extent.isEmpty()) return Optional.empty();
+    Long begin = extent.get().first();
+    Long end = extent.get().second();
+    Instant beginInstant = Objects.nonNull(begin) ? Instant.ofEpochMilli(begin) : Instant.MIN;
+    Instant endInstant = Objects.nonNull(end) ? Instant.ofEpochMilli(end) : Instant.MAX;
+    return Optional.of(Interval.of(beginInstant, endInstant));
+  }
+
+  // Mutable accumulator that folds successive MutationResult extents from a streaming insert
+  // batch or per-id update loop into a single union bbox / interval. Kept package-private only
+  // to allow direct field access from runInsert / runUpdate above.
+  private static final class ExtentAccumulator {
+    private BoundingBox bbox;
+    private Long beginMillis;
+    private Long endMillis;
+
+    void merge(Optional<BoundingBox> nextBbox, Optional<Tuple<Long, Long>> nextInterval) {
+      nextBbox.ifPresent(b -> bbox = (bbox == null) ? b : BoundingBox.merge(bbox, b));
+      nextInterval.ifPresent(
+          iv -> {
+            Long b = iv.first();
+            Long e = iv.second();
+            if (b != null) beginMillis = (beginMillis == null) ? b : Math.min(beginMillis, b);
+            if (e != null) endMillis = (endMillis == null) ? e : Math.max(endMillis, e);
+          });
+    }
+
+    Optional<BoundingBox> bbox() {
+      return Optional.ofNullable(bbox);
+    }
+
+    Optional<Interval> intervalMillis() {
+      if (beginMillis == null && endMillis == null) return Optional.empty();
+      Instant begin = beginMillis != null ? Instant.ofEpochMilli(beginMillis) : Instant.MIN;
+      Instant end = endMillis != null ? Instant.ofEpochMilli(endMillis) : Instant.MAX;
+      return Optional.of(Interval.of(begin, end));
+    }
+  }
+
+  private static final class ChangeKey {
+    final String collectionId;
+    final FeatureChange.Action action;
+
+    ChangeKey(String collectionId, FeatureChange.Action action) {
+      this.collectionId = collectionId;
+      this.action = action;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (!(o instanceof ChangeKey)) return false;
+      ChangeKey other = (ChangeKey) o;
+      return action == other.action && collectionId.equals(other.collectionId);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(collectionId, action);
+    }
+  }
+
+  private static final class ChangeAggregate {
+    final LinkedHashSet<String> ids = new LinkedHashSet<>();
+    Optional<BoundingBox> bbox = Optional.empty();
+    Optional<Interval> interval = Optional.empty();
+
+    void add(
+        List<String> nextIds, Optional<BoundingBox> nextBbox, Optional<Interval> nextInterval) {
+      ids.addAll(nextIds);
+      if (nextBbox.isPresent()) {
+        bbox =
+            bbox.isEmpty() ? nextBbox : Optional.of(BoundingBox.merge(bbox.get(), nextBbox.get()));
+      }
+      if (nextInterval.isPresent()) {
+        interval =
+            interval.isEmpty()
+                ? nextInterval
+                : Optional.of(interval.get().span(nextInterval.get()));
+      }
+    }
+  }
+
   // --- helpers --------------------------------------------------------------
 
   private FeatureProvider resolveProvider(OgcApi api, String collectionId) {
@@ -866,6 +1048,14 @@ public class TransactionExecutorImpl implements TransactionExecutor {
             () ->
                 new IllegalArgumentException(
                     "No feature provider available for collection '" + collectionId + "'"));
+  }
+
+  // Package-private (rather than private) only so that {@code TransactionExecutorChangesSpec}
+  // can swap the resolution out via an anonymous subclass — mocking the full FeatureProvider
+  // graph drags in cache / unit-of-measure classes that aren't on the test classpath.
+  de.ii.xtraplatform.features.domain.FeatureChanges resolveChanges(
+      OgcApi api, String collectionId) {
+    return resolveProvider(api, collectionId).changes();
   }
 
   private static String canonicalCollectionId(OgcApiDataV2 apiData, String collectionId) {

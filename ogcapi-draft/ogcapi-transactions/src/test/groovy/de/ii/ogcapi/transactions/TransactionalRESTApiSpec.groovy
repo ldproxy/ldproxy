@@ -143,6 +143,21 @@ class TransactionalRESTApiSpec extends Specification {
     @Shared String phase8RejectedId = String.format('%s%08d', idPrefix, 98)
     @Shared List<byte[]> fixtures = loadFixtures()
 
+    /**
+     * Collection {@code itemCount} captured by phase {@code A0} before any test write. Set to
+     * {@code null} if the collection metadata does not expose an item count, in which case the
+     * metadata round-trip phases ({@code A1}, {@code A2}) skip the count assertion (but still
+     * exercise the {@code lastModified} assertion when the server publishes that field).
+     */
+    @Shared Long baselineItemCount
+    /**
+     * Collection {@code lastModified} captured by phase {@code A0}. Optional in the OGC API
+     * Collections response; when present, must advance after a successful write transaction
+     * (proves {@code featureProvider.changes().handle(...)} ran and the listener bumped the
+     * collection's last-modified clock).
+     */
+    @Shared String baselineLastModified
+
     // @Shared so the client is available in cleanupSpec — Spock does not guarantee instance-field
     // visibility from cleanupSpec, which previously caused the cleanup delete to be silently
     // dropped (NPE swallowed by deleteAllQuietly's try/catch), leaving test features in the DB.
@@ -395,6 +410,54 @@ class TransactionalRESTApiSpec extends Specification {
                 Math.abs(a[2] - b[2]) <= tol && Math.abs(a[3] - b[3]) <= tol
     }
 
+    /**
+     * GET /collections/{cid}?f=json and return the parsed JSON document. Used by the metadata
+     * round-trip phases ({@code A0}, {@code A1}, {@code A2}) to check that the
+     * {@code featureProvider.changes().handle(...)} dispatch performed by the executor after each
+     * transaction is keeping the collection's {@code itemCount} / {@code lastModified} fields
+     * current. The receivable / CRS phases above intentionally do not exercise this path.
+     */
+    Map fetchCollectionMeta() {
+        String url = "${sutUrl}${sutPath}/collections/${jsonCollectionId()}?f=json"
+        def req = HttpRequest.newBuilder(URI.create(url))
+                .header('Accept', 'application/json')
+                .GET()
+                .build()
+        def resp = httpClient.send(req, BodyHandlers.ofString())
+        if (resp.statusCode() != 200) {
+            throw new IllegalStateException(
+                    "GET ${url} returned ${resp.statusCode()}: ${resp.body()}")
+        }
+        return (Map) new JsonSlurper().parseText(resp.body())
+    }
+
+    /**
+     * Extract the (nullable) {@code itemCount} from the collection metadata. Returns {@code null}
+     * if the field is absent — some collection configurations don't expose a count, and the spec
+     * is tolerant of that.
+     */
+    static Long itemCount(Map collection) {
+        Object raw = collection.get('itemCount')
+        return raw instanceof Number ? ((Number) raw).longValue() : null
+    }
+
+    /**
+     * Poll the collection metadata up to ~5s waiting for {@code itemCount} to reach
+     * {@code expected}. Returns the final document. Change emission is async (single-threaded
+     * executor inside {@code FeatureChangeHandlerImpl}); without a wait the metadata can still be
+     * stale right after a successful POST returns.
+     */
+    Map waitForItemCount(Long expected) {
+        Map last = null
+        for (int i = 0; i < 50; i++) {
+            last = fetchCollectionMeta()
+            Long got = itemCount(last)
+            if (Objects.equals(got, expected)) return last
+            Thread.sleep(100)
+        }
+        return last
+    }
+
     /** Best-effort delete of every generated id; tolerates partial state from a failed run. */
     void deleteAllQuietly() {
         try {
@@ -413,6 +476,20 @@ class TransactionalRESTApiSpec extends Specification {
     // -----------------------------------------------------------------------------------------
     // Phases
     // -----------------------------------------------------------------------------------------
+
+    def 'phase A0: capture baseline collection metadata before any test write'() {
+        when:
+        Map meta = fetchCollectionMeta()
+        // Capture into @Shared state for the later A1 / A2 phases. itemCount and lastModified are
+        // both optional in the OGC API Collections response, so either may be null — the later
+        // phases skip the assertion when the baseline is null.
+        baselineItemCount = itemCount(meta)
+        baselineLastModified = (String) meta.get('lastModified')
+
+        then: 'GET succeeds and exposes a collection id'
+        meta != null
+        meta.get('id') != null
+    }
 
     def 'phase 1: insert all five AX_Flurstueck features in one atomic wfs:Transaction'() {
         when:
@@ -840,6 +917,30 @@ class TransactionalRESTApiSpec extends Specification {
         !((Map) doc.properties).containsKey('geometry')
     }
 
+    def 'phase A1: collection metadata reflects accumulated inserts before delete-all'() {
+        // 9 features net inserted by earlier phases: 5 (phase 1) + 1 (phase 3i) + 3 (phases 5-7).
+        // Replaces and updates do not change item count. Phase 8 was rejected.
+        when:
+        Map meta = baselineItemCount != null
+                ? waitForItemCount(baselineItemCount + 9L)
+                : fetchCollectionMeta()
+
+        then: 'itemCount tracks the inserts when the collection exposes it'
+        if (baselineItemCount != null) {
+            assert itemCount(meta) == baselineItemCount + 9L :
+                    "expected ${baselineItemCount + 9L} but got ${itemCount(meta)} — " +
+                            "featureProvider.changes().handle(...) did not run or the listener " +
+                            "didn't bump itemCount"
+        }
+
+        and: 'lastModified moved when the collection exposes it'
+        if (baselineLastModified != null) {
+            assert meta.get('lastModified') != null
+            assert ((String) meta.get('lastModified')) != baselineLastModified :
+                    "lastModified did not advance — change emission may be wired off"
+        }
+    }
+
     def 'phase 4: delete every inserted test feature to restore the prior state'() {
         when:
         // Filter covers testIds[0..4] (phase 1) + partialOkId (phase 3i) + crsTestIds[0..2]
@@ -855,5 +956,20 @@ class TransactionalRESTApiSpec extends Specification {
         doc.summary.totalDeleted == 9
         doc.deleteResults instanceof List
         doc.deleteResults.size() == 9
+    }
+
+    def 'phase A2: collection metadata returns to baseline after delete-all'() {
+        when:
+        Map meta = baselineItemCount != null
+                ? waitForItemCount(baselineItemCount)
+                : fetchCollectionMeta()
+
+        then: 'itemCount is back to baseline when the collection exposes it'
+        if (baselineItemCount != null) {
+            assert itemCount(meta) == baselineItemCount :
+                    "expected itemCount to return to ${baselineItemCount} but got " +
+                            "${itemCount(meta)} — the DELETE branch of " +
+                            "featureProvider.changes().handle(...) did not run"
+        }
     }
 }

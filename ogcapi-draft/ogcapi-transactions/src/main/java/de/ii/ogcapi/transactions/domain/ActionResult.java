@@ -7,9 +7,12 @@
  */
 package de.ii.ogcapi.transactions.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import de.ii.xtraplatform.crs.domain.BoundingBox;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
+import org.threeten.extra.Interval;
 
 /** Per-action result of an executed transaction. */
 @Value.Immutable
@@ -70,4 +73,20 @@ public interface ActionResult {
   default List<String> getFailedFeatureErrors() {
     return List.of();
   }
+
+  /**
+   * New spatial extent of the features touched by this action, when known. Executor-internal: used
+   * by the transactions command handler to feed {@code featureProvider.changes().handle(...)} so
+   * collection metadata (bbox / item count / lastModified) stays current; not part of the JSON
+   * response.
+   */
+  @JsonIgnore
+  Optional<BoundingBox> getNewBoundingBox();
+
+  /**
+   * New temporal extent of the features touched by this action, when known. Executor-internal, same
+   * use as {@link #getNewBoundingBox()}.
+   */
+  @JsonIgnore
+  Optional<Interval> getNewInterval();
 }
