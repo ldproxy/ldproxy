@@ -97,7 +97,10 @@ class ToInputProfileSpec extends Specification {
         ]
 
         and: 'list-of-pairs uomMappings flatten to a wire→canonical UoM map'
-        profile.uomMappings == ['m': 'urn:adv:uom:m', 'grad': 'urn:adv:uom:grad']
+        // The encoder list is keyed canonical→wire (uom: m, value: urn:adv:uom:m); the decoder
+        // looks up the *incoming* wire form (e.g. "urn:adv:uom:m2" attribute on amtlicheFlaeche)
+        // to compare against the schema's canonical unit, so the input profile flips the pair.
+        profile.uomMappings == ['urn:adv:uom:m': 'm', 'urn:adv:uom:grad': 'grad']
 
         and: 'variableObjectElementNames keeps property direction, reverses mapping direction'
         profile.variableObjectElementNames.containsKey('AX_DQOhneDatenerhebung')

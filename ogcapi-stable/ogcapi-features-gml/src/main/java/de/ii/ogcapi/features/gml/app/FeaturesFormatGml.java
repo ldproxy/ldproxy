@@ -379,13 +379,28 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     Comparator.comparingInt(GmlWriter::getSortPriority)));
 
     @SuppressWarnings("ConstantConditions")
-    GmlConfiguration config =
+    FeatureTypeConfigurationOgcApi collectionData =
         transformationContext
             .getApiData()
             .getCollections()
-            .get(transformationContext.getCollectionId())
-            .getExtension(GmlConfiguration.class)
-            .orElseThrow();
+            .get(transformationContext.getCollectionId());
+    GmlConfiguration config = collectionData.getExtension(GmlConfiguration.class).orElseThrow();
+    // When useAlias is on, the rename transformer (injected by FeatureSchemaAliases) rewrites
+    // schema names to their aliases, so GmlWriterProperties' runtime lookups
+    // (containsKey(schema.getFullPathAsString())) come in with alias-form paths. The config map
+    // keys, however, are written in technical names — that is the form the operator uses
+    // everywhere else (the SchemaConstraints.codelist on the schema, the decoder side, the
+    // provider config). Translate config-side technical paths to alias-form paths here so the
+    // runtime lookup matches; without this remap, codelist properties silently fall through to
+    // a plain <prop>value</prop> element instead of <prop xlink:href="…"/>, and xmlAttributes /
+    // valueWrap config entries are silently ignored for any aliased ancestor path.
+    Map<String, String> aliasRewrites =
+        config.isUseAlias()
+            ? providers
+                .getFeatureSchema(transformationContext.getApiData(), collectionData)
+                .map(FeaturesFormatGml::buildAliasPathRewrites)
+                .orElse(Map.of())
+            : Map.of();
     ImmutableFeatureTransformationContextGml transformationContextGml =
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
@@ -408,7 +423,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
             .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
-            .xmlAttributes(config.getXmlAttributes())
+            .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
             .srsNameMappings(config.getSrsNameMappings())
@@ -420,9 +435,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
                     && isDatetimeIntervalRequest(transformationContext))
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
-            .codelistProperties(config.getCodelistProperties())
+            .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
             .codelists(resolveCodelists(config.getCodelistProperties()))
-            .valueWrap(config.getValueWrap())
+            .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
@@ -579,9 +594,14 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         config.getSrsNameMappings().stream()
             .collect(
                 Collectors.toUnmodifiableMap(SrsNameMapping::getValue, SrsNameMapping::getCrs));
+    // Decoder needs wire→canonical (the inverse of the encoder direction):
+    // FeatureTokenDecoderGml.validateUom looks up the incoming `uom` attribute (wire form, e.g.
+    // 'urn:adv:uom:m2') and compares the result against the schema's unit (canonical, e.g. 'm2').
+    // The configured list-of-pairs is encoder-shaped (`uom: <canonical>, value: <wire>`), so the
+    // value/key roles flip here — mirrors how srsNameMappings is reduced just above.
     Map<String, String> uomMappings =
         config.getUomMappings().stream()
-            .collect(Collectors.toUnmodifiableMap(UomMapping::getUom, UomMapping::getValue));
+            .collect(Collectors.toUnmodifiableMap(UomMapping::getValue, UomMapping::getUom));
     Map<String, VariableObjectName> variableObjectElementNames =
         config.getVariableObjectElementNames().entrySet().stream()
             .collect(
@@ -623,6 +643,47 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
     String datetime = context.getOgcApiRequest().getParameters().get("datetime");
     return datetime != null && datetime.contains("/");
+  }
+
+  // Walks the (technical-named) feature schema and builds a map from each property's full
+  // technical path (".-joined) to the corresponding full alias path. Properties whose own name
+  // and aliases-of-all-ancestors equal the technical names are omitted (the identity rewrite is
+  // implicit in the consumers via getOrDefault). Package-private for unit testing.
+  static Map<String, String> buildAliasPathRewrites(FeatureSchema schema) {
+    Map<String, String> rewrites = new LinkedHashMap<>();
+    collectAliasPathRewrites(schema, "", "", rewrites);
+    return rewrites;
+  }
+
+  private static void collectAliasPathRewrites(
+      FeatureSchema schema, String techParent, String aliasParent, Map<String, String> out) {
+    for (FeatureSchema child : schema.getProperties()) {
+      String techName = child.getName();
+      String aliasName = child.getAlias().orElse(techName);
+      String techPath = techParent.isEmpty() ? techName : techParent + "." + techName;
+      String aliasPath = aliasParent.isEmpty() ? aliasName : aliasParent + "." + aliasName;
+      if (!techPath.equals(aliasPath)) {
+        out.put(techPath, aliasPath);
+      }
+      collectAliasPathRewrites(child, techPath, aliasPath, out);
+    }
+  }
+
+  // Identity-pass when the rewrite map is empty, so the common (useAlias=false) path is a no-op.
+  static <V> Map<String, V> remapKeys(Map<String, V> map, Map<String, String> rewrites) {
+    if (rewrites.isEmpty() || map == null || map.isEmpty()) {
+      return map;
+    }
+    Map<String, V> remapped = new LinkedHashMap<>(map.size());
+    map.forEach((k, v) -> remapped.put(rewrites.getOrDefault(k, k), v));
+    return remapped;
+  }
+
+  static List<String> remapList(List<String> list, Map<String, String> rewrites) {
+    if (rewrites.isEmpty() || list == null || list.isEmpty()) {
+      return list;
+    }
+    return list.stream().map(k -> rewrites.getOrDefault(k, k)).toList();
   }
 
   private Map<String, Codelist> resolveCodelists(Map<String, String> codelistProperties) {
