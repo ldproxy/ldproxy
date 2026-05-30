@@ -364,6 +364,20 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
     return definitionBuilder.build();
   }
 
+  // The transaction body is streamed end-to-end (WfsTransactionParser / JsonTransactionParser are
+  // streaming StAX/Jackson parsers and the endpoint receives the raw InputStream below). The
+  // default dispatcher path eagerly buffers the entire entity into a single byte[] for policy
+  // authorization inspection, which (a) caps any request body at ~2 GiB because of Java's array
+  // length limit (OOM "Required array size too large" in InputStream.readAllBytes) and (b) defeats
+  // the streaming parser by holding the whole payload in heap before the endpoint runs. Opt out so
+  // bulk inserts / deletes can flow through without buffering. Policy attribute resolvers will not
+  // see the body for transactions; they don't today either, since no resolver introspects WFS-T or
+  // OGC-Tx payloads.
+  @Override
+  public boolean skipBodyParsing() {
+    return true;
+  }
+
   @POST
   @Consumes({"application/ogc-tx+json", "application/xml"})
   @Produces({"application/json", "application/problem+json"})
