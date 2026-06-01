@@ -44,18 +44,18 @@ public class GmlWriterMetadata implements GmlWriter {
       OptionalLong numberReturned = context.metadata().getNumberReturned();
       OptionalLong numberMatched = context.metadata().getNumberMatched();
       if (numberReturned.isPresent()) {
-        context.encoding().write(" numberReturned=\"");
-        context.encoding().write(String.valueOf(numberReturned.getAsLong()));
-        context.encoding().write("\"");
+        context
+            .encoding()
+            .writeAttribute("numberReturned", String.valueOf(numberReturned.getAsLong()));
       }
       if (numberMatched.isPresent()) {
-        context.encoding().write(" numberMatched=\"");
-        context.encoding().write(String.valueOf(numberMatched.getAsLong()));
-        context.encoding().write("\"");
+        context
+            .encoding()
+            .writeAttribute("numberMatched", String.valueOf(numberMatched.getAsLong()));
       }
-      context.encoding().write(" timeStamp=\"");
-      context.encoding().write(Instant.now().truncatedTo(ChronoUnit.SECONDS).toString());
-      context.encoding().write("\"");
+      context
+          .encoding()
+          .writeAttribute("timeStamp", Instant.now().truncatedTo(ChronoUnit.SECONDS).toString());
     }
 
     next.accept(context);

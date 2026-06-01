@@ -360,8 +360,22 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Objects.requireNonNullElse(config.getSupportsStandardResponseParameters(), false))
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
+            .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
             .xmlAttributes(config.getXmlAttributes())
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
+            .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
+            .srsNameMappings(config.getSrsNameMappings())
+            .uomStyle(Optional.ofNullable(config.getUomStyle()))
+            .uomMappings(config.getUomMappings())
+            .featureRefTemplate(Optional.ofNullable(config.getFeatureRefTemplate()))
+            .gmlIdentifier(Optional.ofNullable(config.getGmlIdentifier()))
+            .appendTemporalSuffixToGmlId(
+                Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
+                    && isDatetimeIntervalRequest(transformationContext))
+            .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codelistProperties(config.getCodelistProperties())
+            .codelists(resolveCodelists(config.getCodelistProperties()))
+            .valueWrap(config.getValueWrap())
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
@@ -370,6 +384,28 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   @Override
   public boolean isComplex() {
     return true;
+  }
+
+  private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
+    String datetime = context.getOgcApiRequest().getParameters().get("datetime");
+    return datetime != null && datetime.contains("/");
+  }
+
+  private Map<String, Codelist> resolveCodelists(Map<String, String> codelistProperties) {
+    if (codelistProperties == null || codelistProperties.isEmpty()) {
+      return ImmutableMap.of();
+    }
+    ImmutableMap.Builder<String, Codelist> result = ImmutableMap.builder();
+    codelistProperties.values().stream()
+        .distinct()
+        .forEach(
+            id -> {
+              Codelist cl = codelistStore.get(id);
+              if (cl != null) {
+                result.put(id, cl);
+              }
+            });
+    return result.build();
   }
 
   @Override
