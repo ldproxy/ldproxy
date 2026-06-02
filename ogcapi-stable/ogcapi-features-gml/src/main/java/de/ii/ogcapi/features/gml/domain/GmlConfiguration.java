@@ -29,12 +29,33 @@ import org.immutables.value.Value;
  *     `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element
  *     stays in the default namespace. A different name or an explicit namespace can be set using
  *     the `rename` transformation, which takes precedence over the inherited namespace.
+ *     <p>When the CRUD building block is enabled, the options that shape GML output are honoured
+ *     symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,
+ *     `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `srsNameMappings`,
+ *     `uomMappings`, `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`,
+ *     `valueWrap`, `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
+ *     `featureMemberElementName`. The remaining options affect output only — `schemaLocations` (XSD
+ *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
+ *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
+ *     formatting decisions with no input counterpart, or because the decoder is permissive of any
+ *     equivalent input form.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
  *     definiert, verbleibt das Element im Standard-Namensraum. Ein anderer Name oder ein expliziter
  *     Namensraum kann mit der Transformation `rename` festgelegt werden, die Vorrang vor dem
  *     geerbten Namensraum hat.
+ *     <p>Wenn der CRUD-Baustein aktiviert ist, werden die für die GML-Ausgabe wirksamen Optionen
+ *     beim Decodieren von GML-POST/PUT-Anfrage-Bodies symmetrisch berücksichtigt:
+ *     `applicationNamespaces`, `defaultNamespace`, `objectTypeNamespaces`, `useAlias`,
+ *     `gmlIdPrefix`, `srsNameMappings`, `uomMappings`, `codelistProperties`, `codelistUriTemplate`,
+ *     `featureRefTemplate`, `valueWrap`, `xmlAttributes`, `variableObjectElementNames`,
+ *     `featureCollectionElementName`, `featureMemberElementName`. Die übrigen Optionen wirken sich
+ *     ausschließlich auf die Ausgabe aus — `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
+ *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
+ *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
+ *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
+ *     Eingabeform permissiv ist.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.

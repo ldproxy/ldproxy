@@ -7,19 +7,30 @@
  */
 package de.ii.ogcapi.features.geojson.app;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import de.ii.ogcapi.collections.domain.CollectionsConfiguration;
+import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreValidation;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputSchema;
 import de.ii.ogcapi.features.core.domain.ItemTypeSpecificConformanceClass;
+import de.ii.ogcapi.features.core.domain.JsonSchemaCache;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema;
+import de.ii.ogcapi.features.core.domain.QueriesHandlerSchema.QueryInputSchema;
 import de.ii.ogcapi.features.core.domain.SchemaGeneratorCollectionOpenApi;
 import de.ii.ogcapi.features.core.domain.SchemaGeneratorOpenApi;
+import de.ii.ogcapi.features.core.domain.SchemaType;
+import de.ii.ogcapi.features.core.domain.ValidatorContext;
+import de.ii.ogcapi.features.core.domain.ValidatorContext.Type;
 import de.ii.ogcapi.features.geojson.domain.FeatureEncoderGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
@@ -36,13 +47,18 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.SchemaMapping;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
+import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import io.swagger.v3.oas.models.media.ObjectSchema;
@@ -50,6 +66,8 @@ import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -79,11 +97,17 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
           .parameter("json")
           .build();
 
+  private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+
   private final Values<Codelist> codelistStore;
   private final FeaturesCoreValidation featuresCoreValidator;
   private final SchemaGeneratorOpenApi schemaGeneratorFeature;
   private final SchemaGeneratorCollectionOpenApi schemaGeneratorFeatureCollection;
   private final GeoJsonWriterRegistry geoJsonWriterRegistry;
+  private final QueriesHandlerSchema schemaHandler;
+  private final SchemaValidator schemaValidator;
+  private final JsonSchemaCache schemaCacheReceivables;
+  private final JsonSchemaCache schemaCacheReturnables;
 
   @Inject
   public FeaturesFormatGeoJson(
@@ -93,13 +117,21 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
       SchemaGeneratorOpenApi schemaGeneratorFeature,
       SchemaGeneratorCollectionOpenApi schemaGeneratorFeatureCollection,
       GeoJsonWriterRegistry geoJsonWriterRegistry,
-      ExtensionRegistry extensionRegistry) {
+      ExtensionRegistry extensionRegistry,
+      QueriesHandlerSchema schemaHandler,
+      SchemaValidator schemaValidator) {
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.featuresCoreValidator = featuresCoreValidator;
     this.schemaGeneratorFeature = schemaGeneratorFeature;
     this.schemaGeneratorFeatureCollection = schemaGeneratorFeatureCollection;
     this.geoJsonWriterRegistry = geoJsonWriterRegistry;
+    this.schemaHandler = schemaHandler;
+    this.schemaValidator = schemaValidator;
+    this.schemaCacheReceivables =
+        new ReceivablesJsonSchemaCache(valueStore.forType(Codelist.class)::asMap);
+    this.schemaCacheReturnables =
+        new ReturnablesJsonSchemaCache(valueStore.forType(Codelist.class)::asMap);
   }
 
   @Override
@@ -315,6 +347,72 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
             .build();
 
     return Optional.of(new FeatureEncoderGeoJson(transformationContextGeoJson, geoJsonWriters));
+  }
+
+  @Override
+  public Optional<
+          FeatureTokenDecoderSimple<
+              byte[],
+              FeatureSchema,
+              SchemaMapping,
+              ModifiableContext<FeatureSchema, SchemaMapping>>>
+      getFeatureDecoder(DecoderContext decoderContext) {
+    return Optional.of(
+        new FeatureTokenDecoderGeoJson(
+            Optional.empty(), decoderContext.getCrs(), decoderContext.getAxes()));
+  }
+
+  @Override
+  public void validate(String content, ValidatorContext ctx) {
+    boolean jsonFg =
+        ctx.getDeclaredProfiles().stream().anyMatch(profile -> "jsonfg".equals(profile.getId()));
+
+    Optional<Profile> requestedProfile =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    ctx.getType() == ValidatorContext.Type.RETURNABLES
+                        ? (jsonFg
+                            ? "validation-returnables-jsonfg".equals(profile.getId())
+                            : "validation-returnables-geojson".equals(profile.getId()))
+                        : (jsonFg
+                            ? "validation-receivables-jsonfg".equals(profile.getId())
+                            : "validation-receivables-geojson".equals(profile.getId())))
+            .findFirst();
+
+    QueryInputSchema queryInputSchema =
+        new ImmutableQueryInputSchema.Builder()
+            .collectionId(ctx.getCollectionId())
+            .profiles(requestedProfile.stream().toList())
+            .defaultProfilesResource(ctx.getDefaultProfiles())
+            .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
+            .schemaCache(
+                ctx.getType() == Type.RETURNABLES
+                    ? this.schemaCacheReturnables
+                    : this.schemaCacheReceivables)
+            .build();
+
+    String schema;
+    try (Response response =
+        schemaHandler.handle(
+            QueriesHandlerSchema.Query.SCHEMA, queryInputSchema, ctx.getRequestContext())) {
+      schema = MAPPER.writeValueAsString(response.getEntity());
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(
+          "Could not validate content against the JSON Schema. Reason: " + e.getMessage());
+    }
+
+    Optional<String> validationResult;
+    try {
+      validationResult = schemaValidator.validate(schema, content);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
+    }
+
+    if (validationResult.isPresent()) {
+      throw new IllegalArgumentException(
+          "Request body is invalid, feature mutation is rejected: " + validationResult.get());
+    }
   }
 
   @Override

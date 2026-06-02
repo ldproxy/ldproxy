@@ -21,6 +21,9 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureSchemaAliases;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.SchemaMapping;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
@@ -123,6 +126,18 @@ public abstract class FeatureFormatExtension implements FormatExtension {
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
     return Optional.empty();
   }
+
+  public Optional<
+          FeatureTokenDecoderSimple<
+              byte[],
+              FeatureSchema,
+              SchemaMapping,
+              ModifiableContext<FeatureSchema, SchemaMapping>>>
+      getFeatureDecoder(DecoderContext decoderContext) {
+    return Optional.empty();
+  }
+
+  public void validate(String content, ValidatorContext ctx) {}
 
   public Optional<PropertyTransformations> getPropertyTransformations(
       FeatureTypeConfigurationOgcApi collectionData) {
