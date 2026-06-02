@@ -33,8 +33,8 @@ ext {
             'com/google',
             'com/sun',
             'io',
-            'javax',
-            'javax/ws',
+            'jakarta',
+            'jakarta/ws',
             'net/sf',
             'org',
             'org/apache',
@@ -57,9 +57,9 @@ ext {
             'dagger',
             'io/dropwizard',
             'io/swagger',
-            'javax/servlet',
-            'javax/ws/rs',
-            //'javax/xml',
+            'jakarta/servlet',
+            'jakarta/ws/rs',
+            //'jakarta/xml',
             'net/sf/jsqlparser',
             'org/apache/commons',
             'org/apache/hc',
@@ -103,8 +103,8 @@ tasks.shadowJar {
     relocate('com.', 'shadow.com.')
     relocate('dagger.', 'shadow.dagger.')
     relocate('io.', 'shadow.io.')
-    relocate('javax.servlet.', 'shadow.javax.servlet.')
-    relocate('javax.ws.rs.', 'shadow.javax.ws.rs.')
+    relocate('jakarta.servlet.', 'shadow.jakarta.servlet.')
+    relocate('jakarta.ws.rs.', 'shadow.jakarta.ws.rs.')
     relocate('org.', 'shadow.org.') {
         exclude 'org.slf4j.*'
         exclude 'org.slf4j.event.*'
