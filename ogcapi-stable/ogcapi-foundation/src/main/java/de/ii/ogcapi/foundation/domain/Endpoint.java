@@ -16,8 +16,6 @@ import jakarta.ws.rs.core.MediaType;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -188,29 +186,6 @@ public abstract class Endpoint implements EndpointExtension {
             });
 
     return queryInputBuilder.build();
-  }
-
-  protected boolean strictHandling(Enumeration<String> prefer) {
-    return strictHandling(prefer, true);
-  }
-
-  protected boolean strictHandling(Enumeration<String> prefer, boolean lenientIsDefault) {
-    var hints =
-        new Object() {
-          boolean strict;
-          boolean lenient;
-        };
-    Collections.list(prefer)
-        .forEach(
-            header -> {
-              hints.strict = hints.strict || header.matches("^handling\\s*=\\s*strict$");
-              hints.lenient = hints.lenient || header.matches("^handling\\s*=\\s*lenient$");
-            });
-    if (hints.strict && hints.lenient) {
-      // use default (see RFC 7940)
-      return !lenientIsDefault;
-    }
-    return hints.strict || (!hints.lenient && !lenientIsDefault);
   }
 
   /**
