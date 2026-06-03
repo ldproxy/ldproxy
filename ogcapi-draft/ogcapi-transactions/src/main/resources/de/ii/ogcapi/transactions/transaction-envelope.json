@@ -1,0 +1,211 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "allOf" : [ {
+    "$ref" : "#/$defs/tx-action-metadata"
+  }, {
+    "properties" : {
+      "semantic" : {
+        "default" : "atomic",
+        "enum" : [ "atomic", "batch" ],
+        "type" : "string"
+      },
+      "transaction" : {
+        "items" : {
+          "oneOf" : [ {
+            "allOf" : [ {
+              "$ref" : "#/$defs/tx-action-metadata"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "insert",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "items" : {
+                  "items" : {
+                    "$ref": "#/$defs/tx-feature"
+                  },
+                  "type" : "array"
+                }
+              },
+              "required" : [ "action", "collection", "items" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "$ref" : "#/$defs/tx-action-metadata"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "replace",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
+                },
+                "filter-crs" : {
+                  "$ref": "#/$defs/tx-filter-crs"
+                },
+                "filter-lang" : {
+                  "$ref": "#/$defs/tx-filter-lang"
+                },
+                "feature" : {
+                  "$ref": "#/$defs/tx-feature"
+                }
+              },
+              "required" : [ "action", "collection", "feature" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "$ref" : "#/$defs/tx-action-metadata"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "update",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
+                },
+                "filter-crs" : {
+                  "$ref": "#/$defs/tx-filter-crs"
+                },
+                "filter-lang" : {
+                  "$ref": "#/$defs/tx-filter-lang"
+                },
+                "properties" : {
+                  "properties" : {
+                    "add" : {
+                      "items" : {
+                        "$ref": "#/$defs/tx-nameValuePair"
+                      },
+                      "type" : "array"
+                    },
+                    "delete" : {
+                      "items" : {
+                        "type" : "string"
+                      },
+                      "type" : "array"
+                    },
+                    "modify" : {
+                      "items" : {
+                        "$ref": "#/$defs/tx-nameValuePair"
+                      },
+                      "type" : "array"
+                    }
+                  },
+                  "type" : "object"
+                }
+              },
+              "required" : [ "action", "collection", "properties" ],
+              "type" : "object"
+            } ]
+          }, {
+            "allOf" : [ {
+              "$ref" : "#/$defs/tx-action-metadata"
+            }, {
+              "properties" : {
+                "action" : {
+                  "const" : "delete",
+                  "type" : "string"
+                },
+                "collection" : {
+                  "type" : "string"
+                },
+                "filter" : {
+                  "$ref": "#/$defs/tx-cql2JsonFilter"
+                },
+                "filter-crs" : {
+                  "$ref": "#/$defs/tx-filter-crs"
+                },
+                "filter-lang" : {
+                  "$ref": "#/$defs/tx-filter-lang"
+                }
+              },
+              "required" : [ "action", "collection" ],
+              "type" : "object"
+            } ]
+          } ]
+        },
+        "type" : "array"
+      }
+    },
+    "required" : [ "transaction" ],
+    "type" : "object"
+  } ],
+  "$defs" : {
+    "tx-action-metadata" : {
+      "properties" : {
+        "description" : {
+          "type" : "string"
+        },
+        "id" : {
+          "description" : "An optional identifier for the action that may be used, for example, to identify the action in an exception report.",
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "tx-feature": {
+      "type" : "object",
+      "properties" : {
+        "type": {
+          "const": "Feature",
+          "type": "string"
+        },
+        "id" : {
+          "type" : ["string", "integer"]
+        },
+        "properties" : {
+          "type" : ["object", "null"]
+        },
+        "geometry" : {
+          "type" : ["object", "null"]
+        }
+      },
+      "required" : [ "type", "properties", "geometry" ]
+    },
+    "tx-filter-crs" : {
+      "default" : "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+      "type" : "string"
+    },
+    "tx-filter-lang" : {
+      "const" : "cql2-json",
+      "default": "cql2-json",
+      "type" : "string"
+    },
+    "tx-cql2JsonFilter": {
+      "oneOf" : [ {
+        "type" : "boolean"
+      }, {
+        "type" : "object"
+      } ]
+    },
+    "tx-nameValuePair": {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "value" : {
+        }
+      },
+      "required" : [
+        "name",
+        "value"
+      ]
+    }
+  }
+}

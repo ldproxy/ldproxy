@@ -129,7 +129,7 @@ import org.immutables.value.Value;
  *       value: 'urn:adv:uom:m'
  *     - uom: 'grad'
  *       value: 'urn:adv:uom:grad'
- *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+ *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
  *   objectTypeNamespaces:
@@ -224,7 +224,7 @@ import org.immutables.value.Value;
  *       value: 'urn:adv:uom:m'
  *     - uom: 'grad'
  *       value: 'urn:adv:uom:grad'
- *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+ *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
  *   objectTypeNamespaces:
@@ -881,7 +881,7 @@ public interface GmlConfiguration
    * ```yaml
    * - buildingBlock: GML
    *   enabled: true
-   *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv.alkis/{{codelistId}}/{{value}}'
+   *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
    * ```
    * </code>
    * @since v4.9

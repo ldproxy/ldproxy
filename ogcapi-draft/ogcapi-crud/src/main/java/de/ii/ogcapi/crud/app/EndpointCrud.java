@@ -35,6 +35,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -72,7 +73,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -428,7 +428,8 @@ public class EndpointCrud extends EndpointSubCollection
     MediaType contentType = mediaTypeFromString(request.getContentType());
 
     final boolean validate =
-        strictHandling(Collections.enumeration(prefer))
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+                == HeaderPrefer.Handling.STRICT
             && collectionData
                 .getExtension(SchemaConfiguration.class)
                 .filter(ExtensionConfiguration::isEnabled)
@@ -510,7 +511,8 @@ public class EndpointCrud extends EndpointSubCollection
             false);
 
     final boolean validate =
-        strictHandling(Collections.enumeration(prefer))
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+                == HeaderPrefer.Handling.STRICT
             && collectionData
                 .getExtension(SchemaConfiguration.class)
                 .filter(ExtensionConfiguration::isEnabled)
