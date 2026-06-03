@@ -65,11 +65,9 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
 
   /**
    * @langEn Enables decoding of WFS 2.0 `wfs:Transaction` XML payloads at `POST /transactions`.
-   *     Only valid when `atomic` is `true` and the GML building block is enabled. Used to receive
-   *     NBA messages per GeoInfoDok.
+   *     Only valid when `atomic` is `true` and the GML building block is enabled.
    * @langDe Aktiviert die Dekodierung von WFS 2.0 `wfs:Transaction`-XML-Payloads bei `POST
-   *     /transactions`. Nur zulässig, wenn `atomic` aktiv und der GML-Baustein aktiviert ist. Wird
-   *     für den Empfang von NBA-Nachrichten gemäß GeoInfoDok verwendet.
+   *     /transactions`. Nur zulässig, wenn `atomic` aktiv und der GML-Baustein aktiviert ist.
    * @default false
    * @since v4.8
    */

@@ -1069,8 +1069,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   /**
    * Resolves a raw collection id (typically the XML element local name from a wfs:Transaction
    * payload, e.g. {@code AX_Flurstueck}) to the canonical ldproxy collection configuration. Tries
-   * exact match first, then case-insensitive — ldproxy collection ids are lowercase by convention
-   * while WFS feature element names follow GeoInfoDok casing.
+   * exact match first, then case-insensitive — ldproxy collection ids are often lowercase by
+   * convention while GML feature element names use UpperCamelCase.
    */
   private static de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi resolveCollection(
       OgcApiDataV2 apiData, String collectionId) {

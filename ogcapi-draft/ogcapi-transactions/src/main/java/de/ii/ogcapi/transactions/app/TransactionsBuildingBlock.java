@@ -33,8 +33,8 @@ import org.slf4j.LoggerFactory;
  *     <p>Two semantics are supported: atomic transactions execute all actions as a single database
  *     transaction (rollback on failure), batch transactions execute each action independently and
  *     report per-action results.
- *     <p>For interoperability with WFS 2.0 producers (notably NBA messages per GeoInfoDok), the
- *     building block can additionally accept `wfs:Transaction` XML payloads in atomic mode.
+ *     <p>For interoperability with WFS 2.0 producers the building block can additionally accept
+ *     `wfs:Transaction` XML payloads in atomic mode.
  *     <p>The `Prefer` request header is honoured per RFC 7240: `return=representation` (the
  *     default), `return=minimal`, or `return=none` controls how much of the transaction response is
  *     returned; `handling=strict` validates every `insert` and `replace` payload against the
@@ -55,9 +55,8 @@ import org.slf4j.LoggerFactory;
  *     <p>Es werden zwei Semantiken unterstützt: atomare Transaktionen führen alle Aktionen in einer
  *     einzigen Datenbanktransaktion aus (Rollback bei Fehlern), Batch-Transaktionen führen jede
  *     Aktion unabhängig aus und liefern Ergebnisse pro Aktion.
- *     <p>Zur Interoperabilität mit WFS 2.0-Produzenten (insbesondere NBA-Nachrichten gemäß
- *     GeoInfoDok) kann der Baustein zusätzlich `wfs:Transaction`-XML-Payloads im atomaren Modus
- *     entgegennehmen.
+ *     <p>Zur Interoperabilität mit WFS 2.0-Produzenten kann der Baustein zusätzlich
+ *     `wfs:Transaction`-XML-Payloads im atomaren Modus entgegennehmen.
  *     <p>Der Anfrage-Header `Prefer` wird gemäß RFC 7240 ausgewertet: `return=representation`
  *     (Standard), `return=minimal` oder `return=none` steuert den Umfang der Transaktionsantwort;
  *     `handling=strict` validiert jeden `insert`- und `replace`-Payload vor dem Schreiben gegen das

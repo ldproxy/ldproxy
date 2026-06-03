@@ -67,9 +67,8 @@ import javax.xml.stream.events.XMLEvent;
  * {@code TxInsert}, so the batch path keeps spanning them. A sibling with a {@code handle}
  * preserves per-action identity and stops the merge.
  *
- * <p>Supports only {@code fes:ResourceId@rid} filters per GeoInfoDok §§ 5.1.5 and 5.4. The local
- * part of {@code typeName} (or root element QName) is stored as the action's {@code collectionId} —
- * for ALKIS/NAS this matches the ldproxy collection id directly.
+ * <p>Supports only {@code fes:ResourceId@rid} filters. The local part of {@code typeName} (or root
+ * element QName) is stored as the action's {@code collectionId}.
  */
 @Singleton
 @AutoBind
