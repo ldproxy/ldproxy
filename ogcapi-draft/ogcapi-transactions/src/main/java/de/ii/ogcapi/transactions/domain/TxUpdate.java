@@ -34,8 +34,8 @@ public interface TxUpdate extends TxAction {
   /** Property name/value pairs to overwrite. */
   List<NameValue> getModify();
 
-  /** Property names whose value is to be cleared. */
-  List<String> getDeleteProperties();
+  /** Property paths whose value is to be cleared. */
+  List<List<String>> getDeleteProperties();
 
   Optional<Cql2Expression> getFilter();
 
@@ -43,7 +43,13 @@ public interface TxUpdate extends TxAction {
 
   @Value.Immutable
   interface NameValue {
-    String getName();
+    // Pre-resolution path: one or more segments parsed from `<wfs:ValueReference>` or the JSON
+    // body. Segments are local names (any XML namespace prefix has been stripped). Intermediate
+    // object-type element steps (e.g. `AA_Lebenszeitintervall` between `lebenszeitintervall` and
+    // `endet`) are preserved; the executor validates them against the schema. The form of the
+    // property segments (schema id vs alias) is governed by the input format's configuration
+    // (GmlConfiguration.useAlias for wfs:Transaction).
+    List<String> getPath();
 
     JsonNode getValue();
   }

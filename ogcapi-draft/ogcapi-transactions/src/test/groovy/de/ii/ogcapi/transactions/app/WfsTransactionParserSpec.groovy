@@ -215,11 +215,100 @@ class WfsTransactionParserSpec extends Specification {
         then:
         action.collectionId == 'AX_Buildings'
         action.actionId.orElse(null) == 'u1'
-        action.modify*.name == ['height']
+        action.modify*.path == [['height']]
         action.modify[0].value.asText() == '12.5'
-        action.deleteProperties == ['legacy_id']
+        action.deleteProperties == [['legacy_id']]
         action.filter.isPresent()
         action.filter.get() instanceof In
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'wfs:Update ValueReference splits on slash and strips namespace prefixes'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:fes="http://www.opengis.net/fes/2.0"
+                             xmlns:adv="http://www.adv-online.de/namespaces/adv/gid/7.1"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Update typeName="ax:AA_Meilenstein">
+                <wfs:Property>
+                  <wfs:ValueReference>adv:lebenszeitintervall/adv:AA_Lebenszeitintervall/adv:endet</wfs:ValueReference>
+                  <wfs:Value>2025-04-23T09:38:37Z</wfs:Value>
+                </wfs:Property>
+                <fes:Filter><fes:ResourceId rid="DEHE86202002BTa0"/></fes:Filter>
+              </wfs:Update>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def action = (TxUpdate) tx.actions().next()
+
+        then:
+        action.modify*.path == [['lebenszeitintervall', 'AA_Lebenszeitintervall', 'endet']]
+        action.modify[0].value.asText() == '2025-04-23T09:38:37Z'
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'same-id chains parse as separate ordered TxActions (Insert+Replace, Insert+Delete)'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:fes="http://www.opengis.net/fes/2.0"
+                             xmlns:gml="http://www.opengis.net/gml/3.2"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert>
+                <ax:AX_Buildings gml:id="b1"><ax:height>1</ax:height></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Replace>
+                <ax:AX_Buildings gml:id="b1"><ax:height>2</ax:height></ax:AX_Buildings>
+                <fes:Filter><fes:ResourceId rid="b1"/></fes:Filter>
+              </wfs:Replace>
+              <wfs:Insert>
+                <ax:AX_Buildings gml:id="b2"><ax:height>3</ax:height></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Delete typeName="ax:AX_Buildings">
+                <fes:Filter><fes:ResourceId rid="b2"/></fes:Filter>
+              </wfs:Delete>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def types = []
+        def it = tx.actions()
+        while (it.hasNext()) types << it.next().type
+
+        then: 'parser preserves order; the executor (not the parser) decides what is permitted'
+        types == [TxActionType.INSERT, TxActionType.REPLACE, TxActionType.INSERT, TxActionType.DELETE]
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'wfs:Update rejects empty ValueReference'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:fes="http://www.opengis.net/fes/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Update typeName="ax:AX_Buildings">
+                <wfs:Property>
+                  <wfs:ValueReference></wfs:ValueReference>
+                  <wfs:Value>5</wfs:Value>
+                </wfs:Property>
+                <fes:Filter><fes:ResourceId rid="1"/></fes:Filter>
+              </wfs:Update>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        tx.actions().next()
+
+        then:
+        thrown(IllegalArgumentException)
 
         cleanup:
         tx.close()

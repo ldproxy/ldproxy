@@ -183,6 +183,11 @@ public class WfsTransactionParser implements TransactionParser {
     }
 
     @Override
+    public boolean isWfs() {
+      return true;
+    }
+
+    @Override
     public Iterator<TxAction> actions() {
       return iterator;
     }
@@ -396,7 +401,7 @@ public class WfsTransactionParser implements TransactionParser {
       String typeName = attribute(updateStart, "typeName");
       String collectionId = stripPrefix(typeName);
       List<NameValue> modify = new ArrayList<>();
-      List<String> deletes = new ArrayList<>();
+      List<List<String>> deletes = new ArrayList<>();
       List<String> ids = new ArrayList<>();
 
       while (reader.hasNext()) {
@@ -462,9 +467,10 @@ public class WfsTransactionParser implements TransactionParser {
           .build();
     }
 
-    private void readProperty(XMLEventReader reader, List<NameValue> modify, List<String> deletes)
+    private void readProperty(
+        XMLEventReader reader, List<NameValue> modify, List<List<String>> deletes)
         throws XMLStreamException {
-      String name = null;
+      String reference = null;
       JsonNode value = null;
       boolean hasValueElement = false;
       while (reader.hasNext()) {
@@ -474,7 +480,7 @@ public class WfsTransactionParser implements TransactionParser {
         StartElement start = event.asStartElement();
         QName qn = start.getName();
         if (NS_WFS.equals(qn.getNamespaceURI()) && "ValueReference".equals(qn.getLocalPart())) {
-          name = readText(reader, "ValueReference");
+          reference = readText(reader, "ValueReference");
         } else if (NS_WFS.equals(qn.getNamespaceURI()) && "Value".equals(qn.getLocalPart())) {
           hasValueElement = true;
           String text = readMixedText(reader, "Value");
@@ -483,15 +489,38 @@ public class WfsTransactionParser implements TransactionParser {
           skipElement(reader);
         }
       }
-      if (name == null) {
+      if (reference == null) {
         throw new IllegalArgumentException(
-            "wfs:Property requires a wfs:ValueReference child holding the property name");
+            "wfs:Property requires a wfs:ValueReference child holding the property path");
       }
+      List<String> path = parseValueReference(reference);
       if (!hasValueElement || value == null) {
-        deletes.add(name);
+        deletes.add(path);
       } else {
-        modify.add(new ImmutableNameValue.Builder().name(name).value(value).build());
+        modify.add(new ImmutableNameValue.Builder().path(path).value(value).build());
       }
+    }
+
+    // wfs:ValueReference holds an XPath-like path of `[prefix:]localName` segments separated by
+    // `/`. Strip the XML namespace prefix from each segment (only the local name is significant
+    // here — segment matching against the feature schema is driven by GmlConfiguration.useAlias,
+    // not by the namespace). Empty/blank segments are rejected.
+    private static List<String> parseValueReference(String reference) {
+      String trimmed = reference.trim();
+      if (trimmed.isEmpty()) {
+        throw new IllegalArgumentException("wfs:ValueReference must not be empty");
+      }
+      String[] parts = trimmed.split("/");
+      List<String> path = new ArrayList<>(parts.length);
+      for (String part : parts) {
+        String local = stripPrefix(part).trim();
+        if (local.isEmpty()) {
+          throw new IllegalArgumentException(
+              "wfs:ValueReference contains an empty path segment: '" + reference + "'");
+        }
+        path.add(local);
+      }
+      return path;
     }
 
     private List<String> parseResourceIds(XMLEventReader reader) throws XMLStreamException {

@@ -218,11 +218,50 @@ class JsonTransactionParserSpec extends Specification {
         def action = (TxUpdate) tx.actions().next()
 
         then:
-        action.add*.name == ['owner']
+        action.add*.path == [['owner']]
         action.add[0].value.asText() == 'Alice'
-        action.modify*.name == ['height']
+        action.modify*.path == [['height']]
         action.modify[0].value.asDouble() == 12.5d
-        action.deleteProperties == ['legacy_id']
+        action.deleteProperties == [['legacy_id']]
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'update action: name accepts string with slashes or array of segments; prefixes stripped'() {
+        given:
+        def body = '''{
+          "transaction": [
+            {"action": "update", "collection": "AA_Meilenstein",
+             "filter": { "op": "=", "args": [ { "property": "id" }, "DEHE86202002BTa0" ] },
+             "properties": {
+               "modify": [
+                 {"name": "adv:lebenszeitintervall/adv:AA_Lebenszeitintervall/adv:endet",
+                  "value": "2025-04-23T09:38:37Z"},
+                 {"name": ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"],
+                  "value": "2025-04-22T04:50:46Z"}
+               ],
+               "delete": [
+                 "adv:lebenszeitintervall/adv:AA_Lebenszeitintervall/adv:grund",
+                 ["lebenszeitintervall", "AA_Lebenszeitintervall", "wer"]
+               ]
+             }}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def action = (TxUpdate) tx.actions().next()
+
+        then:
+        action.modify*.path == [
+                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'endet'],
+                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'beginnt']
+        ]
+        action.deleteProperties == [
+                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'grund'],
+                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'wer']
+        ]
 
         cleanup:
         tx.close()

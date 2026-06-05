@@ -178,7 +178,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 requestCrs,
                 touchedIdsByCollection,
                 validate,
-                false));
+                false,
+                transaction.isWfs()));
         ActionResult lastResult = last(results);
         if (lastResult.getStatus() == ActionStatus.FAILED) {
           firstError =
@@ -242,7 +243,17 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         // Batch semantics commit between actions, so each action sees a fresh committed
         // snapshot — no need to track touched ids across actions.
         ActionResult r =
-            runAction(action, provider, session, api, ctx, requestCrs, Map.of(), validate, true);
+            runAction(
+                action,
+                provider,
+                session,
+                api,
+                ctx,
+                requestCrs,
+                Map.of(),
+                validate,
+                true,
+                transaction.isWfs());
         if (r.getStatus() == ActionStatus.SUCCESS) {
           session.commit();
         } else {
@@ -288,7 +299,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       EpsgCrs requestCrs,
       Map<String, Set<String>> touchedIdsByCollection,
       boolean validate,
-      boolean skipInvalid) {
+      boolean skipInvalid,
+      boolean fromWfs) {
     try {
       return switch (action.getType()) {
         case INSERT ->
@@ -296,7 +308,14 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         case REPLACE -> runReplace((TxReplace) action, session, api, ctx, requestCrs, validate);
         case UPDATE ->
             runUpdate(
-                (TxUpdate) action, provider, session, api, ctx, requestCrs, touchedIdsByCollection);
+                (TxUpdate) action,
+                provider,
+                session,
+                api,
+                ctx,
+                requestCrs,
+                touchedIdsByCollection,
+                fromWfs);
         case DELETE -> runDelete((TxDelete) action, session, api);
         default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
       };
@@ -528,7 +547,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      Map<String, Set<String>> touchedIdsByCollection) {
+      Map<String, Set<String>> touchedIdsByCollection,
+      boolean fromWfs) {
     EpsgCrs crs = requestCrs;
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
@@ -577,7 +597,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
     }
 
-    ObjectNode patchTemplate = buildPatchTemplate(action);
+    ObjectNode patchTemplate = buildPatchTemplate(action, apiData, canonicalCollectionId, fromWfs);
 
     // Per-id GET is fine for typical wfs:Update sizes. Above BULK_GET_THRESHOLD ids, prefetch
     // every current feature with one FEATURES query using an IN filter and serve the
@@ -634,24 +654,99 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .build();
   }
 
-  // Build the per-action merge-patch object: properties to set/modify are written verbatim,
-  // and properties to clear are written as the PATCH_NULL_VALUE sentinel string. The id is
-  // injected per-target by applyMergePatch.
-  private static ObjectNode buildPatchTemplate(TxUpdate action) {
+  // Build the per-action merge-patch object. Each property path is resolved against the
+  // collection's FeatureSchema: input segments are matched against id or alias depending on the
+  // input format's useAlias (GmlConfiguration for wfs:Transaction, GeoJsonConfiguration for the
+  // JSON transaction format), and output segments are written in the GeoJSON encoding form so
+  // they line up with the GeoJSON feature document the patch is merged into. Nested paths
+  // materialise as nested JSON objects; deletes set the deepest leaf to the PATCH_NULL_VALUE
+  // sentinel. The id is injected per-target by applyMergePatch.
+  private ObjectNode buildPatchTemplate(
+      TxUpdate action, OgcApiDataV2 apiData, String canonicalCollectionId, boolean fromWfs) {
+    FeatureSchema rootSchema = resolveFeatureSchema(apiData, canonicalCollectionId);
+    boolean inputUseAlias =
+        fromWfs
+            ? gmlUseAlias(apiData, canonicalCollectionId)
+            : geoJsonUseAlias(apiData, canonicalCollectionId);
+    boolean outputUseAlias = geoJsonUseAlias(apiData, canonicalCollectionId);
+
     ObjectNode feature = MAPPER.createObjectNode();
     feature.put("type", "Feature");
     ObjectNode properties = MAPPER.createObjectNode();
     for (TxUpdate.NameValue nv : action.getAdd()) {
-      properties.set(nv.getName(), nv.getValue());
+      List<String> outPath =
+          resolveOutputPath(rootSchema, nv.getPath(), inputUseAlias, outputUseAlias);
+      setNested(properties, outPath, nv.getValue());
     }
     for (TxUpdate.NameValue nv : action.getModify()) {
-      properties.set(nv.getName(), nv.getValue());
+      List<String> outPath =
+          resolveOutputPath(rootSchema, nv.getPath(), inputUseAlias, outputUseAlias);
+      setNested(properties, outPath, nv.getValue());
     }
-    for (String name : action.getDeleteProperties()) {
-      properties.put(name, FeatureTransactions.PATCH_NULL_VALUE);
+    for (List<String> path : action.getDeleteProperties()) {
+      List<String> outPath = resolveOutputPath(rootSchema, path, inputUseAlias, outputUseAlias);
+      setNested(
+          properties,
+          outPath,
+          MAPPER.getNodeFactory().textNode(FeatureTransactions.PATCH_NULL_VALUE));
     }
     feature.set("properties", properties);
     return feature;
+  }
+
+  private static List<String> resolveOutputPath(
+      FeatureSchema root, List<String> inputPath, boolean inputUseAlias, boolean outputUseAlias) {
+    return UpdatePathResolver.toOutputPath(
+        UpdatePathResolver.resolve(root, inputPath, inputUseAlias), outputUseAlias);
+  }
+
+  // Walk an existing ObjectNode along `path`, creating intermediate ObjectNodes where needed,
+  // and set the leaf to `value`. If an intermediate exists as a non-object it is overwritten —
+  // the input is already schema-validated, so a non-object collision means the patch genuinely
+  // overrides the prior shape.
+  private static void setNested(ObjectNode target, List<String> path, JsonNode value) {
+    ObjectNode cursor = target;
+    for (int i = 0; i < path.size() - 1; i++) {
+      String seg = path.get(i);
+      JsonNode existing = cursor.get(seg);
+      if (existing != null && existing.isObject()) {
+        cursor = (ObjectNode) existing;
+      } else {
+        ObjectNode child = MAPPER.createObjectNode();
+        cursor.set(seg, child);
+        cursor = child;
+      }
+    }
+    cursor.set(path.get(path.size() - 1), value);
+  }
+
+  private FeatureSchema resolveFeatureSchema(OgcApiDataV2 apiData, String canonicalCollectionId) {
+    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+        resolveCollection(apiData, canonicalCollectionId);
+    return providers
+        .getFeatureSchema(apiData, collectionCfg)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No feature schema for collection '" + canonicalCollectionId + "'"));
+  }
+
+  private static boolean gmlUseAlias(OgcApiDataV2 apiData, String canonicalCollectionId) {
+    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+        resolveCollection(apiData, canonicalCollectionId);
+    return collectionCfg
+        .getExtension(de.ii.ogcapi.features.gml.domain.GmlConfiguration.class)
+        .map(de.ii.ogcapi.foundation.domain.AliasConfiguration::isUseAlias)
+        .orElse(false);
+  }
+
+  private static boolean geoJsonUseAlias(OgcApiDataV2 apiData, String canonicalCollectionId) {
+    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+        resolveCollection(apiData, canonicalCollectionId);
+    return collectionCfg
+        .getExtension(de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration.class)
+        .map(de.ii.ogcapi.foundation.domain.AliasConfiguration::isUseAlias)
+        .orElse(false);
   }
 
   private static byte[] applyMergePatch(byte[] currentBytes, ObjectNode patchTemplate, String id) {
