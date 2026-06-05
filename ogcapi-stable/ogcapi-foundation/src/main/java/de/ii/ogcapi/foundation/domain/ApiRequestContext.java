@@ -41,6 +41,8 @@ public interface ApiRequestContext {
 
   Optional<Request> getRequest();
 
+  Optional<String> getRequestId();
+
   Optional<User> getUser();
 
   QueryParameterSet getQueryParameterSet();

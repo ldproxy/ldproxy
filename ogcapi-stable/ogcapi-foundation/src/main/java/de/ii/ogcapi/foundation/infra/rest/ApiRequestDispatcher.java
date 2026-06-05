@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.RequestInjectableContext;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.AppContext;
+import de.ii.xtraplatform.services.domain.AuditLog;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
 import io.dropwizard.auth.Auth;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -55,6 +56,7 @@ import java.lang.annotation.Annotation;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -79,6 +81,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
   private final ApiRequestAuthorizer apiRequestAuthorizer;
   private final int maxResponseLinkHeaderSize;
 
+  private final AuditLog auditLog;
+
   @Inject
   ApiRequestDispatcher(
       AppContext appContext,
@@ -86,7 +90,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       RequestInjectableContext ogcApiInjectableContext,
       ContentNegotiationMediaType contentNegotiationMediaType,
       ContentNegotiationLanguage contentNegotiationLanguage,
-      ApiRequestAuthorizer apiRequestAuthorizer) {
+      ApiRequestAuthorizer apiRequestAuthorizer,
+      AuditLog auditLog) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.ogcApiInjectableContext = ogcApiInjectableContext;
@@ -94,6 +99,50 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     this.contentNegotiationLanguage = contentNegotiationLanguage;
     this.apiRequestAuthorizer = apiRequestAuthorizer;
     this.maxResponseLinkHeaderSize = getMaxResponseHeaderSize(appContext) / 4;
+    this.auditLog = auditLog;
+  }
+
+  private static MultivaluedMap<String, String> getActualQueryParameters(
+      ContainerRequestContext requestContext, Optional<byte[]> body) {
+
+    if ("POST".equals(requestContext.getMethod())
+        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(requestContext.getMediaType())
+        && body.isPresent()) {
+      // for a form request, get the query parameters from the body
+      try {
+        return new FormProvider()
+            .readFrom(
+                Form.class,
+                Form.class,
+                new Annotation[] {},
+                MediaType.APPLICATION_FORM_URLENCODED_TYPE,
+                new MultivaluedHashMap<>(),
+                new ByteArrayInputStream(body.get()))
+            .asMap();
+      } catch (IOException e) {
+        throw new IllegalStateException("Could not parse request body into a form.", e);
+      }
+    }
+    return requestContext.getUriInfo().getQueryParameters();
+  }
+
+  private static Optional<FeatureTypeConfigurationOgcApi> getCollectionData(
+      OgcApiDataV2 apiData, String entrypoint, String subPath) {
+    Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData = Optional.empty();
+    if ("collections".equals(entrypoint) && subPath.length() > 1) {
+      int idx = subPath.substring(1).indexOf('/');
+      String collectionId = idx != -1 ? subPath.substring(1, idx + 1) : subPath.substring(1);
+      optionalCollectionData = apiData.getCollectionData(collectionId);
+    }
+    return optionalCollectionData;
+  }
+
+  private static int getMaxResponseHeaderSize(AppContext appContext) {
+    HttpConnectorFactory httpConnectorFactory =
+        (HttpConnectorFactory)
+            appContext.getConfiguration().getServerFactory().getApplicationConnectors().get(0);
+
+    return (int) httpConnectorFactory.getMaxResponseHeaderSize().toBytes();
   }
 
   @Override
@@ -213,31 +262,9 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     ogcApiInjectableContext.inject(requestContext, apiRequestContext);
 
+    logRequest(apiData.getId(), entrypoint, subPath, requestContext, optionalUser);
+
     return ogcApiEndpoint;
-  }
-
-  private static MultivaluedMap<String, String> getActualQueryParameters(
-      ContainerRequestContext requestContext, Optional<byte[]> body) {
-
-    if ("POST".equals(requestContext.getMethod())
-        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(requestContext.getMediaType())
-        && body.isPresent()) {
-      // for a form request, get the query parameters from the body
-      try {
-        return new FormProvider()
-            .readFrom(
-                Form.class,
-                Form.class,
-                new Annotation[] {},
-                MediaType.APPLICATION_FORM_URLENCODED_TYPE,
-                new MultivaluedHashMap<>(),
-                new ByteArrayInputStream(body.get()))
-            .asMap();
-      } catch (IOException e) {
-        throw new IllegalStateException("Could not parse request body into a form.", e);
-      }
-    }
-    return requestContext.getUriInfo().getQueryParameters();
   }
 
   private List<OgcApiQueryParameter> getKnownQueryParameters(
@@ -265,17 +292,6 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
           .orElse(ImmutableList.of());
     }
     return ogcApiEndpoint.getParameters(apiData, subPath, method);
-  }
-
-  private static Optional<FeatureTypeConfigurationOgcApi> getCollectionData(
-      OgcApiDataV2 apiData, String entrypoint, String subPath) {
-    Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData = Optional.empty();
-    if ("collections".equals(entrypoint) && subPath.length() > 1) {
-      int idx = subPath.substring(1).indexOf('/');
-      String collectionId = idx != -1 ? subPath.substring(1, idx + 1) : subPath.substring(1);
-      optionalCollectionData = apiData.getCollectionData(collectionId);
-    }
-    return optionalCollectionData;
   }
 
   private void checkParameterNames(
@@ -472,11 +488,35 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     return extensionRegistry.getExtensionsForType(EndpointExtension.class);
   }
 
-  private static int getMaxResponseHeaderSize(AppContext appContext) {
-    HttpConnectorFactory httpConnectorFactory =
-        (HttpConnectorFactory)
-            appContext.getConfiguration().getServerFactory().getApplicationConnectors().get(0);
+  private void logRequest(
+      String api,
+      String entrypoint,
+      String subPath,
+      ContainerRequestContext requestContext,
+      Optional<User> optionalUser) {
+    String uuid = requestContext.getProperty("REQUEST_ID").toString();
 
-    return (int) httpConnectorFactory.getMaxResponseHeaderSize().toBytes();
+    // api
+    auditLog.setApi(uuid, api);
+
+    // actor
+    // ToDo: For testing purposes find a way to set the user
+    optionalUser.ifPresentOrElse(
+        user ->
+            auditLog.setActor(uuid, user.getRole().toString(), user.getName(), user.getClaims()),
+        () -> auditLog.setActor(uuid, "AnonymousUser", "Anonymous", Map.of()));
+
+    // operation
+    String method = requestContext.getMethod();
+    if (Objects.nonNull(method)) {
+      auditLog.setOperationMethod(uuid, method);
+    }
+    auditLog.setOperationPath(uuid, "/" + entrypoint + subPath);
+    // ToDo Check if headers should be set and header blacklist/whitelist (maybe excluded: [ '*' ]
+    // is enough)
+    MultivaluedMap<String, String> headers = requestContext.getHeaders();
+    if (Objects.nonNull(headers)) {
+      auditLog.setOperationHeaders(uuid, headers);
+    }
   }
 }

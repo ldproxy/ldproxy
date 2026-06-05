@@ -475,7 +475,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     if (!sendResponseAsStream) {
       Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
-          reduce(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+          reduce(
+              featureStream,
+              Objects.nonNull(featureId),
+              encoder,
+              propertyTransformations,
+              requestContext.getRequestId());
       ResultReduced<byte[]> result = resultAndMetadata.first();
       collectionMetadata = resultAndMetadata.second();
       hasNextPage =
@@ -535,7 +540,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     if (sendResponseAsStream) {
       Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
-          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+          stream(
+              featureStream,
+              Objects.nonNull(featureId),
+              encoder,
+              propertyTransformations,
+              requestContext.getRequestId());
       streamingOutput = streamingOutputAndMetadata.first();
       collectionMetadata = streamingOutputAndMetadata.second();
       hasNextPage =
@@ -581,7 +591,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
-      Map<String, PropertyTransformations> propertyTransformations) {
+      Map<String, PropertyTransformations> propertyTransformations,
+      Optional<String> requestId) {
     DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
     SinkTransformed<Object, byte[]> featureSink =
         encoder.to(Sink.outputStream(delayedOutputStream));
@@ -590,7 +601,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<Result> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
             .toCompletableFuture();
 
     // wait for collection metadata
@@ -611,7 +622,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
-      Map<String, PropertyTransformations> propertyTransformations) {
+      Map<String, PropertyTransformations> propertyTransformations,
+      Optional<String> requestId) {
 
     SinkReduced<Object, byte[]> featureSink = encoder.to(Sink.reduceByteArray());
     CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
@@ -619,7 +631,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<ResultReduced<byte[]>> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
             .toCompletableFuture();
 
     // wait for collection metadata
