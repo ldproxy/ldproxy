@@ -277,11 +277,10 @@ public class WfsTransactionParser implements TransactionParser {
             // coalesce loop.
             Optional<String> handle = Optional.ofNullable(attribute(start, "handle"));
             Map<String, List<BufferedItem>> byCollection = new LinkedHashMap<>();
-            int[] featureIndex = {0};
-            consumeWfsInsertChildren(start, byCollection, featureIndex);
+            consumeWfsInsertChildren(start, byCollection);
             while (byCollection.size() == 1 && nextSiblingIsCoalescableInsert(reader)) {
               StartElement nextInsertStart = reader.nextEvent().asStartElement();
-              consumeWfsInsertChildren(nextInsertStart, byCollection, featureIndex);
+              consumeWfsInsertChildren(nextInsertStart, byCollection);
             }
             if (byCollection.isEmpty()) {
               continue; // empty wfs:Insert — move on to next sibling
@@ -309,12 +308,10 @@ public class WfsTransactionParser implements TransactionParser {
 
     /**
      * Reads every feature child of one {@code wfs:Insert} into {@code byCollection}, keyed by the
-     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag. {@code
-     * featureIndex} is a single-element int holding the running 1-based position used across one or
-     * more wfs:Insert elements that get merged into the same TxInsert.
+     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag.
      */
     private void consumeWfsInsertChildren(
-        StartElement insertStart, Map<String, List<BufferedItem>> byCollection, int[] featureIndex)
+        StartElement insertStart, Map<String, List<BufferedItem>> byCollection)
         throws XMLStreamException {
       while (reader.hasNext()) {
         XMLEvent e = reader.nextEvent();
@@ -324,10 +321,9 @@ public class WfsTransactionParser implements TransactionParser {
         String collectionId = feature.getName().getLocalPart();
         Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
         byte[] payload = copySubtree(reader, feature, root, insertStart);
-        featureIndex[0]++;
         byCollection
             .computeIfAbsent(collectionId, k -> new ArrayList<>())
-            .add(new BufferedItem(gmlId, featureIndex[0], payload));
+            .add(new BufferedItem(gmlId, payload));
       }
     }
 
@@ -767,21 +763,19 @@ public class WfsTransactionParser implements TransactionParser {
         public InsertItem next() {
           if (!src.hasNext()) throw new NoSuchElementException();
           BufferedItem b = src.next();
-          return new InsertItem(b.gmlId, b.indexInInsert, new ByteArrayInputStream(b.payload));
+          return new InsertItem(b.gmlId, b.payload, new ByteArrayInputStream(b.payload));
         }
       };
     }
   }
 
-  /** Internal triple held by {@link BufferedInsert} — one feature child of a wfs:Insert. */
+  /** Internal pair held by {@link BufferedInsert} — one feature child of a wfs:Insert. */
   private static final class BufferedItem {
     final Optional<String> gmlId;
-    final int indexInInsert;
     final byte[] payload;
 
-    BufferedItem(Optional<String> gmlId, int indexInInsert, byte[] payload) {
+    BufferedItem(Optional<String> gmlId, byte[] payload) {
       this.gmlId = gmlId;
-      this.indexInInsert = indexInInsert;
       this.payload = payload;
     }
   }

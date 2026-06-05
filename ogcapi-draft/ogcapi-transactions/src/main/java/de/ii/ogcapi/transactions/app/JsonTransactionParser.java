@@ -787,9 +787,6 @@ public class JsonTransactionParser implements TransactionParser {
       itemsConsumed = true;
       return new Iterator<>() {
         private InsertItem next;
-        // featureIndex spans coalesced action boundaries so callers see continuous 1-based
-        // positions across a merged TxInsert.
-        private int featureIndex = 0;
 
         @Override
         public boolean hasNext() {
@@ -817,17 +814,14 @@ public class JsonTransactionParser implements TransactionParser {
                     "transaction[" + actionIndex + "].items must contain JSON Feature objects");
               }
               JsonNode feature = MAPPER.readTree(parser);
-              featureIndex++;
               JsonNode idNode = feature.get("id");
               Optional<String> featureId =
                   idNode == null || idNode.isNull()
                       ? Optional.empty()
                       : Optional.of(idNode.asText());
+              byte[] payloadBytes = MAPPER.writeValueAsBytes(feature);
               next =
-                  new InsertItem(
-                      featureId,
-                      featureIndex,
-                      new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature)));
+                  new InsertItem(featureId, payloadBytes, new ByteArrayInputStream(payloadBytes));
               return true;
             }
           } catch (IOException e) {

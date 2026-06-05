@@ -44,7 +44,8 @@ public interface ActionResult {
    * Source-side identifiers (e.g. gml:id, GeoJSON id) of the features that may have caused a FAILED
    * outcome. For inserts that fail at batch commit time, this is the full set of feature ids in the
    * failing batch — the broken one is among them but cannot be narrowed further from a batch error.
-   * Empty when no candidate ids are known.
+   * Empty when no candidate ids are known; the same items then appear in {@link
+   * #getFailedFeaturePayloads()} so the client can correlate by content.
    */
   @Value.Default
   default List<String> getFailedFeatureIds() {
@@ -52,18 +53,20 @@ public interface ActionResult {
   }
 
   /**
-   * 1-based positions within the originating wfs:Insert / GeoJSON items array of the candidate
-   * features in {@link #getFailedFeatureIds()}, in the same order. Useful when the source payload
-   * does not carry feature ids. Empty when not known.
+   * Raw payload (as sent by the client) of every failing item that has no source-side id. Used as a
+   * content-based locator so the client can match the failure against the request body. The
+   * encoding is the request's {@code Content-Type} (GeoJSON Feature JSON, GML element XML, …).
+   * Empty when every failing item is already identified by {@link #getFailedFeatureIds()} or when
+   * the source payload is not available.
    */
   @Value.Default
-  default List<Integer> getFailedFeatureIndexes() {
+  default List<String> getFailedFeaturePayloads() {
     return List.of();
   }
 
   /**
-   * Per-feature error messages, parallel to {@link #getFailedFeatureIndexes()} (and to {@link
-   * #getFailedFeatureIds()} when ids are known). Populated for fine-grained failures such as
+   * Per-feature error messages, parallel to the combined sequence of {@link #getFailedFeatureIds()}
+   * followed by {@link #getFailedFeaturePayloads()}. Populated for fine-grained failures such as
    * per-item schema validation under {@code Prefer: handling=strict}, where each rejected feature
    * has its own diagnostic message. Empty when the action carries only an aggregate error (e.g. a
    * batch commit that failed without identifying a specific item) — in that case consult {@link

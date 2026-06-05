@@ -320,7 +320,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     List<String> ids = new ArrayList<>();
     List<String> skippedIds = new ArrayList<>();
-    List<Integer> skippedIndexes = new ArrayList<>();
+    List<String> skippedPayloads = new ArrayList<>();
     List<String> skippedErrors = new ArrayList<>();
 
     FeatureFormatExtension format = validate ? resolveFormat(action.getMediaType()) : null;
@@ -344,8 +344,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
             if (!skipInvalid) {
               throw ve;
             }
-            item.featureId().ifPresent(skippedIds::add);
-            skippedIndexes.add(item.indexInInsert());
+            // Record the item: id when known, else the payload as a content-based locator.
+            if (item.featureId().isPresent()) {
+              skippedIds.add(item.featureId().get());
+            } else {
+              skippedPayloads.add(payloadString(item));
+            }
             skippedErrors.add(
                 ve.getMessage() != null ? ve.getMessage() : ve.getClass().getSimpleName());
             continue;
@@ -381,7 +385,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
     // When validate-and-skip is on and every item was invalid, nothing was written — report FAILED
     // so the batch executor rolls back the (empty) session and the response reflects the failure.
-    if (ids.isEmpty() && !skippedIndexes.isEmpty()) {
+    if (ids.isEmpty() && (!skippedIds.isEmpty() || !skippedPayloads.isEmpty())) {
       return new ImmutableActionResult.Builder()
           .type(TxActionType.INSERT)
           .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
@@ -389,7 +393,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
           .status(ActionStatus.FAILED)
           .error("All items failed schema validation under Prefer: handling=strict")
           .failedFeatureIds(skippedIds)
-          .failedFeatureIndexes(skippedIndexes)
+          .failedFeaturePayloads(skippedPayloads)
           .failedFeatureErrors(skippedErrors)
           .build();
     }
@@ -401,11 +405,19 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .status(ActionStatus.SUCCESS)
         .featureIds(ids)
         .failedFeatureIds(skippedIds)
-        .failedFeatureIndexes(skippedIndexes)
+        .failedFeaturePayloads(skippedPayloads)
         .failedFeatureErrors(skippedErrors)
         .newBoundingBox(extents.bbox())
         .newInterval(extents.intervalMillis())
         .build();
+  }
+
+  private static String payloadString(InsertItem item) {
+    byte[] bytes = item.payloadBytes();
+    if (bytes == null) {
+      return "";
+    }
+    return new String(bytes, StandardCharsets.UTF_8);
   }
 
   /**
@@ -439,22 +451,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   private static ActionResult failedInsert(
       TxInsert action, OgcApiDataV2 apiData, List<InsertItem> batchItems, Throwable error) {
     List<String> candidateIds = new ArrayList<>(batchItems.size());
-    List<Integer> candidateIndexes = new ArrayList<>(batchItems.size());
+    List<String> candidatePayloads = new ArrayList<>(batchItems.size());
     for (InsertItem it : batchItems) {
-      it.featureId().ifPresent(candidateIds::add);
-      candidateIndexes.add(it.indexInInsert());
+      if (it.featureId().isPresent()) {
+        candidateIds.add(it.featureId().get());
+      } else {
+        candidatePayloads.add(payloadString(it));
+      }
     }
-    String message =
-        error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
-    return new ImmutableActionResult.Builder()
-        .type(TxActionType.INSERT)
-        .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
-        .actionId(action.getActionId())
-        .status(ActionStatus.FAILED)
-        .error(message)
-        .failedFeatureIds(candidateIds)
-        .failedFeatureIndexes(candidateIndexes)
-        .build();
+    return failed(action, error, candidateIds, candidatePayloads);
   }
 
   private ActionResult runReplace(
@@ -491,23 +496,28 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     }
     String id = targetIds.get(0);
 
-    if (validate) {
-      FeatureFormatExtension format = resolveFormat(action.getMediaType());
-      ValidatorContext vctx =
-          buildValidatorContext(apiData, action.getCollectionId(), action.getMediaType(), ctx);
-      format.validate(new String(action.getFeature(), StandardCharsets.UTF_8), vctx);
-    }
+    MutationResult mr;
+    try {
+      if (validate) {
+        FeatureFormatExtension format = resolveFormat(action.getMediaType());
+        ValidatorContext vctx =
+            buildValidatorContext(apiData, action.getCollectionId(), action.getMediaType(), ctx);
+        format.validate(new String(action.getFeature(), StandardCharsets.UTF_8), vctx);
+      }
 
-    FeatureTokenSource source =
-        decodeFeature(
-            action.getMediaType(),
-            new ByteArrayInputStream(action.getFeature()),
-            apiData,
-            action.getCollectionId(),
-            requestCrs,
-            axes);
-    MutationResult mr = session.updateFeature(featureType, id, source, requestCrs, false);
-    rejectIfError(mr);
+      FeatureTokenSource source =
+          decodeFeature(
+              action.getMediaType(),
+              new ByteArrayInputStream(action.getFeature()),
+              apiData,
+              action.getCollectionId(),
+              requestCrs,
+              axes);
+      mr = session.updateFeature(featureType, id, source, requestCrs, false);
+      rejectIfError(mr);
+    } catch (RuntimeException e) {
+      return failed(action, e, List.of(id));
+    }
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.REPLACE)
@@ -553,17 +563,28 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     // and the GET-merge-write fall-back have been removed; chaining Insert/Replace/Update with
     // Update on the same id now works natively.
 
-    List<FeatureTransactions.PropertyUpdate> updates =
-        buildPropertyUpdates(action, apiData, canonicalCollectionId, fromWfs, crs);
+    List<FeatureTransactions.PropertyUpdate> updates;
+    try {
+      updates = buildPropertyUpdates(action, apiData, canonicalCollectionId, fromWfs, crs);
+    } catch (RuntimeException e) {
+      // Action-level failure (bad payload, non-whitelisted property, unknown path, etc.) —
+      // attribute it to every target id so the log line and the result both name the
+      // features the client tried to update.
+      return failed(action, e, targetIds);
+    }
 
     List<String> updatedIds = new ArrayList<>();
     for (String id : targetIds) {
-      MutationResult mr = session.patchFeature(featureType, id, updates, crs);
-      rejectIfError(mr);
-      if (mr.getIds().isEmpty()) {
-        updatedIds.add(id);
-      } else {
-        updatedIds.addAll(mr.getIds());
+      try {
+        MutationResult mr = session.patchFeature(featureType, id, updates, crs);
+        rejectIfError(mr);
+        if (mr.getIds().isEmpty()) {
+          updatedIds.add(id);
+        } else {
+          updatedIds.addAll(mr.getIds());
+        }
+      } catch (RuntimeException e) {
+        return failed(action, e, List.of(id));
       }
     }
 
@@ -793,13 +814,17 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     String featureType = resolveFeatureType(api.getData(), action.getCollectionId());
     List<String> deleted = new ArrayList<>();
     for (String id : targetIds) {
-      MutationResult mr = session.deleteFeature(featureType, id);
-      rejectIfError(mr);
-      // SqlMutationSession.deleteFeature only populates getIds() when the SQL DELETE actually
-      // matched a row. Treat an empty result as a no-op so totalDeleted / deleteResults reflect
-      // only features that were really removed, not every rid the caller named in the filter.
-      if (!mr.getIds().isEmpty()) {
-        deleted.add(id);
+      try {
+        MutationResult mr = session.deleteFeature(featureType, id);
+        rejectIfError(mr);
+        // SqlMutationSession.deleteFeature only populates getIds() when the SQL DELETE actually
+        // matched a row. Treat an empty result as a no-op so totalDeleted / deleteResults reflect
+        // only features that were really removed, not every rid the caller named in the filter.
+        if (!mr.getIds().isEmpty()) {
+          deleted.add(id);
+        }
+      } catch (RuntimeException e) {
+        return failed(action, e, List.of(id));
       }
     }
 
@@ -1238,14 +1263,88 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private static ActionResult failed(TxAction action, Throwable error) {
-    LOGGER.warn("Transaction action {} failed", actionLabel(action), error);
+    return failed(action, error, List.of(), List.of());
+  }
+
+  private static ActionResult failed(
+      TxAction action, Throwable error, List<String> failedFeatureIds) {
+    return failed(action, error, failedFeatureIds, List.of());
+  }
+
+  // Build a FAILED ActionResult and log the failure. User-input errors
+  // (IllegalArgumentException — bad payload, unknown property, malformed filter, etc.) are
+  // logged at WARN level with the message only; system errors keep the stack trace so
+  // bugs and infrastructure issues remain debuggable. Failing items are identified by id
+  // when known; items without an id contribute their raw payload (the bytes the client sent)
+  // as a content-based locator so the client can correlate the failure with the original
+  // request. In the log line we truncate the payload to keep entries readable; the full
+  // payload is preserved in the ActionResult.
+  private static ActionResult failed(
+      TxAction action,
+      Throwable error,
+      List<String> failedFeatureIds,
+      List<String> failedFeaturePayloads) {
+    String context = failureContext(failedFeatureIds, failedFeaturePayloads);
+    if (isUserError(error)) {
+      LOGGER.warn(
+          "Transaction action {}{} failed: {}", actionLabel(action), context, errorMessage(error));
+    } else {
+      LOGGER.warn("Transaction action {}{} failed", actionLabel(action), context, error);
+    }
     return new ImmutableActionResult.Builder()
         .type(action.getType())
         .collectionId(action.getCollectionId())
         .actionId(action.getActionId())
         .status(ActionStatus.FAILED)
-        .error(error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage())
+        .error(errorMessage(error))
+        .failedFeatureIds(failedFeatureIds)
+        .failedFeaturePayloads(failedFeaturePayloads)
         .build();
+  }
+
+  private static String errorMessage(Throwable error) {
+    return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+  }
+
+  // Maximum payload length to keep in the log message; the full payload still lands in
+  // ActionResult.failedFeaturePayloads.
+  private static final int LOG_PAYLOAD_PREVIEW = 200;
+
+  private static String failureContext(List<String> ids, List<String> payloads) {
+    StringBuilder sb = new StringBuilder();
+    if (ids != null && !ids.isEmpty()) {
+      sb.append(" for id");
+      if (ids.size() > 1) sb.append("s");
+      sb.append(" ").append(ids);
+    }
+    if (payloads != null && !payloads.isEmpty()) {
+      sb.append(" for unidentified payload");
+      if (payloads.size() > 1) sb.append("s");
+      sb.append(" [");
+      for (int i = 0; i < payloads.size(); i++) {
+        if (i > 0) sb.append(", ");
+        sb.append(truncatePayload(payloads.get(i)));
+      }
+      sb.append("]");
+    }
+    return sb.toString();
+  }
+
+  private static String truncatePayload(String payload) {
+    if (payload == null) return "";
+    String normalised = payload.replaceAll("\\s+", " ").trim();
+    if (normalised.length() <= LOG_PAYLOAD_PREVIEW) {
+      return normalised;
+    }
+    return normalised.substring(0, LOG_PAYLOAD_PREVIEW) + "…";
+  }
+
+  // Errors that originate from user input (bad payload, unknown property, malformed filter,
+  // unsupported feature kind, etc.) should appear in the log as a one-line WARN without the
+  // stack trace; the message itself is the actionable diagnostic. System / infrastructure
+  // errors keep the stack trace so genuine bugs stay debuggable.
+  private static boolean isUserError(Throwable error) {
+    return error instanceof IllegalArgumentException;
   }
 
   private static ActionResult last(List<ActionResult> results) {

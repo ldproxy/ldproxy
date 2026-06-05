@@ -385,7 +385,7 @@ class WfsTransactionParserSpec extends Specification {
         tx.close()
     }
 
-    def 'coalesce: consecutive wfs:Insert siblings of the same collection merge into one TxInsert with continuous indices'() {
+    def 'coalesce: consecutive wfs:Insert siblings of the same collection merge into one TxInsert'() {
         given:
         def body = '''<?xml version="1.0"?>
             <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
@@ -407,17 +407,15 @@ class WfsTransactionParserSpec extends Specification {
         def merged = (TxInsert) it.next()
         def items = merged.items()
         def payloads = []
-        def indexes = []
         while (items.hasNext()) {
             def i = items.next()
-            indexes << i.indexInInsert()
             payloads << new String(i.payload().readAllBytes(), 'UTF-8')
         }
 
         then:
         merged.collectionId == 'AX_Buildings'
         merged.actionId.orElse(null) == 'ins-1'
-        indexes == [1, 2, 3]
+        payloads.size() == 3
         payloads[0].contains('<ax:id>1</ax:id>')
         payloads[1].contains('<ax:id>2</ax:id>')
         payloads[2].contains('<ax:id>3</ax:id>')

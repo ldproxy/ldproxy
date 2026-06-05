@@ -25,7 +25,7 @@ public interface TransactionExecutor {
    *     provider write. Set by the endpoint when the client sends {@code Prefer: handling=strict}.
    *     Per-feature failures inside an atomic transaction abort the transaction; failures inside a
    *     batch transaction skip the offending item and surface it through {@link
-   *     ActionResult#getFailedFeatureIds()} / {@link ActionResult#getFailedFeatureIndexes()}.
+   *     ActionResult#getFailedFeatureIds()} / {@link ActionResult#getFailedFeaturePayloads()}.
    * @return summary of what happened, in request order
    */
   ExecutionResult execute(
