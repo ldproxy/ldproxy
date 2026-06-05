@@ -14,15 +14,23 @@ import java.util.List;
 /**
  * Resolves a wfs:Update / JSON-transaction property path against a {@link FeatureSchema}.
  *
- * <p>Inputs are parsed as a list of local-name segments (XML namespace prefixes already stripped).
- * Each property segment is matched against either the schema's id or its alias, depending on the
- * caller-supplied flag (driven by the input format's {@code useAlias}, e.g. {@code
- * GmlConfiguration.useAlias} for {@code wfs:Transaction}). Intermediate object-type element steps
- * must be present and must match the property's {@code objectType}; mismatches raise an {@link
- * IllegalArgumentException} that propagates as a 4xx through the executor.
+ * <p>Inputs are parsed as a list of segments. Each property segment is matched against either the
+ * schema's id or its alias, depending on the caller-supplied {@code inputUseAlias} flag (driven by
+ * the input format's {@code useAlias}, e.g. {@code GmlConfiguration.useAlias} for {@code
+ * wfs:Transaction}).
  *
- * <p>The resolved path is a list of {@link FeatureSchema} nodes; convert to an output form (e.g.
- * for the GeoJSON merge-patch) with {@link #toOutputPath}.
+ * <p>{@code inputHasObjectTypeSteps} controls XPath-style object-type wrapper segments:
+ *
+ * <ul>
+ *   <li>{@code true} ({@code wfs:ValueReference} input, XPath convention): an intermediate
+ *       object-type element segment is required and validated against the property's {@code
+ *       objectType}. Mismatches raise {@link IllegalArgumentException}.
+ *   <li>{@code false} (JSON-transaction, config, and other ldproxy-canonical contexts): the path is
+ *       just the property identifiers; no object-type segment is expected.
+ * </ul>
+ *
+ * <p>The resolved path is a list of {@link FeatureSchema} property nodes (object-type segments, if
+ * any, are consumed but not stored); convert to an output form with {@link #toOutputPath}.
  */
 final class UpdatePathResolver {
 
@@ -30,6 +38,14 @@ final class UpdatePathResolver {
 
   static List<FeatureSchema> resolve(
       FeatureSchema root, List<String> inputPath, boolean inputUseAlias) {
+    return resolve(root, inputPath, inputUseAlias, false);
+  }
+
+  static List<FeatureSchema> resolve(
+      FeatureSchema root,
+      List<String> inputPath,
+      boolean inputUseAlias,
+      boolean inputHasObjectTypeSteps) {
     if (inputPath == null || inputPath.isEmpty()) {
       throw new IllegalArgumentException("Property path must not be empty");
     }
@@ -52,11 +68,11 @@ final class UpdatePathResolver {
       resolved.add(matched);
       i++;
 
-      // If the matched property declares an object type, the next input segment must be that
-      // object-type element name (e.g. `AA_Lebenszeitintervall` between `lebenszeitintervall`
-      // and `endet`). The intermediate step is required and validated; mismatches are rejected
-      // to surface schema/XPath mistakes early.
-      if (matched.getObjectType().isPresent() && i < inputPath.size()) {
+      // XPath input only: consume the object-type element segment (e.g. AA_Lebenszeitintervall
+      // between `lebenszeitintervall` and `endet`). For ldproxy-canonical input (JSON-tx,
+      // config, CQL2 queryables) the path is just properties; no object-type segment is
+      // expected.
+      if (inputHasObjectTypeSteps && matched.getObjectType().isPresent() && i < inputPath.size()) {
         String expected = matched.getObjectType().get();
         String actual = inputPath.get(i);
         if (!expected.equals(actual)) {

@@ -647,7 +647,7 @@ public class JsonTransactionParser implements TransactionParser {
           if (!seg.isTextual()) {
             throw new IllegalArgumentException(context + "[" + j + "] must be a string");
           }
-          String local = stripPrefix(seg.asText()).trim();
+          String local = seg.asText().trim();
           if (local.isEmpty()) {
             throw new IllegalArgumentException(context + "[" + j + "] must not be empty");
           }
@@ -662,15 +662,17 @@ public class JsonTransactionParser implements TransactionParser {
       throw new IllegalArgumentException(context + " must be a string or array of strings");
     }
 
+    // ldproxy's canonical separator is `.`; the JSON-transaction body inherits that convention.
+    // (XPath `/` is reserved for wfs:ValueReference parsing on the WFS side.)
     private static List<String> splitPath(String raw, String context) {
       String trimmed = raw.trim();
       if (trimmed.isEmpty()) {
         throw new IllegalArgumentException(context + " must not be empty");
       }
-      String[] parts = trimmed.split("/");
+      String[] parts = trimmed.split("\\.");
       List<String> segments = new ArrayList<>(parts.length);
       for (String part : parts) {
-        String local = stripPrefix(part).trim();
+        String local = part.trim();
         if (local.isEmpty()) {
           throw new IllegalArgumentException(
               context + " contains an empty path segment: '" + raw + "'");
@@ -678,12 +680,6 @@ public class JsonTransactionParser implements TransactionParser {
         segments.add(local);
       }
       return ImmutableList.copyOf(segments);
-    }
-
-    private static String stripPrefix(String qname) {
-      if (qname == null) return "";
-      int idx = qname.indexOf(':');
-      return idx < 0 ? qname : qname.substring(idx + 1);
     }
 
     private static String stringValue(JsonParser parser, int actionIndex, String field)

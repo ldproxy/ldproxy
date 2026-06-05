@@ -9,7 +9,6 @@ package de.ii.ogcapi.transactions.app;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
@@ -18,14 +17,10 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
-import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
@@ -44,9 +39,6 @@ import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxReplace;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate;
-import de.ii.xtraplatform.cql.domain.In;
-import de.ii.xtraplatform.cql.domain.Scalar;
-import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -58,17 +50,13 @@ import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.MutationResult;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.Session;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
-import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.Tuple;
-import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -93,11 +81,6 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransactionExecutorImpl.class);
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final MediaType GEOJSON_MEDIA_TYPE = new MediaType("application", "geo+json");
-  // Per-id GET is fine for typical wfs:Update sizes (1–few ids). Above this many target ids,
-  // runUpdate prefetches all current features in a single FEATURES query with an IN-filter to
-  // avoid N round-trips.
-  private static final int BULK_GET_THRESHOLD = 16;
   // Per-action wfs:Insert / JSON streaming-insert batch size. The executor accumulates this many
   // decoded per-feature FeatureTokenSources and hands them to Session.createFeatures(...) in one
   // call so the SQL session can fold consecutive same-shape main INSERTs into one multi-row
@@ -486,15 +469,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
 
     List<String> targetIds =
-        action
-            .getFilter()
-            .map(TransactionExecutorImpl::extractIdsFromFilter)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Replace action for collection '"
-                            + action.getCollectionId()
-                            + "' requires a filter that selects features by id."));
+        resolveTargetIds(
+            action.getTargetIds(),
+            action.getFilter(),
+            apiData,
+            canonicalCollectionId(apiData, action.getCollectionId()),
+            "Replace action");
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Replace action filter matched no feature ids for collection '"
@@ -550,21 +530,17 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       Map<String, Set<String>> touchedIdsByCollection,
       boolean fromWfs) {
     EpsgCrs crs = requestCrs;
-    Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
 
     List<String> targetIds =
-        action
-            .getFilter()
-            .map(TransactionExecutorImpl::extractIdsFromFilter)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Update action for collection '"
-                            + action.getCollectionId()
-                            + "' requires a filter that selects features by id."));
+        resolveTargetIds(
+            action.getTargetIds(),
+            action.getFilter(),
+            apiData,
+            canonicalCollectionId,
+            "Update action");
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Update action filter matched no feature ids for collection '"
@@ -572,75 +548,23 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + "'.");
     }
 
-    // v1 limitation: the GET that backs runUpdate cannot see uncommitted writes from
-    // earlier actions in the same atomic wfs:Transaction (it goes through the provider's
-    // query connection at READ COMMITTED, not the Session's mutation connection). Reject
-    // the action up front rather than silently 404 / silently merge against a stale snapshot.
-    Set<String> alreadyTouched =
-        touchedIdsByCollection.getOrDefault(canonicalCollectionId, Set.of());
-    if (!alreadyTouched.isEmpty()) {
-      Set<String> conflict = new LinkedHashSet<>();
-      for (String id : targetIds) {
-        if (alreadyTouched.contains(id)) {
-          conflict.add(id);
-        }
-      }
-      if (!conflict.isEmpty()) {
-        throw new IllegalArgumentException(
-            "Update action cannot target feature id(s) "
-                + conflict
-                + " in collection '"
-                + canonicalCollectionId
-                + "' because the same id(s) were inserted, replaced, updated, or deleted earlier"
-                + " in this atomic transaction. Same-transaction chaining is not supported in v1;"
-                + " split the operation into separate transactions or use batch semantics.");
-      }
-    }
+    // Phase C: every Update is a native SQL UPDATE issued on the session's own connection, so
+    // prior writes in the same atomic transaction are visible to it. The v1 touched-id reject
+    // and the GET-merge-write fall-back have been removed; chaining Insert/Replace/Update with
+    // Update on the same id now works natively.
 
-    ObjectNode patchTemplate = buildPatchTemplate(action, apiData, canonicalCollectionId, fromWfs);
-
-    // Per-id GET is fine for typical wfs:Update sizes. Above BULK_GET_THRESHOLD ids, prefetch
-    // every current feature with one FEATURES query using an IN filter and serve the
-    // per-target lookup from an in-memory map. Same-transaction chaining is already rejected
-    // up front (see touchedIdsByCollection check above).
-    Map<String, byte[]> bulkCurrent = null;
-    if (targetIds.size() > BULK_GET_THRESHOLD) {
-      bulkCurrent =
-          fetchCurrentFeaturesAsGeoJsonBulk(
-              canonicalCollectionId, featureType, targetIds, provider, crs, ctx);
-    }
+    List<FeatureTransactions.PropertyUpdate> updates =
+        buildPropertyUpdates(action, apiData, canonicalCollectionId, fromWfs, crs);
 
     List<String> updatedIds = new ArrayList<>();
-    ExtentAccumulator extents = new ExtentAccumulator();
     for (String id : targetIds) {
-      // Apply the JSON-merge-patch and write the FULL merged document through the partial-
-      // update path. The provider's partial-update is delete-then-reinsert from the body, so
-      // sending only the patch would null every unchanged property — same pattern as CRUD's
-      // patchItemResponse.
-      byte[] currentBytes;
-      if (bulkCurrent != null) {
-        currentBytes = bulkCurrent.get(id);
-        if (currentBytes == null) {
-          throw new IllegalArgumentException("The requested feature does not exist: '" + id + "'.");
-        }
-      } else {
-        currentBytes =
-            fetchCurrentFeatureAsGeoJson(
-                canonicalCollectionId, featureType, id, provider, crs, ctx);
-      }
-
-      byte[] mergedBytes = applyMergePatch(currentBytes, patchTemplate, id);
-
-      FeatureTokenSource source =
-          mergePatchSource(new ByteArrayInputStream(mergedBytes), crs, axes);
-      MutationResult mr = session.updateFeature(featureType, id, source, crs, true);
+      MutationResult mr = session.patchFeature(featureType, id, updates, crs);
       rejectIfError(mr);
       if (mr.getIds().isEmpty()) {
         updatedIds.add(id);
       } else {
         updatedIds.addAll(mr.getIds());
       }
-      extents.merge(mr.getSpatialExtent(), mr.getTemporalExtent());
     }
 
     return new ImmutableActionResult.Builder()
@@ -649,75 +573,175 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(updatedIds)
-        .newBoundingBox(extents.bbox())
-        .newInterval(extents.intervalMillis())
         .build();
   }
 
-  // Build the per-action merge-patch object. Each property path is resolved against the
-  // collection's FeatureSchema: input segments are matched against id or alias depending on the
-  // input format's useAlias (GmlConfiguration for wfs:Transaction, GeoJsonConfiguration for the
-  // JSON transaction format), and output segments are written in the GeoJSON encoding form so
-  // they line up with the GeoJSON feature document the patch is merged into. Nested paths
-  // materialise as nested JSON objects; deletes set the deepest leaf to the PATCH_NULL_VALUE
-  // sentinel. The id is injected per-target by applyMergePatch.
-  private ObjectNode buildPatchTemplate(
-      TxUpdate action, OgcApiDataV2 apiData, String canonicalCollectionId, boolean fromWfs) {
+  // Resolve every input path (alias or schema id, per the input format's useAlias) against the
+  // collection's FeatureSchema and turn it into a PropertyUpdate carrying the canonical
+  // schema-id path. Validates each canonical path against the TRANSACTIONS building block's
+  // updatableProperties whitelist; anything not declared updatable is rejected with a 4xx.
+  private List<FeatureTransactions.PropertyUpdate> buildPropertyUpdates(
+      TxUpdate action,
+      OgcApiDataV2 apiData,
+      String canonicalCollectionId,
+      boolean fromWfs,
+      EpsgCrs crs) {
     FeatureSchema rootSchema = resolveFeatureSchema(apiData, canonicalCollectionId);
     boolean inputUseAlias =
         fromWfs
             ? gmlUseAlias(apiData, canonicalCollectionId)
             : geoJsonUseAlias(apiData, canonicalCollectionId);
-    boolean outputUseAlias = geoJsonUseAlias(apiData, canonicalCollectionId);
+    Set<List<String>> whitelist =
+        new java.util.HashSet<>(updatablePaths(apiData, canonicalCollectionId));
 
-    ObjectNode feature = MAPPER.createObjectNode();
-    feature.put("type", "Feature");
-    ObjectNode properties = MAPPER.createObjectNode();
+    // Group NameValue entries by canonical path: multiple <wfs:Property> with the same
+    // ValueReference (the standard WFS-T form for multi-valued properties) collapse into one
+    // PropertyUpdate whose value is the JSON array of the individual values. Single-value
+    // properties get a scalar value; explicit deletes carry empty Optional<JsonNode>.
+    // `fromWfs` toggles the XPath object-type-step convention on the input path.
+    boolean inputHasObjectTypeSteps = fromWfs;
+    java.util.LinkedHashMap<List<String>, List<JsonNode>> byPath = new java.util.LinkedHashMap<>();
     for (TxUpdate.NameValue nv : action.getAdd()) {
-      List<String> outPath =
-          resolveOutputPath(rootSchema, nv.getPath(), inputUseAlias, outputUseAlias);
-      setNested(properties, outPath, nv.getValue());
+      addValueByPath(
+          byPath,
+          rootSchema,
+          nv.getPath(),
+          inputUseAlias,
+          inputHasObjectTypeSteps,
+          whitelist,
+          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, crs),
+          canonicalCollectionId);
     }
     for (TxUpdate.NameValue nv : action.getModify()) {
-      List<String> outPath =
-          resolveOutputPath(rootSchema, nv.getPath(), inputUseAlias, outputUseAlias);
-      setNested(properties, outPath, nv.getValue());
+      addValueByPath(
+          byPath,
+          rootSchema,
+          nv.getPath(),
+          inputUseAlias,
+          inputHasObjectTypeSteps,
+          whitelist,
+          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, crs),
+          canonicalCollectionId);
     }
+    java.util.Set<List<String>> clearedPaths = new java.util.LinkedHashSet<>();
     for (List<String> path : action.getDeleteProperties()) {
-      List<String> outPath = resolveOutputPath(rootSchema, path, inputUseAlias, outputUseAlias);
-      setNested(
-          properties,
-          outPath,
-          MAPPER.getNodeFactory().textNode(FeatureTransactions.PATCH_NULL_VALUE));
+      List<String> canonical =
+          resolveAndCheck(
+              rootSchema,
+              path,
+              inputUseAlias,
+              inputHasObjectTypeSteps,
+              whitelist,
+              canonicalCollectionId);
+      clearedPaths.add(canonical);
+      byPath.remove(canonical);
     }
-    feature.set("properties", properties);
-    return feature;
+
+    List<FeatureTransactions.PropertyUpdate> result =
+        new ArrayList<>(byPath.size() + clearedPaths.size());
+    for (Map.Entry<List<String>, List<JsonNode>> entry : byPath.entrySet()) {
+      result.add(buildPropertyUpdate(entry.getKey(), entry.getValue()));
+    }
+    for (List<String> path : clearedPaths) {
+      result.add(
+          de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate.builder()
+              .path(path)
+              .value(Optional.empty())
+              .build());
+    }
+    return result;
   }
 
-  private static List<String> resolveOutputPath(
-      FeatureSchema root, List<String> inputPath, boolean inputUseAlias, boolean outputUseAlias) {
-    return UpdatePathResolver.toOutputPath(
-        UpdatePathResolver.resolve(root, inputPath, inputUseAlias), outputUseAlias);
+  private static void addValueByPath(
+      java.util.LinkedHashMap<List<String>, List<JsonNode>> byPath,
+      FeatureSchema root,
+      List<String> inputPath,
+      boolean inputUseAlias,
+      boolean inputHasObjectTypeSteps,
+      Set<List<String>> whitelist,
+      JsonNode value,
+      String canonicalCollectionId) {
+    List<String> canonical =
+        resolveAndCheck(
+            root,
+            inputPath,
+            inputUseAlias,
+            inputHasObjectTypeSteps,
+            whitelist,
+            canonicalCollectionId);
+    byPath.computeIfAbsent(canonical, k -> new ArrayList<>()).add(value);
   }
 
-  // Walk an existing ObjectNode along `path`, creating intermediate ObjectNodes where needed,
-  // and set the leaf to `value`. If an intermediate exists as a non-object it is overwritten —
-  // the input is already schema-validated, so a non-object collision means the patch genuinely
-  // overrides the prior shape.
-  private static void setNested(ObjectNode target, List<String> path, JsonNode value) {
-    ObjectNode cursor = target;
-    for (int i = 0; i < path.size() - 1; i++) {
-      String seg = path.get(i);
-      JsonNode existing = cursor.get(seg);
-      if (existing != null && existing.isObject()) {
-        cursor = (ObjectNode) existing;
-      } else {
-        ObjectNode child = MAPPER.createObjectNode();
-        cursor.set(seg, child);
-        cursor = child;
+  // Resolve the NameValue's payload to a JsonNode. For text/json values the JsonNode is used
+  // as-is. For WFS XML subtrees (set via getValueXml()), the resolved target schema property
+  // drives format-specific conversion: GML→GeoJSON for GEOMETRY; XML walk for OBJECT_ARRAY.
+  private static JsonNode nameValueAsJson(
+      TxUpdate.NameValue nv,
+      FeatureSchema rootSchema,
+      boolean inputUseAlias,
+      boolean inputHasObjectTypeSteps,
+      EpsgCrs crs) {
+    if (nv.getValueXml().isEmpty()) {
+      return nv.getValue();
+    }
+    List<FeatureSchema> resolved =
+        UpdatePathResolver.resolve(
+            rootSchema, nv.getPath(), inputUseAlias, inputHasObjectTypeSteps);
+    if (resolved.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Could not resolve property path for <wfs:Value> XML content.");
+    }
+    FeatureSchema targetSchema = resolved.get(resolved.size() - 1);
+    return WfsValueXmlConverter.convert(nv.getValueXml().get(), targetSchema, inputUseAlias, crs);
+  }
+
+  private static FeatureTransactions.PropertyUpdate buildPropertyUpdate(
+      List<String> canonicalPath, List<JsonNode> values) {
+    JsonNode value;
+    if (values.size() == 1) {
+      value = values.get(0);
+    } else {
+      com.fasterxml.jackson.databind.node.ArrayNode array = MAPPER.createArrayNode();
+      for (JsonNode v : values) {
+        array.add(v);
       }
+      value = array;
     }
-    cursor.set(path.get(path.size() - 1), value);
+    return de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate.builder()
+        .path(canonicalPath)
+        .value(Optional.of(value))
+        .build();
+  }
+
+  private static List<String> resolveAndCheck(
+      FeatureSchema root,
+      List<String> inputPath,
+      boolean inputUseAlias,
+      boolean inputHasObjectTypeSteps,
+      Set<List<String>> whitelist,
+      String canonicalCollectionId) {
+    List<FeatureSchema> resolved =
+        UpdatePathResolver.resolve(root, inputPath, inputUseAlias, inputHasObjectTypeSteps);
+    List<String> canonicalPath = UpdatePathResolver.toOutputPath(resolved, false);
+    if (!whitelist.contains(canonicalPath)) {
+      throw new IllegalArgumentException(
+          "Property '"
+              + String.join(".", canonicalPath)
+              + "' is not declared updatable on collection '"
+              + canonicalCollectionId
+              + "'. Configure the TRANSACTIONS building block's `updatableProperties` to opt in.");
+    }
+    return canonicalPath;
+  }
+
+  private static List<List<String>> updatablePaths(
+      OgcApiDataV2 apiData, String canonicalCollectionId) {
+    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+        resolveCollection(apiData, canonicalCollectionId);
+    return collectionCfg
+        .getExtension(de.ii.ogcapi.transactions.domain.TransactionsConfiguration.class)
+        .map(de.ii.ogcapi.transactions.domain.TransactionsConfiguration::getUpdatablePropertyPaths)
+        .orElse(List.of());
   }
 
   private FeatureSchema resolveFeatureSchema(OgcApiDataV2 apiData, String canonicalCollectionId) {
@@ -749,205 +773,16 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         .orElse(false);
   }
 
-  private static byte[] applyMergePatch(byte[] currentBytes, ObjectNode patchTemplate, String id) {
-    JsonNode currentNode;
-    try {
-      currentNode = MAPPER.readTree(currentBytes);
-    } catch (IOException e) {
-      throw new IllegalStateException(
-          "Could not parse current feature as JSON for update: " + e.getMessage(), e);
-    }
-    ObjectNode patch = patchTemplate.deepCopy();
-    patch.put("id", id);
-    JsonNode merged;
-    try {
-      merged = applyJsonMergePatch(currentNode, patch);
-    } catch (RuntimeException e) {
-      throw new IllegalStateException(
-          "Could not apply merge patch to feature '" + id + "': " + e.getMessage(), e);
-    }
-    try {
-      return MAPPER.writeValueAsBytes(merged);
-    } catch (IOException e) {
-      throw new IllegalStateException(
-          "Could not serialise merged feature '" + id + "': " + e.getMessage(), e);
-    }
-  }
-
-  // RFC 7396 JSON Merge Patch: for each entry in patch, if value is null remove the key,
-  // if it's an object recurse, otherwise replace. Target stays as-is for keys not in patch.
-  // We do NOT treat PATCH_NULL_VALUE specially here — it stays as a string in the merged
-  // document and is interpreted by the GeoJSON decoder downstream (which honours the option
-  // we pass on the FeatureTokenDecoderGeoJson). An explicit JSON null is rare in our patch
-  // bodies (we use the sentinel instead) but if it appears RFC 7396 says delete the key.
-  private static JsonNode applyJsonMergePatch(JsonNode target, JsonNode patch) {
-    if (!patch.isObject()) {
-      return patch.deepCopy();
-    }
-    ObjectNode out = target.isObject() ? (ObjectNode) target.deepCopy() : MAPPER.createObjectNode();
-    Iterator<Map.Entry<String, JsonNode>> fields = patch.fields();
-    while (fields.hasNext()) {
-      Map.Entry<String, JsonNode> entry = fields.next();
-      String key = entry.getKey();
-      JsonNode value = entry.getValue();
-      if (value.isNull()) {
-        out.remove(key);
-      } else if (value.isObject()) {
-        out.set(
-            key,
-            applyJsonMergePatch(out.has(key) ? out.get(key) : MAPPER.createObjectNode(), value));
-      } else {
-        out.set(key, value.deepCopy());
-      }
-    }
-    return out;
-  }
-
-  private static FeatureTokenSource mergePatchSource(InputStream body, EpsgCrs crs, Axes axes) {
-    return Source.inputStream(body)
-        .via(
-            new FeatureTokenDecoderGeoJson(
-                Optional.of(FeatureTransactions.PATCH_NULL_VALUE), crs, axes));
-  }
-
-  private byte[] fetchCurrentFeatureAsGeoJson(
-      String canonicalCollectionId,
-      String featureType,
-      String featureId,
-      FeatureProvider provider,
-      EpsgCrs crs,
-      ApiRequestContext ctx) {
-    de.ii.xtraplatform.features.domain.FeatureQuery query =
-        ImmutableFeatureQuery.builder()
-            .type(featureType)
-            .filter(In.of(ScalarLiteral.of(featureId)))
-            .returnsSingleFeature(true)
-            .crs(crs)
-            .build();
-    // Build a minimum-viable QueryInputFeature; the queries handler fills the rest from
-    // request context and provider capabilities.
-    FeaturesCoreQueriesHandler.QueryInputFeature queryInput =
-        new ImmutableQueryInputFeature.Builder()
-            .collectionId(canonicalCollectionId)
-            .featureId(featureId)
-            .featureProvider(provider)
-            .query(query)
-            .defaultCrs(crs)
-            .includeBodyLinks(false)
-            .build();
-    ApiRequestContext geoJsonContext = buildGeoJsonContext(ctx, featureId);
-    Response response =
-        queriesHandler.handle(FeaturesCoreQueriesHandler.Query.FEATURE, queryInput, geoJsonContext);
-    Object entity = response.getEntity();
-    if (entity instanceof byte[]) {
-      return (byte[]) entity;
-    }
-    throw new IllegalStateException(
-        "Expected byte[] entity from FEATURE query for id '"
-            + featureId
-            + "', got "
-            + (entity == null ? "null" : entity.getClass().getName()));
-  }
-
-  // Bulk variant of fetchCurrentFeatureAsGeoJson: one FEATURES query with an IN filter over
-  // every target id. Returns a map of feature-id → serialised GeoJSON Feature bytes (suitable
-  // for applyMergePatch). Ids absent from the response simply won't appear in the map; the
-  // caller throws when looking up a missing id, matching the per-id GET's 404 behaviour.
-  private Map<String, byte[]> fetchCurrentFeaturesAsGeoJsonBulk(
-      String canonicalCollectionId,
-      String featureType,
-      List<String> featureIds,
-      FeatureProvider provider,
-      EpsgCrs crs,
-      ApiRequestContext ctx) {
-    List<Scalar> literals = new ArrayList<>(featureIds.size());
-    for (String id : featureIds) {
-      literals.add(ScalarLiteral.of(id));
-    }
-    de.ii.xtraplatform.features.domain.FeatureQuery query =
-        ImmutableFeatureQuery.builder()
-            .type(featureType)
-            .filter(In.of(literals))
-            .crs(crs)
-            .limit(featureIds.size())
-            .build();
-    FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
-        new ImmutableQueryInputFeatures.Builder()
-            .collectionId(canonicalCollectionId)
-            .featureProvider(provider)
-            .query(query)
-            .defaultCrs(crs)
-            .includeBodyLinks(false)
-            .sendResponseAsStream(false)
-            .build();
-    ApiRequestContext geoJsonContext = buildGeoJsonContext(ctx, "(bulk fetch)");
-    Response response =
-        queriesHandler.handle(
-            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, geoJsonContext);
-    Object entity = response.getEntity();
-    if (!(entity instanceof byte[])) {
-      throw new IllegalStateException(
-          "Expected byte[] entity from FEATURES bulk query, got "
-              + (entity == null ? "null" : entity.getClass().getName()));
-    }
-    byte[] bytes = (byte[]) entity;
-    JsonNode root;
-    try {
-      root = MAPPER.readTree(bytes);
-    } catch (IOException e) {
-      throw new IllegalStateException(
-          "Could not parse FeatureCollection response for bulk update: " + e.getMessage(), e);
-    }
-    JsonNode features = root.get("features");
-    if (features == null || !features.isArray()) {
-      throw new IllegalStateException(
-          "FeatureCollection response missing 'features' array for bulk update.");
-    }
-    Map<String, byte[]> out = new LinkedHashMap<>();
-    for (JsonNode feature : features) {
-      JsonNode idNode = feature.get("id");
-      if (idNode == null) continue;
-      String id = idNode.asText();
-      try {
-        out.put(id, MAPPER.writeValueAsBytes(feature));
-      } catch (IOException e) {
-        throw new IllegalStateException(
-            "Could not serialise feature '" + id + "' from bulk fetch: " + e.getMessage(), e);
-      }
-    }
-    return out;
-  }
-
-  private static ApiRequestContext buildGeoJsonContext(ApiRequestContext ctx, String contextLabel) {
-    try {
-      return new ImmutableStaticRequestContext.Builder()
-          .from(ctx)
-          .requestUri(ctx.getUriCustomizer().clearParameters().build())
-          .mediaType(
-              new ImmutableApiMediaType.Builder()
-                  .type(GEOJSON_MEDIA_TYPE)
-                  .label("GeoJSON")
-                  .parameter("json")
-                  .build())
-          .alternateMediaTypes(Set.of())
-          .build();
-    } catch (java.net.URISyntaxException e) {
-      throw new IllegalStateException(
-          "Could not build GeoJSON request context for " + contextLabel + ": " + e.getMessage(), e);
-    }
-  }
-
   private ActionResult runDelete(TxDelete action, Session session, OgcApi api) {
+    OgcApiDataV2 apiData = api.getData();
+    String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
     List<String> targetIds =
-        action
-            .getFilter()
-            .map(TransactionExecutorImpl::extractIdsFromFilter)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Delete action for collection '"
-                            + action.getCollectionId()
-                            + "' requires a filter that selects features by id."));
+        resolveTargetIds(
+            action.getTargetIds(),
+            action.getFilter(),
+            apiData,
+            canonicalCollectionId,
+            "Delete action");
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Delete action filter matched no feature ids for collection '"
@@ -1163,9 +998,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   /**
    * Resolves a raw collection id (typically the XML element local name from a wfs:Transaction
-   * payload, e.g. {@code AX_Flurstueck}) to the canonical ldproxy collection configuration. Tries
-   * exact match first, then case-insensitive — ldproxy collection ids are often lowercase by
-   * convention while GML feature element names use UpperCamelCase.
+   * payload) to the canonical ldproxy collection configuration. Tries exact match first, then
+   * case-insensitive — ldproxy collection ids are often lowercase by convention while GML feature
+   * element names use UpperCamelCase.
    */
   private static de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi resolveCollection(
       OgcApiDataV2 apiData, String collectionId) {
@@ -1276,48 +1111,109 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     }
   }
 
-  /**
-   * v1 filter resolution: accepts only an {@link de.ii.xtraplatform.cql.domain.In} expression on
-   * the {@code _ID_} placeholder whose arguments are scalar literals. General filter→id resolution
-   * via {@link de.ii.xtraplatform.features.domain.FeatureQueries#getFeatureStream} is a follow-up.
-   */
+  // Resolve the list of target feature ids for an action. WFS-T parsers populate `targetIds`
+  // directly from `fes:ResourceId/@rid`, so no filter parsing is needed there. JSON-tx supplies
+  // a CQL2 filter; we accept `IN(<id-property>, [...])` or `=(<id-property>, ...)`, where the
+  // property name is the feature type's id-role property (its schema name, or its alias if it
+  // declares one). Other filter shapes are rejected with a 4xx error.
+  private List<String> resolveTargetIds(
+      List<String> directIds,
+      Optional<de.ii.xtraplatform.cql.domain.Cql2Expression> filter,
+      OgcApiDataV2 apiData,
+      String canonicalCollectionId,
+      String actionLabel) {
+    if (!directIds.isEmpty()) {
+      return directIds;
+    }
+    if (filter.isEmpty()) {
+      throw new IllegalArgumentException(
+          actionLabel
+              + " for collection '"
+              + canonicalCollectionId
+              + "' requires a filter that selects features by id.");
+    }
+    Set<String> idNames = idPropertyNames(apiData, canonicalCollectionId);
+    return extractIdsFromFilter(filter.get(), idNames);
+  }
+
   private static List<String> extractIdsFromFilter(
-      de.ii.xtraplatform.cql.domain.Cql2Expression expression) {
-    if (!(expression instanceof de.ii.xtraplatform.cql.domain.In)) {
-      throw new IllegalArgumentException(
-          "Only id-based filters (IN on _ID_ placeholder) are currently supported by the "
-              + "transaction executor; got: "
-              + expression.getClass().getSimpleName());
-    }
-    de.ii.xtraplatform.cql.domain.In in = (de.ii.xtraplatform.cql.domain.In) expression;
-    if (!in.isIdFilter()) {
-      throw new IllegalArgumentException(
-          "Only IN on the _ID_ placeholder is currently supported by the transaction executor.");
-    }
-    if (in.getArgs().size() < 2
-        || !(in.getArgs().get(1) instanceof de.ii.xtraplatform.cql.domain.ArrayLiteral)) {
-      throw new IllegalArgumentException(
-          "Malformed IN expression: expected ArrayLiteral second argument.");
-    }
-    Object raw = ((de.ii.xtraplatform.cql.domain.ArrayLiteral) in.getArgs().get(1)).getValue();
-    if (!(raw instanceof List)) {
-      throw new IllegalArgumentException(
-          "Malformed IN expression: ArrayLiteral value is not a list (was "
-              + (raw == null ? "null" : raw.getClass().getSimpleName())
-              + ").");
-    }
-    ImmutableList.Builder<String> out = ImmutableList.builder();
-    for (Object element : (List<?>) raw) {
-      if (element instanceof de.ii.xtraplatform.cql.domain.ScalarLiteral) {
-        Object v = ((de.ii.xtraplatform.cql.domain.ScalarLiteral) element).getValue();
-        out.add(String.valueOf(v));
-      } else {
+      de.ii.xtraplatform.cql.domain.Cql2Expression expression, Set<String> idPropertyNames) {
+    if (expression instanceof de.ii.xtraplatform.cql.domain.In) {
+      de.ii.xtraplatform.cql.domain.In in = (de.ii.xtraplatform.cql.domain.In) expression;
+      ensureIdProperty(in.getArgs().isEmpty() ? null : in.getArgs().get(0), idPropertyNames);
+      if (in.getArgs().size() < 2
+          || !(in.getArgs().get(1) instanceof de.ii.xtraplatform.cql.domain.ArrayLiteral)) {
         throw new IllegalArgumentException(
-            "Only scalar-literal id values are supported in IN expressions; got: "
-                + (element == null ? "null" : element.getClass().getSimpleName()));
+            "Malformed IN expression: expected ArrayLiteral second argument.");
       }
+      Object raw = ((de.ii.xtraplatform.cql.domain.ArrayLiteral) in.getArgs().get(1)).getValue();
+      if (!(raw instanceof List)) {
+        throw new IllegalArgumentException(
+            "Malformed IN expression: ArrayLiteral value is not a list (was "
+                + (raw == null ? "null" : raw.getClass().getSimpleName())
+                + ").");
+      }
+      ImmutableList.Builder<String> out = ImmutableList.builder();
+      for (Object element : (List<?>) raw) {
+        if (element instanceof de.ii.xtraplatform.cql.domain.ScalarLiteral) {
+          Object v = ((de.ii.xtraplatform.cql.domain.ScalarLiteral) element).getValue();
+          out.add(String.valueOf(v));
+        } else {
+          throw new IllegalArgumentException(
+              "Only scalar-literal id values are supported in IN expressions; got: "
+                  + (element == null ? "null" : element.getClass().getSimpleName()));
+        }
+      }
+      return out.build();
     }
-    return out.build();
+    if (expression instanceof de.ii.xtraplatform.cql.domain.Eq) {
+      de.ii.xtraplatform.cql.domain.Eq eq = (de.ii.xtraplatform.cql.domain.Eq) expression;
+      ensureIdProperty(eq.getArgs().isEmpty() ? null : eq.getArgs().get(0), idPropertyNames);
+      if (eq.getArgs().size() < 2
+          || !(eq.getArgs().get(1) instanceof de.ii.xtraplatform.cql.domain.ScalarLiteral)) {
+        throw new IllegalArgumentException(
+            "Malformed Eq expression: expected ScalarLiteral second argument.");
+      }
+      Object v = ((de.ii.xtraplatform.cql.domain.ScalarLiteral) eq.getArgs().get(1)).getValue();
+      return ImmutableList.of(String.valueOf(v));
+    }
+    throw new IllegalArgumentException(
+        "Only id-based filters (IN or =) on the feature's id property are currently supported by"
+            + " the transaction executor; got: "
+            + expression.getClass().getSimpleName());
+  }
+
+  private static void ensureIdProperty(Object firstArg, Set<String> idPropertyNames) {
+    if (!(firstArg instanceof de.ii.xtraplatform.cql.domain.Property)) {
+      throw new IllegalArgumentException(
+          "Transaction filter must reference the feature's id property as its first argument.");
+    }
+    String name = ((de.ii.xtraplatform.cql.domain.Property) firstArg).getName();
+    if (!idPropertyNames.contains(name)) {
+      throw new IllegalArgumentException(
+          "Transaction filter must reference the feature's id property (expected one of "
+              + idPropertyNames
+              + "); got: '"
+              + name
+              + "'.");
+    }
+  }
+
+  // Names by which the feature type's id-role property may be addressed in a CQL2 filter: the
+  // schema property name plus any declared alias. Resolved per-collection from the FeatureSchema.
+  private Set<String> idPropertyNames(OgcApiDataV2 apiData, String canonicalCollectionId) {
+    FeatureSchema rootSchema = resolveFeatureSchema(apiData, canonicalCollectionId);
+    Optional<FeatureSchema> idProp = rootSchema.getIdProperty();
+    if (idProp.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Collection '"
+              + canonicalCollectionId
+              + "' has no id-role property; transaction filters cannot resolve it to an id.");
+    }
+    java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+    names.add(idProp.get().getName());
+    idProp.get().getAlias().ifPresent(names::add);
+    return names;
   }
 
   private static void rejectIfError(MutationResult result) {

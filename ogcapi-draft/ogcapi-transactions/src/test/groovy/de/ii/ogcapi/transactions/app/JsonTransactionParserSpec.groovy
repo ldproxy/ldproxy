@@ -228,7 +228,7 @@ class JsonTransactionParserSpec extends Specification {
         tx.close()
     }
 
-    def 'update action: name accepts string with slashes or array of segments; prefixes stripped'() {
+    def 'update action: name accepts dot-separated string or array of segments'() {
         given:
         def body = '''{
           "transaction": [
@@ -236,14 +236,14 @@ class JsonTransactionParserSpec extends Specification {
              "filter": { "op": "=", "args": [ { "property": "id" }, "DEHE86202002BTa0" ] },
              "properties": {
                "modify": [
-                 {"name": "adv:lebenszeitintervall/adv:AA_Lebenszeitintervall/adv:endet",
+                 {"name": "lebenszeitintervall.endet",
                   "value": "2025-04-23T09:38:37Z"},
-                 {"name": ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"],
+                 {"name": ["lebenszeitintervall", "beginnt"],
                   "value": "2025-04-22T04:50:46Z"}
                ],
                "delete": [
-                 "adv:lebenszeitintervall/adv:AA_Lebenszeitintervall/adv:grund",
-                 ["lebenszeitintervall", "AA_Lebenszeitintervall", "wer"]
+                 "lebenszeitintervall.grund",
+                 ["lebenszeitintervall", "wer"]
                ]
              }}
           ]
@@ -255,12 +255,12 @@ class JsonTransactionParserSpec extends Specification {
 
         then:
         action.modify*.path == [
-                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'endet'],
-                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'beginnt']
+                ['lebenszeitintervall', 'endet'],
+                ['lebenszeitintervall', 'beginnt']
         ]
         action.deleteProperties == [
-                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'grund'],
-                ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'wer']
+                ['lebenszeitintervall', 'grund'],
+                ['lebenszeitintervall', 'wer']
         ]
 
         cleanup:

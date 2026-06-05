@@ -37,6 +37,9 @@ public interface TxUpdate extends TxAction {
   /** Property paths whose value is to be cleared. */
   List<List<String>> getDeleteProperties();
 
+  // See TxDelete.getTargetIds — same WFS-direct vs JSON-tx-CQL2 split.
+  List<String> getTargetIds();
+
   Optional<Cql2Expression> getFilter();
 
   Optional<EpsgCrs> getFilterCrs();
@@ -52,5 +55,11 @@ public interface TxUpdate extends TxAction {
     List<String> getPath();
 
     JsonNode getValue();
+
+    // wfs:Transaction may set a value as XML inside `<wfs:Value>` (a GML geometry, or a nested
+    // OBJECT_ARRAY element such as `<adv:AA_Modellart>…`). When present, the parser stores the
+    // captured subtree bytes here and {@code getValue()} is set to NULL; the executor converts
+    // the bytes to a JsonNode based on the resolved schema property's type.
+    Optional<byte[]> getValueXml();
   }
 }

@@ -13,7 +13,6 @@ import de.ii.ogcapi.transactions.domain.TxInsert
 import de.ii.ogcapi.transactions.domain.TxReplace
 import de.ii.ogcapi.transactions.domain.TxSemantic
 import de.ii.ogcapi.transactions.domain.TxUpdate
-import de.ii.xtraplatform.cql.domain.In
 import jakarta.ws.rs.core.MediaType
 import spock.lang.Shared
 import spock.lang.Specification
@@ -183,8 +182,7 @@ class WfsTransactionParserSpec extends Specification {
         action.actionId.orElse(null) == 'r1'
         action.mediaType.toString() == 'application/gml+xml'
         featureText.contains('<ax:id>42</ax:id>')
-        action.filter.isPresent()
-        action.filter.get() instanceof In
+        action.targetIds == ['42']
 
         cleanup:
         tx.close()
@@ -218,8 +216,7 @@ class WfsTransactionParserSpec extends Specification {
         action.modify*.path == [['height']]
         action.modify[0].value.asText() == '12.5'
         action.deleteProperties == [['legacy_id']]
-        action.filter.isPresent()
-        action.filter.get() instanceof In
+        action.targetIds == ['42']
 
         cleanup:
         tx.close()
@@ -336,8 +333,7 @@ class WfsTransactionParserSpec extends Specification {
         action.type == TxActionType.DELETE
         action.collectionId == 'AX_Buildings'
         action.actionId.orElse(null) == 'd1'
-        action.filter.isPresent()
-        action.filter.get() instanceof In
+        action.targetIds == ['42', '43']
 
         cleanup:
         tx.close()

@@ -80,22 +80,55 @@ import org.slf4j.LoggerFactory;
  *   - Responses are always JSON; the WFS `wfs:TransactionResponse` XML response is not produced.
  *   - `wfs:Transaction` XML payloads are accepted in atomic mode only.
  * - Filters in `update`, `replace`, and `delete` actions:
- *   - Filters are restricted to selecting features by id. JSON action bodies accept only a CQL2
- *     `id IN (...)` expression (the `_ID_` placeholder); other CQL2 predicates (comparison,
- *     spatial, temporal, or boolean operators on regular properties) are rejected with a 4xx
- *     error.
+ *   - Filters are restricted to selecting features by id. JSON action bodies accept either a
+ *     CQL2 `IN(<id-property>, [...])` or `<id-property> = ...` expression, where
+ *     `<id-property>` is the schema name (or alias, if declared) of the feature type's
+ *     property with role `ID`; other CQL2 predicates (comparison, spatial, temporal, or
+ *     boolean operators on regular properties) are rejected with a 4xx error.
  *   - `wfs:Transaction` XML accepts only `fes:ResourceId/@rid`; no other `fes:Filter` element
  *     types are recognised.
  * - `update` semantics:
- *   - Updates are applied as an RFC 7396 JSON Merge Patch over a GeoJSON representation of the
- *     current feature, regardless of the payload encoding.
- *   - In an atomic transaction, an `update` cannot target a feature that was inserted, replaced,
- *     updated, or deleted earlier in the same transaction; the action is rejected up front,
- *     because the read inside the `update` goes through the provider's normal query path and
- *     cannot see the transaction's still-uncommitted writes.
- *   - In a `wfs:Update`, the `wfs:ValueReference` of each `wfs:Property` must be the GeoJSON
- *     property name (the wire name), not the underlying GML element or schema name; an unknown
- *     name is silently ignored and the property is not changed.
+ *   - An `update` action applies property-level partial updates to a single existing feature in
+ *     place: each touched property is translated into a native SQL `UPDATE` (for columns on the
+ *     feature's main table, including geometries) or a `DELETE`-then-`INSERT` against the
+ *     associated child table (for `VALUE_ARRAY` and `OBJECT_ARRAY` properties). All statements
+ *     run on the same session connection as the rest of the transaction, so an `update` can
+ *     target a feature that was `insert`ed, `replace`d, `update`d, or whose junction rows were
+ *     touched earlier in the same atomic request.
+ *   - The set of properties that may be the target of a partial update is governed by
+ *     `updatableProperties` on the collection's TRANSACTIONS configuration; a property whose
+ *     canonical path is not in that list is rejected with a 4xx error. The whitelist defaults
+ *     to an empty list, which disables partial updates for the collection. Entries are the
+ *     schema property identifiers, joined by `.` (e.g. `lifetime.end` for a nested property,
+ *     `name` for a top-level scalar).
+ *   - Property paths are resolved against the feature schema and the input format's `useAlias`
+ *     setting. JSON-transaction `name` and `delete` paths use the canonical dotted form (the
+ *     `.` separator; XPath-style `/` is reserved for `wfs:ValueReference`). A `wfs:Update`'s
+ *     `wfs:ValueReference` follows the XPath form and must include the intermediate
+ *     object-type element (e.g. `lifetime/Lifetime/end`); XML namespace prefixes are stripped,
+ *     only local names and the path structure are significant.
+ *   - When the filter selects more than one id (e.g. `IN(id, ['a','b'])` or multiple
+ *     `fes:ResourceId/@rid`), the same patch is applied to every selected feature.
+ *   - An absent value (a `<wfs:Property>` with no `<wfs:Value>`, or a JSON-tx `delete` entry)
+ *     clears the property: SQL `NULL` for a column on the main table, or an empty result for
+ *     a `VALUE_ARRAY` / `OBJECT_ARRAY` (all junction rows for that property are removed and
+ *     none are re-inserted).
+ *   - Geometries: a `wfs:Update` may set a geometry property by placing the corresponding GML
+ *     geometry element (e.g. `<gml:Point>`) inside `<wfs:Value>`. A JSON-transaction update
+ *     uses a GeoJSON geometry object as the property value. Both forms re-use the same
+ *     CRS-aware encoder as `insert` / `replace`. The geometry property must live on the
+ *     feature's main table; geometry on a child table is not supported.
+ *   - Value arrays (`VALUE_ARRAY`): multiple sibling `<wfs:Property>` elements with the same
+ *     `wfs:ValueReference` collapse into one array on the WFS side (each value contributes
+ *     one element). A JSON-transaction update uses a JSON array of scalars. The whole array
+ *     is replaced.
+ *   - Object arrays (`OBJECT_ARRAY`): a `wfs:Update` sets an `OBJECT_ARRAY` property by
+ *     placing one or more object-type wrapper elements inside `<wfs:Value>` (one per array
+ *     element); a JSON-transaction update uses a JSON array of objects. Object keys / child
+ *     element local names are matched against the array's schema in the same way as scalar
+ *     paths (id vs alias per `useAlias`); unknown keys are silently ignored. The whole array
+ *     is replaced. Nested object children inside an array element, M:N junctions, and
+ *     `FEATURE_REF` arrays are not yet supported.
  *     </code>
  * @limitationsDe Es gelten die folgenden Einschränkungen:
  *     <p><code>
@@ -108,23 +141,61 @@ import org.slf4j.LoggerFactory;
  *   - `wfs:Transaction`-XML-Payloads werden nur im atomaren Modus akzeptiert.
  * - Filter in `update`-, `replace`- und `delete`-Aktionen:
  *   - Filter sind auf die Auswahl von Objekten über deren Id beschränkt. JSON-Aktionen
- *     akzeptieren nur einen CQL2-Ausdruck der Form `id IN (...)` (Platzhalter `_ID_`); andere
- *     CQL2-Prädikate (Vergleichs-, Raum-, Zeit- oder boolesche Operatoren auf normalen
- *     Eigenschaften) werden mit einem 4xx-Fehler abgelehnt.
+ *     akzeptieren entweder einen CQL2-Ausdruck der Form `IN(<id-eigenschaft>, [...])` oder
+ *     `<id-eigenschaft> = ...`, wobei `<id-eigenschaft>` der Schemaname (bzw. Alias, falls
+ *     deklariert) der Eigenschaft der Objektart mit Rolle `ID` ist; andere CQL2-Prädikate
+ *     (Vergleichs-, Raum-, Zeit- oder boolesche Operatoren auf normalen Eigenschaften)
+ *     werden mit einem 4xx-Fehler abgelehnt.
  *   - `wfs:Transaction`-XML akzeptiert ausschließlich `fes:ResourceId/@rid`; andere
  *     `fes:Filter`-Elementtypen werden nicht erkannt.
  * - Semantik von `update`:
- *   - Updates werden als RFC 7396 JSON Merge Patch über einer GeoJSON-Repräsentation der
- *     aktuellen Objektinstanz angewendet, unabhängig von der Payload-Kodierung.
- *   - In einer atomaren Transaktion darf ein `update` keine Objektinstanz betreffen, die im
- *     selben Vorgang bereits eingefügt, ersetzt, aktualisiert oder gelöscht wurde; die Aktion
- *     wird vorab abgewiesen, da der Lesezugriff innerhalb eines `update` über den normalen
- *     Abfragepfad des Providers geht und noch nicht festgeschriebene Schreibvorgänge derselben
- *     Transaktion nicht sehen kann.
- *   - In einem `wfs:Update` muss `wfs:ValueReference` jeder `wfs:Property` den GeoJSON-Namen
- *     der Eigenschaft (den Wire-Namen) verwenden, nicht den zugrundeliegenden GML-Element-
- *     oder Schemanamen; ein unbekannter Name wird stillschweigend ignoriert und die
- *     Eigenschaft bleibt unverändert.
+ *   - Eine `update`-Aktion führt eine eigenschaftsbezogene Teilaktualisierung an einem
+ *     vorhandenen Objekt in situ durch: jede angesprochene Eigenschaft wird in ein natives
+ *     SQL-`UPDATE` (für Spalten der Haupttabelle, einschließlich Geometrien) bzw. in ein
+ *     `DELETE`-mit-anschließendem-`INSERT` gegen die zugehörige Kindtabelle (für
+ *     `VALUE_ARRAY`- und `OBJECT_ARRAY`-Eigenschaften) übersetzt. Alle Anweisungen laufen auf
+ *     derselben Sitzungs-Verbindung wie der Rest der Transaktion, so dass ein `update` ein
+ *     Objekt verändern kann, das zuvor in derselben atomaren Anfrage per `insert`,
+ *     `replace`, `update` oder einer Junction-Mutation berührt wurde.
+ *   - Die Menge der Eigenschaften, die per Teilaktualisierung geändert werden dürfen, wird
+ *     durch `updatableProperties` in der TRANSACTIONS-Konfiguration der Sammlung festgelegt;
+ *     eine Eigenschaft, deren kanonischer Pfad nicht in dieser Liste enthalten ist, wird mit
+ *     einem 4xx-Fehler abgelehnt. Die Standard-Whitelist ist leer und deaktiviert
+ *     Teil-Aktualisierungen für die Sammlung. Einträge sind die Schemabezeichner der
+ *     Eigenschaften, getrennt durch `.` (z.B. `lifetime.end` für eine verschachtelte Eigenschaft,
+ *     `name` für eine Eigenschaft der obersten Ebene).
+ *   - Eigenschaftspfade werden gegen das Feature-Schema und das `useAlias`-Verhalten des
+ *     Eingabeformats aufgelöst. Pfade in `name` und `delete` einer JSON-Transaktion
+ *     verwenden die kanonische Punktnotation (Trenner `.`; das XPath-Schrägstrich-Format ist
+ *     `wfs:ValueReference` vorbehalten). Ein `wfs:Update` verwendet in `wfs:ValueReference`
+ *     die XPath-Form einschließlich des Objekttyp-Zwischenschritts (z.B.
+ *     `lifetime/Lifetime/end`); XML-Namensraum-Präfixe werden entfernt, nur lokale Namen und
+ *     die Pfadstruktur sind relevant.
+ *   - Wählt der Filter mehrere Ids aus (z.B. `IN(id, ['a','b'])` oder mehrere
+ *     `fes:ResourceId/@rid`), wird derselbe Patch auf jede ausgewählte Objektinstanz
+ *     angewendet.
+ *   - Ein fehlender Wert (`<wfs:Property>` ohne `<wfs:Value>` oder ein Eintrag in `delete`
+ *     einer JSON-Transaktion) leert die Eigenschaft: SQL-`NULL` für eine Spalte der
+ *     Haupttabelle bzw. ein leeres Ergebnis für `VALUE_ARRAY` / `OBJECT_ARRAY` (alle
+ *     Junction-Zeilen für die Eigenschaft werden entfernt, keine neuen eingefügt).
+ *   - Geometrien: ein `wfs:Update` kann eine Geometrieeigenschaft setzen, indem das
+ *     entsprechende GML-Geometrieelement (z.B. `<gml:Point>`) in `<wfs:Value>` platziert
+ *     wird. Eine JSON-Transaktion verwendet ein GeoJSON-Geometrieobjekt als
+ *     Eigenschaftswert. Beide Formen nutzen denselben CRS-bewussten Encoder wie `insert` /
+ *     `replace`. Die Geometrieeigenschaft muss in der Haupttabelle der Objektart liegen;
+ *     Geometrien in Kindtabellen werden nicht unterstützt.
+ *   - Wert-Arrays (`VALUE_ARRAY`): mehrere geschwisterliche `<wfs:Property>`-Elemente mit
+ *     derselben `wfs:ValueReference` werden auf der WFS-Seite zu einem Array zusammengefasst
+ *     (jeder Wert liefert ein Element). Eine JSON-Transaktion verwendet ein JSON-Array von
+ *     Skalaren. Das gesamte Array wird ersetzt.
+ *   - Objekt-Arrays (`OBJECT_ARRAY`): ein `wfs:Update` setzt eine `OBJECT_ARRAY`-Eigenschaft,
+ *     indem ein oder mehrere objekttyp-Wrapperelemente in `<wfs:Value>` platziert werden
+ *     (eines pro Array-Element); eine JSON-Transaktion verwendet ein JSON-Array von
+ *     Objekten. Objektschlüssel bzw. die lokalen Namen der Kind-Elemente werden gegen das
+ *     Schema des Arrays auf dieselbe Weise wie skalare Pfade aufgelöst (id oder Alias gemäß
+ *     `useAlias`); unbekannte Schlüssel werden stillschweigend ignoriert. Das gesamte Array
+ *     wird ersetzt. Verschachtelte Objekt-Kinder innerhalb eines Array-Elements,
+ *     M:N-Junctions und `FEATURE_REF`-Arrays werden noch nicht unterstützt.
  *     </code>
  * @conformanceEn The building block is based on the conformance classes "Transactions", "Atomic
  *     Semantics", "Batch Semantics", "JSON Encoding" and "Features" from the [Draft OGC API -

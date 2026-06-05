@@ -22,10 +22,6 @@ import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate.NameValue;
-import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.cql.domain.In;
-import de.ii.xtraplatform.cql.domain.Scalar;
-import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
@@ -392,7 +388,7 @@ public class WfsTransactionParser implements TransactionParser {
           .actionId(Optional.ofNullable(handle))
           .feature(feature)
           .mediaType(MediaType.valueOf(MEDIA_TYPE_GML))
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
@@ -431,7 +427,7 @@ public class WfsTransactionParser implements TransactionParser {
           .actionId(Optional.ofNullable(handle))
           .modify(modify)
           .deleteProperties(deletes)
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
@@ -463,7 +459,7 @@ public class WfsTransactionParser implements TransactionParser {
       return new ImmutableTxDelete.Builder()
           .collectionId(collectionId)
           .actionId(Optional.ofNullable(handle))
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
@@ -471,7 +467,8 @@ public class WfsTransactionParser implements TransactionParser {
         XMLEventReader reader, List<NameValue> modify, List<List<String>> deletes)
         throws XMLStreamException {
       String reference = null;
-      JsonNode value = null;
+      JsonNode textValue = null;
+      byte[] xmlSubtree = null;
       boolean hasValueElement = false;
       while (reader.hasNext()) {
         XMLEvent event = reader.nextEvent();
@@ -483,8 +480,17 @@ public class WfsTransactionParser implements TransactionParser {
           reference = readText(reader, "ValueReference");
         } else if (NS_WFS.equals(qn.getNamespaceURI()) && "Value".equals(qn.getLocalPart())) {
           hasValueElement = true;
-          String text = readMixedText(reader, "Value");
-          value = text == null ? null : MAPPER.getNodeFactory().textNode(text);
+          // Peek to distinguish text-only `<wfs:Value>text</wfs:Value>` from XML-child
+          // `<wfs:Value><gml:Point>…</gml:Point></wfs:Value>`. The first non-whitespace event
+          // inside <wfs:Value> tells us which form we got; the rest of the content is then
+          // consumed accordingly. For XML form we capture the first child subtree with the
+          // wfs:Transaction root's namespaces in scope (so prefixes like gml:, adv: resolve).
+          ValueContent vc = readValueContent(reader, start);
+          if (vc.xml != null) {
+            xmlSubtree = vc.xml;
+          } else if (vc.text != null) {
+            textValue = MAPPER.getNodeFactory().textNode(vc.text);
+          }
         } else {
           skipElement(reader);
         }
@@ -494,11 +500,67 @@ public class WfsTransactionParser implements TransactionParser {
             "wfs:Property requires a wfs:ValueReference child holding the property path");
       }
       List<String> path = parseValueReference(reference);
-      if (!hasValueElement || value == null) {
+      if (!hasValueElement || (textValue == null && xmlSubtree == null)) {
         deletes.add(path);
       } else {
-        modify.add(new ImmutableNameValue.Builder().path(path).value(value).build());
+        ImmutableNameValue.Builder b = new ImmutableNameValue.Builder().path(path);
+        if (xmlSubtree != null) {
+          b.value(MAPPER.nullNode()).valueXml(xmlSubtree);
+        } else {
+          b.value(textValue);
+        }
+        modify.add(b.build());
       }
+    }
+
+    // Result of inspecting a <wfs:Value> body: either text content (`text` set) or an XML
+    // subtree of the first child element (`xml` set as bytes including root namespaces).
+    private static final class ValueContent {
+      final String text;
+      final byte[] xml;
+
+      ValueContent(String text, byte[] xml) {
+        this.text = text;
+        this.xml = xml;
+      }
+    }
+
+    private ValueContent readValueContent(XMLEventReader reader, StartElement valueStart)
+        throws XMLStreamException {
+      StringBuilder text = new StringBuilder();
+      byte[] xml = null;
+      int depth = 1;
+      while (reader.hasNext() && depth > 0) {
+        XMLEvent event = reader.nextEvent();
+        if (event.isEndElement()) {
+          EndElement end = event.asEndElement();
+          if (depth == 1 && isWfs(end.getName(), "Value")) {
+            depth--;
+            break;
+          }
+          depth--;
+          continue;
+        }
+        if (event.isStartElement()) {
+          if (xml == null) {
+            // First child element: capture this subtree, then drain anything else in <wfs:Value>.
+            xml = copySubtree(reader, event.asStartElement(), root);
+          } else {
+            // Multiple child elements inside one <wfs:Value> aren't part of any supported form
+            // — skip them so we stay in sync with the reader.
+            skipElement(reader);
+          }
+          continue;
+        }
+        if (event.isCharacters() && xml == null) {
+          text.append(event.asCharacters().getData());
+        }
+      }
+      if (xml != null) {
+        return new ValueContent(null, xml);
+      }
+      String s = text.toString().trim();
+      return new ValueContent(s.isEmpty() ? null : s, null);
     }
 
     // wfs:ValueReference holds an XPath-like path of `[prefix:]localName` segments separated by
@@ -541,13 +603,6 @@ public class WfsTransactionParser implements TransactionParser {
         }
       }
       return ids;
-    }
-
-    private Optional<Cql2Expression> idsFilter(List<String> ids) {
-      if (ids.isEmpty()) return Optional.empty();
-      List<Scalar> literals = new ArrayList<>(ids.size());
-      for (String id : ids) literals.add(ScalarLiteral.of(id));
-      return Optional.of(In.of(literals));
     }
 
     private byte[] copySubtree(XMLEventReader reader, StartElement start, StartElement... ancestors)

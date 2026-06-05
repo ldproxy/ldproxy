@@ -81,7 +81,7 @@ class UpdatePathResolverSpec extends Specification {
         ex.message.contains("AA_Meilenstein")
     }
 
-    def "nested path: object-type intermediate step is required and validated"() {
+    def "WFS XPath input: object-type step required and validated"() {
         given:
         def root = feature(
                 object("lebenszeitintervall", null, "AA_Lebenszeitintervall",
@@ -89,13 +89,13 @@ class UpdatePathResolverSpec extends Specification {
 
         when: 'path includes the object-type step'
         def resolved = UpdatePathResolver.resolve(
-                root, ["lebenszeitintervall", "AA_Lebenszeitintervall", "endet"], false)
+                root, ["lebenszeitintervall", "AA_Lebenszeitintervall", "endet"], false, true)
 
         then:
         resolved*.getName() == ["lebenszeitintervall", "endet"]
 
-        when: 'path omits the object-type step'
-        UpdatePathResolver.resolve(root, ["lebenszeitintervall", "endet"], false)
+        when: 'path omits the object-type step under WFS rules'
+        UpdatePathResolver.resolve(root, ["lebenszeitintervall", "endet"], false, true)
 
         then:
         def ex = thrown(IllegalArgumentException)
@@ -103,7 +103,21 @@ class UpdatePathResolverSpec extends Specification {
         ex.message.contains("'endet'")
     }
 
-    def "nested path: object-type mismatch is rejected"() {
+    def "ldproxy-canonical input: no object-type step expected"() {
+        given:
+        def root = feature(
+                object("lebenszeitintervall", null, "AA_Lebenszeitintervall",
+                        scalar("endet")))
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root, ["lebenszeitintervall", "endet"], false, false)
+
+        then:
+        resolved*.getName() == ["lebenszeitintervall", "endet"]
+    }
+
+    def "WFS XPath input: object-type mismatch is rejected"() {
         given:
         def root = feature(
                 object("lebenszeitintervall", null, "AA_Lebenszeitintervall",
@@ -111,7 +125,7 @@ class UpdatePathResolverSpec extends Specification {
 
         when:
         UpdatePathResolver.resolve(
-                root, ["lebenszeitintervall", "WrongType", "endet"], false)
+                root, ["lebenszeitintervall", "WrongType", "endet"], false, true)
 
         then:
         def ex = thrown(IllegalArgumentException)
@@ -119,7 +133,7 @@ class UpdatePathResolverSpec extends Specification {
         ex.message.contains("WrongType")
     }
 
-    def "useAlias is applied per segment when set"() {
+    def "useAlias applied per segment, WFS XPath form"() {
         given:
         def root = feature(
                 object("lebenszeitintervall", "lzi", "AA_Lebenszeitintervall",
@@ -127,7 +141,7 @@ class UpdatePathResolverSpec extends Specification {
 
         when:
         def resolved = UpdatePathResolver.resolve(
-                root, ["lzi", "AA_Lebenszeitintervall", "end"], true)
+                root, ["lzi", "AA_Lebenszeitintervall", "end"], true, true)
 
         then:
         resolved*.getName() == ["lebenszeitintervall", "endet"]
