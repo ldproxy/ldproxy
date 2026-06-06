@@ -68,6 +68,11 @@ public abstract class AbstractQueryParameterDatetime extends OgcApiQueryParamete
     this.baseSchema = new StringSchema().pattern(DATETIME_OPEN_REGEX);
   }
 
+  /** Subclasses build a fresh instance to add per-API or per-collection facets (default, etc.). */
+  protected static Schema<?> getCopyOfBaseSchema() {
+    return new StringSchema().pattern(DATETIME_OPEN_REGEX);
+  }
+
   @Override
   public String getName() {
     return "datetime";

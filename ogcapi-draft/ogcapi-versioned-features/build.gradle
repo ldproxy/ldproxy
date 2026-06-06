@@ -10,4 +10,9 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-features-core'
+
+    // pulled in transitively at runtime; needed on the test classpath
+    // because tests instantiate ImmutableOgcApiCollection.Builder which
+    // references OgcApiExtent from ogcapi-common.
+    testImplementation 'de.interactive_instruments:ogcapi-common'
 }
