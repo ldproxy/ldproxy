@@ -74,7 +74,8 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
                 requestContext.getApi(),
                 requestContext,
                 queryInput.getRequestCrs(),
-                validate);
+                validate,
+                queryInput.getMutationDatetime());
         transaction = null;
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());

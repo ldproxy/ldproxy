@@ -112,12 +112,23 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
-      boolean validate) {
+      boolean validate,
+      Optional<Instant> ogcMutationDatetime) {
     try (transaction) {
       return transaction.getSemantic() == TxSemantic.ATOMIC
-          ? executeAtomic(transaction, api, requestContext, requestCrs, validate)
-          : executeBatch(transaction, api, requestContext, requestCrs, validate);
+          ? executeAtomic(
+              transaction, api, requestContext, requestCrs, validate, ogcMutationDatetime)
+          : executeBatch(
+              transaction, api, requestContext, requestCrs, validate, ogcMutationDatetime);
     }
+  }
+
+  /**
+   * Capture the per-scope server clock reading for mutation timestamps. Package-private so tests
+   * can swap it via an anonymous subclass; otherwise just {@link Instant#now()}.
+   */
+  Instant nowInstant() {
+    return Instant.now();
   }
 
   // --- atomic ---------------------------------------------------------------
@@ -127,7 +138,11 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      boolean validate) {
+      boolean validate,
+      Optional<Instant> ogcMutationDatetime) {
+    // Single timestamp for the whole atomic transaction — every action shares it so versioned
+    // strategies can reject same-feature chains under the no-backdating rule (plan §1.5).
+    Instant atomicScopeTimestamp = nowInstant();
     Map<String, Session> sessionsByProvider = new LinkedHashMap<>();
     List<ActionResult> results = new ArrayList<>();
     // Ids touched by earlier successful actions in this atomic transaction, keyed by canonical
@@ -165,6 +180,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 requestCrs,
                 touchedIdsByCollection,
                 strategyByCollection,
+                atomicScopeTimestamp,
+                ogcMutationDatetime,
                 validate,
                 false,
                 transaction.isWfs()));
@@ -218,7 +235,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      boolean validate) {
+      boolean validate,
+      Optional<Instant> ogcMutationDatetime) {
     List<ActionResult> results = new ArrayList<>();
     // Reused across actions in a batch even though each action commits independently — keeps the
     // MutationStrategy lookup to one walk per (transaction, collectionId).
@@ -233,6 +251,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         session = openSession(provider, action.getCollectionId());
         // Batch semantics commit between actions, so each action sees a fresh committed
         // snapshot — no need to track touched ids across actions.
+        // Per-action timestamp under batch semantics — each action's mutation is independent.
+        Instant batchScopeTimestamp = nowInstant();
         ActionResult r =
             runAction(
                 action,
@@ -243,6 +263,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 requestCrs,
                 Map.of(),
                 strategyByCollection,
+                batchScopeTimestamp,
+                ogcMutationDatetime,
                 validate,
                 true,
                 transaction.isWfs());
@@ -291,18 +313,24 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       EpsgCrs requestCrs,
       Map<String, Set<String>> touchedIdsByCollection,
       Map<String, MutationStrategy> strategyByCollection,
+      Instant scopeTimestamp,
+      Optional<Instant> ogcMutationDatetime,
       boolean validate,
       boolean skipInvalid,
       boolean fromWfs) {
     MutationStrategy strategy =
         strategyByCollection.computeIfAbsent(
             action.getCollectionId(), id -> pickStrategy(api.getData(), id));
+    Instant mutationTimestamp =
+        strategy.resolveMutationTimestamp(
+            api.getData(), action, scopeTimestamp, ogcMutationDatetime);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
-          "Action {} on collection '{}': dispatching via {}",
+          "Action {} on collection '{}': dispatching via {} with mutationTimestamp={}",
           action.getType(),
           action.getCollectionId(),
-          strategy.getClass().getSimpleName());
+          strategy.getClass().getSimpleName(),
+          mutationTimestamp);
     }
     try {
       return switch (action.getType()) {

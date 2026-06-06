@@ -61,6 +61,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -384,6 +386,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   public Response postTransaction(
       @Auth Optional<User> optionalUser,
       @HeaderParam("Content-Crs") String contentCrsHeader,
+      @HeaderParam("OGC-Mutation-Datetime") String mutationDatetimeHeader,
       @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
@@ -423,6 +426,8 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
 
     EpsgCrs requestCrs = HeaderContentCrs.parse(contentCrsHeader, apiData, crsSupport);
 
+    Optional<Instant> mutationDatetime = parseMutationDatetime(mutationDatetimeHeader);
+
     HeaderPrefer.Handling handling =
         HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);
 
@@ -435,6 +440,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
             .contentType(contentType)
             .config(config)
             .requestCrs(requestCrs)
+            .mutationDatetime(mutationDatetime)
             .handling(handling)
             .returnPreference(ret)
             .build();
@@ -452,6 +458,22 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
       return MediaType.valueOf(header);
     } catch (IllegalArgumentException e) {
       throw new BadRequestException("Invalid Content-Type header: " + header);
+    }
+  }
+
+  // The canonical RFC 3339 parser lives on HeaderOgcMutationDatetime in the versioned-features
+  // module; mirrored here so this endpoint stays in the transactions module (which does not, and
+  // should not, depend on versioned-features).
+  private static Optional<Instant> parseMutationDatetime(String header) {
+    if (header == null || header.isBlank()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(Instant.parse(header.trim()));
+    } catch (DateTimeParseException e) {
+      throw new BadRequestException(
+          "Invalid OGC-Mutation-Datetime header (expected an RFC 3339 date-time in UTC): "
+              + header);
     }
   }
 }

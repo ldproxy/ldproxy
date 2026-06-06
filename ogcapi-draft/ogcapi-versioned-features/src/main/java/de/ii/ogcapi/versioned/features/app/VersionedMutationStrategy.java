@@ -9,10 +9,16 @@ package de.ii.ogcapi.versioned.features.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.transactions.domain.MutationStrategy;
+import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
+import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration.MutationTime;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
+import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Strategy that governs mutations on collections where the {@code VERSIONED_FEATURES} building
@@ -38,5 +44,32 @@ public class VersionedMutationStrategy implements MutationStrategy {
   @Override
   public int priority() {
     return 100;
+  }
+
+  @Override
+  public Instant resolveMutationTimestamp(
+      OgcApiDataV2 apiData,
+      TxAction action,
+      Instant scopeTimestamp,
+      Optional<Instant> ogcMutationDatetimeHeader) {
+    MutationTime mode =
+        apiData
+            .getExtension(VersionedFeaturesConfiguration.class, action.getCollectionId())
+            .map(VersionedFeaturesConfiguration::getMutationTime)
+            .orElse(null);
+    if (mode == null || mode == MutationTime.SERVER) {
+      return scopeTimestamp;
+    }
+    // mutationTime: client. Precedence per the plan: body-supplied value > header > 400. Body
+    // extraction is per-action-type and lands together with the action implementations in phases
+    // 1.2-1.4; until then this falls back to the header for every action type. Delete will keep
+    // using the header even after 1.2-1.4 because it carries no body.
+    return ogcMutationDatetimeHeader.orElseThrow(
+        () ->
+            new BadRequestException(
+                "mutationTime is 'client' on collection '"
+                    + action.getCollectionId()
+                    + "' but neither the action body nor the OGC-Mutation-Datetime header"
+                    + " supplied a mutation timestamp."));
   }
 }

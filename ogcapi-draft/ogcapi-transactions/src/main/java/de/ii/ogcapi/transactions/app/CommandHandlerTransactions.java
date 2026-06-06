@@ -15,6 +15,8 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
+import java.time.Instant;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface CommandHandlerTransactions {
@@ -37,5 +39,10 @@ public interface CommandHandlerTransactions {
     HeaderPrefer.Handling getHandling();
 
     HeaderPrefer.Return getReturnPreference();
+
+    /**
+     * Parsed {@code OGC-Mutation-Datetime} request header; empty when the client did not send it.
+     */
+    Optional<Instant> getMutationDatetime();
   }
 }

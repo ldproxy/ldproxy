@@ -27,6 +27,7 @@ import jakarta.ws.rs.core.MediaType
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 
 class CommandHandlerTransactionsSpec extends Specification {
 
@@ -170,7 +171,8 @@ class CommandHandlerTransactionsSpec extends Specification {
                 OgcApi api,
                 ApiRequestContext requestContext,
                 EpsgCrs requestCrs,
-                boolean validate) {
+                boolean validate,
+                Optional<Instant> ogcMutationDatetime) {
             this.validate = validate
             Iterator<TxAction> it = transaction.actions()
             while (it.hasNext()) {
