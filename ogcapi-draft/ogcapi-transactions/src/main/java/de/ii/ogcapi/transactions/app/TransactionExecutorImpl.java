@@ -30,6 +30,7 @@ import de.ii.ogcapi.transactions.domain.ExecutionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableActionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableExecutionResult;
 import de.ii.ogcapi.transactions.domain.InsertItem;
+import de.ii.ogcapi.transactions.domain.MutationStrategy;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionExecutor;
 import de.ii.ogcapi.transactions.domain.TxAction;
@@ -134,6 +135,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     // runUpdate runs on the provider's query connection at READ COMMITTED and cannot see the
     // Session's still-uncommitted writes).
     Map<String, Set<String>> touchedIdsByCollection = new LinkedHashMap<>();
+    // MutationStrategy resolved once per (transaction, collectionId); the lookup walks every
+    // registered strategy and is cheap but not free.
+    Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
     Throwable firstError = null;
 
     Iterator<TxAction> actions = transaction.actions();
@@ -160,6 +164,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 ctx,
                 requestCrs,
                 touchedIdsByCollection,
+                strategyByCollection,
                 validate,
                 false,
                 transaction.isWfs()));
@@ -215,6 +220,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       EpsgCrs requestCrs,
       boolean validate) {
     List<ActionResult> results = new ArrayList<>();
+    // Reused across actions in a batch even though each action commits independently — keeps the
+    // MutationStrategy lookup to one walk per (transaction, collectionId).
+    Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
 
     Iterator<TxAction> actions = transaction.actions();
     while (actions.hasNext()) {
@@ -234,6 +242,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 ctx,
                 requestCrs,
                 Map.of(),
+                strategyByCollection,
                 validate,
                 true,
                 transaction.isWfs());
@@ -281,9 +290,20 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       Map<String, Set<String>> touchedIdsByCollection,
+      Map<String, MutationStrategy> strategyByCollection,
       boolean validate,
       boolean skipInvalid,
       boolean fromWfs) {
+    MutationStrategy strategy =
+        strategyByCollection.computeIfAbsent(
+            action.getCollectionId(), id -> pickStrategy(api.getData(), id));
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Action {} on collection '{}': dispatching via {}",
+          action.getType(),
+          action.getCollectionId(),
+          strategy.getClass().getSimpleName());
+    }
     try {
       return switch (action.getType()) {
         case INSERT ->
@@ -994,6 +1014,22 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   // --- helpers --------------------------------------------------------------
+
+  // Pick the highest-priority registered MutationStrategy that is enabled for the given
+  // collection. The plain strategy binds to FoundationConfiguration and therefore always applies
+  // (priority 0), so the lookup never fails. Phase 1.0 only uses this for the dispatch log line
+  // above; phases 1.1-1.6 will route per-action behaviour (timestamp resolution,
+  // retire-and-insert, retire-only, etc.) through the resolved strategy.
+  private MutationStrategy pickStrategy(OgcApiDataV2 apiData, String collectionId) {
+    return extensionRegistry.getExtensionsForType(MutationStrategy.class).stream()
+        .filter(s -> s.isEnabledForApi(apiData, collectionId))
+        .max(java.util.Comparator.comparingInt(MutationStrategy::priority))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No MutationStrategy registered (the default plain strategy should always"
+                        + " apply)."));
+  }
 
   private FeatureProvider resolveProvider(OgcApi api, String collectionId) {
     OgcApiDataV2 apiData = api.getData();
