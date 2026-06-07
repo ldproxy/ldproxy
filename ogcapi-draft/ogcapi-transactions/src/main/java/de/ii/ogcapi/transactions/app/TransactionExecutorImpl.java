@@ -14,18 +14,24 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
+import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
+import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.transactions.domain.ActionResult;
 import de.ii.ogcapi.transactions.domain.ActionStatus;
+import de.ii.ogcapi.transactions.domain.CompositeId;
 import de.ii.ogcapi.transactions.domain.ExecutionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableActionResult;
 import de.ii.ogcapi.transactions.domain.ImmutableExecutionResult;
@@ -33,6 +39,7 @@ import de.ii.ogcapi.transactions.domain.InsertItem;
 import de.ii.ogcapi.transactions.domain.MutationStrategy;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionExecutor;
+import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxDelete;
@@ -40,10 +47,17 @@ import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxReplace;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate;
+import de.ii.xtraplatform.cql.domain.ArrayLiteral;
+import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.Eq;
+import de.ii.xtraplatform.cql.domain.In;
+import de.ii.xtraplatform.cql.domain.Property;
+import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
+import de.ii.xtraplatform.features.domain.FeatureChanges;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenSource;
@@ -51,6 +65,8 @@ import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.MutationResult;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.Session;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
+import de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
@@ -62,6 +78,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -318,9 +335,13 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       boolean validate,
       boolean skipInvalid,
       boolean fromWfs) {
+    // Pass the canonical collection id (e.g. lowercase `ap_pto`) into the strategy lookup —
+    // raw action ids straight off the wire are often the mixed-case GML element name (`AP_PTO`)
+    // and would cause `ApiExtension.isEnabledForApi` to miss the collection entirely.
     MutationStrategy strategy =
         strategyByCollection.computeIfAbsent(
-            action.getCollectionId(), id -> pickStrategy(api.getData(), id));
+            action.getCollectionId(),
+            id -> pickStrategy(api.getData(), canonicalCollectionId(api.getData(), id)));
     Instant mutationTimestamp =
         strategy.resolveMutationTimestamp(
             api.getData(), action, scopeTimestamp, ogcMutationDatetime);
@@ -335,8 +356,28 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     try {
       return switch (action.getType()) {
         case INSERT ->
-            runInsert((TxInsert) action, session, api, ctx, requestCrs, validate, skipInvalid);
-        case REPLACE -> runReplace((TxReplace) action, session, api, ctx, requestCrs, validate);
+            runInsert(
+                (TxInsert) action,
+                session,
+                api,
+                ctx,
+                requestCrs,
+                touchedIdsByCollection,
+                validate,
+                skipInvalid,
+                strategy,
+                mutationTimestamp);
+        case REPLACE ->
+            runReplace(
+                (TxReplace) action,
+                session,
+                api,
+                ctx,
+                requestCrs,
+                touchedIdsByCollection,
+                validate,
+                strategy,
+                mutationTimestamp);
         case UPDATE ->
             runUpdate(
                 (TxUpdate) action,
@@ -346,8 +387,17 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 ctx,
                 requestCrs,
                 touchedIdsByCollection,
-                fromWfs);
-        case DELETE -> runDelete((TxDelete) action, session, api);
+                fromWfs,
+                strategy,
+                mutationTimestamp);
+        case DELETE ->
+            runDelete(
+                (TxDelete) action,
+                session,
+                api,
+                touchedIdsByCollection,
+                strategy,
+                mutationTimestamp);
         default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
       };
     } catch (RuntimeException e) {
@@ -361,11 +411,22 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
+      Map<String, Set<String>> touchedIdsByCollection,
       boolean validate,
-      boolean skipInvalid) {
+      boolean skipInvalid,
+      MutationStrategy strategy,
+      Instant mutationTimestamp) {
     Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
+    String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
+    Map<SchemaBase.Role, Object> roleOverrides =
+        strategy.insertRoleOverrides(apiData, action, mutationTimestamp, Optional.empty());
+    boolean checkChain = strategy.disallowsSameFeatureChain(apiData, action);
+    Set<String> touched =
+        checkChain
+            ? touchedIdsByCollection.getOrDefault(canonicalCollectionId, Set.of())
+            : Set.of();
     List<String> ids = new ArrayList<>();
     List<String> skippedIds = new ArrayList<>();
     List<String> skippedPayloads = new ArrayList<>();
@@ -380,9 +441,53 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     List<FeatureTokenSource> batch = new ArrayList<>(INSERT_BATCH_SIZE);
     List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
     ExtentAccumulator extents = new ExtentAccumulator();
+    boolean preflight = strategy.requiresInsertPreflight();
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       InsertItem item = items.next();
+      // Composite-id split (plan §1.8): the raw gml:id may carry a uniqueness suffix; the
+      // canonical id is what we check / write. Items without a featureId pass through unchanged.
+      Optional<CompositeId> compositeForItem =
+          item.featureId()
+              .map(raw -> strategy.splitCompositeId(apiData, canonicalCollectionId, raw));
+      Optional<String> canonicalIdForItem = compositeForItem.map(CompositeId::canonical);
+      boolean needsIdOverride =
+          compositeForItem.map(c -> !c.canonical().equals(item.featureId().get())).orElse(false);
+      if (checkChain
+          && canonicalIdForItem.isPresent()
+          && touched.contains(canonicalIdForItem.get())) {
+        return failed(
+            action,
+            chainRejectError(canonicalCollectionId, canonicalIdForItem.get(), action),
+            List.of(canonicalIdForItem.get()));
+      }
+      if (preflight && canonicalIdForItem.isPresent()) {
+        // Versioned-Insert pre-flight: refuse to write if a conflicting version already exists.
+        // The per-item batch must be flushed first so existing-row checks see writes from earlier
+        // items in this same action (e.g. an Insert/Insert pair for the same id within one
+        // action, second insert would otherwise miss the first).
+        if (!batch.isEmpty()) {
+          ActionResult failedBatch =
+              flushInsertBatch(
+                  action,
+                  apiData,
+                  session,
+                  featureType,
+                  batch,
+                  batchItems,
+                  requestCrs,
+                  ids,
+                  extents,
+                  roleOverrides);
+          if (failedBatch != null) return failedBatch;
+        }
+        MutationResult precheck =
+            session.assertNoConflictingVersion(
+                featureType, canonicalIdForItem.get(), mutationTimestamp);
+        if (precheck.getError().isPresent()) {
+          return failed(action, precheck.getError().get(), List.of(canonicalIdForItem.get()));
+        }
+      }
       try (InputStream payload = item.payload()) {
         byte[] bytes = validate ? payload.readAllBytes() : null;
         if (validate) {
@@ -393,8 +498,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               throw ve;
             }
             // Record the item: id when known, else the payload as a content-based locator.
-            if (item.featureId().isPresent()) {
-              skippedIds.add(item.featureId().get());
+            if (canonicalIdForItem.isPresent()) {
+              skippedIds.add(canonicalIdForItem.get());
             } else {
               skippedPayloads.add(payloadString(item));
             }
@@ -412,6 +517,47 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                 action.getCollectionId(),
                 requestCrs,
                 axes);
+        if (needsIdOverride) {
+          // Composite gml:id was carrying a uniqueness suffix; flush the current batch and write
+          // this item on its own with an extra ID role override forcing the canonical id into
+          // the storage column. Subsequent items rejoin the normal batch.
+          if (!batch.isEmpty()) {
+            ActionResult failedBatch =
+                flushInsertBatch(
+                    action,
+                    apiData,
+                    session,
+                    featureType,
+                    batch,
+                    batchItems,
+                    requestCrs,
+                    ids,
+                    extents,
+                    roleOverrides);
+            if (failedBatch != null) return failedBatch;
+          }
+          LinkedHashMap<SchemaBase.Role, Object> perItemOverrides =
+              new java.util.LinkedHashMap<>(roleOverrides);
+          perItemOverrides.put(SchemaBase.Role.ID, canonicalIdForItem.get());
+          List<FeatureTokenSource> single = new ArrayList<>(1);
+          single.add(source);
+          List<InsertItem> singleItem = new ArrayList<>(1);
+          singleItem.add(item);
+          ActionResult failedSingle =
+              flushInsertBatch(
+                  action,
+                  apiData,
+                  session,
+                  featureType,
+                  single,
+                  singleItem,
+                  requestCrs,
+                  ids,
+                  extents,
+                  perItemOverrides);
+          if (failedSingle != null) return failedSingle;
+          continue;
+        }
         batch.add(source);
         batchItems.add(item);
       } catch (java.io.IOException e) {
@@ -420,14 +566,32 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       if (batch.size() >= INSERT_BATCH_SIZE) {
         ActionResult failed =
             flushInsertBatch(
-                action, apiData, session, featureType, batch, batchItems, requestCrs, ids, extents);
+                action,
+                apiData,
+                session,
+                featureType,
+                batch,
+                batchItems,
+                requestCrs,
+                ids,
+                extents,
+                roleOverrides);
         if (failed != null) return failed;
       }
     }
     if (!batch.isEmpty()) {
       ActionResult failed =
           flushInsertBatch(
-              action, apiData, session, featureType, batch, batchItems, requestCrs, ids, extents);
+              action,
+              apiData,
+              session,
+              featureType,
+              batch,
+              batchItems,
+              requestCrs,
+              ids,
+              extents,
+              roleOverrides);
       if (failed != null) return failed;
     }
 
@@ -482,9 +646,13 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       List<InsertItem> batchItems,
       EpsgCrs crs,
       List<String> ids,
-      ExtentAccumulator extents) {
+      ExtentAccumulator extents,
+      Map<SchemaBase.Role, Object> roleOverrides) {
     try {
-      MutationResult mr = session.createFeatures(featureType, batch, crs);
+      MutationResult mr =
+          roleOverrides.isEmpty()
+              ? session.createFeatures(featureType, batch, crs)
+              : session.createFeatures(featureType, batch, crs, roleOverrides);
       rejectIfError(mr);
       ids.addAll(mr.getIds());
       extents.merge(mr.getSpatialExtent(), mr.getTemporalExtent());
@@ -516,17 +684,21 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      boolean validate) {
+      Map<String, Set<String>> touchedIdsByCollection,
+      boolean validate,
+      MutationStrategy strategy,
+      Instant mutationTimestamp) {
     Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
+    String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
 
     List<String> targetIds =
         resolveTargetIds(
             action.getTargetIds(),
             action.getFilter(),
             apiData,
-            canonicalCollectionId(apiData, action.getCollectionId()),
+            canonicalCollectionId,
             "Replace action");
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
@@ -542,7 +714,20 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + action.getCollectionId()
               + "'.");
     }
-    String id = targetIds.get(0);
+    String rawId = targetIds.get(0);
+    // Composite-id split (plan §1.8): on versioned collections the rid may carry a packed
+    // PRIMARY_INTERVAL_START suffix. `canonical` is what the database stores; `expectedStart`
+    // becomes an If-Unmodified-Since-style predicate on the retire SQL.
+    CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
+    String id = composite.canonical();
+
+    String chainConflict =
+        firstChainConflict(
+            strategy, apiData, action, List.of(id), touchedIdsByCollection, canonicalCollectionId);
+    if (chainConflict != null) {
+      return failed(
+          action, chainRejectError(canonicalCollectionId, chainConflict, action), List.of(id));
+    }
 
     MutationResult mr;
     try {
@@ -561,15 +746,78 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               action.getCollectionId(),
               requestCrs,
               axes);
-      mr = session.updateFeature(featureType, id, source, requestCrs, false);
-      rejectIfError(mr);
+      if (strategy.retiresOnReplace()) {
+        // Versioned Replace: retire the open version (`PRIMARY_INTERVAL_END = ts WHERE
+        // PRIMARY_INTERVAL_END IS NULL AND startCol < ts [AND startCol = <expectedStart>]`),
+        // 409 if zero rows matched and no expectedStart was supplied (concurrent retirement,
+        // unknown id, or backdating violation); 412 when expectedStart was supplied and no row
+        // matched it (the open version is not the one the client thought). Then insert the new
+        // body as a fresh version with the strategy's role overrides (end = NULL forced on
+        // Replace; plus the denorm PREDECESSOR_INTERVAL_START captured before the retire). The
+        // retire itself sets the retired row's SUCCESSOR_INTERVAL_START to the same ts (plan
+        // §1.6).
+        //
+        // Body-extracted retire timestamp: in client mode the new version's start lives in the
+        // Replace body's lzi.beg; using it as the retire timestamp gives v1 a contiguous
+        // interval [old_start, new_start] instead of leaving end = now (the scopeTimestamp
+        // placeholder). Falls back to mutationTimestamp when the body has no recognisable
+        // start.
+        FeatureSchema collectionSchemaForReplace =
+            resolveFeatureSchema(apiData, canonicalCollectionId);
+        Instant retireTimestamp =
+            strategy
+                .extractPrimaryIntervalStart(
+                    apiData, collectionSchemaForReplace, action.getMediaType(), action.getFeature())
+                .orElse(mutationTimestamp);
+        Optional<String> predecessorStart = session.getOpenVersionStart(featureType, id);
+        MutationResult retire =
+            session.retireFeature(featureType, id, retireTimestamp, composite.expectedStart());
+        rejectIfError(retire);
+        if (retire.getIds().isEmpty()) {
+          if (composite.expectedStart().isPresent()) {
+            throw new IllegalArgumentException(
+                "Precondition failed: feature id '"
+                    + id
+                    + "' in collection '"
+                    + action.getCollectionId()
+                    + "' has no open version with PRIMARY_INTERVAL_START = "
+                    + composite.expectedStart().get()
+                    + " (the composite rid suffix is stale or the open version has been"
+                    + " superseded since the client read it).");
+          }
+          throw new IllegalArgumentException(
+              "No open version of feature id '"
+                  + id
+                  + "' in collection '"
+                  + action.getCollectionId()
+                  + "' was available for retirement (already retired or unknown).");
+        }
+        Map<SchemaBase.Role, Object> roleOverrides =
+            new java.util.LinkedHashMap<>(
+                strategy.insertRoleOverrides(apiData, action, retireTimestamp, predecessorStart));
+        // Composite-id (plan §1.8): the Replace body's gml:id may carry the same composite
+        // suffix the rid does (NAS uses it to keep XML IDs unique when the same feature is
+        // touched more than once in one transaction). The stored objid must be the canonical
+        // id; force it via the ID role override, same as the per-item Insert path.
+        if (!composite.canonical().equals(rawId)) {
+          roleOverrides.put(SchemaBase.Role.ID, composite.canonical());
+        }
+        mr =
+            roleOverrides.isEmpty()
+                ? session.createFeatures(featureType, List.of(source), requestCrs)
+                : session.createFeatures(featureType, List.of(source), requestCrs, roleOverrides);
+        rejectIfError(mr);
+      } else {
+        mr = session.updateFeature(featureType, id, source, requestCrs, false);
+        rejectIfError(mr);
+      }
     } catch (RuntimeException e) {
       return failed(action, e, List.of(id));
     }
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.REPLACE)
-        .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
+        .collectionId(canonicalCollectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(mr.getIds().isEmpty() ? List.of(id) : mr.getIds())
@@ -586,7 +834,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       Map<String, Set<String>> touchedIdsByCollection,
-      boolean fromWfs) {
+      boolean fromWfs,
+      MutationStrategy strategy,
+      Instant mutationTimestamp) {
     EpsgCrs crs = requestCrs;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
@@ -606,10 +856,20 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + "'.");
     }
 
+    String chainConflict =
+        firstChainConflict(
+            strategy, apiData, action, targetIds, touchedIdsByCollection, canonicalCollectionId);
+    if (chainConflict != null) {
+      return failed(
+          action, chainRejectError(canonicalCollectionId, chainConflict, action), targetIds);
+    }
+
     // Phase C: every Update is a native SQL UPDATE issued on the session's own connection, so
     // prior writes in the same atomic transaction are visible to it. The v1 touched-id reject
     // and the GET-merge-write fall-back have been removed; chaining Insert/Replace/Update with
-    // Update on the same id now works natively.
+    // Update on the same id now works natively. Versioned strategies override this via
+    // MutationStrategy.chooseUpdateMode(...) and the patchOpenVersion / cloneAndPatchFeature
+    // Session methods.
 
     List<FeatureTransactions.PropertyUpdate> updates;
     try {
@@ -621,12 +881,48 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       return failed(action, e, targetIds);
     }
 
+    MutationStrategy.UpdateMode mode;
+    try {
+      FeatureSchema schema = resolveFeatureSchema(apiData, canonicalCollectionId);
+      mode = strategy.chooseUpdateMode(apiData, schema, action, updates, mutationTimestamp);
+    } catch (RuntimeException e) {
+      return failed(action, e, targetIds);
+    }
+
     List<String> updatedIds = new ArrayList<>();
-    for (String id : targetIds) {
+    for (String rawId : targetIds) {
+      // Composite-id split (plan §1.8). For NATIVE updates the canonical id is just the raw id
+      // (no versioning); for RETIRE_IN_PLACE the suffix becomes an If-Unmodified-Since
+      // predicate on the patch SQL.
+      CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
+      String id = composite.canonical();
       try {
-        MutationResult mr = session.patchFeature(featureType, id, updates, crs);
+        MutationResult mr =
+            switch (mode) {
+              case NATIVE -> session.patchFeature(featureType, id, updates, crs);
+              case RETIRE_IN_PLACE ->
+                  session.patchOpenVersion(
+                      featureType, id, updates, crs, composite.expectedStart());
+              case CLONE_AND_PATCH ->
+                  session.cloneAndPatchFeature(featureType, id, updates, mutationTimestamp, crs);
+            };
         rejectIfError(mr);
         if (mr.getIds().isEmpty()) {
+          if (mode == MutationStrategy.UpdateMode.RETIRE_IN_PLACE
+              && composite.expectedStart().isPresent()) {
+            return failed(
+                action,
+                new IllegalArgumentException(
+                    "Precondition failed: feature id '"
+                        + id
+                        + "' in collection '"
+                        + action.getCollectionId()
+                        + "' has no open version with PRIMARY_INTERVAL_START = "
+                        + composite.expectedStart().get()
+                        + " (the composite rid suffix is stale or the open version has been"
+                        + " superseded since the client read it)."),
+                List.of(id));
+          }
           updatedIds.add(id);
         } else {
           updatedIds.addAll(mr.getIds());
@@ -712,11 +1008,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       result.add(buildPropertyUpdate(entry.getKey(), entry.getValue()));
     }
     for (List<String> path : clearedPaths) {
-      result.add(
-          de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate.builder()
-              .path(path)
-              .value(Optional.empty())
-              .build());
+      result.add(ImmutablePropertyUpdate.builder().path(path).value(Optional.empty()).build());
     }
     return result;
   }
@@ -776,10 +1068,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
       value = array;
     }
-    return de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate.builder()
-        .path(canonicalPath)
-        .value(Optional.of(value))
-        .build();
+    return ImmutablePropertyUpdate.builder().path(canonicalPath).value(Optional.of(value)).build();
   }
 
   private static List<String> resolveAndCheck(
@@ -805,16 +1094,16 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   private static List<List<String>> updatablePaths(
       OgcApiDataV2 apiData, String canonicalCollectionId) {
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+    FeatureTypeConfigurationOgcApi collectionCfg =
         resolveCollection(apiData, canonicalCollectionId);
     return collectionCfg
-        .getExtension(de.ii.ogcapi.transactions.domain.TransactionsConfiguration.class)
-        .map(de.ii.ogcapi.transactions.domain.TransactionsConfiguration::getUpdatablePropertyPaths)
+        .getExtension(TransactionsConfiguration.class)
+        .map(TransactionsConfiguration::getUpdatablePropertyPaths)
         .orElse(List.of());
   }
 
   private FeatureSchema resolveFeatureSchema(OgcApiDataV2 apiData, String canonicalCollectionId) {
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+    FeatureTypeConfigurationOgcApi collectionCfg =
         resolveCollection(apiData, canonicalCollectionId);
     return providers
         .getFeatureSchema(apiData, collectionCfg)
@@ -825,24 +1114,30 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private static boolean gmlUseAlias(OgcApiDataV2 apiData, String canonicalCollectionId) {
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+    FeatureTypeConfigurationOgcApi collectionCfg =
         resolveCollection(apiData, canonicalCollectionId);
     return collectionCfg
-        .getExtension(de.ii.ogcapi.features.gml.domain.GmlConfiguration.class)
-        .map(de.ii.ogcapi.foundation.domain.AliasConfiguration::isUseAlias)
+        .getExtension(GmlConfiguration.class)
+        .map(AliasConfiguration::isUseAlias)
         .orElse(false);
   }
 
   private static boolean geoJsonUseAlias(OgcApiDataV2 apiData, String canonicalCollectionId) {
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
+    FeatureTypeConfigurationOgcApi collectionCfg =
         resolveCollection(apiData, canonicalCollectionId);
     return collectionCfg
-        .getExtension(de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration.class)
-        .map(de.ii.ogcapi.foundation.domain.AliasConfiguration::isUseAlias)
+        .getExtension(GeoJsonConfiguration.class)
+        .map(AliasConfiguration::isUseAlias)
         .orElse(false);
   }
 
-  private ActionResult runDelete(TxDelete action, Session session, OgcApi api) {
+  private ActionResult runDelete(
+      TxDelete action,
+      Session session,
+      OgcApi api,
+      Map<String, Set<String>> touchedIdsByCollection,
+      MutationStrategy strategy,
+      Instant mutationTimestamp) {
     OgcApiDataV2 apiData = api.getData();
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
     List<String> targetIds =
@@ -859,17 +1154,63 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + "'.");
     }
 
+    String chainConflict =
+        firstChainConflict(
+            strategy, apiData, action, targetIds, touchedIdsByCollection, canonicalCollectionId);
+    if (chainConflict != null) {
+      return failed(
+          action, chainRejectError(canonicalCollectionId, chainConflict, action), targetIds);
+    }
+
     String featureType = resolveFeatureType(api.getData(), action.getCollectionId());
+    boolean retires = strategy.retiresOnDelete();
     List<String> deleted = new ArrayList<>();
-    for (String id : targetIds) {
+    for (String rawId : targetIds) {
+      // Composite-id split (plan §1.8): on versioned collections the rid may carry a packed
+      // PRIMARY_INTERVAL_START suffix. `canonical` is the database id; `expectedStart` becomes
+      // an If-Unmodified-Since-style predicate on the retire SQL.
+      CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
+      String id = composite.canonical();
       try {
-        MutationResult mr = session.deleteFeature(featureType, id);
+        MutationResult mr =
+            retires
+                ? session.retireFeature(
+                    featureType, id, mutationTimestamp, composite.expectedStart())
+                : session.deleteFeature(featureType, id);
         rejectIfError(mr);
-        // SqlMutationSession.deleteFeature only populates getIds() when the SQL DELETE actually
-        // matched a row. Treat an empty result as a no-op so totalDeleted / deleteResults reflect
-        // only features that were really removed, not every rid the caller named in the filter.
-        if (!mr.getIds().isEmpty()) {
-          deleted.add(id);
+        if (retires) {
+          // Versioned delete (retire): zero rows matched means there is no open version of this
+          // id — either already retired or unknown, OR the expectedStart didn't match (412
+          // Precondition Failed semantics). Surface a clear error so the client can distinguish
+          // from the successful no-op semantics of plain DELETE.
+          if (mr.getIds().isEmpty()) {
+            if (composite.expectedStart().isPresent()) {
+              throw new IllegalArgumentException(
+                  "Precondition failed: feature id '"
+                      + id
+                      + "' in collection '"
+                      + action.getCollectionId()
+                      + "' has no open version with PRIMARY_INTERVAL_START = "
+                      + composite.expectedStart().get()
+                      + " (the composite rid suffix is stale or the open version has been"
+                      + " superseded since the client read it).");
+            }
+            throw new IllegalArgumentException(
+                "No open version of feature id '"
+                    + id
+                    + "' in collection '"
+                    + action.getCollectionId()
+                    + "' was available for retirement (already retired or unknown).");
+          }
+          deleted.addAll(mr.getIds());
+        } else {
+          // SqlMutationSession.deleteFeature only populates getIds() when the SQL DELETE actually
+          // matched a row. Treat an empty result as a no-op so totalDeleted / deleteResults
+          // reflect only features that were really removed, not every rid the caller named in the
+          // filter.
+          if (!mr.getIds().isEmpty()) {
+            deleted.add(id);
+          }
         }
       } catch (RuntimeException e) {
         return failed(action, e, List.of(id));
@@ -914,7 +1255,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       for (Map.Entry<ChangeKey, ChangeAggregate> e : aggregates.entrySet()) {
         ChangeKey key = e.getKey();
         ChangeAggregate agg = e.getValue();
-        de.ii.xtraplatform.features.domain.FeatureChanges sink;
+        FeatureChanges sink;
         try {
           sink = resolveChanges(api, key.collectionId);
         } catch (RuntimeException re) {
@@ -1043,6 +1384,45 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   // --- helpers --------------------------------------------------------------
 
+  // Strategy hook (plan §1.5 Part B): in atomic transactions, some strategies forbid touching
+  // the same feature id more than once (e.g. versioned + server mode, where every action shares
+  // one mutationTimestamp). Called by each run method after target ids are resolved. Returns the
+  // first conflicting id; null if none.
+  private static String firstChainConflict(
+      MutationStrategy strategy,
+      OgcApiDataV2 apiData,
+      TxAction action,
+      Collection<String> candidateIds,
+      Map<String, Set<String>> touchedIdsByCollection,
+      String canonicalCollectionId) {
+    if (!strategy.disallowsSameFeatureChain(apiData, action)) {
+      return null;
+    }
+    Set<String> touched = touchedIdsByCollection.get(canonicalCollectionId);
+    if (touched == null || touched.isEmpty()) {
+      return null;
+    }
+    for (String id : candidateIds) {
+      if (touched.contains(id)) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  private static IllegalArgumentException chainRejectError(
+      String collectionId, String featureId, TxAction action) {
+    return new IllegalArgumentException(
+        "Same-feature chain rejected: feature id '"
+            + featureId
+            + "' in collection '"
+            + collectionId
+            + "' was already touched by an earlier action in this atomic transaction, and the"
+            + " collection's mutation strategy forbids same-feature chains under the active mode"
+            + " (no-backdating rule for versioned collections under mutationTime: server). Split"
+            + " the actions into separate transactions or switch to mutationTime: client.");
+  }
+
   // Pick the highest-priority registered MutationStrategy that is enabled for the given
   // collection. The plain strategy binds to FoundationConfiguration and therefore always applies
   // (priority 0), so the lookup never fails. Phase 1.0 only uses this for the dispatch log line
@@ -1072,8 +1452,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   // Package-private (rather than private) only so that {@code TransactionExecutorChangesSpec}
   // can swap the resolution out via an anonymous subclass — mocking the full FeatureProvider
   // graph drags in cache / unit-of-measure classes that aren't on the test classpath.
-  de.ii.xtraplatform.features.domain.FeatureChanges resolveChanges(
-      OgcApi api, String collectionId) {
+  FeatureChanges resolveChanges(OgcApi api, String collectionId) {
     return resolveProvider(api, collectionId).changes();
   }
 
@@ -1091,14 +1470,12 @@ public class TransactionExecutorImpl implements TransactionExecutor {
    * case-insensitive — ldproxy collection ids are often lowercase by convention while GML feature
    * element names use UpperCamelCase.
    */
-  private static de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi resolveCollection(
+  private static FeatureTypeConfigurationOgcApi resolveCollection(
       OgcApiDataV2 apiData, String collectionId) {
-    Map<String, de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi> all =
-        apiData.getCollections();
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi cfg = all.get(collectionId);
+    Map<String, FeatureTypeConfigurationOgcApi> all = apiData.getCollections();
+    FeatureTypeConfigurationOgcApi cfg = all.get(collectionId);
     if (cfg != null) return cfg;
-    for (Map.Entry<String, de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi> e :
-        all.entrySet()) {
+    for (Map.Entry<String, FeatureTypeConfigurationOgcApi> e : all.entrySet()) {
       if (e.getKey().equalsIgnoreCase(collectionId)) return e.getValue();
     }
     throw new IllegalArgumentException(
@@ -1167,8 +1544,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       EpsgCrs crs,
       Axes axes) {
     FeatureFormatExtension format = resolveFormat(contentType);
-    de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi collectionCfg =
-        resolveCollection(apiData, collectionId);
+    FeatureTypeConfigurationOgcApi collectionCfg = resolveCollection(apiData, collectionId);
     FeatureSchema featureSchema =
         providers
             .getFeatureSchema(apiData, collectionCfg)
@@ -1190,10 +1566,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   private static String resolveFeatureType(OgcApiDataV2 apiData, String collectionId) {
     try {
-      de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi cfg =
-          resolveCollection(apiData, collectionId);
-      return cfg.getExtension(de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration.class)
-          .flatMap(de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration::getFeatureType)
+      FeatureTypeConfigurationOgcApi cfg = resolveCollection(apiData, collectionId);
+      return cfg.getExtension(FeaturesCoreConfiguration.class)
+          .flatMap(FeaturesCoreConfiguration::getFeatureType)
           .orElse(cfg.getId());
     } catch (IllegalArgumentException e) {
       return collectionId;
@@ -1207,7 +1582,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   // declares one). Other filter shapes are rejected with a 4xx error.
   private List<String> resolveTargetIds(
       List<String> directIds,
-      Optional<de.ii.xtraplatform.cql.domain.Cql2Expression> filter,
+      Optional<Cql2Expression> filter,
       OgcApiDataV2 apiData,
       String canonicalCollectionId,
       String actionLabel) {
@@ -1226,16 +1601,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private static List<String> extractIdsFromFilter(
-      de.ii.xtraplatform.cql.domain.Cql2Expression expression, Set<String> idPropertyNames) {
-    if (expression instanceof de.ii.xtraplatform.cql.domain.In) {
-      de.ii.xtraplatform.cql.domain.In in = (de.ii.xtraplatform.cql.domain.In) expression;
+      Cql2Expression expression, Set<String> idPropertyNames) {
+    if (expression instanceof In) {
+      In in = (In) expression;
       ensureIdProperty(in.getArgs().isEmpty() ? null : in.getArgs().get(0), idPropertyNames);
-      if (in.getArgs().size() < 2
-          || !(in.getArgs().get(1) instanceof de.ii.xtraplatform.cql.domain.ArrayLiteral)) {
+      if (in.getArgs().size() < 2 || !(in.getArgs().get(1) instanceof ArrayLiteral)) {
         throw new IllegalArgumentException(
             "Malformed IN expression: expected ArrayLiteral second argument.");
       }
-      Object raw = ((de.ii.xtraplatform.cql.domain.ArrayLiteral) in.getArgs().get(1)).getValue();
+      Object raw = ((ArrayLiteral) in.getArgs().get(1)).getValue();
       if (!(raw instanceof List)) {
         throw new IllegalArgumentException(
             "Malformed IN expression: ArrayLiteral value is not a list (was "
@@ -1244,8 +1618,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
       ImmutableList.Builder<String> out = ImmutableList.builder();
       for (Object element : (List<?>) raw) {
-        if (element instanceof de.ii.xtraplatform.cql.domain.ScalarLiteral) {
-          Object v = ((de.ii.xtraplatform.cql.domain.ScalarLiteral) element).getValue();
+        if (element instanceof ScalarLiteral) {
+          Object v = ((ScalarLiteral) element).getValue();
           out.add(String.valueOf(v));
         } else {
           throw new IllegalArgumentException(
@@ -1255,15 +1629,14 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       }
       return out.build();
     }
-    if (expression instanceof de.ii.xtraplatform.cql.domain.Eq) {
-      de.ii.xtraplatform.cql.domain.Eq eq = (de.ii.xtraplatform.cql.domain.Eq) expression;
+    if (expression instanceof Eq) {
+      Eq eq = (Eq) expression;
       ensureIdProperty(eq.getArgs().isEmpty() ? null : eq.getArgs().get(0), idPropertyNames);
-      if (eq.getArgs().size() < 2
-          || !(eq.getArgs().get(1) instanceof de.ii.xtraplatform.cql.domain.ScalarLiteral)) {
+      if (eq.getArgs().size() < 2 || !(eq.getArgs().get(1) instanceof ScalarLiteral)) {
         throw new IllegalArgumentException(
             "Malformed Eq expression: expected ScalarLiteral second argument.");
       }
-      Object v = ((de.ii.xtraplatform.cql.domain.ScalarLiteral) eq.getArgs().get(1)).getValue();
+      Object v = ((ScalarLiteral) eq.getArgs().get(1)).getValue();
       return ImmutableList.of(String.valueOf(v));
     }
     throw new IllegalArgumentException(
@@ -1273,11 +1646,11 @@ public class TransactionExecutorImpl implements TransactionExecutor {
   }
 
   private static void ensureIdProperty(Object firstArg, Set<String> idPropertyNames) {
-    if (!(firstArg instanceof de.ii.xtraplatform.cql.domain.Property)) {
+    if (!(firstArg instanceof Property)) {
       throw new IllegalArgumentException(
           "Transaction filter must reference the feature's id property as its first argument.");
     }
-    String name = ((de.ii.xtraplatform.cql.domain.Property) firstArg).getName();
+    String name = ((Property) firstArg).getName();
     if (!idPropertyNames.contains(name)) {
       throw new IllegalArgumentException(
           "Transaction filter must reference the feature's id property (expected one of "
