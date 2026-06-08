@@ -262,7 +262,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     ogcApiInjectableContext.inject(requestContext, apiRequestContext);
 
-    logRequest(apiData.getId(), entrypoint, subPath, requestContext, optionalUser);
+    logRequest(api.getData(), entrypoint, subPath, requestContext, optionalUser);
 
     return ogcApiEndpoint;
   }
@@ -489,34 +489,61 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
   }
 
   private void logRequest(
-      String api,
+      OgcApiDataV2 apiData,
       String entrypoint,
       String subPath,
       ContainerRequestContext requestContext,
       Optional<User> optionalUser) {
-    String uuid = requestContext.getProperty("REQUEST_ID").toString();
 
-    // api
-    auditLog.setApi(uuid, api);
+    // Retrieve requestId
+    Object requestIdObject = requestContext.getProperty("REQUEST_ID");
+    if (!(requestIdObject instanceof String requestId)) {
+      return;
+    }
 
-    // actor
-    // ToDo: For testing purposes find a way to set the user
+    // Abort Log if one of the following is true:
+    // - auditLog is disabled in the global config (cfg.yml)
+    // - apiData.getAuditLog is empty
+    // - auditLog is disabled for the given API
+    /*
+    boolean test = !appContext.getConfiguration().getAuditLog().getEnabled();
+    boolean test1 = apiData.getAuditLog().isEmpty();
+    boolean test2 = !apiData.getAuditLog().get().getEnabled();
+    if (!appContext.getConfiguration().getAuditLog().getEnabled()
+        || apiData.getAuditLog().isEmpty()
+        || !apiData.getAuditLog().get().getEnabled()) {
+      auditLog.abortLog(requestId);
+      return;
+    }
+
+     */
+    boolean test = !appContext.getConfiguration().getAuditLog().getEnabled();
+    boolean test2 = !apiData.getAuditLog().getEnabled();
+    if (!appContext.getConfiguration().getAuditLog().getEnabled()
+        || !apiData.getAuditLog().getEnabled()) {
+      auditLog.abortLog(requestId);
+      return;
+    }
+
+    // set api
+    auditLog.setApi(requestId, apiData.getId());
+
+    // set actor
     optionalUser.ifPresentOrElse(
         user ->
-            auditLog.setActor(uuid, user.getRole().toString(), user.getName(), user.getClaims()),
-        () -> auditLog.setActor(uuid, "AnonymousUser", "Anonymous", Map.of()));
+            auditLog.setActor(
+                requestId, user.getRole().toString(), user.getName(), user.getClaims()),
+        () -> auditLog.setActor(requestId, "AnonymousUser", "Anonymous", Map.of()));
 
-    // operation
+    // set operation
     String method = requestContext.getMethod();
     if (Objects.nonNull(method)) {
-      auditLog.setOperationMethod(uuid, method);
+      auditLog.setOperationMethod(requestId, method);
     }
-    auditLog.setOperationPath(uuid, "/" + entrypoint + subPath);
-    // ToDo Check if headers should be set and header blacklist/whitelist (maybe excluded: [ '*' ]
-    // is enough)
+    auditLog.setOperationPath(requestId, "/" + entrypoint + subPath);
     MultivaluedMap<String, String> headers = requestContext.getHeaders();
     if (Objects.nonNull(headers)) {
-      auditLog.setOperationHeaders(uuid, headers);
+      auditLog.setOperationHeaders(requestId, headers);
     }
   }
 }
