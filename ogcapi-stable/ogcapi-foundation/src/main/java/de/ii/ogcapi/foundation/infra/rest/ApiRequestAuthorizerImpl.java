@@ -118,7 +118,7 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
     return changedRequestContext.isEmpty() ? requestContext : changedRequestContext.get(0);
   }
 
-  private static Set<String> getRequiredPermissions(
+  static Set<String> getRequiredPermissions(
       PermissionGroup scope, String operationId, String apiId, Optional<String> collectionId) {
     if (collectionId.isPresent()) {
       return scope.setOf(operationId, apiId, collectionId.get());
@@ -156,12 +156,8 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
         return true;
       }
     }
-    if (isPolicyDenial(
-        requestContext, apiSecurity, optionalUser, apiOperation, body, changedRequestContext)) {
-      return true;
-    }
-
-    return false;
+    return isPolicyDenial(
+        requestContext, apiSecurity, optionalUser, apiOperation, body, changedRequestContext);
   }
 
   private static boolean isAccessRestricted(
@@ -375,7 +371,7 @@ public class ApiRequestAuthorizerImpl implements ApiRequestAuthorizer, ApiSecuri
     return unFulfilled;
   }
 
-  private static <T> boolean intersects(Set<T> first, Set<T> second) {
+  static <T> boolean intersects(Set<T> first, Set<T> second) {
     return !Sets.intersection(first, second).isEmpty();
   }
 

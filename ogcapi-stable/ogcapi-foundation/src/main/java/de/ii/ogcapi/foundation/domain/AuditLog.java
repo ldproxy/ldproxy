@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.util.List;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -23,5 +24,11 @@ public interface AuditLog {
   @Default
   default boolean getEnabled() {
     return true;
+  }
+
+  // ToDo docs
+  @Default
+  default List<String> getOperations() {
+    return List.of("data:read", "write");
   }
 }

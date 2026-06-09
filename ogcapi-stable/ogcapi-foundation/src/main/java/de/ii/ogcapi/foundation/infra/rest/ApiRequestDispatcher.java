@@ -262,7 +262,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     ogcApiInjectableContext.inject(requestContext, apiRequestContext);
 
-    logRequest(api.getData(), entrypoint, subPath, requestContext, optionalUser);
+    logRequest(api.getData(), entrypoint, subPath, requestContext, optionalUser, apiOperation);
 
     return ogcApiEndpoint;
   }
@@ -493,7 +493,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       String entrypoint,
       String subPath,
       ContainerRequestContext requestContext,
-      Optional<User> optionalUser) {
+      Optional<User> optionalUser,
+      ApiOperation apiOperation) {
 
     // Retrieve requestId and abort if missing
     Object requestIdObject = requestContext.getProperty("REQUEST_ID");
