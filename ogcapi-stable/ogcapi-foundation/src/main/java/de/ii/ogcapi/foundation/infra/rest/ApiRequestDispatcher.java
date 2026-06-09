@@ -56,7 +56,6 @@ import java.lang.annotation.Annotation;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -538,11 +537,10 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     auditLog.setApi(requestId, apiData.getId());
 
     // set actor
-    optionalUser.ifPresentOrElse(
+    optionalUser.ifPresent(
         user ->
             auditLog.setActor(
-                requestId, user.getRole().toString(), user.getName(), user.getClaims()),
-        () -> auditLog.setActor(requestId, "AnonymousUser", "Anonymous", Map.of()));
+                requestId, user.getRole().toString(), user.getName(), user.getClaims()));
 
     // set operation
     String method = requestContext.getMethod();
