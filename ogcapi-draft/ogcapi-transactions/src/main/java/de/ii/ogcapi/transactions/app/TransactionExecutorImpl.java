@@ -462,7 +462,10 @@ public class TransactionExecutorImpl implements TransactionExecutor {
             List.of(canonicalIdForItem.get()));
       }
       if (preflight && canonicalIdForItem.isPresent()) {
-        // Versioned-Insert pre-flight: refuse to write if a conflicting version already exists.
+        // Versioned-Insert pre-flight: refuse to write if any version of this id already exists
+        // (open or retired). Adding new versions of an existing feature goes through Replace /
+        // Update / Delete; Insert is reserved for brand-new ids.
+        //
         // The per-item batch must be flushed first so existing-row checks see writes from earlier
         // items in this same action (e.g. an Insert/Insert pair for the same id within one
         // action, second insert would otherwise miss the first).
@@ -482,8 +485,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
           if (failedBatch != null) return failedBatch;
         }
         MutationResult precheck =
-            session.assertNoConflictingVersion(
-                featureType, canonicalIdForItem.get(), mutationTimestamp);
+            session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
           return failed(action, precheck.getError().get(), List.of(canonicalIdForItem.get()));
         }
@@ -892,8 +894,8 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     List<String> updatedIds = new ArrayList<>();
     for (String rawId : targetIds) {
       // Composite-id split (plan §1.8). For NATIVE updates the canonical id is just the raw id
-      // (no versioning); for RETIRE_IN_PLACE the suffix becomes an If-Unmodified-Since
-      // predicate on the patch SQL.
+      // (no versioning); for RETIRE_IN_PLACE and CLONE_AND_PATCH the suffix becomes an
+      // If-Unmodified-Since predicate on the open-version lookup.
       CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
       String id = composite.canonical();
       try {
@@ -904,12 +906,15 @@ public class TransactionExecutorImpl implements TransactionExecutor {
                   session.patchOpenVersion(
                       featureType, id, updates, crs, composite.expectedStart());
               case CLONE_AND_PATCH ->
-                  session.cloneAndPatchFeature(featureType, id, updates, mutationTimestamp, crs);
+                  session.cloneAndPatchFeature(
+                      featureType, id, updates, mutationTimestamp, crs, composite.expectedStart());
             };
         rejectIfError(mr);
         if (mr.getIds().isEmpty()) {
-          if (mode == MutationStrategy.UpdateMode.RETIRE_IN_PLACE
-              && composite.expectedStart().isPresent()) {
+          boolean retireOrClone =
+              mode == MutationStrategy.UpdateMode.RETIRE_IN_PLACE
+                  || mode == MutationStrategy.UpdateMode.CLONE_AND_PATCH;
+          if (retireOrClone && composite.expectedStart().isPresent()) {
             return failed(
                 action,
                 new IllegalArgumentException(
