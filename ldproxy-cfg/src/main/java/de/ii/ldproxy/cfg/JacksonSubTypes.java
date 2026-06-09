@@ -51,6 +51,7 @@ import de.ii.ogcapi.tilematrixsets.app.JacksonSubTypeIdsTileMatrixSets;
 import de.ii.ogcapi.tiles.app.JacksonSubTypeIdsTiles;
 import de.ii.ogcapi.tiles3d.app.JacksonSubTypeIds3dTiles;
 import de.ii.ogcapi.transactions.app.JacksonSubTypeIdsTransactions;
+import de.ii.ogcapi.versioned.features.app.JacksonSubTypeIdsVersionedFeatures;
 import de.ii.ogcapi.xml.app.JacksonSubTypeIdsXml;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
 import de.ii.xtraplatform.feature.changes.sql.app.JacksonSubTypeIdsFeatureChanges;
@@ -107,6 +108,7 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsTileMatrixSets())
         .add(new JacksonSubTypeIdsTiles())
         .add(new JacksonSubTypeIdsTransactions())
+        .add(new JacksonSubTypeIdsVersionedFeatures())
         .add(new JacksonSubTypeIdsXml())
         .add(new FeatureProviderRegisterSql())
         .add(new JacksonSubTypeIdsGraphQl())

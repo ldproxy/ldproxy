@@ -45,6 +45,7 @@ import de.ii.ogcapi.tilematrixsets.domain.ImmutableTileMatrixSetsConfiguration;
 import de.ii.ogcapi.tiles.domain.ImmutableTilesConfiguration;
 import de.ii.ogcapi.tiles3d.domain.ImmutableTiles3dConfiguration;
 import de.ii.ogcapi.transactions.domain.ImmutableTransactionsConfiguration;
+import de.ii.ogcapi.versioned.features.domain.ImmutableVersionedFeaturesConfiguration;
 import de.ii.ogcapi.xml.domain.ImmutableXmlConfiguration;
 import de.ii.xtraplatform.routes.sql.domain.ImmutableRoutesConfiguration;
 
@@ -204,6 +205,10 @@ public interface OgcApiExtensionBuilders {
 
   default ImmutableTransactionsConfiguration.Builder transactions() {
     return new ImmutableTransactionsConfiguration.Builder();
+  }
+
+  default ImmutableVersionedFeaturesConfiguration.Builder versionedFeatures() {
+    return new ImmutableVersionedFeaturesConfiguration.Builder();
   }
 
   default ImmutableXmlConfiguration.Builder xml() {
