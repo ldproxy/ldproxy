@@ -8,7 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -28,7 +28,7 @@ public interface AuditLog {
 
   // ToDo docs
   @Default
-  default List<String> getOperations() {
-    return List.of("data:read", "write");
+  default Set<String> getOperations() {
+    return Set.of("data:read", "write");
   }
 }

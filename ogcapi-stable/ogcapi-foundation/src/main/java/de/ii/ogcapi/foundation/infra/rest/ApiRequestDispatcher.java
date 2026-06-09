@@ -262,7 +262,14 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     ogcApiInjectableContext.inject(requestContext, apiRequestContext);
 
-    logRequest(api.getData(), entrypoint, subPath, requestContext, optionalUser, apiOperation);
+    logRequest(
+        api.getData(),
+        entrypoint,
+        subPath,
+        requestContext,
+        optionalUser,
+        apiOperation,
+        apiRequestContext);
 
     return ogcApiEndpoint;
   }
@@ -488,13 +495,27 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     return extensionRegistry.getExtensionsForType(EndpointExtension.class);
   }
 
+  private boolean isOperationAuditable(
+      OgcApiDataV2 apiData, ApiOperation apiOperation, ApiRequestContext apiRequestContext) {
+    Set<String> requiredPermissions =
+        ApiRequestAuthorizerImpl.getRequiredPermissions(
+            apiOperation.getPermissionGroup(),
+            apiOperation.getOperationIdWithoutPrefix(),
+            apiData.getId(),
+            apiRequestContext.getCollectionId());
+
+    return ApiRequestAuthorizerImpl.intersects(
+        requiredPermissions, apiData.getAuditLog().getOperations());
+  }
+
   private void logRequest(
       OgcApiDataV2 apiData,
       String entrypoint,
       String subPath,
       ContainerRequestContext requestContext,
       Optional<User> optionalUser,
-      ApiOperation apiOperation) {
+      ApiOperation apiOperation,
+      ApiRequestContext apiRequestContext) {
 
     // Retrieve requestId and abort if missing
     Object requestIdObject = requestContext.getProperty("REQUEST_ID");
@@ -505,7 +526,10 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     // Abort Log if one of the following is true:
     // - auditLog is disabled in the global config (cfg.yml)
     // - auditLog is disabled for the given API
-    if (!auditLog.isEnabled() || !apiData.getAuditLog().getEnabled()) {
+    // - the operation of the request is not included in the API-config
+    if (!auditLog.isEnabled()
+        || !apiData.getAuditLog().getEnabled()
+        || !isOperationAuditable(apiData, apiOperation, apiRequestContext)) {
       auditLog.abortLog(requestId);
       return;
     }
