@@ -237,24 +237,51 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   }
 
   /**
-   * Returns the property element name qualified with the namespace of the containing object type.
+   * Returns the property element name qualified with the namespace prefix derived from the
+   * property's origin object type, or — when no origin is given — from the containing nested
+   * object's {@code objectType}.
    *
-   * <p>If {@code name} already contains a {@code :}, it is returned unchanged (explicit prefix
-   * takes precedence). Otherwise, the namespace prefix is looked up in {@link
-   * #getObjectTypeNamespaces()} using the object type currently on top of the object-type stack
-   * (the containing object). If no mapping is found, the name is returned unchanged (default
-   * namespace).
+   * <p>Qualification chain:
+   *
+   * <ol>
+   *   <li>If {@code name} already contains a {@code :}, it is returned unchanged (explicit prefix
+   *       wins).
+   *   <li>If {@code originObjectType} is non-null, its mapping in {@link
+   *       #getObjectTypeNamespaces()} prefixes the name; if it has no mapping, the bare name is
+   *       returned (the writer emits it in the default namespace). The property's own origin
+   *       suppresses the object-type-stack walk in step 3.
+   *   <li>Otherwise the immediate containing object type (top of {@link
+   *       de.ii.ogcapi.features.gml.domain.StateGml#getObjectTypeStack()}) is consulted — but only
+   *       when there is a nested ancestor (stack size ≥ 2). The feature root's {@code objectType}
+   *       pins the namespace of the feature element itself and must not propagate down to property
+   *       children that originate elsewhere; nested OBJECTs (e.g. ISO 19115 {@code LI_Lineage}) do
+   *       propagate, since their inline children belong to the nested object's own namespace.
+   *   <li>Otherwise the bare name is returned (default namespace).
+   * </ol>
    */
   @Value.Auxiliary
-  public String qualifyPropertyElementName(String name) {
+  public String qualifyPropertyElementName(String name, String originObjectType) {
     return qualifyPropertyElementName(
-        name, getState().getObjectTypeStack(), getObjectTypeNamespaces());
+        name, originObjectType, getState().getObjectTypeStack(), getObjectTypeNamespaces());
   }
 
-  /** Pure-function variant of {@link #qualifyPropertyElementName(String)}, exposed for testing. */
+  /**
+   * Pure-function variant of {@link #qualifyPropertyElementName(String, String)} that takes the
+   * object-type stack explicitly, for unit testing.
+   */
   public static String qualifyPropertyElementName(
-      String name, List<String> objectTypeStack, Map<String, String> objectTypeNamespaces) {
-    if (name == null || name.indexOf(':') >= 0 || objectTypeStack.isEmpty()) {
+      String name,
+      String originObjectType,
+      List<String> objectTypeStack,
+      Map<String, String> objectTypeNamespaces) {
+    if (name == null || name.indexOf(':') >= 0) {
+      return name;
+    }
+    if (originObjectType != null) {
+      String nsPrefix = objectTypeNamespaces.get(originObjectType);
+      return nsPrefix == null ? name : nsPrefix + ":" + name;
+    }
+    if (objectTypeStack.size() < 2) {
       return name;
     }
     String parentObjectType = objectTypeStack.get(objectTypeStack.size() - 1);
