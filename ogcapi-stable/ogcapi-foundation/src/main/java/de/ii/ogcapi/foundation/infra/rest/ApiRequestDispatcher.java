@@ -495,7 +495,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       ContainerRequestContext requestContext,
       Optional<User> optionalUser) {
 
-    // Retrieve requestId
+    // Retrieve requestId and abort if missing
     Object requestIdObject = requestContext.getProperty("REQUEST_ID");
     if (!(requestIdObject instanceof String requestId)) {
       return;
@@ -503,24 +503,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     // Abort Log if one of the following is true:
     // - auditLog is disabled in the global config (cfg.yml)
-    // - apiData.getAuditLog is empty
     // - auditLog is disabled for the given API
-    /*
-    boolean test = !appContext.getConfiguration().getAuditLog().getEnabled();
-    boolean test1 = apiData.getAuditLog().isEmpty();
-    boolean test2 = !apiData.getAuditLog().get().getEnabled();
-    if (!appContext.getConfiguration().getAuditLog().getEnabled()
-        || apiData.getAuditLog().isEmpty()
-        || !apiData.getAuditLog().get().getEnabled()) {
-      auditLog.abortLog(requestId);
-      return;
-    }
-
-     */
-    boolean test = !appContext.getConfiguration().getAuditLog().getEnabled();
-    boolean test2 = !apiData.getAuditLog().getEnabled();
-    if (!appContext.getConfiguration().getAuditLog().getEnabled()
-        || !apiData.getAuditLog().getEnabled()) {
+    if (!auditLog.isEnabled() || !apiData.getAuditLog().getEnabled()) {
       auditLog.abortLog(requestId);
       return;
     }

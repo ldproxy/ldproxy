@@ -17,7 +17,7 @@ public interface AuditLog {
 
   /**
    * @langEn Option to disable audit logging.
-   * @langDe Option, um das Erstellen von Audit-Logs zu deaktivieren.
+   * @langDe Option, um das Audit Logging zu deaktivieren.
    * @default true
    */
   @Default
