@@ -26,7 +26,11 @@ public interface AuditLog {
     return true;
   }
 
-  // ToDo docs
+  /**
+   * @langEn Option to specify the operations for which a log entry should be created.
+   * @langDe Option, um die Operationen anzugeben, für die ein Log-Eintrag erstellt werden soll.
+   * @default {"data:read", "write"}
+   */
   @Default
   default Set<String> getOperations() {
     return Set.of("data:read", "write");
