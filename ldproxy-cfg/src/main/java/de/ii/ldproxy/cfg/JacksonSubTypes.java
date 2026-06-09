@@ -50,6 +50,7 @@ import de.ii.ogcapi.text.search.app.JacksonSubTypeIdsTextSearch;
 import de.ii.ogcapi.tilematrixsets.app.JacksonSubTypeIdsTileMatrixSets;
 import de.ii.ogcapi.tiles.app.JacksonSubTypeIdsTiles;
 import de.ii.ogcapi.tiles3d.app.JacksonSubTypeIds3dTiles;
+import de.ii.ogcapi.transactions.app.JacksonSubTypeIdsTransactions;
 import de.ii.ogcapi.xml.app.JacksonSubTypeIdsXml;
 import de.ii.xtraplatform.base.domain.JacksonSubTypeIds;
 import de.ii.xtraplatform.feature.changes.sql.app.JacksonSubTypeIdsFeatureChanges;
@@ -105,6 +106,7 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsTextSearch())
         .add(new JacksonSubTypeIdsTileMatrixSets())
         .add(new JacksonSubTypeIdsTiles())
+        .add(new JacksonSubTypeIdsTransactions())
         .add(new JacksonSubTypeIdsXml())
         .add(new FeatureProviderRegisterSql())
         .add(new JacksonSubTypeIdsGraphQl())
