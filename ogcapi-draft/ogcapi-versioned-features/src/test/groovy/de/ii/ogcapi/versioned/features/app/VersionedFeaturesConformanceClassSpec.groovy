@@ -51,12 +51,52 @@ class VersionedFeaturesConformanceClassSpec extends Specification {
         subject.isEnabledForApi(apiData)
     }
 
-    def 'advertises the Core conformance URI when enabled'() {
+    def 'advertises Core + Multiple Versions + Versions-as-Features without mutations'() {
         given:
         OgcApiDataV2 apiData = api([])
 
         expect:
-        subject.getConformanceClassUris(apiData) == [VersionedFeaturesConformanceClass.CORE]
+        subject.getConformanceClassUris(apiData) == [
+                VersionedFeaturesConformanceClass.CORE,
+                VersionedFeaturesConformanceClass.MULTIPLE_VERSIONS,
+                VersionedFeaturesConformanceClass.PROFILE_VERSIONS_AS_FEATURES,
+        ]
+    }
+
+    def 'advertises Unique-Ids profile when a versioned collection sets compositeIdPattern'() {
+        given:
+        OgcApiDataV2 apiData = api([
+                collection('a', [new ImmutableVersionedFeaturesConfiguration.Builder()
+                        .enabled(true)
+                        .timeAxis(VersionedFeaturesConfiguration.TimeAxis.VALIDITY_TIME)
+                        .compositeIdPattern('^(?<id>DE[A-Za-z0-9]{14})(?<start>\\d{8}T\\d{6}Z)$')
+                        .build()])])
+
+        expect:
+        subject.getConformanceClassUris(apiData) == [
+                VersionedFeaturesConformanceClass.CORE,
+                VersionedFeaturesConformanceClass.MULTIPLE_VERSIONS,
+                VersionedFeaturesConformanceClass.PROFILE_VERSIONS_AS_FEATURES,
+                VersionedFeaturesConformanceClass.PROFILE_VERSIONS_AS_FEATURES_UNIQUE_IDS,
+        ]
+    }
+
+    def 'advertises Mutations when a versioned collection sets mutationTime'() {
+        given:
+        OgcApiDataV2 apiData = api([
+                collection('a', [new ImmutableVersionedFeaturesConfiguration.Builder()
+                        .enabled(true)
+                        .timeAxis(VersionedFeaturesConfiguration.TimeAxis.VALIDITY_TIME)
+                        .mutationTime(VersionedFeaturesConfiguration.MutationTime.SERVER)
+                        .build()])])
+
+        expect:
+        subject.getConformanceClassUris(apiData) == [
+                VersionedFeaturesConformanceClass.CORE,
+                VersionedFeaturesConformanceClass.MULTIPLE_VERSIONS,
+                VersionedFeaturesConformanceClass.PROFILE_VERSIONS_AS_FEATURES,
+                VersionedFeaturesConformanceClass.MUTATIONS,
+        ]
     }
 
     private static OgcApiDataV2 api(List collections) {
