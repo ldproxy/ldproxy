@@ -48,6 +48,7 @@ public abstract class Link {
           .put("application/gml+xml", "GML")
           .put("application/xml", "XML")
           .put("application/vnd.oai.openapi", "YAML")
+          .put("application/link-format", "CoRE Link Format")
           .put("text/plain", "Debug Tokens")
           .build();
 

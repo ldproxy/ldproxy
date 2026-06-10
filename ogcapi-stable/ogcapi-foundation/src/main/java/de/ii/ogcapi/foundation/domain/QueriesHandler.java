@@ -238,9 +238,22 @@ public interface QueriesHandler<T extends QueryIdentifier> {
     return response;
   }
 
-  Set<String> NOT_SKIPPABLE = Set.of("next");
-  Set<String> LEAST_SKIPPABLE = Set.of("prev", "first");
-  Set<String> MOST_SKIPPABLE = Set.of("alternate");
+  // Tiers used when the Link response header would overflow the configured size budget.
+  // Order of attrition: alternate → everything else → least-skippable → nothing more (only
+  // not-skippable remains).
+  //
+  // - NOT_SKIPPABLE (must): rels the client effectively requires to navigate at all.
+  //     "next" for paging continuation; "original" identifies the stable URI of a versioned
+  //     feature (RFC 7089 §2.2.5: REQUIRED on every Memento response).
+  // - LEAST_SKIPPABLE (should): high-value navigation that a client typically relies on.
+  //     "prev", "first" for paging; the versioned-features set for time-traveling between
+  //     versions and discovering the time map.
+  // - MOST_SKIPPABLE (may): drop first when over budget; the body's `links` array still
+  //     carries these.
+  Set<String> NOT_SKIPPABLE =
+      Set.of("next", "original", "predecessor-version", "successor-version", "version-history");
+  Set<String> LEAST_SKIPPABLE = Set.of("prev", "first", "latest-version");
+  Set<String> MOST_SKIPPABLE = Set.of("alternate", "timemap");
 
   default void applyLinks(
       Response.ResponseBuilder response,
