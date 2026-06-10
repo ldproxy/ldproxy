@@ -6,7 +6,7 @@
 
 ldproxy allows you to quickly set up Web APIs that make geospatial data available to others or to your own applications via HTTP.
 
-Work on ldproxy started in 2015 to explore how existing [spatial data infrastructures](https://en.wikipedia.org/wiki/Spatial_data_infrastructure) could be improved. The design of ldproxy has been inspired by the parallel development of the [W3C/OGC Spatial Data on the Web Best Practices](https://www.w3.org/TR/sdw-bp/) as well as the [W3C Data on the Web Best Practices](https://www.w3.org/TR/dwbp/). Since then, ldproxy has provided input to the [Open Geospatial Consortium (OGC)](https://www.ogc.org/) and the emerging [OGC API Standards](https://ogcapi.ogc.org/). It is one of the most complete implementations of these specifications.
+Work on ldproxy started in 2015 to explore how existing [spatial data infrastructures](https://en.wikipedia.org/wiki/Spatial_data_infrastructure) could be improved. The design of ldproxy has been inspired by the parallel development of the [W3C/OGC Spatial Data on the Web Best Practices](https://www.w3.org/TR/sdw-bp/) as well as the [W3C Data on the Web Best Practices](https://www.w3.org/TR/dwbp/). Since then, ldproxy has provided input to the [Open Geospatial Consortium (OGC)](https://www.ogc.org/) and the emerging [OGC API Standards](https://ogcapi.ogc.org/). It is one of the most complete implementations of these specifications. The documentation is both avaible in [English](https://docs.ldproxy.net/) and [German](https://docs.ldproxy.net/de/).
 
 Key characteristics:
 
@@ -21,7 +21,7 @@ Key characteristics:
 
 To get an idea how the APIs look like, have a look at the [demos](https://demo.ldproxy.net).
 
-More information on the supported specifications and technologies is available in [English](https://docs.ldproxy.net/advanced/specifications.html) and [German](https://docs.ldproxy.net/de/advanced/specifications.html).
+More information on the supported specifications and technologies is available in [English](https://docs.ldproxy.net/references/specifications.html) and [German](https://docs.ldproxy.net/de/references/specifications.html).
 
 ## Getting started
 
@@ -33,7 +33,7 @@ To install and start the lastest stable ldproxy version, just run the following 
 docker run -d -p 7080:7080 -v ldproxy_data:/ldproxy/data iide/ldproxy:latest
 ```
 
-For more information, have a look at the deployment guide ([English](https://docs.ldproxy.net/application/10-deployment.html), [German](https://docs.ldproxy.net/de/application/10-deployment.html)).
+For more information, have a look at the deployment guide ([English](https://docs.ldproxy.net/application/30-deployment.html), [German](https://docs.ldproxy.net/de/application/30-deployment.html)).
 
 When your container is up and running, it is time  to create your first API ([English](https://docs.ldproxy.net/20-creating-apis.html), [German](https://docs.ldproxy.net/de/20-creating-apis.html)).
 
