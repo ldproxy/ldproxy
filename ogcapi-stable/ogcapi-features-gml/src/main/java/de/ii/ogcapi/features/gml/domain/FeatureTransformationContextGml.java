@@ -45,6 +45,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   private static final String GML_IDENTIFIER_VALUE_PLACEHOLDER = "_zz_GML_IDENTIFIER_VALUE_i_zz_";
   private static final String OBJECT_ELEMENT_PLACEHOLDER = "_zz_OBJECT_ELEMENT_i_zz_";
   private static final String SURFACE_MEMBER_PLACEHOLDER = "_zz_SURFACE_MEMBER_i_zz_";
+  private static final String ROLE_LINKS_PLACEHOLDER = "_zz_ROLE_LINKS_i_zz_";
 
   /**
    * Internal string buffer to buffer information. The buffer is flushed for every feature. Also
@@ -372,6 +373,42 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     }
   }
 
+  /** Writes an XML comment ({@code <!-- text -->}) in element-content position. */
+  public void writeComment(String text) throws IOException {
+    try {
+      xmlWriter.writeComment(text);
+    } catch (XMLStreamException e) {
+      throw new IOException(e);
+    }
+  }
+
+  /**
+   * Reserves a slot right after the current feature's start tag for content that is only known at
+   * feature end (e.g. role-link captures from {@code FeatureTokenTransformerLinkRoles}). Returns
+   * the placeholder key; pass it to {@link #setRoleLinksContent(String, String)} from {@code
+   * onFeatureEnd}. An unset (empty) value is silently dropped at flush.
+   *
+   * <p>The slot is emitted as an XML comment containing the placeholder key, e.g. {@code <!--
+   * _zz_ROLE_LINKS_1_zz_ -->}. Going through {@code xmlWriter.writeComment} (instead of a raw
+   * buffer append) ensures the parent start tag is flushed first, so the slot lands inside the
+   * feature element. At flush time the placeholder text inside the comment is substituted; the
+   * surrounding {@code <!-- ... -->} stays put. To emit multiple comments (e.g. one per role),
+   * embed {@code --><!--} sequences inside the substituted content.
+   */
+  @Value.Auxiliary
+  public String reserveRoleLinksPlaceholder() throws IOException {
+    int i = getState().getLastObject();
+    String placeholder = ROLE_LINKS_PLACEHOLDER.replace("i", String.valueOf(i));
+    writeComment(" " + placeholder + " ");
+    getState().putPlaceholders(placeholder, "");
+    return placeholder;
+  }
+
+  /** Populates a placeholder previously returned by {@link #reserveRoleLinksPlaceholder()}. */
+  public void setRoleLinksContent(String placeholder, String content) {
+    getState().putPlaceholders(placeholder, content);
+  }
+
   /**
    * Forces the pending {@code >} of the current start element to be emitted. Must be called after
    * all {@link #writeAttribute} / {@link #writeNamespace} calls and before any raw buffer writes
@@ -431,8 +468,23 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
           .forEach(
               (key, value) -> {
                 // Most placeholders cannot be empty - if they are, there is an error that
-                // should be reported
-                if (!key.startsWith("_zz_XML_ATTRIBUTE_") && value.isEmpty()) {
+                // should be reported. XML_ATTRIBUTE placeholders are an exception: an empty
+                // value means "no XML attribute was added", and the placeholder is removed
+                // in place (inside attribute position).
+                if (!key.startsWith("_zz_XML_ATTRIBUTE_")
+                    && !key.startsWith("_zz_ROLE_LINKS_")
+                    && value.isEmpty()) {
+                  return;
+                }
+                // ROLE_LINKS placeholders live inside an XML comment ("<!-- KEY -->").
+                // When empty, drop the entire comment from the buffer; otherwise the
+                // unwrapped key is replaced in place inside the comment.
+                if (key.startsWith("_zz_ROLE_LINKS_") && value.isEmpty()) {
+                  String wrapped = "<!-- " + key + " -->";
+                  int idx = buffer.lastIndexOf(wrapped);
+                  if (idx != -1) {
+                    buffer.delete(idx, idx + wrapped.length());
+                  }
                   return;
                 }
                 // variable object elements appear twice - opening and closing tag
@@ -545,6 +597,27 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
                   .putPlaceholders(
                       GML_IDENTIFIER_VALUE_PLACEHOLDER.replace("i", String.valueOf(i)), resolved);
             });
+  }
+
+  /**
+   * Override only the {@code gml:identifier}-value placeholder, leaving the {@code gml:id}
+   * placeholder untouched. Used when a profile rewrites the {@code gml:id} attribute to a composite
+   * value (e.g. {@code versions-as-features-unique-ids}) but the {@code gml:identifier} element
+   * should still carry the canonical feature id.
+   */
+  public void setCurrentGmlIdentifierValue(String canonicalValue) {
+    if (getGmlIdentifier().isEmpty()) {
+      return;
+    }
+    GmlIdentifier cfg = getGmlIdentifier().get();
+    int i = getState().getLastObject();
+    String resolved =
+        cfg.getValueTemplate() == null
+            ? canonicalValue
+            : cfg.getValueTemplate().replace("{{value}}", canonicalValue);
+    getState()
+        .putPlaceholders(
+            GML_IDENTIFIER_VALUE_PLACEHOLDER.replace("i", String.valueOf(i)), resolved);
   }
 
   public void appendGmlIdSuffix(String suffix) {

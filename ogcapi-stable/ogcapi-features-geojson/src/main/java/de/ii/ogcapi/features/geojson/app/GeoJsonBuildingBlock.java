@@ -55,7 +55,8 @@ public class GeoJsonBuildingBlock implements ApiBuildingBlock {
   public ExtensionConfiguration getDefaultConfiguration() {
     return new Builder()
         .enabled(true)
-        .defaultProfiles(Map.of("rel", "rel-as-link", "geojson", "rfc7946"))
+        .defaultProfiles(
+            Map.of("rel", "rel-as-link", "geojson", "rfc7946", "versions", "versions-as-features"))
         .build();
   }
 }

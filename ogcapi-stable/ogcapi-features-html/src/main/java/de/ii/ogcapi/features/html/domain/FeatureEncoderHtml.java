@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -37,6 +38,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
   private static final Logger LOGGER = LoggerFactory.getLogger(FeatureEncoderHtml.class);
 
   private final FeatureTransformationContextHtml transformationContext;
+  private String currentFeatureId;
 
   public FeatureEncoderHtml(FeatureTransformationContextHtml transformationContext) {
     this.transformationContext = transformationContext;
@@ -260,6 +262,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
               .get(transformationContext.collectionView().breadCrumbs().size() - 1)
               .label =
           feature.getName();
+      currentFeatureId = feature.getIdValue();
     } else {
       feature.inCollection(true);
     }
@@ -280,11 +283,56 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
               .build());
 
     } else {
+      populateVersionNavigation(context);
       renderView(
           new ImmutableFeatureCollectionDetailsView.Builder()
               .from(transformationContext.collectionView())
               .build());
     }
+  }
+
+  private void populateVersionNavigation(ModifiableContext context) {
+    Map<String, String> roleLinks = context.roleLinks();
+    String canonicalId = context.canonicalFeatureId();
+    if (Objects.isNull(currentFeatureId) || (Objects.isNull(roleLinks) || roleLinks.isEmpty())) {
+      return;
+    }
+
+    Optional<I18n> i18n = transformationContext.getI18n();
+    Optional<Locale> language = transformationContext.getLanguage();
+    Function<String, String> t = key -> i18n.map(impl -> impl.get(key, language)).orElse(key);
+
+    // Use the canonical id (when the composite-id profile rewrote the feature id) for the URL
+    // path, so /items/<canonical>?datetime=... resolves to the stable resource; the JSON `id`
+    // and the feature title may still carry the composite for collision-free display.
+    String urlId = Objects.nonNull(canonicalId) ? canonicalId : currentFeatureId;
+    String featureBase =
+        transformationContext.getServiceUrl()
+            + "/collections/"
+            + transformationContext.getCollectionId()
+            + "/items/"
+            + urlId;
+
+    String predecessor = roleLinks.get("predecessor-version");
+    String successor = roleLinks.get("successor-version");
+
+    ImmutableList.Builder<NavigationDTO> nav = new ImmutableList.Builder<>();
+    if (Objects.nonNull(predecessor) && !predecessor.isEmpty()) {
+      nav.add(
+          new NavigationDTO(
+              "‹ " + t.apply("predecessorVersionLink"), featureBase + "?datetime=" + predecessor));
+    } else {
+      nav.add(new NavigationDTO("‹ " + t.apply("predecessorVersionLink")));
+    }
+    nav.add(new NavigationDTO(t.apply("versionHistoryLink"), featureBase + "/versions"));
+    if (Objects.nonNull(successor) && !successor.isEmpty()) {
+      nav.add(
+          new NavigationDTO(
+              t.apply("successorVersionLink") + " ›", featureBase + "?datetime=" + successor));
+    } else {
+      nav.add(new NavigationDTO(t.apply("successorVersionLink") + " ›"));
+    }
+    transformationContext.collectionView().setVersionNavigation(nav.build());
   }
 
   private void renderView(View view) {

@@ -1,0 +1,14 @@
+{{#hasVersionNavigation}}
+<nav>
+    <ul class="pagination mb-4">
+        {{#versionNavigation}}
+            {{#url}}
+                <li class="page-item"><a class="page-link" href="{{.}}">{{label}}</a></li>
+            {{/url}}
+            {{^url}}
+                <li class="page-item disabled"><a class="page-link" href="">{{label}}</a></li>
+            {{/url}}
+        {{/versionNavigation}}
+    </ul>
+</nav>
+{{/hasVersionNavigation}}
