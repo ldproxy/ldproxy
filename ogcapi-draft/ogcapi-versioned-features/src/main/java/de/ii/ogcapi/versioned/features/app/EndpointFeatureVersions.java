@@ -95,9 +95,15 @@ public class EndpointFeatureVersions extends EndpointSubCollection {
 
     String path = "/collections/{collectionId}/items/{featureId}/versions";
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, path, "{collectionId}");
-    List<ApiHeader> headers = ImmutableList.of();
+    Optional<OgcApiPathParameter> optCollectionIdParam =
+        pathParameters.stream().filter(p -> "collectionId".equals(p.getName())).findAny();
+    if (optCollectionIdParam.isEmpty()) {
+      return builder.build();
+    }
+    OgcApiPathParameter collectionIdParam = optCollectionIdParam.get();
+    boolean explode = collectionIdParam.isExplodeInOpenApi(apiData);
+    List<String> collectionIds =
+        explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
 
     Map<MediaType, ApiMediaTypeContent> responseContent =
         getResourceFormats().stream()
@@ -108,30 +114,39 @@ public class EndpointFeatureVersions extends EndpointSubCollection {
                     TimeMapFormatExtension::getContent,
                     (a, b) -> a,
                     LinkedHashMap::new));
+    List<ApiHeader> headers = ImmutableList.of();
 
-    ImmutableOgcApiResourceData.Builder resourceBuilder =
-        new ImmutableOgcApiResourceData.Builder().path(path).pathParameters(pathParameters);
-
-    ApiOperation.getResource(
-            apiData,
-            path,
-            false,
-            queryParameters,
-            headers,
-            responseContent,
-            "retrieve the Time Map of a feature",
-            Optional.of(
-                "Lists every version of the feature as a memento link with an RFC 7089 datetime"
-                    + " link attribute, plus self / original / latest-version links."),
-            Optional.empty(),
-            OP_ID,
-            GROUP_READ,
-            TAGS,
-            Optional.empty(),
-            Optional.empty())
-        .ifPresent(op -> resourceBuilder.putOperations(HttpMethods.GET.name(), op));
-
-    builder.putResources(path, resourceBuilder.build());
+    for (String collectionId : collectionIds) {
+      if (!collectionId.startsWith("{") && !isEnabledForApi(apiData, collectionId)) {
+        continue;
+      }
+      List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path, collectionId);
+      String resourcePath = path.replace("{collectionId}", collectionId);
+      ImmutableOgcApiResourceData.Builder resourceBuilder =
+          new ImmutableOgcApiResourceData.Builder()
+              .path(resourcePath)
+              .pathParameters(pathParameters);
+      ApiOperation.getResource(
+              apiData,
+              resourcePath,
+              false,
+              queryParameters,
+              headers,
+              responseContent,
+              "retrieve the Time Map of a feature in feature collection '" + collectionId + "'",
+              Optional.of(
+                  "Lists every version of the feature as a memento link with an RFC 7089 datetime"
+                      + " link attribute, plus self / original / latest-version links."),
+              Optional.empty(),
+              getOperationId(OP_ID, collectionId),
+              GROUP_READ,
+              TAGS,
+              Optional.empty(),
+              Optional.empty())
+          .ifPresent(op -> resourceBuilder.putOperations(HttpMethods.GET.name(), op));
+      builder.putResources(resourcePath, resourceBuilder.build());
+    }
     return builder.build();
   }
 
