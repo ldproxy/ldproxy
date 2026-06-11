@@ -12,4 +12,8 @@ import java.util.Optional;
 
 public interface SchemaValidator {
   Optional<String> validate(String schemaContent, String jsonContent) throws IOException;
+
+  CompiledJsonSchema compile(String schemaContent) throws IOException;
+
+  Optional<String> validate(CompiledJsonSchema schema, String jsonContent) throws IOException;
 }

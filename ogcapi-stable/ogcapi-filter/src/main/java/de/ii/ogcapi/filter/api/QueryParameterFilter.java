@@ -31,6 +31,7 @@ import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.cql.domain.Cql.Format;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -316,12 +317,13 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
     }
 
     // will throw an error, if there is a type mismatch
-    cql.checkTypes(
-        cql2Expression,
+    Map<String, String> propertyTypes =
         queryables.entrySet().stream()
             .collect(
                 Collectors.toUnmodifiableMap(
-                    Entry::getKey, entry -> entry.getValue().getType().toString())));
+                    Entry::getKey, entry -> entry.getValue().getType().toString()));
+
+    checkTypes(cql2Expression, propertyTypes, api, collectionData);
 
     if (collectionData
         .getExtension(FeaturesCoreConfiguration.class)
@@ -340,6 +342,27 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
     }
 
     return cql2Expression;
+  }
+
+  private void checkTypes(
+      Cql2Expression cql2Expression,
+      Map<String, String> propertyTypes,
+      OgcApi api,
+      FeatureTypeConfigurationOgcApi collectionData) {
+    List<CustomFunction> customFunctions = getCustomFunctions(api, collectionData);
+
+    cql.checkTypes(cql2Expression, propertyTypes, customFunctions);
+  }
+
+  private List<CustomFunction> getCustomFunctions(
+      OgcApi api, FeatureTypeConfigurationOgcApi collectionData) {
+    return providers
+        .getFeatureProvider(api.getData(), collectionData)
+        .map(FeatureProvider::queries)
+        .filter(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::isSupported)
+        .map(de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability::get)
+        .map(FeatureQueries::getCql2Functions)
+        .orElse(List.of());
   }
 
   @Override

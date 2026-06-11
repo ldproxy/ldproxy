@@ -29,6 +29,4 @@ dependencies {
         exclude module: 'jsr305'
         exclude module: 'slf4j-api'
     }
-
-    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }

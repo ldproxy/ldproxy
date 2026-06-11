@@ -13,15 +13,20 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
+import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreValidation;
+import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration.Conformance;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
+import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
+import de.ii.ogcapi.features.gml.domain.UomMapping;
+import de.ii.ogcapi.features.gml.domain.VariableName;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
@@ -34,28 +39,57 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.features.domain.SchemaMapping;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
+import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGml;
+import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGmlInputProfile;
+import de.ii.xtraplatform.features.gml.domain.ImmutableFeatureTokenDecoderGmlInputProfile;
+import de.ii.xtraplatform.features.gml.domain.ImmutableVariableObjectName;
+import de.ii.xtraplatform.features.gml.domain.VariableObjectName;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import javax.xml.XMLConstants;
+import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.ls.LSInput;
+import org.w3c.dom.ls.LSResourceResolver;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 /**
  * @title GML
@@ -63,6 +97,8 @@ import java.util.stream.Collectors;
 @Singleton
 @AutoBind
 public class FeaturesFormatGml extends FeatureFormatExtension implements ConformanceClass {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FeaturesFormatGml.class);
 
   private static final String XML = "xml";
   private static final String GML21 = "gml21";
@@ -151,6 +187,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private final Values<Codelist> codelistStore;
   private final FeaturesCoreValidation featuresCoreValidator;
   private final GmlWriterRegistry gmlWriterRegistry;
+  private final SchemaFactory factory;
+  private final ConcurrentMap<Integer, ConcurrentMap<String, Schema>> schemaCache =
+      new ConcurrentHashMap<>();
+  private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
+      new ConcurrentHashMap<>();
 
   @Inject
   public FeaturesFormatGml(
@@ -163,6 +204,12 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     this.codelistStore = valueStore.forType(Codelist.class);
     this.featuresCoreValidator = featuresCoreValidator;
     this.gmlWriterRegistry = gmlWriterRegistry;
+    this.factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    this.factory.setResourceResolver(new HttpsUpgradingResolver());
+  }
+
+  private static String upgradeToHttps(String url) {
+    return url != null && url.startsWith("http://") ? "https://" + url.substring(7) : url;
   }
 
   @Override
@@ -332,13 +379,28 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     Comparator.comparingInt(GmlWriter::getSortPriority)));
 
     @SuppressWarnings("ConstantConditions")
-    GmlConfiguration config =
+    FeatureTypeConfigurationOgcApi collectionData =
         transformationContext
             .getApiData()
             .getCollections()
-            .get(transformationContext.getCollectionId())
-            .getExtension(GmlConfiguration.class)
-            .orElseThrow();
+            .get(transformationContext.getCollectionId());
+    GmlConfiguration config = collectionData.getExtension(GmlConfiguration.class).orElseThrow();
+    // When useAlias is on, the rename transformer (injected by FeatureSchemaAliases) rewrites
+    // schema names to their aliases, so GmlWriterProperties' runtime lookups
+    // (containsKey(schema.getFullPathAsString())) come in with alias-form paths. The config map
+    // keys, however, are written in technical names — that is the form the operator uses
+    // everywhere else (the SchemaConstraints.codelist on the schema, the decoder side, the
+    // provider config). Translate config-side technical paths to alias-form paths here so the
+    // runtime lookup matches; without this remap, codelist properties silently fall through to
+    // a plain <prop>value</prop> element instead of <prop xlink:href="…"/>, and xmlAttributes /
+    // valueWrap config entries are silently ignored for any aliased ancestor path.
+    Map<String, String> aliasRewrites =
+        config.isUseAlias()
+            ? providers
+                .getFeatureSchema(transformationContext.getApiData(), collectionData)
+                .map(FeaturesFormatGml::buildAliasPathRewrites)
+                .orElse(Map.of())
+            : Map.of();
     ImmutableFeatureTransformationContextGml transformationContextGml =
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
@@ -360,11 +422,217 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Objects.requireNonNullElse(config.getSupportsStandardResponseParameters(), false))
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
-            .xmlAttributes(config.getXmlAttributes())
+            .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
+            .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
+            .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
+            .srsNameMappings(config.getSrsNameMappings())
+            .uomStyle(Optional.ofNullable(config.getUomStyle()))
+            .uomMappings(config.getUomMappings())
+            .featureRefTemplate(Optional.ofNullable(config.getFeatureRefTemplate()))
+            .gmlIdentifier(Optional.ofNullable(config.getGmlIdentifier()))
+            .appendTemporalSuffixToGmlId(
+                Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
+                    && isDatetimeIntervalRequest(transformationContext))
+            .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
+            .codelists(resolveCodelists(config.getCodelistProperties()))
+            .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
+  }
+
+  @Override
+  public boolean canSupportTransactions() {
+    return true;
+  }
+
+  @Override
+  public Optional<
+          FeatureTokenDecoderSimple<
+              byte[],
+              FeatureSchema,
+              SchemaMapping,
+              ModifiableContext<FeatureSchema, SchemaMapping>>>
+      getFeatureDecoder(DecoderContext decoderContext) {
+    FeatureSchema featureSchema = decoderContext.getFeatureSchema();
+    GmlConfiguration config =
+        decoderContext
+            .getApiData()
+            .getCollections()
+            .get(decoderContext.getCollectionId())
+            .getExtension(GmlConfiguration.class)
+            .orElseThrow();
+
+    Map<String, String> namespaces = new LinkedHashMap<>(STANDARD_NAMESPACES);
+    namespaces.putAll(config.getApplicationNamespaces());
+
+    SchemaMapping mapping =
+        schemaMappingCache
+            .computeIfAbsent(decoderContext.getApiData().hashCode(), k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(
+                decoderContext.getCollectionId(), k -> SchemaMapping.of(featureSchema));
+
+    return Optional.of(
+        new FeatureTokenDecoderGml(
+            namespaces,
+            List.of(featureTypeQName(featureSchema, config, namespaces)),
+            featureSchema,
+            ImmutableFeatureQuery.builder().type(featureSchema.getName()).build(),
+            Map.of(featureSchema.getName(), mapping),
+            decoderContext.getCrs(),
+            Optional.empty(),
+            Optional.empty(),
+            toInputProfile(config)));
+  }
+
+  @Override
+  public void validate(String content, ValidatorContext ctx) {
+    Schema schema = getOrBuildSchema(ctx);
+    if (schema == null) {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "No schema available for validating GML input for collection '{}', skipping validation.",
+            ctx.getCollectionId());
+      }
+      return;
+    }
+    try {
+      schema.newValidator().validate(new StreamSource(new StringReader(content)));
+    } catch (SAXException e) {
+      throw new IllegalArgumentException(
+          "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not validate feature. Reason: " + e.getMessage(), e);
+    }
+  }
+
+  private Schema getOrBuildSchema(ValidatorContext ctx) {
+    int apiHashCode = ctx.getApiData().hashCode();
+    String collectionId = ctx.getCollectionId();
+    ConcurrentMap<String, Schema> perCollection =
+        schemaCache.computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>());
+    Schema cached = perCollection.get(collectionId);
+    if (cached != null) {
+      return cached;
+    }
+    Schema built = buildSchema(ctx).orElse(null);
+    if (built != null) {
+      perCollection.put(collectionId, built);
+    }
+    return built;
+  }
+
+  private Optional<Schema> buildSchema(ValidatorContext ctx) {
+    return ctx.getApiData()
+        .getCollectionData(ctx.getCollectionId())
+        .flatMap(
+            collectionData ->
+                collectionData
+                    .getExtension(GmlConfiguration.class)
+                    .map(cfg -> cfg.getSchemaLocations().values())
+                    .flatMap(
+                        urls -> {
+                          try {
+                            return Optional.of(
+                                factory.newSchema(
+                                    urls.stream()
+                                        .map(
+                                            url -> {
+                                              String resolved = upgradeToHttps(url);
+                                              try {
+                                                return new StreamSource(
+                                                    new URL(resolved).openStream(), resolved);
+                                              } catch (IOException e) {
+                                                if (LOGGER.isWarnEnabled()) {
+                                                  LOGGER.warn(
+                                                      "Could not load schema from location '{}' for validating GML input for collection '{}'. Reason: {}",
+                                                      resolved,
+                                                      ctx.getCollectionId(),
+                                                      e.getMessage());
+                                                }
+                                              }
+                                              return null;
+                                            })
+                                        .filter(Objects::nonNull)
+                                        .toArray(StreamSource[]::new)));
+                          } catch (SAXParseException e) {
+                            if (LOGGER.isWarnEnabled()) {
+                              LOGGER.warn(
+                                  "Could not create schema for validating GML input for collection '{}'. Source: {}. Reason: {}",
+                                  ctx.getCollectionId(),
+                                  e.getSystemId(),
+                                  e.getMessage());
+                            }
+                          } catch (SAXException e) {
+                            if (LOGGER.isWarnEnabled()) {
+                              LOGGER.warn(
+                                  "Could not create schema for validating GML input for collection '{}'. Reason: {}",
+                                  ctx.getCollectionId(),
+                                  e.getMessage());
+                            }
+                          }
+                          return Optional.empty();
+                        }));
+  }
+
+  private static QName featureTypeQName(
+      FeatureSchema schema, GmlConfiguration config, Map<String, String> namespaces) {
+    String objectType = schema.getObjectType().orElse(schema.getName());
+    String prefix = config.getObjectTypeNamespaces().get(objectType);
+    if (prefix == null) {
+      prefix = config.getDefaultNamespace();
+    }
+    String namespaceUri = prefix == null ? "" : namespaces.getOrDefault(prefix, "");
+    return new QName(namespaceUri, objectType);
+  }
+
+  // Package-private for unit testing of the GmlConfiguration → decoder-input-profile mapping.
+  static FeatureTokenDecoderGmlInputProfile toInputProfile(GmlConfiguration config) {
+    Map<String, EpsgCrs> srsNameMappings =
+        config.getSrsNameMappings().stream()
+            .collect(
+                Collectors.toUnmodifiableMap(SrsNameMapping::getValue, SrsNameMapping::getCrs));
+    // Decoder needs wire→canonical (the inverse of the encoder direction):
+    // FeatureTokenDecoderGml.validateUom looks up the incoming `uom` attribute (wire form, e.g.
+    // 'urn:adv:uom:m2') and compares the result against the schema's unit (canonical, e.g. 'm2').
+    // The configured list-of-pairs is encoder-shaped (`uom: <canonical>, value: <wire>`), so the
+    // value/key roles flip here — mirrors how srsNameMappings is reduced just above.
+    Map<String, String> uomMappings =
+        config.getUomMappings().stream()
+            .collect(Collectors.toUnmodifiableMap(UomMapping::getValue, UomMapping::getUom));
+    Map<String, VariableObjectName> variableObjectElementNames =
+        config.getVariableObjectElementNames().entrySet().stream()
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    Map.Entry::getKey, e -> toVariableObjectName(e.getValue())));
+
+    return ImmutableFeatureTokenDecoderGmlInputProfile.builder()
+        .srsNameMappings(srsNameMappings)
+        .gmlIdPrefix(Objects.requireNonNullElse(config.getGmlIdPrefix(), ""))
+        .codelistProperties(config.getCodelistProperties())
+        .featureRefTemplate(Objects.requireNonNullElse(config.getFeatureRefTemplate(), ""))
+        .codelistUriTemplate(Objects.requireNonNullElse(config.getCodelistUriTemplate(), ""))
+        .uomMappings(uomMappings)
+        .useAlias(config.isUseAlias())
+        .applicationNamespaces(config.getApplicationNamespaces())
+        .defaultNamespace(Objects.requireNonNullElse(config.getDefaultNamespace(), ""))
+        .objectTypeNamespaces(config.getObjectTypeNamespaces())
+        .variableObjectElementNames(variableObjectElementNames)
+        .xmlAttributes(config.getXmlAttributes())
+        .valueWrap(config.getValueWrap())
+        .build();
+  }
+
+  private static VariableObjectName toVariableObjectName(VariableName variableName) {
+    Map<String, String> reversed =
+        variableName.getMapping().entrySet().stream()
+            .collect(Collectors.toUnmodifiableMap(Map.Entry::getValue, Map.Entry::getKey));
+    return ImmutableVariableObjectName.builder()
+        .property(variableName.getProperty())
+        .mapping(reversed)
+        .build();
   }
 
   @Override
@@ -372,8 +640,188 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     return true;
   }
 
+  private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
+    String datetime = context.getOgcApiRequest().getParameters().get("datetime");
+    return datetime != null && datetime.contains("/");
+  }
+
+  // Walks the (technical-named) feature schema and builds a map from each property's full
+  // technical path (".-joined) to the corresponding full alias path. Properties whose own name
+  // and aliases-of-all-ancestors equal the technical names are omitted (the identity rewrite is
+  // implicit in the consumers via getOrDefault). Package-private for unit testing.
+  static Map<String, String> buildAliasPathRewrites(FeatureSchema schema) {
+    Map<String, String> rewrites = new LinkedHashMap<>();
+    collectAliasPathRewrites(schema, "", "", rewrites);
+    return rewrites;
+  }
+
+  private static void collectAliasPathRewrites(
+      FeatureSchema schema, String techParent, String aliasParent, Map<String, String> out) {
+    for (FeatureSchema child : schema.getProperties()) {
+      String techName = child.getName();
+      String aliasName = child.getAlias().orElse(techName);
+      String techPath = techParent.isEmpty() ? techName : techParent + "." + techName;
+      String aliasPath = aliasParent.isEmpty() ? aliasName : aliasParent + "." + aliasName;
+      if (!techPath.equals(aliasPath)) {
+        out.put(techPath, aliasPath);
+      }
+      collectAliasPathRewrites(child, techPath, aliasPath, out);
+    }
+  }
+
+  // Identity-pass when the rewrite map is empty, so the common (useAlias=false) path is a no-op.
+  static <V> Map<String, V> remapKeys(Map<String, V> map, Map<String, String> rewrites) {
+    if (rewrites.isEmpty() || map == null || map.isEmpty()) {
+      return map;
+    }
+    Map<String, V> remapped = new LinkedHashMap<>(map.size());
+    map.forEach((k, v) -> remapped.put(rewrites.getOrDefault(k, k), v));
+    return remapped;
+  }
+
+  static List<String> remapList(List<String> list, Map<String, String> rewrites) {
+    if (rewrites.isEmpty() || list == null || list.isEmpty()) {
+      return list;
+    }
+    return list.stream().map(k -> rewrites.getOrDefault(k, k)).toList();
+  }
+
+  private Map<String, Codelist> resolveCodelists(Map<String, String> codelistProperties) {
+    if (codelistProperties == null || codelistProperties.isEmpty()) {
+      return ImmutableMap.of();
+    }
+    ImmutableMap.Builder<String, Codelist> result = ImmutableMap.builder();
+    codelistProperties.values().stream()
+        .distinct()
+        .forEach(
+            id -> {
+              Codelist cl = codelistStore.get(id);
+              if (cl != null) {
+                result.put(id, cl);
+              }
+            });
+    return result.build();
+  }
+
   @Override
   public boolean supportsNullVsMissing() {
     return true;
+  }
+
+  // Rewrites http:// schemaLocation references to https:// so XSD imports that still use the
+  // historical http://schemas.opengis.net/... URLs resolve through the redirect-free https mirror.
+  private static final class HttpsUpgradingResolver implements LSResourceResolver {
+    @Override
+    public LSInput resolveResource(
+        String type, String namespaceURI, String publicId, String systemId, String baseURI) {
+      if (systemId == null || !systemId.startsWith("http://")) {
+        return null;
+      }
+      String upgraded = upgradeToHttps(systemId);
+      try {
+        InputStream stream = new URL(upgraded).openStream();
+        return new SimpleLSInput(stream, upgraded, publicId, baseURI);
+      } catch (IOException e) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Could not upgrade schema location '{}' to https. Reason: {}",
+              systemId,
+              e.getMessage());
+        }
+        return null;
+      }
+    }
+  }
+
+  private static final class SimpleLSInput implements LSInput {
+    private InputStream byteStream;
+    private String systemId;
+    private String publicId;
+    private String baseURI;
+    private String encoding;
+    private boolean certifiedText;
+
+    SimpleLSInput(InputStream byteStream, String systemId, String publicId, String baseURI) {
+      this.byteStream = byteStream;
+      this.systemId = systemId;
+      this.publicId = publicId;
+      this.baseURI = baseURI;
+    }
+
+    @Override
+    public Reader getCharacterStream() {
+      return null;
+    }
+
+    @Override
+    public void setCharacterStream(Reader characterStream) {}
+
+    @Override
+    public InputStream getByteStream() {
+      return byteStream;
+    }
+
+    @Override
+    public void setByteStream(InputStream byteStream) {
+      this.byteStream = byteStream;
+    }
+
+    @Override
+    public String getStringData() {
+      return null;
+    }
+
+    @Override
+    public void setStringData(String stringData) {}
+
+    @Override
+    public String getSystemId() {
+      return systemId;
+    }
+
+    @Override
+    public void setSystemId(String systemId) {
+      this.systemId = systemId;
+    }
+
+    @Override
+    public String getPublicId() {
+      return publicId;
+    }
+
+    @Override
+    public void setPublicId(String publicId) {
+      this.publicId = publicId;
+    }
+
+    @Override
+    public String getBaseURI() {
+      return baseURI;
+    }
+
+    @Override
+    public void setBaseURI(String baseURI) {
+      this.baseURI = baseURI;
+    }
+
+    @Override
+    public String getEncoding() {
+      return encoding;
+    }
+
+    @Override
+    public void setEncoding(String encoding) {
+      this.encoding = encoding;
+    }
+
+    @Override
+    public boolean getCertifiedText() {
+      return certifiedText;
+    }
+
+    @Override
+    public void setCertifiedText(boolean certifiedText) {
+      this.certifiedText = certifiedText;
+    }
   }
 }

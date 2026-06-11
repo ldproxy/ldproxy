@@ -24,8 +24,6 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
-import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
-import de.ii.ogcapi.features.jsonfg.domain.JsonFgConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
@@ -37,6 +35,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -74,8 +73,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +96,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointCrud.class);
   private static final List<String> TAGS = ImmutableList.of("Mutate data");
+  private static final MediaType GML_MEDIA_TYPE = new MediaType("application", "gml+xml");
 
   private final FeaturesCoreProviders providers;
   private final CommandHandlerCrud commandHandler;
@@ -323,11 +321,17 @@ public class EndpointCrud extends EndpointSubCollection
       operationDescription =
           Optional.of(
               "The content of the request is a JSON merge patch document (RFC 7396). The id of the updated feature is `{featureId}`.");
-      requestContent = new LinkedHashMap<>();
-      requestContent.put(
+      Map<MediaType, ApiMediaTypeContent> patchRequestContent = new LinkedHashMap<>();
+      patchRequestContent.put(
           FeatureFormatJsonMergePatch.MEDIA_TYPE.type(),
           FeatureFormatJsonMergePatch.MEDIA_TYPE_CONTENT);
-      requestContent.putAll(getRequestContent(apiData));
+      for (Map.Entry<MediaType, ApiMediaTypeContent> entry :
+          getRequestContent(apiData).entrySet()) {
+        if (!GML_MEDIA_TYPE.equals(entry.getKey())) {
+          patchRequestContent.put(entry.getKey(), entry.getValue());
+        }
+      }
+      requestContent = patchRequestContent;
 
       ApiOperation.of(
               resourcePath,
@@ -385,7 +389,7 @@ public class EndpointCrud extends EndpointSubCollection
 
   @Path("/{collectionId}/items")
   @POST
-  @Consumes("application/geo+json")
+  @Consumes({"application/geo+json", "application/gml+xml"})
   public Response postItems(
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
@@ -421,10 +425,11 @@ public class EndpointCrud extends EndpointSubCollection
             .map(EpsgCrs::fromString)
             .orElseGet(coreConfiguration::getDefaultEpsgCrs);
 
-    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+    MediaType contentType = mediaTypeFromString(request.getContentType());
 
     final boolean validate =
-        strictHandling(Collections.enumeration(prefer))
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+                == HeaderPrefer.Handling.STRICT
             && collectionData
                 .getExtension(SchemaConfiguration.class)
                 .filter(ExtensionConfiguration::isEnabled)
@@ -436,45 +441,18 @@ public class EndpointCrud extends EndpointSubCollection
             .featureType(featureType)
             .crs(contentCrs)
             .featureProvider(featureProvider)
-            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
-            .jsonFg(jsonfg)
+            .contentType(contentType)
             .validate(validate)
+            .linkHeaders(links)
             .build();
 
     return commandHandler.postItemsResponse(queryInput, apiRequestContext);
   }
 
-  private static boolean determineGeoJsonProfile(
-      List<String> links, FeatureTypeConfigurationOgcApi collectionData) {
-    boolean jsonfg =
-        links.stream()
-            .flatMap(s -> Arrays.stream(s.split(",")))
-            .filter(link -> link.contains("rel=\"profile\"") || link.contains("rel=profile"))
-            .map(link -> link.substring(link.indexOf('<') + 1, link.indexOf('>')))
-            .anyMatch("http://www.opengis.net/def/profile/OGC/0/jsonfg"::equals);
-
-    if (jsonfg
-        && collectionData
-            .getExtension(JsonFgConfiguration.class)
-            .filter(ExtensionConfiguration::isEnabled)
-            .isEmpty()) {
-      throw new IllegalArgumentException(
-          "The content is declared as JSON-FG, but JSON-FG is not enabled for this collection.");
-    } else if (!jsonfg
-        && collectionData
-            .getExtension(GeoJsonConfiguration.class)
-            .filter(ExtensionConfiguration::isEnabled)
-            .isEmpty()) {
-      throw new IllegalArgumentException(
-          "The content is declared as GeoJSON, but GeoJSON is not enabled for this collection.");
-    }
-    return jsonfg;
-  }
-
   @Path("/{collectionId}/items/{featureId}")
   @PUT
-  @Consumes("application/geo+json")
+  @Consumes({"application/geo+json", "application/gml+xml"})
   public Response putItem(
       @Auth Optional<User> optionalUser,
       @PathParam("collectionId") String collectionId,
@@ -517,6 +495,8 @@ public class EndpointCrud extends EndpointSubCollection
             .map(EpsgCrs::fromString)
             .orElseGet(coreConfiguration::getDefaultEpsgCrs);
 
+    MediaType contentType = mediaTypeFromString(request.getContentType());
+
     QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
@@ -530,10 +510,9 @@ public class EndpointCrud extends EndpointSubCollection
             SchemaBase.Scope.RECEIVABLE,
             false);
 
-    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
-
     final boolean validate =
-        strictHandling(Collections.enumeration(prefer))
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+                == HeaderPrefer.Handling.STRICT
             && collectionData
                 .getExtension(SchemaConfiguration.class)
                 .filter(ExtensionConfiguration::isEnabled)
@@ -545,14 +524,15 @@ public class EndpointCrud extends EndpointSubCollection
             .collectionId(collectionId)
             .featureType(featureType)
             .crs(contentCrs)
+            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .featureId(featureId)
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
-            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
-            .jsonFg(jsonfg)
+            .contentType(contentType)
             .validate(validate)
+            .linkHeaders(links)
             .profiles(crudProfiles)
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
@@ -617,7 +597,7 @@ public class EndpointCrud extends EndpointSubCollection
             SchemaBase.Scope.RECEIVABLE,
             false);
 
-    final boolean jsonfg = determineGeoJsonProfile(links, collectionData);
+    MediaType contentType = mediaTypeFromString(request.getContentType());
 
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
@@ -626,13 +606,14 @@ public class EndpointCrud extends EndpointSubCollection
             .featureType(featureType)
             .featureId(featureId)
             .crs(contentCrs)
+            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
-            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .requestBody(requestBody)
-            .jsonFg(jsonfg)
+            .contentType(contentType)
             .validate(false)
+            .linkHeaders(links)
             .profiles(crudProfiles)
             .isAllowCreate(false)
             .build();
@@ -690,10 +671,10 @@ public class EndpointCrud extends EndpointSubCollection
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .featureId(featureId)
+            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .query(query)
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
-            .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .profiles(crudProfiles)
             .build();
 

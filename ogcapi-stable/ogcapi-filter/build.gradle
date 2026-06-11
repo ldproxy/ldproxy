@@ -5,16 +5,20 @@ description = 'Filter features with CQL2 expressions.'
 descriptionDe = 'Features mit CQL2-Ausdrücken filtern.'
 
 dependencies {
+    provided 'de.interactive_instruments:xtraplatform-auth'
     provided 'de.interactive_instruments:xtraplatform-entities'
     provided 'de.interactive_instruments:xtraplatform-values'
+    provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:xtraplatform-tiles'
     provided project(":ogcapi-foundation")
+    provided project(":ogcapi-common")
     provided project(":ogcapi-collections-queryables")
     provided project(":ogcapi-crs")
     provided project(":ogcapi-features-core")
+    provided project(":ogcapi-html")
     provided project(":ogcapi-tiles")
 
     testProvided project(':ogcapi-common')

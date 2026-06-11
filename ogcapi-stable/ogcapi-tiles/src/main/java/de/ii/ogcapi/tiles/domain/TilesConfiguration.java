@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.Lists;
 import de.ii.ogcapi.features.core.domain.SfFlatConfiguration;
+import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -682,7 +683,9 @@ public interface TilesConfiguration
             .defaultProfiles(
                 SfFlatConfiguration.super
                     .mergeInto((ProfilesConfiguration) source)
-                    .getDefaultProfiles());
+                    .getDefaultProfiles())
+            .useAlias(
+                SfFlatConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias());
 
     TilesConfiguration src = (TilesConfiguration) source;
 

@@ -13,8 +13,10 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
+import java.util.List;
 import org.immutables.value.Value;
 
 public interface CommandHandlerCrud extends Volatile2 {
@@ -36,15 +38,18 @@ public interface CommandHandlerCrud extends Volatile2 {
 
     EpsgCrs getCrs();
 
-    EpsgCrs getDefaultCrs();
-
     FeatureProvider getFeatureProvider();
 
     InputStream getRequestBody();
 
-    boolean getJsonFg();
+    MediaType getContentType();
 
     boolean getValidate();
+
+    @Value.Default
+    default List<String> getLinkHeaders() {
+      return List.of();
+    }
   }
 
   interface QueryInputFeatureCrud extends QueryInputFeature {

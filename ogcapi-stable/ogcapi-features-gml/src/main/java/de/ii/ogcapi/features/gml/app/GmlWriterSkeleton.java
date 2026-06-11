@@ -17,7 +17,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
-import de.ii.xtraplatform.features.gml.domain.XMLNamespaceNormalizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -50,19 +49,19 @@ public class GmlWriterSkeleton implements GmlWriter {
   public void onStart(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
 
-    context.encoding().write(XML_PROLOG);
+    context.encoding().writeProlog();
 
     if (context.encoding().isFeatureCollection()) {
       String rootElement = getFeatureCollectionTag(context);
-      context.encoding().write("<");
-      context.encoding().write(rootElement);
+      context.encoding().writeStartElement(rootElement);
       writeNamespaceAttributes(context, rootElement);
     }
 
     next.accept(context);
 
     if (context.encoding().isFeatureCollection()) {
-      context.encoding().write(">");
+      // Force the pending '>' of the root element to be emitted before flushing
+      context.encoding().closeStartElement();
     }
 
     context.encoding().flush();
@@ -75,12 +74,8 @@ public class GmlWriterSkeleton implements GmlWriter {
     // next chain for extensions
     next.accept(context);
 
-    if (context.encoding().isFeatureCollection()) {
-      String rootElement = getFeatureCollectionTag(context);
-      context.encoding().write("</");
-      context.encoding().write(rootElement);
-      context.encoding().write(">");
-    }
+    // write end tags
+    context.encoding().endDocument();
 
     context.encoding().flush();
   }
@@ -90,19 +85,14 @@ public class GmlWriterSkeleton implements GmlWriter {
       EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next) throws IOException {
 
     if (context.encoding().isFeatureCollection()) {
-      context.encoding().write("<");
-      context.encoding().write(getFeatureMemberTag(context));
-      context.encoding().write(">");
+      context.encoding().writeStartElement(getFeatureMemberTag(context));
+      // '>' of featureMember is emitted lazily when the feature element starts
     }
 
     String elementName = context.encoding().startGmlObject(context.schema().orElseThrow());
-    context.encoding().write("<");
-    context.encoding().write(elementName);
-    context.encoding().write(" ");
-    context.encoding().write(context.encoding().getGmlPrefix());
-    context.encoding().write(":id=\"");
-    context.encoding().writeGmlIdPlaceholder();
-    context.encoding().write("\"");
+    context.encoding().writeStartElement(elementName);
+    context.encoding().writeGmlIdAttribute();
+    // XML attribute placeholder is injected as raw text into the pending start tag
     context.encoding().writeXmlAttPlaceholder();
 
     if (!context.encoding().isFeatureCollection()) {
@@ -110,12 +100,9 @@ public class GmlWriterSkeleton implements GmlWriter {
       writeNamespaceAttributes(context, elementName);
     }
 
-    context.encoding().pushElement(elementName);
-
     // next chain for extensions
     next.accept(context);
-
-    context.encoding().write(">");
+    // The '>' of the feature element is emitted lazily when the first child is written
   }
 
   @Override
@@ -125,16 +112,10 @@ public class GmlWriterSkeleton implements GmlWriter {
     // next chain for extensions
     next.accept(context);
 
-    String elementName = context.encoding().popElement();
-
-    context.encoding().write("</");
-    context.encoding().write(elementName);
-    context.encoding().write(">");
+    context.encoding().writeEndElement(); // closes feature type element
 
     if (context.encoding().isFeatureCollection()) {
-      context.encoding().write("</");
-      context.encoding().write(getFeatureMemberTag(context));
-      context.encoding().write(">");
+      context.encoding().writeEndElement(); // closes featureMember element
     }
 
     context.encoding().closeGmlObject();
@@ -149,7 +130,8 @@ public class GmlWriterSkeleton implements GmlWriter {
     return context.encoding().getFeatureMemberElementName().orElse("sf:featureMember");
   }
 
-  private void writeNamespaceAttributes(EncodingAwareContextGml context, String rootElement) {
+  private void writeNamespaceAttributes(EncodingAwareContextGml context, String rootElement)
+      throws IOException {
     // default namespace
     context
         .encoding()
@@ -159,9 +141,7 @@ public class GmlWriterSkeleton implements GmlWriter {
                 nsPrefix -> {
                   String nsUri = context.encoding().getNamespaces().get(nsPrefix);
                   if (Objects.nonNull(nsUri)) {
-                    context.encoding().write(" xmlns=\"");
-                    context.encoding().write(nsUri);
-                    context.encoding().write("\"");
+                    context.encoding().writeDefaultNamespace(nsUri);
                   }
                 }));
 
@@ -191,20 +171,11 @@ public class GmlWriterSkeleton implements GmlWriter {
                             || GML32.equals(context.encoding().getGmlVersion())))
             .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    XMLNamespaceNormalizer namespaceNormalizer = new XMLNamespaceNormalizer(effectiveNamespaces);
-
-    effectiveNamespaces
-        .keySet()
-        .forEach(
-            consumerMayThrow(
-                prefix -> {
-                  if (!Strings.isNullOrEmpty(prefix)) {
-                    context.encoding().write(" ");
-                    context
-                        .encoding()
-                        .write(namespaceNormalizer.generateNamespaceDeclaration(prefix));
-                  }
-                }));
+    for (Map.Entry<String, String> entry : effectiveNamespaces.entrySet()) {
+      if (!Strings.isNullOrEmpty(entry.getKey())) {
+        context.encoding().writeNamespace(entry.getKey(), entry.getValue());
+      }
+    }
 
     Set<String> prefixesWithSchemaLocation =
         effectiveNamespaces.keySet().stream()
@@ -218,10 +189,11 @@ public class GmlWriterSkeleton implements GmlWriter {
         context.encoding().getSchemaLocations().entrySet().stream()
             .filter(entry -> prefixesWithSchemaLocation.contains(entry.getKey()))
             .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-    context.encoding().write(" xsi:schemaLocation=\"");
+
     context
         .encoding()
-        .write(
+        .writeAttribute(
+            "xsi:schemaLocation",
             effectiveSchemaLocations.entrySet().stream()
                 .map(
                     entry ->
@@ -231,6 +203,5 @@ public class GmlWriterSkeleton implements GmlWriter {
                                 .getValue()
                                 .replace("{{serviceUrl}}", context.encoding().getServiceUrl()))
                 .collect(Collectors.joining(" ")));
-    context.encoding().write("\"");
   }
 }
