@@ -54,9 +54,9 @@ import javax.xml.stream.XMLStreamReader;
  * block is enabled. The executor selects it via the inherited {@code isEnabledForApi(apiData,
  * collectionId)} contract; otherwise it falls back to {@code PlainMutationStrategy}.
  *
- * <p>Phase 1.0 only carries the dispatch decision; per-action versioning semantics (timestamp
- * capture, retire-and-insert on update/replace, retire-only on delete, no-backdating / no-overlap
- * guards, predecessor/successor maintenance) arrive in phases 1.1-1.6.
+ * <p>Carries the dispatch decision and the per-action versioning semantics: timestamp capture,
+ * retire-and-insert on update/replace, retire-only on delete, no-backdating / no-overlap guards,
+ * predecessor/successor maintenance.
  */
 @Singleton
 @AutoBind
@@ -89,15 +89,15 @@ public class VersionedMutationStrategy implements MutationStrategy {
     if (mode == null || mode == MutationTime.SERVER) {
       return scopeTimestamp;
     }
-    // mutationTime: client. Precedence per the plan: body-supplied value > header > 400.
+    // mutationTime: client. Precedence: body-supplied value > header > 400.
     //
     // - Insert / Replace carry the new version's PRIMARY_INTERVAL_START in the payload, which
     //   the encoder writes verbatim because `insertRoleOverrides` is empty in client mode. The
-    //   executor only uses the returned timestamp for the chain check (1.5 Part B), the insert
-    //   pre-flight (1.5 Part A.insert), and predecessor/successor denorm maintenance (1.6).
+    //   executor only uses the returned timestamp for the chain check, the insert pre-flight,
+    //   and predecessor/successor denorm maintenance.
     //   Returning `scopeTimestamp` as a placeholder keeps those checks conservative — they may
     //   over-approximate in edge cases where the body's start is in the past or future — until
-    //   true body-side extraction lands as the open carry-over.
+    //   body-side extraction is implemented.
     // - Update modifies properties via the payload; the relevant timestamps (end value, etc.)
     //   live in the resolved propertyUpdates list that `chooseUpdateMode` and
     //   `patchOpenVersion` consume directly. The placeholder returned here is unused on the
@@ -139,15 +139,15 @@ public class VersionedMutationStrategy implements MutationStrategy {
       // Versioned Replace, any mode: the new version is always born open even when the client's
       // body carries a non-null lzi.end. The trailing Update (or a later Replace/Delete) is what
       // closes the version. Mirrors the server-mode "no client-supplied retirement on Insert"
-      // rule from §1.2, applied to Replace's insert half.
+      // rule, applied to Replace's insert half.
       overrides.put(SchemaBase.Role.PRIMARY_INTERVAL_END, null);
     }
     // Client-mode Insert leaves the body's PRIMARY_INTERVAL_START in place — the encoder writes
     // it verbatim. Insert pre-flight, chain-check and predecessor/successor denorm maintenance
-    // use the executor's `scopeTimestamp` placeholder; tighter body-side extraction is the
-    // documented carry-over.
+    // use the executor's `scopeTimestamp` placeholder; tighter body-side extraction is a
+    // future improvement.
 
-    // Denorm PREDECESSOR_INTERVAL_START (plan §1.6): when the caller is mid-retire (i.e. we're
+    // Denorm PREDECESSOR_INTERVAL_START: when the caller is mid-retire (i.e. we're
     // inserting the successor of an existing version), surface the retired version's start so
     // the new row's denorm pointer is populated. The SQL provider applies the override only if
     // the role is bound to a column on the type's schema mapping — collections without the

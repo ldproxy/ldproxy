@@ -29,9 +29,9 @@ import java.util.Optional;
  * binds to {@code TransactionsConfiguration} and therefore applies whenever the Transactions
  * building block itself is enabled, so the executor always finds a strategy when it runs.
  *
- * <p>The interface itself carries no per-action methods yet. Phase 1.1 (mutation-timestamp
- * resolution) introduces the first hook; Phase 1.2-1.6 add the {@code Insert} / {@code Replace} /
- * {@code Update} / {@code Delete} hooks that diverge between plain and versioned collections.
+ * <p>The hooks cover mutation-timestamp resolution and the per-action {@code Insert} / {@code
+ * Replace} / {@code Update} / {@code Delete} semantics that diverge between plain and versioned
+ * collections.
  */
 public interface MutationStrategy extends ApiExtension {
 
@@ -82,7 +82,7 @@ public interface MutationStrategy extends ApiExtension {
    * {@code mutationTimestamp}) and {@code PRIMARY_INTERVAL_END = null}. When {@code
    * predecessorIntervalStart} is non-empty (i.e. the caller is feeding the new version of an
    * existing feature, as in retire-and-insert flows), versioned strategies additionally populate
-   * {@code PREDECESSOR_INTERVAL_START} so the new row's denorm pointer is set; see plan §1.6.
+   * {@code PREDECESSOR_INTERVAL_START} so the new row's denorm pointer is set.
    *
    * @param apiData the API data, used to look up per-collection configuration
    * @param action the insert action whose overrides are being computed
@@ -178,8 +178,8 @@ public interface MutationStrategy extends ApiExtension {
    * Whether this strategy forbids more than one write action targeting the same feature id within a
    * single atomic transaction. Versioned strategies return {@code true} when the collection's
    * {@code mutationTime} is {@code server} (every action in the atomic transaction shares one
-   * timestamp, so a same-feature chain would violate the no-backdating rule from plan §1.5);
-   * versioned strategies in {@code client} mode and the plain strategy return {@code false}.
+   * timestamp, so a same-feature chain would violate the no-backdating rule); versioned strategies
+   * in {@code client} mode and the plain strategy return {@code false}.
    *
    * <p>The executor evaluates this for atomic transactions only — batch transactions commit each
    * action independently with its own timestamp and never share a feature id across actions in a

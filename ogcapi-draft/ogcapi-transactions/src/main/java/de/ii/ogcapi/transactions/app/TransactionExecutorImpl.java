@@ -158,7 +158,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       boolean validate,
       Optional<Instant> ogcMutationDatetime) {
     // Single timestamp for the whole atomic transaction — every action shares it so versioned
-    // strategies can reject same-feature chains under the no-backdating rule (plan §1.5).
+    // strategies can reject same-feature chains under the no-backdating rule.
     Instant atomicScopeTimestamp = nowInstant();
     Map<String, Session> sessionsByProvider = new LinkedHashMap<>();
     List<ActionResult> results = new ArrayList<>();
@@ -445,7 +445,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       InsertItem item = items.next();
-      // Composite-id split (plan §1.8): the raw gml:id may carry a uniqueness suffix; the
+      // Composite-id split: the raw gml:id may carry a uniqueness suffix; the
       // canonical id is what we check / write. Items without a featureId pass through unchanged.
       Optional<CompositeId> compositeForItem =
           item.featureId()
@@ -717,7 +717,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
               + "'.");
     }
     String rawId = targetIds.get(0);
-    // Composite-id split (plan §1.8): on versioned collections the rid may carry a packed
+    // Composite-id split: on versioned collections the rid may carry a packed
     // PRIMARY_INTERVAL_START suffix. `canonical` is what the database stores; `expectedStart`
     // becomes an If-Unmodified-Since-style predicate on the retire SQL.
     CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
@@ -756,8 +756,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         // matched it (the open version is not the one the client thought). Then insert the new
         // body as a fresh version with the strategy's role overrides (end = NULL forced on
         // Replace; plus the denorm PREDECESSOR_INTERVAL_START captured before the retire). The
-        // retire itself sets the retired row's SUCCESSOR_INTERVAL_START to the same ts (plan
-        // §1.6).
+        // retire itself sets the retired row's SUCCESSOR_INTERVAL_START to the same ts.
         //
         // Body-extracted retire timestamp: in client mode the new version's start lives in the
         // Replace body's lzi.beg; using it as the retire timestamp gives v1 a contiguous
@@ -797,7 +796,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
         Map<SchemaBase.Role, Object> roleOverrides =
             new java.util.LinkedHashMap<>(
                 strategy.insertRoleOverrides(apiData, action, retireTimestamp, predecessorStart));
-        // Composite-id (plan §1.8): the Replace body's gml:id may carry the same composite
+        // Composite-id: the Replace body's gml:id may carry the same composite
         // suffix the rid does (NAS uses it to keep XML IDs unique when the same feature is
         // touched more than once in one transaction). The stored objid must be the canonical
         // id; force it via the ID role override, same as the per-item Insert path.
@@ -866,7 +865,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
           action, chainRejectError(canonicalCollectionId, chainConflict, action), targetIds);
     }
 
-    // Phase C: every Update is a native SQL UPDATE issued on the session's own connection, so
+    // Every Update is a native SQL UPDATE issued on the session's own connection, so
     // prior writes in the same atomic transaction are visible to it. The v1 touched-id reject
     // and the GET-merge-write fall-back have been removed; chaining Insert/Replace/Update with
     // Update on the same id now works natively. Versioned strategies override this via
@@ -893,7 +892,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
     List<String> updatedIds = new ArrayList<>();
     for (String rawId : targetIds) {
-      // Composite-id split (plan §1.8). For NATIVE updates the canonical id is just the raw id
+      // Composite-id split. For NATIVE updates the canonical id is just the raw id
       // (no versioning); for RETIRE_IN_PLACE and CLONE_AND_PATCH the suffix becomes an
       // If-Unmodified-Since predicate on the open-version lookup.
       CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
@@ -1171,7 +1170,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
     boolean retires = strategy.retiresOnDelete();
     List<String> deleted = new ArrayList<>();
     for (String rawId : targetIds) {
-      // Composite-id split (plan §1.8): on versioned collections the rid may carry a packed
+      // Composite-id split: on versioned collections the rid may carry a packed
       // PRIMARY_INTERVAL_START suffix. `canonical` is the database id; `expectedStart` becomes
       // an If-Unmodified-Since-style predicate on the retire SQL.
       CompositeId composite = strategy.splitCompositeId(apiData, canonicalCollectionId, rawId);
@@ -1389,7 +1388,7 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   // --- helpers --------------------------------------------------------------
 
-  // Strategy hook (plan §1.5 Part B): in atomic transactions, some strategies forbid touching
+  // Strategy hook: in atomic transactions, some strategies forbid touching
   // the same feature id more than once (e.g. versioned + server mode, where every action shares
   // one mutationTimestamp). Called by each run method after target ids are resolved. Returns the
   // first conflicting id; null if none.
@@ -1430,9 +1429,9 @@ public class TransactionExecutorImpl implements TransactionExecutor {
 
   // Pick the highest-priority registered MutationStrategy that is enabled for the given
   // collection. The plain strategy binds to FoundationConfiguration and therefore always applies
-  // (priority 0), so the lookup never fails. Phase 1.0 only uses this for the dispatch log line
-  // above; phases 1.1-1.6 will route per-action behaviour (timestamp resolution,
-  // retire-and-insert, retire-only, etc.) through the resolved strategy.
+  // (priority 0), so the lookup never fails. The resolved strategy routes the per-action
+  // behaviour (timestamp resolution, retire-and-insert, retire-only, etc.) and is named in
+  // the dispatch log line above.
   private MutationStrategy pickStrategy(OgcApiDataV2 apiData, String collectionId) {
     return extensionRegistry.getExtensionsForType(MutationStrategy.class).stream()
         .filter(s -> s.isEnabledForApi(apiData, collectionId))
