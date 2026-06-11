@@ -10,21 +10,17 @@ package de.ii.ogcapi.versioned.features.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
-import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
-import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
-import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.versioned.features.domain.TimeMap;
+import de.ii.ogcapi.versioned.features.domain.EncodingContextTimeMap;
+import de.ii.ogcapi.versioned.features.domain.FeatureEncoderTimeMap;
 import de.ii.ogcapi.versioned.features.domain.TimeMapFormatExtension;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 /**
  * RFC 6690 CoRE Link Format representation of the Time Map. Each link is one comma-separated entry
@@ -50,12 +46,8 @@ public class TimeMapFormatLinkFormat implements TimeMapFormatExtension {
           .ogcApiMediaType(LINK_FORMAT_MEDIA_TYPE)
           .build();
 
-  private final I18n i18n;
-
   @Inject
-  TimeMapFormatLinkFormat(I18n i18n) {
-    this.i18n = i18n;
-  }
+  TimeMapFormatLinkFormat() {}
 
   @Override
   public ApiMediaType getMediaType() {
@@ -74,56 +66,7 @@ public class TimeMapFormatLinkFormat implements TimeMapFormatExtension {
   }
 
   @Override
-  public Object getEntity(TimeMap timeMap, OgcApi api, ApiRequestContext requestContext) {
-    var language = requestContext.getLanguage();
-    StringBuilder sb = new StringBuilder();
-    boolean first = true;
-    // Standard self/alternate links from DefaultLinksGenerator
-    for (de.ii.ogcapi.foundation.domain.Link l : timeMap.getResourceLinks()) {
-      appendLink(sb, l.getHref(), l.getRel(), l.getTitle(), null, first);
-      first = false;
-    }
-    appendLink(
-        sb, timeMap.getFeatureHref(), "original", i18n.get("originalLink", language), null, first);
-    first = false;
-    DateTimeFormatter httpDate = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneId.of("GMT"));
-    for (TimeMap.Memento m : timeMap.getMementos()) {
-      appendLink(
-          sb,
-          m.getHref(),
-          "memento",
-          i18n.get("mementoLink", language),
-          httpDate.format(m.getStart()),
-          false);
-    }
-    appendLink(
-        sb,
-        timeMap.getFeatureHref() + "?datetime=" + timeMap.getLatestStart().toString(),
-        "latest-version",
-        i18n.get("latestVersionLink", language),
-        null,
-        false);
-    return sb.toString();
-  }
-
-  // RFC 6690 §2: entries separated by `,`. Each entry: <uri-reference>;<link-param>=<value>...
-  // Quoted strings use double quotes; embedded quotes and backslashes are escaped.
-  private static void appendLink(
-      StringBuilder sb, String href, String rel, String title, String datetime, boolean first) {
-    if (!first) {
-      sb.append(",\n");
-    }
-    sb.append('<').append(href).append('>');
-    sb.append(";rel=\"").append(quote(rel)).append('"');
-    if (title != null && !title.isEmpty()) {
-      sb.append(";title=\"").append(quote(title)).append('"');
-    }
-    if (datetime != null) {
-      sb.append(";datetime=\"").append(quote(datetime)).append('"');
-    }
-  }
-
-  private static String quote(String s) {
-    return s.replace("\\", "\\\\").replace("\"", "\\\"");
+  public FeatureEncoderTimeMap getFeatureEncoder(EncodingContextTimeMap encodingContext) {
+    return new FeatureEncoderTimeMapLinkFormat(encodingContext);
   }
 }

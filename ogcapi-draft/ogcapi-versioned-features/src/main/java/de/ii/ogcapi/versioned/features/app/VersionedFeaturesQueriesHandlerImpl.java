@@ -21,7 +21,9 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.versioned.features.domain.TimeMap;
+import de.ii.ogcapi.versioned.features.domain.EncodingContextTimeMap;
+import de.ii.ogcapi.versioned.features.domain.FeatureEncoderTimeMap;
+import de.ii.ogcapi.versioned.features.domain.ImmutableEncodingContextTimeMap;
 import de.ii.ogcapi.versioned.features.domain.TimeMapFormatExtension;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesQueriesHandler;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatile;
@@ -33,24 +35,26 @@ import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.FeatureStream;
+import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SortKey;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.streams.domain.Reactive.Sink;
+import de.ii.xtraplatform.streams.domain.Reactive.SinkReduced;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,54 +112,18 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
       throw new NotFoundException("Feature queries are not available.");
     }
 
-    Optional<String> startFieldPath =
+    Tuple<FeatureSchema, FeatureSchema> primaryInterval =
         providers
             .getQueryablesSchema(apiData, collectionData)
             .flatMap(SchemaBase::getPrimaryInterval)
-            .map(Tuple::first)
-            .filter(Objects::nonNull)
-            .map(FeatureSchema::getFullPathAsString);
+            .orElseThrow(
+                () -> new NotFoundException("Versioning is not enabled for this collection."));
 
-    ImmutableFeatureQuery.Builder probeBuilder =
-        ImmutableFeatureQuery.builder()
-            .type(featureTypeId)
-            .filter(In.of(ScalarLiteral.of(featureId)))
-            .limit(10_000);
-    startFieldPath.ifPresent(
-        path -> probeBuilder.addSortKeys(SortKey.of(path, SortKey.Direction.ASCENDING)));
-    FeatureQuery probe = probeBuilder.build();
-
-    List<Tuple<Instant, Instant>> versions;
-    try {
-      FeatureStream stream = provider.queries().get().getFeatureStream(probe);
-      CompletableFuture<CollectionMetadata> onMetadata = new CompletableFuture<>();
-      FeatureStream.Result result =
-          stream.runWith(Sink.ignore(), Map.of(), onMetadata).toCompletableFuture().join();
-      versions = result.getVersionIntervals();
-    } catch (Exception e) {
-      LOGGER.debug("Time Map probe for '{}/{}' failed; returning 404", collectionId, featureId, e);
-      throw new NotFoundException("The requested feature does not exist.");
-    }
-
-    if (versions.isEmpty()) {
-      throw new NotFoundException("The requested feature does not exist.");
-    }
-
-    String featureHref =
-        requestContext
-            .getUriCustomizer()
-            .copy()
-            .clearParameters()
-            .cutPathAfterSegments("items", featureId)
-            .toString();
-    Instant latestStart = versions.get(versions.size() - 1).first();
-
-    ImmutableList.Builder<TimeMap.Memento> mementos = ImmutableList.builder();
-    for (Tuple<Instant, Instant> v : versions) {
-      mementos.add(
-          new TimeMap.Memento(
-              v.first(), v.second(), featureHref + "?datetime=" + v.first().toString()));
-    }
+    String startFieldPath = Objects.requireNonNull(primaryInterval.first()).getFullPathAsString();
+    ImmutableList.Builder<String> fields = ImmutableList.<String>builder().add(startFieldPath);
+    Optional.ofNullable(primaryInterval.second())
+        .map(FeatureSchema::getFullPathAsString)
+        .ifPresent(fields::add);
 
     TimeMapFormatExtension outputFormat =
         api.getOutputFormat(
@@ -166,6 +134,14 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
                         MessageFormat.format(
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
+
+    String featureHref =
+        requestContext
+            .getUriCustomizer()
+            .copy()
+            .clearParameters()
+            .cutPathAfterSegments("items", featureId)
+            .toString();
 
     // Standard self + alternate links via DefaultLinksGenerator — self carries ?f=<this format>
     // when other representations exist; one alternate per other representation.
@@ -178,12 +154,56 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
                 i18n,
                 requestContext.getLanguage());
 
-    TimeMap timeMap =
-        new TimeMap(
-            collectionId, featureId, featureHref, resourceLinks, mementos.build(), latestStart);
+    boolean prettify =
+        Boolean.TRUE.equals(requestContext.getQueryParameterSet().getTypedValues().get("pretty"));
 
-    return Response.ok(outputFormat.getEntity(timeMap, api, requestContext))
-        .type(outputFormat.getMediaType().type())
-        .build();
+    EncodingContextTimeMap encodingContext =
+        new ImmutableEncodingContextTimeMap.Builder()
+            .collectionId(collectionId)
+            .featureId(featureId)
+            .featureHref(featureHref)
+            .resourceLinks(resourceLinks)
+            .api(api)
+            .requestContext(requestContext)
+            .i18n(i18n)
+            .prettify(prettify)
+            .build();
+
+    FeatureEncoderTimeMap encoder = outputFormat.getFeatureEncoder(encodingContext);
+
+    FeatureQuery probe =
+        ImmutableFeatureQuery.builder()
+            .type(featureTypeId)
+            .filter(In.of(ScalarLiteral.of(featureId)))
+            .limit(10_000)
+            .addSortKeys(SortKey.of(startFieldPath, SortKey.Direction.ASCENDING))
+            .fields(fields.build())
+            .build();
+
+    SinkReduced<Object, byte[]> sink = encoder.to(Sink.reduceByteArray());
+    CompletableFuture<CollectionMetadata> onMetadata = new CompletableFuture<>();
+    ResultReduced<byte[]> result;
+    try {
+      result =
+          provider
+              .queries()
+              .get()
+              .getFeatureStream(probe)
+              .runWith(sink, Map.of(), onMetadata)
+              .toCompletableFuture()
+              .join();
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof WebApplicationException) {
+        throw (WebApplicationException) e.getCause();
+      }
+      LOGGER.debug("Time Map probe for '{}/{}' failed; returning 404", collectionId, featureId, e);
+      throw new NotFoundException("The requested feature does not exist.");
+    }
+
+    if (!result.hasFeatures()) {
+      throw new NotFoundException("The requested feature does not exist.");
+    }
+
+    return Response.ok(result.reduced()).type(outputFormat.getMediaType().type()).build();
   }
 }

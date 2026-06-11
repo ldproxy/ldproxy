@@ -9,11 +9,15 @@ package de.ii.ogcapi.versioned.features.domain;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.common.domain.GenericFormatExtension;
-import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.OgcApi;
 
 @AutoMultiBind
 public interface TimeMapFormatExtension extends GenericFormatExtension {
 
-  Object getEntity(TimeMap timeMap, OgcApi api, ApiRequestContext requestContext);
+  /**
+   * Build the per-format encoder. The encoder is the sink of the feature stream — it receives each
+   * version as a {@link FeatureVersionTimeMap} POJO via the base class, accumulates the mementos,
+   * and at end-of-stream emits the format-specific bytes via {@link
+   * FeatureEncoderTimeMap#encode(TimeMap)}.
+   */
+  FeatureEncoderTimeMap getFeatureEncoder(EncodingContextTimeMap encodingContext);
 }
