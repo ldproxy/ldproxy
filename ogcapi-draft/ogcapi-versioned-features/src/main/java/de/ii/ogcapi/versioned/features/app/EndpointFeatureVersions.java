@@ -34,6 +34,7 @@ import de.ii.ogcapi.versioned.features.domain.TimeMapFormatExtension;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesQueriesHandler;
 import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -87,11 +88,30 @@ public class EndpointFeatureVersions extends EndpointSubCollection {
   }
 
   @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return apiData.getCollections().values().stream()
+        .anyMatch(c -> isEnabledForApi(apiData, c.getId()));
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return super.isEnabledForApi(apiData, collectionId)
+        && apiData
+            .getCollectionData(collectionId)
+            .flatMap(
+                collectionData ->
+                    providers
+                        .getQueryablesSchema(apiData, collectionData)
+                        .flatMap(SchemaBase::getPrimaryInterval))
+            .isPresent();
+  }
+
+  @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
     ImmutableApiEndpointDefinition.Builder builder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("collections")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_FEATURES + 50);
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_VERSIONS);
 
     String path = "/collections/{collectionId}/items/{featureId}/versions";
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);

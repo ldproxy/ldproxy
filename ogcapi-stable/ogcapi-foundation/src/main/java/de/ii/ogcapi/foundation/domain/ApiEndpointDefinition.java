@@ -24,6 +24,7 @@ public abstract class ApiEndpointDefinition {
   public static final int SORT_PRIORITY_COLLECTIONS = 10;
   public static final int SORT_PRIORITY_COLLECTION = 11;
   public static final int SORT_PRIORITY_FEATURES = 100;
+  public static final int SORT_PRIORITY_VERSIONS = 150;
 
   // draft 1000 - 9999
   public static final int SORT_PRIORITY_SEARCH_STORED_QUERIES = 1000;
