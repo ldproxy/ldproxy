@@ -11,6 +11,12 @@ import de.ii.xtraplatform.features.domain.FeatureBase;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -53,9 +59,19 @@ public interface FeatureVersionTimeMap extends FeatureBase<PropertyTimeMap, Feat
         Stream.of(p), p.getNestedProperties().stream().flatMap(FeatureVersionTimeMap::walk));
   }
 
+  // The start/end properties may be DATETIME or DATE; a date is interpreted as start of day UTC,
+  // matching the temporal-extent and link-role handling in the provider pipeline.
   private static Instant parse(String value) {
     try {
-      return Instant.parse(value);
+      TemporalAccessor ta =
+          DateTimeFormatter.ofPattern("yyyy-MM-dd[['T'][' ']HH:mm:ss[.SSS]][X]")
+              .parseBest(value, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
+      if (ta instanceof OffsetDateTime) {
+        return ((OffsetDateTime) ta).toInstant();
+      } else if (ta instanceof LocalDateTime) {
+        return ((LocalDateTime) ta).toInstant(ZoneOffset.UTC);
+      }
+      return ((LocalDate) ta).atStartOfDay(ZoneOffset.UTC).toInstant();
     } catch (Throwable ignore) {
       return null;
     }
