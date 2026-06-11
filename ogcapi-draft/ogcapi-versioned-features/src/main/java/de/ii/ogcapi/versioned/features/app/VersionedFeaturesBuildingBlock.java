@@ -16,6 +16,8 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.versioned.features.domain.ImmutableVersionedFeaturesConfiguration.Builder;
+import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
+import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
@@ -109,6 +111,30 @@ public class VersionedFeaturesBuildingBlock implements ApiBuildingBlock {
                           collectionId));
                 }
               }
+
+              collectionData
+                  .getExtension(VersionedFeaturesConfiguration.class)
+                  .map(VersionedFeaturesConfiguration::getDefaultDatetime)
+                  .filter(Objects::nonNull)
+                  .filter(defaultDatetime -> !"now".equalsIgnoreCase(defaultDatetime))
+                  .ifPresent(
+                      defaultDatetime -> {
+                        if (defaultDatetime.contains("/")) {
+                          builder.addErrors(
+                              String.format(
+                                  "Collection '%s' has an invalid 'defaultDatetime': intervals are not allowed, only a date, date-time, or \"now\".",
+                                  collectionId));
+                          return;
+                        }
+                        try {
+                          TemporalLiteral.of(defaultDatetime);
+                        } catch (Throwable e) {
+                          builder.addErrors(
+                              String.format(
+                                  "Collection '%s' has an invalid 'defaultDatetime': '%s' is not a date, date-time, or \"now\".",
+                                  collectionId, defaultDatetime));
+                        }
+                      });
             });
 
     return builder.build();

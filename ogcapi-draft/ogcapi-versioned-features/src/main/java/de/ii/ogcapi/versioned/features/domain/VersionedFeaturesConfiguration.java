@@ -88,6 +88,23 @@ public interface VersionedFeaturesConfiguration extends ExtensionConfiguration {
   MutationTime getMutationTime();
 
   /**
+   * @langEn Default for the {@code datetime} query parameter on the Features and Feature resources
+   *     of a versioned collection: a date or date-time (RFC 3339) or {@code now}. With the default
+   *     {@code now}, requests without {@code datetime} return the current version of each feature;
+   *     a fixed date or date-time selects the versions that were valid at that time. Intervals are
+   *     not allowed.
+   * @langDe Standardwert für den Query-Parameter {@code datetime} auf den Features- und
+   *     Feature-Ressourcen einer versionierten Collection: ein Datum oder Zeitstempel (RFC 3339)
+   *     oder {@code now}. Mit dem Standardwert {@code now} liefern Anfragen ohne {@code datetime}
+   *     die aktuelle Version jedes Features; ein festes Datum bzw. ein fester Zeitstempel wählt die
+   *     zu diesem Zeitpunkt gültigen Versionen aus. Intervalle sind nicht erlaubt.
+   * @default "now"
+   * @since v4.8
+   */
+  @Nullable
+  String getDefaultDatetime();
+
+  /**
    * @langEn Property paths (in dotted schema-id notation, e.g. {@code anl} or {@code lzi.beg}) that
    *     may be modified together with a non-null value for the {@code PRIMARY_INTERVAL_END} role in
    *     a single {@code Update} action. Properties not listed cause an {@code Update} that combines

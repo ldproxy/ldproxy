@@ -15,13 +15,15 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * On a collection where the {@code VERSIONED_FEATURES} building block is enabled, defaults a
- * missing {@code datetime} query parameter to {@code now}. The standard {@code datetime} parser
- * then resolves {@code "now"} to the request timestamp and runs it through {@code TIntersects},
- * which yields only the current version of each feature given that retired versions carry a closed
+ * missing {@code datetime} query parameter to the configured {@code defaultDatetime} ({@code now}
+ * unless overridden). The standard {@code datetime} parser then resolves the value ({@code "now"}
+ * resolves to the request timestamp) and runs it through {@code TIntersects}, which yields only the
+ * version of each feature that was valid at that time given that retired versions carry a closed
  * primary interval.
  */
 @Singleton
@@ -42,6 +44,6 @@ public class DefaultDatetimeOnVersionedCollection implements DatetimeDefaultProv
     return collectionData
         .getExtension(VersionedFeaturesConfiguration.class)
         .filter(ExtensionConfiguration::isEnabled)
-        .map(c -> "now");
+        .map(c -> Objects.requireNonNullElse(c.getDefaultDatetime(), "now"));
   }
 }

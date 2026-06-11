@@ -42,12 +42,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * @title datetime
  * @endpoints Feature
  * @langEn Select the version of the feature whose primary instant or interval covers the provided
- *     date or date-time. The default is the request time, which selects the current version. Unlike
- *     the {@code datetime} parameter on the Features resource, intervals are not accepted here
- *     because the response carries a single feature representation.
+ *     date or date-time. The default is the request time, which selects the current version, unless
+ *     the collection configures a different {@code defaultDatetime}. Unlike the {@code datetime}
+ *     parameter on the Features resource, intervals are not accepted here because the response
+ *     carries a single feature representation.
  * @langDe Wählt die Version des Features aus, deren primäre zeitliche Eigenschaft den angegebenen
  *     Wert (Datum oder Zeitstempel) abdeckt. Standardwert ist der Anfragezeitpunkt, womit die
- *     aktuelle Version geliefert wird. Anders als der Parameter {@code datetime} auf der
+ *     aktuelle Version geliefert wird, sofern die Collection keinen abweichenden {@code
+ *     defaultDatetime} konfiguriert. Anders als der Parameter {@code datetime} auf der
  *     Features-Ressource sind hier keine Intervalle erlaubt, weil die Antwort genau eine Version
  *     liefert.
  */
@@ -81,9 +83,10 @@ public class QueryParameterDatetimeFeature extends AbstractQueryParameterDatetim
         + "Examples:\n\n"
         + "* A date-time: \"2018-02-12T23:20:50Z\"\n"
         + "* A date: \"2018-02-12\"\n"
-        + "* \"now\" (default)\n\n"
+        + "* \"now\"\n\n"
         + "Selects the version of the feature whose primary temporal property covers the supplied"
-        + " value. Intervals are not supported on this resource.";
+        + " value. The default is \"now\" unless the collection configures a different"
+        + " `defaultDatetime`. Intervals are not supported on this resource.";
   }
 
   @Override
@@ -97,9 +100,17 @@ public class QueryParameterDatetimeFeature extends AbstractQueryParameterDatetim
   private Schema<?> buildSchema(OgcApiDataV2 apiData, String collectionId) {
     Schema<?> schema = getCopyOfInstantBaseSchema();
     if (isEnabledForApi(apiData, collectionId)) {
-      schema.setDefault("now");
+      schema.setDefault(getDefaultDatetime(apiData, collectionId));
     }
     return schema;
+  }
+
+  private static String getDefaultDatetime(OgcApiDataV2 apiData, String collectionId) {
+    return Optional.ofNullable(apiData.getCollections().get(collectionId))
+        .flatMap(
+            collectionData -> collectionData.getExtension(VersionedFeaturesConfiguration.class))
+        .map(VersionedFeaturesConfiguration::getDefaultDatetime)
+        .orElse("now");
   }
 
   @Override
@@ -115,7 +126,7 @@ public class QueryParameterDatetimeFeature extends AbstractQueryParameterDatetim
       if (collectionData == null || !isEnabledForApi(api.getData(), collectionData.getId())) {
         return null;
       }
-      effectiveValue = "now";
+      effectiveValue = getDefaultDatetime(api.getData(), collectionData.getId());
     }
 
     if (collectionData == null) {
