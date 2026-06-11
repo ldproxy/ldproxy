@@ -33,25 +33,55 @@ import org.immutables.value.Value;
 @Value.Style(set = "*")
 public interface FeatureVersionTimeMap extends FeatureBase<PropertyTimeMap, FeatureSchema> {
 
+  /** The raw start value as emitted by the provider — a date stays a date. */
+  @Value.Lazy
+  default Optional<String> getStartValue() {
+    return findProperty(SchemaBase::isPrimaryIntervalStart).map(PropertyTimeMap::getValue);
+  }
+
   @Value.Lazy
   default Optional<Instant> getStart() {
-    return findValue(SchemaBase::isPrimaryIntervalStart);
+    return getStartValue().map(FeatureVersionTimeMap::parse);
+  }
+
+  /** {@code true} when the start property is of type {@code DATE}. */
+  @Value.Lazy
+  default boolean isStartDate() {
+    return isDate(findProperty(SchemaBase::isPrimaryIntervalStart));
+  }
+
+  /** The raw end value as emitted by the provider — a date stays a date. */
+  @Value.Lazy
+  default Optional<String> getEndValue() {
+    return findProperty(SchemaBase::isPrimaryIntervalEnd).map(PropertyTimeMap::getValue);
   }
 
   @Value.Lazy
   default Optional<Instant> getEnd() {
-    return findValue(SchemaBase::isPrimaryIntervalEnd);
+    return getEndValue().map(FeatureVersionTimeMap::parse);
   }
 
-  private Optional<Instant> findValue(java.util.function.Predicate<FeatureSchema> match) {
+  /** {@code true} when the end property is of type {@code DATE}. */
+  @Value.Lazy
+  default boolean isEndDate() {
+    return isDate(findProperty(SchemaBase::isPrimaryIntervalEnd));
+  }
+
+  private Optional<PropertyTimeMap> findProperty(
+      java.util.function.Predicate<FeatureSchema> match) {
     return getProperties().stream()
         .flatMap(FeatureVersionTimeMap::walk)
         .filter(p -> p.getSchema().filter(match).isPresent())
-        .map(PropertyTimeMap::getValue)
-        .filter(Objects::nonNull)
-        .map(FeatureVersionTimeMap::parse)
-        .filter(Objects::nonNull)
+        .filter(p -> Objects.nonNull(p.getValue()))
+        .filter(p -> Objects.nonNull(parse(p.getValue())))
         .findFirst();
+  }
+
+  private static boolean isDate(Optional<PropertyTimeMap> property) {
+    return property
+        .flatMap(PropertyTimeMap::getSchema)
+        .filter(schema -> schema.getType() == SchemaBase.Type.DATE)
+        .isPresent();
   }
 
   private static Stream<PropertyTimeMap> walk(PropertyTimeMap p) {

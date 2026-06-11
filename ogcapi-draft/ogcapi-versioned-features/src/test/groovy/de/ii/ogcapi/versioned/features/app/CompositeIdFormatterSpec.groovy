@@ -19,7 +19,7 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>DE[A-Za-z0-9]{14})(?<start>\\d{8}T\\d{6}Z)$',
                 null,
                 'DEHE862010005DDo',
-                Instant.parse('2009-10-16T07:56:37Z')) == 'DEHE862010005DDo20091016T075637Z'
+                Instant.parse('2009-10-16T07:56:37Z'), false) == 'DEHE862010005DDo20091016T075637Z'
     }
 
     def 'pattern with dot separator → id.compactTimestamp'() {
@@ -28,7 +28,7 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>.+?)\\.(?<start>\\d{8}T\\d{6}Z)$',
                 null,
                 '1',
-                Instant.parse('2001-07-02T10:43:17Z')) == '1.20010702T104317Z'
+                Instant.parse('2001-07-02T10:43:17Z'), false) == '1.20010702T104317Z'
     }
 
     def 'pattern with underscore separator → id_compactTimestamp'() {
@@ -37,7 +37,7 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>.+?)_(?<start>\\d{8}T\\d{6}Z)$',
                 null,
                 'abc',
-                Instant.parse('2024-02-15T12:11:56Z')) == 'abc_20240215T121156Z'
+                Instant.parse('2024-02-15T12:11:56Z'), false) == 'abc_20240215T121156Z'
     }
 
     def 'custom timestamp format honored'() {
@@ -46,13 +46,13 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>.+?)@(?<start>.+)$',
                 "yyyy-MM-dd'T'HH:mm:ss'Z'",
                 'x',
-                Instant.parse('2024-02-15T12:11:56Z')) == 'x@2024-02-15T12:11:56Z'
+                Instant.parse('2024-02-15T12:11:56Z'), false) == 'x@2024-02-15T12:11:56Z'
     }
 
     def 'null/blank pattern → canonical id passthrough'() {
         expect:
-        CompositeIdFormatter.format(null, null, 'abc', Instant.parse('2024-01-01T00:00:00Z')) == 'abc'
-        CompositeIdFormatter.format('', null, 'abc', Instant.parse('2024-01-01T00:00:00Z')) == 'abc'
+        CompositeIdFormatter.format(null, null, 'abc', Instant.parse('2024-01-01T00:00:00Z'), false) == 'abc'
+        CompositeIdFormatter.format('', null, 'abc', Instant.parse('2024-01-01T00:00:00Z'), false) == 'abc'
     }
 
     def 'null canonical → null'() {
@@ -61,7 +61,7 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>.+?)\\.(?<start>.+)$',
                 null,
                 null,
-                Instant.parse('2024-01-01T00:00:00Z')) == null
+                Instant.parse('2024-01-01T00:00:00Z'), false) == null
     }
 
     def 'null instant → canonical passthrough'() {
@@ -70,11 +70,32 @@ class CompositeIdFormatterSpec extends Specification {
                 '^(?<id>.+?)\\.(?<start>.+)$',
                 null,
                 'abc',
-                null) == 'abc'
+                null,
+                false) == 'abc'
     }
 
     def 'pattern without expected named groups → canonical passthrough'() {
         expect:
-        CompositeIdFormatter.format('^.+$', null, 'abc', Instant.parse('2024-01-01T00:00:00Z')) == 'abc'
+        CompositeIdFormatter.format('^.+$', null, 'abc', Instant.parse('2024-01-01T00:00:00Z'), false) == 'abc'
+    }
+
+    def 'date-only start → compact date suffix by default'() {
+        expect:
+        CompositeIdFormatter.format(
+                '^(?<id>.+?)\\.(?<start>\\d{8})$',
+                null,
+                'abc',
+                Instant.parse('2026-05-12T00:00:00Z'),
+                true) == 'abc.20260512'
+    }
+
+    def 'date-only start with explicit format → explicit format wins'() {
+        expect:
+        CompositeIdFormatter.format(
+                '^(?<id>.+?)@(?<start>.+)$',
+                'yyyy-MM-dd',
+                'x',
+                Instant.parse('2026-05-12T00:00:00Z'),
+                true) == 'x@2026-05-12'
     }
 }

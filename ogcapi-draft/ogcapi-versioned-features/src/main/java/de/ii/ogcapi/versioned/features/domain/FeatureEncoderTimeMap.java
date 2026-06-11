@@ -30,7 +30,7 @@ public abstract class FeatureEncoderTimeMap
 
   protected final EncodingContextTimeMap encodingContext;
   private final ImmutableList.Builder<TimeMap.Memento> mementos = ImmutableList.builder();
-  private Instant latestStart;
+  private String latestStartValue;
 
   protected FeatureEncoderTimeMap(EncodingContextTimeMap encodingContext) {
     this.encodingContext = encodingContext;
@@ -48,16 +48,27 @@ public abstract class FeatureEncoderTimeMap
 
   @Override
   public void onFeature(FeatureVersionTimeMap feature) {
-    Optional<Instant> start = feature.getStart();
-    if (start.isEmpty()) {
+    Optional<String> startValue = feature.getStartValue();
+    if (startValue.isEmpty()) {
       return;
     }
+    Instant start = feature.getStart().orElseThrow();
     Instant end = feature.getEnd().orElse(null);
-    String href = encodingContext.getFeatureHref() + "?datetime=" + start.get().toString();
-    mementos.add(new TimeMap.Memento(start.get(), end, href));
-    if (latestStart == null || start.get().isAfter(latestStart)) {
-      latestStart = start.get();
-    }
+    // The href carries the raw start value — a date stays a date; the parsed instant is only
+    // used for formatting in the per-format encoders.
+    String href = encodingContext.getFeatureHref() + "?datetime=" + startValue.get();
+    mementos.add(
+        new TimeMap.Memento(
+            startValue.get(),
+            feature.getEndValue().orElse(null),
+            feature.isStartDate(),
+            feature.isEndDate(),
+            start,
+            end,
+            href));
+    // The query sorts ascending by the start property and starts are unique per feature, so
+    // the last version in the stream is the latest one.
+    this.latestStartValue = startValue.get();
   }
 
   @Override
@@ -69,7 +80,7 @@ public abstract class FeatureEncoderTimeMap
             encodingContext.getFeatureHref(),
             encodingContext.getResourceLinks(),
             mementos.build(),
-            latestStart);
+            latestStartValue);
     try {
       encode(timeMap);
     } catch (Exception e) {

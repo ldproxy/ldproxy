@@ -27,15 +27,18 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.MediaType;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -282,14 +285,27 @@ public class VersionedMutationStrategy implements MutationStrategy {
     if (canonical == null || startSuffix == null) {
       return CompositeId.passthrough(rawId);
     }
-    String fmt =
-        cfg.map(VersionedFeaturesConfiguration::getCompositeIdTimestampFormat)
-            .orElse(DEFAULT_TIMESTAMP_FORMAT);
-    DateTimeFormatter formatter = compileTimestampFormat(fmt);
+    String configured =
+        cfg.map(VersionedFeaturesConfiguration::getCompositeIdTimestampFormat).orElse(null);
+    String fmt = Objects.requireNonNullElse(configured, DEFAULT_TIMESTAMP_FORMAT);
     try {
-      Instant parsed = LocalDateTime.parse(startSuffix, formatter).toInstant(ZoneOffset.UTC);
-      return new CompositeId(canonical, Optional.of(parsed));
+      return new CompositeId(
+          canonical, Optional.of(parseSuffix(startSuffix, compileTimestampFormat(fmt))));
     } catch (DateTimeParseException e) {
+      if (configured == null) {
+        // No explicit format configured: also accept the compact date default used for
+        // DATE-typed intervals (a date stays a date in composite ids).
+        try {
+          return new CompositeId(
+              canonical,
+              Optional.of(
+                  parseSuffix(
+                      startSuffix,
+                      compileTimestampFormat(CompositeIdFormatter.DEFAULT_DATE_FORMAT))));
+        } catch (DateTimeParseException ignore) {
+          // fall through to the error for the primary format
+        }
+      }
       throw new BadRequestException(
           "Composite id '"
               + rawId
@@ -301,6 +317,15 @@ public class VersionedMutationStrategy implements MutationStrategy {
               + fmt
               + "'.");
     }
+  }
+
+  // The suffix is a local date-time for timestamp formats and a local date for date-only
+  // formats (DATE-typed primary intervals); both are interpreted in UTC.
+  private static Instant parseSuffix(String suffix, DateTimeFormatter formatter) {
+    TemporalAccessor ta = formatter.parseBest(suffix, LocalDateTime::from, LocalDate::from);
+    return ta instanceof LocalDateTime
+        ? ((LocalDateTime) ta).toInstant(ZoneOffset.UTC)
+        : ((LocalDate) ta).atStartOfDay(ZoneOffset.UTC).toInstant();
   }
 
   // Compact ISO-8601 basic-format with explicit T separator and Z marker:

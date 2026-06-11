@@ -16,9 +16,10 @@ import java.util.List;
  * once by the queries handler and rendered by each {@link TimeMapFormatExtension}.
  *
  * <p>{@code featureHref} is the canonical resource URI (no query) used to construct memento hrefs
- * as {@code featureHref + "?datetime=<start>"}. {@code latestStart} pre-computes the start
- * timestamp of the open / latest version so each format can emit the {@code latest-version} link
- * without re-scanning the list.
+ * as {@code featureHref + "?datetime=<start>"}, where {@code <start>} is the raw start value as
+ * emitted by the provider — a date stays a date. {@code latestStartValue} is the raw start value of
+ * the open / latest version so each format can emit the {@code latest-version} link without
+ * re-scanning the list.
  *
  * <p>{@code resourceLinks} carries the standard {@code self} + {@code alternate} entries produced
  * by {@code DefaultLinksGenerator} (current representation's {@code self} carrying {@code ?f=…}
@@ -33,7 +34,7 @@ public final class TimeMap {
   private final String featureHref;
   private final List<Link> resourceLinks;
   private final List<Memento> mementos;
-  private final Instant latestStart;
+  private final String latestStartValue;
 
   public TimeMap(
       String collectionId,
@@ -41,13 +42,13 @@ public final class TimeMap {
       String featureHref,
       List<Link> resourceLinks,
       List<Memento> mementos,
-      Instant latestStart) {
+      String latestStartValue) {
     this.collectionId = collectionId;
     this.featureId = featureId;
     this.featureHref = featureHref;
     this.resourceLinks = resourceLinks;
     this.mementos = mementos;
-    this.latestStart = latestStart;
+    this.latestStartValue = latestStartValue;
   }
 
   public String getCollectionId() {
@@ -70,20 +71,56 @@ public final class TimeMap {
     return mementos;
   }
 
-  public Instant getLatestStart() {
-    return latestStart;
+  public String getLatestStartValue() {
+    return latestStartValue;
   }
 
-  /** One version of the feature on the Time Map. {@code end} is null for the open version. */
+  /**
+   * One version of the feature on the Time Map. {@code endValue}/{@code end} are null for the open
+   * version. The raw values are the provider values — a date stays a date; the instants are only
+   * used where a full datetime is structurally required (the RFC 1123 {@code datetime} attribute)
+   * or a datetime value needs display formatting.
+   */
   public static final class Memento {
+    private final String startValue;
+    private final String endValue;
+    private final boolean startIsDate;
+    private final boolean endIsDate;
     private final Instant start;
     private final Instant end;
     private final String href;
 
-    public Memento(Instant start, Instant end, String href) {
+    public Memento(
+        String startValue,
+        String endValue,
+        boolean startIsDate,
+        boolean endIsDate,
+        Instant start,
+        Instant end,
+        String href) {
+      this.startValue = startValue;
+      this.endValue = endValue;
+      this.startIsDate = startIsDate;
+      this.endIsDate = endIsDate;
       this.start = start;
       this.end = end;
       this.href = href;
+    }
+
+    public String getStartValue() {
+      return startValue;
+    }
+
+    public String getEndValue() {
+      return endValue;
+    }
+
+    public boolean isStartDate() {
+      return startIsDate;
+    }
+
+    public boolean isEndDate() {
+      return endIsDate;
     }
 
     public Instant getStart() {

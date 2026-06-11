@@ -30,8 +30,8 @@ import java.util.Objects;
  * versioned-features composite-id pattern, when the {@code versions-as-features-unique-ids} profile
  * is active.
  *
- * <p>Pipeline placement: same pre-format slot as {@code FeatureTokenTransformerLinkRoles} (set in
- * {@code FeatureStreamImpl} via {@link
+ * <p>Pipeline placement: same pre-format slot as {@code FeatureTokenTransformerPropertyLinks} (set
+ * in {@code FeatureStreamImpl} via {@link
  * de.ii.xtraplatform.features.domain.FeatureTokenTransformerExtension}), so it sees raw provider
  * values and a downstream format-specific date formatter doesn't get to mutate the captured {@code
  * PRIMARY_INTERVAL_START}.
@@ -53,6 +53,7 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
   private List<String> heldIdPath;
   private int heldSchemaIndex;
   private String currentStart;
+  private boolean currentStartIsDate;
 
   public FeatureTokenTransformerCompositeId(String pattern, String timestampFormat) {
     this.pattern = pattern;
@@ -65,6 +66,7 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
     this.heldIdPath = null;
     this.heldSchemaIndex = -1;
     this.currentStart = null;
+    this.currentStartIsDate = false;
     context.setCanonicalFeatureId(null);
     super.onFeatureStart(context);
   }
@@ -81,6 +83,7 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
       }
       if (schema.isPrimaryIntervalStart() && Objects.nonNull(context.value())) {
         this.currentStart = context.value();
+        this.currentStartIsDate = schema.getType() == SchemaBase.Type.DATE;
       }
     }
     super.onValue(context);
@@ -93,7 +96,11 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
       if (Objects.nonNull(currentStart)) {
         Instant inst = parseStart(currentStart);
         if (Objects.nonNull(inst)) {
-          emit = CompositeIdFormatter.format(pattern, timestampFormat, heldIdValue, inst);
+          // For a DATE-typed start the suffix defaults to the compact date format, not a
+          // start-of-day timestamp.
+          emit =
+              CompositeIdFormatter.format(
+                  pattern, timestampFormat, heldIdValue, inst, currentStartIsDate);
         }
       }
       // Expose the untransformed id so format encoders that need the canonical (e.g.

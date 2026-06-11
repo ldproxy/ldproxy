@@ -35,6 +35,12 @@ public class FeatureEncoderTimeMapHtml extends FeatureEncoderTimeMap {
   private static final DateTimeFormatter DATE_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneId.of("UTC"));
 
+  // A DATE-typed interval value is displayed as the date it is instead of promoting it to a
+  // start-of-day timestamp.
+  private static String label(String rawValue, boolean isDate, java.time.Instant instant) {
+    return isDate ? rawValue : DATE_FORMAT.format(instant);
+  }
+
   private final MustacheRenderer mustacheRenderer;
   private final Optional<String> homeUrl;
 
@@ -101,10 +107,10 @@ public class FeatureEncoderTimeMapHtml extends FeatureEncoderTimeMap {
                   ImmutableEntry.Builder b =
                       new ImmutableEntry.Builder()
                           .href(m.getHref())
-                          .startLabel(DATE_FORMAT.format(m.getStart()))
+                          .startLabel(label(m.getStartValue(), m.isStartDate(), m.getStart()))
                           .startInstant(m.getStart());
                   if (Objects.nonNull(m.getEnd())) {
-                    b.endLabel(DATE_FORMAT.format(m.getEnd()));
+                    b.endLabel(label(m.getEndValue(), m.isEndDate(), m.getEnd()));
                   }
                   return (TimeMapView.Entry) b.build();
                 })

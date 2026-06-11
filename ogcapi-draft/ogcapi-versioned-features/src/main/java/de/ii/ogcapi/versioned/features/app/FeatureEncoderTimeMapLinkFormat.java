@@ -49,10 +49,10 @@ public class FeatureEncoderTimeMapLinkFormat extends FeatureEncoderTimeMap {
           HTTP_DATE.format(m.getStart()),
           false);
     }
-    if (timeMap.getLatestStart() != null) {
+    if (timeMap.getLatestStartValue() != null) {
       appendLink(
           sb,
-          timeMap.getFeatureHref() + "?datetime=" + timeMap.getLatestStart().toString(),
+          timeMap.getFeatureHref() + "?datetime=" + timeMap.getLatestStartValue(),
           "latest-version",
           i18n.get("latestVersionLink", language),
           null,

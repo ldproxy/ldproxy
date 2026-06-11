@@ -74,10 +74,10 @@ public class FeatureEncoderTimeMapJson extends FeatureEncoderTimeMap {
             HTTP_DATE.format(m.getStart()),
             null);
       }
-      if (timeMap.getLatestStart() != null) {
+      if (timeMap.getLatestStartValue() != null) {
         writeLink(
             json,
-            timeMap.getFeatureHref() + "?datetime=" + timeMap.getLatestStart().toString(),
+            timeMap.getFeatureHref() + "?datetime=" + timeMap.getLatestStartValue(),
             "latest-version",
             i18n.get("latestVersionLink", language),
             null,

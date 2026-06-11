@@ -20,7 +20,8 @@ import java.util.Objects;
  * <p>The pattern is a regex with two named groups {@code id} and {@code start}. The literal text
  * between the groups (and any literal prefix/suffix outside {@code ^}/{@code $}) becomes the join
  * template. The captured timestamp suffix is formatted via {@code compositeIdTimestampFormat}
- * (default {@code yyyyMMdd'T'HHmmss'Z'}).
+ * (default {@code yyyyMMdd'T'HHmmss'Z'}; when the {@code PRIMARY_INTERVAL_START} value is a date,
+ * the default is {@code yyyyMMdd} — a date stays a date).
  *
  * <p>Examples:
  *
@@ -34,12 +35,17 @@ import java.util.Objects;
 public final class CompositeIdFormatter {
 
   public static final String DEFAULT_TIMESTAMP_FORMAT = "yyyyMMdd'T'HHmmss'Z'";
+  public static final String DEFAULT_DATE_FORMAT = "yyyyMMdd";
 
   private CompositeIdFormatter() {}
 
-  /** Returns the composite id, or {@code canonical} when no pattern is configured. */
+  /**
+   * Returns the composite id, or {@code canonical} when no pattern is configured. {@code dateOnly}
+   * selects the date default format when no explicit format is configured — set when the raw {@code
+   * PRIMARY_INTERVAL_START} value is a date.
+   */
   public static String format(
-      String pattern, String timestampFormat, String canonical, Instant start) {
+      String pattern, String timestampFormat, String canonical, Instant start, boolean dateOnly) {
     if (Objects.isNull(pattern) || pattern.isBlank() || Objects.isNull(canonical)) {
       return canonical;
     }
@@ -48,7 +54,7 @@ public final class CompositeIdFormatter {
     }
     String fmt =
         (Objects.isNull(timestampFormat) || timestampFormat.isBlank())
-            ? DEFAULT_TIMESTAMP_FORMAT
+            ? (dateOnly ? DEFAULT_DATE_FORMAT : DEFAULT_TIMESTAMP_FORMAT)
             : timestampFormat;
     String formattedStart = DateTimeFormatter.ofPattern(fmt).withZone(ZoneOffset.UTC).format(start);
 
