@@ -522,6 +522,9 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       return;
     }
 
+    // Create the log
+    auditLog.createLog(requestId);
+
     // Abort Log if one of the following is true:
     // - auditLog is disabled in the global config (cfg.yml)
     // - auditLog is disabled for the given API
