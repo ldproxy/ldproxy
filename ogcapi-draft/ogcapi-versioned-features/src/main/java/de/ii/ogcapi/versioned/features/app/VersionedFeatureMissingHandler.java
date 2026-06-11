@@ -41,6 +41,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -125,13 +126,14 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
     }
     FeatureProvider provider = providerOpt.get();
 
-    Optional<String> startFieldPath =
+    Optional<FeatureSchema> startField =
         providers
             .getQueryablesSchema(api.getData(), collectionData)
             .flatMap(SchemaBase::getPrimaryInterval)
             .map(Tuple::first)
-            .filter(java.util.Objects::nonNull)
-            .map(FeatureSchema::getFullPathAsString);
+            .filter(java.util.Objects::nonNull);
+    Optional<String> startFieldPath = startField.map(FeatureSchema::getFullPathAsString);
+    boolean startIsDate = startField.filter(s -> s.getType() == SchemaBase.Type.DATE).isPresent();
 
     ImmutableFeatureQuery.Builder probeBuilder =
         ImmutableFeatureQuery.builder()
@@ -159,6 +161,8 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
 
     if (matched > 0L) {
       String originalHref = requestContext.getUriCustomizer().copy().clearParameters().toString();
+      // On a DATE-typed interval the datetime parameter stays a date, matching the memento hrefs
+      // on the Time Map.
       String latestHref =
           latestStart
               .map(
@@ -167,7 +171,11 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
                           .getUriCustomizer()
                           .copy()
                           .clearParameters()
-                          .setParameter("datetime", start.toString())
+                          .setParameter(
+                              "datetime",
+                              startIsDate
+                                  ? LocalDate.ofInstant(start, ZoneId.of("UTC")).toString()
+                                  : start.toString())
                           .toString())
               .orElse(originalHref);
       String timeMapHref =
@@ -181,10 +189,13 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
       Object body;
       MediaType bodyType;
       if (MediaType.TEXT_HTML_TYPE.equals(requestContext.getMediaType().type())) {
-        body = goneHtmlBody(api, collectionId, featureId, requestContext, timeMapHref, latestHref);
+        body =
+            goneHtmlBody(api, collectionData, featureId, requestContext, timeMapHref, latestHref);
         bodyType = MediaType.TEXT_HTML_TYPE;
       } else {
-        body = goneProblemJson(featureId, requestContext, originalHref, latestHref, timeMapHref);
+        body =
+            goneProblemJson(
+                featureId, requestContext, collectionData, originalHref, latestHref, timeMapHref);
         bodyType = MediaType.valueOf("application/problem+json");
       }
 
@@ -206,13 +217,14 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
   private String goneProblemJson(
       String featureId,
       ApiRequestContext requestContext,
+      FeatureTypeConfigurationOgcApi collectionData,
       String originalHref,
       String latestHref,
       String timeMapHref) {
     var lang = requestContext.getLanguage();
     ObjectNode body = JSON.createObjectNode();
     body.put("status", 410);
-    body.put("title", goneTitle(requestContext));
+    body.put("title", goneTitle(requestContext, collectionData));
     body.put("detail", i18n.get("featureGoneDetail", lang).replace("{{featureId}}", featureId));
     body.put("instance", originalHref);
     body.put("original", originalHref);
@@ -221,18 +233,28 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
     return body.toString();
   }
 
-  // Resolve the request's `datetime` query parameter and format it with a locale-aware
-  // medium-style date+time formatter so the localized message reads naturally in either language.
-  // `NOW` or absent → server's current instant; anything else → parsed as RFC 3339 / ISO 8601.
-  private String formatRequestedDatetime(ApiRequestContext requestContext) {
+  // Resolve the effective `datetime` of the request — the query parameter when supplied, otherwise
+  // the collection's configured `defaultDatetime` (`now` unless overridden) — and format it with a
+  // locale-aware medium-style formatter so the localized message reads naturally in either
+  // language. `now` → server's current instant; a date-only value stays a date (no promotion to
+  // start of day); anything else → parsed as RFC 3339 / ISO 8601.
+  private String formatRequestedDatetime(
+      ApiRequestContext requestContext, FeatureTypeConfigurationOgcApi collectionData) {
     String raw =
         requestContext.getUriCustomizer().getQueryParams().stream()
             .filter(p -> "datetime".equalsIgnoreCase(p.getName()))
             .map(p -> p.getValue())
+            .filter(v -> !v.isBlank())
             .findFirst()
-            .orElse(null);
+            .orElseGet(
+                () ->
+                    collectionData
+                        .getExtension(VersionedFeaturesConfiguration.class)
+                        .map(c -> Objects.requireNonNullElse(c.getDefaultDatetime(), "now"))
+                        .orElse("now"));
+    Locale locale = requestContext.getLanguage().orElse(Locale.ENGLISH);
     Instant instant;
-    if (Objects.isNull(raw) || raw.isBlank() || "NOW".equalsIgnoreCase(raw)) {
+    if ("NOW".equalsIgnoreCase(raw)) {
       instant = Instant.now();
     } else {
       try {
@@ -241,13 +263,18 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
         try {
           instant = Instant.parse(raw);
         } catch (Throwable ignore2) {
-          // Fall back to the raw string when it can't be parsed (e.g. malformed input that the
-          // datetime parameter accepted but we can't render). Better than dropping the marker.
-          return raw;
+          try {
+            return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(locale)
+                .format(LocalDate.parse(raw));
+          } catch (Throwable ignore3) {
+            // Fall back to the raw string when it can't be parsed (e.g. malformed input that the
+            // datetime parameter accepted but we can't render). Better than dropping the marker.
+            return raw;
+          }
         }
       }
     }
-    Locale locale = requestContext.getLanguage().orElse(Locale.ENGLISH);
     // MEDIUM date + LONG time so the locale-aware formatter includes the zone short-name; with
     // `withZone(UTC)` that renders as "UTC" in both EN and DE.
     return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.LONG)
@@ -256,14 +283,15 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
         .format(instant);
   }
 
-  private String goneTitle(ApiRequestContext requestContext) {
+  private String goneTitle(
+      ApiRequestContext requestContext, FeatureTypeConfigurationOgcApi collectionData) {
     return i18n.get("featureGoneTitle", requestContext.getLanguage())
-        .replace("{{datetime}}", formatRequestedDatetime(requestContext));
+        .replace("{{datetime}}", formatRequestedDatetime(requestContext, collectionData));
   }
 
   private Object goneHtmlBody(
       OgcApi api,
-      String collectionId,
+      FeatureTypeConfigurationOgcApi collectionData,
       String featureId,
       ApiRequestContext requestContext,
       String timeMapHref,
@@ -272,7 +300,7 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
     Locale language = requestContext.getLanguage().orElse(Locale.ENGLISH);
     HtmlConfiguration htmlConfig = apiData.getExtension(HtmlConfiguration.class).orElse(null);
 
-    String title = goneTitle(requestContext);
+    String title = goneTitle(requestContext, collectionData);
     String description =
         i18n.get("featureGoneDescription", requestContext.getLanguage())
             .replace("{{featureId}}", featureId);
@@ -294,8 +322,11 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
                     uri.copy().removeLastPathSegments(3).toString()))
             .add(
                 new NavigationDTO(
-                    apiData.getCollections().get(collectionId).getLabel(),
-                    uri.copy().removeLastPathSegments(2).toString()))
+                    collectionData.getLabel(), uri.copy().removeLastPathSegments(2).toString()))
+            .add(
+                new NavigationDTO(
+                    i18n.get("itemsTitle", requestContext.getLanguage()),
+                    uri.copy().removeLastPathSegments(1).toString()))
             .add(new NavigationDTO(featureId))
             .build();
 
