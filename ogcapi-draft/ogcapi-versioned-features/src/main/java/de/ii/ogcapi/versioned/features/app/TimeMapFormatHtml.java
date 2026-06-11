@@ -50,4 +50,9 @@ public class TimeMapFormatHtml implements TimeMapFormatExtension, FormatHtml {
     return new FeatureEncoderTimeMapHtml(
         encodingContext, mustacheRenderer, homeUrl(encodingContext.getApi().getData()));
   }
+
+  @Override
+  public boolean requiresFeatureTitle() {
+    return true;
+  }
 }

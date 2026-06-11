@@ -20,4 +20,13 @@ public interface TimeMapFormatExtension extends GenericFormatExtension {
    * FeatureEncoderTimeMap#encode(TimeMap)}.
    */
   FeatureEncoderTimeMap getFeatureEncoder(EncodingContextTimeMap encodingContext);
+
+  /**
+   * {@code true} when the format renders the feature title (resolved from the collection's HTML
+   * feature title template). The queries handler then selects the properties referenced by the
+   * template in addition to the primary temporal interval.
+   */
+  default boolean requiresFeatureTitle() {
+    return false;
+  }
 }

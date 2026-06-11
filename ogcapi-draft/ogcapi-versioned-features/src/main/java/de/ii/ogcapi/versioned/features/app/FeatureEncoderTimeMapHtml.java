@@ -61,16 +61,19 @@ public class FeatureEncoderTimeMapHtml extends FeatureEncoderTimeMap {
     Locale language = requestContext.getLanguage().orElse(Locale.ENGLISH);
     HtmlConfiguration htmlConfig = apiData.getExtension(HtmlConfiguration.class).orElse(null);
 
-    String title =
-        i18n.get("versionsTitle", requestContext.getLanguage()) + " — " + timeMap.getFeatureId();
+    String featureLabel =
+        Objects.requireNonNullElse(timeMap.getFeatureTitle(), timeMap.getFeatureId());
+    String title = i18n.get("versionsTitle", requestContext.getLanguage()) + " — " + featureLabel;
     String description = i18n.get("versionsDescription", requestContext.getLanguage());
 
     URICustomizer uri = requestContext.getUriCustomizer().copy().clearParameters();
 
-    // Standard breadcrumb chain: Home / Service / Data / <collection> / <featureId> / Versions
+    // Standard breadcrumb chain, matching the feature page:
+    // Home / Service / Data / <collection> / Items / <feature title> / Versions
     // URI ends with `.../collections/<cid>/items/<fid>/versions` (5 segments under the service).
     // removeLastPathSegments counts back from the end:
     //   1 → feature page  /.../items/<fid>
+    //   2 → items list    /.../items
     //   3 → collection    /.../collections/<cid>
     //   4 → collections   /.../collections
     //   5 → service root  /<service>
@@ -96,7 +99,9 @@ public class FeatureEncoderTimeMapHtml extends FeatureEncoderTimeMap {
                     uri.copy().removeLastPathSegments(3).toString()))
             .add(
                 new NavigationDTO(
-                    timeMap.getFeatureId(), uri.copy().removeLastPathSegments(1).toString()))
+                    i18n.get("itemsTitle", requestContext.getLanguage()),
+                    uri.copy().removeLastPathSegments(2).toString()))
+            .add(new NavigationDTO(featureLabel, uri.copy().removeLastPathSegments(1).toString()))
             .add(new NavigationDTO(i18n.get("versionsTitle", requestContext.getLanguage())))
             .build();
 

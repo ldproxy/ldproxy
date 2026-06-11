@@ -12,7 +12,9 @@ import de.ii.xtraplatform.features.domain.FeatureEventHandler.ModifiableContext;
 import de.ii.xtraplatform.features.domain.FeatureObjectEncoder;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaMapping;
+import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -31,6 +33,7 @@ public abstract class FeatureEncoderTimeMap
   protected final EncodingContextTimeMap encodingContext;
   private final ImmutableList.Builder<TimeMap.Memento> mementos = ImmutableList.builder();
   private String latestStartValue;
+  private String featureTitle;
 
   protected FeatureEncoderTimeMap(EncodingContextTimeMap encodingContext) {
     this.encodingContext = encodingContext;
@@ -48,6 +51,20 @@ public abstract class FeatureEncoderTimeMap
 
   @Override
   public void onFeature(FeatureVersionTimeMap feature) {
+    // The stream is sorted ascending by the start property, so the latest version's title wins —
+    // matching the feature page, which by default shows the latest version.
+    encodingContext
+        .getFeatureTitleTemplate()
+        .ifPresent(
+            template -> {
+              String name =
+                  StringTemplateFilters.applyTemplate(
+                      template, path -> feature.findValueByPath(path).orElse(null));
+              if (Objects.nonNull(name) && !name.isEmpty()) {
+                this.featureTitle = name;
+              }
+            });
+
     Optional<String> startValue = feature.getStartValue();
     if (startValue.isEmpty()) {
       return;
@@ -77,6 +94,7 @@ public abstract class FeatureEncoderTimeMap
         new TimeMap(
             encodingContext.getCollectionId(),
             encodingContext.getFeatureId(),
+            featureTitle,
             encodingContext.getFeatureHref(),
             encodingContext.getResourceLinks(),
             mementos.build(),

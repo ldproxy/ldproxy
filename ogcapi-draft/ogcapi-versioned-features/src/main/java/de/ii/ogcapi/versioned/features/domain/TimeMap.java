@@ -31,6 +31,7 @@ public final class TimeMap {
 
   private final String collectionId;
   private final String featureId;
+  private final String featureTitle;
   private final String featureHref;
   private final List<Link> resourceLinks;
   private final List<Memento> mementos;
@@ -39,12 +40,14 @@ public final class TimeMap {
   public TimeMap(
       String collectionId,
       String featureId,
+      String featureTitle,
       String featureHref,
       List<Link> resourceLinks,
       List<Memento> mementos,
       String latestStartValue) {
     this.collectionId = collectionId;
     this.featureId = featureId;
+    this.featureTitle = featureTitle;
     this.featureHref = featureHref;
     this.resourceLinks = resourceLinks;
     this.mementos = mementos;
@@ -57,6 +60,14 @@ public final class TimeMap {
 
   public String getFeatureId() {
     return featureId;
+  }
+
+  /**
+   * The feature title of the latest version, resolved from the collection's feature title template;
+   * null when no template is configured or the format does not render the title.
+   */
+  public String getFeatureTitle() {
+    return featureTitle;
   }
 
   public String getFeatureHref() {

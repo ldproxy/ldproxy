@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.versioned.features.domain;
 
+import com.google.common.base.Splitter;
 import de.ii.xtraplatform.features.domain.FeatureBase;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -24,10 +26,10 @@ import org.immutables.value.Value;
 
 /**
  * Per-version POJO populated by {@link FeatureEncoderTimeMap} from the underlying feature stream.
- * Only the primary temporal interval is exposed — the encoder restricts the {@code FeatureQuery} to
- * the start and end properties, so other properties never enter the pipeline. The start and end
- * values may sit under a parent OBJECT (e.g. {@code lebenszeitintervall.beginnt}), so the accessors
- * walk the full property subtree.
+ * The {@code FeatureQuery} is restricted to the primary temporal interval plus, for formats that
+ * render the feature title, the properties referenced by the collection's feature title template.
+ * The start and end values may sit under a parent OBJECT (e.g. {@code
+ * lebenszeitintervall.beginnt}), so the accessors walk the full property subtree.
  */
 @Value.Modifiable
 @Value.Style(set = "*")
@@ -65,6 +67,19 @@ public interface FeatureVersionTimeMap extends FeatureBase<PropertyTimeMap, Feat
   @Value.Lazy
   default boolean isEndDate() {
     return isDate(findProperty(SchemaBase::isPrimaryIntervalEnd));
+  }
+
+  /**
+   * The first value of the property at the given dot-separated path, used to resolve the feature
+   * title template against this version's properties.
+   */
+  default Optional<String> findValueByPath(String pathString) {
+    List<String> path = Splitter.on('.').omitEmptyStrings().splitToList(pathString);
+    return getProperties().stream()
+        .flatMap(FeatureVersionTimeMap::walk)
+        .filter(p -> Objects.equals(p.getPropertyPath(), path))
+        .findFirst()
+        .flatMap(p -> walk(p).map(PropertyTimeMap::getValue).filter(Objects::nonNull).findFirst());
   }
 
   private Optional<PropertyTimeMap> findProperty(

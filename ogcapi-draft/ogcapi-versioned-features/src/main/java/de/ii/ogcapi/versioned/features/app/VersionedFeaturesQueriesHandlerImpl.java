@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.html.domain.FeaturesHtmlConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -42,6 +43,7 @@ import de.ii.xtraplatform.features.domain.SortKey;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.streams.domain.Reactive.Sink;
 import de.ii.xtraplatform.streams.domain.Reactive.SinkReduced;
+import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
@@ -135,6 +137,24 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
+    Optional<String> featureTitleTemplate =
+        outputFormat.requiresFeatureTitle()
+            ? collectionData
+                .getExtension(FeaturesHtmlConfiguration.class)
+                .flatMap(FeaturesHtmlConfiguration::getFeatureTitleTemplate)
+            : Optional.empty();
+    // The title is resolved per version from the properties referenced by the template, so those
+    // properties have to be selected, too. Applying the template with a recording lookup yields
+    // the referenced paths.
+    featureTitleTemplate.ifPresent(
+        template ->
+            StringTemplateFilters.applyTemplate(
+                template,
+                path -> {
+                  fields.add(path);
+                  return null;
+                }));
+
     String featureHref =
         requestContext
             .getUriCustomizer()
@@ -162,6 +182,7 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
             .collectionId(collectionId)
             .featureId(featureId)
             .featureHref(featureHref)
+            .featureTitleTemplate(featureTitleTemplate)
             .resourceLinks(resourceLinks)
             .api(api)
             .requestContext(requestContext)

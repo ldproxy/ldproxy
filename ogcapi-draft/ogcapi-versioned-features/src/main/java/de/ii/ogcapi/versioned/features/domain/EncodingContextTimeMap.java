@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -28,6 +29,12 @@ public interface EncodingContextTimeMap {
 
   /** Canonical resource URI (no query) used to construct memento hrefs. */
   String getFeatureHref();
+
+  /**
+   * The collection's HTML feature title template; set only when the output format renders the
+   * feature title. The encoder resolves it against each version's properties.
+   */
+  Optional<String> getFeatureTitleTemplate();
 
   /** {@code self} + {@code alternate} link entries produced by {@code DefaultLinksGenerator}. */
   List<Link> getResourceLinks();
