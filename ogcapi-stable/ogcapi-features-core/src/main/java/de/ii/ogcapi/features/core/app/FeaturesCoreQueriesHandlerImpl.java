@@ -20,6 +20,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
 import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
+import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
 import de.ii.ogcapi.features.core.domain.SingleFeatureMissingHandler;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -57,6 +58,7 @@ import de.ii.xtraplatform.features.domain.FeatureStream.ResultBase;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.features.domain.PropertyLink;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
@@ -479,7 +481,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     CollectionMetadata collectionMetadata = null;
     boolean hasNextPage = false;
 
-    Map<String, String> roleLinks = Map.of();
+    List<PropertyLink> propertyLinks = List.of();
     Instant mementoDatetime = null;
     Instant mementoEnd = null;
     if (!sendResponseAsStream) {
@@ -490,7 +492,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       hasNextPage =
           collectionMetadata != null
               && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
-      roleLinks = result.getRoleLinks();
+      propertyLinks = result.getPropertyLinks();
       mementoDatetime =
           result.getTemporalExtent().map(Tuple::first).filter(Objects::nonNull).orElse(null);
       mementoEnd =
@@ -628,16 +630,29 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       addLinkHeader(response, timeMapHref, "version-history", requestContext);
     }
 
-    if (Objects.nonNull(featureId) && !roleLinks.isEmpty()) {
-      for (Map.Entry<String, String> entry : roleLinks.entrySet()) {
-        String href =
-            requestContext
-                .getUriCustomizer()
-                .copy()
-                .clearParameters()
-                .setParameter("datetime", entry.getValue())
-                .toString();
-        addLinkHeader(response, href, entry.getKey(), requestContext);
+    if (Objects.nonNull(featureId) && !propertyLinks.isEmpty()) {
+      String featureUri = requestContext.getUriCustomizer().copy().clearParameters().toString();
+      String collectionUri =
+          requestContext
+              .getUriCustomizer()
+              .copy()
+              .clearParameters()
+              .removeLastPathSegments(2)
+              .toString();
+      String serviceUri =
+          requestContext
+              .getUriCustomizer()
+              .copy()
+              .clearParameters()
+              .removeLastPathSegments(4)
+              .toString();
+      for (PropertyLink link : propertyLinks) {
+        String href = PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri);
+        Optional<String> title =
+            link.getRel().endsWith("-version")
+                ? Optional.of(i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage()))
+                : link.getTitle();
+        addLinkHeader(response, href, link.getRel(), title);
       }
     }
 
@@ -649,8 +664,20 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       String href,
       String rel,
       ApiRequestContext requestContext) {
-    String title = i18n.get(relToI18nKey(rel), requestContext.getLanguage());
-    response.header("Link", String.format("<%s>; rel=\"%s\"; title=\"%s\"", href, rel, title));
+    addLinkHeader(
+        response,
+        href,
+        rel,
+        Optional.of(i18n.get(relToI18nKey(rel), requestContext.getLanguage())));
+  }
+
+  private void addLinkHeader(
+      Response.ResponseBuilder response, String href, String rel, Optional<String> title) {
+    response.header(
+        "Link",
+        title
+            .map(t -> String.format("<%s>; rel=\"%s\"; title=\"%s\"", href, rel, t))
+            .orElseGet(() -> String.format("<%s>; rel=\"%s\"", href, rel)));
   }
 
   static String relToI18nKey(String rel) {

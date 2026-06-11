@@ -45,7 +45,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   private static final String GML_IDENTIFIER_VALUE_PLACEHOLDER = "_zz_GML_IDENTIFIER_VALUE_i_zz_";
   private static final String OBJECT_ELEMENT_PLACEHOLDER = "_zz_OBJECT_ELEMENT_i_zz_";
   private static final String SURFACE_MEMBER_PLACEHOLDER = "_zz_SURFACE_MEMBER_i_zz_";
-  private static final String ROLE_LINKS_PLACEHOLDER = "_zz_ROLE_LINKS_i_zz_";
+  private static final String PROPERTY_LINKS_PLACEHOLDER = "_zz_PROPERTY_LINKS_i_zz_";
 
   /**
    * Internal string buffer to buffer information. The buffer is flushed for every feature. Also
@@ -384,28 +384,28 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   /**
    * Reserves a slot right after the current feature's start tag for content that is only known at
-   * feature end (e.g. role-link captures from {@code FeatureTokenTransformerLinkRoles}). Returns
-   * the placeholder key; pass it to {@link #setRoleLinksContent(String, String)} from {@code
+   * feature end (e.g. link captures from {@code FeatureTokenTransformerPropertyLinks}). Returns the
+   * placeholder key; pass it to {@link #setPropertyLinksContent(String, String)} from {@code
    * onFeatureEnd}. An unset (empty) value is silently dropped at flush.
    *
    * <p>The slot is emitted as an XML comment containing the placeholder key, e.g. {@code <!--
-   * _zz_ROLE_LINKS_1_zz_ -->}. Going through {@code xmlWriter.writeComment} (instead of a raw
+   * _zz_PROPERTY_LINKS_1_zz_ -->}. Going through {@code xmlWriter.writeComment} (instead of a raw
    * buffer append) ensures the parent start tag is flushed first, so the slot lands inside the
    * feature element. At flush time the placeholder text inside the comment is substituted; the
-   * surrounding {@code <!-- ... -->} stays put. To emit multiple comments (e.g. one per role),
+   * surrounding {@code <!-- ... -->} stays put. To emit multiple comments (e.g. one per link),
    * embed {@code --><!--} sequences inside the substituted content.
    */
   @Value.Auxiliary
-  public String reserveRoleLinksPlaceholder() throws IOException {
+  public String reservePropertyLinksPlaceholder() throws IOException {
     int i = getState().getLastObject();
-    String placeholder = ROLE_LINKS_PLACEHOLDER.replace("i", String.valueOf(i));
+    String placeholder = PROPERTY_LINKS_PLACEHOLDER.replace("i", String.valueOf(i));
     writeComment(" " + placeholder + " ");
     getState().putPlaceholders(placeholder, "");
     return placeholder;
   }
 
-  /** Populates a placeholder previously returned by {@link #reserveRoleLinksPlaceholder()}. */
-  public void setRoleLinksContent(String placeholder, String content) {
+  /** Populates a placeholder previously returned by {@link #reservePropertyLinksPlaceholder()}. */
+  public void setPropertyLinksContent(String placeholder, String content) {
     getState().putPlaceholders(placeholder, content);
   }
 

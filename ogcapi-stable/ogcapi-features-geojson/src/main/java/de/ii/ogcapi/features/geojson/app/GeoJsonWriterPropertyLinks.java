@@ -8,54 +8,47 @@
 package de.ii.ogcapi.features.geojson.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.PropertyLink;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Renders per-feature role-as-link captures (populated by {@code FeatureTokenTransformerLinkRoles})
- * as feature-level link entries in the GeoJSON body. Each entry in {@link
- * de.ii.xtraplatform.features.domain.FeatureEventHandler.ModifiableContext#roleLinks()} is added to
- * the encoder's per-feature link collection with an href that points to the same feature at the
- * captured timestamp ({@code ?datetime=<value>}). {@code GeoJsonWriterLinks} (sort priority 50)
- * then emits them in the response body's {@code links} array.
+ * Renders per-feature property links (populated by {@code FeatureTokenTransformerPropertyLinks}) as
+ * feature-level link entries in the GeoJSON body. Each entry in {@link
+ * de.ii.xtraplatform.features.domain.FeatureEventHandler.ModifiableContext#propertyLinks()} is
+ * added to the encoder's per-feature link collection with the resolved URI template. {@code
+ * GeoJsonWriterLinks} (sort priority 50) then emits them in the response body's {@code links}
+ * array.
  *
  * <p>Sort priority 45 — runs after {@code GeoJsonWriterId} (30, contributes the self link) and
  * before {@code GeoJsonWriterLinks} (50, writes the array).
  */
 @Singleton
 @AutoBind
-public class GeoJsonWriterRoleLinks implements GeoJsonWriter {
+public class GeoJsonWriterPropertyLinks implements GeoJsonWriter {
 
   private final I18n i18n;
   private String featureId;
 
   @Inject
-  public GeoJsonWriterRoleLinks(I18n i18n) {
+  public GeoJsonWriterPropertyLinks(I18n i18n) {
     this.i18n = i18n;
   }
 
   @Override
-  public GeoJsonWriterRoleLinks create() {
-    return new GeoJsonWriterRoleLinks(i18n);
-  }
-
-  private static String relToI18nKey(String rel) {
-    String[] parts = rel.split("-");
-    StringBuilder sb = new StringBuilder(parts[0]);
-    for (int i = 1; i < parts.length; i++) {
-      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-    }
-    sb.append("Link");
-    return sb.toString();
+  public GeoJsonWriterPropertyLinks create() {
+    return new GeoJsonWriterPropertyLinks(i18n);
   }
 
   @Override
@@ -88,30 +81,23 @@ public class GeoJsonWriterRoleLinks implements GeoJsonWriter {
   public void onPropertiesEnd(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    Map<String, String> roleLinks = context.roleLinks();
     // When the composite-id profile rewrote the id token, the canonical id is stashed on the
-    // context. Build version/predecessor/successor URLs against the CANONICAL id so the path
-    // resolves to the stable resource — the JSON `id` carries the composite, but the URL paths
-    // always identify by canonical id.
+    // context. Build the feature URI with the CANONICAL id so the path resolves to the stable
+    // resource — the JSON `id` carries the composite, but the URL paths always identify by
+    // canonical id.
     String canonicalId = context.canonicalFeatureId();
     String urlId = Objects.nonNull(canonicalId) ? canonicalId : featureId;
     if (Objects.nonNull(urlId)) {
-      String base =
-          context.encoding().getServiceUrl()
-              + "/collections/"
-              + context.encoding().getCollectionId()
-              + "/items/"
-              + urlId;
-      for (Map.Entry<String, String> entry : roleLinks.entrySet()) {
-        context
-            .encoding()
-            .getState()
-            .addCurrentFeatureLinks(
-                new ImmutableLink.Builder()
-                    .rel(entry.getKey())
-                    .href(base + "?datetime=" + entry.getValue())
-                    .title(i18n.get(relToI18nKey(entry.getKey()), context.encoding().getLanguage()))
-                    .build());
+      String serviceUri = context.encoding().getServiceUrl();
+      String collectionUri = serviceUri + "/collections/" + context.encoding().getCollectionId();
+      String featureUri = collectionUri + "/items/" + urlId;
+      for (PropertyLink link : context.propertyLinks()) {
+        ImmutableLink.Builder builder =
+            new ImmutableLink.Builder()
+                .rel(link.getRel())
+                .href(PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri));
+        title(link, context.encoding().getLanguage()).ifPresent(builder::title);
+        context.encoding().getState().addCurrentFeatureLinks(builder.build());
       }
       // Surface the stable feature URI as an `original` link whenever the id was rewritten
       // (composite-id active for this feature).
@@ -122,11 +108,23 @@ public class GeoJsonWriterRoleLinks implements GeoJsonWriter {
             .addCurrentFeatureLinks(
                 new ImmutableLink.Builder()
                     .rel("original")
-                    .href(base)
+                    .href(featureUri)
                     .title(i18n.get("originalLink", context.encoding().getLanguage()))
                     .build());
       }
     }
     next.accept(context);
+  }
+
+  // The RFC 7089 version-navigation rels have localized titles; for other rels the configured
+  // property label is used, if present.
+  private Optional<String> title(PropertyLink link, Optional<Locale> language) {
+    if ("predecessor-version".equals(link.getRel())) {
+      return Optional.of(i18n.get("predecessorVersionLink", language));
+    }
+    if ("successor-version".equals(link.getRel())) {
+      return Optional.of(i18n.get("successorVersionLink", language));
+    }
+    return link.getTitle();
   }
 }

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.html.domain;
 
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
 import de.ii.ogcapi.features.html.app.FeatureHtml;
 import de.ii.ogcapi.features.html.app.ImmutableFeatureCollectionDetailsView;
 import de.ii.ogcapi.features.html.app.ModifiableFeatureHtml;
@@ -17,6 +18,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.xtraplatform.features.domain.FeatureObjectEncoder;
 import de.ii.xtraplatform.features.domain.PropertyBase;
+import de.ii.xtraplatform.features.domain.PropertyLink;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
@@ -26,7 +28,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -292,9 +293,10 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
   }
 
   private void populateVersionNavigation(ModifiableContext context) {
-    Map<String, String> roleLinks = context.roleLinks();
+    List<PropertyLink> propertyLinks = context.propertyLinks();
     String canonicalId = context.canonicalFeatureId();
-    if (Objects.isNull(currentFeatureId) || (Objects.isNull(roleLinks) || roleLinks.isEmpty())) {
+    if (Objects.isNull(currentFeatureId)
+        || (Objects.isNull(propertyLinks) || propertyLinks.isEmpty())) {
       return;
     }
 
@@ -306,33 +308,41 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
     // path, so /items/<canonical>?datetime=... resolves to the stable resource; the JSON `id`
     // and the feature title may still carry the composite for collision-free display.
     String urlId = Objects.nonNull(canonicalId) ? canonicalId : currentFeatureId;
-    String featureBase =
-        transformationContext.getServiceUrl()
-            + "/collections/"
-            + transformationContext.getCollectionId()
-            + "/items/"
-            + urlId;
+    String serviceUri = transformationContext.getServiceUrl();
+    String collectionUri = serviceUri + "/collections/" + transformationContext.getCollectionId();
+    String featureUri = collectionUri + "/items/" + urlId;
 
-    String predecessor = roleLinks.get("predecessor-version");
-    String successor = roleLinks.get("successor-version");
+    Optional<String> predecessor =
+        resolve(propertyLinks, "predecessor-version", serviceUri, collectionUri, featureUri);
+    Optional<String> successor =
+        resolve(propertyLinks, "successor-version", serviceUri, collectionUri, featureUri);
+    if (predecessor.isEmpty() && successor.isEmpty()) {
+      return;
+    }
 
     ImmutableList.Builder<NavigationDTO> nav = new ImmutableList.Builder<>();
-    if (Objects.nonNull(predecessor) && !predecessor.isEmpty()) {
-      nav.add(
-          new NavigationDTO(
-              "‹ " + t.apply("predecessorVersionLink"), featureBase + "?datetime=" + predecessor));
-    } else {
-      nav.add(new NavigationDTO("‹ " + t.apply("predecessorVersionLink")));
-    }
-    nav.add(new NavigationDTO(t.apply("versionHistoryLink"), featureBase + "/versions"));
-    if (Objects.nonNull(successor) && !successor.isEmpty()) {
-      nav.add(
-          new NavigationDTO(
-              t.apply("successorVersionLink") + " ›", featureBase + "?datetime=" + successor));
-    } else {
-      nav.add(new NavigationDTO(t.apply("successorVersionLink") + " ›"));
-    }
+    nav.add(
+        predecessor
+            .map(href -> new NavigationDTO("‹ " + t.apply("predecessorVersionLink"), href))
+            .orElseGet(() -> new NavigationDTO("‹ " + t.apply("predecessorVersionLink"))));
+    nav.add(new NavigationDTO(t.apply("versionHistoryLink"), featureUri + "/versions"));
+    nav.add(
+        successor
+            .map(href -> new NavigationDTO(t.apply("successorVersionLink") + " ›", href))
+            .orElseGet(() -> new NavigationDTO(t.apply("successorVersionLink") + " ›")));
     transformationContext.collectionView().setVersionNavigation(nav.build());
+  }
+
+  private static Optional<String> resolve(
+      List<PropertyLink> propertyLinks,
+      String rel,
+      String serviceUri,
+      String collectionUri,
+      String featureUri) {
+    return propertyLinks.stream()
+        .filter(link -> rel.equals(link.getRel()))
+        .findFirst()
+        .map(link -> PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri));
   }
 
   private void renderView(View view) {

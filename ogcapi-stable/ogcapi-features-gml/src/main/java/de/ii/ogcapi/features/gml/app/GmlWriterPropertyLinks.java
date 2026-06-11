@@ -10,38 +10,39 @@ package de.ii.ogcapi.features.gml.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
+import de.ii.xtraplatform.features.domain.PropertyLink;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * Renders per-feature role-as-link captures (populated by {@code FeatureTokenTransformerLinkRoles})
- * as XML comments inside the feature element, immediately after the start tag. GML elements cannot
- * carry RFC 8288 web links, so the predecessor/successor information that other formats expose in
- * {@code links} entries is preserved here as a {@code <!-- <rel>: <value> -->} comment per role.
- * The corresponding HTTP {@code Link} response header is set by the queries handler regardless of
- * format.
+ * Renders per-feature property links (populated by {@code FeatureTokenTransformerPropertyLinks}) as
+ * XML comments inside the feature element, immediately after the start tag. GML elements cannot
+ * carry RFC 8288 web links, so the information that other formats expose in {@code links} entries
+ * is preserved here as a {@code <!-- <rel>: <value> -->} comment per link — the captured property
+ * value, not the resolved link URI. The corresponding HTTP {@code Link} response header is set by
+ * the queries handler regardless of format.
  *
  * <p>Sort priority 60 — runs after the other writers in {@code onFeatureStart}, so the comment
  * placeholder lands after {@code gml:identifier} (if configured) but before any property elements.
  * The placeholder is populated in {@code onFeatureEnd} once {@code
- * FeatureTokenTransformerLinkRoles} has surfaced the captures on the context.
+ * FeatureTokenTransformerPropertyLinks} has surfaced the captures on the context.
  */
 @Singleton
 @AutoBind
-public class GmlWriterRoleLinks implements GmlWriter {
+public class GmlWriterPropertyLinks implements GmlWriter {
 
   private String placeholder;
 
   @Inject
-  public GmlWriterRoleLinks() {}
+  public GmlWriterPropertyLinks() {}
 
   @Override
-  public GmlWriterRoleLinks create() {
-    return new GmlWriterRoleLinks();
+  public GmlWriterPropertyLinks create() {
+    return new GmlWriterPropertyLinks();
   }
 
   @Override
@@ -53,7 +54,7 @@ public class GmlWriterRoleLinks implements GmlWriter {
   public void onFeatureStart(
       EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next) throws IOException {
     next.accept(context);
-    this.placeholder = context.encoding().reserveRoleLinksPlaceholder();
+    this.placeholder = context.encoding().reservePropertyLinksPlaceholder();
   }
 
   @Override
@@ -61,24 +62,24 @@ public class GmlWriterRoleLinks implements GmlWriter {
       throws IOException {
     next.accept(context);
 
-    Map<String, String> roleLinks = context.roleLinks();
-    if (Objects.isNull(placeholder) || roleLinks.isEmpty()) {
+    List<PropertyLink> propertyLinks = context.propertyLinks();
+    if (Objects.isNull(placeholder) || propertyLinks.isEmpty()) {
       return;
     }
 
     // The placeholder was emitted as `<!-- KEY -->`. Replacement substitutes KEY only.
-    // For multiple roles, the content embeds `--><!--` between entries so the result is
-    // one comment per role: `<!-- rel1: v1 --><!-- rel2: v2 -->`.
+    // For multiple links, the content embeds `--><!--` between entries so the result is
+    // one comment per link: `<!-- rel1: v1 --><!-- rel2: v2 -->`.
     StringBuilder sb = new StringBuilder();
     boolean first = true;
-    for (Map.Entry<String, String> entry : roleLinks.entrySet()) {
+    for (PropertyLink link : propertyLinks) {
       if (!first) {
         sb.append(" --><!-- ");
       }
       first = false;
-      sb.append(entry.getKey()).append(": ").append(escapeCommentText(entry.getValue()));
+      sb.append(link.getRel()).append(": ").append(escapeCommentText(link.getValue()));
     }
-    context.encoding().setRoleLinksContent(placeholder, sb.toString());
+    context.encoding().setPropertyLinksContent(placeholder, sb.toString());
   }
 
   private static String escapeCommentText(String value) {
