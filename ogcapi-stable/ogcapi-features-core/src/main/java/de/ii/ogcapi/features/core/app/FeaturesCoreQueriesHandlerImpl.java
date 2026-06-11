@@ -66,6 +66,7 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import de.ii.xtraplatform.web.domain.JoinableStreamingOutput;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
@@ -608,12 +609,13 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     CollectionMetadata collectionMetadata = onCollectionMetadata.join();
 
     StreamingOutput streamingOutput =
-        outputStream -> {
-          delayedOutputStream.setOutputStream(outputStream);
+        new JoinableStreamingOutput(
+            outputStream -> {
+              delayedOutputStream.setOutputStream(outputStream);
 
-          // wait for stream to finish
-          run(stream::join, failIfNoFeatures);
-        };
+              // wait for stream to finish
+              run(stream::join, failIfNoFeatures);
+            });
 
     return Tuple.of(streamingOutput, collectionMetadata);
   }
