@@ -24,6 +24,8 @@ import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
+import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
@@ -35,7 +37,8 @@ import java.util.Objects;
 
 @Singleton
 @AutoBind
-public class CommandHandlerTransactionsImpl implements CommandHandlerTransactions {
+public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
+    implements CommandHandlerTransactions {
 
   private static final MediaType APPLICATION_JSON = MediaType.APPLICATION_JSON_TYPE;
 
@@ -45,8 +48,16 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
   private final TransactionExecutor executor;
 
   @Inject
-  public CommandHandlerTransactionsImpl(TransactionExecutor executor) {
+  public CommandHandlerTransactionsImpl(
+      TransactionExecutor executor, VolatileRegistry volatileRegistry) {
+    super(CommandHandlerTransactions.class.getSimpleName(), volatileRegistry, true);
     this.executor = executor;
+
+    onVolatileStart();
+
+    addSubcomponent(executor);
+
+    onVolatileStarted();
   }
 
   @Override

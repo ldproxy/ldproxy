@@ -20,6 +20,8 @@ import de.ii.ogcapi.transactions.domain.TransactionParser
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration
 import de.ii.ogcapi.transactions.domain.TxAction
 import de.ii.ogcapi.transactions.domain.TxSemantic
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import jakarta.ws.rs.BadRequestException
@@ -31,12 +33,14 @@ import java.time.Instant
 
 class CommandHandlerTransactionsSpec extends Specification {
 
+    VolatileRegistry volatileRegistry = Stub(VolatileRegistry)
+
     def 'strict handling parses once and enables executor validation'() {
         given:
         String body = '{"transaction":[]}'
         RecordingParser parser = new RecordingParser(actions: [])
         CountingExecutor executor = new CountingExecutor()
-        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor)
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
 
         when:
         def response = handler.processTransaction(
@@ -54,7 +58,7 @@ class CommandHandlerTransactionsSpec extends Specification {
         given:
         RecordingParser parser = new RecordingParser(actions: [action(), action()])
         CountingExecutor executor = new CountingExecutor()
-        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor)
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
 
         when:
         handler.processTransaction(
@@ -71,7 +75,7 @@ class CommandHandlerTransactionsSpec extends Specification {
         given:
         RecordingParser parser = new RecordingParser(actions: [action()])
         CountingExecutor executor = new CountingExecutor()
-        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor)
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
 
         when:
         def response = handler.processTransaction(
@@ -164,6 +168,21 @@ class CommandHandlerTransactionsSpec extends Specification {
     private static class CountingExecutor implements TransactionExecutor {
         int seen
         boolean validate
+
+        @Override
+        Volatile2.State getState() {
+            return Volatile2.State.AVAILABLE
+        }
+
+        @Override
+        Optional<String> getMessage() {
+            return Optional.empty()
+        }
+
+        @Override
+        Runnable onStateChange(VolatileRegistry.ChangeHandler handler, boolean initialCall) {
+            return {} as Runnable
+        }
 
         @Override
         ExecutionResult execute(

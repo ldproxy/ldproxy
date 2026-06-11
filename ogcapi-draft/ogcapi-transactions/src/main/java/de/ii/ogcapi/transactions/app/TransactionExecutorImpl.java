@@ -47,6 +47,8 @@ import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxReplace;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate;
+import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.cql.domain.ArrayLiteral;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.Eq;
@@ -94,7 +96,8 @@ import org.threeten.extra.Interval;
 
 @Singleton
 @AutoBind
-public class TransactionExecutorImpl implements TransactionExecutor {
+public class TransactionExecutorImpl extends AbstractVolatileComposed
+    implements TransactionExecutor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TransactionExecutorImpl.class);
 
@@ -116,11 +119,19 @@ public class TransactionExecutorImpl implements TransactionExecutor {
       FeaturesCoreProviders providers,
       ExtensionRegistry extensionRegistry,
       CrsInfo crsInfo,
-      FeaturesCoreQueriesHandler queriesHandler) {
+      FeaturesCoreQueriesHandler queriesHandler,
+      VolatileRegistry volatileRegistry) {
+    super(TransactionExecutor.class.getSimpleName(), volatileRegistry, true);
     this.providers = providers;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
     this.queriesHandler = queriesHandler;
+
+    onVolatileStart();
+
+    addSubcomponent(queriesHandler);
+
+    onVolatileStarted();
   }
 
   @Override

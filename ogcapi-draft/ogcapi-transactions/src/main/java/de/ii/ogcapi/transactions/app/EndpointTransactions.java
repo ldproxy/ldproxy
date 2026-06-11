@@ -18,7 +18,9 @@ import com.google.common.collect.ImmutableList;
 import dagger.Lazy;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.crs.domain.HeaderContentCrs;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -41,6 +43,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.core.util.Json;
@@ -84,7 +87,7 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @AutoBind
 @Path("/transactions")
-public class EndpointTransactions extends Endpoint implements ConformanceClass {
+public class EndpointTransactions extends Endpoint implements ConformanceClass, ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointTransactions.class);
 
@@ -107,17 +110,20 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
   private final Lazy<Set<TransactionParser>> parsers;
   private final CommandHandlerTransactions commandHandler;
   private final CrsSupport crsSupport;
+  private final FeaturesCoreProviders providers;
 
   @Inject
   public EndpointTransactions(
       ExtensionRegistry extensionRegistry,
       Lazy<Set<TransactionParser>> parsers,
       CommandHandlerTransactions commandHandler,
-      CrsSupport crsSupport) {
+      CrsSupport crsSupport,
+      FeaturesCoreProviders providers) {
     super(extensionRegistry);
     this.parsers = parsers;
     this.commandHandler = commandHandler;
     this.crsSupport = crsSupport;
+    this.providers = providers;
   }
 
   @Override
@@ -475,5 +481,10 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass {
           "Invalid OGC-Mutation-Datetime header (expected an RFC 3339 date-time in UTC): "
               + header);
     }
+  }
+
+  @Override
+  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
+    return Set.of(commandHandler, providers.getFeatureProviderOrThrow(apiData));
   }
 }

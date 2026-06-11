@@ -13,6 +13,7 @@ import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -34,6 +35,7 @@ import de.ii.ogcapi.versioned.features.domain.TimeMapFormatExtension;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesQueriesHandler;
 import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
@@ -49,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -61,7 +64,7 @@ import java.util.stream.Collectors;
  */
 @Singleton
 @AutoBind
-public class EndpointFeatureVersions extends EndpointSubCollection {
+public class EndpointFeatureVersions extends EndpointSubCollection implements ApiExtensionHealth {
 
   private static final List<String> TAGS = ImmutableList.of("Access data");
   private static final String OP_ID = "getFeatureVersions";
@@ -201,5 +204,10 @@ public class EndpointFeatureVersions extends EndpointSubCollection {
 
     return queryHandler.handle(
         VersionedFeaturesQueriesHandler.Query.TIME_MAP, queryInput, requestContext);
+  }
+
+  @Override
+  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
+    return Set.of(queryHandler, providers.getFeatureProviderOrThrow(apiData));
   }
 }

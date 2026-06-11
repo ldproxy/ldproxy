@@ -9,12 +9,13 @@ package de.ii.ogcapi.transactions.domain;
 
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import java.time.Instant;
 import java.util.Optional;
 
 /** Executes a parsed {@link Transaction} against the feature providers backing the API. */
-public interface TransactionExecutor {
+public interface TransactionExecutor extends Volatile2 {
 
   /**
    * @param transaction parsed request. The executor consumes the actions iterator and closes the

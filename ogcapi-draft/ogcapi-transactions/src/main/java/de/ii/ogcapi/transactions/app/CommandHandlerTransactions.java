@@ -11,6 +11,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -19,7 +20,7 @@ import java.time.Instant;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-public interface CommandHandlerTransactions {
+public interface CommandHandlerTransactions extends Volatile2 {
 
   Response processTransaction(QueryInputTransaction queryInput, ApiRequestContext requestContext);
 
