@@ -536,6 +536,9 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     // set api
     auditLog.setApi(requestId, apiData.getId());
 
+    // set includePropertyValues so the Transformer can access it
+    auditLog.setIncludePropertyValues(requestId, apiData.getAuditLog().getIncludePropertyValues());
+
     // set actor
     optionalUser.ifPresent(
         user ->

@@ -27,6 +27,16 @@ public interface AuditLog {
   }
 
   /**
+   * @langEn If true, the values of the requested properties are logged as well.
+   * @langDe Falls true, werden die Werte der aufgerufenen Properties ebenfalls geloggt.
+   * @default true
+   */
+  @Default
+  default boolean getIncludePropertyValues() {
+    return true;
+  }
+
+  /**
    * @langEn Option to specify the operations for which a log entry should be created.
    * @langDe Option, um die Operationen anzugeben, für die ein Log-Eintrag erstellt werden soll.
    * @default {"data:read", "write"}
