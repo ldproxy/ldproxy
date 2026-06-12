@@ -648,8 +648,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             ? new StoredQueriesLinkGenerator()
                 .generateFeaturesLinks(
                     requestContext.getUriCustomizer(),
-                    query.getOffset(),
-                    query.getLimit(),
                     requestContext.getMediaType(),
                     requestContext.getAlternateMediaTypes(),
                     i18n,
@@ -682,22 +680,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
     CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
-    boolean hasNextPage =
-        collectionMetadata != null
-            && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
-
-    List<Link> filteredLinks =
-        queryInput.getIncludeLinkHeader()
-            ? hasNextPage
-                ? links
-                : links.stream()
-                    .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
-                    .collect(ImmutableList.toImmutableList())
-            : null;
 
     return prepareSuccessResponse(
             requestContext,
-            filteredLinks,
+            queryInput.getIncludeLinkHeader() ? links : null,
             HeaderCaching.of(lastModified, etag, queryInput),
             targetCrs,
             HeaderContentDisposition.of(
@@ -740,8 +726,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                         api.getData()
                             .getExtension(FeaturesCoreConfiguration.class)
                             .map(FeaturesCoreConfiguration::getDefaultPageSize)
-                            .orElseThrow()))
-            .offset(queryExpression.getOffset().orElse(0));
+                            .orElseThrow()));
 
     api.getData()
         .getExtension(FeaturesCoreConfiguration.class)

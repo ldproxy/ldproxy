@@ -74,8 +74,6 @@ public interface QueryExpression {
 
   Optional<Integer> getLimit();
 
-  Optional<Integer> getOffset();
-
   // if enabled, a feature that is selected by more than one query is only included once
   @Value.Default
   default boolean getDeduplicate() {

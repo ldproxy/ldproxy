@@ -59,9 +59,6 @@ public interface StoredQueryBase extends StoredQueryComponent {
   // Integer or Parameter
   Optional<IntegerOrParameter> getLimit();
 
-  // should not be provided in a stored query as it will be set when executing the query
-  Optional<Integer> getOffset();
-
   // if enabled, a feature that is selected by more than one query is only included once
   Optional<Boolean> getDeduplicate();
 

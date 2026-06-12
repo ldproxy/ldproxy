@@ -4,7 +4,8 @@ maintenance = 'LOW'
 description = 'Support for fetching features from multiple collections as well as for stored queries.'
 descriptionDe = 'Unterstützung für den Abruf von Features aus mehreren Collections sowie für gespeicherte Abfragen.'
 
-// The maturity level should only be raised after supporting paging for ad-hoc queries
+// Responses are single-shot without paging; the maturity level should only be raised
+// after supporting asynchronous execution for large responses
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
