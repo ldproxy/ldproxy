@@ -730,6 +730,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
             .queries(queries)
+            .deduplicate(queryExpression.getDeduplicate())
             .maxAllowableOffset(queryExpression.getMaxAllowableOffset().orElse(0.0))
             .crs(crs)
             .limit(

@@ -76,6 +76,12 @@ public interface QueryExpression {
 
   Optional<Integer> getOffset();
 
+  // if enabled, a feature that is selected by more than one query is only included once
+  @Value.Default
+  default boolean getDeduplicate() {
+    return false;
+  }
+
   List<String> getProfiles();
 
   @JsonIgnore
