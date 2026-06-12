@@ -27,6 +27,7 @@ import de.ii.ogcapi.features.search.domain.ParametersFormat;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
+import de.ii.ogcapi.features.search.domain.SingleQuery;
 import de.ii.ogcapi.features.search.domain.StoredQueries;
 import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
@@ -106,6 +107,7 @@ import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -713,25 +715,14 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                 getSubQuery(
                     api.getData(),
                     queryExpression.getCollections().get(0),
-                    topLevelFilter,
+                    topLevelFilter.map(
+                        f -> (Cql2Expression) f.accept(new ResultSetResolver(ImmutableMap.of()))),
                     Optional.empty(),
                     Optional.empty(),
                     queryExpression.getSortby(),
                     queryExpression.getProperties(),
                     ImmutableList.of()))
-            : queryExpression.getQueries().stream()
-                .map(
-                    q ->
-                        getSubQuery(
-                            api.getData(),
-                            q.getCollections().get(0),
-                            q.getFilter(),
-                            topLevelFilter,
-                            queryExpression.getFilterOperator(),
-                            q.getSortby(),
-                            q.getProperties(),
-                            queryExpression.getProperties()))
-                .toList();
+            : getSubQueriesWithResultSets(api.getData(), queryExpression, topLevelFilter);
 
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
@@ -765,6 +756,56 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     MultiFeatureQuery query = finalQueryBuilder.build();
     return query;
+  }
+
+  private List<SubQuery> getSubQueriesWithResultSets(
+      OgcApiDataV2 apiData,
+      QueryExpression queryExpression,
+      Optional<Cql2Expression> topLevelFilter) {
+    Map<String, ResultSetResolver.ResolvedResultSet> resultSets = new LinkedHashMap<>();
+    ImmutableList.Builder<SubQuery> queries = ImmutableList.builder();
+
+    for (SingleQuery query : queryExpression.getQueries()) {
+      Optional<Cql2Expression> effectiveFilter =
+          getEffectiveCql2Expression(
+              query.getFilter(), topLevelFilter, queryExpression.getFilterOperator());
+      Optional<Cql2Expression> resolvedFilter =
+          effectiveFilter.map(f -> (Cql2Expression) f.accept(new ResultSetResolver(resultSets)));
+
+      SubQuery subQuery =
+          getSubQuery(
+              apiData,
+              query.getCollections().get(0),
+              resolvedFilter,
+              Optional.empty(),
+              Optional.empty(),
+              query.getSortby(),
+              query.getProperties(),
+              queryExpression.getProperties());
+      queries.add(subQuery);
+
+      query
+          .getAllResultSets()
+          .forEach(
+              (name, definition) -> {
+                if (resultSets.containsKey(name)) {
+                  throw new BadRequestException(
+                      String.format(
+                          "The name of a result set must be unique in the query expression. Found '%s' more than once.",
+                          name));
+                }
+                if (definition.getValues().isPresent()) {
+                  throw new BadRequestException(
+                      "Projected result sets ('values') are not supported.");
+                }
+                resultSets.put(
+                    name,
+                    new ResultSetResolver.ResolvedResultSet(
+                        subQuery.getType(), resolvedFilter, definition.getValues()));
+              });
+    }
+
+    return queries.build();
   }
 
   private SubQuery getSubQuery(
