@@ -944,7 +944,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .fields(fields)
             .collectionIdsByType(collectionIdsByType)
             .allLinksAreLocal(allLinksAreLocal)
-            .idsIncludeCollectionId(collectionIds.size() > 1)
+            .idsIncludeCollectionId(
+                collectionIds.size() > 1 && !featureProvider.info().featureIdsAreGloballyUnique())
             .queryId(queryExpression.getId())
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
@@ -1079,7 +1080,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                               schema,
                               profiles)
                           .orElseThrow();
-                  if (collectionIds.size() > 1) {
+                  if (collectionIds.size() > 1
+                      && !featureProvider.info().featureIdsAreGloballyUnique()) {
                     pt =
                         new IdTransform(featureProvider, getFeatureTypeId(query, n), collectionId)
                             .mergeInto(pt);
