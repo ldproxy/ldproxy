@@ -37,6 +37,12 @@ public interface SingleQuery {
   // shorthand for a single result set with the ids of the selected features
   Optional<String> getResultSet();
 
+  // the query only defines its result sets, it contributes no features to the response
+  @Value.Default
+  default boolean getResultSetOnly() {
+    return false;
+  }
+
   @JsonIgnore
   @Value.Lazy
   default Map<String, ResultSetDefinition> getAllResultSets() {

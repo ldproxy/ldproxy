@@ -71,6 +71,37 @@ class ResultSetSpec extends Specification {
         query.getQueries().get(0).getAllResultSets().get("flst").getValues().isEmpty()
     }
 
+    def 'projected result sets and resultSetOnly'() {
+        given:
+        String json = """
+        {
+            "queries": [
+                {
+                    "collections": [ "ax_flurstueck" ],
+                    "resultSets": {
+                        "flst": {},
+                        "flst_bs": { "values": "istGebucht" }
+                    },
+                    "resultSetOnly": true
+                },
+                {
+                    "collections": [ "ax_buchungsstelle" ],
+                    "filter": { "op": "inResultSet", "args": [ { "property": "id" }, "flst_bs" ] }
+                }
+            ]
+        }
+        """
+
+        when:
+        QueryExpression query = QueryExpression.of(new ByteArrayInputStream(json.getBytes("UTF-8")))
+
+        then:
+        query.getQueries().get(0).getResultSetOnly()
+        query.getQueries().get(0).getAllResultSets().get("flst").getValues().isEmpty()
+        query.getQueries().get(0).getAllResultSets().get("flst_bs").getValues() == Optional.of("istGebucht")
+        !query.getQueries().get(1).getResultSetOnly()
+    }
+
     def 'the resolver attaches the producer context'() {
         given:
         def producerFilter = Eq.of(Property.of("flstkennz"), ScalarLiteral.of("01234001600099______"))

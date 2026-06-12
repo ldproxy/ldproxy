@@ -638,7 +638,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
             ? ImmutableList.of(queryExpression.getCollections().get(0))
-            : queryExpression.getQueries().stream().map(q -> q.getCollections().get(0)).toList();
+            : queryExpression.getQueries().stream()
+                .filter(q -> !q.getResultSetOnly())
+                .map(q -> q.getCollections().get(0))
+                .toList();
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<Link> links =
         queryInput.isStoredQuery()
@@ -782,7 +785,15 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               query.getSortby(),
               query.getProperties(),
               queryExpression.getProperties());
-      queries.add(subQuery);
+
+      if (query.getResultSetOnly()) {
+        if (query.getAllResultSets().isEmpty()) {
+          throw new BadRequestException(
+              "A query with 'resultSetOnly' must define at least one result set.");
+        }
+      } else {
+        queries.add(subQuery);
+      }
 
       query
           .getAllResultSets()
@@ -794,10 +805,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                           "The name of a result set must be unique in the query expression. Found '%s' more than once.",
                           name));
                 }
-                if (definition.getValues().isPresent()) {
-                  throw new BadRequestException(
-                      "Projected result sets ('values') are not supported.");
-                }
                 resultSets.put(
                     name,
                     new ResultSetResolver.ResolvedResultSet(
@@ -805,7 +812,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               });
     }
 
-    return queries.build();
+    List<SubQuery> subQueries = queries.build();
+    if (subQueries.isEmpty()) {
+      throw new BadRequestException(
+          "At least one query must contribute features to the response, but all queries have 'resultSetOnly'.");
+    }
+
+    return subQueries;
   }
 
   private SubQuery getSubQuery(

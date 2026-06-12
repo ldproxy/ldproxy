@@ -110,6 +110,7 @@ public class ParameterResolver implements ParameterResolverBase {
                   .ifPresent(v -> builder2.filter((Cql2Expression) v.accept(cqlParameterResolver)));
               builder2.resultSets(query.getResultSets());
               query.getResultSet().ifPresent(builder2::resultSet);
+              builder2.resultSetOnly(query.getResultSetOnly());
 
               builder.addQueries(builder2.build());
             });
