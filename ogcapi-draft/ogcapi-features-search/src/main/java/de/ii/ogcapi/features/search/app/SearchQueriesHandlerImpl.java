@@ -957,15 +957,22 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .distinct()
             .toList();
 
+    // multiple queries may use the same feature type, all type-keyed maps need a merge function
     Map<String, Optional<FeatureSchema>> schemas =
         query.getQueries().stream()
             .collect(
                 Collectors.toUnmodifiableMap(
-                    TypeQuery::getType, q -> featureProvider.info().getSchema(q.getType())));
+                    TypeQuery::getType,
+                    q -> featureProvider.info().getSchema(q.getType()),
+                    (a, b) -> a));
 
     Map<String, List<String>> fields =
         query.getQueries().stream()
-            .collect(Collectors.toUnmodifiableMap(TypeQuery::getType, TypeQuery::getFields));
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    TypeQuery::getType,
+                    TypeQuery::getFields,
+                    SearchQueriesHandlerImpl::unionOfFields));
 
     // Per-feature link/URL building needs each type's collection; type and collection can differ
     // and a single response may mix collections.
@@ -1142,11 +1149,19 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   }
                   return pt.withSubstitutions(
                       FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(serviceUrl));
-                }));
+                },
+                (a, b) -> a));
   }
 
   private String getFeatureTypeId(MultiFeatureQuery query, int queryIndex) {
     return query.getQueries().get(queryIndex).getType();
+  }
+
+  private static List<String> unionOfFields(List<String> fields1, List<String> fields2) {
+    if (fields1.contains("*") || fields2.contains("*")) {
+      return ImmutableList.of("*");
+    }
+    return Stream.concat(fields1.stream(), fields2.stream()).distinct().toList();
   }
 
   @SuppressWarnings("PMD.PreserveStackTrace")
