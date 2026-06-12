@@ -558,5 +558,10 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     if (Objects.nonNull(headers)) {
       auditLog.setOperationHeaders(requestId, headers);
     }
+    MultivaluedMap<String, String> queryParameter =
+        apiRequestContext.getQueryParameterSet().getValues();
+    if (Objects.nonNull(queryParameter)) {
+      auditLog.setOperationQueryParameter(requestId, queryParameter);
+    }
   }
 }
