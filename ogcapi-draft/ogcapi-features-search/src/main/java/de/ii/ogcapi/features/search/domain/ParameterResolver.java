@@ -20,6 +20,7 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ParameterResolver implements ParameterResolverBase {
 
@@ -78,7 +79,11 @@ public class ParameterResolver implements ParameterResolverBase {
     storedQuery.getSortby().ifPresent(v -> builder.sortby(resolveParameters(v, parameters)));
 
     ParameterResolverCql cqlParameterResolver =
-        new ParameterResolverCql(queryParameterSet, storedQuery.getParameters(), schemaValidator);
+        new ParameterResolverCql(
+            queryParameterSet,
+            storedQuery.getParameters(),
+            schemaValidator,
+            Optional.of(filterCrs));
     if (storedQuery.getFilter().isPresent()) {
       try {
         Cql2Expression expression =
