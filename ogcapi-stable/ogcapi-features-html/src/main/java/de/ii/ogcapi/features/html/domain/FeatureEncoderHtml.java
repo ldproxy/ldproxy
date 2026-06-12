@@ -307,9 +307,13 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
     // Use the canonical id (when the composite-id profile rewrote the feature id) for the URL
     // path, so /items/<canonical>?datetime=... resolves to the stable resource; the JSON `id`
     // and the feature title may still carry the composite for collision-free display.
-    String urlId = Objects.nonNull(canonicalId) ? canonicalId : currentFeatureId;
+    String baseId = Objects.nonNull(canonicalId) ? canonicalId : currentFeatureId;
+    // In a multi-collection response the path uses the feature's own collection and the bare id;
+    // the JSON id may be collection-prefixed.
+    String collectionId = transformationContext.getCollectionIdForType(context.type());
+    String urlId = transformationContext.getFeatureIdInPath(baseId, collectionId);
     String serviceUri = transformationContext.getServiceUrl();
-    String collectionUri = serviceUri + "/collections/" + transformationContext.getCollectionId();
+    String collectionUri = serviceUri + "/collections/" + collectionId;
     String featureUri = collectionUri + "/items/" + urlId;
 
     Optional<String> predecessor =

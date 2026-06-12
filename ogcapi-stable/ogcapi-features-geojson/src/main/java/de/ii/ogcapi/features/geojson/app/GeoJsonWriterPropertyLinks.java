@@ -40,6 +40,7 @@ public class GeoJsonWriterPropertyLinks implements GeoJsonWriter {
 
   private final I18n i18n;
   private String featureId;
+  private String featureType;
 
   @Inject
   public GeoJsonWriterPropertyLinks(I18n i18n) {
@@ -61,6 +62,7 @@ public class GeoJsonWriterPropertyLinks implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     this.featureId = null;
+    this.featureType = context.type();
     next.accept(context);
   }
 
@@ -86,10 +88,15 @@ public class GeoJsonWriterPropertyLinks implements GeoJsonWriter {
     // resource — the JSON `id` carries the composite, but the URL paths always identify by
     // canonical id.
     String canonicalId = context.canonicalFeatureId();
-    String urlId = Objects.nonNull(canonicalId) ? canonicalId : featureId;
+    String baseId = Objects.nonNull(canonicalId) ? canonicalId : featureId;
+    // Resolve the feature's own collection from its type, then strip the collection prefix the
+    // multi-collection response may have added to the id, so links point at /collections/{cid}/
+    // items/{id}.
+    String collectionId = context.encoding().getCollectionIdForType(featureType);
+    String urlId = context.encoding().getFeatureIdInPath(baseId, collectionId);
     if (Objects.nonNull(urlId)) {
       String serviceUri = context.encoding().getServiceUrl();
-      String collectionUri = serviceUri + "/collections/" + context.encoding().getCollectionId();
+      String collectionUri = serviceUri + "/collections/" + collectionId;
       String featureUri = collectionUri + "/items/" + urlId;
       for (PropertyLink link : context.propertyLinks()) {
         ImmutableLink.Builder builder =
