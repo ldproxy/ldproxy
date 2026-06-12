@@ -64,9 +64,10 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   // and wstx would throw "no root" if we called writeEndDocument() unconditionally.
   // Skipping it lets the upstream stream complete cleanly so failIfNoFeatures can turn
   // the empty result into a 404 instead of a 500.
-  private boolean rootElementWritten = false;
+  private boolean rootElementWritten;
 
   FeatureTransformationContextGml() {
+    rootElementWritten = false;
     try {
       Writer writer =
           new Writer() {
@@ -472,14 +473,14 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
                 // value means "no XML attribute was added", and the placeholder is removed
                 // in place (inside attribute position).
                 if (!key.startsWith("_zz_XML_ATTRIBUTE_")
-                    && !key.startsWith("_zz_ROLE_LINKS_")
+                    && !key.startsWith("_zz_PROPERTY_LINKS_")
                     && value.isEmpty()) {
                   return;
                 }
-                // ROLE_LINKS placeholders live inside an XML comment ("<!-- KEY -->").
+                // PROPERTY_LINKS placeholders live inside an XML comment ("<!-- KEY -->").
                 // When empty, drop the entire comment from the buffer; otherwise the
                 // unwrapped key is replaced in place inside the comment.
-                if (key.startsWith("_zz_ROLE_LINKS_") && value.isEmpty()) {
+                if (key.startsWith("_zz_PROPERTY_LINKS_") && value.isEmpty()) {
                   String wrapped = "<!-- " + key + " -->";
                   int idx = buffer.lastIndexOf(wrapped);
                   if (idx != -1) {
