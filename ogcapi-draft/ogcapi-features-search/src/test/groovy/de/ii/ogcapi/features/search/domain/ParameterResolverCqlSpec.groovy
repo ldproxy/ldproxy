@@ -14,6 +14,7 @@ import de.ii.xtraplatform.cql.domain.GeometryNode
 import de.ii.xtraplatform.cql.domain.Parameter
 import de.ii.xtraplatform.cql.domain.ScalarLiteral
 import de.ii.xtraplatform.cql.domain.SpatialLiteral
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaGeometry
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema
 import spock.lang.Specification
@@ -26,8 +27,9 @@ class ParameterResolverCqlSpec extends Specification {
         return new ParameterResolverCql(queryParameterSet, [aoi: schema], schemaValidator, Optional.of(OgcCrs.CRS84))
     }
 
+    // a geometry parameter has only a format, no type (deserialized as JsonSchemaGeometry)
     static JsonSchema geometrySchema(String format) {
-        return new ImmutableJsonSchemaString.Builder().format(format).build()
+        return new ImmutableJsonSchemaGeometry.Builder().format(format).build()
     }
 
     def 'a WKT value of a geometry parameter resolves to a spatial literal'() {
@@ -41,6 +43,44 @@ class ParameterResolverCqlSpec extends Specification {
         then:
         resolved instanceof SpatialLiteral
         ((GeometryNode) ((SpatialLiteral) resolved).getValue()).getGeometry().getType().name() == "POLYGON"
+    }
+
+    def 'a GeoJSON geometry value resolves to a spatial literal'() {
+        given:
+        def geojson = '{"type":"Polygon","coordinates":[[[8,50],[9,50],[9,51],[8,50]]]}'
+        def resolver = resolver([aoi: geojson], geometrySchema("geometry-polygon"))
+        def parameter = Parameter.of("aoi", geometrySchema("geometry-polygon"))
+
+        when:
+        def resolved = parameter.accept(resolver)
+
+        then:
+        resolved instanceof SpatialLiteral
+        ((GeometryNode) ((SpatialLiteral) resolved).getValue()).getGeometry().getType().name() == "POLYGON"
+    }
+
+    def 'the geometry type of the format is enforced for GeoJSON too'() {
+        given:
+        def geojson = '{"type":"Point","coordinates":[8,50]}'
+        def resolver = resolver([aoi: geojson], geometrySchema("geometry-polygon"))
+        def parameter = Parameter.of("aoi", geometrySchema("geometry-polygon"))
+
+        when:
+        parameter.accept(resolver)
+
+        then:
+        def e = thrown IllegalArgumentException
+        e.message.contains("polygon")
+    }
+
+    def 'the legacy type:string + geometry format is still accepted'() {
+        given:
+        def schema = new ImmutableJsonSchemaString.Builder().format("geometry-polygon").build()
+        def resolver = resolver([aoi: "POLYGON((8 50,9 50,9 51,8 50))"], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        expect:
+        parameter.accept(resolver) instanceof SpatialLiteral
     }
 
     def 'the geometry type of the format is enforced'() {

@@ -105,10 +105,11 @@ import java.util.Optional;
  *     referenced using "$ref".
  * - Parameters may be used in all members of the query expression, except "id", "title", and
  *     "description".
- * - A parameter with a schema of type "string" and a "format" that starts with "geometry" takes
- *     a geometry as WKT (well-known text), for example an area of interest in a spatial predicate.
- *     A format like "geometry-polygon" restricts the parameter to that geometry type. The
- *     coordinates are in the coordinate reference system specified by "filterCrs".
+ * - A parameter whose schema has a "format" that starts with "geometry" (and no "type") takes a
+ *     geometry, for example an area of interest in a spatial predicate. The value may be a geometry
+ *     as WKT (well-known text) or a GeoJSON geometry. A format like "geometry-polygon" restricts the
+ *     parameter to that geometry type (the type is validated). The coordinates are in the coordinate
+ *     reference system specified by "filterCrs".
  *     </code>
  * @scopeDe Dieser Baustein unterstützt die Suche nach Features aus einer oder mehreren Collections.
  *     Das heißt, es unterstützt Abfragen, die mit den Filtermechanismen, die durch die Bausteine
@@ -154,7 +155,7 @@ import java.util.Optional;
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
  * - Parameter können in allen Membern der Query Expression verwendet werden, außer in "id", "title" und "description".
- * - Ein Parameter mit einem Schema vom Typ "string" und einem "format", das mit "geometry" beginnt, nimmt eine Geometrie als WKT (Well-Known Text) entgegen, zum Beispiel ein Suchgebiet in einem räumlichen Prädikat. Ein Format wie "geometry-polygon" beschränkt den Parameter auf diesen Geometrietyp. Die Koordinaten liegen in dem durch "filterCrs" angegebenen Koordinatenreferenzsystem vor.
+ * - Ein Parameter, dessen Schema ein "format" hat, das mit "geometry" beginnt (und keinen "type"), nimmt eine Geometrie entgegen, zum Beispiel ein Suchgebiet in einem räumlichen Prädikat. Der Wert kann eine Geometrie als WKT (Well-Known Text) oder eine GeoJSON-Geometrie sein. Ein Format wie "geometry-polygon" beschränkt den Parameter auf diesen Geometrietyp (der Typ wird validiert). Die Koordinaten liegen in dem durch "filterCrs" angegebenen Koordinatenreferenzsystem vor.
  *     </code>
  * @cfgFilesEn Stored queries must be located in the value store under the relative path
  *     `queries/{apiId}/{queryId}.json`.
