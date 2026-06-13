@@ -10,11 +10,12 @@ package de.ii.ldproxy.cfg;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Resources;
-import com.networknt.schema.JsonMetaSchema;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion.VersionFlag;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.Error;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.dialect.Dialect;
+import com.networknt.schema.dialect.DialectId;
+import com.networknt.schema.dialect.Dialects;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryValue;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -95,7 +96,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
   private final RequiredIncludes requiredIncludes;
   private final de.ii.xtraplatform.entities.domain.EntityFactories entityFactories;
   private final de.ii.xtraplatform.values.domain.ValueFactories valueFactories;
-  private final Map<String, JsonSchema> entitySchemas;
+  private final Map<String, Schema> entitySchemas;
   private final Map<String, String> rawSchemas;
   private final List<Identifier> entityIdentifiers;
   private final List<Identifier> defaultIdentifiers;
@@ -276,16 +277,14 @@ class LdproxyCfgImpl implements LdproxyCfg {
 
   public void init() throws IOException {
     ObjectMapper jsonMapper = entityDataStore.getValueEncoding().getMapper(FORMAT.JSON);
-    JsonMetaSchema metaSchema =
-        JsonMetaSchema.builder(
-                "https://json-schema.org/draft/2020-12/schema", JsonMetaSchema.getV202012())
+    Dialect dialect =
+        Dialect.builder(DialectId.DRAFT_2020_12, Dialects.getDraft202012())
             .keyword(new DeprecatedKeyword())
             .build();
-    JsonSchemaFactory factory =
-        JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(VersionFlag.V202012))
-            .metaSchema(metaSchema)
-            .jsonMapper(jsonMapper)
-            .build();
+    SchemaRegistry registry =
+        SchemaRegistry.withDefaultDialect(
+            dialect,
+            builder -> builder.nodeReader(nodeReader -> nodeReader.jsonMapper(jsonMapper)));
 
     for (String entityType : List.of("providers", "services", "users")) {
       URL schemaResource =
@@ -296,7 +295,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
           new String(
               Resources.asByteSource(schemaResource).openStream().readAllBytes(),
               StandardCharsets.UTF_8);
-      JsonSchema schema = factory.getSchema(rawSchema);
+      Schema schema = registry.getSchema(rawSchema);
       schema.initializeValidators();
 
       this.entitySchemas.put(entityType, schema);
@@ -314,8 +313,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
   }
 
   @Override
-  public Set<ValidationMessage> validateEntity(Path entityPath, String entityType)
-      throws IOException {
+  public List<Error> validateEntity(Path entityPath, String entityType) throws IOException {
     if (!entitySchemas.containsKey(entityType)) {
       throw new IllegalStateException();
     }
@@ -327,8 +325,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
   }
 
   @Override
-  public Set<ValidationMessage> validateEntity(String entityCfg, String entityType)
-      throws IOException {
+  public List<Error> validateEntity(String entityCfg, String entityType) throws IOException {
     if (!entitySchemas.containsKey(entityType)) {
       throw new IllegalStateException();
     }
