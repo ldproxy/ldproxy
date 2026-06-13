@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.7.1 (05/06/2026)
+#### Fixed bugs
+
+-  Oracle: error when combining `offset` and `sortby` [#1629](https://github.com/ldproxy/ldproxy/issues/1629)
+- `sortKeyUnique=false` has no effect [#1628](https://github.com/ldproxy/ldproxy/issues/1628)
+-  WFS provider: server error when processing point geometries [#1597](https://github.com/ldproxy/ldproxy/issues/1597)
+-  incorrect mapping of a feature schema with nested objects to JSON Schema [#1595](https://github.com/ldproxy/ldproxy/issues/1595)
+-  Features in HTML: CRS handling results in incorrect responses [#1585](https://github.com/ldproxy/ldproxy/issues/1585)
+-  error when requesting a geometry in a 3D CRS in a 2D CRS [#1584](https://github.com/ldproxy/ldproxy/issues/1584)
+
+#### Dependency updates
+
+* Update dependency redis.clients:jedis to v7.4.1 (maintenance-6.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/350
+* Update swagger to v2.2.50 (maintenance-6.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/397
+* Update dependency io.minio:minio to v9.0.1 (maintenance-6.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/403
+* Update dependency org.postgresql:postgresql to v42.7.11 (maintenance-7.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/489
+* Update dependency com.fasterxml.staxmate:staxmate to v2.4.2 (maintenance-7.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/514
+---
+
 ## v4.7.0 (03/04/2026)
 
 #### Implemented enhancements
