@@ -80,6 +80,13 @@ public interface QueryExpression {
     return false;
   }
 
+  // if disabled, numberMatched is not computed (avoids a count query per query, which can be
+  // expensive for query expressions with many or chained queries)
+  @Value.Default
+  default boolean getComputeNumberMatched() {
+    return true;
+  }
+
   List<String> getProfiles();
 
   @JsonIgnore

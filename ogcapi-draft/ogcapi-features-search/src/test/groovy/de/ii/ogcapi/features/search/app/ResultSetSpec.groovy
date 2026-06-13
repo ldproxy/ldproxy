@@ -46,6 +46,16 @@ class ResultSetSpec extends Specification {
         query.getQueries().get(1).getFilter().get() == InResultSet.of("dientZurDarstellungVon", "flst")
     }
 
+    def 'computeNumberMatched defaults to true and can be disabled'() {
+        given:
+        String byDefault = """{ "queries": [ { "collections": [ "ax_flurstueck" ] } ] }"""
+        String disabled = """{ "computeNumberMatched": false, "queries": [ { "collections": [ "ax_flurstueck" ] } ] }"""
+
+        expect:
+        QueryExpression.of(new ByteArrayInputStream(byDefault.getBytes("UTF-8"))).getComputeNumberMatched()
+        !QueryExpression.of(new ByteArrayInputStream(disabled.getBytes("UTF-8"))).getComputeNumberMatched()
+    }
+
     def 'the resultSet shorthand is equivalent to an id result set'() {
         given:
         String json = """

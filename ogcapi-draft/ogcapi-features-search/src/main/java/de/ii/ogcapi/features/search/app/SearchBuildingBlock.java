@@ -87,6 +87,9 @@ import java.util.Optional;
  * - The "limit" member applies to the entire result set. Responses are single-shot: there is no
  *     paging and no "next" links, "limit" is an upper bound for the number of features in the
  *     response.
+ * - By default the response includes "numberMatched". Setting "computeNumberMatched" to false
+ *     skips it; this avoids a count query per query and can be considerably faster for query
+ *     expressions with many or chained queries. "numberMatched" is then not reported.
  * - The “crs” and “verticalCrs” members are optional and can be used to specify the coordinate
  *     reference system for the coordinates in the response. If no value is specified, the default
  *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
@@ -150,6 +153,7 @@ import java.util.Optional;
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
  * - Das Element "limit" gilt für die gesamte Ergebnismenge. Antworten werden nicht in Seiten aufgeteilt: Es gibt kein Paging und keine "next"-Links, "limit" ist eine Obergrenze für die Anzahl der Features in der Antwort.
+ * - Standardmäßig enthält die Antwort "numberMatched". Wird "computeNumberMatched" auf false gesetzt, wird darauf verzichtet; dies vermeidet eine Count-Abfrage pro Abfrage und kann bei Query Expressions mit vielen oder verketteten Abfragen deutlich schneller sein. "numberMatched" wird dann nicht ausgegeben.
  * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
