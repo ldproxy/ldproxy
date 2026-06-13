@@ -61,6 +61,18 @@ import java.util.stream.Stream;
  *     is deprecated, these properties will not be eligible as queryables in the next major version.
  *     <p>If the queryable property is a value, e.g., a string or integer, that is nested in an
  *     array, the type of the queryable will be an array of values.
+ *     <p>For a geometry queryable, the schema documents the admissible geometry type(s) in two
+ *     complementary ways:
+ *     <p><code>
+ * - `format` (string) identifies a single, possibly combined geometry type using the values defined
+ *   by OGC API - Features - Part 5, e.g. `geometry-point`, `geometry-multipolygon`,
+ *   `geometry-point-or-multipoint`, `geometry-any`.
+ * - `x-ldproxy-geometryTypes` (array of strings) lists the individual admissible types in
+ *   UpperCamelCase, e.g. `["Point", "MultiPoint"]` or `["MultiPolygon"]`. The keyword is omitted
+ *   when no specific types are configured.
+ *     </code>
+ *     <p>The values are derived from the provider-schema fields `geometryType` (a single type) and
+ *     `geometryTypes` (a list of admissible types).
  * @scopeDe Die Queryables werden als Schema kodiert, wobei jede Queryable eine Objekteigenschaft
  *     ist. Das Schema für jede abfragbare Eigenschaft wird automatisch aus der Definition der
  *     Eigenschaft im Feature-Provider abgeleitet. Unterstützte Kodierungen sind JSON Schema und
@@ -78,6 +90,18 @@ import java.util.stream.Stream;
  *     nächsten Hauptversion nicht mehr als Queryables akzeptiert werden.
  *     <p>Wenn die abfragbare Eigenschaft ein Wert ist, z.B. ein String oder ein Integer, die in
  *     einem Array verschachtelt ist, ist der Typ der abfragbaren Eigenschaft ein Array der Werte.
+ *     <p>Für eine abfragbare Geometrieeigenschaft werden die zulässigen Geometrietypen auf zwei
+ *     sich ergänzende Arten dokumentiert:
+ *     <p><code>
+ * - `format` (string) bezeichnet einen einzelnen, ggf. kombinierten Geometrietyp gemäß den in
+ *   OGC API - Features - Part 5 definierten Werten, z.B. `geometry-point`, `geometry-multipolygon`,
+ *   `geometry-point-or-multipoint`, `geometry-any`.
+ * - `x-ldproxy-geometryTypes` (Array von Strings) führt die einzelnen zulässigen Typen in
+ *   UpperCamelCase auf, z.B. `["Point", "MultiPoint"]` oder `["MultiPolygon"]`. Der Eintrag fehlt,
+ *   wenn keine konkreten Typen konfiguriert sind.
+ *     </code>
+ *     <p>Die Werte werden aus den Feldern `geometryType` (ein einzelner Typ) und `geometryTypes`
+ *     (eine Liste zulässiger Typen) im Provider-Schema abgeleitet.
  * @conformanceEn *Feature Collections - Queryables* implements the conformance classes "Queryables"
  *     and "Queryables as Query Parameters" of [OGC API - Features - Part 3:
  *     Filtering](https://docs.ogc.org/is/19-079r2/19-079r2.html).

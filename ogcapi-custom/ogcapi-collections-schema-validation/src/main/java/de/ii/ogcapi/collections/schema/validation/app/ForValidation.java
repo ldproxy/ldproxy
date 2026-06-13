@@ -390,6 +390,23 @@ public class ForValidation implements JsonSchemaTransformer {
   }
 
   private JsonSchema getGeometryType(JsonSchemaGeometry geometry, boolean simpleFeatures) {
+    // Prefer the precise per-type list (x-ldproxy-geometryTypes); fall back to format when absent.
+    if (geometry.getGeometryTypes().isPresent()) {
+      List<JsonSchema> schemas =
+          geometry.getGeometryTypes().get().stream()
+              .map(t -> mapGeometryTypeName(t, simpleFeatures))
+              .filter(s -> s != null)
+              .distinct()
+              .toList();
+      if (schemas.size() == 1) {
+        return schemas.get(0);
+      }
+      if (!schemas.isEmpty()) {
+        ImmutableJsonSchemaOneOf.Builder b = new ImmutableJsonSchemaOneOf.Builder();
+        schemas.forEach(b::addOneOf);
+        return b.build();
+      }
+    }
     String format = geometry.getFormat().substring(9); // Remove "geometry-"
     return switch (format) {
       case "point" -> POINT;
@@ -398,12 +415,6 @@ public class ForValidation implements JsonSchemaTransformer {
           new ImmutableJsonSchemaOneOf.Builder().addOneOf(POINT, MULTIPOINT).build();
       case "linestring" -> LINESTRING;
       case "circularstring" -> simpleFeatures ? LINESTRING : CIRCULARSTRING;
-      case "curve" ->
-          simpleFeatures
-              ? LINESTRING
-              : new ImmutableJsonSchemaOneOf.Builder()
-                  .addOneOf(LINESTRING, CIRCULARSTRING, COMPOUNDCURVE)
-                  .build();
       case "compoundcurve" -> simpleFeatures ? LINESTRING : COMPOUNDCURVE;
       case "multilinestring" -> MULTILINESTRING;
       case "linestring-or-multilinestring" ->
@@ -413,10 +424,6 @@ public class ForValidation implements JsonSchemaTransformer {
       case "polygon-or-multipolygon" ->
           new ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYGON, MULTIPOLYGON).build();
       case "curvepolygon" -> simpleFeatures ? POLYGON : CURVEPOLYGON;
-      case "surface" ->
-          simpleFeatures
-              ? POLYGON
-              : new ImmutableJsonSchemaOneOf.Builder().addOneOf(POLYGON, CURVEPOLYGON).build();
       case "multicurve" -> simpleFeatures ? MULTILINESTRING : MULTICURVE;
       case "multisurface" -> simpleFeatures ? MULTIPOLYGON : MULTISURFACE;
       // case "polyhedron" -> POLYHEDRON;
@@ -453,6 +460,24 @@ public class ForValidation implements JsonSchemaTransformer {
                   .build();
       default ->
           throw new IllegalStateException("Unexpected format value: " + geometry.getFormat());
+    };
+  }
+
+  private static JsonSchema mapGeometryTypeName(String upperCamel, boolean simpleFeatures) {
+    return switch (upperCamel) {
+      case "Point" -> POINT;
+      case "MultiPoint" -> MULTIPOINT;
+      case "LineString" -> LINESTRING;
+      case "CircularString" -> simpleFeatures ? LINESTRING : CIRCULARSTRING;
+      case "CompoundCurve" -> simpleFeatures ? LINESTRING : COMPOUNDCURVE;
+      case "MultiLineString" -> MULTILINESTRING;
+      case "MultiCurve" -> simpleFeatures ? MULTILINESTRING : MULTICURVE;
+      case "Polygon" -> POLYGON;
+      case "MultiPolygon", "PolyhedralSurface" -> MULTIPOLYGON;
+      case "CurvePolygon" -> simpleFeatures ? POLYGON : CURVEPOLYGON;
+      case "MultiSurface" -> simpleFeatures ? MULTIPOLYGON : MULTISURFACE;
+      case "GeometryCollection" -> GEOMETRYCOLLECTION;
+      default -> null;
     };
   }
 
