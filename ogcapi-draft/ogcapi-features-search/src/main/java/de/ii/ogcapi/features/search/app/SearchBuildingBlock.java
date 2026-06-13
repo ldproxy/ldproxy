@@ -180,6 +180,14 @@ import java.util.Optional;
  *     specification in OGC (e.g., whether the payload should be JSON or URL-encoded query
  *     parameters).
  *     </code>
+ *     <p>Result sets have the following constraints:
+ *     <p><code>
+ * - All collections referenced in a query expression that uses result sets must be served by the
+ *     same feature provider.
+ * - For a property with more than one target type (a `coalesce`/`concat` reference), `inResultSet`
+ *     matches the ids in the set regardless of the target type; the ids of the set are not yet
+ *     filtered to the valid target types of the reference.
+ *     </code>
  *     <p>In addition:
  *     <p><code>
  * - Responses are not paged, `limit` is an upper bound for the number of features in the
@@ -191,6 +199,11 @@ import java.util.Optional;
  * - Das JSON-Schema eines Parameters unterstützt eine Teilmenge der Sprache. Insbesondere werden `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`, `additionalItems` und `items: false` nicht unterstützt.
  * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte), Arrays von Skalarwerten oder Geometrien als WKT (siehe oben) beschränkt.
  * - POST zur Ausführung einer gespeicherten Abfrage wird nicht unterstützt. Dies wird hinzugefügt, nachdem die Spezifikation in OGC diskutiert wurde (z.B. ob die Nutzlast JSON oder URL-kodierte Abfrageparameter sein sollen).
+ *     </code>
+ *     <p>Für Result-Sets gelten die folgenden Beschränkungen:
+ *     <p><code>
+ * - Alle in einer Query Expression mit Result-Sets referenzierten Collections müssen vom selben Feature-Provider bereitgestellt werden.
+ * - Bei einer Eigenschaft mit mehr als einem Zieltyp (einer `coalesce`/`concat`-Referenz) berücksichtigt `inResultSet` die IDs des Result-Sets unabhängig vom Zieltyp; die IDs des Result-Sets werden noch nicht auf die gültigen Zieltypen der Referenz eingeschränkt.
  *     </code>
  *     <p>Außerdem:
  *     <p><code>
