@@ -53,6 +53,7 @@ import de.ii.ogcapi.text.search.app.TextSearchBuildingBlock;
 import de.ii.ogcapi.tilematrixsets.app.TileMatrixSetsBuildingBlock;
 import de.ii.ogcapi.tiles.app.TilesBuildingBlock;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
+import de.ii.ogcapi.transactions.app.TransactionsBuildingBlock;
 import de.ii.ogcapi.xml.app.XmlBuildingBlock;
 import de.ii.xtraplatform.base.domain.AppContext;
 import java.util.List;
@@ -111,6 +112,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
                     this, null, null)) // TODO: TileFormatWithQuerySupportExtension,
             // TileSetFormatExtension
             .add(new Tiles3dBuildingBlock(null, null))
+            .add(new TransactionsBuildingBlock(null))
             .add(new XmlBuildingBlock())
             .build();
   }

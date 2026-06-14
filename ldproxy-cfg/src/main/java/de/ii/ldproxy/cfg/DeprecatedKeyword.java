@@ -8,26 +8,24 @@
 package de.ii.ldproxy.cfg;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.networknt.schema.AbstractJsonValidator;
-import com.networknt.schema.AbstractKeyword;
-import com.networknt.schema.CustomErrorMessageType;
+import com.networknt.schema.Error;
 import com.networknt.schema.ExecutionContext;
-import com.networknt.schema.JsonNodePath;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonValidator;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaContext;
 import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.ValidationContext;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.keyword.AbstractKeyword;
+import com.networknt.schema.keyword.AbstractKeywordValidator;
+import com.networknt.schema.keyword.KeywordValidator;
+import com.networknt.schema.path.NodePath;
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.Set;
 
 public class DeprecatedKeyword extends AbstractKeyword {
 
   public static final String KEYWORD = "deprecated";
 
-  public static boolean isDeprecated(ValidationMessage vm) {
-    return Objects.equals(vm.getCode(), KEYWORD);
+  public static boolean isDeprecated(Error error) {
+    return Objects.equals(error.getMessageKey(), KEYWORD);
   }
 
   public DeprecatedKeyword() {
@@ -35,32 +33,32 @@ public class DeprecatedKeyword extends AbstractKeyword {
   }
 
   @Override
-  public JsonValidator newValidator(
+  public KeywordValidator newValidator(
       SchemaLocation schemaLocation,
-      JsonNodePath schemaPath,
       JsonNode schemaNode,
-      JsonSchema parentSchema,
-      ValidationContext validationContext) {
+      Schema parentSchema,
+      SchemaContext schemaContext) {
     boolean deprecated = schemaNode.asBoolean(false);
 
-    return new AbstractJsonValidator(schemaLocation, schemaPath, this, schemaNode) {
+    return new AbstractKeywordValidator(KEYWORD, schemaNode, schemaLocation) {
       @Override
-      public Set<ValidationMessage> validate(
-          ExecutionContext context, JsonNode node, JsonNode rootNode, JsonNodePath at) {
+      public void validate(
+          ExecutionContext executionContext,
+          JsonNode instanceNode,
+          JsonNode instance,
+          NodePath instanceLocation) {
         if (deprecated) {
-          return Set.of(
-              ValidationMessage.builder()
-                  .type(getValue())
-                  .code(CustomErrorMessageType.of(getValue()).getErrorCode())
+          executionContext.addError(
+              Error.builder()
+                  .keyword(KEYWORD)
+                  .messageKey(KEYWORD)
                   .format(new MessageFormat("{0}: is deprecated and should be upgraded"))
-                  .schemaLocation(schemaLocation)
-                  .evaluationPath(schemaPath)
-                  .instanceLocation(at)
-                  .instanceNode(node)
+                  .schemaLocation(getSchemaLocation())
+                  .evaluationPath(executionContext.getEvaluationPath())
+                  .instanceLocation(instanceLocation)
+                  .instanceNode(instanceNode)
                   .build());
         }
-
-        return Set.of();
       }
     };
   }

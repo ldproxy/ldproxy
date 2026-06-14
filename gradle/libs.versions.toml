@@ -1,6 +1,6 @@
 [versions]
-schema-validator = '1.5.9'
-earcut4j = '2.2.2'
+schema-validator = '2.0.1'
+earcut4j = '3.0.0'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.29.0'
 json-patch = '2.0.2'
@@ -12,7 +12,7 @@ schema-validator = { module = "com.networknt:json-schema-validator", version.ref
 spdx = { module = "org.spdx:java-spdx-library", version.ref = "spdx" }
 
 # gltf
-earcut4j = { module = "io.github.earcut4j:earcut4j", version.ref = "earcut4j" }
+earcut4j = { module = "org.maplibre:earcut4j", version.ref = "earcut4j" }
 
 # flatgeobuf
 flatbuffers = { module = "com.google.flatbuffers:flatbuffers-java", version.ref = "flatbuffers" }

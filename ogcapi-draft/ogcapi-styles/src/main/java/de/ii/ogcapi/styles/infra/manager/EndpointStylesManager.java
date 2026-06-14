@@ -25,6 +25,7 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -54,6 +55,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -267,7 +269,11 @@ public class EndpointStylesManager extends Endpoint
         new ImmutableQueryInputStyleCreateReplace.Builder()
             .contentType(mediaTypeFromString(request.getContentType()))
             .requestBody(requestBody)
-            .strict(strictHandling(request.getHeaders("Prefer")));
+            .strict(
+                HeaderPrefer.parseHandling(
+                        Collections.list(request.getHeaders("Prefer")),
+                        HeaderPrefer.Handling.LENIENT)
+                    == HeaderPrefer.Handling.STRICT);
 
     applyParameters(requestContext.getQueryParameterSet(), builder);
 
@@ -305,7 +311,11 @@ public class EndpointStylesManager extends Endpoint
             .styleId(styleId)
             .contentType(mediaTypeFromString(request.getContentType()))
             .requestBody(requestBody)
-            .strict(strictHandling(request.getHeaders("Prefer")));
+            .strict(
+                HeaderPrefer.parseHandling(
+                        Collections.list(request.getHeaders("Prefer")),
+                        HeaderPrefer.Handling.LENIENT)
+                    == HeaderPrefer.Handling.STRICT);
 
     applyParameters(requestContext.getQueryParameterSet(), builder);
 

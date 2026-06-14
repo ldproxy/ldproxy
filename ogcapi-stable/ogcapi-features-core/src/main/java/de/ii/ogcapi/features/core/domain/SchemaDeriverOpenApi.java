@@ -162,12 +162,12 @@ public abstract class SchemaDeriverOpenApi extends SchemaDeriver<Schema<?>> {
 
   @Override
   protected Schema<?> getSchemaForGeometry(
-      GeometryType geometryType,
+      List<GeometryType> geometryTypes,
       Optional<String> title,
       Optional<String> description,
       Optional<String> role) {
     Schema<?> oapiSchema =
-        switch (geometryType) {
+        switch (GeometryType.effectiveType(geometryTypes)) {
           case POINT ->
               new Schema<>()
                   .$ref(

@@ -57,6 +57,14 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   private final XMLStreamWriter xmlWriter;
 
+  // Tracks whether any start element has been written. Used by endDocument() to skip
+  // writeEndDocument() on an empty stream: a single-feature item request whose query
+  // returns no rows produces no root element (the root is written inside onFeatureStart),
+  // and wstx would throw "no root" if we called writeEndDocument() unconditionally.
+  // Skipping it lets the upstream stream complete cleanly so failIfNoFeatures can turn
+  // the empty result into a 404 instead of a 500.
+  private boolean rootElementWritten = false;
+
   FeatureTransformationContextGml() {
     try {
       Writer writer =
@@ -216,8 +224,11 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     }
   }
 
-  /** Write the XML prolog */
+  /** Write the XML end-of-document, or no-op if no element was ever written. */
   public void endDocument() throws IOException {
+    if (!rootElementWritten) {
+      return;
+    }
     try {
       xmlWriter.writeEndDocument();
     } catch (XMLStreamException e) {
@@ -269,6 +280,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
         String nsUri = getNamespaces().getOrDefault(prefix, "");
         xmlWriter.writeStartElement(prefix, localName, nsUri);
       }
+      rootElementWritten = true;
     } catch (XMLStreamException e) {
       throw new IOException(e);
     }

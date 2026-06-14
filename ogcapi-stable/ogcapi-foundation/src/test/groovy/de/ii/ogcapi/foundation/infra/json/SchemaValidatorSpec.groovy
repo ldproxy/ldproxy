@@ -8,7 +8,6 @@
 package de.ii.ogcapi.foundation.infra.json
 
 import com.fasterxml.jackson.core.JsonParseException
-import com.networknt.schema.SpecVersion
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import spock.lang.Shared
 import spock.lang.Specification
