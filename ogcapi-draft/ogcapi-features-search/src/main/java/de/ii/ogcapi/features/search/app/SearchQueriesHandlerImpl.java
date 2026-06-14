@@ -633,7 +633,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
-    MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
+    EpsgCrs nativeCrs =
+        featureProvider.crs().isAvailable() ? featureProvider.crs().get().getNativeCrs() : null;
+    MultiFeatureQuery query =
+        getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs, nativeCrs);
 
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
@@ -696,8 +699,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private MultiFeatureQuery getMultiFeatureQuery(
-      OgcApi api, QueryExpression queryExpression, EpsgCrs crs) {
-    Optional<Cql2Expression> topLevelFilter = queryExpression.getFilter();
+      OgcApi api, QueryExpression queryExpression, EpsgCrs crs, EpsgCrs nativeCrs) {
+    EpsgCrs filterCrs =
+        queryExpression.getFilterCrs().map(EpsgCrs::fromString).orElse(OgcCrs.CRS84);
+    boolean validateCoordinates =
+        api.getData()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .map(FeaturesCoreConfiguration::getValidateCoordinatesInQueries)
+            .orElse(false);
+    Optional<Cql2Expression> topLevelFilter =
+        queryExpression
+            .getFilter()
+            .map(f -> withFilterCrs(f, filterCrs, nativeCrs, validateCoordinates));
     List<SubQuery> queries =
         queryExpression.getCollections().size() == 1
             ? ImmutableList.of(
@@ -711,7 +724,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                     queryExpression.getSortby(),
                     queryExpression.getProperties(),
                     ImmutableList.of()))
-            : getSubQueriesWithResultSets(api.getData(), queryExpression, topLevelFilter);
+            : getSubQueriesWithResultSets(
+                api.getData(),
+                queryExpression,
+                topLevelFilter,
+                filterCrs,
+                nativeCrs,
+                validateCoordinates);
 
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
@@ -751,14 +770,21 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   private List<SubQuery> getSubQueriesWithResultSets(
       OgcApiDataV2 apiData,
       QueryExpression queryExpression,
-      Optional<Cql2Expression> topLevelFilter) {
+      Optional<Cql2Expression> topLevelFilter,
+      EpsgCrs filterCrs,
+      EpsgCrs nativeCrs,
+      boolean validateCoordinates) {
     Map<String, ResultSetResolver.ResolvedResultSet> resultSets = new LinkedHashMap<>();
     ImmutableList.Builder<SubQuery> queries = ImmutableList.builder();
 
     for (SingleQuery query : queryExpression.getQueries()) {
       Optional<Cql2Expression> effectiveFilter =
           getEffectiveCql2Expression(
-              query.getFilter(), topLevelFilter, queryExpression.getFilterOperator());
+              query
+                  .getFilter()
+                  .map(f -> withFilterCrs(f, filterCrs, nativeCrs, validateCoordinates)),
+              topLevelFilter,
+              queryExpression.getFilterOperator());
       Optional<Cql2Expression> resolvedFilter =
           effectiveFilter.map(f -> (Cql2Expression) f.accept(new ResultSetResolver(resultSets)));
 
@@ -853,6 +879,27 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                           : Stream.concat(globalProperties.stream(), properties.stream()).toList())
           .build();
     }
+  }
+
+  // The query-expression parser deserializes the filter inline and does not inject the filter CRS,
+  // so geometry literals would otherwise default to CRS84. Routing the expression back through
+  // Cql.read() with the filter CRS mirrors the Features/Filter query parameter path and attaches
+  // the CRS to every geometry literal. The result-set reference of inResultSet round-trips through
+  // CQL2-JSON; its resolved producer context is attached later, so this must run before the
+  // ResultSetResolver.
+  private Cql2Expression withFilterCrs(
+      Cql2Expression filter, EpsgCrs filterCrs, EpsgCrs nativeCrs, boolean validateCoordinates) {
+    Cql2Expression result =
+        cql.read(cql.write(filter, Cql.Format.JSON), Cql.Format.JSON, filterCrs, true);
+    if (validateCoordinates) {
+      try {
+        cql.checkCoordinates(result, crsTransformerFactory, crsInfo, filterCrs, nativeCrs);
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException(
+            String.format("The filter expression is invalid: %s", e.getMessage()));
+      }
+    }
+    return result;
   }
 
   private Optional<Cql2Expression> getEffectiveCql2Expression(
