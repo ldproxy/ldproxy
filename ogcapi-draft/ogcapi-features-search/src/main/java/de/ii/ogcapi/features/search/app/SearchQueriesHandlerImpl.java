@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.search.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -38,6 +39,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
@@ -54,11 +56,13 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
+import de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.cql.domain.Or;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
@@ -68,7 +72,9 @@ import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.DeterminePipelineStepsThatCannotBeSkipped;
+import de.ii.xtraplatform.features.domain.FeatureInfo;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureQueries;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureStream.PipelineSteps;
@@ -137,6 +143,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   private final Values<Codelist> codelistStore;
   private final CrsInfo crsInfo;
   private final Cql cql;
+  private final FeaturesCoreProviders providers;
   private final StoredQueryRepository repository;
   private final StoredQueriesLinkGenerator linkGenerator;
   private final SchemaValidator schemaValidator;
@@ -149,6 +156,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       ValueStore valueStore,
       CrsInfo crsInfo,
       Cql cql,
+      FeaturesCoreProviders providers,
       StoredQueryRepository repository,
       SchemaValidator schemaValidator,
       VolatileRegistry volatileRegistry) {
@@ -159,6 +167,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     this.codelistStore = valueStore.forType(Codelist.class);
     this.crsInfo = crsInfo;
     this.cql = cql;
+    this.providers = providers;
     this.repository = repository;
     this.schemaValidator = schemaValidator;
     this.linkGenerator = new StoredQueriesLinkGenerator();
@@ -633,10 +642,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
-    EpsgCrs nativeCrs =
-        featureProvider.crs().isAvailable() ? featureProvider.crs().get().getNativeCrs() : null;
-    MultiFeatureQuery query =
-        getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs, nativeCrs);
+    MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
 
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
@@ -699,38 +705,31 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private MultiFeatureQuery getMultiFeatureQuery(
-      OgcApi api, QueryExpression queryExpression, EpsgCrs crs, EpsgCrs nativeCrs) {
+      OgcApi api, QueryExpression queryExpression, EpsgCrs crs) {
     EpsgCrs filterCrs =
         queryExpression.getFilterCrs().map(EpsgCrs::fromString).orElse(OgcCrs.CRS84);
-    boolean validateCoordinates =
-        api.getData()
-            .getExtension(FeaturesCoreConfiguration.class)
-            .map(FeaturesCoreConfiguration::getValidateCoordinatesInQueries)
-            .orElse(false);
     Optional<Cql2Expression> topLevelFilter =
-        queryExpression
-            .getFilter()
-            .map(f -> withFilterCrs(f, filterCrs, nativeCrs, validateCoordinates));
-    List<SubQuery> queries =
-        queryExpression.getCollections().size() == 1
-            ? ImmutableList.of(
-                getSubQuery(
-                    api.getData(),
-                    queryExpression.getCollections().get(0),
-                    topLevelFilter.map(
-                        f -> (Cql2Expression) f.accept(new ResultSetResolver(ImmutableMap.of()))),
-                    Optional.empty(),
-                    Optional.empty(),
-                    queryExpression.getSortby(),
-                    queryExpression.getProperties(),
-                    ImmutableList.of()))
-            : getSubQueriesWithResultSets(
-                api.getData(),
-                queryExpression,
-                topLevelFilter,
-                filterCrs,
-                nativeCrs,
-                validateCoordinates);
+        queryExpression.getFilter().map(f -> withFilterCrs(f, filterCrs));
+    List<SubQuery> queries;
+    if (queryExpression.getCollections().size() == 1) {
+      String collectionId = queryExpression.getCollections().get(0);
+      topLevelFilter.ifPresent(f -> validateFilter(api.getData(), collectionId, f, filterCrs));
+      queries =
+          ImmutableList.of(
+              getSubQuery(
+                  api.getData(),
+                  collectionId,
+                  topLevelFilter.map(
+                      f -> (Cql2Expression) f.accept(new ResultSetResolver(ImmutableMap.of()))),
+                  Optional.empty(),
+                  Optional.empty(),
+                  queryExpression.getSortby(),
+                  queryExpression.getProperties(),
+                  ImmutableList.of()));
+    } else {
+      queries =
+          getSubQueriesWithResultSets(api.getData(), queryExpression, topLevelFilter, filterCrs);
+    }
 
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
@@ -771,20 +770,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       OgcApiDataV2 apiData,
       QueryExpression queryExpression,
       Optional<Cql2Expression> topLevelFilter,
-      EpsgCrs filterCrs,
-      EpsgCrs nativeCrs,
-      boolean validateCoordinates) {
+      EpsgCrs filterCrs) {
     Map<String, ResultSetResolver.ResolvedResultSet> resultSets = new LinkedHashMap<>();
     ImmutableList.Builder<SubQuery> queries = ImmutableList.builder();
 
     for (SingleQuery query : queryExpression.getQueries()) {
+      String collectionId = query.getCollections().get(0);
       Optional<Cql2Expression> effectiveFilter =
           getEffectiveCql2Expression(
-              query
-                  .getFilter()
-                  .map(f -> withFilterCrs(f, filterCrs, nativeCrs, validateCoordinates)),
+              query.getFilter().map(f -> withFilterCrs(f, filterCrs)),
               topLevelFilter,
               queryExpression.getFilterOperator());
+      effectiveFilter.ifPresent(f -> validateFilter(apiData, collectionId, f, filterCrs));
       Optional<Cql2Expression> resolvedFilter =
           effectiveFilter.map(f -> (Cql2Expression) f.accept(new ResultSetResolver(resultSets)));
 
@@ -887,19 +884,77 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   // the CRS to every geometry literal. The result-set reference of inResultSet round-trips through
   // CQL2-JSON; its resolved producer context is attached later, so this must run before the
   // ResultSetResolver.
-  private Cql2Expression withFilterCrs(
-      Cql2Expression filter, EpsgCrs filterCrs, EpsgCrs nativeCrs, boolean validateCoordinates) {
-    Cql2Expression result =
-        cql.read(cql.write(filter, Cql.Format.JSON), Cql.Format.JSON, filterCrs, true);
+  private Cql2Expression withFilterCrs(Cql2Expression filter, EpsgCrs filterCrs) {
+    return cql.read(cql.write(filter, Cql.Format.JSON), Cql.Format.JSON, filterCrs, true);
+  }
+
+  /**
+   * Validates a query's effective filter against the queryables of its collection, mirroring the
+   * Features/Filter query parameter: unknown or forbidden properties and type mismatches are
+   * rejected, and (when enabled) coordinates are range-checked. Run on the merged filter before the
+   * result-set references are resolved, so the consumed property is checked against the consuming
+   * collection.
+   */
+  private void validateFilter(
+      OgcApiDataV2 apiData, String collectionId, Cql2Expression filter, EpsgCrs filterCrs) {
+    Optional<FeatureTypeConfigurationOgcApi> collectionData =
+        apiData.getCollectionData(collectionId);
+    if (collectionData.isEmpty()) {
+      return;
+    }
+    Map<String, FeatureSchema> queryables =
+        collectionData
+            .get()
+            .getExtension(QueryablesConfiguration.class)
+            .map(qc -> qc.getQueryables(apiData, collectionData.get(), providers))
+            .orElse(Map.of());
+    if (queryables.isEmpty()) {
+      return;
+    }
+
+    List<String> invalidProperties = cql.findInvalidProperties(filter, queryables.keySet());
+    if (!invalidProperties.isEmpty()) {
+      throw new BadRequestException(
+          String.format(
+              "The filter is invalid. Unknown or forbidden properties used: %s.",
+              String.join(", ", invalidProperties)));
+    }
+
+    Optional<FeatureProvider> provider =
+        providers.getFeatureProvider(apiData, collectionData.get());
+    Map<String, String> propertyTypes =
+        queryables.entrySet().stream()
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    Entry::getKey, entry -> entry.getValue().getType().toString()));
+    List<CustomFunction> customFunctions =
+        provider
+            .map(FeatureProvider::queries)
+            .filter(OptionalVolatileCapability::isSupported)
+            .map(OptionalVolatileCapability::get)
+            .map(FeatureQueries::getCql2Functions)
+            .orElse(List.of());
+    try {
+      cql.checkTypes(filter, propertyTypes, customFunctions);
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      throw new BadRequestException(String.format("The filter is invalid: %s", e.getMessage()));
+    }
+
+    boolean validateCoordinates =
+        collectionData
+            .get()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .map(FeaturesCoreConfiguration::getValidateCoordinatesInQueries)
+            .orElse(false);
     if (validateCoordinates) {
+      EpsgCrs nativeCrs =
+          provider.map(FeatureProvider::info).flatMap(FeatureInfo::getCrs).orElse(null);
       try {
-        cql.checkCoordinates(result, crsTransformerFactory, crsInfo, filterCrs, nativeCrs);
+        cql.checkCoordinates(filter, crsTransformerFactory, crsInfo, filterCrs, nativeCrs);
       } catch (IllegalArgumentException e) {
-        throw new BadRequestException(
-            String.format("The filter expression is invalid: %s", e.getMessage()));
+        throw new BadRequestException(String.format("The filter is invalid: %s", e.getMessage()));
       }
     }
-    return result;
   }
 
   private Optional<Cql2Expression> getEffectiveCql2Expression(
