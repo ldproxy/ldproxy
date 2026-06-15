@@ -16,7 +16,6 @@ import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
 import de.ii.xtraplatform.geometries.domain.PositionList;
 import de.ii.xtraplatform.geometries.domain.transform.ClampToEllipsoid;
 import de.ii.xtraplatform.geometries.domain.transform.GeometryVisitor;
-import earcut4j.Earcut;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +26,7 @@ import org.immutables.value.Value;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.triangulate.polygon.ConstrainedDelaunayTriangulator;
+import org.maplibre.earcut4j.Earcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

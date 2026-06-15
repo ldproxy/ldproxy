@@ -95,14 +95,14 @@ public class GeoJsonWriterPropertyLinks implements GeoJsonWriter {
     String collectionId = context.encoding().getCollectionIdForType(featureType);
     String urlId = context.encoding().getFeatureIdInPath(baseId, collectionId);
     if (Objects.nonNull(urlId)) {
-      String serviceUri = context.encoding().getServiceUrl();
-      String collectionUri = serviceUri + "/collections/" + collectionId;
+      String apiUri = context.encoding().getServiceUrl();
+      String collectionUri = apiUri + "/collections/" + collectionId;
       String featureUri = collectionUri + "/items/" + urlId;
       for (PropertyLink link : context.propertyLinks()) {
         ImmutableLink.Builder builder =
             new ImmutableLink.Builder()
                 .rel(link.getRel())
-                .href(PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri));
+                .href(PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri));
         title(link, context.encoding().getLanguage()).ifPresent(builder::title);
         context.encoding().getState().addCurrentFeatureLinks(builder.build());
       }

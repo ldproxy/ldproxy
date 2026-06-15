@@ -23,18 +23,18 @@ public final class PropertyLinkResolver {
 
   /**
    * @param link the captured property link
-   * @param serviceUri the URI of the landing page, no trailing slash
+   * @param apiUri the URI of the landing page, no trailing slash
    * @param collectionUri the URI of the collection, no trailing slash
    * @param featureUri the canonical URI of the feature, no query parameters
    * @return the resolved link URI
    */
   public static String resolve(
-      PropertyLink link, String serviceUri, String collectionUri, String featureUri) {
+      PropertyLink link, String apiUri, String collectionUri, String featureUri) {
     return link.getUriTemplate()
         .replace(SchemaLink.VALUE, percentEncode(link.getValue()))
         .replace(SchemaLink.FEATURE_URI, featureUri)
         .replace(SchemaLink.COLLECTION_URI, collectionUri)
-        .replace(SchemaLink.SERVICE_URI, serviceUri);
+        .replace(SchemaLink.API_URI, apiUri);
   }
 
   private static String percentEncode(String value) {

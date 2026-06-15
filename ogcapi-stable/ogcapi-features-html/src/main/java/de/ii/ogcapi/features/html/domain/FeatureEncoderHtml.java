@@ -312,14 +312,14 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
     // the JSON id may be collection-prefixed.
     String collectionId = transformationContext.getCollectionIdForType(context.type());
     String urlId = transformationContext.getFeatureIdInPath(baseId, collectionId);
-    String serviceUri = transformationContext.getServiceUrl();
-    String collectionUri = serviceUri + "/collections/" + collectionId;
+    String apiUri = transformationContext.getServiceUrl();
+    String collectionUri = apiUri + "/collections/" + collectionId;
     String featureUri = collectionUri + "/items/" + urlId;
 
     Optional<String> predecessor =
-        resolve(propertyLinks, "predecessor-version", serviceUri, collectionUri, featureUri);
+        resolve(propertyLinks, "predecessor-version", apiUri, collectionUri, featureUri);
     Optional<String> successor =
-        resolve(propertyLinks, "successor-version", serviceUri, collectionUri, featureUri);
+        resolve(propertyLinks, "successor-version", apiUri, collectionUri, featureUri);
     if (predecessor.isEmpty() && successor.isEmpty()) {
       return;
     }
@@ -340,13 +340,13 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
   private static Optional<String> resolve(
       List<PropertyLink> propertyLinks,
       String rel,
-      String serviceUri,
+      String apiUri,
       String collectionUri,
       String featureUri) {
     return propertyLinks.stream()
         .filter(link -> rel.equals(link.getRel()))
         .findFirst()
-        .map(link -> PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri));
+        .map(link -> PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri));
   }
 
   private void renderView(View view) {

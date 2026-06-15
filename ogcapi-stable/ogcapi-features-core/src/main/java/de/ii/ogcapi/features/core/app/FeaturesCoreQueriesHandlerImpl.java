@@ -639,7 +639,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               .clearParameters()
               .removeLastPathSegments(2)
               .toString();
-      String serviceUri =
+      String apiUri =
           requestContext
               .getUriCustomizer()
               .copy()
@@ -647,11 +647,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               .removeLastPathSegments(4)
               .toString();
       for (PropertyLink link : propertyLinks) {
-        String href = PropertyLinkResolver.resolve(link, serviceUri, collectionUri, featureUri);
+        String href = PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri);
+        String titleI18n =i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
         Optional<String> title =
-            link.getRel().endsWith("-version")
-                ? Optional.of(i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage()))
-                : link.getTitle();
+            titleI18n.equals(link.getRel())
+                ? link.getTitle()
+                : Optional.of(titleI18n);
         addLinkHeader(response, href, link.getRel(), title);
       }
     }
