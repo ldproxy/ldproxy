@@ -28,7 +28,7 @@ class PropertyLinkResolverSpec extends Specification {
 
         where:
         template                              | value  || expected
-        '{{serviceUri}}/{{value}}'            | "abc"  || "https://example.com/api/abc"
+        '{{apiUri}}/{{value}}'                | "abc"  || "https://example.com/api/abc"
         '{{collectionUri}}?code={{value}}'    | "abc"  || "https://example.com/api/collections/test?code=abc"
         '{{featureUri}}?datetime={{value}}'   | "abc"  || "https://example.com/api/collections/test/items/f1?datetime=abc"
         'https://other.com/reg/{{value}}'     | "abc"  || "https://other.com/reg/abc"
@@ -38,7 +38,7 @@ class PropertyLinkResolverSpec extends Specification {
         expect:
         resolve('{{featureUri}}?datetime={{value}}', "2026-05-12T11:46:39Z")
                 == "https://example.com/api/collections/test/items/f1?datetime=2026-05-12T11%3A46%3A39Z"
-        resolve('{{serviceUri}}/{{value}}', "a b/c&d")
+        resolve('{{apiUri}}/{{value}}', "a b/c&d")
                 == "https://example.com/api/a%20b%2Fc%26d"
     }
 
