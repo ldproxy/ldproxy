@@ -126,4 +126,28 @@ class ParameterResolverCqlSpec extends Specification {
         expect:
         parameter.accept(resolver) == ScalarLiteral.of("foo")
     }
+
+    def 'a parameter with no supplied value falls back to its default'() {
+        given:
+        def schema = new ImmutableJsonSchemaString.Builder().default_("2009-01-01").build()
+        def resolver = resolver([:], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        expect:
+        parameter.accept(resolver) == ScalarLiteral.of("2009-01-01")
+    }
+
+    def 'a parameter with neither value nor default is rejected'() {
+        given:
+        def schema = new ImmutableJsonSchemaString.Builder().build()
+        def resolver = resolver([:], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        when:
+        parameter.accept(resolver)
+
+        then:
+        def e = thrown IllegalArgumentException
+        e.message.contains("No value provided")
+    }
 }

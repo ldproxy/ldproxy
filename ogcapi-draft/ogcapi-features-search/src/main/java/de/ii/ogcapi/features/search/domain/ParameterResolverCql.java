@@ -55,10 +55,15 @@ public class ParameterResolverCql extends CqlVisitorCopy implements ParameterRes
   @Override
   public CqlNode visit(Parameter parameter, List<CqlNode> children) {
     String name = parameter.getName();
-    Object value = queryParameterSet.getTypedValues().get(name);
     JsonSchema schema =
         Objects.requireNonNullElse(globalParameters.get(name), parameter.getSchema());
-    validateParameter(parameter.getName(), value, schema, schemaValidator);
+    // fall back to the parameter's default when no value is supplied, mirroring the non-CQL
+    // ParameterResolver; otherwise a defaulted filter parameter would resolve to null
+    Object value =
+        queryParameterSet.getTypedValues().containsKey(name)
+            ? queryParameterSet.getTypedValues().get(name)
+            : useDefault(name, schema);
+    validateParameter(name, value, schema, schemaValidator);
     Optional<String> geometryFormat = getGeometryFormat(schema);
     if (geometryFormat.isPresent()) {
       return handleGeometry(name, value, geometryFormat.get());
