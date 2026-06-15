@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.core.domain;
 
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -268,33 +270,66 @@ public abstract class SchemaDeriverJsonSchema extends SchemaDeriver<JsonSchema> 
 
   @Override
   protected JsonSchema getSchemaForGeometry(
-      GeometryType geometryType,
+      List<GeometryType> geometryTypes,
       Optional<String> title,
       Optional<String> description,
       Optional<String> role) {
-    JsonSchema jsonSchema =
-        switch (geometryType) {
-          case POINT -> JsonSchemaBuildingBlocks.POINT;
-          case MULTI_POINT -> JsonSchemaBuildingBlocks.MULTI_POINT;
-          case LINE_STRING -> JsonSchemaBuildingBlocks.LINE_STRING;
-          case MULTI_LINE_STRING -> JsonSchemaBuildingBlocks.MULTI_LINE_STRING;
-          case POLYGON -> JsonSchemaBuildingBlocks.POLYGON;
-          case MULTI_POLYGON -> JsonSchemaBuildingBlocks.MULTI_POLYGON;
-          case GEOMETRY_COLLECTION -> JsonSchemaBuildingBlocks.GEOMETRY_COLLECTION;
-          case CIRCULAR_STRING -> JsonSchemaBuildingBlocks.CIRCULAR_STRING;
-          case COMPOUND_CURVE -> JsonSchemaBuildingBlocks.COMPOUND_CURVE;
-          case MULTI_CURVE -> JsonSchemaBuildingBlocks.MULTI_CURVE;
-          case CURVE_POLYGON -> JsonSchemaBuildingBlocks.CURVE_POLYGON;
-          case POLYHEDRAL_SURFACE -> JsonSchemaBuildingBlocks.POLYHEDRAL_SURFACE;
-          case MULTI_SURFACE -> JsonSchemaBuildingBlocks.MULTI_SURFACE;
-          default -> JsonSchemaBuildingBlocks.GEOMETRY;
-        };
+    JsonSchema jsonSchema = matchCombinedGeometryTypes(geometryTypes);
+    if (jsonSchema == null) {
+      jsonSchema =
+          switch (GeometryType.effectiveType(geometryTypes)) {
+            case POINT -> JsonSchemaBuildingBlocks.POINT;
+            case MULTI_POINT -> JsonSchemaBuildingBlocks.MULTI_POINT;
+            case LINE_STRING -> JsonSchemaBuildingBlocks.LINE_STRING;
+            case MULTI_LINE_STRING -> JsonSchemaBuildingBlocks.MULTI_LINE_STRING;
+            case POLYGON -> JsonSchemaBuildingBlocks.POLYGON;
+            case MULTI_POLYGON -> JsonSchemaBuildingBlocks.MULTI_POLYGON;
+            case GEOMETRY_COLLECTION -> JsonSchemaBuildingBlocks.GEOMETRY_COLLECTION;
+            case CIRCULAR_STRING -> JsonSchemaBuildingBlocks.CIRCULAR_STRING;
+            case COMPOUND_CURVE -> JsonSchemaBuildingBlocks.COMPOUND_CURVE;
+            case MULTI_CURVE -> JsonSchemaBuildingBlocks.MULTI_CURVE;
+            case CURVE_POLYGON -> JsonSchemaBuildingBlocks.CURVE_POLYGON;
+            case POLYHEDRAL_SURFACE -> JsonSchemaBuildingBlocks.POLYHEDRAL_SURFACE;
+            case MULTI_SURFACE -> JsonSchemaBuildingBlocks.MULTI_SURFACE;
+            default -> JsonSchemaBuildingBlocks.GEOMETRY;
+          };
+    }
     return new ImmutableJsonSchemaGeometry.Builder()
         .from(jsonSchema)
         .title(title)
         .description(description)
         .role(role)
+        .geometryTypes(geometryTypesAsUpperCamel(geometryTypes))
         .build();
+  }
+
+  private static Optional<List<String>> geometryTypesAsUpperCamel(
+      List<GeometryType> geometryTypes) {
+    if (geometryTypes.isEmpty()
+        || (geometryTypes.size() == 1 && geometryTypes.get(0) == GeometryType.ANY)) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        geometryTypes.stream()
+            .map(t -> CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, t.name()))
+            .toList());
+  }
+
+  private static JsonSchema matchCombinedGeometryTypes(List<GeometryType> geometryTypes) {
+    if (geometryTypes.size() != 2) {
+      return null;
+    }
+    Set<GeometryType> s = Set.copyOf(geometryTypes);
+    if (s.equals(Set.of(GeometryType.POINT, GeometryType.MULTI_POINT))) {
+      return JsonSchemaBuildingBlocks.POINT_OR_MULTI_POINT;
+    }
+    if (s.equals(Set.of(GeometryType.LINE_STRING, GeometryType.MULTI_LINE_STRING))) {
+      return JsonSchemaBuildingBlocks.LINE_STRING_OR_MULTI_LINE_STRING;
+    }
+    if (s.equals(Set.of(GeometryType.POLYGON, GeometryType.MULTI_POLYGON))) {
+      return JsonSchemaBuildingBlocks.POLYGON_OR_MULTI_POLYGON;
+    }
+    return null;
   }
 
   @Override

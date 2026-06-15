@@ -25,8 +25,32 @@ import java.util.Optional;
  *     Schema.
  * @scopeEn The schema is automatically derived from the type definitions in the feature provider.
  *     Currently, schemas are created according to JSON Schema 2020-12.
+ *     <p>For geometry properties (`type: GEOMETRY`) the schema documents the admissible geometry
+ *     type(s) in two complementary ways:
+ *     <p><code>
+ * - `format` (string) identifies a single, possibly combined geometry type using the values defined
+ *   by OGC API - Features - Part 5, e.g. `geometry-point`, `geometry-multipolygon`,
+ *   `geometry-point-or-multipoint`, `geometry-any`.
+ * - `x-ldproxy-geometryTypes` (array of strings) lists the individual admissible types in
+ *   UpperCamelCase, e.g. `["Point", "MultiPoint"]` or `["MultiPolygon"]`. The keyword is omitted
+ *   when no specific types are configured (i.e. the property accepts any geometry).
+ *     </code>
+ *     <p>The values are derived from the provider-schema fields `geometryType` (a single type) and
+ *     `geometryTypes` (a list of admissible types).
  * @scopeDe Das Schema wird aus den Schema-Informationen im Feature-Provider abgeleitet. Aktuell
  *     wird JSON Schema 2020-12 unterstützt.
+ *     <p>Bei Geometrieeigenschaften (`type: GEOMETRY`) werden die zulässigen Geometrietypen auf
+ *     zwei sich ergänzende Arten dokumentiert:
+ *     <p><code>
+ * - `format` (string) bezeichnet einen einzelnen, ggf. kombinierten Geometrietyp gemäß den in
+ *   OGC API - Features - Part 5 definierten Werten, z.B. `geometry-point`, `geometry-multipolygon`,
+ *   `geometry-point-or-multipoint`, `geometry-any`.
+ * - `x-ldproxy-geometryTypes` (Array von Strings) führt die einzelnen zulässigen Typen in
+ *   UpperCamelCase auf, z.B. `["Point", "MultiPoint"]` oder `["MultiPolygon"]`. Der Eintrag fehlt,
+ *   wenn keine konkreten Typen konfiguriert sind (d.h. beliebige Geometrien zulässig sind).
+ *     </code>
+ *     <p>Die Werte werden aus den Feldern `geometryType` (ein einzelner Typ) und `geometryTypes`
+ *     (eine Liste zulässiger Typen) im Provider-Schema abgeleitet.
  * @conformanceEn *Feature Collections - Schema* implements [OGC API - Features - Part 5/OGC API -
  *     Common - Part 3: Schemas](https://docs.ogc.org/is/23-058r2/23-058r2.html).
  * @conformanceDe Der Baustein implementiert [OGC API - Features - Part 5/OGC API - Common - Part 3:
