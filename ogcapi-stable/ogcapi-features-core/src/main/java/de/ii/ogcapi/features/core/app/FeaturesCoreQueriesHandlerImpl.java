@@ -648,11 +648,9 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               .toString();
       for (PropertyLink link : propertyLinks) {
         String href = PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri);
-        String titleI18n =i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
+        String titleI18n = i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
         Optional<String> title =
-            titleI18n.equals(link.getRel())
-                ? link.getTitle()
-                : Optional.of(titleI18n);
+            titleI18n.equals(link.getRel()) ? link.getTitle() : Optional.of(titleI18n);
         addLinkHeader(response, href, link.getRel(), title);
       }
     }

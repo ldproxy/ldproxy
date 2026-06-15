@@ -1075,16 +1075,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                 Collectors.toUnmodifiableMap(
                     n -> typeQuery.getQueries().get(n).getType(), collectionIds::get, (a, b) -> a));
 
-    // Per-feature link/URL building needs each type's collection; type and collection can differ
-    // and a single response may mix collections.
-    final MultiFeatureQuery typeQuery = query;
-    Map<String, String> collectionIdsByType =
-        IntStream.range(0, collectionIds.size())
-            .boxed()
-            .collect(
-                Collectors.toUnmodifiableMap(
-                    n -> typeQuery.getQueries().get(n).getType(), collectionIds::get, (a, b) -> a));
-
     ImmutableFeatureTransformationContextGeneric.Builder transformationContext =
         new ImmutableFeatureTransformationContextGeneric.Builder()
             .api(api)
