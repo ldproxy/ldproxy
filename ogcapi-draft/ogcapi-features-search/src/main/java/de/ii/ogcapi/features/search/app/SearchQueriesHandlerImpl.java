@@ -913,6 +913,16 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         query.getQueries().stream()
             .collect(Collectors.toUnmodifiableMap(TypeQuery::getType, TypeQuery::getFields));
 
+    // Per-feature link/URL building needs each type's collection; type and collection can differ
+    // and a single response may mix collections.
+    final MultiFeatureQuery typeQuery = query;
+    Map<String, String> collectionIdsByType =
+        IntStream.range(0, collectionIds.size())
+            .boxed()
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    n -> typeQuery.getQueries().get(n).getType(), collectionIds::get, (a, b) -> a));
+
     ImmutableFeatureTransformationContextGeneric.Builder transformationContext =
         new ImmutableFeatureTransformationContextGeneric.Builder()
             .api(api)
@@ -932,8 +942,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .geometryPrecision(query.getGeometryPrecision())
             .wgs84GeometryPrecision(query.getWgs84GeometryPrecision())
             .fields(fields)
+            .collectionIdsByType(collectionIdsByType)
             .allLinksAreLocal(allLinksAreLocal)
-            .idsIncludeCollectionId(collectionIds.size() > 1)
+            .idsIncludeCollectionId(
+                collectionIds.size() > 1 && !featureProvider.info().featureIdsAreGloballyUnique())
             .queryId(queryExpression.getId())
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
@@ -1068,7 +1080,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                               schema,
                               profiles)
                           .orElseThrow();
-                  if (collectionIds.size() > 1) {
+                  if (collectionIds.size() > 1
+                      && !featureProvider.info().featureIdsAreGloballyUnique()) {
                     pt =
                         new IdTransform(featureProvider, getFeatureTypeId(query, n), collectionId)
                             .mergeInto(pt);

@@ -45,6 +45,7 @@ public class FeaturesFlatgeobufBuildingBlock implements ApiBuildingBlock {
     return new ImmutableFlatgeobufConfiguration.Builder()
         .enabled(false)
         .maxMultiplicity(DEFAULT_MULTIPLICITY)
+        .defaultProfiles(Map.of("versions", "versions-as-features"))
         .build();
   }
 

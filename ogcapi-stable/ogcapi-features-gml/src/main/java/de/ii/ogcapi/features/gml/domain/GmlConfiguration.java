@@ -435,6 +435,39 @@ public interface GmlConfiguration
   Map<String, String> getSchemaLocations();
 
   /**
+   * @langEn Local XSD files that override the remote schema URLs referenced from `schemaLocations`
+   *     and from `xsi:schemaLocation` imports during XML Schema validation of incoming
+   *     `wfs:Transaction` payloads. Each map key is the remote URL exactly as it would otherwise be
+   *     fetched; the value is a path relative to the `xsdCatalog` resource store (i.e. files placed
+   *     under `<data-dir>/resources/xsdCatalog/`). Absolute remote URLs that are not listed here
+   *     continue to be fetched over the network. Use this option when the JVM running ldproxy
+   *     cannot reach the schema repository (for example behind a proxy, or when validating against
+   *     unpublished schema drafts).
+   * @langDe Lokale XSD-Dateien, die die entfernten Schema-URLs aus `schemaLocations` und aus
+   *     `xsi:schemaLocation`-Imports während der XML-Schema-Validierung eingehender
+   *     `wfs:Transaction`-Anfragen ersetzen. Jeder Schlüssel ist die entfernte URL exakt so, wie
+   *     sie sonst geladen würde; der Wert ist ein Pfad relativ zum Ressourcenspeicher `xsdCatalog`
+   *     (also Dateien unter `<data-dir>/resources/xsdCatalog/`). Nicht aufgeführte entfernte URLs
+   *     werden weiterhin über das Netzwerk geladen. Diese Option ist nützlich, wenn die JVM, in der
+   *     ldproxy läuft, das Schema-Repository nicht erreichen kann (zum Beispiel hinter einem Proxy
+   *     oder bei der Validierung gegen unveröffentlichte Schema-Entwürfe).
+   * @default `{}`
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   schemaLocations:
+   *     ns1: https://example.org/schemas/ns1/foo.xsd
+   *   xsdCatalog:
+   *     https://example.org/schemas/ns1/foo.xsd: ns1/foo.xsd
+   *     https://example.org/schemas/ns1/bar.xsd: ns1/bar.xsd
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  Map<String, String> getXsdCatalog();
+
+  /**
    * @langEn All object/data type instances are represented through a GML object element.
    *     <p>In the provider schema, a name must be provided for each OBJECT in the `objectType`
    *     property, including for the feature type itself. By default, this name will be used for the

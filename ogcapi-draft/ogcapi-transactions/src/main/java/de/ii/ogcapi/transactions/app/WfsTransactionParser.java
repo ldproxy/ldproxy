@@ -22,10 +22,6 @@ import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate.NameValue;
-import de.ii.xtraplatform.cql.domain.Cql2Expression;
-import de.ii.xtraplatform.cql.domain.In;
-import de.ii.xtraplatform.cql.domain.Scalar;
-import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
@@ -183,6 +179,11 @@ public class WfsTransactionParser implements TransactionParser {
     }
 
     @Override
+    public boolean isWfs() {
+      return true;
+    }
+
+    @Override
     public Iterator<TxAction> actions() {
       return iterator;
     }
@@ -276,11 +277,10 @@ public class WfsTransactionParser implements TransactionParser {
             // coalesce loop.
             Optional<String> handle = Optional.ofNullable(attribute(start, "handle"));
             Map<String, List<BufferedItem>> byCollection = new LinkedHashMap<>();
-            int[] featureIndex = {0};
-            consumeWfsInsertChildren(start, byCollection, featureIndex);
+            consumeWfsInsertChildren(start, byCollection);
             while (byCollection.size() == 1 && nextSiblingIsCoalescableInsert(reader)) {
               StartElement nextInsertStart = reader.nextEvent().asStartElement();
-              consumeWfsInsertChildren(nextInsertStart, byCollection, featureIndex);
+              consumeWfsInsertChildren(nextInsertStart, byCollection);
             }
             if (byCollection.isEmpty()) {
               continue; // empty wfs:Insert — move on to next sibling
@@ -308,12 +308,10 @@ public class WfsTransactionParser implements TransactionParser {
 
     /**
      * Reads every feature child of one {@code wfs:Insert} into {@code byCollection}, keyed by the
-     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag. {@code
-     * featureIndex} is a single-element int holding the running 1-based position used across one or
-     * more wfs:Insert elements that get merged into the same TxInsert.
+     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag.
      */
     private void consumeWfsInsertChildren(
-        StartElement insertStart, Map<String, List<BufferedItem>> byCollection, int[] featureIndex)
+        StartElement insertStart, Map<String, List<BufferedItem>> byCollection)
         throws XMLStreamException {
       while (reader.hasNext()) {
         XMLEvent e = reader.nextEvent();
@@ -323,10 +321,9 @@ public class WfsTransactionParser implements TransactionParser {
         String collectionId = feature.getName().getLocalPart();
         Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
         byte[] payload = copySubtree(reader, feature, root, insertStart);
-        featureIndex[0]++;
         byCollection
             .computeIfAbsent(collectionId, k -> new ArrayList<>())
-            .add(new BufferedItem(gmlId, featureIndex[0], payload));
+            .add(new BufferedItem(gmlId, payload));
       }
     }
 
@@ -387,7 +384,7 @@ public class WfsTransactionParser implements TransactionParser {
           .actionId(Optional.ofNullable(handle))
           .feature(feature)
           .mediaType(MediaType.valueOf(MEDIA_TYPE_GML))
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
@@ -396,7 +393,7 @@ public class WfsTransactionParser implements TransactionParser {
       String typeName = attribute(updateStart, "typeName");
       String collectionId = stripPrefix(typeName);
       List<NameValue> modify = new ArrayList<>();
-      List<String> deletes = new ArrayList<>();
+      List<List<String>> deletes = new ArrayList<>();
       List<String> ids = new ArrayList<>();
 
       while (reader.hasNext()) {
@@ -426,7 +423,7 @@ public class WfsTransactionParser implements TransactionParser {
           .actionId(Optional.ofNullable(handle))
           .modify(modify)
           .deleteProperties(deletes)
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
@@ -458,14 +455,16 @@ public class WfsTransactionParser implements TransactionParser {
       return new ImmutableTxDelete.Builder()
           .collectionId(collectionId)
           .actionId(Optional.ofNullable(handle))
-          .filter(idsFilter(ids))
+          .targetIds(ids)
           .build();
     }
 
-    private void readProperty(XMLEventReader reader, List<NameValue> modify, List<String> deletes)
+    private void readProperty(
+        XMLEventReader reader, List<NameValue> modify, List<List<String>> deletes)
         throws XMLStreamException {
-      String name = null;
-      JsonNode value = null;
+      String reference = null;
+      JsonNode textValue = null;
+      byte[] xmlSubtree = null;
       boolean hasValueElement = false;
       while (reader.hasNext()) {
         XMLEvent event = reader.nextEvent();
@@ -474,24 +473,112 @@ public class WfsTransactionParser implements TransactionParser {
         StartElement start = event.asStartElement();
         QName qn = start.getName();
         if (NS_WFS.equals(qn.getNamespaceURI()) && "ValueReference".equals(qn.getLocalPart())) {
-          name = readText(reader, "ValueReference");
+          reference = readText(reader, "ValueReference");
         } else if (NS_WFS.equals(qn.getNamespaceURI()) && "Value".equals(qn.getLocalPart())) {
           hasValueElement = true;
-          String text = readMixedText(reader, "Value");
-          value = text == null ? null : MAPPER.getNodeFactory().textNode(text);
+          // Peek to distinguish text-only `<wfs:Value>text</wfs:Value>` from XML-child
+          // `<wfs:Value><gml:Point>…</gml:Point></wfs:Value>`. The first non-whitespace event
+          // inside <wfs:Value> tells us which form we got; the rest of the content is then
+          // consumed accordingly. For XML form we capture the first child subtree with the
+          // wfs:Transaction root's namespaces in scope (so prefixes like gml:, adv: resolve).
+          ValueContent vc = readValueContent(reader, start);
+          if (vc.xml != null) {
+            xmlSubtree = vc.xml;
+          } else if (vc.text != null) {
+            textValue = MAPPER.getNodeFactory().textNode(vc.text);
+          }
         } else {
           skipElement(reader);
         }
       }
-      if (name == null) {
+      if (reference == null) {
         throw new IllegalArgumentException(
-            "wfs:Property requires a wfs:ValueReference child holding the property name");
+            "wfs:Property requires a wfs:ValueReference child holding the property path");
       }
-      if (!hasValueElement || value == null) {
-        deletes.add(name);
+      List<String> path = parseValueReference(reference);
+      if (!hasValueElement || (textValue == null && xmlSubtree == null)) {
+        deletes.add(path);
       } else {
-        modify.add(new ImmutableNameValue.Builder().name(name).value(value).build());
+        ImmutableNameValue.Builder b = new ImmutableNameValue.Builder().path(path);
+        if (xmlSubtree != null) {
+          b.value(MAPPER.nullNode()).valueXml(xmlSubtree);
+        } else {
+          b.value(textValue);
+        }
+        modify.add(b.build());
       }
+    }
+
+    // Result of inspecting a <wfs:Value> body: either text content (`text` set) or an XML
+    // subtree of the first child element (`xml` set as bytes including root namespaces).
+    private static final class ValueContent {
+      final String text;
+      final byte[] xml;
+
+      ValueContent(String text, byte[] xml) {
+        this.text = text;
+        this.xml = xml;
+      }
+    }
+
+    private ValueContent readValueContent(XMLEventReader reader, StartElement valueStart)
+        throws XMLStreamException {
+      StringBuilder text = new StringBuilder();
+      byte[] xml = null;
+      int depth = 1;
+      while (reader.hasNext() && depth > 0) {
+        XMLEvent event = reader.nextEvent();
+        if (event.isEndElement()) {
+          EndElement end = event.asEndElement();
+          if (depth == 1 && isWfs(end.getName(), "Value")) {
+            depth--;
+            break;
+          }
+          depth--;
+          continue;
+        }
+        if (event.isStartElement()) {
+          if (xml == null) {
+            // First child element: capture this subtree, then drain anything else in <wfs:Value>.
+            xml = copySubtree(reader, event.asStartElement(), root);
+          } else {
+            // Multiple child elements inside one <wfs:Value> aren't part of any supported form
+            // — skip them so we stay in sync with the reader.
+            skipElement(reader);
+          }
+          continue;
+        }
+        if (event.isCharacters() && xml == null) {
+          text.append(event.asCharacters().getData());
+        }
+      }
+      if (xml != null) {
+        return new ValueContent(null, xml);
+      }
+      String s = text.toString().trim();
+      return new ValueContent(s.isEmpty() ? null : s, null);
+    }
+
+    // wfs:ValueReference holds an XPath-like path of `[prefix:]localName` segments separated by
+    // `/`. Strip the XML namespace prefix from each segment (only the local name is significant
+    // here — segment matching against the feature schema is driven by GmlConfiguration.useAlias,
+    // not by the namespace). Empty/blank segments are rejected.
+    private static List<String> parseValueReference(String reference) {
+      String trimmed = reference.trim();
+      if (trimmed.isEmpty()) {
+        throw new IllegalArgumentException("wfs:ValueReference must not be empty");
+      }
+      String[] parts = trimmed.split("/");
+      List<String> path = new ArrayList<>(parts.length);
+      for (String part : parts) {
+        String local = stripPrefix(part).trim();
+        if (local.isEmpty()) {
+          throw new IllegalArgumentException(
+              "wfs:ValueReference contains an empty path segment: '" + reference + "'");
+        }
+        path.add(local);
+      }
+      return path;
     }
 
     private List<String> parseResourceIds(XMLEventReader reader) throws XMLStreamException {
@@ -512,13 +599,6 @@ public class WfsTransactionParser implements TransactionParser {
         }
       }
       return ids;
-    }
-
-    private Optional<Cql2Expression> idsFilter(List<String> ids) {
-      if (ids.isEmpty()) return Optional.empty();
-      List<Scalar> literals = new ArrayList<>(ids.size());
-      for (String id : ids) literals.add(ScalarLiteral.of(id));
-      return Optional.of(In.of(literals));
     }
 
     private byte[] copySubtree(XMLEventReader reader, StartElement start, StartElement... ancestors)
@@ -683,21 +763,19 @@ public class WfsTransactionParser implements TransactionParser {
         public InsertItem next() {
           if (!src.hasNext()) throw new NoSuchElementException();
           BufferedItem b = src.next();
-          return new InsertItem(b.gmlId, b.indexInInsert, new ByteArrayInputStream(b.payload));
+          return new InsertItem(b.gmlId, b.payload, new ByteArrayInputStream(b.payload));
         }
       };
     }
   }
 
-  /** Internal triple held by {@link BufferedInsert} — one feature child of a wfs:Insert. */
+  /** Internal pair held by {@link BufferedInsert} — one feature child of a wfs:Insert. */
   private static final class BufferedItem {
     final Optional<String> gmlId;
-    final int indexInInsert;
     final byte[] payload;
 
-    BufferedItem(Optional<String> gmlId, int indexInInsert, byte[] payload) {
+    BufferedItem(Optional<String> gmlId, byte[] payload) {
       this.gmlId = gmlId;
-      this.indexInInsert = indexInInsert;
       this.payload = payload;
     }
   }

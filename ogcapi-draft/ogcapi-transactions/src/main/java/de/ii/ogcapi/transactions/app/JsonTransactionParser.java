@@ -493,7 +493,7 @@ public class JsonTransactionParser implements TransactionParser {
       }
       List<NameValue> add = readNameValues(properties.get("add"), actionIndex, "add");
       List<NameValue> modify = readNameValues(properties.get("modify"), actionIndex, "modify");
-      List<String> deletes = readStringArray(properties.get("delete"), actionIndex, "delete");
+      List<List<String>> deletes = readPathArray(properties.get("delete"), actionIndex, "delete");
       if (add.isEmpty() && modify.isEmpty() && deletes.isEmpty()) {
         throw new IllegalArgumentException(
             "transaction["
@@ -586,7 +586,7 @@ public class JsonTransactionParser implements TransactionParser {
       List<NameValue> values = new ArrayList<>(node.size());
       int j = 0;
       for (JsonNode entry : node) {
-        if (!entry.isObject() || entry.get("name") == null || !entry.get("name").isTextual()) {
+        if (!entry.isObject() || entry.get("name") == null) {
           throw new IllegalArgumentException(
               "transaction["
                   + actionIndex
@@ -594,12 +594,16 @@ public class JsonTransactionParser implements TransactionParser {
                   + field
                   + "["
                   + j
-                  + "] must be an object with a textual 'name'");
+                  + "] must be an object with a 'name' (string or array of segments)");
         }
+        List<String> path =
+            readPath(
+                entry.get("name"),
+                "transaction[" + actionIndex + "].properties." + field + "[" + j + "].name");
         JsonNode value = entry.get("value");
         values.add(
             new ImmutableNameValue.Builder()
-                .name(entry.get("name").asText())
+                .path(path)
                 .value(value == null ? MAPPER.nullNode() : value)
                 .build());
         j++;
@@ -607,7 +611,10 @@ public class JsonTransactionParser implements TransactionParser {
       return ImmutableList.copyOf(values);
     }
 
-    private static List<String> readStringArray(JsonNode node, int actionIndex, String field) {
+    // The `delete` array carries property paths. Each entry can be either a string (auto-split
+    // on `/`, prefixes stripped) or an array of segments. Matches the form accepted by
+    // `name` on add/modify and by `<wfs:ValueReference>` on the WFS side.
+    private static List<List<String>> readPathArray(JsonNode node, int actionIndex, String field) {
       if (node == null || node.isNull()) {
         return ImmutableList.of();
       }
@@ -615,23 +622,64 @@ public class JsonTransactionParser implements TransactionParser {
         throw new IllegalArgumentException(
             "transaction[" + actionIndex + "].properties." + field + " must be an array");
       }
-      ImmutableList.Builder<String> out = ImmutableList.builder();
+      ImmutableList.Builder<List<String>> out = ImmutableList.builder();
       int j = 0;
-      for (JsonNode v : node) {
-        if (!v.isTextual()) {
-          throw new IllegalArgumentException(
-              "transaction["
-                  + actionIndex
-                  + "].properties."
-                  + field
-                  + "["
-                  + j
-                  + "] must be a string");
-        }
-        out.add(v.asText());
+      for (JsonNode entry : node) {
+        out.add(
+            readPath(
+                entry, "transaction[" + actionIndex + "].properties." + field + "[" + j + "]"));
         j++;
       }
       return out.build();
+    }
+
+    private static List<String> readPath(JsonNode node, String context) {
+      if (node == null || node.isNull()) {
+        throw new IllegalArgumentException(context + " is required");
+      }
+      if (node.isTextual()) {
+        return splitPath(node.asText(), context);
+      }
+      if (node.isArray()) {
+        List<String> segments = new ArrayList<>(node.size());
+        int j = 0;
+        for (JsonNode seg : node) {
+          if (!seg.isTextual()) {
+            throw new IllegalArgumentException(context + "[" + j + "] must be a string");
+          }
+          String local = seg.asText().trim();
+          if (local.isEmpty()) {
+            throw new IllegalArgumentException(context + "[" + j + "] must not be empty");
+          }
+          segments.add(local);
+          j++;
+        }
+        if (segments.isEmpty()) {
+          throw new IllegalArgumentException(context + " must not be empty");
+        }
+        return ImmutableList.copyOf(segments);
+      }
+      throw new IllegalArgumentException(context + " must be a string or array of strings");
+    }
+
+    // ldproxy's canonical separator is `.`; the JSON-transaction body inherits that convention.
+    // (XPath `/` is reserved for wfs:ValueReference parsing on the WFS side.)
+    private static List<String> splitPath(String raw, String context) {
+      String trimmed = raw.trim();
+      if (trimmed.isEmpty()) {
+        throw new IllegalArgumentException(context + " must not be empty");
+      }
+      String[] parts = trimmed.split("\\.");
+      List<String> segments = new ArrayList<>(parts.length);
+      for (String part : parts) {
+        String local = part.trim();
+        if (local.isEmpty()) {
+          throw new IllegalArgumentException(
+              context + " contains an empty path segment: '" + raw + "'");
+        }
+        segments.add(local);
+      }
+      return ImmutableList.copyOf(segments);
     }
 
     private static String stringValue(JsonParser parser, int actionIndex, String field)
@@ -739,9 +787,6 @@ public class JsonTransactionParser implements TransactionParser {
       itemsConsumed = true;
       return new Iterator<>() {
         private InsertItem next;
-        // featureIndex spans coalesced action boundaries so callers see continuous 1-based
-        // positions across a merged TxInsert.
-        private int featureIndex = 0;
 
         @Override
         public boolean hasNext() {
@@ -769,17 +814,14 @@ public class JsonTransactionParser implements TransactionParser {
                     "transaction[" + actionIndex + "].items must contain JSON Feature objects");
               }
               JsonNode feature = MAPPER.readTree(parser);
-              featureIndex++;
               JsonNode idNode = feature.get("id");
               Optional<String> featureId =
                   idNode == null || idNode.isNull()
                       ? Optional.empty()
                       : Optional.of(idNode.asText());
+              byte[] payloadBytes = MAPPER.writeValueAsBytes(feature);
               next =
-                  new InsertItem(
-                      featureId,
-                      featureIndex,
-                      new ByteArrayInputStream(MAPPER.writeValueAsBytes(feature)));
+                  new InsertItem(featureId, payloadBytes, new ByteArrayInputStream(payloadBytes));
               return true;
             }
           } catch (IOException e) {

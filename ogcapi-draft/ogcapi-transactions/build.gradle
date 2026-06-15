@@ -1,5 +1,5 @@
 maturity = 'CANDIDATE'
-maintenance = 'LOW'
+maintenance = 'NONE'
 description = 'Atomic and batch transactions over multiple feature collections.'
 descriptionDe = 'Atomare und gestapelte Transaktionen über mehrere Objektarten.'
 

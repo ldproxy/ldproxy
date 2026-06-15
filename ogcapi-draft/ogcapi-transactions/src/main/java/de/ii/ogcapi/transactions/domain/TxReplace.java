@@ -10,6 +10,7 @@ package de.ii.ogcapi.transactions.domain;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -33,6 +34,9 @@ public interface TxReplace extends TxAction {
   default MediaType getMediaType() {
     return MediaType.valueOf("application/geo+json");
   }
+
+  // See TxDelete.getTargetIds — same WFS-direct vs JSON-tx-CQL2 split.
+  List<String> getTargetIds();
 
   Optional<Cql2Expression> getFilter();
 

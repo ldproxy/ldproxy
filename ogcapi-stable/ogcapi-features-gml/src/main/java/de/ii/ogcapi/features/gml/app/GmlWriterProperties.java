@@ -60,7 +60,11 @@ public class GmlWriterProperties implements GmlWriter {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       FeatureSchema schema = context.schema().orElseThrow();
 
-      String elementNameProperty = context.encoding().qualifyPropertyElementName(schema.getName());
+      String elementNameProperty =
+          context
+              .encoding()
+              .qualifyPropertyElementName(
+                  schema.getName(), schema.getOriginObjectType().orElse(null));
       // Open the property element; its '>' is still pending (lazy emission)
       context.encoding().writeStartElement(elementNameProperty);
 
@@ -153,7 +157,11 @@ public class GmlWriterProperties implements GmlWriter {
             String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
             context
                 .encoding()
-                .writeStartElement(context.encoding().qualifyPropertyElementName(name[0]));
+                .writeStartElement(
+                    context
+                        .encoding()
+                        .qualifyPropertyElementName(
+                            name[0], schema.getOriginObjectType().orElse(null)));
             if (name.length == 2) {
               context.encoding().writeAttribute("name", name[1]);
             }
@@ -257,7 +265,12 @@ public class GmlWriterProperties implements GmlWriter {
   private void writeCodelistXlink(
       EncodingAwareContextGml context, FeatureSchema schema, String value) throws IOException {
     String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
-    context.encoding().writeStartElement(context.encoding().qualifyPropertyElementName(name[0]));
+    context
+        .encoding()
+        .writeStartElement(
+            context
+                .encoding()
+                .qualifyPropertyElementName(name[0], schema.getOriginObjectType().orElse(null)));
     if (name.length == 2) {
       context.encoding().writeAttribute("name", name[1]);
     }

@@ -14,19 +14,19 @@ import java.util.Optional;
  * One feature payload inside a {@link TxInsert}, with identifying context.
  *
  * <p>{@code featureId} is the source-side identifier (e.g. {@code gml:id} for GML payloads, the
- * {@code id} member for GeoJSON) when available. {@code indexInInsert} is the 1-based position of
- * this item within its originating {@code wfs:Insert} / transaction {@code items} array — useful
- * when no source id is present.
+ * {@code id} member for GeoJSON) when available. {@code payloadBytes} carries the raw feature
+ * bytes; the executor uses them as a locator-of-last-resort when the item has no {@code featureId}
+ * and a failure has to be reported back to the client.
  */
 public final class InsertItem {
 
   private final Optional<String> featureId;
-  private final int indexInInsert;
+  private final byte[] payloadBytes;
   private final InputStream payload;
 
-  public InsertItem(Optional<String> featureId, int indexInInsert, InputStream payload) {
+  public InsertItem(Optional<String> featureId, byte[] payloadBytes, InputStream payload) {
     this.featureId = featureId;
-    this.indexInInsert = indexInInsert;
+    this.payloadBytes = payloadBytes;
     this.payload = payload;
   }
 
@@ -34,8 +34,12 @@ public final class InsertItem {
     return featureId;
   }
 
-  public int indexInInsert() {
-    return indexInInsert;
+  /**
+   * Raw bytes of the feature payload as sent by the client. Used by the executor to identify a
+   * failing item that has no {@code featureId}; never modified.
+   */
+  public byte[] payloadBytes() {
+    return payloadBytes;
   }
 
   public InputStream payload() {

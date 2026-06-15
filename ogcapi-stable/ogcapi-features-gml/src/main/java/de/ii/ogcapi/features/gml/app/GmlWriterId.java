@@ -52,6 +52,13 @@ public class GmlWriterId implements GmlWriter {
       if (currentSchema.isId()) {
         String id = context.encoding().getGmlIdPrefix().orElse("") + context.value();
         context.encoding().setCurrentGmlId(id);
+        // A profile may have rewritten context.value() to a composite (e.g.
+        // versions-as-features-unique-ids); the gml:identifier element must still carry the
+        // canonical feature id, which the transformer stashes on context.canonicalFeatureId().
+        String canonical = context.canonicalFeatureId();
+        if (Objects.nonNull(canonical)) {
+          context.encoding().setCurrentGmlIdentifierValue(canonical);
+        }
       } else if (context.encoding().getAppendTemporalSuffixToGmlId()
           && isPrimaryTemporal(currentSchema)) {
         String suffix = formatTemporalSuffix(context.value());

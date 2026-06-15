@@ -43,7 +43,11 @@ public class QueryParameterFFeatures extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.startsWith("/collections/{collectionId}/items");
+    // Two Features endpoints — and only those. A blanket startsWith would also catch
+    // sub-resources like `/items/{featureId}/versions`, where a different QueryParameterF
+    // owns the format negotiation (Time Map vs. feature payload).
+    return "/collections/{collectionId}/items".equals(definitionPath)
+        || "/collections/{collectionId}/items/{featureId}".equals(definitionPath);
   }
 
   @Override
