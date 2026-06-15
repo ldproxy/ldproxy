@@ -361,6 +361,12 @@ import org.immutables.value.Value;
             @DocStep(type = Step.TAG_REFS, params = "{@ref:policies}"),
             @DocStep(type = Step.TAG, params = "{@bodyBlock}")
           }),
+      @DocVar(
+          name = "auditLog",
+          value = {
+            @DocStep(type = Step.TAG_REFS, params = "{@ref:auditLog}"),
+            @DocStep(type = Step.TAG, params = "{@bodyBlock}")
+          }),
     })
 @Value.Immutable(prehash = true)
 @JsonDeserialize(builder = ImmutableOgcApiDataV2.Builder.class)
