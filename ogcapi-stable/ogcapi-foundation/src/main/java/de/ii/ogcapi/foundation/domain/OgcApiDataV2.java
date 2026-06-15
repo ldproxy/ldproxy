@@ -211,6 +211,12 @@ import org.immutables.value.Value;
  *     <p>{@docTable:securityProperties}
  *     <p>{@docVar:policies}
  *     <p>{@docTable:policies}
+ * @langEn ### Audit Logging
+ *     <p>Audit Logging... :
+ *     <p>{@docTable:auditLogProperties}
+ * @langDe ### Audit-Logging
+ *     <p>Audit Logging... :
+ *     <p>{@docTable:auditLogProperties}
  * @langEn ### Examples
  *     <p>See the [API
  *     configuration](https://github.com/interactive-instruments/ldproxy/blob/master/demo/vineyards/store/entities/services/vineyards.yml)
@@ -241,6 +247,7 @@ import org.immutables.value.Value;
  * @ref:securityProperties {@link de.ii.ogcapi.foundation.domain.ImmutableApiSecurity}
  * @ref:policies {@link de.ii.ogcapi.foundation.domain.ApiSecurity.Policies}
  * @ref:policiesTable {@link de.ii.ogcapi.foundation.domain.ImmutablePolicies}
+ * @ref:auditLogProperties {@link de.ii.ogcapi.foundation.domain.ImmutableAuditLog}
  */
 @DocFile(
     path = "services",
@@ -305,6 +312,14 @@ import org.immutables.value.Value;
           rows = {
             @DocStep(type = Step.TAG_REFS, params = "{@ref:policiesTable}"),
             @DocStep(type = Step.JSON_PROPERTIES)
+          },
+          columnSet = ColumnSet.JSON_PROPERTIES),
+      @DocTable(
+          name = "auditLogProperties",
+          rows = {
+            @DocStep(type = Step.TAG_REFS, params = "{@ref:auditLogProperties}"),
+            @DocStep(type = Step.JSON_PROPERTIES),
+            @DocStep(type = Step.UNMARKED)
           },
           columnSet = ColumnSet.JSON_PROPERTIES),
     },
@@ -476,8 +491,8 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
       getCollections();
 
   /**
-   * @langEn Auditlog...
-   * @langDe Auditlog...
+   * @langEn Audit Logging configuration, see [Audit Logging](#audit-logging).
+   * @langDe Audit-Logging Konfiguration, siehe [Audit-Logging](#audit-logging).
    * @default {}
    */
   @Value.Default
