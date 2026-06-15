@@ -252,7 +252,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     StoredQueryExpression query = queryInput.getQuery();
 
     List<String> errors =
-        query.accept(new StoredQueryValidator(query.getParameters(), schemaValidator, cql));
+        query.accept(
+            new StoredQueryValidator(
+                query.getParameters(), schemaValidator, cql, apiData, providers));
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(
