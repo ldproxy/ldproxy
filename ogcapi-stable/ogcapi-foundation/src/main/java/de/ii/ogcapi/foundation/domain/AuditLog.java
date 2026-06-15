@@ -12,13 +12,39 @@ import java.util.Set;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
+/**
+ * @langEn Audit logging options for the API. Further options can be configured in the [global
+ *     configuration](../application/20-configuration/README.md). For example, audit logging must be
+ *     globally enabled before it can be used.
+ *     <p>Example configuration:
+ *     <p><code>
+ * auditLog:
+ *   enabled: true
+ *   includePropertyValues: true
+ *   operations:
+ *     - "data:read::vineyards"
+ *     - "write"
+ *     </code>
+ * @langDe Audit-Logging Optionen für die API. Weitere Optionen lassen sich in der [globalen
+ *     Konfiguration](../application/20-configuration/README.md) einstellen. Beispielsweise muss das
+ *     Audit-Logging zur Nutzung global aktiviert sein.
+ *     <p>Beispiel Konfiguration:
+ *     <p><code>
+ * auditLog:
+ *   enabled: true
+ *   includePropertyValues: true
+ *   operations:
+ *     - "data:read::vineyards"
+ *     - "write"
+ *     </code>
+ */
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableAuditLog.Builder.class)
 public interface AuditLog {
 
   /**
-   * @langEn Option to disable audit logging.
-   * @langDe Option, um das Audit Logging zu deaktivieren.
+   * @langEn Option to explicitly disable audit logging for the API.
+   * @langDe Option, um das Audit-Logging für die API explizit zu deaktivieren.
    * @default true
    */
   @Default
@@ -28,7 +54,7 @@ public interface AuditLog {
 
   /**
    * @langEn If true, the values of the requested properties are logged as well.
-   * @langDe Falls true, werden die Werte der aufgerufenen Properties ebenfalls geloggt.
+   * @langDe Falls true, werden die Werte der angefragten Properties ebenfalls geloggt.
    * @default true
    */
   @Default
@@ -37,8 +63,10 @@ public interface AuditLog {
   }
 
   /**
-   * @langEn Option to specify the operations for which a log entry should be created.
-   * @langDe Option, um die Operationen anzugeben, für die ein Log-Eintrag erstellt werden soll.
+   * @langEn Option to specify the operations for which a log entry should be created. The syntax is
+   *     described in [Access Control](#access-control).
+   * @langDe Option, um die Operationen anzugeben, für die ein Log-Eintrag erstellt werden soll. Die
+   *     Syntax ist in [Access Control](#access-control) beschrieben.
    * @default {"data:read", "write"}
    */
   @Default

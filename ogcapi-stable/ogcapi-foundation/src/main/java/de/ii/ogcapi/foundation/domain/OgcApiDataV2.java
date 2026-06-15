@@ -212,10 +212,10 @@ import org.immutables.value.Value;
  *     <p>{@docVar:policies}
  *     <p>{@docTable:policies}
  * @langEn ### Audit Logging
- *     <p>Audit Logging... :
+ *     <p>{@docVar:auditLog}
  *     <p>{@docTable:auditLogProperties}
  * @langDe ### Audit-Logging
- *     <p>Audit Logging... :
+ *     <p>{@docVar:auditLog}
  *     <p>{@docTable:auditLogProperties}
  * @langEn ### Examples
  *     <p>See the [API
@@ -247,6 +247,7 @@ import org.immutables.value.Value;
  * @ref:securityProperties {@link de.ii.ogcapi.foundation.domain.ImmutableApiSecurity}
  * @ref:policies {@link de.ii.ogcapi.foundation.domain.ApiSecurity.Policies}
  * @ref:policiesTable {@link de.ii.ogcapi.foundation.domain.ImmutablePolicies}
+ * @ref:auditLog {@link de.ii.ogcapi.foundation.domain.AuditLog}
  * @ref:auditLogProperties {@link de.ii.ogcapi.foundation.domain.ImmutableAuditLog}
  */
 @DocFile(
