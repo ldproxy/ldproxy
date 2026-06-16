@@ -37,8 +37,8 @@ import org.immutables.value.Value.Default;
 public interface AuditLog {
 
   /**
-   * @langEn Option to explicitly disable audit logging for the API.
-   * @langDe Option, um das Audit-Logging für die API explizit zu deaktivieren.
+   * @langEn If `false`, the audit logging is explicitly disabled for the API.
+   * @langDe Falls `false`, wird das Audit-Logging für die API explizit zu deaktiviert.
    * @default true
    */
   @Default
@@ -47,8 +47,8 @@ public interface AuditLog {
   }
 
   /**
-   * @langEn If true, the values of the requested properties are logged as well.
-   * @langDe Falls true, werden die Werte der angefragten Properties ebenfalls geloggt.
+   * @langEn If `true`, the values of the requested properties are logged as well.
+   * @langDe Falls `true`, werden die Werte der angefragten Properties ebenfalls geloggt.
    * @default true
    */
   @Default
