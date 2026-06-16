@@ -17,25 +17,19 @@ import org.immutables.value.Value.Default;
  *     configuration](../application/20-configuration/README.md). For example, audit logging must be
  *     globally enabled before it can be used.
  *     <p>Example configuration:
- *     <p><code>
- * auditLog:
- *   enabled: true
- *   includePropertyValues: true
- *   operations:
- *     - "data:read::vineyards"
- *     - "write"
- *     </code>
  * @langDe Audit-Logging Optionen für die API. Weitere Optionen lassen sich in der [globalen
  *     Konfiguration](../application/20-configuration/README.md) einstellen. Beispielsweise muss das
  *     Audit-Logging zur Nutzung global aktiviert sein.
  *     <p>Beispiel Konfiguration:
- *     <p><code>
+ * @langAll <code>
+ * ```yml
  * auditLog:
  *   enabled: true
  *   includePropertyValues: true
  *   operations:
  *     - "data:read::vineyards"
  *     - "write"
+ * ```
  *     </code>
  */
 @Value.Immutable
