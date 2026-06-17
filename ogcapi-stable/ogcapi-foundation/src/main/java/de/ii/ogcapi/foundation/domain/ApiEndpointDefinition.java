@@ -73,6 +73,8 @@ public abstract class ApiEndpointDefinition {
   public static final int SORT_PRIORITY_ROUTE_DELETE = 2530;
   public static final int SORT_PRIORITY_ROUTE_DEFINITION = 2540;
 
+  public static final int SORT_PRIORITY_PROCESSES = 2550;
+
   public static final int SORT_PRIORITY_3D_TILES = 3000;
   public static final int SORT_PRIORITY_3D_TILES_CONTENT = 3050;
   public static final int SORT_PRIORITY_3D_TILES_SUBTREE = 3060;

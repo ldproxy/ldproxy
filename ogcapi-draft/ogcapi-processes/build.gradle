@@ -1,0 +1,10 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = 'ToDo'
+descriptionDe = 'ToDo'
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-jobs'
+    provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:ogcapi-common'
+}
