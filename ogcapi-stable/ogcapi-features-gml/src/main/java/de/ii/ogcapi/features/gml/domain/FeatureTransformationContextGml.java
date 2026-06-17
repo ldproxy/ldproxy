@@ -121,6 +121,8 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract boolean getUseSurfaceAndCurve();
 
+  public abstract boolean getForceCompositeCurve();
+
   public abstract List<String> getXmlAttributes();
 
   public abstract Optional<String> getGmlIdPrefix();

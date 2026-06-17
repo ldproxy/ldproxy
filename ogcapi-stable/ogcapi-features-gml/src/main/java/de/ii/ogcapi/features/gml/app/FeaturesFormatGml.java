@@ -441,6 +441,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
             .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
+            .forceCompositeCurve(Objects.requireNonNullElse(config.getForceCompositeCurve(), false))
             .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
