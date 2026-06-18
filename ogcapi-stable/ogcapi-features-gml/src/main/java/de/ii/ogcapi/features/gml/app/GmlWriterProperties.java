@@ -15,10 +15,12 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.domain.transform.FeatureRefResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -65,6 +67,13 @@ public class GmlWriterProperties implements GmlWriter {
               .encoding()
               .qualifyPropertyElementName(
                   schema.getName(), schema.getOriginObjectType().orElse(null));
+      // For a feature reference declared in objectTypeSuffixedProperties, append a placeholder for
+      // the _{objectType} suffix; it is resolved from the reference's type value (see onValue) or
+      // removed at flush when the reference has no resolvable type.
+      if (schema.isFeatureRef()
+          && context.encoding().getObjectTypeSuffixedProperties().contains(schema.getName())) {
+        elementNameProperty += context.encoding().beginRefSuffix();
+      }
       // Open the property element; its '>' is still pending (lazy emission)
       context.encoding().writeStartElement(elementNameProperty);
 
@@ -76,7 +85,10 @@ public class GmlWriterProperties implements GmlWriter {
         // and the element is closed by onObjectEnd().
         context.encoding().getState().setInLink(true);
         if (schema.isFeatureRef()) {
+          // GML renders references natively: collect the resolved id/title/type children and emit
+          // xlink:href / xlink:title (and the element-name suffix) at onObjectEnd.
           context.encoding().getState().setInFeatureRef(true);
+          context.encoding().getState().unsetRefValues();
         }
       } else if ("Measure".equals(objectType)) {
         // The uom attribute and character value are written together once both
@@ -107,10 +119,15 @@ public class GmlWriterProperties implements GmlWriter {
       boolean inMeasure = context.encoding().getState().getInMeasure();
 
       if (inLink) {
-        // Closes <propName xlink:href="…" …/>
+        if (context.encoding().getState().getInFeatureRef()) {
+          // Emit the reference's xlink attributes (and resolve the element-name suffix) from the
+          // collected id/title/type, then close <propName xlink:href="…"/>.
+          writeFeatureRef(context);
+        }
         context.encoding().writeEndElement();
         context.encoding().getState().setInLink(false);
         context.encoding().getState().setInFeatureRef(false);
+        context.encoding().getState().setRefSuffixPending(false);
       } else if (inMeasure) {
         // Closes <propName uom="…">value</propName>
         context.encoding().writeEndElement();
@@ -140,7 +157,13 @@ public class GmlWriterProperties implements GmlWriter {
         boolean inMeasure = state.getInMeasure();
 
         if (inLink) {
-          writeLinkAttribute(context, schema.getName(), value);
+          if (state.getInFeatureRef()) {
+            // Defer: the reference's xlink:href/title and element-name suffix are emitted together
+            // at onObjectEnd, once id/title/type have all been collected (see writeFeatureRef).
+            state.putRefValues(schema.getName(), value);
+          } else {
+            writeLinkAttribute(context, schema.getName(), value);
+          }
         } else if (inMeasure) {
           writeMeasure(context, schema, value);
         } else {
@@ -237,12 +260,9 @@ public class GmlWriterProperties implements GmlWriter {
   private void writeLinkAttribute(
       EncodingAwareContextGml context, String xlinkAttribute, String value) throws IOException {
     // Still in START_ELEMENT state for the property element; add an xlink:* attribute.
-    // XMLStreamWriter handles value escaping automatically.
+    // XMLStreamWriter handles value escaping automatically. This path serves literal "Link"
+    // objects; feature references are encoded natively (see writeFeatureRef).
     String attrValue;
-    boolean isFeatureRefHref =
-        "href".equals(xlinkAttribute) && context.encoding().getState().getInFeatureRef();
-    Optional<String> template =
-        isFeatureRefHref ? context.encoding().getFeatureRefTemplate() : Optional.empty();
     if ("href".equals(xlinkAttribute) && context.encoding().getAllLinksAreLocal()) {
       attrValue =
           context.encoding().getIdsIncludeCollectionId()
@@ -254,12 +274,65 @@ public class GmlWriterProperties implements GmlWriter {
                   "#%s%s",
                   context.encoding().getGmlIdPrefix().orElse(""),
                   value.substring(value.indexOf("/items/") + 7));
-    } else if (template.isPresent()) {
-      attrValue = applyFeatureRefTemplate(value, template.get());
     } else {
       attrValue = value;
     }
     context.encoding().writeAttribute("xlink:" + xlinkAttribute, attrValue);
+  }
+
+  /**
+   * Encodes a feature reference natively as a GML xlink. Builds {@code xlink:href} from the
+   * reference {@code id} (the only profile-independent way to render a reference in GML), emits
+   * {@code xlink:title}, and resolves the {@code _<objectType>} element-name suffix from {@code
+   * type} — instead of relying on the generic {@code rel} reduction, which would have collapsed the
+   * reference to {@code {title, href}} and dropped the type. Called at object end, once all
+   * children have been collected.
+   */
+  private void writeFeatureRef(EncodingAwareContextGml context) throws IOException {
+    ModifiableStateGml state = context.encoding().getState();
+    Map<String, String> ref = state.getRefValues();
+    String href = buildFeatureRefHref(context, ref);
+    if (href != null) {
+      context.encoding().writeAttribute("xlink:href", href);
+    }
+    String title = ref.get(FeatureRefResolver.TITLE);
+    if (title != null) {
+      context.encoding().writeAttribute("xlink:title", title);
+    }
+    if (state.getRefSuffixPending()) {
+      context.encoding().setCurrentRefSuffix(ref.get(FeatureRefResolver.TYPE));
+    }
+  }
+
+  /**
+   * Builds the {@code xlink:href} for a feature reference from its collected children, mirroring
+   * the options the generic reduction offered: local fragment when all links are local, else the
+   * configured {@code featureRefTemplate}, else a per-reference {@code uriTemplate}, else the
+   * canonical {@code {serviceUrl}/collections/{type}/items/{id}}.
+   */
+  private String buildFeatureRefHref(EncodingAwareContextGml context, Map<String, String> ref) {
+    String id = ref.get(FeatureRefResolver.ID);
+    if (id == null) {
+      return null;
+    }
+    String type = ref.get(FeatureRefResolver.TYPE);
+    if (context.encoding().getAllLinksAreLocal()) {
+      String prefix = context.encoding().getGmlIdPrefix().orElse("");
+      return context.encoding().getIdsIncludeCollectionId() && type != null
+          ? String.format("#%s%s.%s", prefix, type, id)
+          : String.format("#%s%s", prefix, id);
+    }
+    Optional<String> template = context.encoding().getFeatureRefTemplate();
+    if (template.isPresent()) {
+      return template.get().replace("{{value}}", id);
+    }
+    String uriTemplate = ref.get(FeatureRefResolver.URI_TEMPLATE);
+    if (uriTemplate != null) {
+      return uriTemplate.replace("{{id}}", id).replace("{{type}}", type == null ? "" : type);
+    }
+    return String.format(
+        "%s/collections/%s/items/%s",
+        context.encoding().getServiceUrl(), type == null ? "" : type, id);
   }
 
   private void writeCodelistXlink(
@@ -286,12 +359,6 @@ public class GmlWriterProperties implements GmlWriter {
       writeValue(context, value, schema.getType());
       context.encoding().writeEndElement();
     }
-  }
-
-  static String applyFeatureRefTemplate(String hrefValue, String template) {
-    int idx = hrefValue.indexOf("/items/");
-    String refId = idx >= 0 ? hrefValue.substring(idx + 7) : hrefValue;
-    return template.replace("{{value}}", refId);
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {

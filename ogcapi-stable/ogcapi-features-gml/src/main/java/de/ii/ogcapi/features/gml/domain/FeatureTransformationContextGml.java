@@ -46,6 +46,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   private static final String OBJECT_ELEMENT_PLACEHOLDER = "_zz_OBJECT_ELEMENT_i_zz_";
   private static final String SURFACE_MEMBER_PLACEHOLDER = "_zz_SURFACE_MEMBER_i_zz_";
   private static final String PROPERTY_LINKS_PLACEHOLDER = "_zz_PROPERTY_LINKS_i_zz_";
+  private static final String REF_SUFFIX_PLACEHOLDER = "_zz_REF_SUFFIX_i_zz_";
 
   /**
    * Internal string buffer to buffer information. The buffer is flushed for every feature. Also
@@ -108,6 +109,22 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   public abstract Map<String, String> getObjectTypeNamespaces();
 
   public abstract Map<String, VariableName> getVariableObjectElementNames();
+
+  @Value.Default
+  public List<String> getObjectTypeSuffixedProperties() {
+    return ImmutableList.of();
+  }
+
+  /**
+   * Maps a collection id to the object type of that collection. Used to derive the {@code
+   * _{objectType}} suffix appended to the property element name of a feature reference declared in
+   * {@link #getObjectTypeSuffixedProperties()}: the reference's type value (the target collection
+   * id) is looked up here to obtain the object type for the suffix.
+   */
+  @Value.Default
+  public Map<String, String> getRefTargetObjectTypes() {
+    return ImmutableMap.of();
+  }
 
   public abstract Optional<String> getFeatureCollectionElementName();
 
@@ -472,8 +489,12 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
                 // should be reported. XML_ATTRIBUTE placeholders are an exception: an empty
                 // value means "no XML attribute was added", and the placeholder is removed
                 // in place (inside attribute position).
+                // REF_SUFFIX placeholders are also allowed to be empty: an empty value means the
+                // feature reference has no resolvable object type, so the placeholder is removed in
+                // place (no suffix is appended to the property element name).
                 if (!key.startsWith("_zz_XML_ATTRIBUTE_")
                     && !key.startsWith("_zz_PROPERTY_LINKS_")
+                    && !key.startsWith("_zz_REF_SUFFIX_")
                     && value.isEmpty()) {
                   return;
                 }
@@ -732,6 +753,38 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   }
 
   /**
+   * The property element name of a feature reference declared in {@link
+   * #getObjectTypeSuffixedProperties()} carries a {@code _{objectType}} suffix that is only known
+   * once the reference's type value has been processed. This method reserves a unique placeholder
+   * for that suffix and returns it; it is appended to the property element name on the start tag
+   * and resolved by {@link #setCurrentRefSuffix(String)} (or removed at {@link #flush()} when the
+   * reference has no resolvable type). Feature references are not nested and their properties are
+   * processed in sequence, so the placeholder index ({@link StateGml#getLastRefSuffix()})
+   * identifies the reference currently being written.
+   */
+  public String beginRefSuffix() {
+    int i = getState().getLastRefSuffix() + 1;
+    getState().setLastRefSuffix(i);
+    getState().setRefSuffixPending(true);
+    String placeholder = REF_SUFFIX_PLACEHOLDER.replace("i", String.valueOf(i));
+    getState().putPlaceholders(placeholder, "");
+    return placeholder;
+  }
+
+  /**
+   * Resolves the placeholder reserved by {@link #beginRefSuffix()} for the feature reference
+   * currently being written: the {@code collectionId} (the reference's type value) is looked up in
+   * {@link #getRefTargetObjectTypes()} to obtain the object type, and the suffix is set to {@code
+   * _{objectType}}. When the collection id is unknown, the suffix stays empty (no suffix is added).
+   */
+  public void setCurrentRefSuffix(String collectionId) {
+    int i = getState().getLastRefSuffix();
+    String objectType = getRefTargetObjectTypes().get(collectionId);
+    String suffix = objectType == null ? "" : "_" + objectType;
+    getState().putPlaceholders(REF_SUFFIX_PLACEHOLDER.replace("i", String.valueOf(i)), suffix);
+  }
+
+  /**
    * This capability is specific to CityGML LoD2 buildings.
    *
    * <p>The gml:ids of the gml:Polygon elements that make up the shell of the LoD 2 solid and that
@@ -805,6 +858,34 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     @Value.Default
     public boolean getInMeasure() {
       return false;
+    }
+
+    /** Counter assigning a unique index to each feature-reference property-element-name suffix. */
+    @Value.Default
+    public int getLastRefSuffix() {
+      return 0;
+    }
+
+    /**
+     * True while a feature reference whose property element name carries an object-type suffix is
+     * being written, so its type value is captured for the suffix instead of emitted as an
+     * attribute.
+     */
+    @Value.Default
+    public boolean getRefSuffixPending() {
+      return false;
+    }
+
+    /**
+     * Collects the resolved children of the feature reference currently being written ({@code
+     * id}/{@code title}/{@code type}/{@code uriTemplate}). GML encodes references natively, so the
+     * {@code xlink:href}/{@code xlink:title} attributes and the {@code _<objectType>} suffix are
+     * emitted together once all children have been seen (at object end), independent of child
+     * order. Cleared at the start of each reference.
+     */
+    @Value.Default
+    public Map<String, String> getRefValues() {
+      return ImmutableMap.of();
     }
 
     public abstract Optional<String> getFirstMeasureProperty();

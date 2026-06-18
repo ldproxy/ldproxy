@@ -543,6 +543,36 @@ public interface GmlConfiguration
   Map<String, VariableName> getVariableObjectElementNames();
 
   /**
+   * @langEn Some feature reference properties are encoded in GML with a property element name that
+   *     appends the referenced feature type to the property name, for example
+   *     `adv:gehoertZuBauwerk_AX_Turm` instead of `adv:gehoertZuBauwerk`. List the affected
+   *     properties here. On encoding, the property element name receives a `_{objectType}` suffix
+   *     where `{objectType}` is the object type of the collection that the reference points to; on
+   *     decoding, an element name with such a suffix is mapped back to the property. Use the
+   *     property name as it appears in the GML element, that is, the alias when `useAlias` is
+   *     enabled.
+   * @langDe Einige Eigenschaften mit Objektreferenzen werden in GML mit einem Elementnamen kodiert,
+   *     der den referenzierten Objekttyp an den Eigenschaftsnamen anhängt, zum Beispiel
+   *     `adv:gehoertZuBauwerk_AX_Turm` statt `adv:gehoertZuBauwerk`. Hier werden die betroffenen
+   *     Eigenschaften aufgelistet. Bei der Kodierung erhält der Elementname ein
+   *     `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection ist, auf die die
+   *     Referenz verweist; bei der Dekodierung wird ein Elementname mit einem solchen Suffix wieder
+   *     auf die Eigenschaft abgebildet. Es ist der Eigenschaftsname zu verwenden, wie er im
+   *     GML-Element erscheint, also der Alias, wenn `useAlias` aktiviert ist.
+   * @default []
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   objectTypeSuffixedProperties:
+   *   - gehoertZuBauwerk
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  List<String> getObjectTypeSuffixedProperties();
+
+  /**
    * @langEn Various feature collection elements are in use and sometimes additional ones are
    *     specified in GML application schemas. The default is `sf:FeatureCollection` as specified by
    *     OGC API Features. This configuration parameter provides a capability to use a different
