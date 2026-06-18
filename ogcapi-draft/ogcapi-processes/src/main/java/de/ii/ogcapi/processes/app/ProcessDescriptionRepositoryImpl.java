@@ -1,0 +1,86 @@
+/*
+ * Copyright 2026 interactive instruments GmbH
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package de.ii.ogcapi.processes.app;
+
+import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.processes.domain.ProcessDescription;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionData;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
+import de.ii.xtraplatform.base.domain.AppLifeCycle;
+import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatile;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
+import de.ii.xtraplatform.values.domain.ValueStore;
+import de.ii.xtraplatform.values.domain.Values;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Singleton
+@AutoBind
+public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
+    implements ProcessDescriptionRepository, AppLifeCycle {
+
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(ProcessDescriptionRepositoryImpl.class);
+
+  private final Values<ProcessDescriptionData> customProcessDescriptionsStore;
+  private final Map<String, ProcessDescription> processDescriptions;
+  private final VolatileRegistry volatileRegistry;
+
+  /** set data directory */
+  @Inject
+  public ProcessDescriptionRepositoryImpl(
+      ValueStore valueStore, VolatileRegistry volatileRegistry) {
+    super(volatileRegistry, "app/processes");
+    this.customProcessDescriptionsStore = valueStore.forType(ProcessDescriptionData.class);
+    this.processDescriptions = new LinkedHashMap<>();
+    this.volatileRegistry = volatileRegistry;
+  }
+
+  @Override
+  public CompletionStage<Void> onStart(boolean isStartupAsync) {
+    LOGGER.debug("PROCESSES: ProcessDescriptionRepositoryImpl Singleton onStart");
+    onVolatileStart();
+    return volatileRegistry.onAvailable(customProcessDescriptionsStore).thenRun(this::initCache);
+  }
+
+  private void initCache() {
+    customProcessDescriptionsStore
+        .identifiers()
+        .forEach(
+            identifier -> {
+              ProcessDescriptionData processDescriptionData =
+                  customProcessDescriptionsStore.get(identifier);
+
+              processDescriptions.put(
+                  processDescriptionData.getId(),
+                  new ProcessDescriptionImpl(processDescriptionData));
+            });
+
+    setState(State.AVAILABLE);
+    LOGGER.debug("PROCESSES: processDescriptions " + processDescriptions.toString());
+  }
+
+  @Override
+  public Optional<ProcessDescription> get(String processId) {
+    return Optional.ofNullable(processDescriptions.get(processId));
+  }
+
+  @Override
+  public Map<String, ProcessDescription> getAll() {
+    return new ImmutableMap.Builder<String, ProcessDescription>()
+        .putAll(processDescriptions)
+        .build();
+  }
+}
