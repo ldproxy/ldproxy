@@ -103,7 +103,7 @@ public class EndpointProcesses extends Endpoint {
   }
 
   @GET
-  public Response getProcessesClasses(
+  public Response getProcesses(
       @Auth Optional<User> optionalUser,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
