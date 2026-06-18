@@ -23,12 +23,40 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessesCoreConfiguration.Builder.class)
 public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
 
+  int DEFAULT_PAGE_SIZE = 10;
+  int MINIMUM_PAGE_SIZE = 1;
+  int MAXIMUM_PAGE_SIZE = 10_000;
+
   /**
    * @default false
    */
   @Nullable
   @Override
   Boolean getEnabled();
+
+  /**
+   * @default 10
+   */
+  @Value.Default
+  default Integer getDefaultPageSize() {
+    return DEFAULT_PAGE_SIZE;
+  }
+
+  /**
+   * @default 1
+   */
+  @Value.Default
+  default Integer getMinimumPageSize() {
+    return MINIMUM_PAGE_SIZE;
+  }
+
+  /**
+   * @default 10000
+   */
+  @Value.Default
+  default Integer getMaximumPageSize() {
+    return MAXIMUM_PAGE_SIZE;
+  }
 
   @Override
   default Builder getBuilder() {
