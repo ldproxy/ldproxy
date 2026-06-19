@@ -1,17 +1,17 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app;
+package de.ii.ogcapi.processes.infra;
 
+// ToDo Make own PermissionGroup?-
 import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.common.domain.ConformanceDeclarationFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -19,14 +19,16 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
+import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceSet;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.xtraplatform.auth.domain.User;
-import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -49,9 +51,13 @@ public class EndpointProcesses extends Endpoint {
 
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
+  private final ProcessDescriptionRepository repository;
+
   @Inject
-  public EndpointProcesses(ExtensionRegistry extensionRegistry) {
+  public EndpointProcesses(
+      ExtensionRegistry extensionRegistry, ProcessDescriptionRepository repository) {
     super(extensionRegistry);
+    this.repository = repository;
   }
 
   @Override
@@ -60,19 +66,37 @@ public class EndpointProcesses extends Endpoint {
   }
 
   @Override
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (formats == null)
+      formats = extensionRegistry.getExtensionsForType(ProcessDescriptionsFormatExtension.class);
+    return formats;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::isEnabled)
+        .isPresent();
+  }
+
+  @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("processes")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_PROCESSES);
+    String path = "/processes";
+    HttpMethods method = HttpMethods.GET;
     List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, "/processes");
+        getQueryParameters(extensionRegistry, apiData, path);
     String operationSummary = "processes list";
     Optional<String> operationDescription =
-        Optional.of("The URIs of all processes supported by the server. ");
-    String path = "/processes";
-    ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
-        new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
+        Optional.of(
+            "The URIs of all processes supported by the server. "
+                + "For each processes the id, a title and the description is provided.");
+    ImmutableOgcApiResourceSet.Builder resourceBuilderSet =
+        new ImmutableOgcApiResourceSet.Builder().path(path).subResourceType("Process Description");
     ApiOperation.getResource(
             apiData,
             path,
@@ -88,29 +112,17 @@ public class EndpointProcesses extends Endpoint {
             TAGS,
             ProcessesCoreBuildingBlock.MATURITY,
             ProcessesCoreBuildingBlock.SPEC)
-        .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
-    definitionBuilder.putResources(path, resourceBuilder.build());
+        .ifPresent(operation -> resourceBuilderSet.putOperations(method.name(), operation));
+    definitionBuilder.putResources(path, resourceBuilderSet.build());
 
     return definitionBuilder.build();
   }
 
-  @Override
-  public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(ConformanceDeclarationFormatExtension.class);
-    }
-    return formats;
-  }
-
   @GET
-  public Response getProcesses(
-      @Auth Optional<User> optionalUser,
-      @Context OgcApi api,
-      @Context ApiRequestContext requestContext) {
+  public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
-    return Response.ok()
-        .type("application/json")
-        .entity(List.of("process foo", "process bar"))
-        .build();
+    // return Response.ok().type("Process
+    // Description").entity(List.of(repository.getAll())).build();
+    return Response.ok().build();
   }
 }
