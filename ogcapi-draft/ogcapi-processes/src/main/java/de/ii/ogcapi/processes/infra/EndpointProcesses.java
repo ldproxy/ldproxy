@@ -7,12 +7,12 @@
  */
 package de.ii.ogcapi.processes.infra;
 
-// ToDo Make own PermissionGroup?-
-import static de.ii.ogcapi.foundation.domain.ApiSecurity.GROUP_DISCOVER_READ;
+import static de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.GROUP_PROCESSES_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Endpoint;
@@ -26,9 +26,12 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
+import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.Query;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -36,6 +39,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 // ToDo Docs
 /**
@@ -47,17 +51,17 @@ import java.util.Optional;
  */
 @Singleton
 @AutoBind
-public class EndpointProcesses extends Endpoint {
+public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
 
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
-  private final ProcessDescriptionRepository repository;
+  private final ProcessesQueriesHandler queryHandler;
 
   @Inject
   public EndpointProcesses(
-      ExtensionRegistry extensionRegistry, ProcessDescriptionRepository repository) {
+      ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
     super(extensionRegistry);
-    this.repository = repository;
+    this.queryHandler = queryHandler;
   }
 
   @Override
@@ -108,7 +112,7 @@ public class EndpointProcesses extends Endpoint {
             operationDescription,
             Optional.empty(),
             getOperationId("getProcesses"),
-            GROUP_DISCOVER_READ,
+            GROUP_PROCESSES_READ,
             TAGS,
             ProcessesCoreBuildingBlock.MATURITY,
             ProcessesCoreBuildingBlock.SPEC)
@@ -121,8 +125,14 @@ public class EndpointProcesses extends Endpoint {
   @GET
   public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
-    // return Response.ok().type("Process
-    // Description").entity(List.of(repository.getAll())).build();
-    return Response.ok().build();
+    ProcessesQueriesHandler.QueryInputProcesses queryInput =
+        new ImmutableQueryInputProcesses.Builder().message("Test").build();
+
+    return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);
+  }
+
+  @Override
+  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
+    return Set.of(queryHandler);
   }
 }
