@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import de.ii.xtraplatform.features.domain.transform.FeatureRefResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -196,6 +197,7 @@ public class GmlWriterProperties implements GmlWriter {
                     .getOrDefault(schema.getFullPathAsString(), List.of());
             for (String wrapEl : wrapElements) {
               context.encoding().writeStartElement(wrapEl);
+              writeIso19139CodeListAttributes(context, schema, wrapEl, value);
             }
             // writeCharacters emits the pending '>' and writes the (escaped) value
             writeValue(context, value, schema.getType());
@@ -359,6 +361,38 @@ public class GmlWriterProperties implements GmlWriter {
       writeValue(context, value, schema.getType());
       context.encoding().writeEndElement();
     }
+  }
+
+  /**
+   * For a property that references a codelist (via its {@code codelist} constraint) and is wrapped
+   * in an element whose local name equals the codelist id, emits the ISO 19139 {@code codeList} and
+   * {@code codeListValue} attributes on that wrapper, turning {@code
+   * <gmd:CI_RoleCode>v</gmd:CI_RoleCode>} into {@code <gmd:CI_RoleCode
+   * codeList="<base>#CI_RoleCode" codeListValue="v">v</gmd:CI_RoleCode>}. The {@code codeList} URI
+   * is built from the configured {@code codeListUriTemplateIso19139} (with {@code {{codelistId}}}
+   * replaced by the codelist id); when it is absent the method is a no-op. Must be called while the
+   * wrapper element's start tag is still open (before any characters or child element).
+   */
+  private void writeIso19139CodeListAttributes(
+      EncodingAwareContextGml context, FeatureSchema schema, String wrapElement, String value)
+      throws IOException {
+    Optional<String> codelistId = schema.getConstraints().flatMap(SchemaConstraints::getCodelist);
+    if (codelistId.isEmpty()) {
+      return;
+    }
+    Optional<String> template = context.encoding().getCodeListUriTemplateIso19139();
+    if (template.isEmpty()) {
+      return;
+    }
+    int colon = wrapElement.indexOf(':');
+    String localName = colon < 0 ? wrapElement : wrapElement.substring(colon + 1);
+    if (!localName.equals(codelistId.get())) {
+      return;
+    }
+    context
+        .encoding()
+        .writeAttribute("codeList", template.get().replace("{{codelistId}}", codelistId.get()));
+    context.encoding().writeAttribute("codeListValue", value);
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {

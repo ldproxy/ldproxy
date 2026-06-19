@@ -161,6 +161,8 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract Optional<String> getCodelistUriTemplate();
 
+  public abstract Optional<String> getCodeListUriTemplateIso19139();
+
   @Value.Default
   public Map<String, String> getCodelistProperties() {
     return ImmutableMap.of();

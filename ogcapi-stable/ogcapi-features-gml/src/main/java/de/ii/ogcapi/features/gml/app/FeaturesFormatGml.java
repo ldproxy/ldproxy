@@ -464,6 +464,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
                     && isDatetimeIntervalRequest(transformationContext))
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codeListUriTemplateIso19139(
+                Optional.ofNullable(config.getCodeListUriTemplateIso19139()))
             .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
             .codelists(resolveCodelists(config.getCodelistProperties()))
             .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))

@@ -38,7 +38,7 @@ import org.immutables.value.Value;
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
  *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
  *     formatting decisions with no input counterpart, or because the decoder is permissive of any
- *     equivalent input form.
+ *     equivalent input form. {@code codeListUriTemplateIso19139} likewise affects output only.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -55,7 +55,8 @@ import org.immutables.value.Value;
  *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
  *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
  *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
- *     Eingabeform permissiv ist.
+ *     Eingabeform permissiv ist. {@code codeListUriTemplateIso19139} wirkt sich ebenfalls nur auf
+ *     die Ausgabe aus.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.
@@ -132,6 +133,7 @@ import org.immutables.value.Value;
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
+ *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
@@ -227,6 +229,7 @@ import org.immutables.value.Value;
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
+ *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
@@ -1006,6 +1009,35 @@ public interface GmlConfiguration
    * @since v4.9
    */
   Map<String, List<String>> getValueWrap();
+
+  /**
+   * @langEn URI template for codelist values encoded according to ISO 19139. The template may
+   *     contain the placeholder `{{codelistId}}`, which is replaced with the codelist id. When set,
+   *     a property that references a codelist (through the `codelist` constraint in the provider
+   *     schema) and is wrapped via `valueWrap` in an element whose local name equals the codelist
+   *     id is encoded as an ISO 19139 codelist value: the wrapping element receives a `codeList`
+   *     attribute built from this template, and a `codeListValue` attribute set to the value (which
+   *     is also the element's text content). The default `null` disables this encoding.
+   * @langDe URI-Template für Codelist-Werte, die gemäß ISO 19139 kodiert werden. Das Template kann
+   *     den Platzhalter `{{codelistId}}` enthalten, der durch die Codelist-ID ersetzt wird. Wenn
+   *     gesetzt, wird eine Eigenschaft, die über die `codelist`-Constraint im Provider-Schema auf
+   *     eine Codelist verweist und über `valueWrap` in ein Element eingeschlossen ist, dessen
+   *     lokaler Name der Codelist-ID entspricht, als ISO-19139-Codelist-Wert kodiert: Das
+   *     einschließende Element erhält ein `codeList`-Attribut, das aus diesem Template gebildet
+   *     wird, sowie ein `codeListValue`-Attribut mit dem Wert (der zugleich der Textinhalt des
+   *     Elements ist). Der Standardwert `null` deaktiviert diese Kodierung.
+   * @default null
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  String getCodeListUriTemplateIso19139();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
