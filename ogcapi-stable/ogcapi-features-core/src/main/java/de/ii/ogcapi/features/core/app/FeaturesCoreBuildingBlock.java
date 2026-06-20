@@ -24,6 +24,7 @@ import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ImmutableCollectionExtent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
@@ -33,6 +34,7 @@ import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsTransformationException;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
@@ -40,7 +42,11 @@ import de.ii.xtraplatform.features.domain.DatasetChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureExtents;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureProviderDataV2;
+import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.FeatureTypeExtent;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
@@ -55,6 +61,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -218,6 +225,8 @@ public class FeaturesCoreBuildingBlock
             collectionId ->
                 initMetadata(api, collectionId, Instant.now().truncatedTo(ChronoUnit.SECONDS)));
 
+    initApiMetadata(api);
+
     providers
         .getFeatureProvider(apiData)
         .ifPresent(provider -> updateChangeListeners(provider.changes(), api));
@@ -259,6 +268,20 @@ public class FeaturesCoreBuildingBlock
     return ValidationResult.of();
   }
 
+  private void initApiMetadata(OgcApi api) {
+    api.getData()
+        .getExtension(FeaturesCoreConfiguration.class)
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getSpatial)
+        .ifPresent(api::setSpatialExtent);
+
+    api.getData()
+        .getExtension(FeaturesCoreConfiguration.class)
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getTemporal)
+        .ifPresent(extent -> api.setTemporalExtent("UNKNOWN", extent));
+  }
+
   @Override
   public void onShutdown(OgcApi api) {
     providers
@@ -273,15 +296,49 @@ public class FeaturesCoreBuildingBlock
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
 
-    final Optional<CollectionExtent> optionalExtent = apiData.getExtent(collectionId);
+    final Optional<FeaturesCoreConfiguration> collectionFeaturesCoreConfig =
+        collectionData != null
+            ? collectionData.getExtension(FeaturesCoreConfiguration.class)
+            : Optional.empty();
 
-    optionalExtent
-        .flatMap(extent -> extent.isSpatialComputed() ? Optional.empty() : extent.getSpatial())
+    final Optional<FeaturesCoreConfiguration> apiFeaturesCoreConfig =
+        apiData.getExtension(FeaturesCoreConfiguration.class);
+
+    collectionFeaturesCoreConfig
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getSpatial)
+        .or(
+            () ->
+                apiFeaturesCoreConfig
+                    .flatMap(FeaturesCoreConfiguration::getExtent)
+                    .flatMap(CollectionExtent::getSpatial))
+        .or(
+            () ->
+                getConfiguredProviderTypeExtent(apiData, collectionData)
+                    .flatMap(CollectionExtent::getSpatial))
+        .or(
+            () ->
+                getConfiguredProviderGlobalExtent(apiData, collectionData)
+                    .flatMap(CollectionExtent::getSpatial))
         .or(() -> computeBbox(apiData, collectionId))
         .ifPresent(bbox -> api.setSpatialExtent(collectionId, bbox));
 
-    optionalExtent
-        .flatMap(extent -> extent.isTemporalComputed() ? Optional.empty() : extent.getTemporal())
+    collectionFeaturesCoreConfig
+        .flatMap(FeaturesCoreConfiguration::getExtent)
+        .flatMap(CollectionExtent::getTemporal)
+        .or(
+            () ->
+                apiFeaturesCoreConfig
+                    .flatMap(FeaturesCoreConfiguration::getExtent)
+                    .flatMap(CollectionExtent::getTemporal))
+        .or(
+            () ->
+                getConfiguredProviderTypeExtent(apiData, collectionData)
+                    .flatMap(CollectionExtent::getTemporal))
+        .or(
+            () ->
+                getConfiguredProviderGlobalExtent(apiData, collectionData)
+                    .flatMap(CollectionExtent::getTemporal))
         .or(() -> computeInterval(apiData, collectionId))
         .ifPresent(interval -> api.setTemporalExtent(collectionId, interval));
 
@@ -319,18 +376,28 @@ public class FeaturesCoreBuildingBlock
     return change -> {
       String collectionId =
           FeaturesCoreConfiguration.getCollectionId(api.getData(), change.getFeatureType());
+      OgcApiDataV2 apiData = api.getData();
+      FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+      boolean hasConfiguredSpatialExtent = hasConfiguredSpatialExtent(apiData, collectionData);
+      boolean hasConfiguredTemporalExtent = hasConfiguredTemporalExtent(apiData, collectionData);
+
       switch (change.getAction()) {
         case CREATE:
           api.updateItemCount(collectionId, (long) change.getFeatureIds().size());
         case UPDATE:
-          change
-              .getNewBoundingBox()
-              .flatMap(this::transformToCrs84)
-              .ifPresent(bbox -> api.updateSpatialExtent(collectionId, bbox));
-          change
-              .getNewInterval()
-              .ifPresent(
-                  interval -> api.updateTemporalExtent(collectionId, TemporalExtent.of(interval)));
+          if (!hasConfiguredSpatialExtent) {
+            change
+                .getNewBoundingBox()
+                .flatMap(this::transformToCrs84)
+                .ifPresent(bbox -> api.updateSpatialExtent(collectionId, bbox));
+          }
+          if (!hasConfiguredTemporalExtent) {
+            change
+                .getNewInterval()
+                .ifPresent(
+                    interval ->
+                        api.updateTemporalExtent(collectionId, TemporalExtent.of(interval)));
+          }
           break;
         case DELETE:
           api.updateItemCount(collectionId, (long) -change.getFeatureIds().size());
@@ -415,6 +482,114 @@ public class FeaturesCoreBuildingBlock
       return featureExtents.get().getTemporalExtent(featureType).map(TemporalExtent::of);
     }
     return Optional.empty();
+  }
+
+  private Optional<CollectionExtent> getConfiguredProviderTypeExtent(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return getProviderData(apiData, collectionData)
+        .flatMap(
+            providerData -> {
+              String featureType =
+                  collectionData
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .flatMap(FeaturesCoreConfiguration::getFeatureType)
+                      .orElse(collectionData.getId());
+
+              FeatureSchema schema = providerData.getTypes().get(featureType);
+              return schema != null
+                  ? toFoundationCollectionExtent(
+                      schema.getExtent(), providerData.getNativeCrs().orElse(OgcCrs.CRS84))
+                  : Optional.empty();
+            });
+  }
+
+  private Optional<CollectionExtent> getConfiguredProviderGlobalExtent(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return getProviderData(apiData, collectionData)
+        .flatMap(
+            providerData ->
+                toFoundationCollectionExtent(
+                    providerData.getExtent(), providerData.getNativeCrs().orElse(OgcCrs.CRS84)));
+  }
+
+  private Optional<CollectionExtent> toFoundationCollectionExtent(
+      Optional<FeatureTypeExtent> extent, EpsgCrs nativeCrs) {
+    Optional<BoundingBox> spatial =
+        extent
+            .flatMap(FeatureTypeExtent::getSpatial)
+            .flatMap(value -> value.toBoundingBox(nativeCrs));
+    Optional<TemporalExtent> temporal =
+        extent.flatMap(FeatureTypeExtent::getTemporal).map(this::toFoundationTemporalExtent);
+
+    if (spatial.isEmpty() && temporal.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        new ImmutableCollectionExtent.Builder().spatial(spatial).temporal(temporal).build());
+  }
+
+  private TemporalExtent toFoundationTemporalExtent(
+      de.ii.xtraplatform.features.domain.TemporalExtent temporalExtent) {
+    Instant start =
+        Optional.ofNullable(temporalExtent.getStart())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)))
+            .orElse(null);
+    Instant end =
+        Optional.ofNullable(temporalExtent.getEnd())
+            .map(value -> Instant.from(DateTimeFormatter.ISO_INSTANT.parse(value)))
+            .orElse(null);
+
+    return TemporalExtent.of(start, end);
+  }
+
+  private Optional<FeatureProviderDataV2> getProviderData(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return providers
+        .getFeatureProvider(apiData, collectionData)
+        .filter(FeatureProviderEntity.class::isInstance)
+        .map(FeatureProviderEntity.class::cast)
+        .map(FeatureProviderEntity::getData);
+  }
+
+  private boolean hasConfiguredSpatialExtent(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return collectionData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getSpatial)
+            .isPresent()
+        || apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getSpatial)
+            .isPresent()
+        || getConfiguredProviderTypeExtent(apiData, collectionData)
+            .flatMap(CollectionExtent::getSpatial)
+            .isPresent()
+        || getConfiguredProviderGlobalExtent(apiData, collectionData)
+            .flatMap(CollectionExtent::getSpatial)
+            .isPresent();
+  }
+
+  private boolean hasConfiguredTemporalExtent(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return collectionData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getTemporal)
+            .isPresent()
+        || apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent)
+            .flatMap(CollectionExtent::getTemporal)
+            .isPresent()
+        || getConfiguredProviderTypeExtent(apiData, collectionData)
+            .flatMap(CollectionExtent::getTemporal)
+            .isPresent()
+        || getConfiguredProviderGlobalExtent(apiData, collectionData)
+            .flatMap(CollectionExtent::getTemporal)
+            .isPresent();
   }
 
   @Override
