@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -19,12 +20,19 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessDescriptionLinks.Builder.class)
 public abstract class ProcessDescriptionLinks extends PageRepresentationWithId {
 
-  public abstract Optional<String> getUri();
-
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<ProcessDescriptionLinks> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         from.getUri().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
+        into.putString(from.getVersion(), StandardCharsets.UTF_8);
+        from.getJobControlOptions()
+            .ifPresent(val -> into.putString(val.name(), StandardCharsets.UTF_8));
       };
+
+  public abstract Optional<String> getUri();
+
+  public abstract String getVersion();
+
+  public abstract Optional<JOB_CONTROL_OPTIONS> getJobControlOptions();
 }

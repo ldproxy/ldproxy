@@ -28,7 +28,7 @@ public abstract class ProcessDescriptionsLinks extends PageRepresentation {
   public static final Funnel<ProcessDescriptionsLinks> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
-        from.getProcessDescriptions().stream()
+        from.getProcesses().stream()
             .sorted(Comparator.comparing(ProcessDescriptionLinks::getId))
             .forEachOrdered(val -> ProcessDescriptionLinks.FUNNEL.funnel(val, into));
         from.getExtensions().keySet().stream()
@@ -36,7 +36,7 @@ public abstract class ProcessDescriptionsLinks extends PageRepresentation {
             .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
       };
 
-  public abstract List<ProcessDescriptionLinks> getProcessDescriptions();
+  public abstract List<ProcessDescriptionLinks> getProcesses();
 
   @JsonAnyGetter
   public abstract Map<String, Object> getExtensions();

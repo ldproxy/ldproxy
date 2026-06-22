@@ -11,17 +11,35 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.HeaderCaching;
+import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionLinks;
+import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionsLinks;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinks;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
+import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.Response;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 @AutoBind
@@ -63,9 +81,75 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
   private Response getProcessesResponse(
       QueryInputProcesses queryInput, ApiRequestContext requestContext) {
-    return Response.ok()
-        .type("application/json")
-        .entity(Map.of("message", queryInput.getMessage()))
+    OgcApi api = requestContext.getApi();
+
+    ProcessDescriptionsFormatExtension outputFormat =
+        api.getOutputFormat(
+                ProcessDescriptionsFormatExtension.class,
+                requestContext.getMediaType(),
+                Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    final ProcessDescriptionsLinkGenerator linkGenerator = new ProcessDescriptionsLinkGenerator();
+
+    List<Link> links =
+        new ProcessDescriptionsLinksGenerator()
+            .generateLinks(
+                requestContext.getUriCustomizer(),
+                requestContext.getMediaType(),
+                requestContext.getAlternateMediaTypes(),
+                true,
+                i18n,
+                requestContext.getLanguage());
+
+    ProcessDescriptionsLinks processDescriptionsLinks =
+        ImmutableProcessDescriptionsLinks.builder()
+            .processes(
+                queryInput.getProcessIds().stream()
+                    .map(processDescriptionRepository::get)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(
+                        processDescription ->
+                            ImmutableProcessDescriptionLinks.builder()
+                                .id(processDescription.getId())
+                                .title(processDescription.getTitle())
+                                .version(processDescription.getVersion())
+                                .jobControlOptions(processDescription.getJobControlOptions())
+                                .links(
+                                    linkGenerator.generateProcessDescriptionLinks(
+                                        requestContext.getUriCustomizer(),
+                                        processDescription.getId(),
+                                        i18n,
+                                        requestContext.getLanguage()))
+                                .build())
+                    .collect(Collectors.toList()))
+            .links(links)
+            .build();
+
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        ETag.from(
+            processDescriptionsLinks,
+            ProcessDescriptionsLinks.FUNNEL,
+            outputFormat.getMediaType().label());
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            queryInput.getIncludeLinkHeader() ? links : null,
+            HeaderCaching.of(lastModified, etag, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("processes.%s", outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(processDescriptionsLinks, api, requestContext))
         .build();
   }
 }

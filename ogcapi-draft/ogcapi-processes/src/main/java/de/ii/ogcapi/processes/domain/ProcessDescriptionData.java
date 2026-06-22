@@ -21,11 +21,22 @@ import org.immutables.value.Value;
 @JsonInclude(Include.NON_EMPTY)
 @JsonDeserialize(builder = ImmutableProcessDescriptionData.Builder.class)
 public interface ProcessDescriptionData extends StoredValue {
+
   String getId();
 
   String getTitle();
 
   String getDescription();
+
+  String getVersion();
+
+  JOB_CONTROL_OPTIONS getJobControlOptions();
+
+  enum JOB_CONTROL_OPTIONS {
+    SYNC_EXECUTE,
+    ASYNC_EXECUTE,
+    DISMISS
+  }
 
   abstract class Builder implements ValueBuilder<ProcessDescriptionData> {}
 }
