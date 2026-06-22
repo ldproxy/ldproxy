@@ -211,6 +211,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       ThreadLocal.withInitial(IdentityHashMap::new);
   private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
       new ConcurrentHashMap<>();
+  // Effective namespace prefix map per (api, collection): the configured application namespaces
+  // merged with the reserved STANDARD_NAMESPACES. The merge is stable for a given config, so it is
+  // computed once and cached here rather than on every encoded response; caching via
+  // computeIfAbsent also means the reserved-prefix conflict warning is logged once, not per
+  // request.
+  private final ConcurrentMap<Integer, ConcurrentMap<String, Map<String, String>>> namespacesCache =
+      new ConcurrentHashMap<>();
 
   @Inject
   public FeaturesFormatGml(
@@ -424,8 +431,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
             .gmlVersion(Objects.requireNonNullElse(config.getGmlVersion(), GML32))
-            .putAllNamespaces(config.getApplicationNamespaces())
-            .putAllNamespaces(STANDARD_NAMESPACES)
+            .putAllNamespaces(
+                namespacesCache
+                    .computeIfAbsent(
+                        transformationContext.getApiData().hashCode(),
+                        k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(
+                        transformationContext.getCollectionId(), k -> mergeNamespaces(config)))
             .defaultNamespace(Optional.ofNullable(config.getDefaultNamespace()))
             .putAllSchemaLocations(config.getSchemaLocations())
             .putAllSchemaLocations(
@@ -452,6 +464,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
             .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
+            .forceCompositeCurve(Objects.requireNonNullElse(config.getForceCompositeCurve(), false))
             .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
@@ -809,6 +822,37 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
     String datetime = context.getOgcApiRequest().getParameters().get("datetime");
     return datetime != null && datetime.contains("/");
+  }
+
+  // Merge the configured application namespaces with the standard ones. The STANDARD_NAMESPACES
+  // prefixes (gml, xlink, xsi, sf, wfs) are reserved — the GML writers reference them internally —
+  // so they always win: an application namespace that reuses one of these prefixes is dropped
+  // rather than overriding it. This also avoids the duplicate-key failure an unfiltered putAll of
+  // both maps would raise when a prefix appears in both. A reserved prefix bound to a *different*
+  // namespace is a genuine misconfiguration and is logged; reusing it for the same namespace is a
+  // harmless redundancy and dropped silently. Package-private for unit testing.
+  static Map<String, String> mergeNamespaces(GmlConfiguration config) {
+    Map<String, String> merged = new LinkedHashMap<>();
+    config
+        .getApplicationNamespaces()
+        .forEach(
+            (prefix, namespace) -> {
+              String standard = STANDARD_NAMESPACES.get(prefix);
+              if (standard != null) {
+                if (!standard.equals(namespace) && LOGGER.isWarnEnabled()) {
+                  LOGGER.warn(
+                      "GML configuration binds namespace prefix '{}' to '{}', but it is reserved for"
+                          + " the standard binding '{}'; the application declaration is ignored.",
+                      prefix,
+                      namespace,
+                      standard);
+                }
+              } else {
+                merged.put(prefix, namespace);
+              }
+            });
+    merged.putAll(STANDARD_NAMESPACES);
+    return merged;
   }
 
   // Walks the (technical-named) feature schema and builds a map from each property's full

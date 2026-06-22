@@ -13,6 +13,7 @@
 </div>
 {{/hasValues}}
 {{^hasValues}}
+{{#hasContent}}
 {{#isObject}}
 {{^isInArray}}
 <div class="row my-1">
@@ -36,4 +37,5 @@
 {{> property}}
 {{/objects}}
 {{/isArray}}
+{{/hasContent}}
 {{/hasValues}}

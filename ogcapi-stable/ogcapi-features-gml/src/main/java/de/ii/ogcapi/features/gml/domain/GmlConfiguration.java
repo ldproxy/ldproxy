@@ -16,9 +16,11 @@ import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -757,6 +759,31 @@ public interface GmlConfiguration
   Boolean getUseSurfaceAndCurve();
 
   /**
+   * @langEn If enabled, a curve geometry is always encoded as {@code gml:CompositeCurve} (with one
+   *     {@code gml:curveMember} per curve component), even when the geometry has only a single
+   *     component. This is useful when the target GML application schema requires {@code
+   *     gml:CompositeCurve} for the geometry of a feature type. Set this per collection on the
+   *     affected feature types. Has an effect only together with {@code useSurfaceAndCurve}.
+   * @langDe Wenn aktiviert, wird eine Kurvengeometrie immer als {@code gml:CompositeCurve} kodiert
+   *     (mit einem {@code gml:curveMember} je Kurvenkomponente), auch wenn die Geometrie nur eine
+   *     einzige Komponente hat. Dies ist nützlich, wenn das Ziel-GML-Anwendungsschema {@code
+   *     gml:CompositeCurve} für die Geometrie einer Objektart erfordert. Diese Option wird je
+   *     Collection auf den betroffenen Objektarten gesetzt. Sie ist nur zusammen mit {@code
+   *     useSurfaceAndCurve} wirksam.
+   * @default false
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   forceCompositeCurve: true
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  Boolean getForceCompositeCurve();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set and
    *     the value is the default profile for the profile set. These defaults override the defaults
@@ -1006,7 +1033,7 @@ public interface GmlConfiguration
    *       - gco:DateTime
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   Map<String, List<String>> getValueWrap();
 
@@ -1048,9 +1075,28 @@ public interface GmlConfiguration
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    GmlConfiguration src = (GmlConfiguration) source;
     return new ImmutableGmlConfiguration.Builder()
         .from(source)
         .from(this)
+        // The map and list options must be merged explicitly. The generated builder accumulates
+        // each `from(...)` into the same map/list builder, so a key declared at both the API and
+        // the collection level would be added twice and the map builder would throw at build time
+        // (duplicate key); list entries would be duplicated. The replace setters used below reset
+        // each builder, so the pre-merged value wins. In every case the collection-level value
+        // (`this`) takes precedence over the API-level value (`source`) on key conflicts.
+        .applicationNamespaces(
+            mergeMaps(src.getApplicationNamespaces(), getApplicationNamespaces()))
+        .schemaLocations(mergeMaps(src.getSchemaLocations(), getSchemaLocations()))
+        .xsdCatalog(mergeMaps(src.getXsdCatalog(), getXsdCatalog()))
+        .objectTypeNamespaces(mergeMaps(src.getObjectTypeNamespaces(), getObjectTypeNamespaces()))
+        .variableObjectElementNames(
+            mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
+        .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
+        .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
+        .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
+        .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(
             PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
@@ -1061,5 +1107,21 @@ public interface GmlConfiguration
                 .getDefaultProfiles())
         .useAlias(AliasConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias())
         .build();
+  }
+
+  /**
+   * Merges two maps so that the union of keys is retained and {@code overrides} wins on conflicts,
+   * preserving insertion order (API-level entries first). Returns a plain map; the caller passes it
+   * through a replace setter that copies it into an immutable map.
+   */
+  private static <K, V> Map<K, V> mergeMaps(Map<K, V> base, Map<K, V> overrides) {
+    Map<K, V> merged = new LinkedHashMap<>(base);
+    merged.putAll(overrides);
+    return merged;
+  }
+
+  /** Concatenates two lists (API-level entries first) and removes duplicates. */
+  private static <T> List<T> mergeLists(List<T> base, List<T> overrides) {
+    return Stream.concat(base.stream(), overrides.stream()).distinct().toList();
   }
 }
