@@ -9,6 +9,7 @@ package de.ii.ogcapi.processes.app;
 
 import de.ii.ogcapi.processes.domain.ProcessDescription;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionData;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 
 public class ProcessDescriptionImpl implements ProcessDescription {
 
@@ -31,5 +32,15 @@ public class ProcessDescriptionImpl implements ProcessDescription {
   @Override
   public String getDescription() {
     return data.getDescription();
+  }
+
+  @Override
+  public String getVersion() {
+    return data.getVersion();
+  }
+
+  @Override
+  public JOB_CONTROL_OPTIONS getJobControlOptions() {
+    return data.getJobControlOptions();
   }
 }
