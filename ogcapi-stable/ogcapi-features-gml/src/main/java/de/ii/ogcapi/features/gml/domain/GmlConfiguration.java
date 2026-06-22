@@ -16,9 +16,11 @@ import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -998,7 +1000,7 @@ public interface GmlConfiguration
    *       - gco:DateTime
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   Map<String, List<String>> getValueWrap();
 
@@ -1011,9 +1013,28 @@ public interface GmlConfiguration
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    GmlConfiguration src = (GmlConfiguration) source;
     return new ImmutableGmlConfiguration.Builder()
         .from(source)
         .from(this)
+        // The map and list options must be merged explicitly. The generated builder accumulates
+        // each `from(...)` into the same map/list builder, so a key declared at both the API and
+        // the collection level would be added twice and the map builder would throw at build time
+        // (duplicate key); list entries would be duplicated. The replace setters used below reset
+        // each builder, so the pre-merged value wins. In every case the collection-level value
+        // (`this`) takes precedence over the API-level value (`source`) on key conflicts.
+        .applicationNamespaces(
+            mergeMaps(src.getApplicationNamespaces(), getApplicationNamespaces()))
+        .schemaLocations(mergeMaps(src.getSchemaLocations(), getSchemaLocations()))
+        .xsdCatalog(mergeMaps(src.getXsdCatalog(), getXsdCatalog()))
+        .objectTypeNamespaces(mergeMaps(src.getObjectTypeNamespaces(), getObjectTypeNamespaces()))
+        .variableObjectElementNames(
+            mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
+        .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
+        .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
+        .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
+        .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(
             PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
@@ -1024,5 +1045,21 @@ public interface GmlConfiguration
                 .getDefaultProfiles())
         .useAlias(AliasConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias())
         .build();
+  }
+
+  /**
+   * Merges two maps so that the union of keys is retained and {@code overrides} wins on conflicts,
+   * preserving insertion order (API-level entries first). Returns a plain map; the caller passes it
+   * through a replace setter that copies it into an immutable map.
+   */
+  private static <K, V> Map<K, V> mergeMaps(Map<K, V> base, Map<K, V> overrides) {
+    Map<K, V> merged = new LinkedHashMap<>(base);
+    merged.putAll(overrides);
+    return merged;
+  }
+
+  /** Concatenates two lists (API-level entries first) and removes duplicates. */
+  private static <T> List<T> mergeLists(List<T> base, List<T> overrides) {
+    return Stream.concat(base.stream(), overrides.stream()).distinct().toList();
   }
 }
