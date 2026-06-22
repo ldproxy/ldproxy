@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.domain;
 
 import de.ii.ogcapi.processes.app.ProcessDescriptionImpl;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 
 public interface ProcessDescription {
 
@@ -20,4 +21,8 @@ public interface ProcessDescription {
   String getTitle();
 
   String getDescription();
+
+  String getVersion();
+
+  JOB_CONTROL_OPTIONS getJobControlOptions();
 }

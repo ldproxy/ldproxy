@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -33,6 +34,7 @@ public interface ProcessesQueriesHandler
 
   @Value.Immutable
   interface QueryInputProcesses extends QueryInput {
-    String getMessage();
+
+    List<String> getProcessIds();
   }
 }

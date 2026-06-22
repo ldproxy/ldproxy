@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
@@ -56,12 +57,16 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
+  private final ProcessDescriptionRepository processDescriptionRepository;
 
   @Inject
   public EndpointProcesses(
-      ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
+      ExtensionRegistry extensionRegistry,
+      ProcessesQueriesHandler queryHandler,
+      ProcessDescriptionRepository processDescriptionRepository) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+    this.processDescriptionRepository = processDescriptionRepository;
   }
 
   @Override
@@ -125,8 +130,15 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   @GET
   public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
+    List<String> processIds =
+        processDescriptionRepository.getAll().keySet().stream()
+            .collect(ImmutableList.toImmutableList());
+
     ProcessesQueriesHandler.QueryInputProcesses queryInput =
-        new ImmutableQueryInputProcesses.Builder().message("Test").build();
+        new ImmutableQueryInputProcesses.Builder()
+            .from(getGenericQueryInput(api.getData()))
+            .processIds(processIds)
+            .build();
 
     return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);
   }
