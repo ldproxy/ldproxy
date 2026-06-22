@@ -726,6 +726,31 @@ public interface GmlConfiguration
   Boolean getUseSurfaceAndCurve();
 
   /**
+   * @langEn If enabled, a curve geometry is always encoded as {@code gml:CompositeCurve} (with one
+   *     {@code gml:curveMember} per curve component), even when the geometry has only a single
+   *     component. This is useful when the target GML application schema requires {@code
+   *     gml:CompositeCurve} for the geometry of a feature type. Set this per collection on the
+   *     affected feature types. Has an effect only together with {@code useSurfaceAndCurve}.
+   * @langDe Wenn aktiviert, wird eine Kurvengeometrie immer als {@code gml:CompositeCurve} kodiert
+   *     (mit einem {@code gml:curveMember} je Kurvenkomponente), auch wenn die Geometrie nur eine
+   *     einzige Komponente hat. Dies ist nützlich, wenn das Ziel-GML-Anwendungsschema {@code
+   *     gml:CompositeCurve} für die Geometrie einer Objektart erfordert. Diese Option wird je
+   *     Collection auf den betroffenen Objektarten gesetzt. Sie ist nur zusammen mit {@code
+   *     useSurfaceAndCurve} wirksam.
+   * @default false
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   forceCompositeCurve: true
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  Boolean getForceCompositeCurve();
+
+  /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
    *     this feature format. The value is an object where the key is the id of a profile set and
    *     the value is the default profile for the profile set. These defaults override the defaults
