@@ -52,6 +52,7 @@ import de.ii.xtraplatform.features.domain.SchemaMapping;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGml;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGmlInputProfile;
 import de.ii.xtraplatform.features.gml.domain.ImmutableFeatureTokenDecoderGmlInputProfile;
@@ -445,6 +446,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
             .objectTypeNamespaces(config.getObjectTypeNamespaces())
             .variableObjectElementNames(config.getVariableObjectElementNames())
+            // configured by the property's element name (the alias when useAlias is on), which is
+            // also the form GmlWriterProperties sees as schema.getName() at runtime — so no
+            // technical-to-alias remap is applied here.
+            .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
+            .refTargetObjectTypes(
+                providers.getFeatureSchemas(transformationContext.getApiData()).entrySet().stream()
+                    .filter(entry -> entry.getValue().getObjectType().isPresent())
+                    .collect(
+                        ImmutableMap.toImmutableMap(
+                            Map.Entry::getKey, entry -> entry.getValue().getObjectType().get())))
             .featureCollectionElementName(
                 Optional.ofNullable(config.getFeatureCollectionElementName()))
             .featureMemberElementName(Optional.ofNullable(config.getFeatureMemberElementName()))
@@ -466,12 +477,41 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
                     && isDatetimeIntervalRequest(transformationContext))
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codeListUriTemplateIso19139(
+                Optional.ofNullable(config.getCodeListUriTemplateIso19139()))
             .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
             .codelists(resolveCodelists(config.getCodelistProperties()))
             .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
+  }
+
+  // The "rel" profile set ({@code rel-as-key}/{@code rel-as-uri}/{@code rel-as-link}). GML renders
+  // feature references natively as xlinks, so its property transformations must not include the
+  // generic "rel" reduction (see getPropertyTransformations).
+  private static final String PROFILE_SET_REL = "rel";
+
+  /**
+   * GML encodes feature references natively (the GML encoder builds {@code xlink:href}/{@code
+   * xlink:title} and the {@code _<objectType>} element-name suffix from the resolved {@code
+   * id}/{@code title}/{@code type} children). It therefore drops the "rel" profile here so the
+   * generic reduction does not collapse that object into {@code {title, href}} and discard the type
+   * discriminator. Other profile sets (e.g. "val" for codelist values) are kept; the negotiated
+   * profile is still advertised on the response, since GML output is a valid {@code rel-as-link}
+   * representation.
+   */
+  @Override
+  public Optional<PropertyTransformations> getPropertyTransformations(
+      FeatureTypeConfigurationOgcApi collectionData,
+      Optional<FeatureSchema> schema,
+      List<Profile> profiles) {
+    return super.getPropertyTransformations(collectionData, schema, withoutRelProfiles(profiles));
+  }
+
+  // Drops the "rel" profile set so the generic reference reduction is not applied for GML.
+  static List<Profile> withoutRelProfiles(List<Profile> profiles) {
+    return profiles.stream().filter(p -> !PROFILE_SET_REL.equals(p.getProfileSet())).toList();
   }
 
   @Override
@@ -758,6 +798,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
         .valueWrap(config.getValueWrap())
+        // matched against the property name/alias on the wire; the decoder applies useAlias itself,
+        // so the configured names are passed through unchanged (as for codelistProperties above).
+        .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
         .build();
   }
 
