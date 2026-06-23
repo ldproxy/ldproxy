@@ -12,7 +12,7 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
+import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -24,15 +24,11 @@ public abstract class ProcessDescriptionLinks extends PageRepresentationWithId {
   public static final Funnel<ProcessDescriptionLinks> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
-        from.getUri().ifPresent(val -> into.putString(val, StandardCharsets.UTF_8));
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
-        from.getJobControlOptions()
-            .ifPresent(val -> into.putString(val.name(), StandardCharsets.UTF_8));
+        into.putString(from.getJobControlOptions().toString(), StandardCharsets.UTF_8);
       };
-
-  public abstract Optional<String> getUri();
 
   public abstract String getVersion();
 
-  public abstract Optional<JOB_CONTROL_OPTIONS> getJobControlOptions();
+  public abstract List<JOB_CONTROL_OPTIONS> getJobControlOptions();
 }
