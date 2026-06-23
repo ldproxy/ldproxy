@@ -9,6 +9,7 @@ package de.ii.ogcapi.processes.domain;
 
 import de.ii.ogcapi.processes.app.ProcessDescriptionImpl;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import java.util.List;
 
 public interface ProcessDescription {
 
@@ -24,5 +25,5 @@ public interface ProcessDescription {
 
   String getVersion();
 
-  JOB_CONTROL_OPTIONS getJobControlOptions();
+  List<JOB_CONTROL_OPTIONS> getJobControlOptions();
 }
