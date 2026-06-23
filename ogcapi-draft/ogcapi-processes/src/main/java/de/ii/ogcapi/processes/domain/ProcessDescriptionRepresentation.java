@@ -10,18 +10,18 @@ package de.ii.ogcapi.processes.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
-@JsonDeserialize(builder = ImmutableProcessDescriptionLinks.Builder.class)
-public abstract class ProcessDescriptionLinks extends PageRepresentationWithId {
+@JsonDeserialize(builder = ImmutableProcessDescriptionRepresentation.Builder.class)
+public abstract class ProcessDescriptionRepresentation extends PageRepresentationWithId {
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<ProcessDescriptionLinks> FUNNEL =
+  public static final Funnel<ProcessDescriptionRepresentation> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
