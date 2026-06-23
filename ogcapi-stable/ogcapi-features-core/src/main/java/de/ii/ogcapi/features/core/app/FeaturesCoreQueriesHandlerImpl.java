@@ -135,6 +135,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     onVolatileStarted();
   }
 
+  static String relToI18nKey(String rel) {
+    String[] parts = rel.split("-");
+    StringBuilder sb = new StringBuilder(parts[0]);
+    for (int i = 1; i < parts.length; i++) {
+      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+    }
+    sb.append("Link");
+    return sb.toString();
+  }
+
   @Override
   public Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers() {
     return queryHandlers;
@@ -678,16 +688,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         title
             .map(t -> String.format("<%s>; rel=\"%s\"; title=\"%s\"", href, rel, t))
             .orElseGet(() -> String.format("<%s>; rel=\"%s\"", href, rel)));
-  }
-
-  static String relToI18nKey(String rel) {
-    String[] parts = rel.split("-");
-    StringBuilder sb = new StringBuilder(parts[0]);
-    for (int i = 1; i < parts.length; i++) {
-      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-    }
-    sb.append("Link");
-    return sb.toString();
   }
 
   private Tuple<StreamingOutput, CollectionMetadata> stream(
