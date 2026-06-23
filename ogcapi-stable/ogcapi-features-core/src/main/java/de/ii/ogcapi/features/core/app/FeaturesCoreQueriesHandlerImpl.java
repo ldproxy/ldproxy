@@ -146,6 +146,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     onVolatileStarted();
   }
 
+  static String relToI18nKey(String rel) {
+    String[] parts = rel.split("-");
+    StringBuilder sb = new StringBuilder(parts[0]);
+    for (int i = 1; i < parts.length; i++) {
+      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+    }
+    sb.append("Link");
+    return sb.toString();
+  }
+
   @Override
   public Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers() {
     return queryHandlers;

@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
@@ -21,6 +22,10 @@ public class ProcessDescriptionsLinksGenerator extends DefaultLinksGenerator {
 
   public List<Link> generateLinks(
       URICustomizer uriBuilder,
+      int offset,
+      int limit,
+      int defaultLimit,
+      int processesCount,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
       boolean sets,
@@ -31,6 +36,58 @@ public class ProcessDescriptionsLinksGenerator extends DefaultLinksGenerator {
             .addAll(
                 super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language));
 
+    if (limit * (offset + 1) < processesCount) {
+      builder.add(
+          new ImmutableLink.Builder()
+              .href(getUrlWithPageAndCount(uriBuilder.copy(), offset + limit, limit, defaultLimit))
+              .rel("next")
+              .mediaType(mediaType)
+              .title(i18n.get("nextLink", language))
+              .build());
+    }
+    if (offset > 0) {
+      builder.add(
+          new ImmutableLink.Builder()
+              .href(getUrlWithPageAndCount(uriBuilder.copy(), offset - limit, limit, defaultLimit))
+              .rel("prev")
+              .mediaType(mediaType)
+              .title(i18n.get("prevLink", language))
+              .build());
+      builder.add(
+          new ImmutableLink.Builder()
+              .href(getUrlWithPageAndCount(uriBuilder.copy(), 0, limit, defaultLimit))
+              .rel("first")
+              .mediaType(mediaType)
+              .title(i18n.get("firstLink", language))
+              .build());
+    }
+
     return builder.build();
+  }
+
+  private String getUrlWithPageAndCount(
+      final URICustomizer uriBuilder, final int offset, final int limit, final int defaultLimit) {
+    if (offset == 0 && limit == defaultLimit) {
+      return uriBuilder.ensureNoTrailingSlash().removeParameters("offset", "limit").toString();
+    } else if (limit == defaultLimit) {
+      return uriBuilder
+          .ensureNoTrailingSlash()
+          .removeParameters("offset", "limit")
+          .setParameter("offset", String.valueOf(Integer.max(0, offset)))
+          .toString();
+    } else if (offset == 0) {
+      return uriBuilder
+          .ensureNoTrailingSlash()
+          .removeParameters("offset", "limit")
+          .setParameter("limit", String.valueOf(limit))
+          .toString();
+    }
+
+    return uriBuilder
+        .ensureNoTrailingSlash()
+        .removeParameters("offset", "limit")
+        .setParameter("limit", String.valueOf(limit))
+        .setParameter("offset", String.valueOf(Integer.max(0, offset)))
+        .toString();
   }
 }

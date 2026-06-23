@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
@@ -52,6 +53,11 @@ public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
   @Override
   public boolean matchesPath(String definitionPath) {
     return "/processes".equals(definitionPath);
+  }
+
+  @Override
+  public String getId() {
+    return "limitProcesses";
   }
 
   @Override
@@ -161,6 +167,14 @@ public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
     }
 
     return limit;
+  }
+
+  public Optional<Integer> parse(QueryParameterSet parameters) {
+    if (parameters.getTypedValues().containsKey(getName())) {
+      Integer value = (Integer) parameters.getTypedValues().get(getName());
+      return Optional.ofNullable(value);
+    }
+    return Optional.empty();
   }
 
   @Override
