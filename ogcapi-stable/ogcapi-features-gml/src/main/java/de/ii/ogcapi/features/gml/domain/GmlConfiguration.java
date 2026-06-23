@@ -9,10 +9,12 @@ package de.ii.ogcapi.features.gml.domain;
 
 import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
+import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
@@ -327,6 +329,9 @@ public interface GmlConfiguration
   Integer getGmlSfLevel();
 
   @Value.Derived
+  @Value.Auxiliary
+  @DocIgnore
+  @JsonIgnore
   default Conformance getConformance() {
     if (!GML32.equals(Objects.requireNonNullElse(getGmlVersion(), GML32))) {
       return Conformance.NONE;
