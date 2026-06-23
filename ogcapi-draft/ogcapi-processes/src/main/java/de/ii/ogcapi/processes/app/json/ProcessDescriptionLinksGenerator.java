@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app;
+package de.ii.ogcapi.processes.app.json;
 
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
@@ -18,7 +18,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 /** This class is responsible for generating the links in the json Files. */
-public class ProcessDescriptionsLinkGenerator extends DefaultLinksGenerator {
+public class ProcessDescriptionLinksGenerator extends DefaultLinksGenerator {
 
   /**
    * Generates the links for a single process description on the page /{apiId}/processes.

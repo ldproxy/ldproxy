@@ -16,7 +16,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 public interface ProcessDescriptionsFormatExtension extends GenericFormatExtension {
 
   Object getEntity(
-      ProcessDescriptionsLinks processDescriptionsLinks,
+      ProcessDescriptionsRepresentation processDescriptionsRepresentation,
       OgcApi api,
       ApiRequestContext requestContext);
 }

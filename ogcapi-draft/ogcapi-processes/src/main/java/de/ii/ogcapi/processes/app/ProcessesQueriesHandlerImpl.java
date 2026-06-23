@@ -18,13 +18,14 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionLinks;
-import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionsLinks;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.app.json.ProcessDescriptionLinksGenerator;
+import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionRepresentation;
+import de.ii.ogcapi.processes.domain.ImmutableProcessDescriptionsRepresentation;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinks;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinksGenerator;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsRepresentation;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -95,7 +96,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final ProcessDescriptionsLinkGenerator linkGenerator = new ProcessDescriptionsLinkGenerator();
+    final ProcessDescriptionLinksGenerator linkGenerator = new ProcessDescriptionLinksGenerator();
 
     List<Link> links =
         new ProcessDescriptionsLinksGenerator()
@@ -107,8 +108,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                 i18n,
                 requestContext.getLanguage());
 
-    ProcessDescriptionsLinks processDescriptionsLinks =
-        ImmutableProcessDescriptionsLinks.builder()
+    ProcessDescriptionsRepresentation processDescriptionsRepresentation =
+        ImmutableProcessDescriptionsRepresentation.builder()
             .processes(
                 queryInput.getProcessIds().stream()
                     .map(processDescriptionRepository::get)
@@ -116,7 +117,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(Optional::get)
                     .map(
                         processDescription ->
-                            ImmutableProcessDescriptionLinks.builder()
+                            ImmutableProcessDescriptionRepresentation.builder()
                                 .id(processDescription.getId())
                                 .title(processDescription.getTitle())
                                 .version(processDescription.getVersion())
@@ -135,8 +136,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
         ETag.from(
-            processDescriptionsLinks,
-            ProcessDescriptionsLinks.FUNNEL,
+            processDescriptionsRepresentation,
+            ProcessDescriptionsRepresentation.FUNNEL,
             outputFormat.getMediaType().label());
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -149,7 +150,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format("processes.%s", outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(processDescriptionsLinks, api, requestContext))
+        .entity(outputFormat.getEntity(processDescriptionsRepresentation, api, requestContext))
         .build();
   }
 }

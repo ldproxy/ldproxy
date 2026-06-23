@@ -19,24 +19,24 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
-@JsonDeserialize(builder = ImmutableProcessDescriptionsLinks.Builder.class)
-public abstract class ProcessDescriptionsLinks extends PageRepresentation {
+@JsonDeserialize(builder = ImmutableProcessDescriptionsRepresentation.Builder.class)
+public abstract class ProcessDescriptionsRepresentation extends PageRepresentation {
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessDescriptions";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<ProcessDescriptionsLinks> FUNNEL =
+  public static final Funnel<ProcessDescriptionsRepresentation> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
         from.getProcesses().stream()
-            .sorted(Comparator.comparing(ProcessDescriptionLinks::getId))
-            .forEachOrdered(val -> ProcessDescriptionLinks.FUNNEL.funnel(val, into));
+            .sorted(Comparator.comparing(ProcessDescriptionRepresentation::getId))
+            .forEachOrdered(val -> ProcessDescriptionRepresentation.FUNNEL.funnel(val, into));
         from.getExtensions().keySet().stream()
             .sorted()
             .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
       };
 
-  public abstract List<ProcessDescriptionLinks> getProcesses();
+  public abstract List<ProcessDescriptionRepresentation> getProcesses();
 
   @JsonAnyGetter
   public abstract Map<String, Object> getExtensions();

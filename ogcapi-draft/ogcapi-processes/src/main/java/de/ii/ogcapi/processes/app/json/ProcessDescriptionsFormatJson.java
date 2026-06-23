@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app;
+package de.ii.ogcapi.processes.app.json;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -15,7 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinks;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsRepresentation;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,9 +33,10 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
 
   @Inject
   public ProcessDescriptionsFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcessDescriptions = classSchemaCache.getSchema(ProcessDescriptionsLinks.class);
+    schemaStyleProcessDescriptions =
+        classSchemaCache.getSchema(ProcessDescriptionsRepresentation.class);
     referencedSchemasProcessDescriptions =
-        classSchemaCache.getReferencedSchemas(ProcessDescriptionsLinks.class);
+        classSchemaCache.getReferencedSchemas(ProcessDescriptionsRepresentation.class);
   }
 
   @Override
@@ -47,7 +48,7 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaStyleProcessDescriptions)
-        .schemaRef(ProcessDescriptionsLinks.SCHEMA_REF)
+        .schemaRef(ProcessDescriptionsRepresentation.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcessDescriptions)
         .ogcApiMediaType(getMediaType())
         .build();
@@ -55,9 +56,9 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
 
   @Override
   public Object getEntity(
-      ProcessDescriptionsLinks processDescriptionsLinks,
+      ProcessDescriptionsRepresentation processDescriptionsRepresentation,
       OgcApi api,
       ApiRequestContext requestContext) {
-    return processDescriptionsLinks;
+    return processDescriptionsRepresentation;
   }
 }
