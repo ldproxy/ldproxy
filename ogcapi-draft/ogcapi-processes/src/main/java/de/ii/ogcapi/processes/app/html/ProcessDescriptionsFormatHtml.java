@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app;
+package de.ii.ogcapi.processes.app.html;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -20,7 +20,7 @@ import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinks;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionsRepresentation;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -60,7 +60,7 @@ public class ProcessDescriptionsFormatHtml
 
   @Override
   public Object getEntity(
-      ProcessDescriptionsLinks processDescriptionsLinks,
+      ProcessDescriptionsRepresentation processDescriptionsRepresentation,
       OgcApi api,
       ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
@@ -92,7 +92,7 @@ public class ProcessDescriptionsFormatHtml
         .apiData(api.getData())
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
-        .processDescriptions(processDescriptionsLinks.getProcesses())
+        .processDescriptions(processDescriptionsRepresentation.getProcesses())
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(api.getData()))
@@ -101,7 +101,7 @@ public class ProcessDescriptionsFormatHtml
         .language(requestContext.getLanguage().orElse(null))
         .description(i18n.get("processDescriptionsLink", requestContext.getLanguage()))
         .title(i18n.get("processDescriptionsTitle", requestContext.getLanguage()))
-        .rawLinks(processDescriptionsLinks.getLinks())
+        .rawLinks(processDescriptionsRepresentation.getLinks())
         .user(requestContext.getUser())
         .build();
   }

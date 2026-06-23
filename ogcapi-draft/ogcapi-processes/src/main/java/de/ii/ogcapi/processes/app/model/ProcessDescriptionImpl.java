@@ -5,11 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app;
+package de.ii.ogcapi.processes.app.model;
 
-import de.ii.ogcapi.processes.domain.ProcessDescription;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionData;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import de.ii.ogcapi.processes.domain.model.ProcessDescription;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.util.List;
 
 public class ProcessDescriptionImpl implements ProcessDescription {
