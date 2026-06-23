@@ -52,6 +52,7 @@ import de.ii.xtraplatform.features.domain.SchemaMapping;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGml;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGmlInputProfile;
 import de.ii.xtraplatform.features.gml.domain.ImmutableFeatureTokenDecoderGmlInputProfile;
@@ -209,6 +210,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private final ThreadLocal<Map<Schema, Validator>> validatorPool =
       ThreadLocal.withInitial(IdentityHashMap::new);
   private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
+      new ConcurrentHashMap<>();
+  // Effective namespace prefix map per (api, collection): the configured application namespaces
+  // merged with the reserved STANDARD_NAMESPACES. The merge is stable for a given config, so it is
+  // computed once and cached here rather than on every encoded response; caching via
+  // computeIfAbsent also means the reserved-prefix conflict warning is logged once, not per
+  // request.
+  private final ConcurrentMap<Integer, ConcurrentMap<String, Map<String, String>>> namespacesCache =
       new ConcurrentHashMap<>();
 
   @Inject
@@ -423,8 +431,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
             .gmlVersion(Objects.requireNonNullElse(config.getGmlVersion(), GML32))
-            .putAllNamespaces(config.getApplicationNamespaces())
-            .putAllNamespaces(STANDARD_NAMESPACES)
+            .putAllNamespaces(
+                namespacesCache
+                    .computeIfAbsent(
+                        transformationContext.getApiData().hashCode(),
+                        k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(
+                        transformationContext.getCollectionId(), k -> mergeNamespaces(config)))
             .defaultNamespace(Optional.ofNullable(config.getDefaultNamespace()))
             .putAllSchemaLocations(config.getSchemaLocations())
             .putAllSchemaLocations(
@@ -433,6 +446,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
             .objectTypeNamespaces(config.getObjectTypeNamespaces())
             .variableObjectElementNames(config.getVariableObjectElementNames())
+            // configured by the property's element name (the alias when useAlias is on), which is
+            // also the form GmlWriterProperties sees as schema.getName() at runtime — so no
+            // technical-to-alias remap is applied here.
+            .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
+            .refTargetObjectTypes(
+                providers.getFeatureSchemas(transformationContext.getApiData()).entrySet().stream()
+                    .filter(entry -> entry.getValue().getObjectType().isPresent())
+                    .collect(
+                        ImmutableMap.toImmutableMap(
+                            Map.Entry::getKey, entry -> entry.getValue().getObjectType().get())))
             .featureCollectionElementName(
                 Optional.ofNullable(config.getFeatureCollectionElementName()))
             .featureMemberElementName(Optional.ofNullable(config.getFeatureMemberElementName()))
@@ -441,6 +464,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
             .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
+            .forceCompositeCurve(Objects.requireNonNullElse(config.getForceCompositeCurve(), false))
             .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
@@ -453,12 +477,41 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
                     && isDatetimeIntervalRequest(transformationContext))
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codeListUriTemplateIso19139(
+                Optional.ofNullable(config.getCodeListUriTemplateIso19139()))
             .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
             .codelists(resolveCodelists(config.getCodelistProperties()))
             .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
+  }
+
+  // The "rel" profile set ({@code rel-as-key}/{@code rel-as-uri}/{@code rel-as-link}). GML renders
+  // feature references natively as xlinks, so its property transformations must not include the
+  // generic "rel" reduction (see getPropertyTransformations).
+  private static final String PROFILE_SET_REL = "rel";
+
+  /**
+   * GML encodes feature references natively (the GML encoder builds {@code xlink:href}/{@code
+   * xlink:title} and the {@code _<objectType>} element-name suffix from the resolved {@code
+   * id}/{@code title}/{@code type} children). It therefore drops the "rel" profile here so the
+   * generic reduction does not collapse that object into {@code {title, href}} and discard the type
+   * discriminator. Other profile sets (e.g. "val" for codelist values) are kept; the negotiated
+   * profile is still advertised on the response, since GML output is a valid {@code rel-as-link}
+   * representation.
+   */
+  @Override
+  public Optional<PropertyTransformations> getPropertyTransformations(
+      FeatureTypeConfigurationOgcApi collectionData,
+      Optional<FeatureSchema> schema,
+      List<Profile> profiles) {
+    return super.getPropertyTransformations(collectionData, schema, withoutRelProfiles(profiles));
+  }
+
+  // Drops the "rel" profile set so the generic reference reduction is not applied for GML.
+  static List<Profile> withoutRelProfiles(List<Profile> profiles) {
+    return profiles.stream().filter(p -> !PROFILE_SET_REL.equals(p.getProfileSet())).toList();
   }
 
   @Override
@@ -745,6 +798,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
         .valueWrap(config.getValueWrap())
+        // matched against the property name/alias on the wire; the decoder applies useAlias itself,
+        // so the configured names are passed through unchanged (as for codelistProperties above).
+        .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
         .build();
   }
 
@@ -766,6 +822,37 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
     String datetime = context.getOgcApiRequest().getParameters().get("datetime");
     return datetime != null && datetime.contains("/");
+  }
+
+  // Merge the configured application namespaces with the standard ones. The STANDARD_NAMESPACES
+  // prefixes (gml, xlink, xsi, sf, wfs) are reserved — the GML writers reference them internally —
+  // so they always win: an application namespace that reuses one of these prefixes is dropped
+  // rather than overriding it. This also avoids the duplicate-key failure an unfiltered putAll of
+  // both maps would raise when a prefix appears in both. A reserved prefix bound to a *different*
+  // namespace is a genuine misconfiguration and is logged; reusing it for the same namespace is a
+  // harmless redundancy and dropped silently. Package-private for unit testing.
+  static Map<String, String> mergeNamespaces(GmlConfiguration config) {
+    Map<String, String> merged = new LinkedHashMap<>();
+    config
+        .getApplicationNamespaces()
+        .forEach(
+            (prefix, namespace) -> {
+              String standard = STANDARD_NAMESPACES.get(prefix);
+              if (standard != null) {
+                if (!standard.equals(namespace) && LOGGER.isWarnEnabled()) {
+                  LOGGER.warn(
+                      "GML configuration binds namespace prefix '{}' to '{}', but it is reserved for"
+                          + " the standard binding '{}'; the application declaration is ignored.",
+                      prefix,
+                      namespace,
+                      standard);
+                }
+              } else {
+                merged.put(prefix, namespace);
+              }
+            });
+    merged.putAll(STANDARD_NAMESPACES);
+    return merged;
   }
 
   // Walks the (technical-named) feature schema and builds a map from each property's full

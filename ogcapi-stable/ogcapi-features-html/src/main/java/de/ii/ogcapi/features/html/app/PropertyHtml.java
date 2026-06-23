@@ -65,6 +65,12 @@ public interface PropertyHtml extends PropertyBase<PropertyHtml, FeatureSchema> 
   }
 
   @Value.Lazy
+  default boolean hasContent() {
+    return (isValue() && !isNull())
+        || getNestedProperties().stream().anyMatch(PropertyHtml::hasContent);
+  }
+
+  @Value.Lazy
   default List<PropertyHtml> getValues() {
     return isValue()
         ? ImmutableList.of(this)
@@ -85,7 +91,9 @@ public interface PropertyHtml extends PropertyBase<PropertyHtml, FeatureSchema> 
     return getNestedProperties().stream()
         .filter(
             property ->
-                !property.isValue() && property.getSchema().filter(SchemaBase::isSpatial).isEmpty())
+                !property.isValue()
+                    && property.getSchema().filter(SchemaBase::isSpatial).isEmpty()
+                    && property.hasContent())
         .collect(Collectors.toList());
   }
 

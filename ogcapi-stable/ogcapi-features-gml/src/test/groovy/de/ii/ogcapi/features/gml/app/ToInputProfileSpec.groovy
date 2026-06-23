@@ -44,6 +44,7 @@ class ToInputProfileSpec extends Specification {
                 .putValueWrap('lebenszeitintervall', ['AA_Lebenszeitintervall', 'beginnt'])
                 .putValueWrap('qag.dpl.prs.des', ['AX_LI_ProcessStep_MitDatenerhebung_Description'])
                 .addXmlAttributes('mat.som.codeListValue')
+                .addObjectTypeSuffixedProperties('gehoertZuBauwerk')
                 .addSrsNameMappings(new ImmutableSrsNameMapping.Builder()
                         .crs(EpsgCrs.of(25832))
                         .value('urn:adv:crs:ETRS89_UTM32')
@@ -89,6 +90,9 @@ class ToInputProfileSpec extends Specification {
                 'qag.dpl.prs.des': ['AX_LI_ProcessStep_MitDatenerhebung_Description']
         ]
         profile.xmlAttributes == ['mat.som.codeListValue']
+
+        and: 'objectTypeSuffixedProperties propagate to the input profile as a set'
+        profile.objectTypeSuffixedProperties == ['gehoertZuBauwerk'] as Set
 
         and: 'list-of-pairs srsNameMappings flatten to a wire→CRS map'
         profile.srsNameMappings == [
@@ -138,6 +142,7 @@ class ToInputProfileSpec extends Specification {
         profile.xmlAttributes.isEmpty()
         profile.applicationNamespaces.isEmpty()
         profile.objectTypeNamespaces.isEmpty()
+        profile.objectTypeSuffixedProperties.isEmpty()
         !profile.useAlias
     }
 }
