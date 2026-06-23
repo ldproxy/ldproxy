@@ -25,7 +25,10 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceSet;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
+import de.ii.ogcapi.processes.app.QueryParameterLimitProcesses;
+import de.ii.ogcapi.processes.app.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
@@ -42,7 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-// ToDo Docs
+// ToDo Docs (dont forget limit parameter)
 /**
  * @title Processes
  * @path processes
@@ -134,10 +137,31 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
         processDescriptionRepository.getAll().keySet().stream()
             .collect(ImmutableList.toImmutableList());
 
+    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
+    Optional<Integer> limit = Optional.empty();
+    Optional<Integer> offset = Optional.empty();
+
+    for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
+      if (queryParameter instanceof QueryParameterLimitProcesses) {
+        limit = ((QueryParameterLimitProcesses) queryParameter).parse(queryParameterSet);
+      }
+      if (queryParameter instanceof QueryParameterOffsetProcesses) {
+        offset = ((QueryParameterOffsetProcesses) queryParameter).parse(queryParameterSet);
+      }
+    }
+
     ProcessesQueriesHandler.QueryInputProcesses queryInput =
         new ImmutableQueryInputProcesses.Builder()
             .from(getGenericQueryInput(api.getData()))
             .processIds(processIds)
+            // We just .get() because of the default values
+            .offset(offset.get())
+            .limit(limit.get())
+            .defaultLimit(
+                api.getData()
+                    .getExtension(ProcessesCoreConfiguration.class)
+                    .get()
+                    .getDefaultPageSize())
             .build();
 
     return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);

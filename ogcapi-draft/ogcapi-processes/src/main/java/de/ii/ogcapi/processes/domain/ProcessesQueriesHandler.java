@@ -36,5 +36,11 @@ public interface ProcessesQueriesHandler
   interface QueryInputProcesses extends QueryInput {
 
     List<String> getProcessIds();
+
+    Integer getOffset();
+
+    Integer getLimit();
+
+    Integer getDefaultLimit();
   }
 }
