@@ -79,21 +79,22 @@ public class FeatureEncoderGeoJson extends FeatureTokenEncoderDefault<EncodingAw
 
   @Override
   public void onFeatureStart(EncodingAwareContextGeoJson context) {
-    // TODO: schema
-    // transformationContext.getState()
-    //    .setCurrentFeatureType(Optional.ofNullable(featureType));
+    // Record the collection of this feature so the per-collection GeoJSON options resolve correctly
+    // when the response mixes several collections (the Search building block).
+    transformationContext
+        .getState()
+        .setCurrentCollectionId(
+            Optional.ofNullable(transformationContext.getCollectionIdForType(context.type())));
 
     transformationContext.getState().setEvent(FeatureTransformationContext.Event.FEATURE_START);
     executePipeline(featureWriters.iterator()).accept(context);
-
-    transformationContext.getState().setCurrentFeatureType(Optional.empty());
   }
 
   @Override
   public void onFeatureEnd(EncodingAwareContextGeoJson context) {
-    transformationContext.getState().setCurrentFeatureType(Optional.empty());
     transformationContext.getState().setEvent(FeatureTransformationContext.Event.FEATURE_END);
     executePipeline(featureWriters.iterator()).accept(context);
+    transformationContext.getState().setCurrentCollectionId(Optional.empty());
   }
 
   @Override

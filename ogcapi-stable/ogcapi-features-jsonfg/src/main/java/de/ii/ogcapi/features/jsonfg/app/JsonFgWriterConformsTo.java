@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 @Singleton
@@ -102,12 +103,17 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
     return writeJsonFgExtensions(transformationContext);
   }
 
+  // conformsTo is written once for the whole document, which may mix collections (the Search
+  // building block). A conformance class applies as soon as any one collection in the response
+  // uses it, so these predicates union over all feature schemas / collections rather than
+  // inspecting only the (arbitrary) first one.
+
   private boolean has3d(FeatureTransformationContextGeoJson transformationContext) {
-    return transformationContext
-        .getFeatureSchemas()
-        .get(transformationContext.getCollectionId())
-        .flatMap(SchemaBase::getPrimaryGeometry)
-        .filter(
+    return transformationContext.getFeatureSchemas().values().stream()
+        .flatMap(Optional::stream)
+        .map(SchemaBase::getPrimaryGeometry)
+        .flatMap(Optional::stream)
+        .anyMatch(
             s ->
                 (s.getGeometryType().map(t -> GeometryType.MULTI_POLYGON.equals(t)).orElse(false)
                         && s.getConstraints()
@@ -116,30 +122,31 @@ public class JsonFgWriterConformsTo implements GeoJsonWriter {
                     || (s.getGeometryType()
                             .map(t -> GeometryType.POLYHEDRAL_SURFACE.equals(t))
                             .orElse(false)
-                        && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)))
-        .isPresent();
+                        && s.getConstraints().map(SchemaConstraints::isClosed).orElse(false)));
   }
 
   private boolean hasFeatureType(FeatureTransformationContextGeoJson transformationContext) {
-    return transformationContext
-        .getApiData()
-        .getExtension(JsonFgConfiguration.class, transformationContext.getCollectionId())
-        .map(
-            cfg ->
-                Objects.nonNull(
-                    cfg.getEffectiveFeatureType(
-                        transformationContext
-                            .getFeatureSchemas()
-                            .get(transformationContext.getCollectionId()))))
-        .orElse(false);
+    return transformationContext.getFeatureSchemas().keySet().stream()
+        .anyMatch(
+            type ->
+                transformationContext
+                    .getApiData()
+                    .getExtension(
+                        JsonFgConfiguration.class,
+                        transformationContext.getCollectionIdForType(type))
+                    .map(
+                        cfg ->
+                            Objects.nonNull(
+                                cfg.getEffectiveFeatureType(
+                                    transformationContext.getFeatureSchemas().get(type))))
+                    .orElse(false));
   }
 
   private boolean hasCircularArcs(FeatureTransformationContextGeoJson transformationContext) {
-    return !transformationContext
-        .getFeatureSchemas()
-        .get(transformationContext.getCollectionId())
-        .flatMap(SchemaBase::getPrimaryGeometry)
-        .map(SchemaBase::isSimpleFeatureGeometry)
-        .orElse(true);
+    return transformationContext.getFeatureSchemas().values().stream()
+        .flatMap(Optional::stream)
+        .map(SchemaBase::getPrimaryGeometry)
+        .flatMap(Optional::stream)
+        .anyMatch(s -> !s.isSimpleFeatureGeometry());
   }
 }

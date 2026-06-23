@@ -14,12 +14,15 @@ import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriter;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.ProfileExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -41,7 +44,9 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
     return new GeoJsonWriterLinks();
   }
 
-  private Set<String> featureRels;
+  // The embedded-feature link relation types to include, per collection id. A response may mix
+  // collections (the Search building block), each with its own embeddedFeatureLinkRels.
+  private Map<String, Set<String>> featureRelsByCollection;
 
   @Override
   public int getSortPriority() {
@@ -49,7 +54,7 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
   }
 
   private void reset() {
-    this.featureRels = ImmutableSet.of();
+    this.featureRelsByCollection = Map.of();
   }
 
   @Override
@@ -72,16 +77,27 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
                   .filter(link -> !((isLastPage && Objects.equals(link.getRel(), "next"))))
                   .collect(Collectors.toUnmodifiableList()));
 
-      // cache the link relation types to include for embedded features
-      featureRels =
-          context
-              .encoding()
-              .getApiData()
-              .getCollections()
-              .get(context.encoding().getCollectionId())
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getEmbeddedFeatureLinkRels)
-              .orElse(ImmutableSet.of());
+      // cache the link relation types to include for embedded features, per collection — a Search
+      // response may mix collections that each configure their own embeddedFeatureLinkRels
+      Map<String, Set<String>> rels = new LinkedHashMap<>();
+      context.encoding().getFeatureSchemas().keySet().stream()
+          .map(context.encoding()::getCollectionIdForType)
+          .filter(Objects::nonNull)
+          .distinct()
+          .forEach(
+              collectionId -> {
+                FeatureTypeConfigurationOgcApi collectionData =
+                    context.encoding().getApiData().getCollections().get(collectionId);
+                if (collectionData != null) {
+                  rels.put(
+                      collectionId,
+                      collectionData
+                          .getExtension(FeaturesCoreConfiguration.class)
+                          .map(FeaturesCoreConfiguration::getEmbeddedFeatureLinkRels)
+                          .orElse(ImmutableSet.of()));
+                }
+              });
+      featureRelsByCollection = rels;
     }
 
     next.accept(context);
@@ -123,7 +139,11 @@ public class GeoJsonWriterLinks implements GeoJsonWriter {
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
     if (context.encoding().isFeatureCollection()) {
-      // write links of the embedded feature
+      // write links of the embedded feature, filtered by the rels configured for the collection
+      // this feature belongs to (resolved from its provider type, so a mixed response is correct)
+      Set<String> featureRels =
+          featureRelsByCollection.getOrDefault(
+              context.encoding().getCollectionIdForType(context.type()), ImmutableSet.of());
       this.writeLinksIfAny(
           context.encoding().getJson(),
           context.encoding().getState().getCurrentFeatureLinks().stream()
