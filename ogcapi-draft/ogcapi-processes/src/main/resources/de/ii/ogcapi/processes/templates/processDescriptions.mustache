@@ -1,0 +1,37 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+  <span>{{{description}}}</span>
+  <br/>
+  <br/>
+
+  <div class="row my-3">
+    <div class="col-md-2 font-weight-bold">{{title}}</div>
+    <div class="col-md-10">
+      <ul class="list-unstyled">
+        {{#processDescriptions}}
+          <li>
+            <a href="processes/{{id}}">{{title}}, Version: {{version}} ({{id}})</a>
+            <br/>
+            Job Control Options:
+            <ul>
+              {{#jobControlOptions}}
+                <li>{{.}}</li>
+              {{/jobControlOptions}}
+              {{^jobControlOptions}}
+                <li>{{none}}</li>
+              {{/jobControlOptions}}
+            </ul>
+            <br/>
+          </li>
+        {{/processDescriptions}}
+        {{^processDescriptions}}
+          <li>{{none}}</li>
+        {{/processDescriptions}}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{{> footer}}

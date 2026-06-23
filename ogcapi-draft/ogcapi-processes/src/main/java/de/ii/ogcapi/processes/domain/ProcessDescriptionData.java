@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
+import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -30,7 +31,7 @@ public interface ProcessDescriptionData extends StoredValue {
 
   String getVersion();
 
-  JOB_CONTROL_OPTIONS getJobControlOptions();
+  List<JOB_CONTROL_OPTIONS> getJobControlOptions();
 
   enum JOB_CONTROL_OPTIONS {
     SYNC_EXECUTE,
