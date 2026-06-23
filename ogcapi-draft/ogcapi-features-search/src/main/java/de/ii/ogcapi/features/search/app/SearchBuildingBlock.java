@@ -46,6 +46,18 @@ import java.util.Optional;
  * - The value of "filterCrs" is the URI of the coordinate reference system of coordinates in a "filter". The default is "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, longitude/latitude).
  * - The value of "properties" is an array with the names of properties to include in the response. See the [Projections building block](projections.md).
  * - The value of "sortby" is used to sort the features in the response. See the [Sorting building block](sorting.md).
+ * - The value of "resultSets" is an object that declares named result sets. Each value is an
+ *     object: if it is empty, the result set consists of the ids of the features selected by the
+ *     query; with a member "values" naming a property, it consists of the ids referenced by that
+ *     property of the selected features. "resultSet" with a name is a shorthand for a single
+ *     result set of the selected ids.
+ * - A later query can select features that are related to a result set with the CQL2 predicate
+ *     `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in its "filter". The
+ *     predicate behaves like an IN expression (single values) or an A_OVERLAPS expression (arrays)
+ *     against the object ids in the result set. A result set can only be referenced by queries
+ *     that follow the declaring query.
+ * - With "resultSetOnly": true, a query only declares its result sets; it contributes no
+ *     features to the response and is excluded from "numberMatched" and "numberReturned".
  *     </code>
  *     <p>For multiple queries:
  *     <p><code>
@@ -53,7 +65,8 @@ import java.util.Optional;
  *     feature collection. The feature ids in the response to a multi-collection query must be
  *     unique. Since the identifier of a feature only has to be unique per collection, they need
  *     to be combined with the collection identifier. A concatenation with "." as the joining
- *     character is used (e.g., "apronelement.123456").
+ *     character is used (e.g., "apronelement.123456"). If the feature provider declares that its
+ *     feature ids are globally unique, the ids are not rewritten.
  * - The direct members "filter" and "properties" represent "global" constraints that must be
  *     combined with the corresponding member in each query. The global and local property selection
  *     list are concatenated and then the global and local filters are combined using the logical
@@ -62,12 +75,21 @@ import java.util.Optional;
  *     collections being queried.
  *   - The global member "properties" must only reference presentables that are common to all
  *     collections being queried.
+ * - A feature that is selected by more than one query appears once per selecting query. With
+ *     "deduplicate": true, such a feature is only included in the response once. Note that
+ *     "numberMatched" and "numberReturned" are computed before duplicates are dropped, so both
+ *     can overcount when deduplication is enabled.
  *     </code>
  *     <p>General remarks:
  *     <p><code>
  * - A "title" and "description" for the query expression can be added. Providing both is
  *     strongly recommended to explain the query to users.
- * - The "limit" member applies to the entire result set.
+ * - The "limit" member applies to the entire result set. Responses are single-shot: there is no
+ *     paging and no "next" links, "limit" is an upper bound for the number of features in the
+ *     response.
+ * - By default the response includes "numberMatched". Setting "computeNumberMatched" to false
+ *     skips it; this avoids a count query per query and can be considerably faster for query
+ *     expressions with many or chained queries. "numberMatched" is then not reported.
  * - The “crs” and “verticalCrs” members are optional and can be used to specify the coordinate
  *     reference system for the coordinates in the response. If no value is specified, the default
  *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
@@ -84,8 +106,13 @@ import java.util.Optional;
  *     converted to an array, if the parameter is of type "array".
  * - Parameters may also be provided in a member "parameters" in the query expression and
  *     referenced using "$ref".
- * - Parameters may be used in all members of the query expression, except "id", "title",
- *     "description", and "offset".
+ * - Parameters may be used in all members of the query expression, except "id", "title", and
+ *     "description".
+ * - A parameter whose schema has a "format" that starts with "geometry" (and no "type") takes a
+ *     geometry, for example an area of interest in a spatial predicate. The value may be a geometry
+ *     as WKT (well-known text) or a GeoJSON geometry. A format like "geometry-polygon" restricts the
+ *     parameter to that geometry type (the type is validated). The coordinates are in the coordinate
+ *     reference system specified by "filterCrs".
  *     </code>
  * @scopeDe Dieser Baustein unterstützt die Suche nach Features aus einer oder mehreren Collections.
  *     Das heißt, es unterstützt Abfragen, die mit den Filtermechanismen, die durch die Bausteine
@@ -110,23 +137,29 @@ import java.util.Optional;
  * - Der Wert von "filterCrs" ist die URI des Koordinatenreferenzsystems der Koordinaten in einem "filter". Der Standardwert ist "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, Longitude/Latitude).
  * - Der Wert von "properties" ist ein Array mit den Namen der Eigenschaften, die in die Antwort aufgenommen werden sollen. Siehe den [Projections-Baustein](projections.md).
  * - Der Wert von "sortby" wird zum Sortieren der Merkmale in der Antwort verwendet. Siehe den [Sorting-Baustein](sorting.md).
+ * - Der Wert von "resultSets" ist ein Objekt, das benannte Result-Sets deklariert. Jeder Wert ist ein Objekt: Ist es leer, besteht das Result-Set aus den IDs der von der Abfrage selektierten Features; mit einem Member "values", das eine Eigenschaft benennt, besteht es aus den IDs, die von dieser Eigenschaft der selektierten Features referenziert werden. "resultSet" mit einem Namen ist eine Kurzform für ein einzelnes Result-Set der selektierten IDs.
+ * - Eine spätere Abfrage kann Features selektieren, die mit einem Result-Set in Beziehung stehen, und zwar mit dem CQL2-Prädikat `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in ihrem "filter". Das Prädikat verhält sich wie ein IN-Ausdruck (einzelne Werte) bzw. wie ein A_OVERLAPS-Ausdruck (Arrays) gegen die Objekt-IDs im Result-Set. Ein Result-Set kann nur von Abfragen referenziert werden, die auf die deklarierende Abfrage folgen.
+ * - Mit "resultSetOnly": true deklariert eine Abfrage nur ihre Result-Sets; sie trägt keine Features zur Antwort bei und wird in "numberMatched" und "numberReturned" nicht berücksichtigt.
  *     </code>
  *     <p>Für mehrere Abfragen:
  *     <p><code>
- * - Wenn mehrere Abfragen angegeben werden, werden die Ergebnisse zusammengeführt. Die Antwort ist eine einzelne Feature Collection. Die Feature-IDs in der Antwort auf eine Abfrage mit mehreren Feature Collections müssen eindeutig sein. Da der Bezeichner eines Features nur pro Feature Collection eindeutig sein muss, müssen sie mit der Feature-Collection-ID kombiniert werden. Es wird eine Verkettung mit "." als Verbindungszeichen verwendet (z. B. "apronelement.123456").
+ * - Wenn mehrere Abfragen angegeben werden, werden die Ergebnisse zusammengeführt. Die Antwort ist eine einzelne Feature Collection. Die Feature-IDs in der Antwort auf eine Abfrage mit mehreren Feature Collections müssen eindeutig sein. Da der Bezeichner eines Features nur pro Feature Collection eindeutig sein muss, müssen sie mit der Feature-Collection-ID kombiniert werden. Es wird eine Verkettung mit "." als Verbindungszeichen verwendet (z. B. "apronelement.123456"). Deklariert der Feature-Provider, dass seine Feature-IDs global eindeutig sind, werden die IDs nicht umgeschrieben.
  * - Die direkten Key-Value-Paare "filter" und "properties" stellen 'globale' Bedingungen dar, die in jeder Abfrage mit dem entsprechenden Key-Value-Paar kombiniert werden müssen. Die globale und die lokale Eigenschaftsauswahlliste werden verkettet. Die globalen und lokalen Filter werden mit dem logischen Operator kombiniert, der durch das Mitglied "filterOperator" angegeben wird.
  *   - Das globale Mitglied "filter" darf nur auf Queryables verweisen, die allen abgefragten Collections gemeinsam sind.
  *   - Das globale Mitglied "properties" darf nur auf Presentables verweisen, die allen abgefragten Collections gemeinsam sind.
+ * - Ein Feature, das von mehr als einer Abfrage selektiert wird, erscheint einmal pro selektierender Abfrage. Mit "deduplicate": true wird ein solches Feature nur einmal in die Antwort aufgenommen. Hinweis: "numberMatched" und "numberReturned" werden berechnet, bevor Duplikate entfernt werden, beide können also zu hoch sein, wenn die Deduplizierung aktiviert ist.
  *     </code>
  *     <p>Allgemeines:
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
- * - Das Element "limit" gilt für die gesamte Ergebnismenge.
+ * - Das Element "limit" gilt für die gesamte Ergebnismenge. Antworten werden nicht in Seiten aufgeteilt: Es gibt kein Paging und keine "next"-Links, "limit" ist eine Obergrenze für die Anzahl der Features in der Antwort.
+ * - Standardmäßig enthält die Antwort "numberMatched". Wird "computeNumberMatched" auf false gesetzt, wird darauf verzichtet; dies vermeidet eine Count-Abfrage pro Abfrage und kann bei Query Expressions mit vielen oder verketteten Abfragen deutlich schneller sein. "numberMatched" wird dann nicht ausgegeben.
  * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
- * - Parameter können in allen Membern der Query Expression verwendet werden, außer in "id", "title", "description" und "offset".
+ * - Parameter können in allen Membern der Query Expression verwendet werden, außer in "id", "title" und "description".
+ * - Ein Parameter, dessen Schema ein "format" hat, das mit "geometry" beginnt (und keinen "type"), nimmt eine Geometrie entgegen, zum Beispiel ein Suchgebiet in einem räumlichen Prädikat. Der Wert kann eine Geometrie als WKT (Well-Known Text) oder eine GeoJSON-Geometrie sein. Ein Format wie "geometry-polygon" beschränkt den Parameter auf diesen Geometrietyp (der Typ wird validiert). Die Koordinaten liegen in dem durch "filterCrs" angegebenen Koordinatenreferenzsystem vor.
  *     </code>
  * @cfgFilesEn Stored queries must be located in the value store under the relative path
  *     `queries/{apiId}/{queryId}.json`.
@@ -145,25 +178,36 @@ import java.util.Optional;
  * - The JSON Schema of a parameter supports a subset of the language. In particular,
  *     `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`,
  *     `additionalItems` and `items: false` are not supported.
- * - Parameters in filter expressions are limited to scalar values (string, number, boolean) or
- *     or arrays of scalar values.
+ * - Parameters in filter expressions are limited to scalar values (string, number, boolean),
+ *     arrays of scalar values, or geometries as WKT (see above).
  * - POST to execute a stored query is not supported. This will be added after discussing the
  *     specification in OGC (e.g., whether the payload should be JSON or URL-encoded query
  *     parameters).
  *     </code>
- *     <p>Ad-hoc queries have the following limitations:
+ *     <p>Result sets have the following constraints:
  *     <p><code>
- * - Paging is not supported for ad-hoc queries and sufficiently large values for `limit` should be used. See [issue 906](https://github.com/interactive-instruments/ldproxy/issues/906).
+ * - All collections referenced in a query expression that uses result sets must be served by the
+ *     same feature provider.
+ *     </code>
+ *     <p>In addition:
+ *     <p><code>
+ * - Responses are not paged, `limit` is an upper bound for the number of features in the
+ *     response. Large extracts are the use case for asynchronous execution, which is a separate
+ *     work item.
  *     </code>
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
  * - Das JSON-Schema eines Parameters unterstützt eine Teilmenge der Sprache. Insbesondere werden `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`, `additionalItems` und `items: false` nicht unterstützt.
- * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte) oder Arrays von Skalarwerten beschränkt.
+ * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte), Arrays von Skalarwerten oder Geometrien als WKT (siehe oben) beschränkt.
  * - POST zur Ausführung einer gespeicherten Abfrage wird nicht unterstützt. Dies wird hinzugefügt, nachdem die Spezifikation in OGC diskutiert wurde (z.B. ob die Nutzlast JSON oder URL-kodierte Abfrageparameter sein sollen).
  *     </code>
- *     <p>Ad-hoc-Queries haben die folgenden Beschränkungen:
+ *     <p>Für Result-Sets gelten die folgenden Beschränkungen:
  *     <p><code>
- * - Paging wird für Ad-Hoc-Queries nicht unterstützt. Bis zur Klärung sollten ausreichend große Werte für `limit` verwendet werden. Siehe [Issue 906](https://github.com/interactive-instruments/ldproxy/issues/906).
+ * - Alle in einer Query Expression mit Result-Sets referenzierten Collections müssen vom selben Feature-Provider bereitgestellt werden.
+ *     </code>
+ *     <p>Außerdem:
+ *     <p><code>
+ * - Antworten werden nicht in Seiten aufgeteilt, `limit` ist eine Obergrenze für die Anzahl der Features in der Antwort. Für große Abrufe ist die asynchrone Ausführung von Abfragen vorgesehen, die ein separates Arbeitspaket ist.
  *     </code>
  * @ref:cfg {@link de.ii.ogcapi.features.search.domain.SearchConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration}

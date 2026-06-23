@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryValue;
 import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
@@ -56,6 +57,7 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
   private final VolatileRegistry volatileRegistry;
   private final SchemaValidator schemaValidator;
   private final Cql cql;
+  private final FeaturesCoreProviders providers;
 
   @Inject
   public StoredQueryRepositoryImpl(
@@ -63,13 +65,15 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
       ExtensionRegistry extensionRegistry,
       VolatileRegistry volatileRegistry,
       SchemaValidator schemaValidator,
-      Cql cql) {
+      Cql cql,
+      FeaturesCoreProviders providers) {
     super(volatileRegistry, "app/storedqueries");
     this.extensionRegistry = extensionRegistry;
     this.queriesStore = valueStore.forTypeWritable(StoredQueryValue.class);
     this.volatileRegistry = volatileRegistry;
     this.schemaValidator = schemaValidator;
     this.cql = cql;
+    this.providers = providers;
   }
 
   @Override
@@ -153,8 +157,11 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
 
                 List<String> errors =
                     query.accept(
-                        new StoredQueryValidator(query.getParameters(), schemaValidator, cql));
-                builder.addAllErrors(errors);
+                        new StoredQueryValidator(
+                            query.getParameters(), schemaValidator, cql, apiData, providers));
+                // a malformed stored query is a configuration issue: it must fail a STRICT
+                // validation but only warn (and let the API start) in LAX mode
+                builder.addAllStrictErrors(errors);
               } catch (Throwable e) {
                 builder.addErrors(
                     MessageFormat.format(

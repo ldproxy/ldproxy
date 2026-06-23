@@ -74,7 +74,18 @@ public interface QueryExpression {
 
   Optional<Integer> getLimit();
 
-  Optional<Integer> getOffset();
+  // if enabled, a feature that is selected by more than one query is only included once
+  @Value.Default
+  default boolean getDeduplicate() {
+    return false;
+  }
+
+  // if disabled, numberMatched is not computed (avoids a count query per query, which can be
+  // expensive for query expressions with many or chained queries)
+  @Value.Default
+  default boolean getComputeNumberMatched() {
+    return true;
+  }
 
   List<String> getProfiles();
 
