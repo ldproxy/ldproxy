@@ -207,6 +207,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
               .map(this::toFunctionType)
               .filter(Optional::isPresent)
               .map(Optional::get)
+              .distinct()
               .toList();
 
       if (argumentTypes.isEmpty()) {
@@ -231,6 +232,7 @@ public class EndpointFunctions extends Endpoint implements ConformanceClass {
             .map(this::toFunctionType)
             .filter(Optional::isPresent)
             .map(Optional::get)
+            .distinct()
             .toList();
     if (returnTypes.isEmpty()) {
       return Optional.empty();

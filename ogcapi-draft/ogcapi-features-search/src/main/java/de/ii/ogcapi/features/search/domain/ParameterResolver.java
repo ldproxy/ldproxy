@@ -20,6 +20,7 @@ import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ParameterResolver implements ParameterResolverBase {
 
@@ -48,8 +49,9 @@ public class ParameterResolver implements ParameterResolverBase {
         new ImmutableQueryExpression.Builder()
             .id(storedQuery.getId())
             .title(storedQuery.getTitle())
-            .description(storedQuery.getDescription())
-            .offset(storedQuery.getOffset());
+            .description(storedQuery.getDescription());
+    storedQuery.getDeduplicate().ifPresent(builder::deduplicate);
+    storedQuery.getComputeNumberMatched().ifPresent(builder::computeNumberMatched);
 
     storedQuery
         .getCollections()
@@ -77,7 +79,11 @@ public class ParameterResolver implements ParameterResolverBase {
     storedQuery.getSortby().ifPresent(v -> builder.sortby(resolveParameters(v, parameters)));
 
     ParameterResolverCql cqlParameterResolver =
-        new ParameterResolverCql(queryParameterSet, storedQuery.getParameters(), schemaValidator);
+        new ParameterResolverCql(
+            queryParameterSet,
+            storedQuery.getParameters(),
+            schemaValidator,
+            Optional.of(filterCrs));
     if (storedQuery.getFilter().isPresent()) {
       try {
         Cql2Expression expression =
@@ -108,6 +114,9 @@ public class ParameterResolver implements ParameterResolverBase {
               query
                   .getFilter()
                   .ifPresent(v -> builder2.filter((Cql2Expression) v.accept(cqlParameterResolver)));
+              builder2.resultSets(query.getResultSets());
+              query.getResultSet().ifPresent(builder2::resultSet);
+              builder2.resultSetOnly(query.getResultSetOnly());
 
               builder.addQueries(builder2.build());
             });

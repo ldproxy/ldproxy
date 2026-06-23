@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.search.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -27,6 +28,7 @@ import de.ii.ogcapi.features.search.domain.ParametersFormat;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
+import de.ii.ogcapi.features.search.domain.SingleQuery;
 import de.ii.ogcapi.features.search.domain.StoredQueries;
 import de.ii.ogcapi.features.search.domain.StoredQueriesFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
@@ -37,6 +39,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
@@ -53,11 +56,13 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
+import de.ii.xtraplatform.base.domain.resiliency.OptionalVolatileCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.CustomFunction;
 import de.ii.xtraplatform.cql.domain.Or;
 import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
@@ -67,7 +72,9 @@ import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.DeterminePipelineStepsThatCannotBeSkipped;
+import de.ii.xtraplatform.features.domain.FeatureInfo;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureQueries;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureStream.PipelineSteps;
@@ -106,6 +113,7 @@ import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -135,6 +143,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   private final Values<Codelist> codelistStore;
   private final CrsInfo crsInfo;
   private final Cql cql;
+  private final FeaturesCoreProviders providers;
   private final StoredQueryRepository repository;
   private final StoredQueriesLinkGenerator linkGenerator;
   private final SchemaValidator schemaValidator;
@@ -147,6 +156,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       ValueStore valueStore,
       CrsInfo crsInfo,
       Cql cql,
+      FeaturesCoreProviders providers,
       StoredQueryRepository repository,
       SchemaValidator schemaValidator,
       VolatileRegistry volatileRegistry) {
@@ -157,6 +167,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     this.codelistStore = valueStore.forType(Codelist.class);
     this.crsInfo = crsInfo;
     this.cql = cql;
+    this.providers = providers;
     this.repository = repository;
     this.schemaValidator = schemaValidator;
     this.linkGenerator = new StoredQueriesLinkGenerator();
@@ -241,7 +252,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     StoredQueryExpression query = queryInput.getQuery();
 
     List<String> errors =
-        query.accept(new StoredQueryValidator(query.getParameters(), schemaValidator, cql));
+        query.accept(
+            new StoredQueryValidator(
+                query.getParameters(), schemaValidator, cql, apiData, providers));
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(
@@ -636,15 +649,16 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
             ? ImmutableList.of(queryExpression.getCollections().get(0))
-            : queryExpression.getQueries().stream().map(q -> q.getCollections().get(0)).toList();
+            : queryExpression.getQueries().stream()
+                .filter(q -> !q.getResultSetOnly())
+                .map(q -> q.getCollections().get(0))
+                .toList();
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<Link> links =
         queryInput.isStoredQuery()
             ? new StoredQueriesLinkGenerator()
                 .generateFeaturesLinks(
                     requestContext.getUriCustomizer(),
-                    query.getOffset(),
-                    query.getLimit(),
                     requestContext.getMediaType(),
                     requestContext.getAlternateMediaTypes(),
                     i18n,
@@ -677,22 +691,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
     CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
-    boolean hasNextPage =
-        collectionMetadata != null
-            && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
-
-    List<Link> filteredLinks =
-        queryInput.getIncludeLinkHeader()
-            ? hasNextPage
-                ? links
-                : links.stream()
-                    .filter(link -> !"next".equalsIgnoreCase(link.getRel()))
-                    .collect(ImmutableList.toImmutableList())
-            : null;
 
     return prepareSuccessResponse(
             requestContext,
-            filteredLinks,
+            queryInput.getIncludeLinkHeader() ? links : null,
             HeaderCaching.of(lastModified, etag, queryInput),
             targetCrs,
             HeaderContentDisposition.of(
@@ -706,36 +708,36 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
   private MultiFeatureQuery getMultiFeatureQuery(
       OgcApi api, QueryExpression queryExpression, EpsgCrs crs) {
-    Optional<Cql2Expression> topLevelFilter = queryExpression.getFilter();
-    List<SubQuery> queries =
-        queryExpression.getCollections().size() == 1
-            ? ImmutableList.of(
-                getSubQuery(
-                    api.getData(),
-                    queryExpression.getCollections().get(0),
-                    topLevelFilter,
-                    Optional.empty(),
-                    Optional.empty(),
-                    queryExpression.getSortby(),
-                    queryExpression.getProperties(),
-                    ImmutableList.of()))
-            : queryExpression.getQueries().stream()
-                .map(
-                    q ->
-                        getSubQuery(
-                            api.getData(),
-                            q.getCollections().get(0),
-                            q.getFilter(),
-                            topLevelFilter,
-                            queryExpression.getFilterOperator(),
-                            q.getSortby(),
-                            q.getProperties(),
-                            queryExpression.getProperties()))
-                .toList();
+    EpsgCrs filterCrs =
+        queryExpression.getFilterCrs().map(EpsgCrs::fromString).orElse(OgcCrs.CRS84);
+    Optional<Cql2Expression> topLevelFilter =
+        queryExpression.getFilter().map(f -> withFilterCrs(f, filterCrs));
+    List<SubQuery> queries;
+    if (queryExpression.getCollections().size() == 1) {
+      String collectionId = queryExpression.getCollections().get(0);
+      topLevelFilter.ifPresent(f -> validateFilter(api.getData(), collectionId, f, filterCrs));
+      queries =
+          ImmutableList.of(
+              getSubQuery(
+                  api.getData(),
+                  collectionId,
+                  topLevelFilter.map(
+                      f -> (Cql2Expression) f.accept(new ResultSetResolver(ImmutableMap.of()))),
+                  Optional.empty(),
+                  Optional.empty(),
+                  queryExpression.getSortby(),
+                  queryExpression.getProperties(),
+                  ImmutableList.of()));
+    } else {
+      queries =
+          getSubQueriesWithResultSets(api.getData(), queryExpression, topLevelFilter, filterCrs);
+    }
 
     ImmutableMultiFeatureQuery.Builder finalQueryBuilder =
         ImmutableMultiFeatureQuery.builder()
             .queries(queries)
+            .deduplicate(queryExpression.getDeduplicate())
+            .computeNumberMatched(queryExpression.getComputeNumberMatched())
             .maxAllowableOffset(queryExpression.getMaxAllowableOffset().orElse(0.0))
             .crs(crs)
             .limit(
@@ -745,8 +747,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                         api.getData()
                             .getExtension(FeaturesCoreConfiguration.class)
                             .map(FeaturesCoreConfiguration::getDefaultPageSize)
-                            .orElseThrow()))
-            .offset(queryExpression.getOffset().orElse(0));
+                            .orElseThrow()));
 
     api.getData()
         .getExtension(FeaturesCoreConfiguration.class)
@@ -765,6 +766,71 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
 
     MultiFeatureQuery query = finalQueryBuilder.build();
     return query;
+  }
+
+  private List<SubQuery> getSubQueriesWithResultSets(
+      OgcApiDataV2 apiData,
+      QueryExpression queryExpression,
+      Optional<Cql2Expression> topLevelFilter,
+      EpsgCrs filterCrs) {
+    Map<String, ResultSetResolver.ResolvedResultSet> resultSets = new LinkedHashMap<>();
+    ImmutableList.Builder<SubQuery> queries = ImmutableList.builder();
+
+    for (SingleQuery query : queryExpression.getQueries()) {
+      String collectionId = query.getCollections().get(0);
+      Optional<Cql2Expression> effectiveFilter =
+          getEffectiveCql2Expression(
+              query.getFilter().map(f -> withFilterCrs(f, filterCrs)),
+              topLevelFilter,
+              queryExpression.getFilterOperator());
+      effectiveFilter.ifPresent(f -> validateFilter(apiData, collectionId, f, filterCrs));
+      Optional<Cql2Expression> resolvedFilter =
+          effectiveFilter.map(f -> (Cql2Expression) f.accept(new ResultSetResolver(resultSets)));
+
+      SubQuery subQuery =
+          getSubQuery(
+              apiData,
+              query.getCollections().get(0),
+              resolvedFilter,
+              Optional.empty(),
+              Optional.empty(),
+              query.getSortby(),
+              query.getProperties(),
+              queryExpression.getProperties());
+
+      if (query.getResultSetOnly()) {
+        if (query.getAllResultSets().isEmpty()) {
+          throw new BadRequestException(
+              "A query with 'resultSetOnly' must define at least one result set.");
+        }
+      } else {
+        queries.add(subQuery);
+      }
+
+      query
+          .getAllResultSets()
+          .forEach(
+              (name, definition) -> {
+                if (resultSets.containsKey(name)) {
+                  throw new BadRequestException(
+                      String.format(
+                          "The name of a result set must be unique in the query expression. Found '%s' more than once.",
+                          name));
+                }
+                resultSets.put(
+                    name,
+                    new ResultSetResolver.ResolvedResultSet(
+                        subQuery.getType(), resolvedFilter, definition.getValues()));
+              });
+    }
+
+    List<SubQuery> subQueries = queries.build();
+    if (subQueries.isEmpty()) {
+      throw new BadRequestException(
+          "At least one query must contribute features to the response, but all queries have 'resultSetOnly'.");
+    }
+
+    return subQueries;
   }
 
   private SubQuery getSubQuery(
@@ -811,6 +877,85 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                           ? globalProperties
                           : Stream.concat(globalProperties.stream(), properties.stream()).toList())
           .build();
+    }
+  }
+
+  // The query-expression parser deserializes the filter inline and does not inject the filter CRS,
+  // so geometry literals would otherwise default to CRS84. Routing the expression back through
+  // Cql.read() with the filter CRS mirrors the Features/Filter query parameter path and attaches
+  // the CRS to every geometry literal. The result-set reference of inResultSet round-trips through
+  // CQL2-JSON; its resolved producer context is attached later, so this must run before the
+  // ResultSetResolver.
+  private Cql2Expression withFilterCrs(Cql2Expression filter, EpsgCrs filterCrs) {
+    return cql.read(cql.write(filter, Cql.Format.JSON), Cql.Format.JSON, filterCrs, true);
+  }
+
+  /**
+   * Validates a query's effective filter against the queryables of its collection, mirroring the
+   * Features/Filter query parameter: unknown or forbidden properties and type mismatches are
+   * rejected, and (when enabled) coordinates are range-checked. Run on the merged filter before the
+   * result-set references are resolved, so the consumed property is checked against the consuming
+   * collection.
+   */
+  private void validateFilter(
+      OgcApiDataV2 apiData, String collectionId, Cql2Expression filter, EpsgCrs filterCrs) {
+    Optional<FeatureTypeConfigurationOgcApi> collectionData =
+        apiData.getCollectionData(collectionId);
+    if (collectionData.isEmpty()) {
+      return;
+    }
+    Map<String, FeatureSchema> queryables =
+        collectionData
+            .get()
+            .getExtension(QueryablesConfiguration.class)
+            .map(qc -> qc.getQueryables(apiData, collectionData.get(), providers))
+            .orElse(Map.of());
+    if (queryables.isEmpty()) {
+      return;
+    }
+
+    List<String> invalidProperties = cql.findInvalidProperties(filter, queryables.keySet());
+    if (!invalidProperties.isEmpty()) {
+      throw new BadRequestException(
+          String.format(
+              "The filter is invalid. Unknown or forbidden properties used: %s.",
+              String.join(", ", invalidProperties)));
+    }
+
+    Optional<FeatureProvider> provider =
+        providers.getFeatureProvider(apiData, collectionData.get());
+    Map<String, String> propertyTypes =
+        queryables.entrySet().stream()
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    Entry::getKey, entry -> entry.getValue().getType().toString()));
+    List<CustomFunction> customFunctions =
+        provider
+            .map(FeatureProvider::queries)
+            .filter(OptionalVolatileCapability::isSupported)
+            .map(OptionalVolatileCapability::get)
+            .map(FeatureQueries::getCql2Functions)
+            .orElse(List.of());
+    try {
+      cql.checkTypes(filter, propertyTypes, customFunctions);
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      throw new BadRequestException(String.format("The filter is invalid: %s", e.getMessage()));
+    }
+
+    boolean validateCoordinates =
+        collectionData
+            .get()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .map(FeaturesCoreConfiguration::getValidateCoordinatesInQueries)
+            .orElse(false);
+    if (validateCoordinates) {
+      EpsgCrs nativeCrs =
+          provider.map(FeatureProvider::info).flatMap(FeatureInfo::getCrs).orElse(null);
+      try {
+        cql.checkCoordinates(filter, crsTransformerFactory, crsInfo, filterCrs, nativeCrs);
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException(String.format("The filter is invalid: %s", e.getMessage()));
+      }
     }
   }
 
@@ -903,15 +1048,22 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .distinct()
             .toList();
 
+    // multiple queries may use the same feature type, all type-keyed maps need a merge function
     Map<String, Optional<FeatureSchema>> schemas =
         query.getQueries().stream()
             .collect(
                 Collectors.toUnmodifiableMap(
-                    TypeQuery::getType, q -> featureProvider.info().getSchema(q.getType())));
+                    TypeQuery::getType,
+                    q -> featureProvider.info().getSchema(q.getType()),
+                    (a, b) -> a));
 
     Map<String, List<String>> fields =
         query.getQueries().stream()
-            .collect(Collectors.toUnmodifiableMap(TypeQuery::getType, TypeQuery::getFields));
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    TypeQuery::getType,
+                    TypeQuery::getFields,
+                    SearchQueriesHandlerImpl::unionOfFields));
 
     // Per-feature link/URL building needs each type's collection; type and collection can differ
     // and a single response may mix collections.
@@ -1088,11 +1240,19 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   }
                   return pt.withSubstitutions(
                       FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(serviceUrl));
-                }));
+                },
+                (a, b) -> a));
   }
 
   private String getFeatureTypeId(MultiFeatureQuery query, int queryIndex) {
     return query.getQueries().get(queryIndex).getType();
+  }
+
+  private static List<String> unionOfFields(List<String> fields1, List<String> fields2) {
+    if (fields1.contains("*") || fields2.contains("*")) {
+      return ImmutableList.of("*");
+    }
+    return Stream.concat(fields1.stream(), fields2.stream()).distinct().toList();
   }
 
   @SuppressWarnings("PMD.PreserveStackTrace")

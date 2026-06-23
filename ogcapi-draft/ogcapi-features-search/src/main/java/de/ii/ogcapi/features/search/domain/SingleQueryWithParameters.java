@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -33,6 +34,17 @@ public interface SingleQueryWithParameters extends StoredQueryComponent {
 
   // List of string or parameter, or a parameter that is a string array
   Optional<ParameterOrListOfStringOrParameter> getProperties();
+
+  Map<String, ResultSetDefinition> getResultSets();
+
+  // shorthand for a single result set with the ids of the selected features
+  Optional<String> getResultSet();
+
+  // the query only defines its result sets, it contributes no features to the response
+  @Value.Default
+  default boolean getResultSetOnly() {
+    return false;
+  }
 
   @JsonIgnore
   @Value.Check

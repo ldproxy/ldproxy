@@ -11,7 +11,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -30,6 +32,29 @@ public interface SingleQuery {
 
   List<String> getProperties(); // String or Parameter
 
+  Map<String, ResultSetDefinition> getResultSets();
+
+  // shorthand for a single result set with the ids of the selected features
+  Optional<String> getResultSet();
+
+  // the query only defines its result sets, it contributes no features to the response
+  @Value.Default
+  default boolean getResultSetOnly() {
+    return false;
+  }
+
+  @JsonIgnore
+  @Value.Lazy
+  default Map<String, ResultSetDefinition> getAllResultSets() {
+    if (getResultSet().isEmpty()) {
+      return getResultSets();
+    }
+    Map<String, ResultSetDefinition> resultSets = new LinkedHashMap<>();
+    resultSets.put(getResultSet().get(), new ImmutableResultSetDefinition.Builder().build());
+    resultSets.putAll(getResultSets());
+    return resultSets;
+  }
+
   @JsonIgnore
   @Value.Check
   default void check() {
@@ -39,5 +64,9 @@ public interface SingleQuery {
         getCollections().size() < 2,
         "Each query must be for a single collection. Join queries are currently not supported. Found collections: %s.",
         getCollections());
+    Preconditions.checkState(
+        getResultSet().isEmpty() || !getResultSets().containsKey(getResultSet().get()),
+        "The name of a result set must be unique. Found '%s' in both 'resultSet' and 'resultSets'.",
+        getResultSet().orElse(""));
   }
 }
