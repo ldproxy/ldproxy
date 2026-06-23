@@ -43,16 +43,12 @@ public class GmlWriterMetadata implements GmlWriter {
         && context.encoding().getSupportsStandardResponseParameters()) {
       OptionalLong numberReturned = context.metadata().getNumberReturned();
       OptionalLong numberMatched = context.metadata().getNumberMatched();
-      if (numberReturned.isPresent()) {
-        context
-            .encoding()
-            .writeAttribute("numberReturned", String.valueOf(numberReturned.getAsLong()));
-      }
-      if (numberMatched.isPresent()) {
-        context
-            .encoding()
-            .writeAttribute("numberMatched", String.valueOf(numberMatched.getAsLong()));
-      }
+      context.encoding().writeAttribute("numberReturned", String.valueOf(numberReturned.orElse(0)));
+      context
+          .encoding()
+          .writeAttribute(
+              "numberMatched",
+              numberMatched.isPresent() ? String.valueOf(numberMatched.getAsLong()) : "unknown");
       context
           .encoding()
           .writeAttribute("timeStamp", Instant.now().truncatedTo(ChronoUnit.SECONDS).toString());
