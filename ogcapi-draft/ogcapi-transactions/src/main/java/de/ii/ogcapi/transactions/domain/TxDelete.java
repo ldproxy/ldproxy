@@ -9,6 +9,7 @@ package de.ii.ogcapi.transactions.domain;
 
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -19,6 +20,11 @@ public interface TxDelete extends TxAction {
   default TxActionType getType() {
     return TxActionType.DELETE;
   }
+
+  // wfs:Transaction's fes:ResourceId yields a known list of ids directly; the executor uses
+  // these without going through the filter expression. Empty for JSON-tx where the filter is
+  // an arbitrary CQL2 id predicate.
+  List<String> getTargetIds();
 
   Optional<Cql2Expression> getFilter();
 

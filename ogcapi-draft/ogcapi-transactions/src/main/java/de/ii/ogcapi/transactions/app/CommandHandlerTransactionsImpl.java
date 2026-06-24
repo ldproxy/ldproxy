@@ -24,6 +24,8 @@ import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
+import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
@@ -32,11 +34,11 @@ import jakarta.ws.rs.core.Response;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Optional;
 
 @Singleton
 @AutoBind
-public class CommandHandlerTransactionsImpl implements CommandHandlerTransactions {
+public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
+    implements CommandHandlerTransactions {
 
   private static final MediaType APPLICATION_JSON = MediaType.APPLICATION_JSON_TYPE;
 
@@ -46,8 +48,16 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
   private final TransactionExecutor executor;
 
   @Inject
-  public CommandHandlerTransactionsImpl(TransactionExecutor executor) {
+  public CommandHandlerTransactionsImpl(
+      TransactionExecutor executor, VolatileRegistry volatileRegistry) {
+    super(CommandHandlerTransactions.class.getSimpleName(), volatileRegistry, true);
     this.executor = executor;
+
+    onVolatileStart();
+
+    addSubcomponent(executor);
+
+    onVolatileStarted();
   }
 
   @Override
@@ -75,7 +85,8 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
                 requestContext.getApi(),
                 requestContext,
                 queryInput.getRequestCrs(),
-                validate);
+                validate,
+                queryInput.getMutationDatetime());
         transaction = null;
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
@@ -250,17 +261,24 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
 
   private static void addExceptionsFor(ActionResult r, ArrayNode exceptions) {
     if (!r.getFailedFeatureErrors().isEmpty()) {
-      int size = r.getFailedFeatureErrors().size();
-      for (int i = 0; i < size; i++) {
-        Optional<String> fid =
-            i < r.getFailedFeatureIds().size()
-                ? Optional.of(r.getFailedFeatureIds().get(i))
-                : Optional.empty();
-        Optional<Integer> idx =
-            i < r.getFailedFeatureIndexes().size()
-                ? Optional.of(r.getFailedFeatureIndexes().get(i))
-                : Optional.empty();
-        exceptions.add(renderItemException(r, fid, idx, r.getFailedFeatureErrors().get(i)));
+      // Per-item errors are populated by the validate-and-skip path (Prefer: handling=strict).
+      // The ids list contains items that had a source-side id; the payloads list contains the
+      // raw feature bytes of items without an id. Errors are parallel to the concatenation of
+      // ids ++ payloads.
+      int idCount = r.getFailedFeatureIds().size();
+      int total = r.getFailedFeatureErrors().size();
+      for (int i = 0; i < total; i++) {
+        String error = r.getFailedFeatureErrors().get(i);
+        if (i < idCount) {
+          exceptions.add(renderItemException(r, r.getFailedFeatureIds().get(i), null, error));
+        } else {
+          int pIdx = i - idCount;
+          String payload =
+              pIdx < r.getFailedFeaturePayloads().size()
+                  ? r.getFailedFeaturePayloads().get(pIdx)
+                  : null;
+          exceptions.add(renderItemException(r, null, payload, error));
+        }
       }
       return;
     }
@@ -270,7 +288,7 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
   }
 
   private static ObjectNode renderItemException(
-      ActionResult r, Optional<String> featureId, Optional<Integer> featureIndex, String message) {
+      ActionResult r, String featureId, String featurePayload, String message) {
     String action = r.getType().toString().toLowerCase(java.util.Locale.ROOT);
     ObjectNode ex = MAPPER.createObjectNode();
     ex.put("type", "about:blank");
@@ -280,16 +298,13 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
     r.getActionId().ifPresent(id -> ex.put("actionId", id));
     ex.put("collectionId", r.getCollectionId());
     ex.put("action", action);
-    featureId.ifPresent(
-        id -> {
-          ArrayNode ids = ex.putArray("featureIds");
-          ids.add(id);
-        });
-    featureIndex.ifPresent(
-        idx -> {
-          ArrayNode indexes = ex.putArray("featureIndexes");
-          indexes.add(idx);
-        });
+    if (featureId != null) {
+      ArrayNode ids = ex.putArray("featureIds");
+      ids.add(featureId);
+    } else if (featurePayload != null) {
+      ArrayNode payloads = ex.putArray("featurePayloads");
+      payloads.add(featurePayload);
+    }
     return ex;
   }
 
@@ -307,9 +322,9 @@ public class CommandHandlerTransactionsImpl implements CommandHandlerTransaction
       ArrayNode ids = ex.putArray("featureIds");
       r.getFailedFeatureIds().forEach(ids::add);
     }
-    if (!r.getFailedFeatureIndexes().isEmpty()) {
-      ArrayNode idx = ex.putArray("featureIndexes");
-      r.getFailedFeatureIndexes().forEach(idx::add);
+    if (!r.getFailedFeaturePayloads().isEmpty()) {
+      ArrayNode payloads = ex.putArray("featurePayloads");
+      r.getFailedFeaturePayloads().forEach(payloads::add);
     }
     return ex;
   }

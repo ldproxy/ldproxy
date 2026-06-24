@@ -11,6 +11,8 @@ import de.ii.ogcapi.transactions.domain.ActionResult
 import de.ii.ogcapi.transactions.domain.ActionStatus
 import de.ii.ogcapi.transactions.domain.ImmutableActionResult
 import de.ii.ogcapi.transactions.domain.TxActionType
+import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler
+import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry
 import de.ii.xtraplatform.crs.domain.BoundingBox
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.features.domain.FeatureChange
@@ -226,7 +228,8 @@ class TransactionExecutorChangesSpec extends Specification {
      * {@link FeatureChanges} sink.
      */
     private TransactionExecutorImpl newExecutor(Map<String, FeatureChanges> changesByCollection) {
-        return new TransactionExecutorImpl(null, null, null, null) {
+        return new TransactionExecutorImpl(
+                null, null, null, Stub(FeaturesCoreQueriesHandler), Stub(VolatileRegistry)) {
             @Override
             FeatureChanges resolveChanges(de.ii.ogcapi.foundation.domain.OgcApi api, String collectionId) {
                 FeatureChanges c = changesByCollection.get(collectionId)

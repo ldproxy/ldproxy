@@ -84,6 +84,22 @@
     </div>
     {{/temporalCoverageHtml}}
 
+    {{#hasVersioning}}
+        <div class="row my-3">
+            <div class="col-md-2 font-weight-bold">{{versioningTitle}}</div>
+            <div class="col-md-10">
+                <ul class="list-unstyled">
+                    {{#versioningTimeAxis}}
+                        <li><span class="font-weight-bold">{{timeAxisTitle}}:</span> {{.}}</li>
+                    {{/versioningTimeAxis}}
+                    {{#versioningMutationTime}}
+                        <li><span class="font-weight-bold">{{mutationTimeTitle}}:</span> {{.}}</li>
+                    {{/versioningMutationTime}}
+                </ul>
+            </div>
+        </div>
+    {{/hasVersioning}}
+
     {{#hasLicense}}
         <div class="row my-3">
             <div class="col-md-2 font-weight-bold">{{licenseTitle}}</div>

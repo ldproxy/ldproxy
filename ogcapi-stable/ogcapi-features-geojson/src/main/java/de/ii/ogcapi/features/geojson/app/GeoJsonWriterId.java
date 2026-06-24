@@ -66,7 +66,7 @@ public class GeoJsonWriterId implements GeoJsonWriter {
         context.encoding().continueBuffering();
 
         if (currentSchema.isId()) {
-          addLinks(context, context.value());
+          addLinks(context, context.value(), context.type());
         }
       }
     }
@@ -74,10 +74,15 @@ public class GeoJsonWriterId implements GeoJsonWriter {
     next.accept(context);
   }
 
-  private void addLinks(EncodingAwareContextGeoJson context, String featureId) throws IOException {
+  private void addLinks(EncodingAwareContextGeoJson context, String featureId, String type)
+      throws IOException {
     if (context.encoding().isFeatureCollection()
         && Objects.nonNull(featureId)
         && !featureId.isEmpty()) {
+      // In a multi-collection response the path must use the feature's own collection and the bare
+      // id; the JSON id may be qualified with a collection prefix to stay unique.
+      String collectionId = context.encoding().getCollectionIdForType(type);
+      String pathId = context.encoding().getFeatureIdInPath(featureId, collectionId);
       context
           .encoding()
           .getState()
@@ -87,16 +92,16 @@ public class GeoJsonWriterId implements GeoJsonWriter {
                   .href(
                       context.encoding().getServiceUrl()
                           + "/collections/"
-                          + context.encoding().getCollectionId()
+                          + collectionId
                           + "/items/"
-                          + featureId)
+                          + pathId)
                   .build());
       Optional<String> template =
           context
               .encoding()
               .getApiData()
               .getCollections()
-              .get(context.encoding().getCollectionId())
+              .get(collectionId)
               .getPersistentUriTemplate();
       if (template.isPresent()) {
         context
@@ -105,7 +110,7 @@ public class GeoJsonWriterId implements GeoJsonWriter {
             .addCurrentFeatureLinks(
                 new ImmutableLink.Builder()
                     .rel("canonical")
-                    .href(StringTemplateFilters.applyTemplate(template.get(), featureId))
+                    .href(StringTemplateFilters.applyTemplate(template.get(), pathId))
                     .build());
       }
     }

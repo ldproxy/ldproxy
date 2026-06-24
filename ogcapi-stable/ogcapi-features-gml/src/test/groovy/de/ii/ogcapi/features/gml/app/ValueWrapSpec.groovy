@@ -12,6 +12,7 @@ import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGml
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml
 import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.SchemaBase.Type
+import de.ii.xtraplatform.features.domain.SchemaConstraints
 import spock.lang.Specification
 
 import java.util.function.Consumer
@@ -26,7 +27,7 @@ class ValueWrapSpec extends Specification {
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.dateTime': ['gco:DateTime']]
-        encoding.qualifyPropertyElementName(_) >> { String n -> 'gmd:' + n }
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true
@@ -60,7 +61,7 @@ class ValueWrapSpec extends Specification {
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getValueWrap() >> ['lebenszeitintervall': ['aaa:AA_Lebenszeitintervall', 'aaa:beginnt']]
-        encoding.qualifyPropertyElementName(_) >> { String n -> n }
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true
@@ -95,7 +96,7 @@ class ValueWrapSpec extends Specification {
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getValueWrap() >> [:]
-        encoding.qualifyPropertyElementName(_) >> { String n -> n }
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
 
         def schema = Stub(FeatureSchema) {
             isValue() >> true
@@ -118,5 +119,164 @@ class ValueWrapSpec extends Specification {
         1 * encoding.writeStartElement('gebaeudefunktion')
         1 * encoding.writeCharacters('2000')
         1 * encoding.writeEndElement()
+    }
+
+    def 'iso 19139 codeList attributes are emitted on the wrapper matching the codelist id'() {
+        given:
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.responsibleParty.role': ['gmd:CI_RoleCode']]
+        encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
+
+        def constraints = Stub(SchemaConstraints) {
+            getCodelist() >> Optional.of('CI_RoleCode')
+        }
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'role'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'qualitaetsangaben.herkunft.processStep.responsibleParty.role'
+            getUnit() >> Optional.empty()
+            getConstraints() >> Optional.of(constraints)
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> 'processor'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('gmd:role')
+        1 * encoding.writeStartElement('gmd:CI_RoleCode')
+        1 * encoding.writeAttribute('codeList', 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#CI_RoleCode')
+        1 * encoding.writeAttribute('codeListValue', 'processor')
+        1 * encoding.writeCharacters('processor')
+        2 * encoding.writeEndElement()
+    }
+
+    def 'no iso 19139 codeList attributes when the wrapped property has no codelist constraint'() {
+        given:
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['organisationName': ['gco:CharacterString']]
+        encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
+
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'organisationName'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'organisationName'
+            getUnit() >> Optional.empty()
+            getConstraints() >> Optional.empty()
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '062550'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('gmd:organisationName')
+        1 * encoding.writeStartElement('gco:CharacterString')
+        1 * encoding.writeCharacters('062550')
+        2 * encoding.writeEndElement()
+        0 * encoding.writeAttribute('codeList', _)
+        0 * encoding.writeAttribute('codeListValue', _)
+    }
+
+    def 'no iso 19139 codeList attributes when the wrapper local name differs from the codelist id'() {
+        given:
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['role': ['gco:CharacterString']]
+        encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
+
+        def constraints = Stub(SchemaConstraints) {
+            getCodelist() >> Optional.of('CI_RoleCode')
+        }
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'role'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'role'
+            getUnit() >> Optional.empty()
+            getConstraints() >> Optional.of(constraints)
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> 'processor'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('gmd:role')
+        1 * encoding.writeStartElement('gco:CharacterString')
+        1 * encoding.writeCharacters('processor')
+        2 * encoding.writeEndElement()
+        0 * encoding.writeAttribute('codeList', _)
+        0 * encoding.writeAttribute('codeListValue', _)
+    }
+
+    def 'no iso 19139 codeList attributes when codeListUriTemplateIso19139 is not configured'() {
+        given:
+        // Opt-in gate: a codelist-constrained property wrapped in the matching element is encoded
+        // plainly (no codeList/codeListValue) unless codeListUriTemplateIso19139 is set.
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['role': ['gmd:CI_RoleCode']]
+        encoding.getCodeListUriTemplateIso19139() >> Optional.empty()
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
+
+        def constraints = Stub(SchemaConstraints) {
+            getCodelist() >> Optional.of('CI_RoleCode')
+        }
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'role'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'role'
+            getUnit() >> Optional.empty()
+            getConstraints() >> Optional.of(constraints)
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> 'processor'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('gmd:role')
+        1 * encoding.writeStartElement('gmd:CI_RoleCode')
+        1 * encoding.writeCharacters('processor')
+        2 * encoding.writeEndElement()
+        0 * encoding.writeAttribute('codeList', _)
+        0 * encoding.writeAttribute('codeListValue', _)
     }
 }

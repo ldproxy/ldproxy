@@ -13,11 +13,14 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.AbstractQueryParameterDatetime;
+import de.ii.ogcapi.features.core.domain.DatetimeDefaultProvider;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
@@ -32,12 +35,14 @@ import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.Tuple;
+import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @title datetime
@@ -53,11 +58,17 @@ public class QueryParameterDatetime extends AbstractQueryParameterDatetime
     implements TypedQueryParameter<Cql2Expression>, FeatureQueryParameter {
 
   private final FeaturesCoreProviders providers;
+  private final ExtensionRegistry extensionRegistry;
+  private final Map<Integer, Map<String, Schema<?>>> schemaMap = new ConcurrentHashMap<>();
 
   @Inject
-  QueryParameterDatetime(SchemaValidator schemaValidator, FeaturesCoreProviders providers) {
+  QueryParameterDatetime(
+      SchemaValidator schemaValidator,
+      FeaturesCoreProviders providers,
+      ExtensionRegistry extensionRegistry) {
     super(schemaValidator);
     this.providers = providers;
+    this.extensionRegistry = extensionRegistry;
   }
 
   @Override
@@ -66,23 +77,67 @@ public class QueryParameterDatetime extends AbstractQueryParameterDatetime
   }
 
   @Override
+  public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
+    int apiHashCode = apiData.hashCode();
+    return schemaMap
+        .computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>())
+        .computeIfAbsent(collectionId, k -> buildSchema(apiData, collectionId));
+  }
+
+  private Schema<?> buildSchema(OgcApiDataV2 apiData, String collectionId) {
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    if (collectionData != null) {
+      Optional<String> defaultValue =
+          extensionRegistry.getExtensionsForType(DatetimeDefaultProvider.class).stream()
+              .filter(provider -> provider.isEnabledForApi(apiData, collectionId))
+              .map(provider -> provider.getDefault(apiData, collectionData))
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .findFirst();
+      if (defaultValue.isPresent()) {
+        Schema<?> schema = getCopyOfBaseSchema();
+        schema.setDefault(defaultValue.get());
+        return schema;
+      }
+    }
+    return super.getSchema(apiData, collectionId);
+  }
+
+  @Override
   public Cql2Expression parse(
       String value,
       Map<String, Object> typedValues,
       OgcApi api,
       Optional<FeatureTypeConfigurationOgcApi> optionalCollectionData) {
-    if (Objects.isNull(value)) {
-      // no default value
-      return null;
+    FeatureTypeConfigurationOgcApi collectionData = optionalCollectionData.orElse(null);
+
+    String effectiveValue = value;
+    if (Objects.isNull(effectiveValue)) {
+      if (collectionData == null) {
+        return null;
+      }
+      effectiveValue =
+          extensionRegistry.getExtensionsForType(DatetimeDefaultProvider.class).stream()
+              .filter(
+                  provider ->
+                      optionalCollectionData
+                          .map(cd -> provider.isEnabledForApi(api.getData(), cd.getId()))
+                          .orElse(provider.isEnabledForApi(api.getData())))
+              .map(provider -> provider.getDefault(api.getData(), collectionData))
+              .filter(Optional::isPresent)
+              .map(Optional::get)
+              .findFirst()
+              .orElse(null);
+      if (Objects.isNull(effectiveValue)) {
+        return null;
+      }
     }
 
-    FeatureTypeConfigurationOgcApi collectionData =
-        optionalCollectionData.orElseThrow(
-            () ->
-                new IllegalStateException(
-                    String.format(
-                        "The parameter '%s' could not be processed, no collection provided.",
-                        getName())));
+    if (collectionData == null) {
+      throw new IllegalStateException(
+          String.format(
+              "The parameter '%s' could not be processed, no collection provided.", getName()));
+    }
 
     // valid values: timestamp or time interval;
     // this includes open intervals indicated by ".." (see ISO 8601-2);
@@ -91,11 +146,12 @@ public class QueryParameterDatetime extends AbstractQueryParameterDatetime
 
     TemporalLiteral temporalLiteral;
     try {
-      if (value.contains(DATETIME_INTERVAL_SEPARATOR)) {
+      if (effectiveValue.contains(DATETIME_INTERVAL_SEPARATOR)) {
         temporalLiteral =
-            TemporalLiteral.of(Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(value));
+            TemporalLiteral.of(
+                Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(effectiveValue));
       } else {
-        temporalLiteral = TemporalLiteral.of(value);
+        temporalLiteral = TemporalLiteral.of(effectiveValue);
       }
     } catch (Throwable e) {
       throw new IllegalArgumentException(

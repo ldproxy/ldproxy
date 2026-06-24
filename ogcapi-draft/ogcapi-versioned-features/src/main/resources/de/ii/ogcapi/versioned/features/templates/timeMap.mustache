@@ -1,0 +1,31 @@
+{{> header}}
+
+<div>
+    <h1>{{title}}</h1>
+    {{#description}}<p>{{{description}}}</p>{{/description}}
+
+    <p>
+        <a href="{{featureHref}}">{{originalLabel}} ({{featureId}})</a>
+    </p>
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>{{mementoLabel}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#entries}}
+            <tr>
+                <td>
+                    <a href="{{href}}">{{startLabel}}</a>
+                    {{#endLabel}} &nbsp;–&nbsp; {{.}}{{/endLabel}}
+                    {{#isOpen}} &nbsp;<span class="badge bg-secondary">{{latestVersionLabel}}</span>{{/isOpen}}
+                </td>
+            </tr>
+            {{/entries}}
+        </tbody>
+    </table>
+</div>
+
+{{> footer}}

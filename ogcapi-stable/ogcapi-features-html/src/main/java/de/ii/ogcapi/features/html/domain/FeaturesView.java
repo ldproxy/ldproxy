@@ -98,6 +98,14 @@ public abstract class FeaturesView extends OgcApiDatasetView {
 
   public abstract List<NavigationDTO> metaPagination();
 
+  @Nullable
+  public abstract List<NavigationDTO> versionNavigation();
+
+  @Value.Derived
+  public boolean hasVersionNavigation() {
+    return Objects.nonNull(versionNavigation()) && !versionNavigation().isEmpty();
+  }
+
   public abstract POSITION mapPosition();
 
   public abstract Set<Entry<String, String>> filterFields();

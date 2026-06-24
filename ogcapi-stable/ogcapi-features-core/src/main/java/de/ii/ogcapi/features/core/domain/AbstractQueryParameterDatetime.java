@@ -59,6 +59,8 @@ public abstract class AbstractQueryParameterDatetime extends OgcApiQueryParamete
           + "$|^"
           + OFFSET_DATE_TIME_CLOSED_INTERVAL_REGEX
           + "$";
+  private static final String DATETIME_INSTANT_REGEX =
+      "^" + LOCAL_DATE_REGEX + "$|^" + NOW_REGEX + "$|^" + OFFSET_DATE_TIME_REGEX + "$";
 
   private final Schema<?> baseSchema;
   protected final SchemaValidator schemaValidator;
@@ -66,6 +68,16 @@ public abstract class AbstractQueryParameterDatetime extends OgcApiQueryParamete
   public AbstractQueryParameterDatetime(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
     this.baseSchema = new StringSchema().pattern(DATETIME_OPEN_REGEX);
+  }
+
+  /** Subclasses build a fresh instance to add per-API or per-collection facets (default, etc.). */
+  protected static Schema<?> getCopyOfBaseSchema() {
+    return new StringSchema().pattern(DATETIME_OPEN_REGEX);
+  }
+
+  /** Instant-only schema variant (no interval forms) for single-feature endpoints. */
+  protected static Schema<?> getCopyOfInstantBaseSchema() {
+    return new StringSchema().pattern(DATETIME_INSTANT_REGEX);
   }
 
   @Override

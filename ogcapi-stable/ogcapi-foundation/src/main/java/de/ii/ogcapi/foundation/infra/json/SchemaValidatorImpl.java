@@ -11,81 +11,80 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaException;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaValidatorsConfig;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.SpecVersionDetector;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.Error;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SchemaRegistryConfig;
+import com.networknt.schema.SpecificationVersion;
+import com.networknt.schema.resource.IriResourceLoader;
+import com.networknt.schema.serialization.JsonMapperFactory;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Singleton
 @AutoBind
 public class SchemaValidatorImpl implements SchemaValidator {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private final SchemaRegistry schemaRegistry;
+
+  private static final ObjectMapper MAPPER = JsonMapperFactory.getInstance();
 
   @Inject
-  public SchemaValidatorImpl() {}
+  public SchemaValidatorImpl() {
+    SchemaRegistryConfig config = SchemaRegistryConfig.builder().failFast(true).build();
+    this.schemaRegistry =
+        SchemaRegistry.withDefaultDialect(
+            SpecificationVersion.DRAFT_2020_12,
+            builder ->
+                builder
+                    .schemaRegistryConfig(config)
+                    .resourceLoaders(loaders -> loaders.add(IriResourceLoader.getInstance())));
+  }
 
   @Override
   public Optional<String> validate(String schemaContent, String jsonContent) throws IOException {
-    CompiledJsonSchema schema = compile(schemaContent);
-    return validate(schema, jsonContent);
+    return validate(compileInternal(schemaContent), jsonContent);
   }
 
   @Override
   public CompiledJsonSchema compile(String schemaContent) throws IOException {
-    JsonNode schemaNode = MAPPER.readTree(schemaContent);
-    SpecVersion.VersionFlag version;
-    try {
-      version = SpecVersionDetector.detect(schemaNode);
-    } catch (Exception e) {
-      version = SpecVersion.VersionFlag.V202012;
-    }
-    JsonSchemaFactory validatorFactory = JsonSchemaFactory.getInstance(version);
-    SchemaValidatorsConfig config = new SchemaValidatorsConfig();
-    config.setFailFast(true);
-    config.setHandleNullableField(true);
-    return new NetworkNtCompiledJsonSchema(validatorFactory.getSchema(schemaNode, config));
+    return compileInternal(schemaContent);
   }
 
   @Override
   public Optional<String> validate(CompiledJsonSchema schema, String jsonContent)
       throws IOException {
-    if (!(schema instanceof NetworkNtCompiledJsonSchema compiled)) {
-      throw new IllegalArgumentException(
-          "Unsupported CompiledJsonSchema implementation: " + schema.getClass());
-    }
     JsonNode jsonNode;
     try {
       jsonNode = MAPPER.readTree(jsonContent);
     } catch (JsonParseException e) {
-      return Optional.of(e.getOriginalMessage());
+      return Optional.of(e.getMessage());
     }
-    Set<ValidationMessage> result;
-    try {
-      result = compiled.schema.validate(jsonNode);
-    } catch (JsonSchemaException e) {
-      result = e.getValidationMessages();
-    }
+
+    List<Error> result = ((CompiledJsonSchemaImpl) schema).schema.validate(jsonNode);
     if (result.isEmpty()) {
       return Optional.empty();
     }
+
     return Optional.of(result.toString());
   }
 
-  private static final class NetworkNtCompiledJsonSchema implements CompiledJsonSchema {
-    private final JsonSchema schema;
+  private CompiledJsonSchemaImpl compileInternal(String schemaContent) throws IOException {
+    JsonNode schemaNode = MAPPER.readTree(schemaContent);
+    Schema schema = schemaRegistry.getSchema(schemaNode);
+    schema.initializeValidators();
+    return new CompiledJsonSchemaImpl(schema);
+  }
 
-    NetworkNtCompiledJsonSchema(JsonSchema schema) {
+  private static final class CompiledJsonSchemaImpl implements CompiledJsonSchema {
+    final Schema schema;
+
+    CompiledJsonSchemaImpl(Schema schema) {
       this.schema = schema;
     }
   }

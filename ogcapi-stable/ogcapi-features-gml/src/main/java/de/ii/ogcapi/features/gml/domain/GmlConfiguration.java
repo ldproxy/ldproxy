@@ -9,16 +9,20 @@ package de.ii.ogcapi.features.gml.domain;
 
 import static de.ii.xtraplatform.features.gml.domain.GmlVersion.GML32;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
+import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -38,7 +42,7 @@ import org.immutables.value.Value;
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
  *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
  *     formatting decisions with no input counterpart, or because the decoder is permissive of any
- *     equivalent input form.
+ *     equivalent input form. {@code codeListUriTemplateIso19139} likewise affects output only.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -55,7 +59,8 @@ import org.immutables.value.Value;
  *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
  *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
  *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
- *     Eingabeform permissiv ist.
+ *     Eingabeform permissiv ist. {@code codeListUriTemplateIso19139} wirkt sich ebenfalls nur auf
+ *     die Ausgabe aus.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.
@@ -132,6 +137,7 @@ import org.immutables.value.Value;
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
+ *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
@@ -227,6 +233,7 @@ import org.immutables.value.Value;
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
  *     anlass: AX_Anlassart
+ *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
@@ -322,6 +329,9 @@ public interface GmlConfiguration
   Integer getGmlSfLevel();
 
   @Value.Derived
+  @Value.Auxiliary
+  @DocIgnore
+  @JsonIgnore
   default Conformance getConformance() {
     if (!GML32.equals(Objects.requireNonNullElse(getGmlVersion(), GML32))) {
       return Conformance.NONE;
@@ -435,6 +445,39 @@ public interface GmlConfiguration
   Map<String, String> getSchemaLocations();
 
   /**
+   * @langEn Local XSD files that override the remote schema URLs referenced from `schemaLocations`
+   *     and from `xsi:schemaLocation` imports during XML Schema validation of incoming
+   *     `wfs:Transaction` payloads. Each map key is the remote URL exactly as it would otherwise be
+   *     fetched; the value is a path relative to the `xsdCatalog` resource store (i.e. files placed
+   *     under `<data-dir>/resources/xsdCatalog/`). Absolute remote URLs that are not listed here
+   *     continue to be fetched over the network. Use this option when the JVM running ldproxy
+   *     cannot reach the schema repository (for example behind a proxy, or when validating against
+   *     unpublished schema drafts).
+   * @langDe Lokale XSD-Dateien, die die entfernten Schema-URLs aus `schemaLocations` und aus
+   *     `xsi:schemaLocation`-Imports während der XML-Schema-Validierung eingehender
+   *     `wfs:Transaction`-Anfragen ersetzen. Jeder Schlüssel ist die entfernte URL exakt so, wie
+   *     sie sonst geladen würde; der Wert ist ein Pfad relativ zum Ressourcenspeicher `xsdCatalog`
+   *     (also Dateien unter `<data-dir>/resources/xsdCatalog/`). Nicht aufgeführte entfernte URLs
+   *     werden weiterhin über das Netzwerk geladen. Diese Option ist nützlich, wenn die JVM, in der
+   *     ldproxy läuft, das Schema-Repository nicht erreichen kann (zum Beispiel hinter einem Proxy
+   *     oder bei der Validierung gegen unveröffentlichte Schema-Entwürfe).
+   * @default `{}`
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   schemaLocations:
+   *     ns1: https://example.org/schemas/ns1/foo.xsd
+   *   xsdCatalog:
+   *     https://example.org/schemas/ns1/foo.xsd: ns1/foo.xsd
+   *     https://example.org/schemas/ns1/bar.xsd: ns1/bar.xsd
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  Map<String, String> getXsdCatalog();
+
+  /**
    * @langEn All object/data type instances are represented through a GML object element.
    *     <p>In the provider schema, a name must be provided for each OBJECT in the `objectType`
    *     property, including for the feature type itself. By default, this name will be used for the
@@ -508,6 +551,36 @@ public interface GmlConfiguration
    * @since v3.3
    */
   Map<String, VariableName> getVariableObjectElementNames();
+
+  /**
+   * @langEn Some feature reference properties are encoded in GML with a property element name that
+   *     appends the referenced feature type to the property name, for example
+   *     `adv:gehoertZuBauwerk_AX_Turm` instead of `adv:gehoertZuBauwerk`. List the affected
+   *     properties here. On encoding, the property element name receives a `_{objectType}` suffix
+   *     where `{objectType}` is the object type of the collection that the reference points to; on
+   *     decoding, an element name with such a suffix is mapped back to the property. Use the
+   *     property name as it appears in the GML element, that is, the alias when `useAlias` is
+   *     enabled.
+   * @langDe Einige Eigenschaften mit Objektreferenzen werden in GML mit einem Elementnamen kodiert,
+   *     der den referenzierten Objekttyp an den Eigenschaftsnamen anhängt, zum Beispiel
+   *     `adv:gehoertZuBauwerk_AX_Turm` statt `adv:gehoertZuBauwerk`. Hier werden die betroffenen
+   *     Eigenschaften aufgelistet. Bei der Kodierung erhält der Elementname ein
+   *     `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection ist, auf die die
+   *     Referenz verweist; bei der Dekodierung wird ein Elementname mit einem solchen Suffix wieder
+   *     auf die Eigenschaft abgebildet. Es ist der Eigenschaftsname zu verwenden, wie er im
+   *     GML-Element erscheint, also der Alias, wenn `useAlias` aktiviert ist.
+   * @default []
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   objectTypeSuffixedProperties:
+   *   - gehoertZuBauwerk
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  List<String> getObjectTypeSuffixedProperties();
 
   /**
    * @langEn Various feature collection elements are in use and sometimes additional ones are
@@ -689,6 +762,31 @@ public interface GmlConfiguration
    */
   @Nullable
   Boolean getUseSurfaceAndCurve();
+
+  /**
+   * @langEn If enabled, a curve geometry is always encoded as {@code gml:CompositeCurve} (with one
+   *     {@code gml:curveMember} per curve component), even when the geometry has only a single
+   *     component. This is useful when the target GML application schema requires {@code
+   *     gml:CompositeCurve} for the geometry of a feature type. Set this per collection on the
+   *     affected feature types. Has an effect only together with {@code useSurfaceAndCurve}.
+   * @langDe Wenn aktiviert, wird eine Kurvengeometrie immer als {@code gml:CompositeCurve} kodiert
+   *     (mit einem {@code gml:curveMember} je Kurvenkomponente), auch wenn die Geometrie nur eine
+   *     einzige Komponente hat. Dies ist nützlich, wenn das Ziel-GML-Anwendungsschema {@code
+   *     gml:CompositeCurve} für die Geometrie einer Objektart erfordert. Diese Option wird je
+   *     Collection auf den betroffenen Objektarten gesetzt. Sie ist nur zusammen mit {@code
+   *     useSurfaceAndCurve} wirksam.
+   * @default false
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   forceCompositeCurve: true
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  Boolean getForceCompositeCurve();
 
   /**
    * @langEn Change the default value of the [profile parameter](features.md#query-parameters) for
@@ -940,9 +1038,38 @@ public interface GmlConfiguration
    *       - gco:DateTime
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   Map<String, List<String>> getValueWrap();
+
+  /**
+   * @langEn URI template for codelist values encoded according to ISO 19139. The template may
+   *     contain the placeholder `{{codelistId}}`, which is replaced with the codelist id. When set,
+   *     a property that references a codelist (through the `codelist` constraint in the provider
+   *     schema) and is wrapped via `valueWrap` in an element whose local name equals the codelist
+   *     id is encoded as an ISO 19139 codelist value: the wrapping element receives a `codeList`
+   *     attribute built from this template, and a `codeListValue` attribute set to the value (which
+   *     is also the element's text content). The default `null` disables this encoding.
+   * @langDe URI-Template für Codelist-Werte, die gemäß ISO 19139 kodiert werden. Das Template kann
+   *     den Platzhalter `{{codelistId}}` enthalten, der durch die Codelist-ID ersetzt wird. Wenn
+   *     gesetzt, wird eine Eigenschaft, die über die `codelist`-Constraint im Provider-Schema auf
+   *     eine Codelist verweist und über `valueWrap` in ein Element eingeschlossen ist, dessen
+   *     lokaler Name der Codelist-ID entspricht, als ISO-19139-Codelist-Wert kodiert: Das
+   *     einschließende Element erhält ein `codeList`-Attribut, das aus diesem Template gebildet
+   *     wird, sowie ein `codeListValue`-Attribut mit dem Wert (der zugleich der Textinhalt des
+   *     Elements ist). Der Standardwert `null` deaktiviert diese Kodierung.
+   * @default null
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  @Nullable
+  String getCodeListUriTemplateIso19139();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
@@ -953,9 +1080,28 @@ public interface GmlConfiguration
 
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    GmlConfiguration src = (GmlConfiguration) source;
     return new ImmutableGmlConfiguration.Builder()
         .from(source)
         .from(this)
+        // The map and list options must be merged explicitly. The generated builder accumulates
+        // each `from(...)` into the same map/list builder, so a key declared at both the API and
+        // the collection level would be added twice and the map builder would throw at build time
+        // (duplicate key); list entries would be duplicated. The replace setters used below reset
+        // each builder, so the pre-merged value wins. In every case the collection-level value
+        // (`this`) takes precedence over the API-level value (`source`) on key conflicts.
+        .applicationNamespaces(
+            mergeMaps(src.getApplicationNamespaces(), getApplicationNamespaces()))
+        .schemaLocations(mergeMaps(src.getSchemaLocations(), getSchemaLocations()))
+        .xsdCatalog(mergeMaps(src.getXsdCatalog(), getXsdCatalog()))
+        .objectTypeNamespaces(mergeMaps(src.getObjectTypeNamespaces(), getObjectTypeNamespaces()))
+        .variableObjectElementNames(
+            mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
+        .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
+        .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
+        .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
+        .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(
             PropertyTransformations.super
                 .mergeInto((PropertyTransformations) source)
@@ -966,5 +1112,21 @@ public interface GmlConfiguration
                 .getDefaultProfiles())
         .useAlias(AliasConfiguration.super.mergeInto((AliasConfiguration) source).getUseAlias())
         .build();
+  }
+
+  /**
+   * Merges two maps so that the union of keys is retained and {@code overrides} wins on conflicts,
+   * preserving insertion order (API-level entries first). Returns a plain map; the caller passes it
+   * through a replace setter that copies it into an immutable map.
+   */
+  private static <K, V> Map<K, V> mergeMaps(Map<K, V> base, Map<K, V> overrides) {
+    Map<K, V> merged = new LinkedHashMap<>(base);
+    merged.putAll(overrides);
+    return merged;
+  }
+
+  /** Concatenates two lists (API-level entries first) and removes duplicates. */
+  private static <T> List<T> mergeLists(List<T> base, List<T> overrides) {
+    return Stream.concat(base.stream(), overrides.stream()).distinct().toList();
   }
 }

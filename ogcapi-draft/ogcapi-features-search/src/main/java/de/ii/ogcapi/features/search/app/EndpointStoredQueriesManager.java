@@ -229,7 +229,6 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
           new ImmutableStoredQueryExpression.Builder()
               .from(StoredQueryExpression.of(requestBody))
               .id(queryId)
-              .offset(Optional.empty())
               .build();
     } catch (IOException e) {
       throw new IllegalArgumentException(

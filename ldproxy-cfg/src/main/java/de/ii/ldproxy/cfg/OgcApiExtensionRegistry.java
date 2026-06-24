@@ -54,6 +54,7 @@ import de.ii.ogcapi.tilematrixsets.app.TileMatrixSetsBuildingBlock;
 import de.ii.ogcapi.tiles.app.TilesBuildingBlock;
 import de.ii.ogcapi.tiles3d.app.Tiles3dBuildingBlock;
 import de.ii.ogcapi.transactions.app.TransactionsBuildingBlock;
+import de.ii.ogcapi.versioned.features.app.VersionedFeaturesBuildingBlock;
 import de.ii.ogcapi.xml.app.XmlBuildingBlock;
 import de.ii.xtraplatform.base.domain.AppContext;
 import java.util.List;
@@ -113,6 +114,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             // TileSetFormatExtension
             .add(new Tiles3dBuildingBlock(null, null))
             .add(new TransactionsBuildingBlock(null))
+            .add(new VersionedFeaturesBuildingBlock(null))
             .add(new XmlBuildingBlock())
             .build();
   }

@@ -16,6 +16,7 @@ import de.ii.ogcapi.html.domain.ImmutableMapClient;
 import de.ii.ogcapi.html.domain.ImmutableStyle;
 import de.ii.ogcapi.html.domain.MapClient;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -71,6 +72,44 @@ public abstract class OgcApiCollectionView extends OgcApiDatasetView {
   @Value.Derived
   public Optional<String> defaultStyle() {
     return collection().getDefaultStyle();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Value.Derived
+  public Optional<String> versioningTimeAxis() {
+    Object raw = collection().getExtensions().get("versioning");
+    return raw instanceof Map
+        ? Optional.ofNullable(((Map<String, Object>) raw).get("timeAxis")).map(Object::toString)
+        : Optional.empty();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Value.Derived
+  public Optional<String> versioningMutationTime() {
+    Object raw = collection().getExtensions().get("versioning");
+    return raw instanceof Map
+        ? Optional.ofNullable(((Map<String, Object>) raw).get("mutationTime")).map(Object::toString)
+        : Optional.empty();
+  }
+
+  @Value.Derived
+  public boolean hasVersioning() {
+    return versioningTimeAxis().isPresent() || versioningMutationTime().isPresent();
+  }
+
+  @Value.Derived
+  public String versioningTitle() {
+    return i18n().get("versioningTitle", language());
+  }
+
+  @Value.Derived
+  public String timeAxisTitle() {
+    return i18n().get("timeAxisTitle", language());
+  }
+
+  @Value.Derived
+  public String mutationTimeTitle() {
+    return i18n().get("mutationTimeTitle", language());
   }
 
   @Value.Derived

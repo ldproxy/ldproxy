@@ -218,11 +218,50 @@ class JsonTransactionParserSpec extends Specification {
         def action = (TxUpdate) tx.actions().next()
 
         then:
-        action.add*.name == ['owner']
+        action.add*.path == [['owner']]
         action.add[0].value.asText() == 'Alice'
-        action.modify*.name == ['height']
+        action.modify*.path == [['height']]
         action.modify[0].value.asDouble() == 12.5d
-        action.deleteProperties == ['legacy_id']
+        action.deleteProperties == [['legacy_id']]
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'update action: name accepts dot-separated string or array of segments'() {
+        given:
+        def body = '''{
+          "transaction": [
+            {"action": "update", "collection": "AA_Meilenstein",
+             "filter": { "op": "=", "args": [ { "property": "id" }, "DEHE86202002BTa0" ] },
+             "properties": {
+               "modify": [
+                 {"name": "lebenszeitintervall.endet",
+                  "value": "2025-04-23T09:38:37Z"},
+                 {"name": ["lebenszeitintervall", "beginnt"],
+                  "value": "2025-04-22T04:50:46Z"}
+               ],
+               "delete": [
+                 "lebenszeitintervall.grund",
+                 ["lebenszeitintervall", "wer"]
+               ]
+             }}
+          ]
+        }'''
+
+        when:
+        def tx = parser.parse(bytes(body), JSON)
+        def action = (TxUpdate) tx.actions().next()
+
+        then:
+        action.modify*.path == [
+                ['lebenszeitintervall', 'endet'],
+                ['lebenszeitintervall', 'beginnt']
+        ]
+        action.deleteProperties == [
+                ['lebenszeitintervall', 'grund'],
+                ['lebenszeitintervall', 'wer']
+        ]
 
         cleanup:
         tx.close()
@@ -433,7 +472,7 @@ class JsonTransactionParserSpec extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def 'coalesce: consecutive identity-free same-collection inserts merge into one TxInsert with continuous indices'() {
+    def 'coalesce: consecutive identity-free same-collection inserts merge into one TxInsert'() {
         // given: three back-to-back inserts targeting the same collection, no id/title/description
         def body = '''{
           "transaction": [
@@ -455,9 +494,7 @@ class JsonTransactionParserSpec extends Specification {
         def it = tx.actions()
         def merged = (TxInsert) it.next()
         def itemIds = []
-        def itemIndexes = []
         merged.items().forEachRemaining { item ->
-            itemIndexes << item.indexInInsert()
             itemIds << item.featureId().orElse(null)
             item.payload().readAllBytes() // drain to keep parser advancing
         }
@@ -465,8 +502,6 @@ class JsonTransactionParserSpec extends Specification {
         then: 'parent iterator sees one TxInsert; merged action carries all four features'
         merged.collectionId == 'buildings'
         itemIds == ['1', '2', '3', '4']
-        and: '1-based positions span coalesced actions continuously'
-        itemIndexes == [1, 2, 3, 4]
         and: 'no further actions remain'
         !it.hasNext()
 

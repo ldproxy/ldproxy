@@ -20,6 +20,8 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
 import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
+import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
+import de.ii.ogcapi.features.core.domain.SingleFeatureMissingHandler;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -56,6 +58,7 @@ import de.ii.xtraplatform.features.domain.FeatureStream.ResultBase;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.features.domain.PropertyLink;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
@@ -79,6 +82,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -348,6 +353,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .defaultCrs(defaultCrs)
             .sourceCrs(Optional.ofNullable(sourceCrs))
             .links(queryInput.includeBodyLinks() ? links : List.of())
+            .language(requestContext.getLanguage())
             .isFeatureCollection(Objects.isNull(featureId))
             .isHitsOnly(query.hitsOnly())
             .fields(ImmutableMap.of(collectionId, query.getFields()))
@@ -375,7 +381,9 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     for (Profile profile : profiles) {
       if (profile instanceof ProfileFeatureQuery) {
-        query = ((ProfileFeatureQuery) profile).transformFeatureQuery(query);
+        query =
+            ((ProfileFeatureQuery) profile)
+                .transformFeatureQuery(query, api.getData(), collectionId);
       }
     }
 
@@ -474,11 +482,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     CollectionMetadata collectionMetadata = null;
     boolean hasNextPage = false;
 
+    List<PropertyLink> propertyLinks = List.of();
+    Instant mementoDatetime = null;
+    Instant mementoEnd = null;
     if (!sendResponseAsStream) {
       Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
           reduce(
               featureStream,
-              Objects.nonNull(featureId),
+              false,
               encoder,
               propertyTransformations,
               requestContext.getRequestId());
@@ -487,6 +498,27 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       hasNextPage =
           collectionMetadata != null
               && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
+      propertyLinks = result.getPropertyLinks();
+      mementoDatetime =
+          result.getTemporalExtent().map(Tuple::first).filter(Objects::nonNull).orElse(null);
+      mementoEnd =
+          result.getTemporalExtent().map(Tuple::second).filter(Objects::nonNull).orElse(null);
+
+      if (Objects.nonNull(featureId) && !result.hasFeatures()) {
+        Optional<Response> overridden =
+            extensionRegistry.getExtensionsForType(SingleFeatureMissingHandler.class).stream()
+                .filter(handler -> handler.isEnabledForApi(api.getData(), collectionId))
+                .flatMap(
+                    handler ->
+                        handler
+                            .handleMissing(api, collectionId, featureId, requestContext)
+                            .stream())
+                .findFirst();
+        if (overridden.isPresent()) {
+          return overridden.get();
+        }
+        throw new NotFoundException("The requested feature does not exist.");
+      }
 
       bytes = result.reduced();
 
@@ -585,7 +617,87 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       response.header(TEMPORAL_EXTENT_HEADER, temporalExtentHeader);
     }
 
+    if (Objects.nonNull(featureId) && Objects.nonNull(mementoEnd)) {
+      // The returned version is retired (PRIMARY_INTERVAL_END is set) — its representation will
+      // never change. Override any per-collection Cache-Control with the immutable directive.
+      response.header("Cache-Control", null);
+      response.header("Cache-Control", "public, max-age=31536000, immutable");
+    }
+
+    if (Objects.nonNull(featureId) && Objects.nonNull(mementoDatetime)) {
+      response.header(
+          "Memento-Datetime",
+          DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneId.of("GMT")).format(mementoDatetime));
+      String originalHref = requestContext.getUriCustomizer().copy().clearParameters().toString();
+      String timeMapHref =
+          requestContext
+              .getUriCustomizer()
+              .copy()
+              .clearParameters()
+              .ensureLastPathSegment("versions")
+              .toString();
+      addLinkHeader(response, originalHref, "original", requestContext);
+      addLinkHeader(response, timeMapHref, "timemap", requestContext);
+      addLinkHeader(response, timeMapHref, "version-history", requestContext);
+    }
+
+    if (Objects.nonNull(featureId) && !propertyLinks.isEmpty()) {
+      String featureUri = requestContext.getUriCustomizer().copy().clearParameters().toString();
+      String collectionUri =
+          requestContext
+              .getUriCustomizer()
+              .copy()
+              .clearParameters()
+              .removeLastPathSegments(2)
+              .toString();
+      String apiUri =
+          requestContext
+              .getUriCustomizer()
+              .copy()
+              .clearParameters()
+              .removeLastPathSegments(4)
+              .toString();
+      for (PropertyLink link : propertyLinks) {
+        String href = PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri);
+        String titleI18n = i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
+        Optional<String> title =
+            titleI18n.equals(link.getRel()) ? link.getTitle() : Optional.of(titleI18n);
+        addLinkHeader(response, href, link.getRel(), title);
+      }
+    }
+
     return response.entity(Objects.nonNull(bytes) ? bytes : streamingOutput).build();
+  }
+
+  private void addLinkHeader(
+      Response.ResponseBuilder response,
+      String href,
+      String rel,
+      ApiRequestContext requestContext) {
+    addLinkHeader(
+        response,
+        href,
+        rel,
+        Optional.of(i18n.get(relToI18nKey(rel), requestContext.getLanguage())));
+  }
+
+  private void addLinkHeader(
+      Response.ResponseBuilder response, String href, String rel, Optional<String> title) {
+    response.header(
+        "Link",
+        title
+            .map(t -> String.format("<%s>; rel=\"%s\"; title=\"%s\"", href, rel, t))
+            .orElseGet(() -> String.format("<%s>; rel=\"%s\"", href, rel)));
+  }
+
+  static String relToI18nKey(String rel) {
+    String[] parts = rel.split("-");
+    StringBuilder sb = new StringBuilder(parts[0]);
+    for (int i = 1; i < parts.length; i++) {
+      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+    }
+    sb.append("Link");
+    return sb.toString();
   }
 
   private Tuple<StreamingOutput, CollectionMetadata> stream(

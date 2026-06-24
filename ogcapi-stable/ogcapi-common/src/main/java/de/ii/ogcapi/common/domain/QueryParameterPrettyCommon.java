@@ -36,7 +36,8 @@ public class QueryParameterPrettyCommon extends QueryParameterPretty {
   @Override
   public boolean matchesPath(String definitionPath) {
     return !"/collections/{collectionId}/items".equals(definitionPath)
-        && !"/collections/{collectionId}/items/{featureId}".equals(definitionPath);
+        && !"/collections/{collectionId}/items/{featureId}".equals(definitionPath)
+        && !"/collections/{collectionId}/items/{featureId}/versions".equals(definitionPath);
   }
 
   @Override

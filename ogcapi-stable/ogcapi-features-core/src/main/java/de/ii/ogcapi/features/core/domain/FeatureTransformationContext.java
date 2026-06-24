@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -58,6 +59,49 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
   @Derived
   default String getCollectionId() {
     return getFeatureSchemas().keySet().stream().findFirst().orElse(null);
+  }
+
+  /**
+   * Maps a feature provider type to the collection it is served as, for responses that mix several
+   * collections (e.g. the <em>Search</em> building block). Empty for single-collection responses.
+   * Link/URL builders resolve the per-feature collection through {@link
+   * #getCollectionIdForType(String)} so each feature links to its own collection rather than the
+   * arbitrary one returned by {@link #getCollectionId()}.
+   */
+  @Value.Default
+  default Map<String, String> getCollectionIdsByType() {
+    return Map.of();
+  }
+
+  /**
+   * The collection the current feature (identified by its provider {@code type}) is served as. For
+   * a multi-collection response this is the per-type mapping; otherwise the single collection of
+   * the query.
+   */
+  default String getCollectionIdForType(String type) {
+    if (Objects.nonNull(type)) {
+      String collectionId = getCollectionIdsByType().get(type);
+      if (Objects.nonNull(collectionId)) {
+        return collectionId;
+      }
+    }
+    return getCollectionId();
+  }
+
+  /**
+   * The bare id used in resource paths ({@code /collections/{cid}/items/{id}}). A multi-collection
+   * response qualifies the JSON id with a {@code <collectionId>.} prefix (see {@link
+   * #getIdsIncludeCollectionId()}) to keep ids unique; that prefix is stripped here. For a
+   * single-collection response, or when ids are not qualified, the id is returned unchanged.
+   */
+  default String getFeatureIdInPath(String featureId, String collectionId) {
+    if (getIdsIncludeCollectionId()
+        && Objects.nonNull(featureId)
+        && Objects.nonNull(collectionId)
+        && featureId.startsWith(collectionId + ".")) {
+      return featureId.substring(collectionId.length() + 1);
+    }
+    return featureId;
   }
 
   @Derived

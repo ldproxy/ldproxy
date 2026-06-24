@@ -9,10 +9,13 @@ package de.ii.ogcapi.transactions.domain;
 
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import java.time.Instant;
+import java.util.Optional;
 
 /** Executes a parsed {@link Transaction} against the feature providers backing the API. */
-public interface TransactionExecutor {
+public interface TransactionExecutor extends Volatile2 {
 
   /**
    * @param transaction parsed request. The executor consumes the actions iterator and closes the
@@ -25,7 +28,10 @@ public interface TransactionExecutor {
    *     provider write. Set by the endpoint when the client sends {@code Prefer: handling=strict}.
    *     Per-feature failures inside an atomic transaction abort the transaction; failures inside a
    *     batch transaction skip the offending item and surface it through {@link
-   *     ActionResult#getFailedFeatureIds()} / {@link ActionResult#getFailedFeatureIndexes()}.
+   *     ActionResult#getFailedFeatureIds()} / {@link ActionResult#getFailedFeaturePayloads()}.
+   * @param ogcMutationDatetime parsed {@code OGC-Mutation-Datetime} request header, if supplied —
+   *     used by versioned strategies in {@code client} mutation-time mode when an action carries no
+   *     body-side primary-interval-start value
    * @return summary of what happened, in request order
    */
   ExecutionResult execute(
@@ -33,5 +39,6 @@ public interface TransactionExecutor {
       OgcApi api,
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
-      boolean validate);
+      boolean validate,
+      Optional<Instant> ogcMutationDatetime);
 }

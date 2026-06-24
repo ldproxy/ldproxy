@@ -38,6 +38,8 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.xtraplatform.blobs.domain.Blob;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
@@ -50,6 +52,7 @@ import de.ii.xtraplatform.features.domain.SchemaMapping;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGml;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGmlInputProfile;
 import de.ii.xtraplatform.features.gml.domain.ImmutableFeatureTokenDecoderGmlInputProfile;
@@ -60,15 +63,18 @@ import de.ii.xtraplatform.values.domain.Values;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URL;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -84,6 +90,7 @@ import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.ls.LSInput;
@@ -184,13 +191,32 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private static final String GMLSF2_CC =
       "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/gmlsf2";
 
+  static final String XSD_CATALOG_STORE_TYPE = "xsdCatalog";
+
   private final Values<Codelist> codelistStore;
   private final FeaturesCoreValidation featuresCoreValidator;
   private final GmlWriterRegistry gmlWriterRegistry;
-  private final SchemaFactory factory;
+  private final ResourceStore xsdCatalogStore;
   private final ConcurrentMap<Integer, ConcurrentMap<String, Schema>> schemaCache =
       new ConcurrentHashMap<>();
+  // Per-thread Validator instances keyed by their Schema (identity). Each `validate()` call
+  // would otherwise pay Xerces' full Validator instantiation cost (XML11Configuration init,
+  // XSDHandler.reset, addRecognizedParamsAndSetDefaults) — which is ~1 ms each and dominates
+  // strict-mode overhead once schema build is cached. Validators are not thread-safe, so the
+  // pool is ThreadLocal; the schema-keyed inner map lets a single thread keep separate
+  // Validators for separate Schemas. `Validator.reset()` is called before every use to clear
+  // per-validation state — the alternative (clobbering schemas mid-flight) is the documented
+  // unsafe usage.
+  private final ThreadLocal<Map<Schema, Validator>> validatorPool =
+      ThreadLocal.withInitial(IdentityHashMap::new);
   private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
+      new ConcurrentHashMap<>();
+  // Effective namespace prefix map per (api, collection): the configured application namespaces
+  // merged with the reserved STANDARD_NAMESPACES. The merge is stable for a given config, so it is
+  // computed once and cached here rather than on every encoded response; caching via
+  // computeIfAbsent also means the reserved-prefix conflict warning is logged once, not per
+  // request.
+  private final ConcurrentMap<Integer, ConcurrentMap<String, Map<String, String>>> namespacesCache =
       new ConcurrentHashMap<>();
 
   @Inject
@@ -199,13 +225,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       ValueStore valueStore,
       FeaturesCoreValidation featuresCoreValidator,
       GmlWriterRegistry gmlWriterRegistry,
-      ExtensionRegistry extensionRegistry) {
+      ExtensionRegistry extensionRegistry,
+      ResourceStore blobStore) {
     super(extensionRegistry, providers);
     this.codelistStore = valueStore.forType(Codelist.class);
     this.featuresCoreValidator = featuresCoreValidator;
     this.gmlWriterRegistry = gmlWriterRegistry;
-    this.factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-    this.factory.setResourceResolver(new HttpsUpgradingResolver());
+    this.xsdCatalogStore = blobStore.with(XSD_CATALOG_STORE_TYPE);
   }
 
   private static String upgradeToHttps(String url) {
@@ -405,8 +431,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
             .gmlVersion(Objects.requireNonNullElse(config.getGmlVersion(), GML32))
-            .putAllNamespaces(config.getApplicationNamespaces())
-            .putAllNamespaces(STANDARD_NAMESPACES)
+            .putAllNamespaces(
+                namespacesCache
+                    .computeIfAbsent(
+                        transformationContext.getApiData().hashCode(),
+                        k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(
+                        transformationContext.getCollectionId(), k -> mergeNamespaces(config)))
             .defaultNamespace(Optional.ofNullable(config.getDefaultNamespace()))
             .putAllSchemaLocations(config.getSchemaLocations())
             .putAllSchemaLocations(
@@ -415,6 +446,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
             .objectTypeNamespaces(config.getObjectTypeNamespaces())
             .variableObjectElementNames(config.getVariableObjectElementNames())
+            // configured by the property's element name (the alias when useAlias is on), which is
+            // also the form GmlWriterProperties sees as schema.getName() at runtime — so no
+            // technical-to-alias remap is applied here.
+            .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
+            .refTargetObjectTypes(
+                providers.getFeatureSchemas(transformationContext.getApiData()).entrySet().stream()
+                    .filter(entry -> entry.getValue().getObjectType().isPresent())
+                    .collect(
+                        ImmutableMap.toImmutableMap(
+                            Map.Entry::getKey, entry -> entry.getValue().getObjectType().get())))
             .featureCollectionElementName(
                 Optional.ofNullable(config.getFeatureCollectionElementName()))
             .featureMemberElementName(Optional.ofNullable(config.getFeatureMemberElementName()))
@@ -423,6 +464,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
             .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
             .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
+            .forceCompositeCurve(Objects.requireNonNullElse(config.getForceCompositeCurve(), false))
             .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
             .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
             .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
@@ -435,12 +477,41 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
                     && isDatetimeIntervalRequest(transformationContext))
             .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
+            .codeListUriTemplateIso19139(
+                Optional.ofNullable(config.getCodeListUriTemplateIso19139()))
             .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
             .codelists(resolveCodelists(config.getCodelistProperties()))
             .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
+  }
+
+  // The "rel" profile set ({@code rel-as-key}/{@code rel-as-uri}/{@code rel-as-link}). GML renders
+  // feature references natively as xlinks, so its property transformations must not include the
+  // generic "rel" reduction (see getPropertyTransformations).
+  private static final String PROFILE_SET_REL = "rel";
+
+  /**
+   * GML encodes feature references natively (the GML encoder builds {@code xlink:href}/{@code
+   * xlink:title} and the {@code _<objectType>} element-name suffix from the resolved {@code
+   * id}/{@code title}/{@code type} children). It therefore drops the "rel" profile here so the
+   * generic reduction does not collapse that object into {@code {title, href}} and discard the type
+   * discriminator. Other profile sets (e.g. "val" for codelist values) are kept; the negotiated
+   * profile is still advertised on the response, since GML output is a valid {@code rel-as-link}
+   * representation.
+   */
+  @Override
+  public Optional<PropertyTransformations> getPropertyTransformations(
+      FeatureTypeConfigurationOgcApi collectionData,
+      Optional<FeatureSchema> schema,
+      List<Profile> profiles) {
+    return super.getPropertyTransformations(collectionData, schema, withoutRelProfiles(profiles));
+  }
+
+  // Drops the "rel" profile set so the generic reference reduction is not applied for GML.
+  static List<Profile> withoutRelProfiles(List<Profile> profiles) {
+    return profiles.stream().filter(p -> !PROFILE_SET_REL.equals(p.getProfileSet())).toList();
   }
 
   @Override
@@ -498,8 +569,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       }
       return;
     }
+    Validator validator = borrowValidator(schema);
     try {
-      schema.newValidator().validate(new StreamSource(new StringReader(content)));
+      validator.validate(new StreamSource(new StringReader(content)));
     } catch (SAXException e) {
       throw new IllegalArgumentException(
           "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
@@ -508,20 +580,73 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     }
   }
 
+  // Returns the per-thread Validator for `schema`, creating it on first use and resetting it on
+  // every subsequent borrow. See the field-level comment on validatorPool for the rationale.
+  private Validator borrowValidator(Schema schema) {
+    Map<Schema, Validator> perThread = validatorPool.get();
+    Validator validator = perThread.get(schema);
+    if (validator == null) {
+      validator = schema.newValidator();
+      perThread.put(schema, validator);
+    } else {
+      validator.reset();
+    }
+    return validator;
+  }
+
   private Schema getOrBuildSchema(ValidatorContext ctx) {
     int apiHashCode = ctx.getApiData().hashCode();
     String collectionId = ctx.getCollectionId();
-    ConcurrentMap<String, Schema> perCollection =
+    ConcurrentMap<String, Schema> perApi =
         schemaCache.computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>());
-    Schema cached = perCollection.get(collectionId);
+    // Two-level lookup so an api-wide Schema is built at most once per distinct
+    // schemaLocations set: (1) the per-collection slot caches the Schema reference for
+    // O(1) subsequent calls; (2) the canonical-fingerprint slot deduplicates across all
+    // collections that share the same schemaLocations (the common case — the GML building
+    // block is api-level and inherits down). Without (2), an api with N collections would
+    // pay N × full-Schema-build on the first transaction touching each collection (the
+    // build cost dominates strict-mode validation overhead because it re-parses every
+    // transitive XSD in the catalog, including Xerces' internal exception-driven property
+    // probing).
+    Schema cached = perApi.get(collectionId);
     if (cached != null) {
       return cached;
     }
+    String fingerprint = schemaLocationsFingerprint(ctx.getApiData(), collectionId);
+    if (fingerprint != null) {
+      Schema sharedByFingerprint = perApi.get(fingerprint);
+      if (sharedByFingerprint != null) {
+        perApi.put(collectionId, sharedByFingerprint);
+        return sharedByFingerprint;
+      }
+    }
     Schema built = buildSchema(ctx).orElse(null);
     if (built != null) {
-      perCollection.put(collectionId, built);
+      perApi.put(collectionId, built);
+      if (fingerprint != null) {
+        perApi.put(fingerprint, built);
+      }
     }
     return built;
+  }
+
+  // Stable identifier for a collection's schemaLocations set — sorted, comma-joined, prefixed
+  // with a sentinel that can't appear in a collection id so the fingerprint slot can't collide
+  // with a collection-id slot in the same map. Returns null when the GML extension is absent
+  // or has no schemaLocations entries (the caller skips the fingerprint dedup).
+  private static String schemaLocationsFingerprint(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getCollectionData(collectionId)
+        .flatMap(c -> c.getExtension(GmlConfiguration.class))
+        .map(GmlConfiguration::getSchemaLocations)
+        .filter(m -> !m.isEmpty())
+        .map(
+            m ->
+                m.values().stream()
+                    .filter(Objects::nonNull)
+                    .sorted()
+                    .collect(Collectors.joining(",", "@xsd:", "")))
+        .orElse(null);
   }
 
   private Optional<Schema> buildSchema(ValidatorContext ctx) {
@@ -531,16 +656,24 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             collectionData ->
                 collectionData
                     .getExtension(GmlConfiguration.class)
-                    .map(cfg -> cfg.getSchemaLocations().values())
                     .flatMap(
-                        urls -> {
+                        cfg -> {
+                          Map<String, String> catalog = cfg.getXsdCatalog();
+                          SchemaFactory factory =
+                              SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                          factory.setResourceResolver(new XsdCatalogResolver(catalog));
                           try {
                             return Optional.of(
                                 factory.newSchema(
-                                    urls.stream()
+                                    cfg.getSchemaLocations().values().stream()
                                         .map(
                                             url -> {
                                               String resolved = upgradeToHttps(url);
+                                              StreamSource cached =
+                                                  openFromCatalog(catalog, resolved);
+                                              if (cached != null) {
+                                                return cached;
+                                              }
                                               try {
                                                 return new StreamSource(
                                                     new URL(resolved).openStream(), resolved);
@@ -575,6 +708,49 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                           }
                           return Optional.empty();
                         }));
+  }
+
+  private StreamSource openFromCatalog(Map<String, String> catalog, String url) {
+    if (catalog == null || catalog.isEmpty() || url == null) {
+      return null;
+    }
+    String relative = catalog.get(url);
+    // Catalog entries are also matched against the http→https-upgraded form so a user can list the
+    // URL exactly as it appears in their schema imports without worrying which prefix the
+    // validator normalises to.
+    if (relative == null && url.startsWith("https://")) {
+      relative = catalog.get("http://" + url.substring("https://".length()));
+    }
+    if (relative == null) {
+      return null;
+    }
+    try {
+      Optional<Blob> blob = xsdCatalogStore.get(Path.of(relative));
+      if (blob.isEmpty()) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "xsdCatalog entry for '{}' points to '{}' but no such file exists in the xsdCatalog resource store.",
+              url,
+              relative);
+        }
+        return null;
+      }
+      // The resolved systemId is the remote URL — that keeps nested schemaLocation hints relative
+      // to the original repository and gives them a stable lookup key for the catalog itself.
+      byte[] bytes = blob.get().content();
+      StreamSource source = new StreamSource(new ByteArrayInputStream(bytes));
+      source.setSystemId(url);
+      return source;
+    } catch (IOException e) {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "Could not read xsdCatalog entry '{}' for '{}'. Reason: {}",
+            relative,
+            url,
+            e.getMessage());
+      }
+      return null;
+    }
   }
 
   private static QName featureTypeQName(
@@ -622,6 +798,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
         .valueWrap(config.getValueWrap())
+        // matched against the property name/alias on the wire; the decoder applies useAlias itself,
+        // so the configured names are passed through unchanged (as for codelistProperties above).
+        .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
         .build();
   }
 
@@ -643,6 +822,37 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
     String datetime = context.getOgcApiRequest().getParameters().get("datetime");
     return datetime != null && datetime.contains("/");
+  }
+
+  // Merge the configured application namespaces with the standard ones. The STANDARD_NAMESPACES
+  // prefixes (gml, xlink, xsi, sf, wfs) are reserved — the GML writers reference them internally —
+  // so they always win: an application namespace that reuses one of these prefixes is dropped
+  // rather than overriding it. This also avoids the duplicate-key failure an unfiltered putAll of
+  // both maps would raise when a prefix appears in both. A reserved prefix bound to a *different*
+  // namespace is a genuine misconfiguration and is logged; reusing it for the same namespace is a
+  // harmless redundancy and dropped silently. Package-private for unit testing.
+  static Map<String, String> mergeNamespaces(GmlConfiguration config) {
+    Map<String, String> merged = new LinkedHashMap<>();
+    config
+        .getApplicationNamespaces()
+        .forEach(
+            (prefix, namespace) -> {
+              String standard = STANDARD_NAMESPACES.get(prefix);
+              if (standard != null) {
+                if (!standard.equals(namespace) && LOGGER.isWarnEnabled()) {
+                  LOGGER.warn(
+                      "GML configuration binds namespace prefix '{}' to '{}', but it is reserved for"
+                          + " the standard binding '{}'; the application declaration is ignored.",
+                      prefix,
+                      namespace,
+                      standard);
+                }
+              } else {
+                merged.put(prefix, namespace);
+              }
+            });
+    merged.putAll(STANDARD_NAMESPACES);
+    return merged;
   }
 
   // Walks the (technical-named) feature schema and builds a map from each property's full
@@ -708,13 +918,30 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     return true;
   }
 
-  // Rewrites http:// schemaLocation references to https:// so XSD imports that still use the
-  // historical http://schemas.opengis.net/... URLs resolve through the redirect-free https mirror.
-  private static final class HttpsUpgradingResolver implements LSResourceResolver {
+  // Resolves nested schemaLocation/import references during XML Schema validation. Lookup order:
+  //   1. xsdCatalog entry for the systemId (or its http→https equivalent) — read from the
+  //      xsdCatalog resource store so deployments behind a network restriction can run.
+  //   2. https-upgrade for http:// systemIds — opens the canonical https mirror so historical
+  //      http://schemas.opengis.net/... imports resolve without an external redirect.
+  // Other systemIds are left to the platform default (relative URL resolution against baseURI).
+  private final class XsdCatalogResolver implements LSResourceResolver {
+    private final Map<String, String> catalog;
+
+    XsdCatalogResolver(Map<String, String> catalog) {
+      this.catalog = catalog;
+    }
+
     @Override
     public LSInput resolveResource(
         String type, String namespaceURI, String publicId, String systemId, String baseURI) {
-      if (systemId == null || !systemId.startsWith("http://")) {
+      if (systemId == null) {
+        return null;
+      }
+      StreamSource cached = openFromCatalog(catalog, systemId);
+      if (cached != null) {
+        return new SimpleLSInput(cached.getInputStream(), cached.getSystemId(), publicId, baseURI);
+      }
+      if (!systemId.startsWith("http://")) {
         return null;
       }
       String upgraded = upgradeToHttps(systemId);

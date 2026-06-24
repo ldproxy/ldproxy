@@ -14,8 +14,9 @@ import java.util.Iterator;
  * Insert action. {@link #items()} is a single-use, lazily-pulled iterator over the insert payload;
  * each element is an {@link InsertItem} carrying a fresh {@code InputStream} positioned at the
  * start of one feature in the declared {@link #getMediaType()}, plus identifying context ({@code
- * featureId} when known, 1-based {@code indexInInsert}). The executor must fully drain the iterator
- * before requesting the next action from {@link Transaction#actions()}.
+ * featureId} when known and the raw {@code payloadBytes} as a content-based locator otherwise). The
+ * executor must fully drain the iterator before requesting the next action from {@link
+ * Transaction#actions()}.
  *
  * <p>Memory bound: at most one feature is held in memory at a time.
  */

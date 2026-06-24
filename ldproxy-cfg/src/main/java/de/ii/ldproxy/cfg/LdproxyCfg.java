@@ -8,7 +8,7 @@
 package de.ii.ldproxy.cfg;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.Error;
 import de.ii.xtraplatform.entities.domain.EntityData;
 import de.ii.xtraplatform.entities.domain.EntityDataDefaultsStore;
 import de.ii.xtraplatform.entities.domain.EntityDataStore;
@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /** Utility to read, write, validate and migrate ldproxy YAML configuration files. */
 public interface LdproxyCfg extends LdproxyCfgWriter {
@@ -65,9 +64,9 @@ public interface LdproxyCfg extends LdproxyCfgWriter {
 
   Migrations migrations();
 
-  Set<ValidationMessage> validateEntity(Path entityPath, String entityType) throws IOException;
+  List<Error> validateEntity(Path entityPath, String entityType) throws IOException;
 
-  Set<ValidationMessage> validateEntity(String entityCfg, String entityType) throws IOException;
+  List<Error> validateEntity(String entityCfg, String entityType) throws IOException;
 
   <T extends EntityData> Path getEntityPath(T data);
 
