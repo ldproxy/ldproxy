@@ -14,10 +14,10 @@ import org.immutables.value.Value.Default;
 
 /**
  * @langEn Audit logging options for the API. Only relevant if audit logging is enabled in the
- *     [global configuration](../application/20-configuration/README.md).
+ *     [global configuration](../application/20-configuration/120-auditLog.md).
  *     <p>#### Example
  * @langDe Audit-Logging Optionen für die API. Nur relevant, wenn Audit-Logging in der [globalen
- *     Konfiguration](../application/20-configuration/README.md) aktiviert ist.
+ *     Konfiguration](../application/20-configuration/120-auditLog.md) aktiviert ist.
  *     <p>#### Beispiel
  * @langAll <code>
  * ```yml
@@ -29,6 +29,8 @@ import org.immutables.value.Value.Default;
  *     - "write"
  * ```
  *     </code>
+ * @langEn #### Options
+ * @langDe #### Optionen
  */
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableAuditLog.Builder.class)

@@ -518,6 +518,7 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
    * @langEn Audit Logging configuration, see [Audit Logging](#audit-logging).
    * @langDe Audit-Logging Konfiguration, siehe [Audit-Logging](#audit-logging).
    * @default {}
+   * @since v4.8
    */
   @Value.Default
   default AuditLog getAuditLog() {
