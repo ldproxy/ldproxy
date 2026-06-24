@@ -382,6 +382,23 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
     return new ImmutableOgcApiDataV2.Builder().from(apiDataOld).extensions(extensionsNew).build();
   }
 
+  abstract class Builder implements EntityDataBuilder<OgcApiDataV2> {
+
+    // jackson should append to instead of replacing extensions
+    @JsonIgnore
+    public abstract Builder extensions(Iterable<? extends ExtensionConfiguration> elements);
+
+    @JsonProperty("api")
+    public abstract Builder addAllExtensions(Iterable<? extends ExtensionConfiguration> elements);
+
+    public abstract ImmutableOgcApiDataV2.Builder id(String id);
+
+    @Override
+    public EntityDataBuilder<OgcApiDataV2> fillRequiredFieldsWithPlaceholders() {
+      return this.id(EntityDataDefaults.PLACEHOLDER).serviceType(EntityDataDefaults.PLACEHOLDER);
+    }
+  }
+
   /**
    * @langEn Always `OGC_API`.
    * @langDe Immer `OGC_API`.
@@ -599,22 +616,5 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
       return Objects.requireNonNull(getCollections().get(collectionId)).getExtension(clazz);
     }
     return getExtension(clazz);
-  }
-
-  abstract class Builder implements EntityDataBuilder<OgcApiDataV2> {
-
-    // jackson should append to instead of replacing extensions
-    @JsonIgnore
-    public abstract Builder extensions(Iterable<? extends ExtensionConfiguration> elements);
-
-    @JsonProperty("api")
-    public abstract Builder addAllExtensions(Iterable<? extends ExtensionConfiguration> elements);
-
-    public abstract ImmutableOgcApiDataV2.Builder id(String id);
-
-    @Override
-    public EntityDataBuilder<OgcApiDataV2> fillRequiredFieldsWithPlaceholders() {
-      return this.id(EntityDataDefaults.PLACEHOLDER).serviceType(EntityDataDefaults.PLACEHOLDER);
-    }
   }
 }
