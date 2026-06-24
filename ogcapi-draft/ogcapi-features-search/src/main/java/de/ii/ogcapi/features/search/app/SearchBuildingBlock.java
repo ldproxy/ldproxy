@@ -26,6 +26,8 @@ import java.util.Optional;
  *     is, it supports query expressions that cannot be expressed, or cannot be conveniently
  *     expressed, using the filtering mechanisms available through the building blocks *Features*
  *     and *Filter*.
+ *     <p>Feature formats that support only a single feature type with a fixed schema are
+ *     automatically disabled for endpoints of this building block.
  *     <p>Examples of the types of query expressions that can be expressed:
  *     <p><code>
  * - query expressions with a long expression text that cannot be conveniently specified as URL;
@@ -118,6 +120,8 @@ import java.util.Optional;
  *     Das heißt, es unterstützt Abfragen, die mit den Filtermechanismen, die durch die Bausteine
  *     *Features* und *Filter* zur Verfügung stehen, nicht oder nicht bequem ausgedrückt werden
  *     können.
+ *     <p>Datenformate, die nur eine einzige Objektart mit einem festen Schema pro Datei
+ *     unterstützen, werden für Endpunkte dieses Bausteins automatisch deaktiviert.
  *     <p>Beispiele für die Arten von Abfragen:
  *     <p><code>
  * - Abfragen mit einem langen Ausdruckstext, der nicht bequem als URL angegeben werden kann;
