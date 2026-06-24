@@ -9,7 +9,7 @@
       "properties": {
         "id": {
           "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are     (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
           "type": [
             "string",
             "number",
@@ -19,7 +19,7 @@
         },
         "enabled": {
           "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities     and background tasks will not be running.",
+          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
           "oneOf": [
             {
               "type": "boolean"

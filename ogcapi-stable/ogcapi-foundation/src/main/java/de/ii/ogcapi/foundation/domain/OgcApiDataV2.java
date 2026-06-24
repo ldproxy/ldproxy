@@ -211,6 +211,12 @@ import org.immutables.value.Value;
  *     <p>{@docTable:securityProperties}
  *     <p>{@docVar:policies}
  *     <p>{@docTable:policies}
+ * @langEn ### Audit Logging
+ *     <p>{@docVar:auditLog}
+ *     <p>{@docTable:auditLogProperties}
+ * @langDe ### Audit-Logging
+ *     <p>{@docVar:auditLog}
+ *     <p>{@docTable:auditLogProperties}
  * @langEn ### Examples
  *     <p>See the [API
  *     configuration](https://github.com/interactive-instruments/ldproxy/blob/master/demo/vineyards/store/entities/services/vineyards.yml)
@@ -241,6 +247,8 @@ import org.immutables.value.Value;
  * @ref:securityProperties {@link de.ii.ogcapi.foundation.domain.ImmutableApiSecurity}
  * @ref:policies {@link de.ii.ogcapi.foundation.domain.ApiSecurity.Policies}
  * @ref:policiesTable {@link de.ii.ogcapi.foundation.domain.ImmutablePolicies}
+ * @ref:auditLog {@link de.ii.ogcapi.foundation.domain.AuditLog}
+ * @ref:auditLogProperties {@link de.ii.ogcapi.foundation.domain.ImmutableAuditLog}
  */
 @DocFile(
     path = "services",
@@ -307,6 +315,14 @@ import org.immutables.value.Value;
             @DocStep(type = Step.JSON_PROPERTIES)
           },
           columnSet = ColumnSet.JSON_PROPERTIES),
+      @DocTable(
+          name = "auditLogProperties",
+          rows = {
+            @DocStep(type = Step.TAG_REFS, params = "{@ref:auditLogProperties}"),
+            @DocStep(type = Step.JSON_PROPERTIES),
+            @DocStep(type = Step.UNMARKED)
+          },
+          columnSet = ColumnSet.JSON_PROPERTIES),
     },
     vars = {
       @DocVar(
@@ -343,6 +359,12 @@ import org.immutables.value.Value;
           name = "policies",
           value = {
             @DocStep(type = Step.TAG_REFS, params = "{@ref:policies}"),
+            @DocStep(type = Step.TAG, params = "{@bodyBlock}")
+          }),
+      @DocVar(
+          name = "auditLog",
+          value = {
+            @DocStep(type = Step.TAG_REFS, params = "{@ref:auditLog}"),
             @DocStep(type = Step.TAG, params = "{@bodyBlock}")
           }),
     })
@@ -491,6 +513,17 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
   // (immutables attributeBuilder does not work with maps yet)
   BuildableMap<FeatureTypeConfigurationOgcApi, ImmutableFeatureTypeConfigurationOgcApi.Builder>
       getCollections();
+
+  /**
+   * @langEn Audit Logging configuration, see [Audit Logging](#audit-logging).
+   * @langDe Audit-Logging Konfiguration, siehe [Audit-Logging](#audit-logging).
+   * @default {}
+   * @since v4.8
+   */
+  @Value.Default
+  default AuditLog getAuditLog() {
+    return new ImmutableAuditLog.Builder().build();
+  }
 
   default Optional<FeatureTypeConfigurationOgcApi> getCollectionData(String collectionId) {
     return Optional.ofNullable(getCollections().get(collectionId));

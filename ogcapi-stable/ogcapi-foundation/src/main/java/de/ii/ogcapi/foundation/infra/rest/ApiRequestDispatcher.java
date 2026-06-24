@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.RequestInjectableContext;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.AppContext;
+import de.ii.xtraplatform.services.domain.AuditLog;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
 import io.dropwizard.auth.Auth;
 import io.dropwizard.jetty.HttpConnectorFactory;
@@ -79,6 +80,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
   private final ApiRequestAuthorizer apiRequestAuthorizer;
   private final int maxResponseLinkHeaderSize;
 
+  private final AuditLog auditLog;
+
   @Inject
   ApiRequestDispatcher(
       AppContext appContext,
@@ -86,7 +89,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       RequestInjectableContext ogcApiInjectableContext,
       ContentNegotiationMediaType contentNegotiationMediaType,
       ContentNegotiationLanguage contentNegotiationLanguage,
-      ApiRequestAuthorizer apiRequestAuthorizer) {
+      ApiRequestAuthorizer apiRequestAuthorizer,
+      AuditLog auditLog) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.ogcApiInjectableContext = ogcApiInjectableContext;
@@ -94,6 +98,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     this.contentNegotiationLanguage = contentNegotiationLanguage;
     this.apiRequestAuthorizer = apiRequestAuthorizer;
     this.maxResponseLinkHeaderSize = getMaxResponseHeaderSize(appContext) / 4;
+    this.auditLog = auditLog;
   }
 
   @Override
@@ -212,6 +217,15 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     body.ifPresent(bytes -> requestContext.setEntityStream(new ByteArrayInputStream(bytes)));
 
     ogcApiInjectableContext.inject(requestContext, apiRequestContext);
+
+    logRequest(
+        api.getData(),
+        entrypoint,
+        subPath,
+        requestContext,
+        optionalUser,
+        apiOperation,
+        apiRequestContext);
 
     return ogcApiEndpoint;
   }
@@ -470,6 +484,83 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
   private List<EndpointExtension> getEndpoints() {
     return extensionRegistry.getExtensionsForType(EndpointExtension.class);
+  }
+
+  private boolean isOperationAuditable(
+      OgcApiDataV2 apiData, ApiOperation apiOperation, ApiRequestContext apiRequestContext) {
+    Set<String> requiredPermissions =
+        ApiRequestAuthorizerImpl.getRequiredPermissions(
+            apiOperation.getPermissionGroup(),
+            apiOperation.getOperationIdWithoutPrefix(),
+            apiData.getId(),
+            apiRequestContext.getCollectionId());
+
+    return ApiRequestAuthorizerImpl.intersects(
+        requiredPermissions, apiData.getAuditLog().getOperations());
+  }
+
+  private void logRequest(
+      OgcApiDataV2 apiData,
+      String entrypoint,
+      String subPath,
+      ContainerRequestContext requestContext,
+      Optional<User> optionalUser,
+      ApiOperation apiOperation,
+      ApiRequestContext apiRequestContext) {
+
+    // Retrieve requestId and abort if missing
+    if (apiRequestContext.getRequestId().isEmpty()) {
+      return;
+    }
+    String requestId = apiRequestContext.getRequestId().get();
+
+    // Return if one of the following is true:
+    // - auditLog is disabled in the global config (cfg.yml)
+    // - auditLog is disabled for the given API
+    // - the operation of the request is not included in the API-config
+    if (!auditLog.isEnabled()
+        || !apiData.getAuditLog().getEnabled()
+        || !isOperationAuditable(apiData, apiOperation, apiRequestContext)) {
+      return;
+    }
+
+    // Create the log
+    auditLog.createLog(requestId);
+
+    // set api
+    auditLog.setApi(requestId, apiData.getId());
+
+    // set includePropertyValues so the Transformer can access it
+    auditLog.setIncludePropertyValues(requestId, apiData.getAuditLog().getIncludePropertyValues());
+
+    // set actor
+    optionalUser.ifPresent(
+        user ->
+            auditLog.setActor(
+                requestId, user.getRole().toString(), user.getName(), user.getClaims()));
+
+    // set operation
+    // set operation method
+    String method = requestContext.getMethod();
+    if (Objects.nonNull(method)) {
+      auditLog.setOperationMethod(requestId, method);
+    }
+
+    // set operation path
+    auditLog.setOperationPath(requestId, "/" + entrypoint + subPath);
+
+    // set operation headers
+    MultivaluedMap<String, String> headers = requestContext.getHeaders();
+    if (Objects.nonNull(headers)) {
+      auditLog.setOperationHeaders(requestId, headers);
+    }
+
+    // set operation query parameter
+    MultivaluedMap<String, String> queryParameter =
+        apiRequestContext.getQueryParameterSet().getValues();
+    if (Objects.nonNull(queryParameter)) {
+      auditLog.setOperationQueryParameter(requestId, queryParameter);
+    }
   }
 
   private static int getMaxResponseHeaderSize(AppContext appContext) {
