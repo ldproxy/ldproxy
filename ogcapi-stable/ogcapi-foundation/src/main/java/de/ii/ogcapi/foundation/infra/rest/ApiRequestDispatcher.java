@@ -509,10 +509,10 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       ApiRequestContext apiRequestContext) {
 
     // Retrieve requestId and abort if missing
-    Object requestIdObject = requestContext.getProperty("REQUEST_ID");
-    if (!(requestIdObject instanceof String requestId)) {
+    if (apiRequestContext.getRequestId().isEmpty()) {
       return;
     }
+    String requestId = apiRequestContext.getRequestId().get();
 
     // Return if one of the following is true:
     // - auditLog is disabled in the global config (cfg.yml)
