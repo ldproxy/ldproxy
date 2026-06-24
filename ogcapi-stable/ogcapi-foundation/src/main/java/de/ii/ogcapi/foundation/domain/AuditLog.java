@@ -13,21 +13,19 @@ import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
 /**
- * @langEn Audit logging options for the API. Further options can be configured in the [global
- *     configuration](../application/20-configuration/README.md). For example, audit logging must be
- *     globally enabled before it can be used.
- *     <p>Example configuration:
- * @langDe Audit-Logging Optionen für die API. Weitere Optionen lassen sich in der [globalen
- *     Konfiguration](../application/20-configuration/README.md) einstellen. Beispielsweise muss das
- *     Audit-Logging zur Nutzung global aktiviert sein.
- *     <p>Beispiel Konfiguration:
+ * @langEn Audit logging options for the API. Only relevant if audit logging is enabled in the
+ *     [global configuration](../application/20-configuration/README.md).
+ *     <p>#### Example
+ * @langDe Audit-Logging Optionen für die API. Nur relevant, wenn Audit-Logging in der [globalen
+ *     Konfiguration](../application/20-configuration/README.md) aktiviert ist.
+ *     <p>#### Beispiel
  * @langAll <code>
  * ```yml
  * auditLog:
  *   enabled: true
  *   includePropertyValues: true
  *   operations:
- *     - "data:read::vineyards"
+ *     - "read"
  *     - "write"
  * ```
  *     </code>
@@ -40,6 +38,7 @@ public interface AuditLog {
    * @langEn If `false`, the audit logging is explicitly disabled for the API.
    * @langDe Falls `false`, wird das Audit-Logging für die API explizit zu deaktiviert.
    * @default true
+   * @since 4.8
    */
   @Default
   default boolean getEnabled() {
@@ -47,9 +46,10 @@ public interface AuditLog {
   }
 
   /**
-   * @langEn If `true`, the values of the requested properties are logged as well.
-   * @langDe Falls `true`, werden die Werte der angefragten Properties ebenfalls geloggt.
+   * @langEn If `false`, only the keys of accessed properties will be logged.
+   * @langDe Falls `false`, werden nur die Keys der abgerufenen Eigenschaften geloggt.
    * @default true
+   * @since 4.8
    */
   @Default
   default boolean getIncludePropertyValues() {
@@ -58,10 +58,11 @@ public interface AuditLog {
 
   /**
    * @langEn Option to specify the operations for which a log entry should be created. The syntax is
-   *     described in [Access Control](#access-control).
+   *     the same as for [Access Control](#access-control).
    * @langDe Option, um die Operationen anzugeben, für die ein Log-Eintrag erstellt werden soll. Die
-   *     Syntax ist in [Access Control](#access-control) beschrieben.
-   * @default {"data:read", "write"}
+   *     Syntax ist die gleiche wie für [Access Control](#access-control).
+   * @default [data:read, write]
+   * @since 4.8
    */
   @Default
   default Set<String> getOperations() {
