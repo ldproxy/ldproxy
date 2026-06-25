@@ -190,9 +190,9 @@ class CommandHandlerTransactionsSpec extends Specification {
                 OgcApi api,
                 ApiRequestContext requestContext,
                 EpsgCrs requestCrs,
-                boolean validate,
+                HeaderPrefer.Handling handling,
                 Optional<Instant> ogcMutationDatetime) {
-            this.validate = validate
+            this.validate = handling == HeaderPrefer.Handling.STRICT
             Iterator<TxAction> it = transaction.actions()
             while (it.hasNext()) {
                 it.next()
