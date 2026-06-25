@@ -101,7 +101,9 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     final int offset = queryInput.getOffset();
     final int limit = queryInput.getLimit();
     final int defaultLimit = queryInput.getDefaultLimit();
-    final int processesSize = processDescriptionRepository.getAll().size();
+    final List<String> processIds =
+        processDescriptionRepository.getAll().keySet().stream().toList();
+    final int processesSize = processIds.size();
 
     List<Link> links =
         new ProcessDescriptionsLinksGenerator()
@@ -120,7 +122,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     ProcessDescriptionsRepresentation processDescriptionsRepresentation =
         ImmutableProcessDescriptionsRepresentation.builder()
             .processes(
-                queryInput.getProcessIds().stream()
+                processIds.stream()
                     .skip(offset)
                     .limit(limit)
                     .map(processDescriptionRepository::get)
