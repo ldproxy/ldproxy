@@ -17,6 +17,9 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
+import de.ii.xtraplatform.geometries.domain.CompoundCurve;
+import de.ii.xtraplatform.geometries.domain.Geometry;
+import de.ii.xtraplatform.geometries.domain.SingleCurve;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -106,7 +109,20 @@ public class GmlWriterGeometry implements GmlWriter {
 
     String elementNameProperty = schema.getName();
     context.encoding().writeStartElement(elementNameProperty);
-    context.geometry().accept(encoder);
+    forceCompositeCurve(context.geometry(), context.encoding().getForceCompositeCurve())
+        .accept(encoder);
     context.encoding().writeEndElement();
+  }
+
+  /**
+   * Some GML application schemas require {@code gml:CompositeCurve} for a feature type's geometry
+   * even when it has a single component. Box a lone curve into a {@link CompoundCurve} so the
+   * encoder emits a {@code gml:CompositeCurve}; leave any other geometry untouched.
+   */
+  static Geometry<?> forceCompositeCurve(Geometry<?> geometry, boolean force) {
+    if (force && geometry instanceof SingleCurve) {
+      return CompoundCurve.of(List.of((SingleCurve) geometry), geometry.getCrs());
+    }
+    return geometry;
   }
 }

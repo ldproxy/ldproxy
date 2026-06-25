@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.search.domain;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
+import de.ii.xtraplatform.jsonschema.domain.JsonSchemaGeometry;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaInteger;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaNumber;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaObject;
@@ -38,6 +39,8 @@ public class OpenApiSchemaDeriver implements JsonSchemaVisitor<Schema<?>> {
       schema = getArraySchema(typedSchema);
     } else if (jsonSchema instanceof JsonSchemaString typedSchema) {
       schema = getStringSchema(typedSchema);
+    } else if (jsonSchema instanceof JsonSchemaGeometry typedSchema) {
+      schema = getGeometrySchema(typedSchema);
     } else if (jsonSchema instanceof JsonSchemaNumber typedSchema) {
       schema = getNumberSchema(typedSchema);
     } else if (jsonSchema instanceof JsonSchemaInteger typedSchema) {
@@ -81,6 +84,14 @@ public class OpenApiSchemaDeriver implements JsonSchemaVisitor<Schema<?>> {
     string.getMaxLength().ifPresent(schema::maxLength);
     string.getPattern().ifPresent(schema::pattern);
     string.getEnums().ifPresent(values -> values.forEach(schema::addEnumItem));
+    return schema;
+  }
+
+  private Schema<?> getGeometrySchema(JsonSchemaGeometry geometry) {
+    // a geometry parameter is conveyed as a query-parameter string (WKT or a GeoJSON geometry);
+    // the geometry format is carried through as the string format
+    StringSchema schema = new StringSchema();
+    schema.format(geometry.getFormat());
     return schema;
   }
 

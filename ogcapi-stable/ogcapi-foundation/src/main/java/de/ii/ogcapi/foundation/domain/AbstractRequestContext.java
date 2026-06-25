@@ -28,6 +28,17 @@ public abstract class AbstractRequestContext implements ApiRequestContext {
 
   @Value.Derived
   @Override
+  public Optional<String> getRequestId() {
+    Object requestIdObject = getRequestContext().getProperty("REQUEST_ID");
+    if (requestIdObject instanceof String requestId) {
+      return Optional.of(requestId);
+    }
+
+    return Optional.empty();
+  }
+
+  @Value.Derived
+  @Override
   public List<String> getBasePathSegments() {
     return ForwardedUri.prefix(getRequestContext(), getWebContext());
   }

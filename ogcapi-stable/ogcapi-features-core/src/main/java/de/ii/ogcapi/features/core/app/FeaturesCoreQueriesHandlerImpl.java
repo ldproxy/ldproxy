@@ -69,6 +69,7 @@ import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.strings.domain.StringTemplateFilters;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import de.ii.xtraplatform.web.domain.JoinableStreamingOutput;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
@@ -496,7 +497,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     Instant mementoEnd = null;
     if (!sendResponseAsStream) {
       Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
-          reduce(featureStream, false, encoder, propertyTransformations);
+          reduce(
+              featureStream,
+              false,
+              encoder,
+              propertyTransformations,
+              requestContext.getRequestId());
       ResultReduced<byte[]> result = resultAndMetadata.first();
       collectionMetadata = resultAndMetadata.second();
       hasNextPage =
@@ -577,7 +583,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
     if (sendResponseAsStream) {
       Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
-          stream(featureStream, Objects.nonNull(featureId), encoder, propertyTransformations);
+          stream(
+              featureStream,
+              Objects.nonNull(featureId),
+              encoder,
+              propertyTransformations,
+              requestContext.getRequestId());
       streamingOutput = streamingOutputAndMetadata.first();
       collectionMetadata = streamingOutputAndMetadata.second();
       hasNextPage =
@@ -658,10 +669,9 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               .toString();
       for (PropertyLink link : propertyLinks) {
         String href = PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri);
+        String titleI18n = i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
         Optional<String> title =
-            link.getRel().endsWith("-version")
-                ? Optional.of(i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage()))
-                : link.getTitle();
+            titleI18n.equals(link.getRel()) ? link.getTitle() : Optional.of(titleI18n);
         addLinkHeader(response, href, link.getRel(), title);
       }
     }
@@ -694,7 +704,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
-      Map<String, PropertyTransformations> propertyTransformations) {
+      Map<String, PropertyTransformations> propertyTransformations,
+      Optional<String> requestId) {
     DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
     SinkTransformed<Object, byte[]> featureSink =
         encoder.to(Sink.outputStream(delayedOutputStream));
@@ -703,19 +714,20 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<Result> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
             .toCompletableFuture();
 
     // wait for collection metadata
     CollectionMetadata collectionMetadata = onCollectionMetadata.join();
 
     StreamingOutput streamingOutput =
-        outputStream -> {
-          delayedOutputStream.setOutputStream(outputStream);
+        new JoinableStreamingOutput(
+            outputStream -> {
+              delayedOutputStream.setOutputStream(outputStream);
 
-          // wait for stream to finish
-          run(stream::join, failIfNoFeatures);
-        };
+              // wait for stream to finish
+              run(stream::join, failIfNoFeatures);
+            });
 
     return Tuple.of(streamingOutput, collectionMetadata);
   }
@@ -724,7 +736,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureStream featureTransformStream,
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
-      Map<String, PropertyTransformations> propertyTransformations) {
+      Map<String, PropertyTransformations> propertyTransformations,
+      Optional<String> requestId) {
 
     SinkReduced<Object, byte[]> featureSink = encoder.to(Sink.reduceByteArray());
     CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
@@ -732,7 +745,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<ResultReduced<byte[]>> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
             .toCompletableFuture();
 
     // wait for collection metadata
