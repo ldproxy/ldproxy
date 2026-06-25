@@ -14,7 +14,6 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -29,18 +28,23 @@ public interface ProcessesQueriesHandler
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
-    PROCESSES
+    PROCESSES,
+    PROCESS
   }
 
   @Value.Immutable
   interface QueryInputProcesses extends QueryInput {
-
-    List<String> getProcessIds();
 
     Integer getOffset();
 
     Integer getLimit();
 
     Integer getDefaultLimit();
+  }
+
+  @Value.Immutable
+  interface QueryInputProcess extends QueryInput {
+
+    String getProcessId();
   }
 }

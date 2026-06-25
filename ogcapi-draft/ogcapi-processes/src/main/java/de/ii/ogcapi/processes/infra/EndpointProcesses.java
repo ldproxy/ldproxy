@@ -34,11 +34,11 @@ import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.Query;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
@@ -51,7 +51,7 @@ import java.util.Set;
  * @path processes
  * @langEn The URIs of all processes supported by the API.
  * @langDe Die URIs aller von der API unterstützten Prozesse.
- * @ref:formats
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -60,16 +60,12 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
-  private final ProcessDescriptionRepository processDescriptionRepository;
 
   @Inject
   public EndpointProcesses(
-      ExtensionRegistry extensionRegistry,
-      ProcessesQueriesHandler queryHandler,
-      ProcessDescriptionRepository processDescriptionRepository) {
+      ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
-    this.processDescriptionRepository = processDescriptionRepository;
   }
 
   @Override
@@ -133,9 +129,8 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   @GET
   public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
-    List<String> processIds =
-        processDescriptionRepository.getAll().keySet().stream()
-            .collect(ImmutableList.toImmutableList());
+    if (!isEnabledForApi(api.getData()))
+      throw new NotFoundException("Processes are not available in this API.");
 
     QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
     Optional<Integer> limit = Optional.empty();
@@ -144,16 +139,20 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
     for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
       if (queryParameter instanceof QueryParameterLimitProcesses) {
         limit = ((QueryParameterLimitProcesses) queryParameter).parse(queryParameterSet);
+        break;
       }
+    }
+
+    for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
       if (queryParameter instanceof QueryParameterOffsetProcesses) {
         offset = ((QueryParameterOffsetProcesses) queryParameter).parse(queryParameterSet);
+        break;
       }
     }
 
     ProcessesQueriesHandler.QueryInputProcesses queryInput =
         new ImmutableQueryInputProcesses.Builder()
             .from(getGenericQueryInput(api.getData()))
-            .processIds(processIds)
             // We just .get() because of the default values
             .offset(offset.get())
             .limit(limit.get())
