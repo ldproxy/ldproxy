@@ -14,10 +14,14 @@ import org.immutables.value.Value.Default;
 
 /**
  * @langEn Audit logging options for the API. Only relevant if audit logging is enabled in the
- *     [global configuration](../application/20-configuration/120-auditLog.md).
+ *     [global configuration](../application/20-configuration/120-auditLog.md). To configure the
+ *     `properties` to log, see the schema option `audit` that is described in more detail at
+ *     [Schema Definitions](../../providers/feature/#schema-definitions).
  *     <p>#### Example
  * @langDe Audit-Logging Optionen für die API. Nur relevant, wenn Audit-Logging in der [globalen
- *     Konfiguration](../application/20-configuration/120-auditLog.md) aktiviert ist.
+ *     Konfiguration](../application/20-configuration/120-auditLog.md) aktiviert ist. Um die zu
+ *     loggenden `properties` zu konfigurieren, siehe die Schema-Option `audit`, die ausführlicher
+ *     unter [Schema-Definitionen](../../providers/feature/#schema-definitions) beschrieben ist.
  *     <p>#### Beispiel
  * @langAll <code>
  * ```yml
@@ -38,7 +42,7 @@ public interface AuditLog {
 
   /**
    * @langEn If `false`, the audit logging is explicitly disabled for the API.
-   * @langDe Falls `false`, wird das Audit-Logging für die API explizit zu deaktiviert.
+   * @langDe Falls `false`, wird das Audit-Logging für die API explizit deaktiviert.
    * @default true
    * @since 4.8
    */
