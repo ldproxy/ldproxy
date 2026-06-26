@@ -15,7 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsRepresentation;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptions;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,10 +33,9 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
 
   @Inject
   public ProcessDescriptionsFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcessDescriptions =
-        classSchemaCache.getSchema(ProcessDescriptionsRepresentation.class);
+    schemaStyleProcessDescriptions = classSchemaCache.getSchema(ProcessDescriptions.class);
     referencedSchemasProcessDescriptions =
-        classSchemaCache.getReferencedSchemas(ProcessDescriptionsRepresentation.class);
+        classSchemaCache.getReferencedSchemas(ProcessDescriptions.class);
   }
 
   @Override
@@ -48,7 +47,7 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaStyleProcessDescriptions)
-        .schemaRef(ProcessDescriptionsRepresentation.SCHEMA_REF)
+        .schemaRef(ProcessDescriptions.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcessDescriptions)
         .ogcApiMediaType(getMediaType())
         .build();
@@ -56,9 +55,7 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
 
   @Override
   public Object getEntity(
-      ProcessDescriptionsRepresentation processDescriptionsRepresentation,
-      OgcApi api,
-      ApiRequestContext requestContext) {
-    return processDescriptionsRepresentation;
+      ProcessDescriptions processDescriptions, OgcApi api, ApiRequestContext requestContext) {
+    return processDescriptions;
   }
 }
