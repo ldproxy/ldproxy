@@ -181,7 +181,9 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   }
 
   public List<String> getObjectTypeSuffixedProperties() {
-    return currentEncoding().getConfig().getObjectTypeSuffixedProperties();
+    // Alias-rewritten in the bundle (technical id → alias path) when useAlias is on, so this
+    // matches the alias-form paths GmlWriterProperties sees at runtime (as for getXmlAttributes).
+    return currentEncoding().getObjectTypeSuffixedProperties();
   }
 
   public boolean getGmlIdOnGeometries() {

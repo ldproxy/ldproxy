@@ -535,6 +535,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
         .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
+        .objectTypeSuffixedProperties(
+            remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
         .codelists(resolveCodelists(config.getCodelistProperties()))
         .appendTemporalSuffixToGmlId(
             Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
@@ -923,8 +925,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
         .valueWrap(config.getValueWrap())
-        // matched against the property name/alias on the wire; the decoder applies useAlias itself,
-        // so the configured names are passed through unchanged (as for codelistProperties above).
+        // The configured property ids are passed through unchanged: the decoder matches them
+        // against each property's technical full path (it never sees the alias rewrites, which are
+        // an encoder-only concern), so no remapping is applied here.
         .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
         .build();
   }

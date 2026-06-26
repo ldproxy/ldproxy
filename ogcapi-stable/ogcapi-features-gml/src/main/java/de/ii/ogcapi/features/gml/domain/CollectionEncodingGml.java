@@ -27,9 +27,10 @@ import org.immutables.value.Value;
  * pre-computed here at encoder-build time:
  *
  * <ul>
- *   <li>{@link #getXmlAttributes()}, {@link #getCodelistProperties()}, {@link #getValueWrap()} —
- *       their path keys are alias-rewritten (technical → alias) when {@code useAlias} is on, to
- *       match the alias-form paths {@code GmlWriterProperties} sees at runtime;
+ *   <li>{@link #getXmlAttributes()}, {@link #getCodelistProperties()}, {@link #getValueWrap()},
+ *       {@link #getObjectTypeSuffixedProperties()} — their path keys are alias-rewritten (id →
+ *       alias) when {@code useAlias} is on, to match the alias-form paths {@code
+ *       GmlWriterProperties} sees at runtime;
  *   <li>{@link #getCodelists()} — the codelist ids are resolved to {@code Codelist} instances via
  *       the codelist store;
  *   <li>{@link #getAppendTemporalSuffixToGmlId()} — the configured flag folded with whether the
@@ -58,6 +59,11 @@ public interface CollectionEncodingGml {
   @Value.Default
   default Map<String, List<String>> getValueWrap() {
     return ImmutableMap.of();
+  }
+
+  @Value.Default
+  default List<String> getObjectTypeSuffixedProperties() {
+    return ImmutableList.of();
   }
 
   @Value.Default

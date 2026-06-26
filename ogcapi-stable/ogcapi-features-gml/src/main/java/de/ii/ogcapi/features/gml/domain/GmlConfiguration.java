@@ -555,20 +555,18 @@ public interface GmlConfiguration
   /**
    * @langEn Some feature reference properties are encoded in GML with a property element name that
    *     appends the referenced feature type to the property name, for example
-   *     `adv:gehoertZuBauwerk_AX_Turm` instead of `adv:gehoertZuBauwerk`. List the affected
-   *     properties here. On encoding, the property element name receives a `_{objectType}` suffix
-   *     where `{objectType}` is the object type of the collection that the reference points to; on
-   *     decoding, an element name with such a suffix is mapped back to the property. Use the
-   *     property name as it appears in the GML element, that is, the alias when `useAlias` is
-   *     enabled.
+   *     `gehoertZuBauwerk_AX_Turm` instead of `gehoertZuBauwerk`. List the affected properties
+   *     here, identified by their property id. On encoding, the property element name receives a
+   *     `_{objectType}` suffix where `{objectType}` is the object type of the collection that the
+   *     reference points to; on decoding, an element name with such a suffix is mapped back to the
+   *     property.
    * @langDe Einige Eigenschaften mit Objektreferenzen werden in GML mit einem Elementnamen kodiert,
    *     der den referenzierten Objekttyp an den Eigenschaftsnamen anhängt, zum Beispiel
-   *     `adv:gehoertZuBauwerk_AX_Turm` statt `adv:gehoertZuBauwerk`. Hier werden die betroffenen
-   *     Eigenschaften aufgelistet. Bei der Kodierung erhält der Elementname ein
-   *     `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection ist, auf die die
-   *     Referenz verweist; bei der Dekodierung wird ein Elementname mit einem solchen Suffix wieder
-   *     auf die Eigenschaft abgebildet. Es ist der Eigenschaftsname zu verwenden, wie er im
-   *     GML-Element erscheint, also der Alias, wenn `useAlias` aktiviert ist.
+   *     `gehoertZuBauwerk_AX_Turm` statt `gehoertZuBauwerk`. Hier werden die betroffenen
+   *     Eigenschaften aufgelistet, angegeben über ihre Property-Id. Bei der Kodierung erhält der
+   *     Elementname ein `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection
+   *     ist, auf die die Referenz verweist; bei der Dekodierung wird ein Elementname mit einem
+   *     solchen Suffix wieder auf die Eigenschaft abgebildet.
    * @default []
    * @examplesAll <code>
    * ```yaml
@@ -1100,6 +1098,8 @@ public interface GmlConfiguration
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
         .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .objectTypeSuffixedProperties(
+            mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
         .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
         .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(

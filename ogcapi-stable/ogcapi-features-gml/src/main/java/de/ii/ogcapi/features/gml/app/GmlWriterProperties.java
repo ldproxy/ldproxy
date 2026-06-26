@@ -72,7 +72,10 @@ public class GmlWriterProperties implements GmlWriter {
       // the _{objectType} suffix; it is resolved from the reference's type value (see onValue) or
       // removed at flush when the reference has no resolvable type.
       if (schema.isFeatureRef()
-          && context.encoding().getObjectTypeSuffixedProperties().contains(schema.getName())) {
+          && context
+              .encoding()
+              .getObjectTypeSuffixedProperties()
+              .contains(schema.getFullPathAsString())) {
         elementNameProperty += context.encoding().beginRefSuffix();
       }
       // Open the property element; its '>' is still pending (lazy emission)
