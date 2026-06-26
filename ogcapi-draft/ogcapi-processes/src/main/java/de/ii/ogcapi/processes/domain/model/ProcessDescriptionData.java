@@ -14,6 +14,7 @@ import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
 import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -23,21 +24,23 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessDescriptionData.Builder.class)
 public interface ProcessDescriptionData extends StoredValue {
 
-  String getId();
-
-  String getTitle();
-
-  String getDescription();
-
-  String getVersion();
-
-  List<JOB_CONTROL_OPTIONS> getJobControlOptions();
-
   enum JOB_CONTROL_OPTIONS {
     SYNC_EXECUTE,
     ASYNC_EXECUTE,
     DISMISS
   }
+
+  String getId();
+
+  String getVersion();
+
+  Optional<String> getTitle();
+
+  Optional<String> getDescription();
+
+  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+
+  Optional<List<String>> getKeywords();
 
   abstract class Builder implements ValueBuilder<ProcessDescriptionData> {}
 }

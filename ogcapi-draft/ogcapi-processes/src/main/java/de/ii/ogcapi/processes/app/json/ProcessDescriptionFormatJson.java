@@ -15,8 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionRepresentation;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsRepresentation;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionOgcApi;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -34,10 +33,9 @@ public class ProcessDescriptionFormatJson implements ProcessDescriptionFormatExt
 
   @Inject
   public ProcessDescriptionFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcessDescription =
-        classSchemaCache.getSchema(ProcessDescriptionRepresentation.class);
+    schemaStyleProcessDescription = classSchemaCache.getSchema(ProcessDescriptionOgcApi.class);
     referencedSchemasProcessDescription =
-        classSchemaCache.getReferencedSchemas(ProcessDescriptionRepresentation.class);
+        classSchemaCache.getReferencedSchemas(ProcessDescriptionOgcApi.class);
   }
 
   @Override
@@ -49,7 +47,7 @@ public class ProcessDescriptionFormatJson implements ProcessDescriptionFormatExt
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaStyleProcessDescription)
-        .schemaRef(ProcessDescriptionsRepresentation.SCHEMA_REF)
+        .schemaRef(ProcessDescriptionOgcApi.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcessDescription)
         .ogcApiMediaType(getMediaType())
         .build();
@@ -57,9 +55,9 @@ public class ProcessDescriptionFormatJson implements ProcessDescriptionFormatExt
 
   @Override
   public Object getEntity(
-      ProcessDescriptionRepresentation processDescriptionRepresentation,
+      ProcessDescriptionOgcApi processDescriptionOgcApi,
       OgcApi api,
       ApiRequestContext requestContext) {
-    return processDescriptionRepresentation;
+    return processDescriptionOgcApi;
   }
 }
