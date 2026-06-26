@@ -28,7 +28,6 @@ public class ProcessDescriptionsLinksGenerator extends DefaultLinksGenerator {
       int processesCount,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
-      boolean sets,
       I18n i18n,
       Optional<Locale> language) {
     final ImmutableList.Builder<Link> builder =
