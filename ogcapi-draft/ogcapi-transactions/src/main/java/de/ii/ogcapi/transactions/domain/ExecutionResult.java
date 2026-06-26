@@ -22,6 +22,13 @@ public interface ExecutionResult {
    */
   List<ActionResult> getActionResults();
 
+  /**
+   * Non-fatal warnings emitted by the configured transaction-lifecycle hooks (e.g. PostgreSQL
+   * {@code RAISE WARNING} / {@code RAISE NOTICE} from a setup or pre-commit statement). May be
+   * present on both successful and failed transactions.
+   */
+  List<String> getWarnings();
+
   /** Whether the transaction as a whole succeeded (no FAILED actions in atomic; any in batch). */
   @Value.Derived
   default boolean isSuccess() {

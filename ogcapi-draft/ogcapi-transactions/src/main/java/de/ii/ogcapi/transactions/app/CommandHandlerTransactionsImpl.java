@@ -63,7 +63,6 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
   @Override
   public Response processTransaction(
       QueryInputTransaction queryInput, ApiRequestContext requestContext) {
-    boolean validate = queryInput.getHandling() == HeaderPrefer.Handling.STRICT;
     Transaction transaction = null;
 
     try {
@@ -85,7 +84,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
                 requestContext.getApi(),
                 requestContext,
                 queryInput.getRequestCrs(),
-                validate,
+                queryInput.getHandling(),
                 queryInput.getMutationDatetime());
         transaction = null;
       } catch (IllegalArgumentException e) {
@@ -195,7 +194,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     int status = (atomic && failed) ? 422 : 200;
     String preferenceApplied = preferenceApplied(ret, handling);
 
-    if (ret == HeaderPrefer.Return.NONE && !failed) {
+    if (ret == HeaderPrefer.Return.NONE && !failed && result.getWarnings().isEmpty()) {
       return Response.noContent().header("Preference-Applied", preferenceApplied).build();
     }
 
@@ -255,6 +254,10 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
 
     if (!exceptions.isEmpty()) {
       body.set("exceptions", exceptions);
+    }
+    if (!result.getWarnings().isEmpty()) {
+      ArrayNode warnings = body.putArray("warnings");
+      result.getWarnings().forEach(warnings::add);
     }
     return body;
   }

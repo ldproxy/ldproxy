@@ -26,6 +26,7 @@ import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
@@ -39,6 +40,7 @@ import de.ii.ogcapi.transactions.domain.InsertItem;
 import de.ii.ogcapi.transactions.domain.MutationStrategy;
 import de.ii.ogcapi.transactions.domain.Transaction;
 import de.ii.ogcapi.transactions.domain.TransactionExecutor;
+import de.ii.ogcapi.transactions.domain.TransactionHooks;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.ogcapi.transactions.domain.TxAction;
 import de.ii.ogcapi.transactions.domain.TxActionType;
@@ -60,6 +62,7 @@ import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureChanges;
+import de.ii.xtraplatform.features.domain.FeatureMutationHookException;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenSource;
@@ -140,14 +143,40 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       OgcApi api,
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
-      boolean validate,
+      HeaderPrefer.Handling handling,
       Optional<Instant> ogcMutationDatetime) {
     try (transaction) {
       return transaction.getSemantic() == TxSemantic.ATOMIC
           ? executeAtomic(
-              transaction, api, requestContext, requestCrs, validate, ogcMutationDatetime)
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
           : executeBatch(
-              transaction, api, requestContext, requestCrs, validate, ogcMutationDatetime);
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime);
+    }
+  }
+
+  /**
+   * The configured transaction-lifecycle hook statements (API-level) for this request's handling.
+   *
+   * @param preCommit {@code true} for the pre-commit hook, {@code false} for the setup hook
+   */
+  private static List<String> hookStatements(
+      OgcApi api, HeaderPrefer.Handling handling, boolean preCommit) {
+    TransactionsConfiguration cfg =
+        api.getData().getExtension(TransactionsConfiguration.class).orElse(null);
+    if (cfg == null) {
+      return List.of();
+    }
+    TransactionHooks hooks = preCommit ? cfg.getPreCommit() : cfg.getTransactionSetup();
+    return hooks == null ? List.of() : hooks.effective(handling);
+  }
+
+  /**
+   * When a hook statement fails, the warnings emitted by hook statements that ran before it are
+   * carried on the exception — recover them so they are still reported on the failure path.
+   */
+  private static void recoverHookWarnings(RuntimeException e, List<String> warnings) {
+    if (e instanceof FeatureMutationHookException hookEx) {
+      warnings.addAll(hookEx.getWarnings());
     }
   }
 
@@ -166,8 +195,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      boolean validate,
+      HeaderPrefer.Handling handling,
       Optional<Instant> ogcMutationDatetime) {
+    // handling=strict turns on per-payload schema validation before any write.
+    boolean validate = handling == HeaderPrefer.Handling.STRICT;
+    List<String> setup = hookStatements(api, handling, false);
+    List<String> preCommit = hookStatements(api, handling, true);
+    List<String> warnings = new ArrayList<>();
     // Single timestamp for the whole atomic transaction — every action shares it so versioned
     // strategies can reject same-feature chains under the no-backdating rule.
     Instant atomicScopeTimestamp = nowInstant();
@@ -195,9 +229,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       }
       try {
         FeatureProvider provider = resolveProvider(api, action.getCollectionId());
-        Session session =
-            sessionsByProvider.computeIfAbsent(
-                provider.getId(), id -> openSession(provider, action.getCollectionId()));
+        Session session = sessionsByProvider.get(provider.getId());
+        if (session == null) {
+          session = openSession(provider, action.getCollectionId());
+          // Store before running setup so a setup failure still leaves the session in the map
+          // for the rollback/close paths below.
+          sessionsByProvider.put(provider.getId(), session);
+          warnings.addAll(session.execute(setup));
+        }
         results.add(
             runAction(
                 action,
@@ -224,6 +263,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
               .addAll(lastResult.getFeatureIds());
         }
       } catch (RuntimeException e) {
+        recoverHookWarnings(e, warnings);
         results.add(failed(action, e));
         firstError = e;
       }
@@ -232,12 +272,24 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     boolean commitSucceeded = false;
     if (firstError == null) {
       try {
+        // Pre-commit hooks run on the still-open transaction; a raised error aborts the
+        // whole transaction, a warning lets it commit and is surfaced in the response.
+        for (Session s : sessionsByProvider.values()) {
+          warnings.addAll(s.execute(preCommit));
+        }
         sessionsByProvider.values().forEach(Session::commit);
         commitSucceeded = true;
       } catch (RuntimeException e) {
-        // commit failed — flip every recorded SUCCESS to FAILED with the commit error,
+        // pre-commit or commit failed — flip every recorded SUCCESS to FAILED with the error,
         // rollback whatever can still be rolled back
-        LOGGER.warn("Atomic transaction commit failed", e);
+        recoverHookWarnings(e, warnings);
+        if (e instanceof FeatureMutationHookException) {
+          // expected, configuration-driven rollback (a hook check fired) — reported to the
+          // client, so keep the log quiet and without a stack trace
+          LOGGER.debug("Pre-commit hook aborted the atomic transaction: {}", e.getMessage());
+        } else {
+          LOGGER.warn("Atomic transaction commit failed", e);
+        }
         rollbackQuietly(sessionsByProvider.values());
         results = flipSuccessesToFailed(results, e);
       }
@@ -253,6 +305,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.ATOMIC)
         .actionResults(results)
+        .warnings(warnings)
         .build();
   }
 
@@ -263,8 +316,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       OgcApi api,
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
-      boolean validate,
+      HeaderPrefer.Handling handling,
       Optional<Instant> ogcMutationDatetime) {
+    // handling=strict turns on per-payload schema validation before any write.
+    boolean validate = handling == HeaderPrefer.Handling.STRICT;
+    List<String> setup = hookStatements(api, handling, false);
+    List<String> preCommit = hookStatements(api, handling, true);
+    List<String> warnings = new ArrayList<>();
     List<ActionResult> results = new ArrayList<>();
     // Reused across actions in a batch even though each action commits independently — keeps the
     // MutationStrategy lookup to one walk per (transaction, collectionId).
@@ -277,6 +335,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       try {
         FeatureProvider provider = resolveProvider(api, action.getCollectionId());
         session = openSession(provider, action.getCollectionId());
+        warnings.addAll(session.execute(setup));
         // Batch semantics commit between actions, so each action sees a fresh committed
         // snapshot — no need to track touched ids across actions.
         // Per-action timestamp under batch semantics — each action's mutation is independent.
@@ -297,12 +356,19 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 true,
                 transaction.isWfs());
         if (r.getStatus() == ActionStatus.SUCCESS) {
+          // Pre-commit hooks run per action under batch semantics; a raised error fails just
+          // this action (caught below), a warning lets it commit and is surfaced.
+          warnings.addAll(session.execute(preCommit));
           session.commit();
         } else {
           session.rollback();
         }
         results.add(r);
       } catch (RuntimeException e) {
+        recoverHookWarnings(e, warnings);
+        if (e instanceof FeatureMutationHookException) {
+          LOGGER.debug("Pre-commit hook failed the batch action: {}", e.getMessage());
+        }
         if (session != null) {
           try {
             session.rollback();
@@ -327,6 +393,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.BATCH)
         .actionResults(results)
+        .warnings(warnings)
         .build();
   }
 
