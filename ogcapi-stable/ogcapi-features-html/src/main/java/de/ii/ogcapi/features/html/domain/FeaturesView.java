@@ -11,6 +11,7 @@ import com.github.mustachejava.util.DecoratedCollection;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.common.domain.OgcApiDatasetView;
+import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.html.app.CesiumDataFeatures;
 import de.ii.ogcapi.features.html.app.CrsEditor;
@@ -155,8 +156,13 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   }
 
   @Value.Derived
-  public boolean fromStoredQuery() {
-    return false;
+  public FeatureQueryScope queryScope() {
+    return FeatureQueryScope.COLLECTION;
+  }
+
+  @Value.Derived
+  public boolean isQueryExpression() {
+    return queryScope().isQueryExpression();
   }
 
   @Nullable
@@ -196,7 +202,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
               new ImmutableSource.Builder()
                   .type(TYPE.geojson)
                   .url(
-                      fromStoredQuery()
+                      isQueryExpression()
                           ? uriBuilder()
                               .removeParameters("f")
                               .ensureParameter("f", "json")
@@ -380,6 +386,11 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   @Value.Derived
   @Override
   public Optional<String> getCanonicalUrl() {
+    // A transient ad-hoc query (POST) has no addressable resource to link to.
+    if (!queryScope().hasCanonicalResource()) {
+      return Optional.empty();
+    }
+
     if (!isCollection() && PersistentUri().isPresent()) return PersistentUri();
 
     URICustomizer canonicalUri = uriBuilder().copy().ensureNoTrailingSlash().clearParameters();

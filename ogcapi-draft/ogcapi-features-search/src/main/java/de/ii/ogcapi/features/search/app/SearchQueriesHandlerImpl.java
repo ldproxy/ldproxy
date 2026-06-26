@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
@@ -691,7 +692,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             outputFormat,
             queryInput.getDefaultCrs(),
             targetCrs,
-            queryInput.includeBodyLinks() ? links : List.of());
+            queryInput.includeBodyLinks() ? links : List.of(),
+            queryInput.isStoredQuery()
+                ? FeatureQueryScope.STORED_QUERY
+                : FeatureQueryScope.AD_HOC_QUERY);
 
     StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
     CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
@@ -993,7 +997,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureFormatExtension outputFormat,
       EpsgCrs defaultCrs,
       EpsgCrs targetCrs,
-      List<Link> links) {
+      List<Link> links,
+      FeatureQueryScope queryScope) {
     OgcApi api = requestContext.getApi();
     EpsgCrs sourceCrs = null;
     Optional<CrsTransformer> crsTransformer = Optional.empty();
@@ -1103,6 +1108,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .idsIncludeCollectionId(
                 collectionIds.size() > 1 && !featureProvider.info().featureIdsAreGloballyUnique())
             .queryId(queryExpression.getId())
+            .queryScope(queryScope)
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
 
