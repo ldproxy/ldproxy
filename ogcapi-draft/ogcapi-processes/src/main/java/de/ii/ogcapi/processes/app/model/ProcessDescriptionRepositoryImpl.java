@@ -9,9 +9,8 @@ package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptionOgcApi;
+import de.ii.ogcapi.processes.domain.model.ProcessDescription;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionOgcApi;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatile;
@@ -36,7 +35,7 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
       LoggerFactory.getLogger(ProcessDescriptionRepositoryImpl.class);
 
   private final Values<ProcessDescriptionData> customProcessDescriptionsStore;
-  private final Map<String, ProcessDescriptionOgcApi> processDescriptions;
+  private final Map<String, ProcessDescription> processDescriptions;
   private final VolatileRegistry volatileRegistry;
 
   /** set data directory */
@@ -66,7 +65,7 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
 
               processDescriptions.put(
                   processDescriptionData.getId(),
-                  ImmutableProcessDescriptionOgcApi.of(processDescriptionData));
+                  ProcessDescription.custom(processDescriptionData));
             });
 
     setState(State.AVAILABLE);
@@ -74,13 +73,13 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public Optional<ProcessDescriptionOgcApi> get(String processId) {
+  public Optional<ProcessDescription> get(String processId) {
     return Optional.ofNullable(processDescriptions.get(processId));
   }
 
   @Override
-  public Map<String, ProcessDescriptionOgcApi> getAll() {
-    return new ImmutableMap.Builder<String, ProcessDescriptionOgcApi>()
+  public Map<String, ProcessDescription> getAll() {
+    return new ImmutableMap.Builder<String, ProcessDescription>()
         .putAll(processDescriptions)
         .build();
   }

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -21,18 +22,16 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessDescriptionOgcApi.Builder.class)
 @ApiInfo(schemaId = "ProcessDescription")
 public abstract class ProcessDescriptionOgcApi extends PageRepresentationWithId
-    implements ProcessDescriptionData {
+    implements ProcessDescription {
 
-  public static ProcessDescriptionOgcApi of(ProcessDescriptionData processDescriptionData) {
-    return new ImmutableProcessDescriptionOgcApi.Builder().from(processDescriptionData).build();
+  public static ProcessDescriptionOgcApi of(ProcessDescription processDescription) {
+    return new ImmutableProcessDescriptionOgcApi.Builder().from(processDescription).build();
   }
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessDescription";
 
-  @Override
   public abstract String getVersion();
 
-  @Override
   public abstract Optional<List<String>> getKeywords();
 
   public abstract Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();

@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public interface ProcessDescriptionRepository extends Volatile2 {
 
-  Optional<ProcessDescriptionOgcApi> get(String processId);
+  Optional<ProcessDescription> get(String processId);
 
-  Map<String, ProcessDescriptionOgcApi> getAll();
+  Map<String, ProcessDescription> getAll();
 }
