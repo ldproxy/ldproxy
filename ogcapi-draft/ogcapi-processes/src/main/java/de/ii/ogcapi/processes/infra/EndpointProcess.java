@@ -47,11 +47,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // ToDo Docs
-// Note: The path parameter is processID not processID, see
-// https://docs.ogc.org/DRAFTS/18-062r3.html#sc_process_description
 /**
  * @title Process
- * @path processes/{processID}
+ * @path processes/{processId}
  * @langEn Returns the full details of a process.
  * @langDe Liefer die gesamten Details eines Prozesses.
  * @ref:formats {@link de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension}
@@ -61,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointProcess.class);
-  private static final List<String> TAGS = ImmutableList.of("Process");
+  private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
 
@@ -98,14 +96,14 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("processes")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_PROCESS);
-    String path = "/processes/{processID}";
+    String path = "/processes/{processId}";
     HttpMethods method = HttpMethods.GET;
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path);
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-    if (pathParameters.stream().noneMatch(param -> "processID".equals(param.getName()))) {
+    if (pathParameters.stream().noneMatch(param -> "processId".equals(param.getName()))) {
       LOGGER.error(
-          "WIP Path parameter 'processID' missing for resource at path '"
+          "WIP Path parameter 'processId' missing for resource at path '"
               + path
               + "'. The GET method will not be available.");
     } else {
@@ -138,13 +136,13 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
   /**
    * retrieve one specific process by id
    *
-   * @param processID the local identifier of a specific process
+   * @param processId the local identifier of a specific process
    * @return the full process description
    */
-  @Path("/{processID}")
+  @Path("/{processId}")
   @GET
   public Response getProcess(
-      @PathParam("processID") String processID,
+      @PathParam("processId") String processId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
@@ -152,12 +150,12 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
       throw new NotFoundException("Processes are not available in this API.");
 
     checkPathParameter(
-        extensionRegistry, api.getData(), "/processes/{processID}", "processID", processID);
+        extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
 
     ProcessesQueriesHandler.QueryInputProcess queryInput =
         new ImmutableQueryInputProcess.Builder()
             .from(getGenericQueryInput(api.getData()))
-            .processId(processID)
+            .processId(processId)
             .build();
 
     return queryHandler.handle(ProcessesQueriesHandler.Query.PROCESS, queryInput, requestContext);
