@@ -18,6 +18,8 @@ import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -1068,6 +1070,46 @@ public interface GmlConfiguration
    */
   @Nullable
   String getCodeListUriTemplateIso19139();
+
+  /**
+   * Fails fast when a {@code schemaLocations} value cannot be a document URI, so a configuration
+   * slip — most commonly a sibling option mis-indented into the map, which turns its entries into
+   * bogus locations — is reported at service load with the offending namespace prefix, instead of
+   * surfacing only as a per-request "no protocol" warning the first time GML input is validated. A
+   * value carrying a {@code {{…}}} template (e.g. {@code {{serviceUrl}}}) is resolved at request
+   * time and is therefore not checked here.
+   */
+  @Value.Check
+  default void checkSchemaLocations() {
+    getSchemaLocations()
+        .forEach(
+            (prefix, location) -> {
+              if (location == null || location.isBlank()) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations entry for namespace prefix '%s' has no document URI.",
+                        prefix));
+              }
+              if (location.contains("{{")) {
+                return;
+              }
+              URI uri;
+              try {
+                uri = new URI(location);
+              } catch (URISyntaxException e) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations URI '%s' for namespace prefix '%s' is not a valid URI: %s",
+                        location, prefix, e.getMessage()));
+              }
+              if (!uri.isAbsolute()) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations URI '%s' for namespace prefix '%s' must be an absolute URI with a scheme (for example https). A bare token here usually means another option was mis-indented into schemaLocations.",
+                        location, prefix));
+              }
+            });
+  }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
