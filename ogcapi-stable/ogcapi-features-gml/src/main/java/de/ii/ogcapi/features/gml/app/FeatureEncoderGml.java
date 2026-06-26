@@ -18,6 +18,7 @@ import de.ii.ogcapi.features.gml.domain.ModifiableEncodingAwareContextGml;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoderDefault;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +77,12 @@ public class FeatureEncoderGml extends FeatureTokenEncoderDefault<EncodingAwareC
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("GML - Feature Start: {}", context.schema().orElseThrow().getName());
     }
+    // Record the collection of this feature so the per-collection GML options resolve correctly
+    // when the response mixes several collections (the Search building block).
+    transformationContext
+        .getState()
+        .setCurrentCollectionId(
+            Optional.ofNullable(transformationContext.getCollectionIdForType(context.type())));
     transformationContext.getState().setEvent(Event.FEATURE_START);
     executePipeline(featureWriters.iterator()).accept(context);
   }

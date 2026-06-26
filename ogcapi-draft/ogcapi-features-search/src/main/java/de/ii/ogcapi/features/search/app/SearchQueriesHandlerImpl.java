@@ -491,6 +491,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                           extensionRegistry
                               .getExtensionsForType(FeatureFormatExtension.class)
                               .stream()
+                              // a search response may mix collections; exclude fixed-schema formats
+                              .filter(
+                                  FeatureFormatExtension::supportsHeterogeneousFeatureCollections)
                               .filter(
                                   outputFormatExtension ->
                                       outputFormatExtension.isEnabledForApi(apiData))

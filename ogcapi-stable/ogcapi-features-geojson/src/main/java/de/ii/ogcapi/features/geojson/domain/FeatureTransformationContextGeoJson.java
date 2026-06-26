@@ -65,7 +65,28 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
     return ModifiableStateGeoJson.create();
   }
 
-  public abstract GeoJsonConfiguration getGeoJsonConfig();
+  /**
+   * The GeoJSON configuration of each collection in the response, keyed by collection id. A single
+   * response may mix features from several collections (the <em>Search</em> building block), each
+   * with its own configuration.
+   */
+  public abstract Map<String, GeoJsonConfiguration> getGeoJsonConfigs();
+
+  /**
+   * The GeoJSON configuration of the collection the feature currently being encoded belongs to.
+   * Resolves via the collection id recorded on the state at feature start (see {@link
+   * FeatureEncoderGeoJson}). Before any feature is active — where the configuration is not actually
+   * read — it returns any present configuration. Encoding a property with the arbitrary first
+   * collection's config (e.g. its {@code flatten} setting) would be wrong for the other collections
+   * of a multi-collection response.
+   */
+  public GeoJsonConfiguration getGeoJsonConfig() {
+    Map<String, GeoJsonConfiguration> configs = getGeoJsonConfigs();
+    return getState()
+        .getCurrentCollectionId()
+        .map(configs::get)
+        .orElseGet(() -> configs.values().iterator().next());
+  }
 
   public abstract Map<String, Object> getExtensions();
 
@@ -253,6 +274,14 @@ public abstract class FeatureTransformationContextGeoJson implements FeatureTran
 
   @Value.Modifiable
   public abstract static class StateGeoJson extends State {
+
+    /**
+     * The collection id of the feature currently being encoded, set at feature start from the
+     * feature's provider type via {@link #getCollectionIdForType(String)}. Drives {@link
+     * #getGeoJsonConfig()} so per-collection options resolve to the right collection in a
+     * multi-collection response. Empty before the first feature.
+     */
+    public abstract Optional<String> getCurrentCollectionId();
 
     public abstract Optional<GeoJsonGeometryType> getCurrentGeometryType();
 

@@ -221,6 +221,18 @@ public abstract class FeatureFormatExtension implements FormatExtension {
     return false;
   }
 
+  /**
+   * Whether this format can represent a feature collection that mixes features of more than one
+   * feature type / collection in a single response (as produced by the <em>Search</em> building
+   * block). Formats with a fixed, single-schema output (e.g. CSV, FlatGeobuf, CityJSON, glTF)
+   * cannot and return {@code false} (the default); they are excluded from endpoints that produce
+   * heterogeneous responses. Formats whose structure carries the type per feature (GeoJSON, GML,
+   * HTML) return {@code true}.
+   */
+  public boolean supportsHeterogeneousFeatureCollections() {
+    return false;
+  }
+
   public boolean requiresPropertiesInSequence(FeatureSchema schema) {
     return false;
   }

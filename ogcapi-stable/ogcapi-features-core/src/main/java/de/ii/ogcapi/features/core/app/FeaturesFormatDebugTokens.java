@@ -113,6 +113,13 @@ public class FeaturesFormatDebugTokens extends FeatureFormatExtension implements
     return true;
   }
 
+  // The raw token stream is type-agnostic, so it can represent a response that mixes collections
+  // (and is useful for debugging exactly those Search responses).
+  @Override
+  public boolean supportsHeterogeneousFeatureCollections() {
+    return true;
+  }
+
   @Override
   public boolean supportsRootConcat() {
     return true;
