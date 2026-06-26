@@ -126,7 +126,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
+      // Search responses may mix collections, so only formats that can represent a heterogeneous
+      // feature collection are offered (excludes fixed-schema formats such as CSV / FlatGeobuf).
+      formats =
+          extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+              .filter(FeatureFormatExtension::supportsHeterogeneousFeatureCollections)
+              .collect(Collectors.toList());
     }
     return formats;
   }

@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,12 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
-      formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
+      // Search responses may mix collections, so only formats that can represent a heterogeneous
+      // feature collection are offered (excludes fixed-schema formats such as CSV / FlatGeobuf).
+      formats =
+          extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+              .filter(FeatureFormatExtension::supportsHeterogeneousFeatureCollections)
+              .collect(Collectors.toList());
     }
     return formats;
   }

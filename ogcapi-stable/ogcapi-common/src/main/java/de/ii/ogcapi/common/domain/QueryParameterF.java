@@ -78,6 +78,7 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
     }
 
     return extensionRegistry.getExtensionsForType(getFormatClass()).stream()
+        .filter(this::includeFormat)
         .filter(
             f ->
                 optionalCollectionData
@@ -87,6 +88,16 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
         .filter(mt -> Objects.equals(mt.parameter(), value))
         .findFirst()
         .orElse(null);
+  }
+
+  /**
+   * Hook for subclasses to restrict which formats this {@code f} parameter offers (its enum) and
+   * accepts (its parsing), beyond the standard enabled/non-internal checks. Defaults to all
+   * formats; the <em>Search</em> {@code f} parameters override it to keep only formats that can
+   * represent a heterogeneous feature collection.
+   */
+  protected boolean includeFormat(FormatExtension format) {
+    return true;
   }
 
   @Override
@@ -118,6 +129,7 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
     if (!schemaMap.get(apiHashCode).containsKey("*")) {
       List<String> fEnum = new ArrayList<>();
       extensionRegistry.getExtensionsForType(getFormatClass()).stream()
+          .filter(this::includeFormat)
           .filter(f -> f.isEnabledForApi(apiData))
           .filter(f -> !f.isInternal())
           .filter(f -> !"*".equals(f.getMediaType().parameter()))
@@ -137,6 +149,7 @@ public abstract class QueryParameterF extends OgcApiQueryParameterBase
     if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
       List<String> fEnum = new ArrayList<>();
       extensionRegistry.getExtensionsForType(getFormatClass()).stream()
+          .filter(this::includeFormat)
           .filter(f -> f.isEnabledForApi(apiData, collectionId))
           .filter(f -> !f.isInternal())
           .filter(f -> !"*".equals(f.getMediaType().parameter()))

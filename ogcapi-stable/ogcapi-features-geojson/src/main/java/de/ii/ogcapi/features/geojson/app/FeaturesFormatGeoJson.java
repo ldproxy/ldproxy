@@ -73,6 +73,7 @@ import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -327,6 +328,11 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
   }
 
   @Override
+  public boolean supportsHeterogeneousFeatureCollections() {
+    return true;
+  }
+
+  @Override
   public Optional<FeatureTokenEncoder<?>> getFeatureEncoder(
       FeatureTransformationContext transformationContext, Optional<Locale> language) {
 
@@ -338,16 +344,35 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
                 ImmutableSortedSet.toImmutableSortedSet(
                     Comparator.comparingInt(GeoJsonWriter::getSortPriority)));
 
+    // Collect the GeoJSON configuration of every collection in the response. A /items response has
+    // a single collection; a /search response mixes several. Resolving the configuration per
+    // collection — rather than baking in the arbitrary first collection's config
+    // (transformationContext.getCollectionId()) — ensures each feature is encoded with the
+    // configuration (e.g. flatten setting) of the collection it actually belongs to.
+    Map<String, GeoJsonConfiguration> geoJsonConfigs = new LinkedHashMap<>();
+    transformationContext.getFeatureSchemas().keySet().stream()
+        .map(transformationContext::getCollectionIdForType)
+        .filter(Objects::nonNull)
+        .distinct()
+        .forEach(
+            collectionId -> {
+              FeatureTypeConfigurationOgcApi collectionData =
+                  transformationContext.getApiData().getCollections().get(collectionId);
+              if (collectionData != null) {
+                collectionData
+                    .getExtension(GeoJsonConfiguration.class)
+                    .ifPresent(config -> geoJsonConfigs.put(collectionId, config));
+              }
+            });
+    if (geoJsonConfigs.isEmpty()) {
+      throw new IllegalStateException(
+          "No GeoJSON configuration found for the collection(s) of the response.");
+    }
+
     ImmutableFeatureTransformationContextGeoJson transformationContextGeoJson =
         ImmutableFeatureTransformationContextGeoJson.builder()
             .from(transformationContext)
-            .geoJsonConfig(
-                transformationContext
-                    .getApiData()
-                    .getCollections()
-                    .get(transformationContext.getCollectionId())
-                    .getExtension(GeoJsonConfiguration.class)
-                    .get())
+            .geoJsonConfigs(geoJsonConfigs)
             .prettify(transformationContext.getPrettify())
             .build();
 

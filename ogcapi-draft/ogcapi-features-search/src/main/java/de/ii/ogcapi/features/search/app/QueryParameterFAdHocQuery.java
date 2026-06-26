@@ -63,6 +63,14 @@ public class QueryParameterFAdHocQuery extends QueryParameterF {
     return FeatureFormatExtension.class;
   }
 
+  // Search responses may mix collections, so only formats that can represent a heterogeneous
+  // feature collection are offered (excludes fixed-schema formats such as CSV / FlatGeobuf).
+  @Override
+  protected boolean includeFormat(FormatExtension format) {
+    return format instanceof FeatureFormatExtension
+        && ((FeatureFormatExtension) format).supportsHeterogeneousFeatureCollections();
+  }
+
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return FeaturesCoreConfiguration.class;
