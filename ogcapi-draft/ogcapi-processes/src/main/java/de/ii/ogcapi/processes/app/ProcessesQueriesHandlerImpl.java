@@ -66,7 +66,9 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     this.queryHandlers =
         ImmutableMap.of(
             Query.PROCESSES,
-            QueryHandler.with(QueryInputProcesses.class, this::getProcessesResponse));
+            QueryHandler.with(QueryInputProcesses.class, this::getProcessesResponse),
+            Query.PROCESS,
+            QueryHandler.with(QueryInputProcess.class, this::getProcessResponse));
 
     onVolatileStart();
 
@@ -165,5 +167,10 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             i18n.getLanguages())
         .entity(outputFormat.getEntity(processDescriptionsRepresentation, api, requestContext))
         .build();
+  }
+
+  private Response getProcessResponse(
+      QueryInputProcess queryInput, ApiRequestContext requestContext) {
+    return Response.ok().build();
   }
 }
