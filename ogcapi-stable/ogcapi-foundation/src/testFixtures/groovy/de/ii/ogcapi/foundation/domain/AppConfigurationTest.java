@@ -12,6 +12,7 @@ import de.ii.xtraplatform.base.domain.AuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.AuthConfiguration;
 import de.ii.xtraplatform.base.domain.BackgroundTasksConfiguration;
 import de.ii.xtraplatform.base.domain.HttpClientConfiguration;
+import de.ii.xtraplatform.base.domain.ImmutableAuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuthConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableModulesConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableStoreConfiguration;
@@ -44,7 +45,7 @@ public class AppConfigurationTest extends AppConfiguration {
 
   @Override
   public AuditLogConfiguration getAuditLog() {
-    return null;
+    return new ImmutableAuditLogConfiguration.Builder().build();
   }
 
   @Override
