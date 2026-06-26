@@ -97,6 +97,7 @@ import de.ii.xtraplatform.streams.domain.Reactive.Sink;
 import de.ii.xtraplatform.streams.domain.Reactive.SinkTransformed;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import de.ii.xtraplatform.web.domain.JoinableStreamingOutput;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
@@ -1202,11 +1203,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     CollectionMetadata collectionMetadata = onCollectionMetadata.join();
 
     StreamingOutput streamingOutput =
-        outputStream -> {
-          delayedOutputStream.setOutputStream(outputStream);
-          // wait for stream to finish
-          run(stream::join);
-        };
+        new JoinableStreamingOutput(
+            outputStream -> {
+              delayedOutputStream.setOutputStream(outputStream);
+              // wait for stream to finish
+              run(stream::join);
+            });
 
     return Tuple.of(streamingOutput, collectionMetadata);
   }

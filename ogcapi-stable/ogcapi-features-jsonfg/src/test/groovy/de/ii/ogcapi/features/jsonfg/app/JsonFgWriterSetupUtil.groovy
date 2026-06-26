@@ -103,6 +103,11 @@ class JsonFgWriterSetupUtil {
                     }
 
                     @Override
+                    Optional<String> getRequestId() {
+                        return null
+                    }
+
+                    @Override
                     Optional<User> getUser() {
                         return null
                     }

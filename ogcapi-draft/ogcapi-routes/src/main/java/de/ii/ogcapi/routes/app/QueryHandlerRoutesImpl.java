@@ -62,6 +62,7 @@ import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
 import de.ii.xtraplatform.streams.domain.Reactive;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
+import de.ii.xtraplatform.web.domain.JoinableStreamingOutput;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.constraints.NotNull;
@@ -487,30 +488,31 @@ public class QueryHandlerRoutesImpl extends AbstractVolatileComposed implements 
 
   private StreamingOutput stream(
       FeatureStream featureTransformStream, final FeatureTokenEncoder<?> encoder) {
-    return outputStream -> {
-      Reactive.SinkTransformed<Object, byte[]> featureSink =
-          encoder.to(Reactive.Sink.outputStream(outputStream));
+    return new JoinableStreamingOutput(
+        outputStream -> {
+          Reactive.SinkTransformed<Object, byte[]> featureSink =
+              encoder.to(Reactive.Sink.outputStream(outputStream));
 
-      try {
-        FeatureStream.Result result =
-            featureTransformStream
-                .runWith(featureSink, ImmutableMap.of())
-                .toCompletableFuture()
-                .join();
+          try {
+            FeatureStream.Result result =
+                featureTransformStream
+                    .runWith(featureSink, ImmutableMap.of())
+                    .toCompletableFuture()
+                    .join();
 
-        result.getError().ifPresent(FeatureStream::processStreamError);
+            result.getError().ifPresent(FeatureStream::processStreamError);
 
-        if (result.isEmpty()) {
-          throw new NotFoundException("The requested route could not be computed.");
-        }
+            if (result.isEmpty()) {
+              throw new NotFoundException("The requested route could not be computed.");
+            }
 
-      } catch (CompletionException e) {
-        if (e.getCause() instanceof WebApplicationException) {
-          throw (WebApplicationException) e.getCause();
-        }
-        throw new IllegalStateException("Feature stream error.", e.getCause());
-      }
-    };
+          } catch (CompletionException e) {
+            if (e.getCause() instanceof WebApplicationException) {
+              throw (WebApplicationException) e.getCause();
+            }
+            throw new IllegalStateException("Feature stream error.", e.getCause());
+          }
+        });
   }
 
   private ImmutableRouteQuery.Builder processPreference(
