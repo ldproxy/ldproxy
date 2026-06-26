@@ -14,16 +14,22 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.app.json.ProcessDescriptionLinksGenerator;
+import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
+import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptionOgcApi;
 import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptionReduced;
 import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptions;
+import de.ii.ogcapi.processes.domain.model.ProcessDescription;
+import de.ii.ogcapi.processes.domain.model.ProcessDescriptionOgcApi;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptions;
 import de.ii.xtraplatform.base.domain.ETag;
@@ -32,7 +38,9 @@ import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Date;
@@ -117,7 +125,6 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                 processesSize,
                 requestContext.getMediaType(),
                 requestContext.getAlternateMediaTypes(),
-                true,
                 i18n,
                 requestContext.getLanguage());
 
@@ -169,6 +176,56 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
   private Response getProcessResponse(
       QueryInputProcess queryInput, ApiRequestContext requestContext) {
-    return Response.ok().build();
+    OgcApi api = requestContext.getApi();
+    String processId = queryInput.getProcessId();
+
+    ProcessDescriptionFormatExtension outputFormat =
+        api.getOutputFormat(
+                ProcessDescriptionFormatExtension.class,
+                requestContext.getMediaType(),
+                Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    List<Link> links =
+        List.of(new ImmutableLink.Builder().href("example.org").rel("next").title("test").build());
+
+    ProcessDescription process =
+        processDescriptionRepository
+            .get(processId)
+            .orElseThrow(() -> new NotFoundException("Unknown process: " + processId));
+
+    ProcessDescriptionOgcApi processDescriptionOgcApi =
+        new ImmutableProcessDescriptionOgcApi.Builder().from(process).links(links).build();
+
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(
+                processDescriptionOgcApi,
+                ProcessDescriptionOgcApi.FUNNEL,
+                outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            queryInput.getIncludeLinkHeader() ? links : null,
+            HeaderCaching.of(lastModified, etag, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(processDescriptionOgcApi, api, requestContext))
+        .build();
   }
 }
