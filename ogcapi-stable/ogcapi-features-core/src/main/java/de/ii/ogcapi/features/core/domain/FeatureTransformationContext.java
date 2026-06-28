@@ -176,6 +176,15 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
     return getQueryScope().isQueryExpression();
   }
 
+  /**
+   * Whether the response is paged. When {@code false}, the response is single-shot and must not
+   * advertise pagination controls or prev/next links.
+   */
+  @Value.Derived
+  default boolean supportsPaging() {
+    return getQueryScope().supportsPaging();
+  }
+
   Optional<String> getQueryTitle();
 
   Optional<String> getQueryDescription();
