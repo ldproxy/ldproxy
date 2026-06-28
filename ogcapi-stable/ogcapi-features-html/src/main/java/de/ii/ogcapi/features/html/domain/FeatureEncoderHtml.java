@@ -57,10 +57,10 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
 
   @Override
   public void onStart(ModifiableContext context) {
-    // Query-expression responses (ad-hoc and stored queries) are single-shot: the 'limit'
-    // applies to the entire result set and offset-based paging is not supported (the endpoints
-    // reject 'limit'/'offset'), so no pagination or prev/next links are generated.
-    if (transformationContext.isQueryExpression()) {
+    // Single-shot responses (ad-hoc queries, and stored queries with supportPaging=false) are not
+    // paged, so no pagination controls are generated. Paged stored queries fall through and page by
+    // offset only (there is no 'limit' query parameter for stored queries).
+    if (!transformationContext.supportsPaging()) {
       return;
     }
 
@@ -86,23 +86,26 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
 
       ImmutableList.Builder<NavigationDTO> pagination = new ImmutableList.Builder<>();
       ImmutableList.Builder<NavigationDTO> metaPagination = new ImmutableList.Builder<>();
+      // query expressions page by offset only (no 'limit' query parameter); collections use both
+      String pageUrlFormat =
+          transformationContext.isQueryExpression() ? "offset=%2$d" : "limit=%1$d&offset=%2$d";
       if (transformationContext.getPage() > 1) {
         pagination
             .add(
                 new NavigationDTO(
-                    "«", String.format("limit=%d&offset=%d", transformationContext.getLimit(), 0)))
+                    "«", String.format(pageUrlFormat, transformationContext.getLimit(), 0)))
             .add(
                 new NavigationDTO(
                     "‹",
                     String.format(
-                        "limit=%d&offset=%d",
+                        pageUrlFormat,
                         transformationContext.getLimit(),
                         transformationContext.getOffset() - transformationContext.getLimit())));
         metaPagination.add(
             new NavigationDTO(
                 "prev",
                 String.format(
-                    "limit=%d&offset=%d",
+                    pageUrlFormat,
                     transformationContext.getLimit(),
                     transformationContext.getOffset() - transformationContext.getLimit())));
       } else {
@@ -123,7 +126,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
                 new NavigationDTO(
                     String.valueOf(i),
                     String.format(
-                        "limit=%d&offset=%d",
+                        pageUrlFormat,
                         transformationContext.getLimit(),
                         (i - 1) * transformationContext.getLimit())));
           }
@@ -135,21 +138,21 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
                   new NavigationDTO(
                       "›",
                       String.format(
-                          "limit=%d&offset=%d",
+                          pageUrlFormat,
                           transformationContext.getLimit(),
                           transformationContext.getOffset() + transformationContext.getLimit())))
               .add(
                   new NavigationDTO(
                       "»",
                       String.format(
-                          "limit=%d&offset=%d",
+                          pageUrlFormat,
                           transformationContext.getLimit(),
                           (pages - 1) * transformationContext.getLimit())));
           metaPagination.add(
               new NavigationDTO(
                   "next",
                   String.format(
-                      "limit=%d&offset=%d",
+                      pageUrlFormat,
                       transformationContext.getLimit(),
                       transformationContext.getOffset() + transformationContext.getLimit())));
         } else {
@@ -166,7 +169,7 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
                 new NavigationDTO(
                     String.valueOf(i),
                     String.format(
-                        "limit=%d&offset=%d",
+                        pageUrlFormat,
                         transformationContext.getLimit(),
                         (i - 1) * transformationContext.getLimit())));
           }
@@ -176,14 +179,14 @@ public class FeatureEncoderHtml extends FeatureObjectEncoder<PropertyHtml, Featu
               new NavigationDTO(
                   "›",
                   String.format(
-                      "limit=%d&offset=%d",
+                      pageUrlFormat,
                       transformationContext.getLimit(),
                       transformationContext.getOffset() + transformationContext.getLimit())));
           metaPagination.add(
               new NavigationDTO(
                   "next",
                   String.format(
-                      "limit=%d&offset=%d",
+                      pageUrlFormat,
                       transformationContext.getLimit(),
                       transformationContext.getOffset() + transformationContext.getLimit())));
         } else {
