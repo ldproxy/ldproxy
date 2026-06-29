@@ -74,18 +74,21 @@ public interface QueryExpression {
 
   Optional<Integer> getLimit();
 
+  // index of the first feature in the overall result set (paging); only used when paging is enabled
+  Optional<Integer> getOffset();
+
   // if enabled, a feature that is selected by more than one query is only included once
   @Value.Default
   default boolean getDeduplicate() {
     return false;
   }
 
-  // if disabled, numberMatched is not computed (avoids a count query per query, which can be
-  // expensive for query expressions with many or chained queries)
-  @Value.Default
-  default boolean getComputeNumberMatched() {
-    return true;
-  }
+  // the response is single-shot by default (one pass over the whole result set, no meta queries, no
+  // numberMatched/numberReturned). A stored query may set this to true to be paged instead:
+  // numberMatched/numberReturned are reported and the result can be retrieved page by page via
+  // offset. Ad-hoc queries (POST) are always single-shot (an explicit true is rejected), as there
+  // is no addressable URL to page through.
+  Optional<Boolean> getSupportPaging();
 
   List<String> getProfiles();
 

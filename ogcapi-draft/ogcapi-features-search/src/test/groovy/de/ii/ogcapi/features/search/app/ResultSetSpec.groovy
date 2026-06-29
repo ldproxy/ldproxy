@@ -46,14 +46,14 @@ class ResultSetSpec extends Specification {
         query.getQueries().get(1).getFilter().get() == InResultSet.of("dientZurDarstellungVon", "flst")
     }
 
-    def 'computeNumberMatched defaults to true and can be disabled'() {
+    def 'supportPaging is unset by default and parsed when present'() {
         given:
         String byDefault = """{ "queries": [ { "collections": [ "ax_flurstueck" ] } ] }"""
-        String disabled = """{ "computeNumberMatched": false, "queries": [ { "collections": [ "ax_flurstueck" ] } ] }"""
+        String paged = """{ "supportPaging": true, "queries": [ { "collections": [ "ax_flurstueck" ] } ] }"""
 
-        expect:
-        QueryExpression.of(new ByteArrayInputStream(byDefault.getBytes("UTF-8"))).getComputeNumberMatched()
-        !QueryExpression.of(new ByteArrayInputStream(disabled.getBytes("UTF-8"))).getComputeNumberMatched()
+        expect: 'unset is empty (the handler applies the single-shot default); an explicit value is parsed'
+        QueryExpression.of(new ByteArrayInputStream(byDefault.getBytes("UTF-8"))).getSupportPaging().isEmpty()
+        QueryExpression.of(new ByteArrayInputStream(paged.getBytes("UTF-8"))).getSupportPaging().get()
     }
 
     def 'the resultSet shorthand is equivalent to an id result set'() {
