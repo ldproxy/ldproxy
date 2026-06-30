@@ -110,6 +110,7 @@ public class StoredQueryRepositoryImpl extends AbstractVolatile
     return queriesStore.identifiers(apiData.getId()).stream()
         .map(queriesStore::get)
         .map(this::from)
+        .sorted(Comparator.comparing(StoredQueryExpression::getId))
         .collect(ImmutableList.toImmutableList());
   }
 
