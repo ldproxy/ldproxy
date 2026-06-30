@@ -15,10 +15,10 @@ import jakarta.inject.Singleton;
 
 @Singleton
 @AutoBind
-public class ProcessDescriptionFactory extends ValueFactoryAuto {
+public class ProcessFactory extends ValueFactoryAuto {
 
   @Inject
-  protected ProcessDescriptionFactory() {
+  protected ProcessFactory() {
     super(ProcessData.class);
   }
 }

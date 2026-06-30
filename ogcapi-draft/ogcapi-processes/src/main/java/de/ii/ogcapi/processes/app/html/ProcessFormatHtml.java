@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,9 +19,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
+import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ProcessEntry;
+import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,13 +33,13 @@ import java.util.List;
  */
 @Singleton
 @AutoBind
-public class ProcessDescriptionFormatHtml implements ProcessDescriptionFormatExtension, FormatHtml {
+public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml {
 
   private final I18n i18n;
-  private final ProcessDescriptionRepository repository;
+  private final ProcessRepository repository;
 
   @Inject
-  public ProcessDescriptionFormatHtml(I18n i18n, ProcessDescriptionRepository repository) {
+  public ProcessFormatHtml(I18n i18n, ProcessRepository repository) {
     this.i18n = i18n;
     this.repository = repository;
   }
@@ -63,11 +63,9 @@ public class ProcessDescriptionFormatHtml implements ProcessDescriptionFormatExt
 
   @Override
   public Object getEntity(
-      ProcessOgcApi processDescription, OgcApi api, ApiRequestContext requestContext) {
+      ProcessEntry processEntity, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String processDescriptionsTitle =
-        i18n.get("processDescriptionsTitle", requestContext.getLanguage());
-    String processId = processDescription.getId();
+    String processId = processEntity.getId();
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 
@@ -88,22 +86,21 @@ public class ProcessDescriptionFormatHtml implements ProcessDescriptionFormatExt
                     resourceUri.copy().removeLastPathSegments(2).toString()))
             .add(
                 new NavigationDTO(
-                    processDescriptionsTitle,
-                    resourceUri.copy().removeLastPathSegments(1).toString()))
+                    processId, resourceUri.copy().removeLastPathSegments(1).toString()))
             .add(new NavigationDTO(processId))
             .build();
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
-    return ImmutableProcessDescriptionView.builder()
+    return ImmutableProcessView.builder()
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
         .noIndex(isNoIndexEnabledForApi(api.getData()))
         .breadCrumbs(breadCrumbs)
-        .rawLinks(processDescription.getLinks())
+        .rawLinks(processEntity.getLinks())
         .title(processId)
         .apiData(api.getData())
         .user(requestContext.getUser())
-        .processDescription(processDescription)
+        .process(processEntity)
         .language(requestContext.getLanguage())
         .htmlConfig(htmlConfig)
         .uriCustomizer(requestContext.getUriCustomizer().copy())

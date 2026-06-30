@@ -30,7 +30,7 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
+import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.Query;
@@ -45,13 +45,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-// ToDo Docs (dont forget limit parameter)
+// ToDo Docs (dont forget limit parameter) @ref:formats {@link ProcessListFormatExtension}
 /**
  * @title Processes
  * @path processes
  * @langEn The URIs of all processes supported by the API.
  * @langDe Die URIs aller von der API unterstützten Prozesse.
- * @ref:formats {@link de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -76,7 +75,7 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ProcessDescriptionsFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ProcessListFormatExtension.class);
     return formats;
   }
 

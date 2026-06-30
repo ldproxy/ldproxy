@@ -13,7 +13,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
+import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -48,7 +48,7 @@ public class QueryParameterFProcesses extends QueryParameterF {
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return ProcessDescriptionsFormatExtension.class;
+    return ProcessListFormatExtension.class;
   }
 
   @Override
