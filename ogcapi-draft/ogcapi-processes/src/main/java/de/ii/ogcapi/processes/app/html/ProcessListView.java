@@ -11,7 +11,7 @@ import com.google.common.base.Splitter;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionReduced;
+import de.ii.ogcapi.processes.domain.model.ProcessSummaryEntry;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -26,12 +26,12 @@ import org.apache.hc.core5.net.URIBuilder;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class ProcessDescriptionsView extends OgcApiView {
-  public ProcessDescriptionsView() {
-    super("processDescriptions.mustache");
+public abstract class ProcessListView extends OgcApiView {
+  public ProcessListView() {
+    super("processList.mustache");
   }
 
-  public abstract List<ProcessDescriptionReduced> processDescriptions();
+  public abstract List<ProcessSummaryEntry> processList();
 
   @Nullable
   public abstract List<NavigationDTO> pagination();

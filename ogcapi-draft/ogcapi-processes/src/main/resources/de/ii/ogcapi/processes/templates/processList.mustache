@@ -9,10 +9,9 @@
   {{> pagination}}
 
   <div class="row my-3">
-    <div class="col-md-2 font-weight-bold">{{title}}</div>
     <div class="col-md-10">
       <ul class="list-unstyled">
-        {{#processDescriptions}}
+        {{#processList}}
           <li>
             <a href="processes/{{id}}">{{title}} ({{id}})</a>
             <br/>
@@ -29,10 +28,10 @@
             </ul>
             <br/>
           </li>
-        {{/processDescriptions}}
-        {{^processDescriptions}}
+        {{/processList}}
+        {{^processList}}
           <li>{{none}}</li>
-        {{/processDescriptions}}
+        {{/processList}}
       </ul>
     </div>
   </div>

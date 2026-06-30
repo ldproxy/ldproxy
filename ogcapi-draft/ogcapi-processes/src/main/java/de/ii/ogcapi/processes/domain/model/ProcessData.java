@@ -13,8 +13,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.xtraplatform.values.domain.StoredValue;
 import de.ii.xtraplatform.values.domain.ValueBuilder;
 import de.ii.xtraplatform.values.domain.annotations.FromValueStore;
-import java.util.List;
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -22,25 +20,7 @@ import org.immutables.value.Value;
 @FromValueStore(type = "processes")
 @JsonInclude(Include.NON_EMPTY)
 @JsonDeserialize(builder = ImmutableProcessData.Builder.class)
-public interface ProcessData extends StoredValue {
-
-  enum JOB_CONTROL_OPTIONS {
-    SYNC_EXECUTE,
-    ASYNC_EXECUTE,
-    DISMISS
-  }
-
-  String getId();
-
-  String getVersion();
-
-  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
-
-  Optional<String> getTitle();
-
-  Optional<String> getDescription();
-
-  Optional<List<String>> getKeywords();
+public interface ProcessData extends StoredValue, Process {
 
   abstract class Builder implements ValueBuilder<ProcessData> {}
 }

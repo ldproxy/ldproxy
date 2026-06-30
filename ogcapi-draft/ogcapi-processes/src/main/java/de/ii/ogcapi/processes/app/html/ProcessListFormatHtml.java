@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,9 +23,9 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptions;
+import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ProcessList;
+import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,14 +39,13 @@ import java.util.Optional;
  */
 @Singleton
 @AutoBind
-public class ProcessDescriptionsFormatHtml
-    implements ProcessDescriptionsFormatExtension, FormatHtml {
+public class ProcessListFormatHtml implements ProcessListFormatExtension, FormatHtml {
 
   private final I18n i18n;
-  private final ProcessDescriptionRepository repository;
+  private final ProcessRepository repository;
 
   @Inject
-  public ProcessDescriptionsFormatHtml(I18n i18n, ProcessDescriptionRepository repository) {
+  public ProcessListFormatHtml(I18n i18n, ProcessRepository repository) {
     this.i18n = i18n;
     this.repository = repository;
   }
@@ -69,11 +68,9 @@ public class ProcessDescriptionsFormatHtml
   }
 
   @Override
-  public Object getEntity(
-      ProcessDescriptions processDescriptions, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(ProcessList processList, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String processDescriptionsTitle =
-        i18n.get("processDescriptionsTitle", requestContext.getLanguage());
+    String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
     final List<NavigationDTO> breadCrumbs =
@@ -91,7 +88,7 @@ public class ProcessDescriptionsFormatHtml
                 new NavigationDTO(
                     api.getData().getLabel(),
                     resourceUri.copy().removeLastPathSegments(1).toString()))
-            .add(new NavigationDTO(processDescriptionsTitle))
+            .add(new NavigationDTO(processListTitle))
             .build();
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
@@ -150,11 +147,11 @@ public class ProcessDescriptionsFormatHtml
       pagination.add(new NavigationDTO("›")).add(new NavigationDTO("»"));
     }
 
-    return ImmutableProcessDescriptionsView.builder()
+    return ImmutableProcessListView.builder()
         .apiData(api.getData())
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
-        .processDescriptions(processDescriptions.getProcesses())
+        .processList(processList.getProcesses())
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(api.getData()))
@@ -162,9 +159,9 @@ public class ProcessDescriptionsFormatHtml
         .uri(URI.create("processes"))
         .i18n(i18n)
         .language(requestContext.getLanguage())
-        .description(i18n.get("processDescriptionsLink", requestContext.getLanguage()))
-        .title(i18n.get("processDescriptionsTitle", requestContext.getLanguage()))
-        .rawLinks(processDescriptions.getLinks())
+        .description(i18n.get("processListLink", requestContext.getLanguage()))
+        .title(processListTitle)
+        .rawLinks(processList.getLinks())
         .user(requestContext.getUser())
         .pagination(pagination.build())
         .build();

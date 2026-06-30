@@ -9,18 +9,18 @@ package de.ii.ogcapi.processes.app.html;
 
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
+import de.ii.ogcapi.processes.domain.model.ProcessEntry;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class ProcessDescriptionView extends OgcApiView {
-  public ProcessDescriptionView() {
-    super("processDescription.mustache");
+public abstract class ProcessView extends OgcApiView {
+  public ProcessView() {
+    super("process.mustache");
   }
 
-  public abstract ProcessOgcApi processDescription();
+  public abstract ProcessEntry process();
 
   public abstract I18n i18n();
 

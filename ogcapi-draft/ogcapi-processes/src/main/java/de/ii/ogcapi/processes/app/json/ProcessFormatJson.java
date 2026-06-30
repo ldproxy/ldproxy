@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,8 +14,8 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
+import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ProcessEntry;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,16 +26,15 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ProcessDescriptionFormatJson implements ProcessDescriptionFormatExtension {
+public class ProcessFormatJson implements ProcessFormatExtension {
 
-  private final Schema<?> schemaStyleProcessDescription;
-  private final Map<String, Schema<?>> referencedSchemasProcessDescription;
+  private final Schema<?> schemaStyleProcess;
+  private final Map<String, Schema<?>> referencedSchemasProcess;
 
   @Inject
-  public ProcessDescriptionFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcessDescription = classSchemaCache.getSchema(ProcessOgcApi.class);
-    referencedSchemasProcessDescription =
-        classSchemaCache.getReferencedSchemas(ProcessOgcApi.class);
+  public ProcessFormatJson(ClassSchemaCache classSchemaCache) {
+    schemaStyleProcess = classSchemaCache.getSchema(ProcessEntry.class);
+    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(ProcessEntry.class);
   }
 
   @Override
@@ -46,16 +45,16 @@ public class ProcessDescriptionFormatJson implements ProcessDescriptionFormatExt
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaStyleProcessDescription)
-        .schemaRef(ProcessOgcApi.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasProcessDescription)
+        .schema(schemaStyleProcess)
+        .schemaRef(ProcessEntry.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasProcess)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
   public Object getEntity(
-      ProcessOgcApi processDescriptionOgcApi, OgcApi api, ApiRequestContext requestContext) {
-    return processDescriptionOgcApi;
+      ProcessEntry processEntity, OgcApi api, ApiRequestContext requestContext) {
+    return processEntity;
   }
 }

@@ -7,14 +7,28 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProcessSummary extends DescriptionType {
+public interface ProcessSummary {
+
+  enum JOB_CONTROL_OPTIONS {
+    SYNC_EXECUTE,
+    ASYNC_EXECUTE,
+    DISMISS
+  }
+
   String getId();
 
   String getVersion();
 
   Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+
+  Optional<String> getTitle();
+
+  Optional<String> getDescription();
+
+  Optional<List<String>> getKeywords();
+
+  // Optional<List<MetaData>> getMetaData();
 }
