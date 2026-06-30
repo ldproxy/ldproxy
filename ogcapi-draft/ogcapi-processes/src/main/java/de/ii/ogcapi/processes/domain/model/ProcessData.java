@@ -21,8 +21,8 @@ import org.immutables.value.Value;
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @FromValueStore(type = "processes")
 @JsonInclude(Include.NON_EMPTY)
-@JsonDeserialize(builder = ImmutableProcessDescriptionData.Builder.class)
-public interface ProcessDescriptionData extends StoredValue {
+@JsonDeserialize(builder = ImmutableProcessData.Builder.class)
+public interface ProcessData extends StoredValue {
 
   enum JOB_CONTROL_OPTIONS {
     SYNC_EXECUTE,
@@ -34,13 +34,13 @@ public interface ProcessDescriptionData extends StoredValue {
 
   String getVersion();
 
+  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+
   Optional<String> getTitle();
 
   Optional<String> getDescription();
 
-  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
-
   Optional<List<String>> getKeywords();
 
-  abstract class Builder implements ValueBuilder<ProcessDescriptionData> {}
+  abstract class Builder implements ValueBuilder<ProcessData> {}
 }

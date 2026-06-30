@@ -7,13 +7,14 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.Map;
+import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
+import java.util.List;
 import java.util.Optional;
 
-public interface ProcessDescriptionRepository extends Volatile2 {
+public interface ProcessSummary extends DescriptionType {
+  String getId();
 
-  Optional<Process> get(String processId);
+  String getVersion();
 
-  Map<String, Process> getAll();
+  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
 }

@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -19,13 +19,12 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableProcessDescriptionOgcApi.Builder.class)
+@JsonDeserialize(builder = ImmutableProcessOgcApi.Builder.class)
 @ApiInfo(schemaId = "ProcessDescription")
-public abstract class ProcessDescriptionOgcApi extends PageRepresentationWithId
-    implements ProcessDescription {
+public abstract class ProcessOgcApi extends PageRepresentationWithId implements Process {
 
-  public static ProcessDescriptionOgcApi of(ProcessDescription processDescription) {
-    return new ImmutableProcessDescriptionOgcApi.Builder().from(processDescription).build();
+  public static ProcessOgcApi of(Process process) {
+    return new ImmutableProcessOgcApi.Builder().from(process).build();
   }
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessDescription";
@@ -37,7 +36,7 @@ public abstract class ProcessDescriptionOgcApi extends PageRepresentationWithId
   public abstract Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<ProcessDescriptionOgcApi> FUNNEL =
+  public static final Funnel<ProcessOgcApi> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);

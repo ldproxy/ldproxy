@@ -7,13 +7,15 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import java.util.Map;
-import java.util.Optional;
+import de.ii.ogcapi.processes.app.model.ProcessImpl;
 
-public interface ProcessDescriptionRepository extends Volatile2 {
+public interface Process extends ProcessSummary {
 
-  Optional<Process> get(String processId);
+  static Process custom(ProcessData data) {
+    return new ProcessImpl(data);
+  }
 
-  Map<String, Process> getAll();
+  // Optional<InputDescription> getInputDescription();
+
+  // Optional<OutputDescription> getOutputDescription();
 }

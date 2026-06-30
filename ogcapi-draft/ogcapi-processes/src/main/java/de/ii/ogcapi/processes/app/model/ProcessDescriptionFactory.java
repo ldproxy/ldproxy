@@ -8,7 +8,7 @@
 package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtraplatform.values.domain.ValueFactoryAuto;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -19,6 +19,6 @@ public class ProcessDescriptionFactory extends ValueFactoryAuto {
 
   @Inject
   protected ProcessDescriptionFactory() {
-    super(ProcessDescriptionData.class);
+    super(ProcessData.class);
   }
 }
