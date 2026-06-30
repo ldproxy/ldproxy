@@ -33,6 +33,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
+// ToDo Proper language handling
 /**
  * @title HTML
  */
@@ -42,7 +43,6 @@ public class ProcessDescriptionsFormatHtml
     implements ProcessDescriptionsFormatExtension, FormatHtml {
 
   private final I18n i18n;
-  // ToDo Repository access in Format file seems like bad smell, move pagnitation logic?
   private final ProcessDescriptionRepository repository;
 
   @Inject
@@ -161,7 +161,7 @@ public class ProcessDescriptionsFormatHtml
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .uri(URI.create("processes"))
         .i18n(i18n)
-        .language(requestContext.getLanguage().orElse(null))
+        .language(requestContext.getLanguage())
         .description(i18n.get("processDescriptionsLink", requestContext.getLanguage()))
         .title(i18n.get("processDescriptionsTitle", requestContext.getLanguage()))
         .rawLinks(processDescriptions.getLinks())

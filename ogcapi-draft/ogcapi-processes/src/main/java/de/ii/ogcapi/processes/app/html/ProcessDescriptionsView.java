@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -76,12 +76,12 @@ public abstract class ProcessDescriptionsView extends OgcApiView {
 
   @Value.Derived
   public String none() {
-    return i18n().get("none", Optional.ofNullable(language()));
+    return i18n().get("none", language());
   }
 
   public abstract URICustomizer uriCustomizer();
 
   public abstract I18n i18n();
 
-  public abstract Locale language();
+  public abstract Optional<Locale> language();
 }

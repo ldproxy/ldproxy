@@ -43,8 +43,7 @@ public class QueryParameterFProcesses extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return "/processes".equals(definitionPath)
-        || "/processes/{tileMatrixSetId}".equals(definitionPath);
+    return "/processes".equals(definitionPath) || "/processes/{processId}".equals(definitionPath);
   }
 
   @Override
