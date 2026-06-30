@@ -7,26 +7,15 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.app.model.ProcessDescriptionImpl;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProcessDescription {
-
-  static ProcessDescription custom(ProcessDescriptionData data) {
-    return new ProcessDescriptionImpl(data);
-  }
-
-  String getId();
-
-  String getVersion();
-
+public interface DescriptionType {
   Optional<String> getTitle();
 
   Optional<String> getDescription();
 
-  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
-
   Optional<List<String>> getKeywords();
+
+  // Optional<List<MetaData>> getMetaData();
 }

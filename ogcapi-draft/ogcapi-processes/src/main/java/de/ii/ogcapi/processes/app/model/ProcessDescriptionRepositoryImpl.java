@@ -9,8 +9,8 @@ package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
-import de.ii.ogcapi.processes.domain.model.ProcessDescription;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData;
+import de.ii.ogcapi.processes.domain.model.Process;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatile;
@@ -34,8 +34,8 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ProcessDescriptionRepositoryImpl.class);
 
-  private final Values<ProcessDescriptionData> customProcessDescriptionsStore;
-  private final Map<String, ProcessDescription> processDescriptions;
+  private final Values<ProcessData> customProcessDescriptionsStore;
+  private final Map<String, Process> processDescriptions;
   private final VolatileRegistry volatileRegistry;
 
   /** set data directory */
@@ -43,7 +43,7 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
   public ProcessDescriptionRepositoryImpl(
       ValueStore valueStore, VolatileRegistry volatileRegistry) {
     super(volatileRegistry, "app/processes");
-    this.customProcessDescriptionsStore = valueStore.forType(ProcessDescriptionData.class);
+    this.customProcessDescriptionsStore = valueStore.forType(ProcessData.class);
     this.processDescriptions = new LinkedHashMap<>();
     this.volatileRegistry = volatileRegistry;
   }
@@ -60,12 +60,9 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
         .identifiers()
         .forEach(
             identifier -> {
-              ProcessDescriptionData processDescriptionData =
-                  customProcessDescriptionsStore.get(identifier);
+              ProcessData processData = customProcessDescriptionsStore.get(identifier);
 
-              processDescriptions.put(
-                  processDescriptionData.getId(),
-                  ProcessDescription.custom(processDescriptionData));
+              processDescriptions.put(processData.getId(), Process.custom(processData));
             });
 
     setState(State.AVAILABLE);
@@ -73,14 +70,12 @@ public class ProcessDescriptionRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public Optional<ProcessDescription> get(String processId) {
+  public Optional<Process> get(String processId) {
     return Optional.ofNullable(processDescriptions.get(processId));
   }
 
   @Override
-  public Map<String, ProcessDescription> getAll() {
-    return new ImmutableMap.Builder<String, ProcessDescription>()
-        .putAll(processDescriptions)
-        .build();
+  public Map<String, Process> getAll() {
+    return new ImmutableMap.Builder<String, Process>().putAll(processDescriptions).build();
   }
 }
