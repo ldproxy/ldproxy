@@ -1,0 +1,54 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+
+  {{#processDescription}}
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Id</div>
+      <div class="col-md-10">{{id}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Version</div>
+      <div class="col-md-10">{{version}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Title</div>
+      <div class="col-md-10">
+        {{#title}}{{.}}{{/title}}{{^title}}None{{/title}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Description</div>
+      <div class="col-md-10">
+        {{#description}}{{{.}}}{{/description}}{{^description}}None{{/description}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Keywords</div>
+      <div class="col-md-10">
+        {{#keywords}}
+          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
+        {{/keywords}}
+        {{^keywords}}None{{/keywords}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Job Control Options</div>
+      <div class="col-md-10">
+        {{#jobControlOptions}}
+          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
+        {{/jobControlOptions}}
+        {{^jobControlOptions}}None{{/jobControlOptions}}
+      </div>
+    </div>
+  {{/processDescription}}
+</div>
+
+
+{{> footer}}
