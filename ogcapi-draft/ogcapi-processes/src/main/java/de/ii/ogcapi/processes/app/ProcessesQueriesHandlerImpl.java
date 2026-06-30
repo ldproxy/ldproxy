@@ -25,13 +25,13 @@ import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionsLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
-import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptionOgcApi;
 import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptionReduced;
 import de.ii.ogcapi.processes.domain.model.ImmutableProcessDescriptions;
-import de.ii.ogcapi.processes.domain.model.ProcessDescription;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionOgcApi;
+import de.ii.ogcapi.processes.domain.model.ImmutableProcessOgcApi;
+import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptions;
+import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -194,13 +194,13 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     List<Link> links =
         List.of(new ImmutableLink.Builder().href("example.org").rel("next").title("test").build());
 
-    ProcessDescription process =
+    Process process =
         processDescriptionRepository
             .get(processId)
             .orElseThrow(() -> new NotFoundException("Unknown process: " + processId));
 
-    ProcessDescriptionOgcApi processDescriptionOgcApi =
-        new ImmutableProcessDescriptionOgcApi.Builder().from(process).links(links).build();
+    ProcessOgcApi processDescriptionOgcApi =
+        new ImmutableProcessOgcApi.Builder().from(process).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -210,9 +210,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                processDescriptionOgcApi,
-                ProcessDescriptionOgcApi.FUNNEL,
-                outputFormat.getMediaType().label())
+                processDescriptionOgcApi, ProcessOgcApi.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();

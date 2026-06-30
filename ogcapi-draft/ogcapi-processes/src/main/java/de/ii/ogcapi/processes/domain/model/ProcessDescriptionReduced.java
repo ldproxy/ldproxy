@@ -10,7 +10,7 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;

@@ -7,17 +7,17 @@
  */
 package de.ii.ogcapi.processes.app.model;
 
-import de.ii.ogcapi.processes.domain.model.ProcessDescription;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionData.JOB_CONTROL_OPTIONS;
+import de.ii.ogcapi.processes.domain.model.Process;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
+import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.util.List;
 import java.util.Optional;
 
-public class ProcessDescriptionImpl implements ProcessDescription {
+public class ProcessImpl implements Process {
 
-  ProcessDescriptionData data;
+  ProcessData data;
 
-  public ProcessDescriptionImpl(ProcessDescriptionData data) {
+  public ProcessImpl(ProcessData data) {
     this.data = data;
   }
 
@@ -32,6 +32,11 @@ public class ProcessDescriptionImpl implements ProcessDescription {
   }
 
   @Override
+  public Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions() {
+    return data.getJobControlOptions();
+  }
+
+  @Override
   public Optional<String> getTitle() {
     return data.getTitle();
   }
@@ -39,11 +44,6 @@ public class ProcessDescriptionImpl implements ProcessDescription {
   @Override
   public Optional<String> getDescription() {
     return data.getDescription();
-  }
-
-  @Override
-  public Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions() {
-    return data.getJobControlOptions();
   }
 
   @Override

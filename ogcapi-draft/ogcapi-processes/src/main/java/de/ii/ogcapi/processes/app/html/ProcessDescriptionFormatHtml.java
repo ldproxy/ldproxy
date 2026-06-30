@@ -20,8 +20,8 @@ import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionOgcApi;
 import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -63,7 +63,7 @@ public class ProcessDescriptionFormatHtml implements ProcessDescriptionFormatExt
 
   @Override
   public Object getEntity(
-      ProcessDescriptionOgcApi processDescription, OgcApi api, ApiRequestContext requestContext) {
+      ProcessOgcApi processDescription, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
     String processDescriptionsTitle =
         i18n.get("processDescriptionsTitle", requestContext.getLanguage());
