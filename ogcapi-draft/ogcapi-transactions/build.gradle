@@ -1,7 +1,12 @@
-maturity = 'CANDIDATE'
+maturity = 'PROPOSAL'
 maintenance = 'NONE'
 description = 'Atomic and batch transactions over multiple feature collections.'
 descriptionDe = 'Atomare und gestapelte Transaktionen über mehrere Objektarten.'
+
+// Transaction hooks in the configuration are currently SQL statements. Once there is a better
+// understanding of the types of hooks/statements that are needed, the option should be changed
+// to declaration that can be mapped to SQL statements internally. The maturity level should only
+// be raised once this is implemented.
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'

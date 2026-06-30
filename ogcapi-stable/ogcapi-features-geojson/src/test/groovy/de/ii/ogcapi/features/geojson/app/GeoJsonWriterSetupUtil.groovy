@@ -119,7 +119,7 @@ class GeoJsonWriterSetupUtil {
                 .isHitsOnly(false)
                 .state(ModifiableStateGeoJson.create())
                 .prettify(true)
-                .geoJsonConfig(new ImmutableGeoJsonConfiguration.Builder().enabled(true).build())
+                .putGeoJsonConfigs("test", new ImmutableGeoJsonConfiguration.Builder().enabled(true).build())
                 .build()
 
         return ModifiableEncodingAwareContextGeoJson.create().setEncoding(transformationContext)

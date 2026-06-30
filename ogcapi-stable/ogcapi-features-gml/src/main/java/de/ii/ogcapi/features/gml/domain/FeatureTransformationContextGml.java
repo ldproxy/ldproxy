@@ -98,6 +98,13 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return ModifiableStateGml.create();
   }
 
+  // -------------------------------------------------------------------------
+  // Document-level options. A single response may mix several collections (the Search building
+  // block); these options are written once for the whole document (root element, namespace
+  // declarations) or are required to be uniform, so they are taken from / unioned across the
+  // response's collections rather than resolved per feature.
+  // -------------------------------------------------------------------------
+
   public abstract GmlVersion getGmlVersion();
 
   public abstract Map<String, String> getNamespaces();
@@ -106,20 +113,12 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract Optional<String> getDefaultNamespace();
 
-  public abstract Map<String, String> getObjectTypeNamespaces();
-
-  public abstract Map<String, VariableName> getVariableObjectElementNames();
-
-  @Value.Default
-  public List<String> getObjectTypeSuffixedProperties() {
-    return ImmutableList.of();
-  }
-
   /**
    * Maps a collection id to the object type of that collection. Used to derive the {@code
    * _{objectType}} suffix appended to the property element name of a feature reference declared in
    * {@link #getObjectTypeSuffixedProperties()}: the reference's type value (the target collection
-   * id) is looked up here to obtain the object type for the suffix.
+   * id) is looked up here to obtain the object type for the suffix. Built from all feature schemas
+   * of the API, so it is not collection-specific.
    */
   @Value.Default
   public Map<String, String> getRefTargetObjectTypes() {
@@ -132,52 +131,133 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   public abstract boolean getSupportsStandardResponseParameters();
 
-  public abstract boolean getGmlIdOnGeometries();
+  // -------------------------------------------------------------------------
+  // Per-collection options. Keyed by collection id, one entry per collection in the response.
+  // The active bundle is resolved from the type of the feature currently being encoded (set on
+  // the state at feature start), so every property is encoded with the configuration of the
+  // collection it belongs to. See CollectionEncodingGml.
+  // -------------------------------------------------------------------------
 
-  public abstract boolean getSrsDimension();
+  public abstract Map<String, CollectionEncodingGml> getCollectionEncodings();
 
-  public abstract boolean getUseSurfaceAndCurve();
+  private static final CollectionEncodingGml EMPTY_ENCODING =
+      ImmutableCollectionEncodingGml.builder().build();
 
-  public abstract boolean getForceCompositeCurve();
+  /**
+   * The per-collection encoding options of the collection the feature currently being encoded
+   * belongs to. Resolves via the collection id recorded on the state at feature start. Before any
+   * feature is active — where per-collection options are not actually read — it returns any present
+   * bundle (or an empty one if there are none), so document-level writers never NPE.
+   */
+  @Value.Auxiliary
+  public CollectionEncodingGml currentEncoding() {
+    return resolveCurrentEncoding(getCollectionEncodings(), getState().getCurrentCollectionId());
+  }
 
-  public abstract List<String> getXmlAttributes();
+  /**
+   * Picks the encoding bundle for the active collection: the one keyed by {@code
+   * currentCollectionId} when set and present, else any present bundle, finally an empty bundle.
+   * Package-private and static for unit testing.
+   */
+  static CollectionEncodingGml resolveCurrentEncoding(
+      Map<String, CollectionEncodingGml> encodings, Optional<String> currentCollectionId) {
+    CollectionEncodingGml active = currentCollectionId.map(encodings::get).orElse(null);
+    if (active != null) {
+      return active;
+    }
+    return encodings.isEmpty() ? EMPTY_ENCODING : encodings.values().iterator().next();
+  }
 
-  public abstract Optional<String> getGmlIdPrefix();
+  // Options read straight off the active collection's GmlConfiguration (with the same null/Optional
+  // normalization the context applied before). Only the five derived options below are taken from
+  // the bundle's pre-computed fields.
 
-  public abstract Optional<GmlConfiguration.SrsNameStyle> getSrsNameStyle();
+  public Map<String, String> getObjectTypeNamespaces() {
+    return currentEncoding().getConfig().getObjectTypeNamespaces();
+  }
 
-  public abstract List<SrsNameMapping> getSrsNameMappings();
+  public Map<String, VariableName> getVariableObjectElementNames() {
+    return currentEncoding().getConfig().getVariableObjectElementNames();
+  }
 
-  public abstract Optional<GmlConfiguration.UomStyle> getUomStyle();
+  public List<String> getObjectTypeSuffixedProperties() {
+    // Alias-rewritten in the bundle (technical id → alias path) when useAlias is on, so this
+    // matches the alias-form paths GmlWriterProperties sees at runtime (as for getXmlAttributes).
+    return currentEncoding().getObjectTypeSuffixedProperties();
+  }
 
-  public abstract List<UomMapping> getUomMappings();
+  public boolean getGmlIdOnGeometries() {
+    return Boolean.TRUE.equals(currentEncoding().getConfig().getGmlIdOnGeometries());
+  }
 
-  public abstract Optional<String> getFeatureRefTemplate();
+  public boolean getSrsDimension() {
+    return Boolean.TRUE.equals(currentEncoding().getConfig().getSrsDimension());
+  }
 
-  public abstract Optional<GmlIdentifier> getGmlIdentifier();
+  public boolean getUseSurfaceAndCurve() {
+    return Boolean.TRUE.equals(currentEncoding().getConfig().getUseSurfaceAndCurve());
+  }
 
-  @Value.Default
+  public boolean getForceCompositeCurve() {
+    return Boolean.TRUE.equals(currentEncoding().getConfig().getForceCompositeCurve());
+  }
+
+  public Optional<String> getGmlIdPrefix() {
+    return Optional.ofNullable(currentEncoding().getConfig().getGmlIdPrefix());
+  }
+
+  public Optional<GmlConfiguration.SrsNameStyle> getSrsNameStyle() {
+    return Optional.ofNullable(currentEncoding().getConfig().getSrsNameStyle());
+  }
+
+  public List<SrsNameMapping> getSrsNameMappings() {
+    return currentEncoding().getConfig().getSrsNameMappings();
+  }
+
+  public Optional<GmlConfiguration.UomStyle> getUomStyle() {
+    return Optional.ofNullable(currentEncoding().getConfig().getUomStyle());
+  }
+
+  public List<UomMapping> getUomMappings() {
+    return currentEncoding().getConfig().getUomMappings();
+  }
+
+  public Optional<String> getFeatureRefTemplate() {
+    return Optional.ofNullable(currentEncoding().getConfig().getFeatureRefTemplate());
+  }
+
+  public Optional<GmlIdentifier> getGmlIdentifier() {
+    return Optional.ofNullable(currentEncoding().getConfig().getGmlIdentifier());
+  }
+
+  public Optional<String> getCodelistUriTemplate() {
+    return Optional.ofNullable(currentEncoding().getConfig().getCodelistUriTemplate());
+  }
+
+  public Optional<String> getCodeListUriTemplateIso19139() {
+    return Optional.ofNullable(currentEncoding().getConfig().getCodeListUriTemplateIso19139());
+  }
+
+  // Derived options, pre-computed per collection (alias rewrites / codelist resolution / request).
+
+  public List<String> getXmlAttributes() {
+    return currentEncoding().getXmlAttributes();
+  }
+
   public boolean getAppendTemporalSuffixToGmlId() {
-    return false;
+    return currentEncoding().getAppendTemporalSuffixToGmlId();
   }
 
-  public abstract Optional<String> getCodelistUriTemplate();
-
-  public abstract Optional<String> getCodeListUriTemplateIso19139();
-
-  @Value.Default
   public Map<String, String> getCodelistProperties() {
-    return ImmutableMap.of();
+    return currentEncoding().getCodelistProperties();
   }
 
-  @Value.Default
   public Map<String, List<String>> getValueWrap() {
-    return ImmutableMap.of();
+    return currentEncoding().getValueWrap();
   }
 
-  @Value.Default
   public Map<String, Codelist> getCodelists() {
-    return ImmutableMap.of();
+    return currentEncoding().getCodelists();
   }
 
   @Value.Derived
@@ -848,6 +928,14 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
   @Value.Modifiable
   public abstract static class StateGml extends State {
+
+    /**
+     * The collection id of the feature currently being encoded, set at feature start from the
+     * feature's provider type via {@link #getCollectionIdForType(String)}. Drives {@link
+     * #currentEncoding()} so per-collection options resolve to the right collection in a
+     * multi-collection response. Empty before the first feature.
+     */
+    public abstract Optional<String> getCurrentCollectionId();
 
     @Value.Default
     public boolean getInLink() {

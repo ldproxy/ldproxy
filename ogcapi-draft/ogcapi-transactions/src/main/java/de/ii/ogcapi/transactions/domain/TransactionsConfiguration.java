@@ -46,6 +46,26 @@ import org.immutables.value.Value;
  *           - tags               # VALUE_ARRAY
  *           - addresses          # OBJECT_ARRAY
  * ```
+ *
+ * Transaction-lifecycle hooks (PostgreSQL/PostGIS providers). Statements are selected by the
+ * request's `Prefer: handling` preference; a pre-commit error rolls the transaction back, a
+ * pre-commit warning lets it commit and is returned in the response:
+ *
+ * ```yaml
+ * - buildingBlock: TRANSACTIONS
+ *   transactionSetup:
+ *     always:
+ *       - SET LOCAL myapp.geometry_validation.enabled = true
+ *     strict:
+ *       - SET LOCAL myapp.geometry_validation.error_if_invalid = true
+ *     lenient:
+ *       - SET LOCAL myapp.geometry_validation.error_if_invalid = false
+ *   preCommit:
+ *     always:
+ *       - SELECT myapp.update_derived_data()
+ *     strict:
+ *       - SELECT myapp.assert_consistency()
+ * ```
  * </code>
  */
 @Value.Immutable
@@ -140,9 +160,62 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     der API-Ebene zusammengeführt (Duplikate werden entfernt). Ist die effektive Liste für eine
    *     Sammlung leer, sind Teil-Aktualisierungen für diese Sammlung deaktiviert.
    * @default []
-   * @since v4.9
+   * @since v4.8
    */
   List<String> getUpdatableProperties();
+
+  /**
+   * @langEn SQL statements executed on the database transaction right after it begins, before any
+   *     action runs. Typical uses are transaction-scoped settings (`SET LOCAL …`) or calling a
+   *     setup function. Each entry is a single statement run verbatim, in order, on the provider's
+   *     transaction connection (PostgreSQL/PostGIS feature providers only). The `always`, `strict`
+   *     and `lenient` lists select which statements run depending on the request's `Prefer:
+   *     handling` preference. A statement that fails aborts the transaction.
+   * @langDe SQL-Anweisungen, die auf der Datenbanktransaktion direkt nach deren Beginn ausgeführt
+   *     werden, bevor eine Aktion läuft. Typische Anwendungen sind transaktionsbezogene
+   *     Einstellungen (`SET LOCAL …`) oder der Aufruf einer Setup-Funktion. Jeder Eintrag ist eine
+   *     einzelne Anweisung, die unverändert und in der angegebenen Reihenfolge auf der
+   *     Transaktionsverbindung des Providers ausgeführt wird (nur PostgreSQL/PostGIS-Provider). Die
+   *     Listen `always`, `strict` und `lenient` legen abhängig von der `Prefer: handling`-Präferenz
+   *     der Anfrage fest, welche Anweisungen laufen. Eine fehlschlagende Anweisung bricht die
+   *     Transaktion ab.
+   * @default null
+   * @since v4.8
+   */
+  @Nullable
+  TransactionHooks getTransactionSetup();
+
+  /**
+   * @langEn SQL statements executed on the database transaction right before it is committed.
+   *     Typical uses are calling functions that update derived data or verify consistency. Each
+   *     entry is a single statement run verbatim, in order, on the provider's transaction
+   *     connection (PostgreSQL/PostGIS feature providers only). The `always`, `strict` and
+   *     `lenient` lists select which statements run depending on the request's `Prefer: handling`
+   *     preference. A statement that raises an error aborts the transaction and rolls it back; a
+   *     statement that only emits a warning (`RAISE WARNING` / `RAISE NOTICE`) lets the transaction
+   *     commit and the warning is returned in the response. The error and warning text is relayed
+   *     verbatim into the response (`exceptions` and `warnings`), and the statements run at the
+   *     database level without access to the request actions, so write `RAISE` messages that
+   *     identify the affected feature(s) — e.g. include the feature identifier — to make the
+   *     response actionable.
+   * @langDe SQL-Anweisungen, die auf der Datenbanktransaktion direkt vor dem Commit ausgeführt
+   *     werden. Typische Anwendungen sind Funktionen, die abgeleitete Daten aktualisieren oder die
+   *     Konsistenz prüfen. Jeder Eintrag ist eine einzelne Anweisung, die unverändert und in der
+   *     angegebenen Reihenfolge auf der Transaktionsverbindung des Providers ausgeführt wird (nur
+   *     PostgreSQL/PostGIS-Provider). Die Listen `always`, `strict` und `lenient` legen abhängig
+   *     von der `Prefer: handling`-Präferenz der Anfrage fest, welche Anweisungen laufen. Eine
+   *     Anweisung, die einen Fehler auslöst, bricht die Transaktion ab und macht sie rückgängig;
+   *     eine Anweisung, die nur eine Warnung ausgibt (`RAISE WARNING` / `RAISE NOTICE`), lässt die
+   *     Transaktion committen, und die Warnung wird in der Antwort zurückgegeben. Der Fehler- bzw.
+   *     Warnungstext wird unverändert in die Antwort übernommen (`exceptions` und `warnings`), und
+   *     die Anweisungen laufen auf Datenbankebene ohne Zugriff auf die Aktionen der Anfrage. Daher
+   *     sollten `RAISE`-Meldungen die betroffenen Objekte benennen — z.B. den Objektidentifikator
+   *     enthalten —, damit die Antwort auswertbar ist.
+   * @default null
+   * @since v4.8
+   */
+  @Nullable
+  TransactionHooks getPreCommit();
 
   @Value.Derived
   @Value.Auxiliary

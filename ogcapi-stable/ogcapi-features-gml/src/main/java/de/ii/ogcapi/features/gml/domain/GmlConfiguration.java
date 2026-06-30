@@ -18,6 +18,8 @@ import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -555,20 +557,18 @@ public interface GmlConfiguration
   /**
    * @langEn Some feature reference properties are encoded in GML with a property element name that
    *     appends the referenced feature type to the property name, for example
-   *     `adv:gehoertZuBauwerk_AX_Turm` instead of `adv:gehoertZuBauwerk`. List the affected
-   *     properties here. On encoding, the property element name receives a `_{objectType}` suffix
-   *     where `{objectType}` is the object type of the collection that the reference points to; on
-   *     decoding, an element name with such a suffix is mapped back to the property. Use the
-   *     property name as it appears in the GML element, that is, the alias when `useAlias` is
-   *     enabled.
+   *     `gehoertZuBauwerk_AX_Turm` instead of `gehoertZuBauwerk`. List the affected properties
+   *     here, identified by their property id. On encoding, the property element name receives a
+   *     `_{objectType}` suffix where `{objectType}` is the object type of the collection that the
+   *     reference points to; on decoding, an element name with such a suffix is mapped back to the
+   *     property.
    * @langDe Einige Eigenschaften mit Objektreferenzen werden in GML mit einem Elementnamen kodiert,
    *     der den referenzierten Objekttyp an den Eigenschaftsnamen anhängt, zum Beispiel
-   *     `adv:gehoertZuBauwerk_AX_Turm` statt `adv:gehoertZuBauwerk`. Hier werden die betroffenen
-   *     Eigenschaften aufgelistet. Bei der Kodierung erhält der Elementname ein
-   *     `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection ist, auf die die
-   *     Referenz verweist; bei der Dekodierung wird ein Elementname mit einem solchen Suffix wieder
-   *     auf die Eigenschaft abgebildet. Es ist der Eigenschaftsname zu verwenden, wie er im
-   *     GML-Element erscheint, also der Alias, wenn `useAlias` aktiviert ist.
+   *     `gehoertZuBauwerk_AX_Turm` statt `gehoertZuBauwerk`. Hier werden die betroffenen
+   *     Eigenschaften aufgelistet, angegeben über ihre Property-Id. Bei der Kodierung erhält der
+   *     Elementname ein `_{objectType}`-Suffix, wobei `{objectType}` der Objekttyp der Collection
+   *     ist, auf die die Referenz verweist; bei der Dekodierung wird ein Elementname mit einem
+   *     solchen Suffix wieder auf die Eigenschaft abgebildet.
    * @default []
    * @examplesAll <code>
    * ```yaml
@@ -1071,6 +1071,46 @@ public interface GmlConfiguration
   @Nullable
   String getCodeListUriTemplateIso19139();
 
+  /**
+   * Fails fast when a {@code schemaLocations} value cannot be a document URI, so a configuration
+   * slip — most commonly a sibling option mis-indented into the map, which turns its entries into
+   * bogus locations — is reported at service load with the offending namespace prefix, instead of
+   * surfacing only as a per-request "no protocol" warning the first time GML input is validated. A
+   * value carrying a {@code {{…}}} template (e.g. {@code {{serviceUrl}}}) is resolved at request
+   * time and is therefore not checked here.
+   */
+  @Value.Check
+  default void checkSchemaLocations() {
+    getSchemaLocations()
+        .forEach(
+            (prefix, location) -> {
+              if (location == null || location.isBlank()) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations entry for namespace prefix '%s' has no document URI.",
+                        prefix));
+              }
+              if (location.contains("{{")) {
+                return;
+              }
+              URI uri;
+              try {
+                uri = new URI(location);
+              } catch (URISyntaxException e) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations URI '%s' for namespace prefix '%s' is not a valid URI: %s",
+                        location, prefix, e.getMessage()));
+              }
+              if (!uri.isAbsolute()) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the schemaLocations URI '%s' for namespace prefix '%s' must be an absolute URI with a scheme (for example https). A bare token here usually means another option was mis-indented into schemaLocations.",
+                        location, prefix));
+              }
+            });
+  }
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override
@@ -1100,6 +1140,8 @@ public interface GmlConfiguration
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
         .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .objectTypeSuffixedProperties(
+            mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
         .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
         .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(

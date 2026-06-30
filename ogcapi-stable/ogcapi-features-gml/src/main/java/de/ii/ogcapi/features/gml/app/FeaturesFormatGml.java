@@ -19,10 +19,12 @@ import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreValidation;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
+import de.ii.ogcapi.features.gml.domain.CollectionEncodingGml;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration.Conformance;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
+import de.ii.ogcapi.features.gml.domain.ImmutableCollectionEncodingGml;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
 import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
 import de.ii.ogcapi.features.gml.domain.UomMapping;
@@ -76,6 +78,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -389,6 +392,11 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   @Override
+  public boolean supportsHeterogeneousFeatureCollections() {
+    return true;
+  }
+
+  @Override
   public boolean requiresPropertiesInSequence(FeatureSchema schema) {
     return true;
   }
@@ -404,52 +412,96 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 ImmutableSortedSet.toImmutableSortedSet(
                     Comparator.comparingInt(GmlWriter::getSortPriority)));
 
-    @SuppressWarnings("ConstantConditions")
-    FeatureTypeConfigurationOgcApi collectionData =
-        transformationContext
-            .getApiData()
-            .getCollections()
-            .get(transformationContext.getCollectionId());
-    GmlConfiguration config = collectionData.getExtension(GmlConfiguration.class).orElseThrow();
-    // When useAlias is on, the rename transformer (injected by FeatureSchemaAliases) rewrites
-    // schema names to their aliases, so GmlWriterProperties' runtime lookups
-    // (containsKey(schema.getFullPathAsString())) come in with alias-form paths. The config map
-    // keys, however, are written in technical names — that is the form the operator uses
-    // everywhere else (the SchemaConstraints.codelist on the schema, the decoder side, the
-    // provider config). Translate config-side technical paths to alias-form paths here so the
-    // runtime lookup matches; without this remap, codelist properties silently fall through to
-    // a plain <prop>value</prop> element instead of <prop xlink:href="…"/>, and xmlAttributes /
-    // valueWrap config entries are silently ignored for any aliased ancestor path.
-    Map<String, String> aliasRewrites =
-        config.isUseAlias()
-            ? providers
-                .getFeatureSchema(transformationContext.getApiData(), collectionData)
-                .map(FeaturesFormatGml::buildAliasPathRewrites)
-                .orElse(Map.of())
-            : Map.of();
+    // Build one encoding bundle per collection present in this response. A /items response has a
+    // single collection; a /search response mixes several, each with its own GmlConfiguration.
+    // Resolving the options per collection — rather than baking in the arbitrary first collection's
+    // config (transformationContext.getCollectionId()) — ensures every feature is encoded with the
+    // configuration of the collection it actually belongs to.
+    Set<String> collectionIds =
+        transformationContext.getFeatureSchemas().keySet().stream()
+            .map(transformationContext::getCollectionIdForType)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+    // A search has no privileged collection — all queried collections are equal. The handful of
+    // options below are written once for the whole document, so a single value has to be picked;
+    // they are taken from a representative collection (assumed uniform across the response, as they
+    // are for an API-level GML configuration). The first collection of the response serves as that
+    // representative.
+    String representativeCollectionId =
+        transformationContext.getCollectionIdForType(transformationContext.getCollectionId());
+    Map<String, CollectionEncodingGml> collectionEncodings = new LinkedHashMap<>();
+    Map<String, GmlConfiguration> configsByCollection = new LinkedHashMap<>();
+    Map<String, String> namespaces = new LinkedHashMap<>();
+    Map<String, String> schemaLocations = new LinkedHashMap<>();
+    GmlConfiguration representativeConfig = null;
+
+    for (String collectionId : collectionIds) {
+      FeatureTypeConfigurationOgcApi collectionData =
+          transformationContext.getApiData().getCollections().get(collectionId);
+      if (collectionData == null) {
+        continue;
+      }
+      Optional<GmlConfiguration> configOptional =
+          collectionData.getExtension(GmlConfiguration.class);
+      if (configOptional.isEmpty()) {
+        continue;
+      }
+      GmlConfiguration config = configOptional.get();
+      configsByCollection.put(collectionId, config);
+      if (representativeConfig == null || collectionId.equals(representativeCollectionId)) {
+        representativeConfig = config;
+      }
+      // When useAlias is on, the rename transformer (injected by FeatureSchemaAliases) rewrites
+      // schema names to their aliases, so GmlWriterProperties' runtime lookups
+      // (containsKey(schema.getFullPathAsString())) come in with alias-form paths. The config map
+      // keys, however, are written in technical names — that is the form the operator uses
+      // everywhere else (the SchemaConstraints.codelist on the schema, the decoder side, the
+      // provider config). Translate config-side technical paths to alias-form paths here so the
+      // runtime lookup matches; without this remap, codelist properties silently fall through to
+      // a plain <prop>value</prop> element instead of <prop xlink:href="…"/>, and xmlAttributes /
+      // valueWrap config entries are silently ignored for any aliased ancestor path.
+      Map<String, String> aliasRewrites =
+          config.isUseAlias()
+              ? providers
+                  .getFeatureSchema(transformationContext.getApiData(), collectionData)
+                  .map(FeaturesFormatGml::buildAliasPathRewrites)
+                  .orElse(Map.of())
+              : Map.of();
+      collectionEncodings.put(
+          collectionId, buildCollectionEncoding(transformationContext, config, aliasRewrites));
+      // Namespace and schemaLocation declarations are written once for the whole document, so they
+      // are unioned across the response's collections.
+      mergeMapInto(
+          namespaces,
+          namespacesCache
+              .computeIfAbsent(
+                  transformationContext.getApiData().hashCode(), k -> new ConcurrentHashMap<>())
+              .computeIfAbsent(collectionId, k -> mergeNamespaces(config)));
+      mergeMapInto(schemaLocations, config.getSchemaLocations());
+    }
+
+    if (collectionEncodings.isEmpty() || representativeConfig == null) {
+      // Mirror the previous getExtension(...).orElseThrow(): a GML response requires a GML
+      // configuration on at least the response's collections.
+      throw new IllegalStateException(
+          "No GML configuration found for the collection(s) of the response.");
+    }
+    STANDARD_SCHEMA_LOCATIONS.forEach(schemaLocations::putIfAbsent);
+    warnOnDivergentDocumentOptions(
+        configsByCollection, representativeCollectionId, representativeConfig);
+
     ImmutableFeatureTransformationContextGml transformationContextGml =
         ImmutableFeatureTransformationContextGml.builder()
             .from(transformationContext)
-            .gmlVersion(Objects.requireNonNullElse(config.getGmlVersion(), GML32))
-            .putAllNamespaces(
-                namespacesCache
-                    .computeIfAbsent(
-                        transformationContext.getApiData().hashCode(),
-                        k -> new ConcurrentHashMap<>())
-                    .computeIfAbsent(
-                        transformationContext.getCollectionId(), k -> mergeNamespaces(config)))
-            .defaultNamespace(Optional.ofNullable(config.getDefaultNamespace()))
-            .putAllSchemaLocations(config.getSchemaLocations())
-            .putAllSchemaLocations(
-                STANDARD_SCHEMA_LOCATIONS.entrySet().stream()
-                    .filter(entry -> !config.getSchemaLocations().containsKey(entry.getKey()))
-                    .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue)))
-            .objectTypeNamespaces(config.getObjectTypeNamespaces())
-            .variableObjectElementNames(config.getVariableObjectElementNames())
-            // configured by the property's element name (the alias when useAlias is on), which is
-            // also the form GmlWriterProperties sees as schema.getName() at runtime — so no
-            // technical-to-alias remap is applied here.
-            .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
+            // Document-level options are unioned across the response's collections (namespaces,
+            // schemaLocations) or taken from a representative collection where a single value is
+            // required; the per-collection options live in the encoding bundles, resolved per
+            // feature.
+            .gmlVersion(Objects.requireNonNullElse(representativeConfig.getGmlVersion(), GML32))
+            .putAllNamespaces(namespaces)
+            .defaultNamespace(Optional.ofNullable(representativeConfig.getDefaultNamespace()))
+            .putAllSchemaLocations(schemaLocations)
             .refTargetObjectTypes(
                 providers.getFeatureSchemas(transformationContext.getApiData()).entrySet().stream()
                     .filter(entry -> entry.getValue().getObjectType().isPresent())
@@ -457,34 +509,109 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                         ImmutableMap.toImmutableMap(
                             Map.Entry::getKey, entry -> entry.getValue().getObjectType().get())))
             .featureCollectionElementName(
-                Optional.ofNullable(config.getFeatureCollectionElementName()))
-            .featureMemberElementName(Optional.ofNullable(config.getFeatureMemberElementName()))
+                Optional.ofNullable(representativeConfig.getFeatureCollectionElementName()))
+            .featureMemberElementName(
+                Optional.ofNullable(representativeConfig.getFeatureMemberElementName()))
             .supportsStandardResponseParameters(
-                Objects.requireNonNullElse(config.getSupportsStandardResponseParameters(), false))
-            .gmlIdOnGeometries(Objects.requireNonNullElse(config.getGmlIdOnGeometries(), false))
-            .srsDimension(Objects.requireNonNullElse(config.getSrsDimension(), false))
-            .useSurfaceAndCurve(Objects.requireNonNullElse(config.getUseSurfaceAndCurve(), false))
-            .forceCompositeCurve(Objects.requireNonNullElse(config.getForceCompositeCurve(), false))
-            .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
-            .gmlIdPrefix(Optional.ofNullable(config.getGmlIdPrefix()))
-            .srsNameStyle(Optional.ofNullable(config.getSrsNameStyle()))
-            .srsNameMappings(config.getSrsNameMappings())
-            .uomStyle(Optional.ofNullable(config.getUomStyle()))
-            .uomMappings(config.getUomMappings())
-            .featureRefTemplate(Optional.ofNullable(config.getFeatureRefTemplate()))
-            .gmlIdentifier(Optional.ofNullable(config.getGmlIdentifier()))
-            .appendTemporalSuffixToGmlId(
-                Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
-                    && isDatetimeIntervalRequest(transformationContext))
-            .codelistUriTemplate(Optional.ofNullable(config.getCodelistUriTemplate()))
-            .codeListUriTemplateIso19139(
-                Optional.ofNullable(config.getCodeListUriTemplateIso19139()))
-            .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
-            .codelists(resolveCodelists(config.getCodelistProperties()))
-            .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
+                Objects.requireNonNullElse(
+                    representativeConfig.getSupportsStandardResponseParameters(), false))
+            .collectionEncodings(collectionEncodings)
             .build();
 
     return Optional.of(new FeatureEncoderGml(transformationContextGml, gmlWriters));
+  }
+
+  // Bundles a collection's GmlConfiguration with the few options the context cannot read off the
+  // configuration as-is: the path-keyed maps/lists are alias-rewritten (technical → alias) when
+  // useAlias is on, so they match the alias-form paths GmlWriterProperties sees at runtime; the
+  // codelist ids are resolved to Codelist instances; the temporal-suffix flag is folded with the
+  // request. All other options are read straight off getConfig() by the context.
+  private CollectionEncodingGml buildCollectionEncoding(
+      FeatureTransformationContext transformationContext,
+      GmlConfiguration config,
+      Map<String, String> aliasRewrites) {
+    return ImmutableCollectionEncodingGml.builder()
+        .config(config)
+        .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
+        .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
+        .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
+        .objectTypeSuffixedProperties(
+            remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
+        .codelists(resolveCodelists(config.getCodelistProperties()))
+        .appendTemporalSuffixToGmlId(
+            Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
+                && isDatetimeIntervalRequest(transformationContext))
+        .build();
+  }
+
+  // Warns when collections of one (multi-collection) response disagree on a GML option that is
+  // written once per document and therefore cannot be resolved per feature. The value of the
+  // representative collection is used; a divergence is a configuration issue for a single GML
+  // document (a search has no privileged collection). Namespace/schemaLocation divergences are
+  // reported separately by mergeMapInto.
+  private static void warnOnDivergentDocumentOptions(
+      Map<String, GmlConfiguration> configsByCollection,
+      String representativeCollectionId,
+      GmlConfiguration representative) {
+    if (!LOGGER.isWarnEnabled() || configsByCollection.size() < 2) {
+      return;
+    }
+    Map<String, Object> expected = documentLevelOptions(representative);
+    configsByCollection.forEach(
+        (collectionId, config) -> {
+          if (collectionId.equals(representativeCollectionId)) {
+            return;
+          }
+          documentLevelOptions(config)
+              .forEach(
+                  (option, value) -> {
+                    Object expectedValue = expected.get(option);
+                    if (!Objects.equals(expectedValue, value)) {
+                      LOGGER.warn(
+                          "GML option '{}' differs between collections '{}' ({}) and '{}' ({}) of a"
+                              + " single response; it is written once per document, so the value of"
+                              + " collection '{}' is used.",
+                          option,
+                          representativeCollectionId,
+                          expectedValue,
+                          collectionId,
+                          value,
+                          representativeCollectionId);
+                    }
+                  });
+        });
+  }
+
+  // The GML options that are written once for the whole document, so a single value must be chosen
+  // for a multi-collection response. Defaults match those applied when the context is built.
+  private static Map<String, Object> documentLevelOptions(GmlConfiguration config) {
+    Map<String, Object> options = new LinkedHashMap<>();
+    options.put("gmlVersion", Objects.requireNonNullElse(config.getGmlVersion(), GML32));
+    options.put("defaultNamespace", config.getDefaultNamespace());
+    options.put("featureCollectionElementName", config.getFeatureCollectionElementName());
+    options.put("featureMemberElementName", config.getFeatureMemberElementName());
+    options.put(
+        "supportsStandardResponseParameters",
+        Objects.requireNonNullElse(config.getSupportsStandardResponseParameters(), false));
+    return options;
+  }
+
+  // Unions a per-collection map into the document-level target (first value wins). Used for the
+  // namespace and schemaLocation declarations, which are emitted once for the whole document.
+  private static void mergeMapInto(Map<String, String> target, Map<String, String> source) {
+    source.forEach(
+        (key, value) -> {
+          String existing = target.putIfAbsent(key, value);
+          if (existing != null && !existing.equals(value) && LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                "GML configuration maps '{}' to both '{}' and '{}' across the collections of a"
+                    + " response; using '{}'.",
+                key,
+                existing,
+                value,
+                existing);
+          }
+        });
   }
 
   // The "rel" profile set ({@code rel-as-key}/{@code rel-as-uri}/{@code rel-as-link}). GML renders
@@ -798,8 +925,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
         .valueWrap(config.getValueWrap())
-        // matched against the property name/alias on the wire; the decoder applies useAlias itself,
-        // so the configured names are passed through unchanged (as for codelistProperties above).
+        // The configured property ids are passed through unchanged: the decoder matches them
+        // against each property's technical full path (it never sees the alias rewrites, which are
+        // an encoder-only concern), so no remapping is applied here.
         .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
         .build();
   }
