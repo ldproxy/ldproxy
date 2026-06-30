@@ -11,11 +11,10 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.common.domain.GenericFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.model.ProcessOgcApi;
+import de.ii.ogcapi.processes.domain.model.ProcessList;
 
 @AutoMultiBind
-public interface ProcessDescriptionFormatExtension extends GenericFormatExtension {
+public interface ProcessListFormatExtension extends GenericFormatExtension {
 
-  Object getEntity(
-      ProcessOgcApi processDescriptionOgcApi, OgcApi api, ApiRequestContext requestContext);
+  Object getEntity(ProcessList processList, OgcApi api, ApiRequestContext requestContext);
 }

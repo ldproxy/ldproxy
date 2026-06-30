@@ -10,28 +10,33 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
-import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
-@JsonDeserialize(builder = ImmutableProcessDescriptionReduced.Builder.class)
-public abstract class ProcessDescriptionReduced extends PageRepresentationWithId {
-
-  public static final String SCHEMA_REF = "#/components/schemas/ProcessDescriptionReduced";
-
-  public abstract String getVersion();
-
-  public abstract Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+@JsonDeserialize(builder = ImmutableProcessSummaryEntry.Builder.class)
+public abstract class ProcessSummaryEntry extends PageRepresentationWithId
+    implements ProcessSummary {
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<ProcessDescriptionReduced> FUNNEL =
+  public static final Funnel<ProcessSummaryEntry> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
-        into.putString(from.getJobControlOptions().toString(), StandardCharsets.UTF_8);
+        from.getJobControlOptions()
+            .ifPresent(
+                l ->
+                    l.stream()
+                        .map(JOB_CONTROL_OPTIONS::name)
+                        .sorted()
+                        .forEachOrdered(name -> into.putString(name, StandardCharsets.UTF_8)));
+        from.getKeywords()
+            .ifPresent(
+                l ->
+                    l.stream()
+                        .sorted()
+                        .forEachOrdered(
+                            keyword -> into.putString(keyword, StandardCharsets.UTF_8)));
       };
 }

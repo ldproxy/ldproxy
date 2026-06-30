@@ -11,7 +11,7 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.util.Map;
 import java.util.Optional;
 
-public interface ProcessDescriptionRepository extends Volatile2 {
+public interface ProcessRepository extends Volatile2 {
 
   Optional<Process> get(String processId);
 

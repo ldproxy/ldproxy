@@ -14,8 +14,8 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionsFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptions;
+import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ProcessList;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,16 +26,15 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatExtension {
+public class ProcessListFormatJson implements ProcessListFormatExtension {
 
-  private final Schema<?> schemaStyleProcessDescriptions;
-  private final Map<String, Schema<?>> referencedSchemasProcessDescriptions;
+  private final Schema<?> schemaStyleProcessList;
+  private final Map<String, Schema<?>> referencedSchemasProcessList;
 
   @Inject
-  public ProcessDescriptionsFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcessDescriptions = classSchemaCache.getSchema(ProcessDescriptions.class);
-    referencedSchemasProcessDescriptions =
-        classSchemaCache.getReferencedSchemas(ProcessDescriptions.class);
+  public ProcessListFormatJson(ClassSchemaCache classSchemaCache) {
+    schemaStyleProcessList = classSchemaCache.getSchema(ProcessList.class);
+    referencedSchemasProcessList = classSchemaCache.getReferencedSchemas(ProcessList.class);
   }
 
   @Override
@@ -46,16 +45,15 @@ public class ProcessDescriptionsFormatJson implements ProcessDescriptionsFormatE
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaStyleProcessDescriptions)
-        .schemaRef(ProcessDescriptions.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasProcessDescriptions)
+        .schema(schemaStyleProcessList)
+        .schemaRef(ProcessList.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasProcessList)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(
-      ProcessDescriptions processDescriptions, OgcApi api, ApiRequestContext requestContext) {
-    return processDescriptions;
+  public Object getEntity(ProcessList processList, OgcApi api, ApiRequestContext requestContext) {
+    return processList;
   }
 }

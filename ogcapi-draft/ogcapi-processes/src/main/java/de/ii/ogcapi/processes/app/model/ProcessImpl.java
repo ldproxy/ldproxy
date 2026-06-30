@@ -9,7 +9,6 @@ package de.ii.ogcapi.processes.app.model;
 
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
-import de.ii.ogcapi.processes.domain.model.ProcessData.JOB_CONTROL_OPTIONS;
 import java.util.List;
 import java.util.Optional;
 

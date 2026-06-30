@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,10 +18,10 @@ import java.util.Locale;
 import java.util.Optional;
 
 /** This class is responsible for generating the links in the json Files. */
-public class ProcessDescriptionLinksGenerator extends DefaultLinksGenerator {
+public class ProcessLinksGenerator extends DefaultLinksGenerator {
 
   /**
-   * Generates the links for a single process description on the page /{apiId}/processes.
+   * Generates the links for a single process on the page /{apiId}/processes.
    *
    * @param uriBuilder the URI, split in host, path and query
    * @param processId the id of the process
@@ -29,7 +29,7 @@ public class ProcessDescriptionLinksGenerator extends DefaultLinksGenerator {
    * @param language the requested language (optional)
    * @return a list with links
    */
-  public List<Link> generateProcessDescriptionLinks(
+  public List<Link> generateProcessLinks(
       URICustomizer uriBuilder, String processId, I18n i18n, Optional<Locale> language) {
 
     return ImmutableList.<Link>builder()
@@ -43,9 +43,7 @@ public class ProcessDescriptionLinksGenerator extends DefaultLinksGenerator {
                         .removeParameters("limit")
                         .toString())
                 .rel("self")
-                .title(
-                    i18n.get("processDescriptionLink", language)
-                        .replace("{{processId}}", processId))
+                .title(i18n.get("processLink", language).replace("{{processId}}", processId))
                 .build())
         .build();
   }

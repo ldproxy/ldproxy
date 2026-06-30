@@ -28,7 +28,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcess;
-import de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension;
+import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -46,13 +46,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo Docs
+// ToDo Docs @ref:formats {@link ProcessFormatExtension}
 /**
  * @title Process
  * @path processes/{processId}
  * @langEn Returns the full details of a process.
  * @langDe Liefer die gesamten Details eines Prozesses.
- * @ref:formats {@link de.ii.ogcapi.processes.domain.ProcessDescriptionFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -78,7 +77,7 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ProcessDescriptionFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
     return formats;
   }
 

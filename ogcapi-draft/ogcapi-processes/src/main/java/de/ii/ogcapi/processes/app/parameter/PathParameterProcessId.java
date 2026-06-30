@@ -17,7 +17,7 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.model.ProcessDescriptionRepository;
+import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
@@ -42,11 +42,10 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   private final ConcurrentMap<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();
   private final SchemaValidator schemaValidator;
-  private final ProcessDescriptionRepository repository;
+  private final ProcessRepository repository;
 
   @Inject
-  public PathParameterProcessId(
-      SchemaValidator schemaValidator, ProcessDescriptionRepository repository) {
+  public PathParameterProcessId(SchemaValidator schemaValidator, ProcessRepository repository) {
     this.schemaValidator = schemaValidator;
     this.repository = repository;
   }
