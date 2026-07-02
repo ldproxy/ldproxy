@@ -13,7 +13,23 @@
       <ul class="list-unstyled">
         {{#processList}}
           <li>
-            <a href="processes/{{id}}">{{title}} ({{id}})</a>
+            <a href="processes/{{id}}">{{id}}</a>
+            <br/>
+            Title:
+            {{#title}}
+              {{.}}
+            {{/title}}
+            {{^title}}
+              {{none}}
+            {{/title}}
+            <br/>
+            Description:
+            {{#description}}
+              {{.}}
+            {{/description}}
+            {{^description}}
+              {{none}}
+            {{/description}}
             <br/>
             Version: {{version}}
             <br/>
@@ -25,6 +41,15 @@
               {{^jobControlOptions}}
                 <li>{{none}}</li>
               {{/jobControlOptions}}
+            </ul>
+            Keywords:
+            <ul>
+              {{#keywords}}
+                <li>{{.}}</li>
+              {{/keywords}}
+              {{^keywords}}
+                <li>{{none}}</li>
+              {{/keywords}}
             </ul>
             <br/>
           </li>

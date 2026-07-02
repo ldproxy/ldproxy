@@ -26,10 +26,12 @@ import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessList;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.ogcapi.processes.domain.model.ProcessSummary;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.net.URI;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -151,7 +153,10 @@ public class ProcessListFormatHtml implements ProcessListFormatExtension, Format
         .apiData(api.getData())
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
-        .processList(processList.getProcesses())
+        .processList(
+            processList.getProcesses().stream()
+                .sorted(Comparator.comparing(ProcessSummary::getId))
+                .toList())
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
         .noIndex(isNoIndexEnabledForApi(api.getData()))
