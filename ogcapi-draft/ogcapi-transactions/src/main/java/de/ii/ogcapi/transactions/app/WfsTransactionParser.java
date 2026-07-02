@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.foundation.domain.SecureXml;
 import de.ii.ogcapi.transactions.domain.ImmutableNameValue;
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete;
 import de.ii.ogcapi.transactions.domain.ImmutableTxReplace;
@@ -84,9 +85,7 @@ public class WfsTransactionParser implements TransactionParser {
 
   @Inject
   public WfsTransactionParser() {
-    this.inputFactory = XMLInputFactory.newInstance();
-    inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
-    inputFactory.setProperty("javax.xml.stream.isSupportingExternalEntities", Boolean.FALSE);
+    this.inputFactory = SecureXml.inputFactory();
     this.outputFactory = XMLOutputFactory.newInstance();
     this.eventFactory = XMLEventFactory.newInstance();
   }

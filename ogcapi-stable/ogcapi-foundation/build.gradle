@@ -29,3 +29,9 @@ dependencies {
         exclude module: 'slf4j-api'
     }
 }
+
+moduleInfo {
+    requires = [
+            'java.xml',
+    ]
+}

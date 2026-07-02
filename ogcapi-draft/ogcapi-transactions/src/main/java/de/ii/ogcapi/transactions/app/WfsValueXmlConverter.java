@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import de.ii.ogcapi.foundation.domain.SecureXml;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -51,14 +52,7 @@ import javax.xml.stream.events.XMLEvent;
 final class WfsValueXmlConverter {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final XMLInputFactory STAX_FACTORY = createStaxFactory();
-
-  private static XMLInputFactory createStaxFactory() {
-    XMLInputFactory f = XMLInputFactory.newInstance();
-    f.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
-    f.setProperty("javax.xml.stream.isSupportingExternalEntities", Boolean.FALSE);
-    return f;
-  }
+  private static final XMLInputFactory STAX_FACTORY = SecureXml.inputFactory();
 
   private WfsValueXmlConverter() {}
 
