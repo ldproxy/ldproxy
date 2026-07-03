@@ -5,11 +5,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.html;
+package de.ii.ogcapi.processes.app.format.html;
 
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.ProcessEntry;
+import de.ii.ogcapi.processes.domain.model.representation.ProcessEntry;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;

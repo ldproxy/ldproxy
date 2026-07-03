@@ -8,8 +8,8 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import de.ii.ogcapi.processes.app.model.ProcessImpl;
-import de.ii.ogcapi.processes.domain.model.ioDescription.InputDescription;
-import de.ii.ogcapi.processes.domain.model.ioDescription.OutputDescription;
+import de.ii.ogcapi.processes.domain.model.io.InputDescription;
+import de.ii.ogcapi.processes.domain.model.io.OutputDescription;
 import java.util.Optional;
 
 public interface Process extends ProcessSummary {

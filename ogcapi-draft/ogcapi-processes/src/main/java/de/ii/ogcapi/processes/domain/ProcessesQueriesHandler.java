@@ -28,7 +28,7 @@ public interface ProcessesQueriesHandler
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
-    PROCESS_LIST,
+    PROCESSES,
     PROCESS
   }
 
