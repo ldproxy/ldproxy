@@ -5,22 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model;
+package de.ii.ogcapi.processes.domain.model.ioDescription;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProcessSummary extends DescriptionType {
+public interface dataClasses {
 
-  enum JOB_CONTROL_OPTIONS {
-    SYNC_EXECUTE,
-    ASYNC_EXECUTE,
-    DISMISS
-  }
-
-  String getId();
-
-  String getVersion();
-
-  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+  Optional<List<URI>> getDataClasses();
 }

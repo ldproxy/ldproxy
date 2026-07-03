@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import static de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.GROUP_PROCESSES;
+
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
@@ -17,34 +19,25 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.util.Map;
 import org.immutables.value.Value;
 
-public interface ProcessesQueriesHandler
-    extends QueriesHandler<ProcessesQueriesHandler.Query>, Volatile2 {
+public interface ExecutionQueriesHandler
+    extends QueriesHandler<ExecutionQueriesHandler.Query>, Volatile2 {
 
-  String GROUP_PROCESSES = "processes";
-  PermissionGroup GROUP_PROCESSES_READ =
-      PermissionGroup.of(Base.READ, GROUP_PROCESSES, "access processes");
+  // ToDo Add EXECUTE Permission for PermissionGroup ?
+  PermissionGroup GROUP_PROCESSES_EXECUTE =
+      PermissionGroup.of(Base.READ, GROUP_PROCESSES, "execute processes");
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
-    PROCESS_LIST,
-    PROCESS
+    EXECUTE
   }
 
   @Value.Immutable
-  interface QueryInputProcesses extends QueryInput {
-
-    Integer getOffset();
-
-    Integer getLimit();
-
-    Integer getDefaultLimit();
-  }
-
-  @Value.Immutable
-  interface QueryInputProcess extends QueryInput {
+  interface QueryInputExecution extends QueryInput {
 
     String getProcessId();
+
+    String getRequestBody();
   }
 }

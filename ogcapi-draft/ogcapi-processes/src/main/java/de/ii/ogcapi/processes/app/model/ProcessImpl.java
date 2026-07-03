@@ -9,6 +9,8 @@ package de.ii.ogcapi.processes.app.model;
 
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
+import de.ii.ogcapi.processes.domain.model.ioDescription.InputDescription;
+import de.ii.ogcapi.processes.domain.model.ioDescription.OutputDescription;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,5 +50,15 @@ public class ProcessImpl implements Process {
   @Override
   public Optional<List<String>> getKeywords() {
     return data.getKeywords();
+  }
+
+  @Override
+  public Optional<InputDescription> getInputDescription() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<OutputDescription> getOutputDescription() {
+    return Optional.empty();
   }
 }
