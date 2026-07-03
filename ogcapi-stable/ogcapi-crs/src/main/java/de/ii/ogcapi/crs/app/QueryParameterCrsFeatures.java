@@ -38,7 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 
 /**
  * @title crs
@@ -148,9 +147,7 @@ public class QueryParameterCrsFeatures extends OgcApiQueryParameterBase
           crsSupport
               .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
               .stream()
-              .flatMap(
-                  crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
-              .filter(Objects::nonNull)
+              .flatMap(crs -> crs.allUris().stream())
               .collect(ImmutableList.toImmutableList());
       String defaultCrs =
           apiData
