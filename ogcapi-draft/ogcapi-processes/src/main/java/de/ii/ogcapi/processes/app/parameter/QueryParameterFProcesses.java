@@ -13,8 +13,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 

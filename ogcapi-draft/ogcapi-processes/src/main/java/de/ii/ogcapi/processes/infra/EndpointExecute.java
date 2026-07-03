@@ -13,9 +13,11 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
+import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Endpoint;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
@@ -28,7 +30,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
-import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,8 +48,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // ToDo docs
 /** */
@@ -54,6 +60,7 @@ import java.util.Set;
 @AutoBind
 public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointExecute.class);
   private static final List<String> TAGS = ImmutableList.of("EXECUTE");
 
   private final ExecutionQueriesHandler queryHandler;
@@ -66,39 +73,41 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
   }
 
   @Override
-  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler);
-  }
-
-  @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
+
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("processes")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_EXECUTE);
+
     String path = "/processes/{processId}/execution";
     HttpMethods method = HttpMethods.POST;
 
-    List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, path);
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
+
     if (pathParameters.stream().noneMatch(param -> "processId".equals(param.getName()))) {
       LOGGER.error(
           "Path parameter 'processId' missing for resource at path '"
               + path
               + "'. The POST method will not be available.");
     } else {
+      List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path);
+
       String operationSummary = "TODO SUMMARY";
       Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
+
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
-      ApiOperation.getResource(
-              apiData,
+
+      Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
+
+      ApiOperation.of(
               path,
-              false,
+              HttpMethods.POST,
+              requestContent,
               queryParameters,
-              ImmutableList.of(),
-              getResponseContent(apiData),
+              null,
               operationSummary,
               operationDescription,
               Optional.empty(),
@@ -106,14 +115,17 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
               GROUP_PROCESSES_EXECUTE,
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
+              ProcessesCoreBuildingBlock.SPEC,
+              false)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
+
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
 
     return definitionBuilder.build();
   }
 
+  // ToDo Docs
   @Path("/{processId}/execution")
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
@@ -150,9 +162,27 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
   }
 
   @Override
+  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
+    return ProcessesCoreConfiguration.class;
+  }
+
+  @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
       formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
     return formats;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::isEnabled)
+        .isPresent();
+  }
+
+  @Override
+  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
+    return Set.of(queryHandler);
   }
 }

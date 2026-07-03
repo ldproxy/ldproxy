@@ -5,13 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.html;
+package de.ii.ogcapi.processes.app.format.html;
 
 import com.google.common.base.Splitter;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.ProcessSummaryEntry;
+import de.ii.ogcapi.processes.domain.model.representation.ProcessSummaryEntry;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -52,7 +52,7 @@ public abstract class ProcessListView extends OgcApiView {
 
       try {
         List<NameValuePair> query =
-            new URIBuilder(RawQuery())
+            new URIBuilder(getRawQuery())
                 .getQueryParams().stream()
                     .filter(kvp -> !ignore.contains(kvp.getName().toLowerCase()))
                     .collect(Collectors.toList());
@@ -63,13 +63,13 @@ public abstract class ProcessListView extends OgcApiView {
         return '?' + new URIBuilder().setParameters(query).build().getRawQuery() + '&';
       } catch (URISyntaxException e) {
         throw new IllegalStateException(
-            String.format("Failed to parse query parameters: '%s'", RawQuery()), e);
+            String.format("Failed to parse query parameters: '%s'", getRawQuery()), e);
       }
     };
   }
 
   @Value.Derived
-  public String RawQuery() {
+  public String getRawQuery() {
 
     return "?" + (uri().getRawQuery() != null ? uri().getRawQuery() + "&" : "");
   }
