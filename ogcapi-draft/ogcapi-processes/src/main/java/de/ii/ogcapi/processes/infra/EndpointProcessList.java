@@ -54,14 +54,14 @@ import java.util.Set;
  */
 @Singleton
 @AutoBind
-public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
+public class EndpointProcessList extends Endpoint implements ApiExtensionHealth {
 
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
 
   @Inject
-  public EndpointProcesses(
+  public EndpointProcessList(
       ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
@@ -162,7 +162,7 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
                     .getDefaultPageSize())
             .build();
 
-    return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);
+    return queryHandler.handle(Query.PROCESS_LIST, queryInput, requestContext);
   }
 
   @Override
