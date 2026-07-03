@@ -20,19 +20,19 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import de.ii.ogcapi.processes.app.json.ProcessLinksGenerator;
-import de.ii.ogcapi.processes.app.json.ProcessListLinksGenerator;
-import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
-import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
+import de.ii.ogcapi.processes.app.format.json.ProcessLinksGenerator;
+import de.ii.ogcapi.processes.app.format.json.ProcessListLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
-import de.ii.ogcapi.processes.domain.model.ImmutableProcessEntry;
-import de.ii.ogcapi.processes.domain.model.ImmutableProcessList;
-import de.ii.ogcapi.processes.domain.model.ImmutableProcessSummaryEntry;
+import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.Process;
-import de.ii.ogcapi.processes.domain.model.ProcessEntry;
-import de.ii.ogcapi.processes.domain.model.ProcessList;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
+import de.ii.ogcapi.processes.domain.model.representation.ImmutableProcessEntry;
+import de.ii.ogcapi.processes.domain.model.representation.ImmutableProcessList;
+import de.ii.ogcapi.processes.domain.model.representation.ImmutableProcessSummaryEntry;
+import de.ii.ogcapi.processes.domain.model.representation.ProcessEntry;
+import de.ii.ogcapi.processes.domain.model.representation.ProcessList;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -74,7 +74,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     this.queryHandlers =
         ImmutableMap.of(
-            Query.PROCESS_LIST,
+            Query.PROCESSES,
             QueryHandler.with(QueryInputProcesses.class, this::getProcessesResponse),
             Query.PROCESS,
             QueryHandler.with(QueryInputProcess.class, this::getProcessResponse));

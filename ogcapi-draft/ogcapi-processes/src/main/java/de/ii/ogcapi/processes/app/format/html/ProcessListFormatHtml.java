@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.html;
+package de.ii.ogcapi.processes.app.format.html;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -23,10 +23,10 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
-import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessList;
+import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
+import de.ii.ogcapi.processes.domain.model.representation.ProcessList;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;

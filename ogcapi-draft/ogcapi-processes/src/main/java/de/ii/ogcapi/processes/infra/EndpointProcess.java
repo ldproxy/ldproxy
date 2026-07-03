@@ -28,9 +28,9 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcess;
-import de.ii.ogcapi.processes.domain.ProcessFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
+import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * @title Process
  * @path processes/{processId}
  * @langEn Returns the full details of a process.
- * @langDe Liefer die gesamten Details eines Prozesses.
+ * @langDe Gibt die gesamten Details eines Prozesses zurück.
  */
 @Singleton
 @AutoBind
@@ -70,46 +70,33 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
   }
 
   @Override
-  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return ProcessesCoreConfiguration.class;
-  }
-
-  @Override
-  public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
-    return formats;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
-  }
-
-  @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
+
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("processes")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_PROCESS);
+
     String path = "/processes/{processId}";
     HttpMethods method = HttpMethods.GET;
-    List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, path);
+
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
+
     if (pathParameters.stream().noneMatch(param -> "processId".equals(param.getName()))) {
       LOGGER.error(
-          "WIP Path parameter 'processId' missing for resource at path '"
+          "Path parameter 'processId' missing for resource at path '"
               + path
               + "'. The GET method will not be available.");
     } else {
-      String operationSummary = "Get the full description of a process WIP";
-      Optional<String> operationDescription = Optional.of("WIP.");
+      List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path);
+
+      String operationSummary = "TODO SUMMARY";
+      Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
+
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
+
       ApiOperation.getResource(
               apiData,
               path,
@@ -132,12 +119,7 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  /**
-   * retrieve one specific process by id
-   *
-   * @param processId the local identifier of a specific process
-   * @return the full process description
-   */
+  // ToDo Docs
   @Path("/{processId}")
   @GET
   public Response getProcess(
@@ -158,6 +140,26 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
             .build();
 
     return queryHandler.handle(ProcessesQueriesHandler.Query.PROCESS, queryInput, requestContext);
+  }
+
+  @Override
+  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
+    return ProcessesCoreConfiguration.class;
+  }
+
+  @Override
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (formats == null)
+      formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
+    return formats;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::isEnabled)
+        .isPresent();
   }
 
   @Override

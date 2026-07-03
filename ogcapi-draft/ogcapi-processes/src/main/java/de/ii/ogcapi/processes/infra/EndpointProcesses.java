@@ -30,10 +30,10 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
-import de.ii.ogcapi.processes.domain.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.Query;
+import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -49,42 +49,22 @@ import java.util.Set;
 /**
  * @title Processes
  * @path processes
- * @langEn The URIs of all processes supported by the API.
- * @langDe Die URIs aller von der API unterstützten Prozesse.
+ * @langEn Returns a list containing the summaries of all processes supported by this API.
+ * @langDe Gibt eine List zurück, die eine Zusammenfassung aller Prozesse diser API enthält.
  */
 @Singleton
 @AutoBind
-public class EndpointProcessList extends Endpoint implements ApiExtensionHealth {
+public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
 
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
 
   @Inject
-  public EndpointProcessList(
+  public EndpointProcesses(
       ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
-  }
-
-  @Override
-  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return ProcessesCoreConfiguration.class;
-  }
-
-  @Override
-  public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ProcessListFormatExtension.class);
-    return formats;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
   }
 
   @Override
@@ -97,13 +77,10 @@ public class EndpointProcessList extends Endpoint implements ApiExtensionHealth 
     HttpMethods method = HttpMethods.GET;
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path);
-    String operationSummary = "processes list";
-    Optional<String> operationDescription =
-        Optional.of(
-            "The URIs of all processes supported by the server. "
-                + "For each processes the id, a title and the description is provided.");
+    String operationSummary = "TODO SUMMARY";
+    Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
     ImmutableOgcApiResourceSet.Builder resourceBuilderSet =
-        new ImmutableOgcApiResourceSet.Builder().path(path).subResourceType("Process Description");
+        new ImmutableOgcApiResourceSet.Builder().path(path).subResourceType("ProcessSummary");
     ApiOperation.getResource(
             apiData,
             path,
@@ -125,6 +102,7 @@ public class EndpointProcessList extends Endpoint implements ApiExtensionHealth 
     return definitionBuilder.build();
   }
 
+  // ToDo Docs
   @GET
   public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
@@ -162,7 +140,27 @@ public class EndpointProcessList extends Endpoint implements ApiExtensionHealth 
                     .getDefaultPageSize())
             .build();
 
-    return queryHandler.handle(Query.PROCESS_LIST, queryInput, requestContext);
+    return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);
+  }
+
+  @Override
+  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
+    return ProcessesCoreConfiguration.class;
+  }
+
+  @Override
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (formats == null)
+      formats = extensionRegistry.getExtensionsForType(ProcessListFormatExtension.class);
+    return formats;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::isEnabled)
+        .isPresent();
   }
 
   @Override
