@@ -19,6 +19,7 @@ import de.ii.xtraplatform.features.domain.SchemaConstraints;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Set;
 
 @Singleton
 @AutoBind
@@ -34,8 +35,8 @@ public class ProfileSetVal extends ProfileSet {
   }
 
   @Override
-  public ResourceType getResourceType() {
-    return ResourceType.FEATURE;
+  public Set<ResourceType> getResourceTypes() {
+    return Set.of(ResourceType.FEATURE);
   }
 
   @Override

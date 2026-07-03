@@ -93,6 +93,17 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
     return queryHandlers;
   }
 
+  private static ResourceType getResourceType(SchemaType type) {
+    return switch (type) {
+      case RETURNABLES_AND_RECEIVABLES -> ResourceType.SCHEMA_RETURNABLES_AND_RECEIVABLES;
+      case QUERYABLES -> ResourceType.SCHEMA_QUERYABLES;
+      case SORTABLES -> ResourceType.SCHEMA_SORTABLES;
+      case STORED_QUERY_PARAMETER ->
+          throw new IllegalStateException(
+              "No profiles are supported for stored query parameter schemas.");
+    };
+  }
+
   public static void checkCollectionId(OgcApiDataV2 apiData, String collectionId) {
     if (!apiData.isCollectionEnabled(collectionId)) {
       throw new NotFoundException(
@@ -125,11 +136,13 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
 
     List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
 
+    ResourceType resourceType = getResourceType(type);
+
     List<Profile> profiles =
         negotiateProfiles(
             allProfileSets,
             outputFormat,
-            ResourceType.SCHEMA,
+            resourceType,
             apiData,
             Optional.of(collectionId),
             queryInput.getProfiles(),
@@ -138,6 +151,7 @@ public class QueriesHandlerSchemaFeatures extends AbstractVolatileComposed
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(
             allProfileSets,
+            resourceType,
             apiData,
             collectionId,
             requestContext.getMediaType(),

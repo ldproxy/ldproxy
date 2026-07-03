@@ -17,6 +17,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 @AutoBind
@@ -43,8 +44,8 @@ public class ProfileSetJsonSchemaForValidation extends ProfileSet {
   }
 
   @Override
-  public ResourceType getResourceType() {
-    return ResourceType.SCHEMA;
+  public Set<ResourceType> getResourceTypes() {
+    return Set.of(ResourceType.SCHEMA_RETURNABLES_AND_RECEIVABLES);
   }
 
   @Override

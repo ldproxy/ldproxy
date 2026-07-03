@@ -346,6 +346,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
 
   default Map<ApiMediaType, List<Profile>> getAlternateProfiles(
       List<ProfileSet> allProfileSets,
+      ResourceType resourceType,
       OgcApiDataV2 apiData,
       String collectionId,
       ApiMediaType mediaType,
@@ -353,6 +354,7 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       List<Profile> profiles) {
     return allProfileSets.stream()
         .filter(ProfileExtension::includeAlternateLinks)
+        .filter(profileSet -> profileSet.getResourceTypes().contains(resourceType))
         .filter(
             profileSet ->
                 mediaType.type().equals(profileSet.getMediaType())

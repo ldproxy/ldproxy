@@ -13,6 +13,7 @@ import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformation
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The following types of profile extensions are distinguished:
@@ -32,7 +33,12 @@ public interface ProfileExtension extends ApiExtension {
 
   enum ResourceType {
     FEATURE,
-    SCHEMA
+    SCHEMA_RETURNABLES_AND_RECEIVABLES,
+    SCHEMA_QUERYABLES,
+    SCHEMA_SORTABLES;
+
+    public static final Set<ResourceType> ALL_SCHEMAS =
+        Set.of(SCHEMA_RETURNABLES_AND_RECEIVABLES, SCHEMA_QUERYABLES, SCHEMA_SORTABLES);
   }
 
   /**
@@ -47,7 +53,10 @@ public interface ProfileExtension extends ApiExtension {
     return String.format("http://www.opengis.net/def/profile/ogc/0/%s", profile.getId());
   }
 
-  ResourceType getResourceType();
+  /**
+   * @return the resource types to which the profiles of the profile extension apply
+   */
+  Set<ResourceType> getResourceTypes();
 
   /**
    * @return the id of the profile extension

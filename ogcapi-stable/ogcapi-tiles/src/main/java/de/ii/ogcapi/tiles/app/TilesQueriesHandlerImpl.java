@@ -978,7 +978,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
           negotiateProfiles(
               allProfileSets,
               null,
-              ResourceType.SCHEMA,
+              ResourceType.SCHEMA_RETURNABLES_AND_RECEIVABLES,
               apiData,
               collectionId,
               List.of(),

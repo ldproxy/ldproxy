@@ -66,7 +66,7 @@ public abstract class ProfileSet implements ProfileExtension {
     MediaType responseMediaType =
         outputFormat != null ? outputFormat.getMediaType().type() : MediaType.WILDCARD_TYPE;
     if ((Objects.nonNull(mediaType) && !mediaType.isCompatible(responseMediaType))
-        || !getResourceType().equals(resourceType)
+        || !getResourceTypes().contains(resourceType)
         || !collectionId
             .map(cid -> isEnabledForApi(apiData, cid))
             .orElse(isEnabledForApi(apiData))) {
