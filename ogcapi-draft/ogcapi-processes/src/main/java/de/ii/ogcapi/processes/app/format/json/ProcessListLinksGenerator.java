@@ -35,7 +35,7 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
             .addAll(
                 super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language));
 
-    if (limit * (offset + 1) < processesCount) {
+    if (limit + offset < processesCount) {
       builder.add(
           new ImmutableLink.Builder()
               .href(getUrlWithPageAndCount(uriBuilder.copy(), offset + limit, limit, defaultLimit))
@@ -66,27 +66,59 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
 
   private String getUrlWithPageAndCount(
       final URICustomizer uriBuilder, final int offset, final int limit, final int defaultLimit) {
-    if (offset == 0 && limit == defaultLimit) {
-      return uriBuilder.ensureNoTrailingSlash().removeParameters("offset", "limit").toString();
-    } else if (limit == defaultLimit) {
-      return uriBuilder
-          .ensureNoTrailingSlash()
-          .removeParameters("offset", "limit")
-          .setParameter("offset", String.valueOf(Integer.max(0, offset)))
-          .toString();
-    } else if (offset == 0) {
-      return uriBuilder
-          .ensureNoTrailingSlash()
-          .removeParameters("offset", "limit")
-          .setParameter("limit", String.valueOf(limit))
-          .toString();
-    }
 
-    return uriBuilder
-        .ensureNoTrailingSlash()
-        .removeParameters("offset", "limit")
-        .setParameter("limit", String.valueOf(limit))
-        .setParameter("offset", String.valueOf(Integer.max(0, offset)))
-        .toString();
+    URICustomizer uri = uriBuilder.ensureNoTrailingSlash().removeParameters("offset", "limit");
+
+    if (offset != 0) uri.setParameter("offset", String.valueOf(Integer.max(0, offset)));
+
+    if (limit != defaultLimit) uri.setParameter("limit", String.valueOf(limit));
+
+    return uri.toString();
+  }
+
+  /**
+   * Generates the links for a single process on the page /{apiId}/processes.
+   *
+   * @param uriBuilder the URI, split in host, path and query
+   * @param processId the id of the process
+   * @param i18n component to get linguistic text
+   * @param language the requested language (optional)
+   * @return a list with links
+   */
+  public List<Link> generateProcessLink(
+      URICustomizer uriBuilder, String processId, I18n i18n, Optional<Locale> language) {
+
+    return ImmutableList.<Link>builder()
+        .add(
+            new ImmutableLink.Builder()
+                .href(
+                    uriBuilder
+                        .copy()
+                        .ensureLastPathSegment(processId)
+                        .removeParameters("f")
+                        .removeParameters("limit")
+                        .removeParameters("offset")
+                        .addParameter("f", "json")
+                        .toString())
+                .rel("self")
+                .title(i18n.get("processLink", language).replace("{{processId}}", processId))
+                .type("application/json")
+                .build())
+        .add(
+            new ImmutableLink.Builder()
+                .href(
+                    uriBuilder
+                        .copy()
+                        .ensureLastPathSegment(processId)
+                        .removeParameters("f")
+                        .removeParameters("limit")
+                        .removeParameters("offset")
+                        .addParameter("f", "html")
+                        .toString())
+                .rel("alternate")
+                .title(i18n.get("processLink", language).replace("{{processId}}", processId))
+                .type("text/html")
+                .build())
+        .build();
   }
 }

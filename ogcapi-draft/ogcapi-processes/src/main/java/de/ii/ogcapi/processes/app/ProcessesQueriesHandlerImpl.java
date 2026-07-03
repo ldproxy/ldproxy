@@ -10,17 +10,16 @@ package de.ii.ogcapi.processes.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
-import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import de.ii.ogcapi.processes.app.format.json.ProcessLinksGenerator;
 import de.ii.ogcapi.processes.app.format.json.ProcessListLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
@@ -105,26 +104,25 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final ProcessLinksGenerator linkGenerator = new ProcessLinksGenerator();
-
     final int offset = queryInput.getOffset();
     final int limit = queryInput.getLimit();
     final int defaultLimit = queryInput.getDefaultLimit();
     final List<String> processIds = processRepository.getAll().keySet().stream().toList();
     final int processesSize = processIds.size();
 
+    final ProcessListLinksGenerator linkGenerator = new ProcessListLinksGenerator();
+
     List<Link> links =
-        new ProcessListLinksGenerator()
-            .generateLinks(
-                requestContext.getUriCustomizer(),
-                offset,
-                limit,
-                defaultLimit,
-                processesSize,
-                requestContext.getMediaType(),
-                requestContext.getAlternateMediaTypes(),
-                i18n,
-                requestContext.getLanguage());
+        linkGenerator.generateLinks(
+            requestContext.getUriCustomizer(),
+            offset,
+            limit,
+            defaultLimit,
+            processesSize,
+            requestContext.getMediaType(),
+            requestContext.getAlternateMediaTypes(),
+            i18n,
+            requestContext.getLanguage());
 
     ProcessList processList =
         ImmutableProcessList.builder()
@@ -144,7 +142,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                                 .version(processSummary.getVersion())
                                 .jobControlOptions(processSummary.getJobControlOptions())
                                 .links(
-                                    linkGenerator.generateProcessLinks(
+                                    linkGenerator.generateProcessLink(
                                         requestContext.getUriCustomizer(),
                                         processSummary.getId(),
                                         i18n,
@@ -189,7 +187,13 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     // ToDo Links
     List<Link> links =
-        List.of(new ImmutableLink.Builder().href("example.org").rel("next").title("test").build());
+        new DefaultLinksGenerator()
+            .generateLinks(
+                requestContext.getUriCustomizer(),
+                requestContext.getMediaType(),
+                requestContext.getAlternateMediaTypes(),
+                i18n,
+                requestContext.getLanguage());
 
     Process process =
         processRepository
