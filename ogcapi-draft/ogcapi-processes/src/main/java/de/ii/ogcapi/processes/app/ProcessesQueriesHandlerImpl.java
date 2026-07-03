@@ -74,7 +74,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     this.queryHandlers =
         ImmutableMap.of(
-            Query.PROCESSES,
+            Query.PROCESS_LIST,
             QueryHandler.with(QueryInputProcesses.class, this::getProcessesResponse),
             Query.PROCESS,
             QueryHandler.with(QueryInputProcess.class, this::getProcessResponse));

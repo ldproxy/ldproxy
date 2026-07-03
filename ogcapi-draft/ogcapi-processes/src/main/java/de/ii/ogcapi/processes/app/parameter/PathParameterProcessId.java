@@ -104,7 +104,9 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData) && "/processes/{processId}".equals(definitionPath);
+    return isEnabledForApi(apiData)
+        && ("/processes/{processId}".equals(definitionPath)
+            || ("/processes/{processId}/execution".equals(definitionPath)));
   }
 
   @Override
