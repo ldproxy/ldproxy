@@ -31,7 +31,8 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ExecuteRequestBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -64,6 +65,8 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
   private static final List<String> TAGS = ImmutableList.of("EXECUTE");
 
   private final ExecutionQueriesHandler queryHandler;
+  private List<? extends FormatExtension> resourceFormats;
+  private List<? extends FormatExtension> requestFormats;
 
   @Inject
   public EndpointExecute(
@@ -107,7 +110,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
               HttpMethods.POST,
               requestContent,
               queryParameters,
-              null,
+              ImmutableList.of(),
               operationSummary,
               operationDescription,
               Optional.empty(),
@@ -155,7 +158,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
         new ImmutableQueryInputExecution.Builder()
             .from(getGenericQueryInput(api.getData()))
             .processId(processId)
-            .requestBody("TEST")
+            .requestBody(requestBody)
             .build();
 
     return queryHandler.handle(ExecutionQueriesHandler.Query.EXECUTE, queryInput, requestContext);
@@ -168,9 +171,18 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
-    return formats;
+    if (resourceFormats == null)
+      resourceFormats =
+          extensionRegistry.getExtensionsForType(ExecuteResponseBodyFormatExtension.class);
+    return resourceFormats;
+  }
+
+  @Override
+  public List<? extends FormatExtension> getRequestFormats() {
+    if (requestFormats == null)
+      requestFormats =
+          extensionRegistry.getExtensionsForType(ExecuteRequestBodyFormatExtension.class);
+    return requestFormats;
   }
 
   @Override
