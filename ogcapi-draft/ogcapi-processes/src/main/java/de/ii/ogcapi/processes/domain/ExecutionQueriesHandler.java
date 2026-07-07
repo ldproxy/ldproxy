@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import java.io.InputStream;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -38,6 +39,6 @@ public interface ExecutionQueriesHandler
 
     String getProcessId();
 
-    String getRequestBody();
+    InputStream getRequestBody();
   }
 }

@@ -19,6 +19,8 @@ public interface ProcessesExecutor {
 
   String execute(String processId);
 
+  String execute(String processId, String input);
+
   STATUS_CODE status(String jobId);
 
   String result(String jobId);

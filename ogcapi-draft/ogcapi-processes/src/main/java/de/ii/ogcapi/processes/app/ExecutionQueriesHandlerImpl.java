@@ -7,23 +7,35 @@
  */
 package de.ii.ogcapi.processes.app;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.HeaderCaching;
+import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
+import de.ii.ogcapi.processes.domain.ProcessesExecutor.STATUS_CODE;
+import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ExecuteRequestBodyDummy;
+import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
+import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.core.Response;
+import java.text.MessageFormat;
 import java.util.Map;
+import java.util.Optional;
 
 @Singleton
 @AutoBind
@@ -71,8 +83,50 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApi api = requestContext.getApi();
     String processId = queryInput.getProcessId();
 
-    String jobId = processesExecutor.execute(processId);
+    ExecuteResponseBodyFormatExtension outputFormat =
+        api.getOutputFormat(
+                ExecuteResponseBodyFormatExtension.class,
+                requestContext.getMediaType(),
+                Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
 
-    return Response.ok().entity(jobId).build();
+    final ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new Jdk8Module());
+
+    final ExecuteRequestBodyDummy request;
+    try {
+      request = mapper.readValue(queryInput.getRequestBody(), ExecuteRequestBodyDummy.class);
+    } catch (Throwable e) {
+      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
+    }
+
+    String jobId;
+    if (request.getInput().isPresent()) {
+      jobId = processesExecutor.execute(processId, request.getInput().get());
+    } else {
+      jobId = processesExecutor.execute(processId);
+    }
+
+    ExecuteResponseBodyDummy response =
+        new ImmutableExecuteResponseBodyDummy.Builder()
+            .status(STATUS_CODE.ACCEPTED)
+            .jobId(jobId)
+            .build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(null, null, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(response, api, requestContext))
+        .build();
   }
 }
