@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import java.util.Optional;
+
 public interface ProcessesExecutor {
 
   enum STATUS_CODE {
@@ -21,7 +23,7 @@ public interface ProcessesExecutor {
 
   String execute(String processId, String input);
 
-  STATUS_CODE status(String jobId);
+  Optional<STATUS_CODE> status(String jobId);
 
   String result(String jobId);
 }
