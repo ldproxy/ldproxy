@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 @AutoBind
 public class ProcessesExecutorImpl implements ProcessesExecutor {
 
+  // ToDo Handle memory leak
   Map<String, STATUS_CODE> jobMap = new ConcurrentHashMap<>();
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
 
@@ -35,7 +36,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public String execute(String processId, String Input) {
+  public String execute(String processId, String input) {
     String jobId = LogContext.generateRandomUuid().toString();
     jobMap.put(jobId, STATUS_CODE.ACCEPTED);
 

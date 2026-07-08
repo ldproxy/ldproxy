@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.representation;
+package de.ii.ogcapi.processes.domain.model.rep;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
@@ -18,20 +18,20 @@ import org.immutables.value.Value;
 @ApiInfo(schemaId = "StatusInfo")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableStatusInfoResponse.Builder.class)
-public abstract class StatusInfoResponse extends PageRepresentation implements StatusInfo {
+@JsonDeserialize(builder = ImmutableOgcStatusInfoInfo.Builder.class)
+public abstract class OgcStatusInfoInfo extends PageRepresentation implements StatusInfo {
 
   public static final String SCHEMA_REF = "#/components/schemas/StatusInfo";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<StatusInfoResponse> FUNNEL =
+  public static final Funnel<OgcStatusInfoInfo> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
         into.putString(from.getId(), StandardCharsets.UTF_8);
         into.putString(from.getStatus().name(), StandardCharsets.UTF_8);
       };
 
-  public static StatusInfoResponse of(StatusInfo statusInfo) {
-    return new ImmutableStatusInfoResponse.Builder().from(statusInfo).build();
+  public static OgcStatusInfoInfo of(StatusInfo statusInfo) {
+    return new ImmutableOgcStatusInfoInfo.Builder().from(statusInfo).build();
   }
 }
