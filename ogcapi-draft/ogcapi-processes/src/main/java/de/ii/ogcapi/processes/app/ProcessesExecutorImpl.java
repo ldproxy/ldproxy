@@ -15,12 +15,16 @@ import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Singleton
 @AutoBind
 public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   Map<String, STATUS_CODE> jobMap = new ConcurrentHashMap<>();
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
 
   @Inject
   ProcessesExecutorImpl() {}
@@ -34,6 +38,21 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   public String execute(String processId, String Input) {
     String jobId = LogContext.generateRandomUuid().toString();
     jobMap.put(jobId, STATUS_CODE.ACCEPTED);
+
+    // Simulate process execution
+    scheduler.schedule(
+        () -> {
+          setStatus(jobId, STATUS_CODE.RUNNING);
+          scheduler.schedule(
+              () ->
+                  setStatus(
+                      jobId, Math.random() < 0.9 ? STATUS_CODE.SUCCESSFUL : STATUS_CODE.FAILED),
+              5,
+              TimeUnit.SECONDS);
+        },
+        5,
+        TimeUnit.SECONDS);
+
     return jobId;
   }
 
@@ -47,10 +66,18 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public String result(String jobId) {
+  public Optional<String> result(String jobId) {
     if (jobMap.get(jobId) == STATUS_CODE.SUCCESSFUL) {
-      return "Job '" + jobId + "' finished";
+      return Optional.of("42");
     }
-    return jobMap.get(jobId).toString();
+    return Optional.empty();
+  }
+
+  private void setStatus(String jobId, STATUS_CODE status) {
+    if (jobMap.containsKey(jobId)) {
+      if (jobMap.get(jobId) != STATUS_CODE.DISMISSED) {
+        jobMap.put(jobId, status);
+      }
+    }
   }
 }

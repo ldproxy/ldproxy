@@ -93,7 +93,9 @@ public class PathParameterJobId implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
-    return isEnabledForApi(apiData) && "/jobs/{jobId}".equals(definitionPath);
+    return isEnabledForApi(apiData)
+        && ("/jobs/{jobId}".equals(definitionPath)
+            || "/jobs/{jobId}/results".equals(definitionPath));
   }
 
   @Override

@@ -25,5 +25,5 @@ public interface ProcessesExecutor {
 
   Optional<STATUS_CODE> status(String jobId);
 
-  String result(String jobId);
+  Optional<String> result(String jobId);
 }

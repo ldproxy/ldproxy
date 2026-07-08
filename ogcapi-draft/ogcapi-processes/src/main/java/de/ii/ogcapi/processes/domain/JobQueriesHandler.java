@@ -26,11 +26,18 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
-    JOB
+    JOB,
+    RESULTS
   }
 
   @Value.Immutable
   interface QueryInputJob extends QueryInput {
+
+    String getJobId();
+  }
+
+  @Value.Immutable
+  interface QueryInputResults extends QueryInput {
 
     String getJobId();
   }
