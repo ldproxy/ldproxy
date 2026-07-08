@@ -15,7 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.representation.StatusInfoResponse;
+import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfoInfo;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,8 +33,8 @@ public class StatusInfoFormatJson implements StatusInfoFormatExtension {
 
   @Inject
   public StatusInfoFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcess = classSchemaCache.getSchema(StatusInfoResponse.class);
-    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(StatusInfoResponse.class);
+    schemaStyleProcess = classSchemaCache.getSchema(OgcStatusInfoInfo.class);
+    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(OgcStatusInfoInfo.class);
   }
 
   @Override
@@ -46,7 +46,7 @@ public class StatusInfoFormatJson implements StatusInfoFormatExtension {
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaStyleProcess)
-        .schemaRef(StatusInfoResponse.SCHEMA_REF)
+        .schemaRef(OgcStatusInfoInfo.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcess)
         .ogcApiMediaType(getMediaType())
         .build();
@@ -54,7 +54,7 @@ public class StatusInfoFormatJson implements StatusInfoFormatExtension {
 
   @Override
   public Object getEntity(
-      StatusInfoResponse response, OgcApi api, ApiRequestContext requestContext) {
+      OgcStatusInfoInfo response, OgcApi api, ApiRequestContext requestContext) {
     return response;
   }
 }

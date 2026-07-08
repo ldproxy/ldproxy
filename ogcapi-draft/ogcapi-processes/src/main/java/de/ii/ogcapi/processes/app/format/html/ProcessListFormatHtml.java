@@ -26,7 +26,7 @@ import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
-import de.ii.ogcapi.processes.domain.model.representation.ProcessList;
+import de.ii.ogcapi.processes.domain.model.rep.OgcProcessList;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -70,7 +70,8 @@ public class ProcessListFormatHtml implements ProcessListFormatExtension, Format
   }
 
   @Override
-  public Object getEntity(ProcessList processList, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(
+      OgcProcessList processList, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
     String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
 
