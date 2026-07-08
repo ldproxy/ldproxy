@@ -9,7 +9,7 @@ package de.ii.ogcapi.processes.app.format.html;
 
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.representation.ProcessEntry;
+import de.ii.ogcapi.processes.domain.model.rep.OgcProcess;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -20,7 +20,7 @@ public abstract class ProcessView extends OgcApiView {
     super("process.mustache");
   }
 
-  public abstract ProcessEntry process();
+  public abstract OgcProcess process();
 
   public abstract I18n i18n();
 

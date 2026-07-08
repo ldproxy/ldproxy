@@ -47,6 +47,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private final Map<ExecutionQueriesHandler.Query, QueryHandler<? extends QueryInput>>
       queryHandlers;
   private final ExtensionRegistry extensionRegistry;
+  private final ObjectMapper mapper;
   private final I18n i18n;
 
   @Inject
@@ -61,6 +62,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     this.extensionRegistry = extensionRegistry;
     this.processRepository = repository;
     this.processesExecutor = processesExecutor;
+
+    mapper = new ObjectMapper();
+    mapper.registerModule(new Jdk8Module());
 
     this.queryHandlers =
         ImmutableMap.of(
@@ -94,9 +98,6 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                         MessageFormat.format(
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
-
-    final ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new Jdk8Module());
 
     final ExecuteRequestBodyDummy request;
     try {

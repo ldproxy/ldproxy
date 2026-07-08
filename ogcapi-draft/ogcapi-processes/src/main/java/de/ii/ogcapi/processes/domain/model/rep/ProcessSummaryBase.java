@@ -5,18 +5,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.representation;
+package de.ii.ogcapi.processes.domain.model.rep;
 
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
 import java.nio.charset.StandardCharsets;
 
-public abstract class ProcessSummaryEntryBase extends PageRepresentationWithId
+public abstract class ProcessSummaryBase extends PageRepresentationWithId
     implements ProcessSummary {
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<ProcessSummaryEntryBase> FUNNEL =
+  public static final Funnel<ProcessSummaryBase> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
