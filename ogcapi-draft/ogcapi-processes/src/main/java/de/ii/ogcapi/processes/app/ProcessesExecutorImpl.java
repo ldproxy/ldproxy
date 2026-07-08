@@ -13,6 +13,7 @@ import de.ii.xtraplatform.base.domain.LogContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
@@ -37,8 +38,12 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public STATUS_CODE status(String jobId) {
-    return jobMap.get(jobId);
+  public Optional<STATUS_CODE> status(String jobId) {
+    if (jobMap.containsKey(jobId)) {
+      return Optional.of(jobMap.get(jobId));
+    } else {
+      return Optional.empty();
+    }
   }
 
   @Override
