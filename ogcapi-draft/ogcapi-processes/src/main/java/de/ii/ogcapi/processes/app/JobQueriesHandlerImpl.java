@@ -22,7 +22,10 @@ import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler.QueryInputJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor.STATUS_CODE;
+import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
+import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.representation.ImmutableStatusInfoResponse;
 import de.ii.ogcapi.processes.domain.model.representation.StatusInfoResponse;
@@ -66,7 +69,11 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     this.processesExecutor = processesExecutor;
 
     this.queryHandlers =
-        ImmutableMap.of(Query.JOB, QueryHandler.with(QueryInputJob.class, this::getJobResponse));
+        ImmutableMap.of(
+            Query.JOB,
+            QueryHandler.with(QueryInputJob.class, this::getJobResponse),
+            Query.RESULTS,
+            QueryHandler.with(QueryInputResults.class, this::getJobResultsResponse));
 
     onVolatileStart();
 
@@ -126,6 +133,54 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
         .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
+        .build();
+  }
+
+  private Response getJobResultsResponse(
+      QueryInputResults queryInput, ApiRequestContext requestContext) {
+    OgcApi api = requestContext.getApi();
+    String jobId = queryInput.getJobId();
+
+    ExecuteResponseBodyFormatExtension outputFormat =
+        api.getOutputFormat(
+                ExecuteResponseBodyFormatExtension.class,
+                requestContext.getMediaType(),
+                Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    // ToDo Links
+
+    STATUS_CODE status =
+        processesExecutor
+            .status(jobId)
+            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
+
+    String result =
+        processesExecutor
+            .result(jobId)
+            .orElseThrow(() -> new IllegalStateException("Job " + jobId + " is " + status));
+
+    ExecuteResponseBodyDummy responseBody =
+        new ImmutableExecuteResponseBodyDummy.Builder()
+            .jobId(jobId)
+            .status(status)
+            .output(result)
+            .build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(null, null, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(responseBody, api, requestContext))
         .build();
   }
 }

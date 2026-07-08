@@ -9,4 +9,4 @@ package de.ii.ogcapi.processes.domain.model.io;
 
 import de.ii.ogcapi.processes.domain.model.DescriptionType;
 
-public interface OutputDescription extends DescriptionType, dataClasses {}
+public interface OutputDescription extends DescriptionType, DataClasses {}
