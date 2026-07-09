@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableOgcExecute.Builder.class)
 public interface OgcExecute {
 
-  public static final String SCHEMA_REF = "#/components/schemas/Execute";
+  String SCHEMA_REF = "#/components/schemas/Execute";
 
   @JsonProperty("process")
   Optional<String> getProcessUri();

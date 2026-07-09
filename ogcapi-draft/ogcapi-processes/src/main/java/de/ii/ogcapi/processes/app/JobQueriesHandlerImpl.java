@@ -150,9 +150,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // ToDo Links
-
-    OgcResults results = new ImmutableOgcResults.Builder().build();
+    Map<String, Object> jobResults = processesExecutor.result(jobId);
+    OgcResults results = new ImmutableOgcResults.Builder().additionalProperties(jobResults).build();
 
     return prepareSuccessResponse(
             requestContext,
