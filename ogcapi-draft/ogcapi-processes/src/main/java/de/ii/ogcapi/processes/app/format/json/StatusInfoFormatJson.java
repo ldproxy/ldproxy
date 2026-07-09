@@ -15,7 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfoInfo;
+import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfo;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,13 +28,13 @@ import java.util.Map;
 @AutoBind
 public class StatusInfoFormatJson implements StatusInfoFormatExtension {
 
-  private final Schema<?> schemaStyleProcess;
-  private final Map<String, Schema<?>> referencedSchemasProcess;
+  private final Schema<?> schemaStatusInfo;
+  private final Map<String, Schema<?>> referencedSchemasStatusInfo;
 
   @Inject
   public StatusInfoFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcess = classSchemaCache.getSchema(OgcStatusInfoInfo.class);
-    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(OgcStatusInfoInfo.class);
+    schemaStatusInfo = classSchemaCache.getSchema(OgcStatusInfo.class);
+    referencedSchemasStatusInfo = classSchemaCache.getReferencedSchemas(OgcStatusInfo.class);
   }
 
   @Override
@@ -45,16 +45,15 @@ public class StatusInfoFormatJson implements StatusInfoFormatExtension {
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaStyleProcess)
-        .schemaRef(OgcStatusInfoInfo.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasProcess)
+        .schema(schemaStatusInfo)
+        .schemaRef(OgcStatusInfo.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasStatusInfo)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(
-      OgcStatusInfoInfo response, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(OgcStatusInfo response, OgcApi api, ApiRequestContext requestContext) {
     return response;
   }
 }

@@ -20,14 +20,14 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor.STATUS_CODE;
+import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcStatusInfoInfo;
-import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfoInfo;
+import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfo;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -102,13 +102,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     // ToDo Links
 
-    STATUS_CODE status =
+    StatusCode status =
         processesExecutor
             .status(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
-    OgcStatusInfoInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfoInfo.Builder().id(jobId).status(status).build();
+    OgcStatusInfo ogcStatusInfoResponse =
+        new ImmutableOgcStatusInfo.Builder().id(jobId).status(status).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -118,9 +118,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                ogcStatusInfoResponse,
-                OgcStatusInfoInfo.FUNNEL,
-                outputFormat.getMediaType().label())
+                ogcStatusInfoResponse, OgcStatusInfo.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -156,7 +154,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     // ToDo Links
 
-    STATUS_CODE status =
+    StatusCode status =
         processesExecutor
             .status(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));

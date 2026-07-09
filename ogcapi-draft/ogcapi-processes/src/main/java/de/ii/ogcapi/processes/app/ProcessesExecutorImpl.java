@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // ToDo Handle memory leak
-  Map<String, STATUS_CODE> jobMap = new ConcurrentHashMap<>();
+  private final Map<String, StatusCode> jobMap = new ConcurrentHashMap<>();
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
 
   @Inject
@@ -38,16 +38,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public String execute(String processId, String input) {
     String jobId = LogContext.generateRandomUuid().toString();
-    jobMap.put(jobId, STATUS_CODE.ACCEPTED);
+    jobMap.put(jobId, StatusCode.ACCEPTED);
 
     // Simulate process execution
     scheduler.schedule(
         () -> {
-          setStatus(jobId, STATUS_CODE.RUNNING);
+          setStatus(jobId, StatusCode.RUNNING);
           scheduler.schedule(
               () ->
-                  setStatus(
-                      jobId, Math.random() < 0.9 ? STATUS_CODE.SUCCESSFUL : STATUS_CODE.FAILED),
+                  setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED),
               5,
               TimeUnit.SECONDS);
         },
@@ -58,7 +57,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public Optional<STATUS_CODE> status(String jobId) {
+  public Optional<StatusCode> status(String jobId) {
     if (jobMap.containsKey(jobId)) {
       return Optional.of(jobMap.get(jobId));
     } else {
@@ -68,15 +67,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<String> result(String jobId) {
-    if (jobMap.get(jobId) == STATUS_CODE.SUCCESSFUL) {
+    if (jobMap.get(jobId) == StatusCode.SUCCESSFUL) {
       return Optional.of("42");
     }
     return Optional.empty();
   }
 
-  private void setStatus(String jobId, STATUS_CODE status) {
+  private void setStatus(String jobId, StatusCode status) {
     if (jobMap.containsKey(jobId)) {
-      if (jobMap.get(jobId) != STATUS_CODE.DISMISSED) {
+      if (jobMap.get(jobId) != StatusCode.DISMISSED) {
         jobMap.put(jobId, status);
       }
     }
