@@ -25,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // ToDo Handle memory leak
-  private final Map<String, StatusCode> jobMap = new ConcurrentHashMap<>();
+  private final Map<String, StatusCode> jobsMap = new ConcurrentHashMap<>();
+  private final Map<String, Map<String, Object>> resultsMap = new ConcurrentHashMap<>();
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
 
   @Inject
@@ -39,14 +40,16 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public String executeAsync(String processId, Map<String, Object> inputs) {
     String jobId = LogContext.generateRandomUuid().toString();
-    jobMap.put(jobId, StatusCode.ACCEPTED);
+    jobsMap.put(jobId, StatusCode.ACCEPTED);
 
     scheduler.schedule(
         () -> {
           setStatus(jobId, StatusCode.RUNNING);
           scheduler.schedule(
-              () ->
-                  setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED),
+              () -> {
+                resultsMap.put(jobId, inputs);
+                setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED);
+              },
               5,
               TimeUnit.SECONDS);
         },
@@ -58,25 +61,24 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<StatusCode> status(String jobId) {
-    if (jobMap.containsKey(jobId)) {
-      return Optional.of(jobMap.get(jobId));
+    if (jobsMap.containsKey(jobId)) {
+      return Optional.of(jobsMap.get(jobId));
     } else {
       return Optional.empty();
     }
   }
 
   @Override
-  public Optional<String> result(String jobId) {
-    if (jobMap.get(jobId) == StatusCode.SUCCESSFUL) {
-      return Optional.of("42");
-    }
-    return Optional.empty();
+  public Map<String, Object> result(String jobId) {
+    if (jobsMap.get(jobId) == StatusCode.SUCCESSFUL) {
+      return resultsMap.get(jobId);
+    } else throw new IllegalStateException("Job '" + jobId + " ' did not finish.");
   }
 
   private void setStatus(String jobId, StatusCode status) {
-    if (jobMap.containsKey(jobId)) {
-      if (jobMap.get(jobId) != StatusCode.DISMISSED) {
-        jobMap.put(jobId, status);
+    if (jobsMap.containsKey(jobId)) {
+      if (jobsMap.get(jobId) != StatusCode.DISMISSED) {
+        jobsMap.put(jobId, status);
       }
     }
   }
