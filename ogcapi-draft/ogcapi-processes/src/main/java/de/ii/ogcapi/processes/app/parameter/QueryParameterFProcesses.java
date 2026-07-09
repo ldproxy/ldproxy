@@ -20,7 +20,7 @@ import jakarta.inject.Singleton;
 
 /**
  * @title f
- * @endpoints Processes, Process
+ * @endpoints Processes
  * @langEn Select the output format of the response. If no value is provided, the standard HTTP
  *     rules apply, i.e., the "Accept" header will be used to determine the format.
  * @langDe Wählt das Ausgabeformat der Antwort. Wenn kein Wert angegeben wird, gelten die
@@ -43,7 +43,7 @@ public class QueryParameterFProcesses extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return "/processes".equals(definitionPath) || "/processes/{processId}".equals(definitionPath);
+    return "/processes".equals(definitionPath);
   }
 
   @Override

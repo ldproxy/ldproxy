@@ -28,13 +28,13 @@ import java.util.Map;
 @AutoBind
 public class ExecuteResponseBodyDummyJson implements ExecuteResponseBodyFormatExtension {
 
-  private final Schema<?> schemaStyleProcess;
-  private final Map<String, Schema<?>> referencedSchemasProcess;
+  private final Schema<?> schemaExecuteResponse;
+  private final Map<String, Schema<?>> referencedSchemasExecuteResponse;
 
   @Inject
   public ExecuteResponseBodyDummyJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcess = classSchemaCache.getSchema(ExecuteResponseBodyDummy.class);
-    referencedSchemasProcess =
+    schemaExecuteResponse = classSchemaCache.getSchema(ExecuteResponseBodyDummy.class);
+    referencedSchemasExecuteResponse =
         classSchemaCache.getReferencedSchemas(ExecuteResponseBodyDummy.class);
   }
 
@@ -46,9 +46,9 @@ public class ExecuteResponseBodyDummyJson implements ExecuteResponseBodyFormatEx
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaStyleProcess)
+        .schema(schemaExecuteResponse)
         .schemaRef(ExecuteResponseBodyDummy.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasProcess)
+        .referencedSchemas(referencedSchemasExecuteResponse)
         .ogcApiMediaType(getMediaType())
         .build();
   }

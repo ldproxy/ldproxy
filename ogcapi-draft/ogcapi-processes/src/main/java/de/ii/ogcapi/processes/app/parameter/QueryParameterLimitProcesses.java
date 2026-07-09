@@ -144,7 +144,7 @@ public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
     int limit;
     try {
       limit = Integer.parseInt(value);
-    } catch (Throwable e) {
+    } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
           String.format(
               "Invalid value for query parameter '%s'. The value must be a non-negative non-zero integer. Found: %s.",

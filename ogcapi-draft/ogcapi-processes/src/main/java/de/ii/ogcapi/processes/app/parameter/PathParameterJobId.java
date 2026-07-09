@@ -83,6 +83,7 @@ public class PathParameterJobId implements OgcApiPathParameter {
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, String collectionId) {
+    // ToDo Shouldn't this return true?
     if (isApplicable(apiData, definitionPath)) return false;
 
     return apiData

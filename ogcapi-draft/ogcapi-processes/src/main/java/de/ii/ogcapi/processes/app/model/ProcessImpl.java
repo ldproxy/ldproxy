@@ -16,7 +16,7 @@ import java.util.Optional;
 
 public class ProcessImpl implements Process {
 
-  ProcessData data;
+  private final ProcessData data;
 
   public ProcessImpl(ProcessData data) {
     this.data = data;
@@ -33,7 +33,7 @@ public class ProcessImpl implements Process {
   }
 
   @Override
-  public Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions() {
+  public Optional<List<JobControlOptions>> getJobControlOptions() {
     return data.getJobControlOptions();
   }
 

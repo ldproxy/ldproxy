@@ -20,7 +20,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import de.ii.ogcapi.processes.app.format.json.ProcessListLinksGenerator;
+import de.ii.ogcapi.processes.app.format.ProcessListLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;

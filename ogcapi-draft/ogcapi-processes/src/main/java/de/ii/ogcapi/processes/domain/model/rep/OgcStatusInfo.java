@@ -18,20 +18,20 @@ import org.immutables.value.Value;
 @ApiInfo(schemaId = "StatusInfo")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOgcStatusInfoInfo.Builder.class)
-public abstract class OgcStatusInfoInfo extends PageRepresentation implements StatusInfo {
+@JsonDeserialize(builder = ImmutableOgcStatusInfo.Builder.class)
+public abstract class OgcStatusInfo extends PageRepresentation implements StatusInfo {
 
   public static final String SCHEMA_REF = "#/components/schemas/StatusInfo";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<OgcStatusInfoInfo> FUNNEL =
+  public static final Funnel<OgcStatusInfo> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
         into.putString(from.getId(), StandardCharsets.UTF_8);
         into.putString(from.getStatus().name(), StandardCharsets.UTF_8);
       };
 
-  public static OgcStatusInfoInfo of(StatusInfo statusInfo) {
-    return new ImmutableOgcStatusInfoInfo.Builder().from(statusInfo).build();
+  public static OgcStatusInfo of(StatusInfo statusInfo) {
+    return new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
   }
 }

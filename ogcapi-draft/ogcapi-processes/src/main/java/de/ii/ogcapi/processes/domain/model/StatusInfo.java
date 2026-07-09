@@ -12,5 +12,5 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 public interface StatusInfo {
   String getId();
 
-  ProcessesExecutor.STATUS_CODE getStatus();
+  ProcessesExecutor.StatusCode getStatus();
 }

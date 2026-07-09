@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.processes.infra;
 
-import static de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.GROUP_PROCESSES_READ;
+import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -108,7 +108,7 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
               operationDescription,
               Optional.empty(),
               getOperationId("getJob"),
-              GROUP_PROCESSES_READ,
+              GROUP_JOBS_READ,
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
               ProcessesCoreBuildingBlock.SPEC)

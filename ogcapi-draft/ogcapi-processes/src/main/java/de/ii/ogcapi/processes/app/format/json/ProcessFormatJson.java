@@ -28,12 +28,12 @@ import java.util.Map;
 @AutoBind
 public class ProcessFormatJson implements ProcessFormatExtension {
 
-  private final Schema<?> schemaStyleProcess;
+  private final Schema<?> schemaProcess;
   private final Map<String, Schema<?>> referencedSchemasProcess;
 
   @Inject
   public ProcessFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaStyleProcess = classSchemaCache.getSchema(OgcProcess.class);
+    schemaProcess = classSchemaCache.getSchema(OgcProcess.class);
     referencedSchemasProcess = classSchemaCache.getReferencedSchemas(OgcProcess.class);
   }
 
@@ -45,7 +45,7 @@ public class ProcessFormatJson implements ProcessFormatExtension {
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaStyleProcess)
+        .schema(schemaProcess)
         .schemaRef(OgcProcess.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcess)
         .ogcApiMediaType(getMediaType())

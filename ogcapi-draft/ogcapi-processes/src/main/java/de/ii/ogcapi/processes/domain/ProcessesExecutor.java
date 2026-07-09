@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface ProcessesExecutor {
 
-  enum STATUS_CODE {
+  enum StatusCode {
     ACCEPTED,
     RUNNING,
     SUCCESSFUL,
@@ -23,7 +23,7 @@ public interface ProcessesExecutor {
 
   String execute(String processId, String input);
 
-  Optional<STATUS_CODE> status(String jobId);
+  Optional<StatusCode> status(String jobId);
 
   Optional<String> result(String jobId);
 }

@@ -24,7 +24,7 @@ public abstract class ProcessSummaryBase extends PageRepresentationWithId
             .ifPresent(
                 l ->
                     l.stream()
-                        .map(JOB_CONTROL_OPTIONS::name)
+                        .map(JobControlOptions::name)
                         .sorted()
                         .forEachOrdered(name -> into.putString(name, StandardCharsets.UTF_8)));
         from.getKeywords()
