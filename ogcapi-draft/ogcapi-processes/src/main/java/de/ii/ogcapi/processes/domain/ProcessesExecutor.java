@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import java.util.Map;
 import java.util.Optional;
 
 public interface ProcessesExecutor {
@@ -21,7 +22,7 @@ public interface ProcessesExecutor {
 
   String execute(String processId);
 
-  String execute(String processId, String input);
+  String execute(String processId, Map<String, Object> inputs);
 
   Optional<StatusCode> status(String jobId);
 

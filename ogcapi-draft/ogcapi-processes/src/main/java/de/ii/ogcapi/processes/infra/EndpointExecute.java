@@ -31,8 +31,8 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ExecuteRequestBodyFormatExtension;
-import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -172,16 +172,14 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (resourceFormats == null)
-      resourceFormats =
-          extensionRegistry.getExtensionsForType(ExecuteResponseBodyFormatExtension.class);
+      resourceFormats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
     return resourceFormats;
   }
 
   @Override
   public List<? extends FormatExtension> getRequestFormats() {
     if (requestFormats == null)
-      requestFormats =
-          extensionRegistry.getExtensionsForType(ExecuteRequestBodyFormatExtension.class);
+      requestFormats = extensionRegistry.getExtensionsForType(ExecuteFormatExtension.class);
     return requestFormats;
   }
 
