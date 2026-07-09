@@ -9,7 +9,7 @@ package de.ii.ogcapi.processes.app.format.html;
 
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.rep.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcProcess;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;

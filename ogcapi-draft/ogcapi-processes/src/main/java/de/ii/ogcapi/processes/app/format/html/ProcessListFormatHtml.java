@@ -26,7 +26,7 @@ import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
-import de.ii.ogcapi.processes.domain.model.rep.OgcProcessList;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcProcessList;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
