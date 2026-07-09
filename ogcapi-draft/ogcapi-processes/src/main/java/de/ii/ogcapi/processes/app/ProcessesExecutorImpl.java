@@ -34,7 +34,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Map<String, Object> executeSync(String processId, Map<String, Object> inputs) {
-    return inputs;
+    if ("AnswerProcess".equals(processId)) {
+      return answerProcess();
+    } else {
+      return echoProcess(inputs);
+    }
   }
 
   @Override
@@ -47,7 +51,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           setStatus(jobId, StatusCode.RUNNING);
           scheduler.schedule(
               () -> {
-                resultsMap.put(jobId, inputs);
+                if ("AnswerProcess".equals(processId)) {
+                  resultsMap.put(jobId, answerProcess());
+                } else {
+                  resultsMap.put(jobId, echoProcess(inputs));
+                }
                 setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED);
               },
               5,
@@ -57,6 +65,22 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         TimeUnit.SECONDS);
 
     return jobId;
+  }
+
+  private Map<String, Object> echoProcess(Map<String, Object> inputs) {
+    return inputs;
+  }
+
+  private Map<String, Object> answerProcess() {
+    // Support for single output return is stil missing
+    Map<String, Object> answer = new ConcurrentHashMap<>();
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException ex) {
+      // ignore
+    }
+    answer.put("answer", 42);
+    return answer;
   }
 
   @Override
