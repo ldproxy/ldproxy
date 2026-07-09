@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.processes.infra;
 
-import static de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.GROUP_PROCESSES_READ;
+import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -30,7 +30,7 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputResults;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -108,7 +108,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
               operationDescription,
               Optional.empty(),
               getOperationId("getJobResults"),
-              GROUP_PROCESSES_READ,
+              GROUP_JOBS_READ,
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
               ProcessesCoreBuildingBlock.SPEC)
@@ -149,7 +149,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ExecuteResponseBodyFormatExtension.class);
     return formats;
   }
 

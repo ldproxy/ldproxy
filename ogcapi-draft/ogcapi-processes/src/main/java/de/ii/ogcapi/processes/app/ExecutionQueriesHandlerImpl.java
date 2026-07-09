@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -21,18 +20,20 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor.STATUS_CODE;
+import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ExecuteRequestBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.Optional;
@@ -56,15 +57,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       ExtensionRegistry extensionRegistry,
       ProcessRepository repository,
       ProcessesExecutor processesExecutor,
-      VolatileRegistry volatileRegistry) {
+      VolatileRegistry volatileRegistry,
+      Jackson jackson) {
     super(ExecutionQueriesHandler.class.getSimpleName(), volatileRegistry, true);
     this.i18n = i18n;
     this.extensionRegistry = extensionRegistry;
     this.processRepository = repository;
     this.processesExecutor = processesExecutor;
 
-    mapper = new ObjectMapper();
-    mapper.registerModule(new Jdk8Module());
+    this.mapper = jackson.getDefaultObjectMapper();
 
     this.queryHandlers =
         ImmutableMap.of(
@@ -102,7 +103,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     final ExecuteRequestBodyDummy request;
     try {
       request = mapper.readValue(queryInput.getRequestBody(), ExecuteRequestBodyDummy.class);
-    } catch (Throwable e) {
+    } catch (IOException e) {
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
 
@@ -115,7 +116,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     ExecuteResponseBodyDummy response =
         new ImmutableExecuteResponseBodyDummy.Builder()
-            .status(STATUS_CODE.ACCEPTED)
+            .status(StatusCode.ACCEPTED)
             .jobId(jobId)
             .build();
 

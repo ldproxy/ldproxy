@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public interface ProcessSummary extends DescriptionType {
 
-  enum JOB_CONTROL_OPTIONS {
+  enum JobControlOptions {
     SYNC_EXECUTE,
     ASYNC_EXECUTE,
     DISMISS
@@ -22,5 +22,5 @@ public interface ProcessSummary extends DescriptionType {
 
   String getVersion();
 
-  Optional<List<JOB_CONTROL_OPTIONS>> getJobControlOptions();
+  Optional<List<JobControlOptions>> getJobControlOptions();
 }

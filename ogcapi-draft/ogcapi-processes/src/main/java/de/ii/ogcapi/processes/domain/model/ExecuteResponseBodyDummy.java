@@ -19,7 +19,7 @@ public interface ExecuteResponseBodyDummy {
 
   String SCHEMA_REF = "#/components/schemas/ExecuteResponseBody";
 
-  ProcessesExecutor.STATUS_CODE getStatus();
+  ProcessesExecutor.StatusCode getStatus();
 
   Optional<String> getJobId();
 
