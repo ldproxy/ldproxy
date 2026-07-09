@@ -14,8 +14,8 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.format.ExecuteRequestBodyFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ExecuteRequestBodyDummy;
+import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
+import de.ii.ogcapi.processes.domain.model.rep.OgcExecute;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,16 +26,15 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ExecuteRequestBodyDummyJson implements ExecuteRequestBodyFormatExtension {
+public class ExecuteFormatJson implements ExecuteFormatExtension {
 
-  private final Schema<?> schemaExecuteRequest;
-  private final Map<String, Schema<?>> referencedSchemasExecuteRequest;
+  private final Schema<?> schemaExecute;
+  private final Map<String, Schema<?>> referencedSchemasExecute;
 
   @Inject
-  public ExecuteRequestBodyDummyJson(ClassSchemaCache classSchemaCache) {
-    schemaExecuteRequest = classSchemaCache.getSchema(ExecuteRequestBodyDummy.class);
-    referencedSchemasExecuteRequest =
-        classSchemaCache.getReferencedSchemas(ExecuteRequestBodyDummy.class);
+  public ExecuteFormatJson(ClassSchemaCache classSchemaCache) {
+    schemaExecute = classSchemaCache.getSchema(OgcExecute.class);
+    referencedSchemasExecute = classSchemaCache.getReferencedSchemas(OgcExecute.class);
   }
 
   @Override
@@ -51,16 +50,15 @@ public class ExecuteRequestBodyDummyJson implements ExecuteRequestBodyFormatExte
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaExecuteRequest)
-        .schemaRef(ExecuteRequestBodyDummy.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasExecuteRequest)
+        .schema(schemaExecute)
+        .schemaRef(OgcExecute.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasExecute)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(
-      ExecuteRequestBodyDummy requestBody, OgcApi api, ApiRequestContext requestContext) {
-    return requestBody;
+  public Object getEntity(OgcExecute execute, OgcApi api, ApiRequestContext requestContext) {
+    return execute;
   }
 }

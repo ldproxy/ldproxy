@@ -21,12 +21,12 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
-import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
-import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.rep.OgcResults;
 import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfo;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
@@ -140,11 +140,9 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     OgcApi api = requestContext.getApi();
     String jobId = queryInput.getJobId();
 
-    ExecuteResponseBodyFormatExtension outputFormat =
+    ResultsFormatExtension outputFormat =
         api.getOutputFormat(
-                ExecuteResponseBodyFormatExtension.class,
-                requestContext.getMediaType(),
-                Optional.empty())
+                ResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -154,22 +152,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     // ToDo Links
 
-    StatusCode status =
-        processesExecutor
-            .status(jobId)
-            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
-
-    String result =
-        processesExecutor
-            .result(jobId)
-            .orElseThrow(() -> new IllegalStateException("Job " + jobId + " is " + status));
-
-    ExecuteResponseBodyDummy responseBody =
-        new ImmutableExecuteResponseBodyDummy.Builder()
-            .jobId(jobId)
-            .status(status)
-            .output(result)
-            .build();
+    OgcResults results = new ImmutableOgcResults.Builder().build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -179,7 +162,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(responseBody, api, requestContext))
+        .entity(outputFormat.getEntity(results, api, requestContext))
         .build();
   }
 }

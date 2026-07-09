@@ -32,11 +32,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public String execute(String processId) {
-    return execute(processId, "");
+    return execute(processId, Map.of());
   }
 
   @Override
-  public String execute(String processId, String input) {
+  public String execute(String processId, Map<String, Object> inputs) {
     String jobId = LogContext.generateRandomUuid().toString();
     jobMap.put(jobId, StatusCode.ACCEPTED);
 
