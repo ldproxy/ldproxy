@@ -21,11 +21,16 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.rep.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ProcessSummary;
+import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -35,6 +40,7 @@ import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -55,14 +61,14 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   public ExecutionQueriesHandlerImpl(
       I18n i18n,
       ExtensionRegistry extensionRegistry,
-      ProcessRepository repository,
+      ProcessRepository processRepository,
       ProcessesExecutor processesExecutor,
       VolatileRegistry volatileRegistry,
       Jackson jackson) {
     super(ExecutionQueriesHandler.class.getSimpleName(), volatileRegistry, true);
     this.i18n = i18n;
     this.extensionRegistry = extensionRegistry;
-    this.processRepository = repository;
+    this.processRepository = processRepository;
     this.processesExecutor = processesExecutor;
 
     this.mapper = jackson.getDefaultObjectMapper();
@@ -73,7 +79,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     onVolatileStart();
 
-    addSubcomponent(repository);
+    addSubcomponent(processRepository);
 
     onVolatileStarted();
   }
@@ -85,8 +91,68 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
   private Response executionResponse(
       QueryInputExecution queryInput, ApiRequestContext requestContext) {
-    OgcApi api = requestContext.getApi();
+
+    boolean preferAsync = queryInput.getPreferAsync();
     String processId = queryInput.getProcessId();
+
+    Optional<List<JobControlOptions>> jobControlOptions =
+        processRepository.get(processId).flatMap(ProcessSummary::getJobControlOptions);
+
+    if (jobControlOptions.isEmpty()) {
+      return executionResponseSync(queryInput, requestContext, processId);
+    }
+
+    if (preferAsync && jobControlOptions.get().contains(JobControlOptions.ASYNC_EXECUTE)) {
+      return executionResponseAsync(queryInput, requestContext, processId);
+    }
+
+    return executionResponseSync(queryInput, requestContext, processId);
+  }
+
+  private Response executionResponseSync(
+      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+
+    OgcApi api = requestContext.getApi();
+
+    ResultsFormatExtension outputFormat =
+        api.getOutputFormat(
+                ResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    final OgcExecute executeRequest;
+    try {
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
+    }
+
+    Map<String, Object> processResults =
+        processesExecutor.executeSync(processId, executeRequest.getInputs().orElse(Map.of()));
+
+    OgcResults results =
+        new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(null, null, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(results, api, requestContext))
+        .build();
+  }
+
+  private Response executionResponseAsync(
+      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+
+    OgcApi api = requestContext.getApi();
 
     StatusInfoFormatExtension outputFormat =
         api.getOutputFormat(
@@ -105,12 +171,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
 
-    String jobId;
-    if (executeRequest.getInputs().isPresent()) {
-      jobId = processesExecutor.execute(processId, executeRequest.getInputs().get());
-    } else {
-      jobId = processesExecutor.execute(processId);
-    }
+    String jobId =
+        processesExecutor.executeAsync(processId, executeRequest.getInputs().orElse(Map.of()));
 
     OgcStatusInfo statusInfo =
         new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.ACCEPTED).build();

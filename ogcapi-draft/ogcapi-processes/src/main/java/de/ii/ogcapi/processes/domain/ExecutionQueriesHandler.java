@@ -40,5 +40,7 @@ public interface ExecutionQueriesHandler
     String getProcessId();
 
     InputStream getRequestBody();
+
+    Boolean getPreferAsync();
   }
 }

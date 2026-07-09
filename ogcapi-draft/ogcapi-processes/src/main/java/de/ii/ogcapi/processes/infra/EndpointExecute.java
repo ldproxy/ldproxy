@@ -45,9 +45,11 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -142,6 +144,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
       @PathParam("processId") String processId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
+      @Context HttpHeaders headers,
       InputStream requestBody) {
 
     if (!isEnabledForApi(api.getData()))
@@ -154,11 +157,18 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
         "processId",
         processId);
 
+    String prefer = headers.getHeaderString("Prefer");
+    boolean preferAsync =
+        prefer != null
+            && Arrays.stream(prefer.split(","))
+                .anyMatch(p -> ("respond-async".equals(p) || "wait".equals(p)));
+
     ExecutionQueriesHandler.QueryInputExecution queryInput =
         new ImmutableQueryInputExecution.Builder()
             .from(getGenericQueryInput(api.getData()))
             .processId(processId)
             .requestBody(requestBody)
+            .preferAsync(preferAsync)
             .build();
 
     return queryHandler.handle(ExecutionQueriesHandler.Query.EXECUTE, queryInput, requestContext);

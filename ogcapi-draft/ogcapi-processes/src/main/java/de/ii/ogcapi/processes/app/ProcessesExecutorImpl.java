@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/** For now this just simulates the execution of processes. */
 @Singleton
 @AutoBind
 public class ProcessesExecutorImpl implements ProcessesExecutor {
@@ -31,16 +32,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   ProcessesExecutorImpl() {}
 
   @Override
-  public String execute(String processId) {
-    return execute(processId, Map.of());
+  public Map<String, Object> executeSync(String processId, Map<String, Object> inputs) {
+    return inputs;
   }
 
   @Override
-  public String execute(String processId, Map<String, Object> inputs) {
+  public String executeAsync(String processId, Map<String, Object> inputs) {
     String jobId = LogContext.generateRandomUuid().toString();
     jobMap.put(jobId, StatusCode.ACCEPTED);
 
-    // Simulate process execution
     scheduler.schedule(
         () -> {
           setStatus(jobId, StatusCode.RUNNING);
