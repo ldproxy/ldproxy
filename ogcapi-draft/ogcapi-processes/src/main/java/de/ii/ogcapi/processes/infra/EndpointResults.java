@@ -30,7 +30,7 @@ import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputResults;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -149,7 +149,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ExecuteResponseBodyFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
     return formats;
   }
 

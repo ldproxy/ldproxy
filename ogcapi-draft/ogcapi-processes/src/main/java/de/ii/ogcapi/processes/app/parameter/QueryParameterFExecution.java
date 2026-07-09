@@ -14,7 +14,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -41,7 +41,7 @@ public class QueryParameterFExecution extends QueryParameterF {
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return ExecuteResponseBodyFormatExtension.class;
+    return ResultsFormatExtension.class;
   }
 
   @Override

@@ -21,11 +21,11 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
-import de.ii.ogcapi.processes.domain.format.ExecuteResponseBodyFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ExecuteRequestBodyDummy;
-import de.ii.ogcapi.processes.domain.model.ExecuteResponseBodyDummy;
-import de.ii.ogcapi.processes.domain.model.ImmutableExecuteResponseBodyDummy;
+import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.ogcapi.processes.domain.model.rep.ImmutableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.rep.OgcExecute;
+import de.ii.ogcapi.processes.domain.model.rep.OgcStatusInfo;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -88,11 +88,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApi api = requestContext.getApi();
     String processId = queryInput.getProcessId();
 
-    ExecuteResponseBodyFormatExtension outputFormat =
+    StatusInfoFormatExtension outputFormat =
         api.getOutputFormat(
-                ExecuteResponseBodyFormatExtension.class,
-                requestContext.getMediaType(),
-                Optional.empty())
+                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -100,25 +98,22 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final ExecuteRequestBodyDummy request;
+    final OgcExecute executeRequest;
     try {
-      request = mapper.readValue(queryInput.getRequestBody(), ExecuteRequestBodyDummy.class);
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
     } catch (IOException e) {
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
 
     String jobId;
-    if (request.getInput().isPresent()) {
-      jobId = processesExecutor.execute(processId, request.getInput().get());
+    if (executeRequest.getInputs().isPresent()) {
+      jobId = processesExecutor.execute(processId, executeRequest.getInputs().get());
     } else {
       jobId = processesExecutor.execute(processId);
     }
 
-    ExecuteResponseBodyDummy response =
-        new ImmutableExecuteResponseBodyDummy.Builder()
-            .status(StatusCode.ACCEPTED)
-            .jobId(jobId)
-            .build();
+    OgcStatusInfo statusInfo =
+        new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.ACCEPTED).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -128,7 +123,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(response, api, requestContext))
+        .entity(outputFormat.getEntity(statusInfo, api, requestContext))
         .build();
   }
 }
