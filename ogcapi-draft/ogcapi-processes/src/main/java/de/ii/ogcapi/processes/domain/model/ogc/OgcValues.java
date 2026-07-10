@@ -25,10 +25,7 @@ public abstract class OgcValues implements Values {
   public static final Funnel<OgcValues> FUNNEL =
       (from, into) -> {
         from.getInlineOrRefValues()
-            .ifPresent(
-                l -> {
-                  l.stream().sorted().forEachOrdered(v -> into.putInt(v.hashCode()));
-                });
+            .ifPresent(l -> l.stream().sorted().forEachOrdered(v -> into.putInt(v.hashCode())));
         from.getInlineOrRefValue().ifPresent(v -> into.putInt(v.hashCode()));
       };
 

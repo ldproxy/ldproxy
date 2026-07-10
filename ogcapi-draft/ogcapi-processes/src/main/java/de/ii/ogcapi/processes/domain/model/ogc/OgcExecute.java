@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model.ogc;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -26,12 +27,15 @@ public interface OgcExecute {
   @JsonProperty("process")
   Optional<String> getProcessUri();
 
-  // Optional<Map<String, Values>> getInputs();
-  Optional<Map<String, Object>> getInputs();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  // Map<String, Values> getInputs();
+  Map<String, Object> getInputs();
 
-  // Optional<Map<String, OutputSelection>> outputs();
-  Optional<Map<String, String>> getOutputs();
+  // TODO Use Optional to distinguish between empty Output and no Output
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  // Map<String, OutputSelection> getOutputs();
+  Map<String, String> getOutputs();
 
-  // Optional<Subscriber> subscriber();
-  Optional<String> subscriber();
+  // Optional<Subscriber> getSubscriber();
+  Optional<String> getSubscriber();
 }

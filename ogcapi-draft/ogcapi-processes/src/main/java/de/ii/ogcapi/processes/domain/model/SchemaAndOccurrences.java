@@ -5,8 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.io;
+package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.domain.model.DescriptionType;
+public interface SchemaAndOccurrences {
 
-public interface OutputDescription extends DescriptionType, DataClasses {}
+  String getSchema();
+
+  int getMinOccurs();
+
+  int getMaxOccurs();
+}
