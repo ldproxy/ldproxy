@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +17,9 @@ public interface DescriptionType {
 
   Optional<String> getDescription();
 
-  Optional<List<String>> getKeywords();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<String> getKeywords();
 
-  // Optional<List<MetaData>> getMetaData();
+  // @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  // List<MetaData> getMetaData();
 }

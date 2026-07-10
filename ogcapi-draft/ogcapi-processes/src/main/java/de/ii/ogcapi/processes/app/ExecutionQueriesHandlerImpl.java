@@ -24,8 +24,8 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
+import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessSummary;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
@@ -95,32 +95,57 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponse(
       QueryInputExecution queryInput, ApiRequestContext requestContext) {
 
-    boolean preferAsync = queryInput.getPreferAsync();
     String processId = queryInput.getProcessId();
+    Process process = processRepository.get(processId).get();
+    List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
+    boolean async =
+        queryInput.getPreferAsync() && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE);
 
-    Optional<List<JobControlOptions>> jobControlOptions =
-        processRepository.get(processId).flatMap(ProcessSummary::getJobControlOptions);
+    final OgcExecute executeRequest;
+    try {
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
+    }
+    Map<String, String> requestedOutputs = executeRequest.getOutputs();
+    int outputsCount = requestedOutputs.size();
 
-    // The extra control here is for demo purposes and temporarily
-    if (jobControlOptions.isEmpty()) {
-      if ("AnswerProcess".equals(processId)) {
-        return executionResponseSync(queryInput, requestContext, processId);
+    if (!async) {
+      if (outputsCount == 0) {
+        return executionResponseEmpty();
       }
-      return executionResponseSync(queryInput, requestContext, processId);
+      // Map<String, OutputDescription> processOutputs = process.getOutputs().get();
+      // Map<String, String> requestedOutputs = requestedOutputsOpt.get();
+      if (outputsCount == 1) {
+        return executionResponseSync(queryInput, requestContext, processId, executeRequest);
+
+        // String outputKey = requestedOutputs.keySet().stream().findFirst().get();
+        // if(processOutputs.containsKey(outputKey)) {
+        // if(processOutputs.get(outputKey).getMaxOccurs() == 1) {
+        // } else {
+        //  return executionResponseSyncN(queryInput, requestContext, processId, executeRequest);
+        // }
+        // } else {
+        // throw new IllegalArgumentException("Output does not exist");
+        // }
+
+      } else {
+        return executionResponseSyncN(queryInput, requestContext, processId, executeRequest);
+      }
     }
 
-    if (preferAsync && jobControlOptions.get().contains(JobControlOptions.ASYNC_EXECUTE)) {
-      return executionResponseAsync(queryInput, requestContext, processId);
-    }
+    return executionResponseAsync(queryInput, requestContext, processId, executeRequest);
+  }
 
-    if ("AnswerProcess".equals(processId)) {
-      return executionResponseSync(queryInput, requestContext, processId);
-    }
-    return executionResponseSync(queryInput, requestContext, processId);
+  private Response executionResponseEmpty() {
+    return Response.ok().build();
   }
 
   private Response executionResponseSync(
-      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+      QueryInputExecution queryInput,
+      ApiRequestContext requestContext,
+      String processId,
+      OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -134,17 +159,14 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final OgcExecute executeRequest;
-    try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
-    }
+    Map<String, Object> processResults =
+        processesExecutor.executeSync(
+            processId, executeRequest.getInputs(), executeRequest.getOutputs());
 
-    Object processResults =
-        processesExecutor.executeSync(processId, executeRequest.getInputs().orElse(Map.of()));
-
-    OgcValues values = new ImmutableOgcValues.Builder().inlineOrRefValue(processResults).build();
+    OgcValues values =
+        new ImmutableOgcValues.Builder()
+            .inlineOrRefValue(processResults.values().stream().findFirst())
+            .build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -159,7 +181,10 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private Response executionResponseSyncN(
-      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+      QueryInputExecution queryInput,
+      ApiRequestContext requestContext,
+      String processId,
+      OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -173,15 +198,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final OgcExecute executeRequest;
-    try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
-    }
-
     Map<String, Object> processResults =
-        processesExecutor.executeSyncN(processId, executeRequest.getInputs().orElse(Map.of()));
+        processesExecutor.executeSync(
+            processId, executeRequest.getInputs(), executeRequest.getOutputs());
 
     OgcResults results =
         new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
@@ -199,7 +218,10 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private Response executionResponseAsync(
-      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+      QueryInputExecution queryInput,
+      ApiRequestContext requestContext,
+      String processId,
+      OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -213,15 +235,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    final OgcExecute executeRequest;
-    try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
-    }
-
     String jobId =
-        processesExecutor.executeAsync(processId, executeRequest.getInputs().orElse(Map.of()));
+        processesExecutor.executeAsync(
+            processId, executeRequest.getInputs(), executeRequest.getOutputs());
 
     OgcStatusInfo statusInfo =
         new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.ACCEPTED).build();

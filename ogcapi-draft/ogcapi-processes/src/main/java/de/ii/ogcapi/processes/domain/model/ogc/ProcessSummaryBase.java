@@ -20,19 +20,12 @@ public abstract class ProcessSummaryBase extends PageRepresentationWithId
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
-        from.getJobControlOptions()
-            .ifPresent(
-                l ->
-                    l.stream()
-                        .map(JobControlOptions::name)
-                        .sorted()
-                        .forEachOrdered(name -> into.putString(name, StandardCharsets.UTF_8)));
-        from.getKeywords()
-            .ifPresent(
-                l ->
-                    l.stream()
-                        .sorted()
-                        .forEachOrdered(
-                            keyword -> into.putString(keyword, StandardCharsets.UTF_8)));
+        from.getJobControlOptions().stream()
+            .map(JobControlOptions::name)
+            .sorted()
+            .forEachOrdered(name -> into.putString(name, StandardCharsets.UTF_8));
+        from.getKeywords().stream()
+            .sorted()
+            .forEachOrdered(keyword -> into.putString(keyword, StandardCharsets.UTF_8));
       };
 }

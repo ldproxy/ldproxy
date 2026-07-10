@@ -7,18 +7,18 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.app.model.ProcessImpl;
-import de.ii.ogcapi.processes.domain.model.io.InputDescription;
-import de.ii.ogcapi.processes.domain.model.io.OutputDescription;
-import java.util.Optional;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
 
 public interface Process extends ProcessSummary {
 
   static Process custom(ProcessData data) {
-    return new ProcessImpl(data);
+    return data;
   }
 
-  Optional<InputDescription> getInputDescription();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  Map<String, InputDescription> getInputs();
 
-  Optional<OutputDescription> getOutputDescription();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  Map<String, OutputDescription> getOutputs();
 }
