@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -44,9 +45,20 @@ public interface ExtensionConfiguration
   }
 
   static String getBuildingBlockIdentifier(Class<? extends ExtensionConfiguration> clazz) {
-    return CaseFormat.UPPER_CAMEL.to(
-        CaseFormat.UPPER_UNDERSCORE,
-        clazz.getSimpleName().replace("Immutable", "").replace("Configuration", ""));
+    // derived purely from the class name; memoized because it is queried per feature on the
+    // extension-enablement hot path (ApiExtension.isExtensionEnabled)
+    return BuildingBlockIds.CACHE.computeIfAbsent(
+        clazz,
+        c ->
+            CaseFormat.UPPER_CAMEL.to(
+                CaseFormat.UPPER_UNDERSCORE,
+                c.getSimpleName().replace("Immutable", "").replace("Configuration", "")));
+  }
+
+  final class BuildingBlockIds {
+    private BuildingBlockIds() {}
+
+    private static final Map<Class<?>, String> CACHE = new ConcurrentHashMap<>();
   }
 
   /**

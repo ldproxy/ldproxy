@@ -22,9 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * add CRS information to the collection information (default list of coordinate reference systems)
@@ -63,10 +61,7 @@ public class CrsOnCollections implements CollectionsExtension {
                   .orElse(false)
               ? ImmutableList.of()
               : crsSupport.getSupportedCrsList(api.getData()).stream()
-                  .flatMap(
-                      crs ->
-                          Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
-                  .filter(Objects::nonNull)
+                  .flatMap(crs -> crs.allUris().stream())
                   .collect(ImmutableList.toImmutableList());
 
       collectionsBuilder.crs(crsList);

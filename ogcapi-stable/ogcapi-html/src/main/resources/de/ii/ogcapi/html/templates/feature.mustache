@@ -1,11 +1,11 @@
 <div>
     {{#inCollection}}
-      {{#fromStoredQuery}}
+      {{#isQueryExpression}}
         <h4 class="mt-3 mb-1"><span>{{name}}</span></h4>
-      {{/fromStoredQuery}}
-      {{^fromStoredQuery}}
+      {{/isQueryExpression}}
+      {{^isQueryExpression}}
         <h4 class="mt-3 mb-1"><a href="{{#currentUrlWithSegment}}{{idValue}}{{/currentUrlWithSegment}}{{additionalParams}}"><span>{{name}}</span></a></h4>
-      {{/fromStoredQuery}}
+      {{/isQueryExpression}}
       <span class="d-none">{{#currentUrlWithSegmentClearParams}}{{idValue}}{{/currentUrlWithSegmentClearParams}}</span>
     {{/inCollection}}
     {{^inCollection}}

@@ -4,7 +4,7 @@ when:
 steps:
 
   libs:
-    image: eclipse-temurin:25@sha256:dfc0093e3dbf43dae57827111c6e374f5b44fac19a9451584b2b336b81474d64
+    image: eclipse-temurin:25@sha256:68868d04fa9cfd5f5c6abec0b5cef86d8de2bf9c62c37c7d3e4f0f80f5cfd7ff
     environment:
       - DOCS_VERSION=v4.x
     commands:
@@ -24,7 +24,7 @@ steps:
       branch: master
 
   dist-arm64:
-    image: eclipse-temurin:25@sha256:dfc0093e3dbf43dae57827111c6e374f5b44fac19a9451584b2b336b81474d64
+    image: eclipse-temurin:25@sha256:68868d04fa9cfd5f5c6abec0b5cef86d8de2bf9c62c37c7d3e4f0f80f5cfd7ff
     commands:
       - ./gradlew dockerContext -Pplatform=linux-arm64 -Prelease=true -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]
@@ -51,7 +51,7 @@ steps:
 ## workaround: docker buildx imagetools create --tag "iide/ldproxy:latest" "iide/ldproxy:4.1.0"
 
   github:
-    image: node:24@sha256:fdddfb3e688158251943d52eba361de991548f6814007acba4917ae6b512d6be
+    image: node:24@sha256:392e1e23f34da768d8d1f4e502b64f200d3be3465934d4b7930f57d7e2fc1989
     commands:
       - export HOME=$${CI_WORKSPACE}
       - npx --yes @cjbarth/github-release-notes@3.0.0 release -d --head $CI_COMMIT_BRANCH -t $CI_COMMIT_TAG --token=$GITHUB_TOKEN

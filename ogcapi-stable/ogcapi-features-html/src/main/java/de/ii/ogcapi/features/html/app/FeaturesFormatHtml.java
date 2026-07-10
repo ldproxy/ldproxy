@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -297,6 +298,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
               transformationContext.getQueryTitle().orElse("Search"),
               getPropertyTooltips(apiData, true),
               transformationContext.getLinks(),
+              transformationContext.getQueryScope(),
               user);
     } else {
       // Features - Core
@@ -638,6 +640,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
       String queryLabel,
       boolean propertyTooltips,
       List<Link> links,
+      FeatureQueryScope queryScope,
       Optional<User> user) {
     OgcApiDataV2 apiData = api.getData();
     URI requestUri = null;
@@ -672,7 +675,7 @@ public class FeaturesFormatHtml extends FeatureFormatExtension
     URICustomizer resourceUri = uriCustomizer.copy().clearParameters();
 
     return ModifiableFeatureCollectionView.create()
-        .setFromStoredQuery(true)
+        .setQueryScope(queryScope)
         .setFilterEditor(null)
         .setApiData(apiData)
         .setSpatialExtent(api.getSpatialExtent())

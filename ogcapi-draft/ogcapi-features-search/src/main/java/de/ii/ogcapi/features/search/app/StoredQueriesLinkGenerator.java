@@ -24,6 +24,13 @@ public class StoredQueriesLinkGenerator extends DefaultLinksGenerator {
 
   public static final String NAME_TEMPLATE = "{{name}}";
   public static final String PARAMETER_TEMPLATE = "{{parameter}}";
+  public static final String OFFSET = "offset";
+  public static final String NEXT = "next";
+  public static final String NEXT_LINK = "nextLink";
+  public static final String PREV = "prev";
+  public static final String PREV_LINK = "prevLink";
+  public static final String FIRST = "first";
+  public static final String FIRST_LINK = "firstLink";
   public static final String PARAMETERS = "parameters";
   public static final String DESCRIBEDBY = "describedby";
   public static final String QUERY_PARAMETERS_LINK = "queryParametersLink";
@@ -211,13 +218,65 @@ public class StoredQueriesLinkGenerator extends DefaultLinksGenerator {
     builder.add(selfBuilder.build());
   }
 
-  // responses of query expressions are single-shot, there are no paging links
   public List<Link> generateFeaturesLinks(
       URICustomizer uriBuilder,
+      int offset,
+      int limit,
+      boolean supportPaging,
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
       I18n i18n,
       Optional<Locale> language) {
-    return super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language);
+    List<Link> standardLinks =
+        super.generateLinks(uriBuilder, mediaType, alternateMediaTypes, i18n, language);
+    if (!supportPaging) {
+      // single-shot responses are not paged, so there are no paging links
+      return standardLinks;
+    }
+
+    final ImmutableList.Builder<Link> builder =
+        new ImmutableList.Builder<Link>().addAll(standardLinks);
+
+    uriBuilder.removeParameters(LANG);
+
+    // the "next" link is added speculatively (numberMatched is not yet known) and removed again by
+    // the feature encoder when this is the last page (numberReturned < limit)
+    builder.add(
+        new ImmutableLink.Builder()
+            .href(getUrlWithOffset(uriBuilder.copy(), offset + limit))
+            .rel(NEXT)
+            .type(mediaType.type().toString())
+            .title(i18n.get(NEXT_LINK, language))
+            .build());
+    if (offset > 0) {
+      builder.add(
+          new ImmutableLink.Builder()
+              .href(getUrlWithOffset(uriBuilder.copy(), offset - limit))
+              .rel(PREV)
+              .type(mediaType.type().toString())
+              .title(i18n.get(PREV_LINK, language))
+              .build());
+      builder.add(
+          new ImmutableLink.Builder()
+              .href(getUrlWithOffset(uriBuilder.copy(), 0))
+              .rel(FIRST)
+              .type(mediaType.type().toString())
+              .title(i18n.get(FIRST_LINK, language))
+              .build());
+    }
+
+    return builder.build();
+  }
+
+  private String getUrlWithOffset(final URICustomizer uriBuilder, final int offset) {
+    if (offset == 0) {
+      return uriBuilder.ensureNoTrailingSlash().removeParameters(OFFSET).toString();
+    }
+
+    return uriBuilder
+        .ensureNoTrailingSlash()
+        .removeParameters(OFFSET)
+        .setParameter(OFFSET, String.valueOf(Integer.max(0, offset)))
+        .toString();
   }
 }

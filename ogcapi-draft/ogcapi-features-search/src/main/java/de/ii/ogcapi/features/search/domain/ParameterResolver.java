@@ -51,7 +51,8 @@ public class ParameterResolver implements ParameterResolverBase {
             .title(storedQuery.getTitle())
             .description(storedQuery.getDescription());
     storedQuery.getDeduplicate().ifPresent(builder::deduplicate);
-    storedQuery.getComputeNumberMatched().ifPresent(builder::computeNumberMatched);
+    storedQuery.getSupportPaging().ifPresent(builder::supportPaging);
+    storedQuery.getOffset().ifPresent(builder::offset);
 
     storedQuery
         .getCollections()
