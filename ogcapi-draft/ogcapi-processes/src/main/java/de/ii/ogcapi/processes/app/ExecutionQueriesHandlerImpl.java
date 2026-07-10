@@ -23,14 +23,17 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcValues;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcValues;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -98,7 +101,11 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     Optional<List<JobControlOptions>> jobControlOptions =
         processRepository.get(processId).flatMap(ProcessSummary::getJobControlOptions);
 
+    // The extra control here is for demo purposes and temporarily
     if (jobControlOptions.isEmpty()) {
+      if ("AnswerProcess".equals(processId)) {
+        return executionResponseSync(queryInput, requestContext, processId);
+      }
       return executionResponseSync(queryInput, requestContext, processId);
     }
 
@@ -106,10 +113,52 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       return executionResponseAsync(queryInput, requestContext, processId);
     }
 
+    if ("AnswerProcess".equals(processId)) {
+      return executionResponseSync(queryInput, requestContext, processId);
+    }
     return executionResponseSync(queryInput, requestContext, processId);
   }
 
   private Response executionResponseSync(
+      QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
+
+    OgcApi api = requestContext.getApi();
+
+    ValuesFormatExtension outputFormat =
+        api.getOutputFormat(
+                ValuesFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    final OgcExecute executeRequest;
+    try {
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
+    }
+
+    Object processResults =
+        processesExecutor.executeSync(processId, executeRequest.getInputs().orElse(Map.of()));
+
+    OgcValues values = new ImmutableOgcValues.Builder().inlineOrRefValue(processResults).build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(null, null, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(values, api, requestContext))
+        .build();
+  }
+
+  private Response executionResponseSyncN(
       QueryInputExecution queryInput, ApiRequestContext requestContext, String processId) {
 
     OgcApi api = requestContext.getApi();
@@ -132,7 +181,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     Map<String, Object> processResults =
-        processesExecutor.executeSync(processId, executeRequest.getInputs().orElse(Map.of()));
+        processesExecutor.executeSyncN(processId, executeRequest.getInputs().orElse(Map.of()));
 
     OgcResults results =
         new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
