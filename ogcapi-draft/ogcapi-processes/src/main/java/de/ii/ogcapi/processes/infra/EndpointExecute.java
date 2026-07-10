@@ -161,7 +161,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
     boolean preferAsync =
         prefer != null
             && Arrays.stream(prefer.split(","))
-                .anyMatch(p -> ("respond-async".equals(p) || "wait".equals(p)));
+                .anyMatch(p -> ("respond-async".equals(p.trim()) || "wait".equals(p.trim())));
 
     ExecutionQueriesHandler.QueryInputExecution queryInput =
         new ImmutableQueryInputExecution.Builder()

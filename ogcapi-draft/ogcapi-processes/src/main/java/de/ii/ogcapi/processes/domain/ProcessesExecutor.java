@@ -20,11 +20,10 @@ public interface ProcessesExecutor {
     DISMISSED
   }
 
-  Object executeSync(String processId, Map<String, Object> inputs);
+  Map<String, Object> executeSync(
+      String processId, Map<String, Object> inputs, Map<String, String> outputs);
 
-  Map<String, Object> executeSyncN(String processId, Map<String, Object> inputs);
-
-  String executeAsync(String processId, Map<String, Object> inputs);
+  String executeAsync(String processId, Map<String, Object> inputs, Map<String, String> outputs);
 
   Optional<StatusCode> status(String jobId);
 

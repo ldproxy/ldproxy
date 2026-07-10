@@ -12,6 +12,7 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.Results;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "Results")
@@ -29,7 +30,7 @@ public abstract class OgcResults implements Results {
             .sorted()
             .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
         from.getAdditionalProperties().values().stream()
-            .sorted()
+            .sorted(Comparator.comparingInt(Object::hashCode))
             .forEachOrdered(value -> into.putInt(value.hashCode()));
       };
 
