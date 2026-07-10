@@ -17,6 +17,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Profile set {@code versions} for the Versioned Features building block. Carries the {@code
@@ -46,8 +47,8 @@ public class ProfileSetVersions extends ProfileSet {
   }
 
   @Override
-  public ResourceType getResourceType() {
-    return ResourceType.FEATURE;
+  public Set<ResourceType> getResourceTypes() {
+    return Set.of(ResourceType.FEATURE);
   }
 
   @Override

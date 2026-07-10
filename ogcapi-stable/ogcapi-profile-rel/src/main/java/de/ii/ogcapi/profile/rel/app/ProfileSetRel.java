@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import java.util.Set;
 
 @Singleton
 @AutoBind
@@ -36,8 +37,8 @@ public class ProfileSetRel extends ProfileSet implements ConformanceClass {
   }
 
   @Override
-  public ResourceType getResourceType() {
-    return ResourceType.FEATURE;
+  public Set<ResourceType> getResourceTypes() {
+    return Set.of(ResourceType.FEATURE);
   }
 
   @Override

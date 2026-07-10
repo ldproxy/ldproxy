@@ -19,6 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 @AutoBind
@@ -50,8 +51,8 @@ public class ProfileSetCodelist extends ProfileSet {
   }
 
   @Override
-  public ResourceType getResourceType() {
-    return ResourceType.SCHEMA;
+  public Set<ResourceType> getResourceTypes() {
+    return ResourceType.ALL_SCHEMAS;
   }
 
   @Override
