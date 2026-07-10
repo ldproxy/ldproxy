@@ -29,7 +29,7 @@ class JsonFgWriterCrsSpec extends Specification {
         boolean isCollection = true
         EpsgCrs crs = DEFAULT_CRS
         String expected = "{" + System.lineSeparator() +
-                "  \""+ JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toAlternativeUriString().get()+"\"" + System.lineSeparator() +
+                "  \""+ JsonFgWriterCrs.JSON_KEY+"\" : \""+OgcCrs.CRS84_URI_NEW+"\"" + System.lineSeparator() +
                 "}"
 
         when:
@@ -64,7 +64,7 @@ class JsonFgWriterCrsSpec extends Specification {
         boolean isCollection = false
         EpsgCrs crs = DEFAULT_CRS
         String expected = "{" + System.lineSeparator() +
-                "  \""+JsonFgWriterCrs.JSON_KEY+"\" : \""+crs.toAlternativeUriString().get()+"\"" + System.lineSeparator() +
+                "  \""+JsonFgWriterCrs.JSON_KEY+"\" : \""+OgcCrs.CRS84_URI_NEW+"\"" + System.lineSeparator() +
                 "}"
 
         when:
