@@ -33,12 +33,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   ProcessesExecutorImpl() {}
 
   @Override
-  public Map<String, Object> executeSync(String processId, Map<String, Object> inputs) {
-    if ("AnswerProcess".equals(processId)) {
-      return answerProcess();
-    } else {
-      return echoProcess(inputs);
-    }
+  public Object executeSync(String processId, Map<String, Object> inputs) {
+    return answerProcess();
+  }
+
+  @Override
+  public Map<String, Object> executeSyncN(String processId, Map<String, Object> inputs) {
+    return echoProcess(inputs);
   }
 
   @Override
@@ -51,12 +52,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           setStatus(jobId, StatusCode.RUNNING);
           scheduler.schedule(
               () -> {
-                if ("AnswerProcess".equals(processId)) {
-                  resultsMap.put(jobId, answerProcess());
-                } else {
+                if ("EchoProcess".equals(processId)) {
                   resultsMap.put(jobId, echoProcess(inputs));
+                  setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED);
+                } else {
+                  throw new IllegalStateException(
+                      "Process '"
+                          + processId
+                          + "' does not support Async computing or does not exist.");
                 }
-                setStatus(jobId, Math.random() < 0.9 ? StatusCode.SUCCESSFUL : StatusCode.FAILED);
               },
               5,
               TimeUnit.SECONDS);
@@ -65,22 +69,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         TimeUnit.SECONDS);
 
     return jobId;
-  }
-
-  private Map<String, Object> echoProcess(Map<String, Object> inputs) {
-    return inputs;
-  }
-
-  private Map<String, Object> answerProcess() {
-    // Support for single output return is stil missing
-    Map<String, Object> answer = new ConcurrentHashMap<>();
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException ex) {
-      // ignore
-    }
-    answer.put("answer", 42);
-    return answer;
   }
 
   @Override
@@ -105,5 +93,18 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         jobsMap.put(jobId, status);
       }
     }
+  }
+
+  private Map<String, Object> echoProcess(Map<String, Object> inputs) {
+    return inputs;
+  }
+
+  private int answerProcess() {
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException ex) {
+      // ignore
+    }
+    return 42;
   }
 }

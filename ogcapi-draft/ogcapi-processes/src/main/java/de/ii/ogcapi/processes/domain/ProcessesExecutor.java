@@ -20,7 +20,9 @@ public interface ProcessesExecutor {
     DISMISSED
   }
 
-  Map<String, Object> executeSync(String processId, Map<String, Object> inputs);
+  Object executeSync(String processId, Map<String, Object> inputs);
+
+  Map<String, Object> executeSyncN(String processId, Map<String, Object> inputs);
 
   String executeAsync(String processId, Map<String, Object> inputs);
 
