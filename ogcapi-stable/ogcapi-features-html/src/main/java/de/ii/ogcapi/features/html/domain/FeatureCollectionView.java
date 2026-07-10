@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.html.domain;
 
+import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
@@ -30,8 +31,8 @@ public abstract class FeatureCollectionView extends FeaturesView {
   }
 
   @Value.Default
-  public boolean fromStoredQuery() {
-    return false;
+  public FeatureQueryScope queryScope() {
+    return FeatureQueryScope.COLLECTION;
   }
 
   public abstract List<Map.Entry<String, String>> jsTranslations();

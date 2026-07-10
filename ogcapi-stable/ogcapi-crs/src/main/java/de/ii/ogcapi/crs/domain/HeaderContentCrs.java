@@ -18,10 +18,8 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 
 /**
  * Shared base for the {@code Content-Crs} header. Provides the OpenAPI schema (an enum of the API's
@@ -52,10 +50,7 @@ public abstract class HeaderContentCrs extends ApiExtensionCache implements ApiH
         h -> {
           List<String> crsList =
               crsSupport.getSupportedCrsList(apiData).stream()
-                  .flatMap(
-                      crs ->
-                          Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
-                  .filter(Objects::nonNull)
+                  .flatMap(crs -> crs.allUris().stream())
                   .map(HeaderContentCrs::toUriInHeader)
                   .collect(ImmutableList.toImmutableList());
           String defaultCrs =

@@ -135,6 +135,19 @@ public interface SearchConfiguration extends ExtensionConfiguration, CachingConf
     return Objects.equals(getAllLinksAreLocal(), true);
   }
 
+  /**
+   * @langEn Maximum number of features returned per query in a query expression when paging is
+   *     disabled (single-shot responses, `supportPaging` is `false`). Each query of the expression
+   *     is capped independently. Without a value, no limit is applied.
+   * @langDe Maximale Anzahl von Features, die pro Abfrage in einer Query Expression zurückgegeben
+   *     werden, wenn das Paging deaktiviert ist (`supportPaging` ist `false`). Jede Abfrage des
+   *     Ausdrucks wird unabhängig begrenzt. Ohne Angabe wird kein Limit angewendet.
+   * @default -
+   * @since v4.8
+   */
+  @Nullable
+  Integer getMaximumFeaturesPerQuery();
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override

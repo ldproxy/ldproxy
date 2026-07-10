@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 
 /**
  * @title bbox-crs
@@ -134,9 +133,7 @@ public class QueryParameterBboxCrsFeatures extends OgcApiQueryParameterBase
               .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
               .stream()
               .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
-              .flatMap(
-                  crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
-              .filter(Objects::nonNull)
+              .flatMap(crs -> crs.allUris().stream())
               .collect(ImmutableList.toImmutableList());
       schemaMap
           .get(apiHashCode)

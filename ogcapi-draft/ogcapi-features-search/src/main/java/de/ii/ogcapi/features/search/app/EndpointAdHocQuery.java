@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
@@ -267,6 +268,15 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
       throw new IllegalArgumentException(
           String.format("The content of the query expression is invalid: %s", e.getMessage()), e);
     }
+
+    // ad-hoc queries are submitted via POST and have no addressable GET resource, so they cannot
+    // offer paging links; paging is not supported and the result is always single-shot
+    if (query.getSupportPaging().orElse(false)) {
+      throw new IllegalArgumentException(
+          "Paging is not supported for ad-hoc queries; there is no addressable resource to page "
+              + "through. Use a stored query for paging, or set \"supportPaging\" to false.");
+    }
+    query = new ImmutableQueryExpression.Builder().from(query).supportPaging(false).build();
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

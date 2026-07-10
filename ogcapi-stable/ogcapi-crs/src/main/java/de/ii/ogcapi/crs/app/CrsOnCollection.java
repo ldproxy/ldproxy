@@ -25,9 +25,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /** add CRS information to the collection information */
 @Singleton
@@ -76,9 +74,7 @@ public class CrsOnCollection implements CollectionExtension {
         // this is just the collection resource, so no default to reference; include all CRSs
         crsList =
             crsSupport.getSupportedCrsList(api.getData(), featureTypeConfiguration).stream()
-                .flatMap(
-                    crs -> Stream.of(crs.toUriString(), crs.toAlternativeUriString().orElse(null)))
-                .filter(Objects::nonNull)
+                .flatMap(crs -> crs.allUris().stream())
                 .collect(ImmutableList.toImmutableList());
       }
       collection.crs(crsList);

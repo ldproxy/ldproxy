@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.queryables.domain.QueryablesConfiguration;
 import de.ii.ogcapi.features.core.domain.DelayedOutputStream;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
@@ -663,6 +664,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             ? new StoredQueriesLinkGenerator()
                 .generateFeaturesLinks(
                     requestContext.getUriCustomizer(),
+                    query.getOffset(),
+                    query.getLimit(),
+                    query.getSupportPaging(),
                     requestContext.getMediaType(),
                     requestContext.getAlternateMediaTypes(),
                     i18n,
@@ -691,7 +695,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             outputFormat,
             queryInput.getDefaultCrs(),
             targetCrs,
-            queryInput.includeBodyLinks() ? links : List.of());
+            queryInput.includeBodyLinks() ? links : List.of(),
+            queryInput.isStoredQuery()
+                ? (query.getSupportPaging()
+                    ? FeatureQueryScope.STORED_QUERY
+                    : FeatureQueryScope.STORED_QUERY_SINGLE_SHOT)
+                : FeatureQueryScope.AD_HOC_QUERY);
 
     StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
     CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
@@ -741,7 +750,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         ImmutableMultiFeatureQuery.builder()
             .queries(queries)
             .deduplicate(queryExpression.getDeduplicate())
-            .computeNumberMatched(queryExpression.getComputeNumberMatched())
+            // single-shot by default; a stored query opts into paging with supportPaging:true
+            .supportPaging(queryExpression.getSupportPaging().orElse(false))
+            .offset(queryExpression.getOffset().orElse(0))
             .maxAllowableOffset(queryExpression.getMaxAllowableOffset().orElse(0.0))
             .crs(crs)
             .limit(
@@ -752,6 +763,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                             .getExtension(FeaturesCoreConfiguration.class)
                             .map(FeaturesCoreConfiguration::getDefaultPageSize)
                             .orElseThrow()));
+
+    // server-side cap applied per query in single-shot mode (no effect when paging is enabled)
+    api.getData()
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::getMaximumFeaturesPerQuery)
+        .ifPresent(finalQueryBuilder::maxFeaturesPerSubQuery);
 
     api.getData()
         .getExtension(FeaturesCoreConfiguration.class)
@@ -993,7 +1010,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       FeatureFormatExtension outputFormat,
       EpsgCrs defaultCrs,
       EpsgCrs targetCrs,
-      List<Link> links) {
+      List<Link> links,
+      FeatureQueryScope queryScope) {
     OgcApi api = requestContext.getApi();
     EpsgCrs sourceCrs = null;
     Optional<CrsTransformer> crsTransformer = Optional.empty();
@@ -1103,6 +1121,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .idsIncludeCollectionId(
                 collectionIds.size() > 1 && !featureProvider.info().featureIdsAreGloballyUnique())
             .queryId(queryExpression.getId())
+            .queryScope(queryScope)
             .queryTitle(queryExpression.getTitle())
             .queryDescription(queryExpression.getDescription());
 
