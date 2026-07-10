@@ -59,11 +59,14 @@ public interface StoredQueryBase extends StoredQueryComponent {
   // Integer or Parameter
   Optional<IntegerOrParameter> getLimit();
 
+  // index of the first feature in the overall result set (paging); only used when paging is enabled
+  Optional<Integer> getOffset();
+
   // if enabled, a feature that is selected by more than one query is only included once
   Optional<Boolean> getDeduplicate();
 
-  // if disabled, numberMatched is not computed (avoids a count query per query)
-  Optional<Boolean> getComputeNumberMatched();
+  // single-shot by default; set true to page the result set
+  Optional<Boolean> getSupportPaging();
 
   // List of string or parameter, or a parameter that is a string array
   Optional<ParameterOrListOfStringOrParameter> getProfiles();
