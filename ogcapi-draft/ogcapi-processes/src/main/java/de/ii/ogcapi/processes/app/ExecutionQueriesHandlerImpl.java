@@ -141,9 +141,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    Map<String, Object> processResults =
-        processesExecutor.executeSync(
-            processId, executeRequest.getInputs(), executeRequest.getOutputs());
+    Map<String, Object> processResults = processesExecutor.executeSync(processId, executeRequest);
     OgcResults results =
         new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
 
@@ -177,9 +175,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    String jobId =
-        processesExecutor.executeAsync(
-            processId, executeRequest.getInputs(), executeRequest.getOutputs());
+    String jobId = processesExecutor.executeAsync(processId, executeRequest);
 
     OgcStatusInfo statusInfo =
         new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.ACCEPTED).build();
