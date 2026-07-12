@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public interface ProcessRepository extends Volatile2 {
 
+  Process getDirect(String processId);
+
   Optional<Process> get(String processId);
 
   Map<String, Process> getAll();

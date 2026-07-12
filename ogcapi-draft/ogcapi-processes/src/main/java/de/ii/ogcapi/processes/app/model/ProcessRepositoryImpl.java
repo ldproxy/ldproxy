@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -59,6 +60,14 @@ public class ProcessRepositoryImpl extends AbstractVolatile
             });
 
     setState(State.AVAILABLE);
+  }
+
+  @Override
+  public Process getDirect(String processId) {
+    if (!processMap.containsKey(processId)) {
+      throw new NoSuchElementException("No process found with process id '" + processId + "'.");
+    }
+    return processMap.get(processId);
   }
 
   @Override
