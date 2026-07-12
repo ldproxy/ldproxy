@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import de.ii.ogcapi.processes.domain.model.Subscriber;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -28,14 +29,11 @@ public interface OgcExecute {
   Optional<String> getProcessUri();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  // Map<String, Values> getInputs();
   Map<String, Object> getInputs();
 
-  // TODO Use Optional to distinguish between empty Output and no Output
+  // Optional must be used to distinguish between empty and omitted Output
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  // Map<String, OutputSelection> getOutputs();
   Optional<Map<String, String>> getOutputs();
 
-  // Optional<Subscriber> getSubscriber();
-  Optional<String> getSubscriber();
+  Optional<Subscriber> getSubscriber();
 }

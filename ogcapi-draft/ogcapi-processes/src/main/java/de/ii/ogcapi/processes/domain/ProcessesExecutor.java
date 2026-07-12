@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,24 +25,19 @@ public interface ProcessesExecutor {
    * Executes a process synchronously and returns the results immediately.
    *
    * @param processId the process to execute
-   * @param inputs input parameters
-   * @param outputs output selection.
+   * @param executeRequest details about the requested exeuction
    * @return the process results
    */
-  Map<String, Object> executeSync(
-      String processId, Map<String, Object> inputs, Optional<Map<String, String>> outputs);
+  Map<String, Object> executeSync(String processId, OgcExecute executeRequest);
 
   /**
    * Executes a process asynchronously and returns a job ID for retrieving status and results later.
    *
    * @param processId the process to execute
-   * @param inputs input parameters
-   * @param outputs requested output fields. If empty, all possible outputs are send and if an empty
-   *     map, no respond body is generated.
+   * @param executeRequest details about the requested exeuction
    * @return a unique job ID
    */
-  String executeAsync(
-      String processId, Map<String, Object> inputs, Optional<Map<String, String>> outputs);
+  String executeAsync(String processId, OgcExecute executeRequest);
 
   /**
    * Returns the current status of a job, or empty if the job ID is unknown.
