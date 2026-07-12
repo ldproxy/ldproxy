@@ -65,6 +65,7 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml {
   public Object getEntity(OgcProcess process, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
     String processId = process.getId();
+    String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 
@@ -85,7 +86,7 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml {
                     resourceUri.copy().removeLastPathSegments(2).toString()))
             .add(
                 new NavigationDTO(
-                    processId, resourceUri.copy().removeLastPathSegments(1).toString()))
+                    processListTitle, resourceUri.copy().removeLastPathSegments(1).toString()))
             .add(new NavigationDTO(processId))
             .build();
 

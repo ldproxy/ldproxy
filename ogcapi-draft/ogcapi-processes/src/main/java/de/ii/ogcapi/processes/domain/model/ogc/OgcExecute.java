@@ -34,7 +34,7 @@ public interface OgcExecute {
   // TODO Use Optional to distinguish between empty Output and no Output
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   // Map<String, OutputSelection> getOutputs();
-  Map<String, String> getOutputs();
+  Optional<Map<String, String>> getOutputs();
 
   // Optional<Subscriber> getSubscriber();
   Optional<String> getSubscriber();
