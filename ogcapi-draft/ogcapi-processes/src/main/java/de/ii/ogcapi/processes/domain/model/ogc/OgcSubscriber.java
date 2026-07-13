@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model;
+package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -15,9 +15,9 @@ import org.immutables.value.Value;
 @ApiInfo(schemaId = "Subscriber")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableSubscriber.Builder.class)
+@JsonDeserialize(builder = ImmutableOgcSubscriber.Builder.class)
 /** Optional URIs for callbacks for asynchronous execution. */
-public interface Subscriber {
+public interface OgcSubscriber {
 
   String SCHEMA_REF = "#/components/schemas/Subscriber";
 

@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
-import de.ii.ogcapi.processes.domain.model.Subscriber;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -35,5 +34,5 @@ public interface OgcExecute {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Optional<Map<String, String>> getOutputs();
 
-  Optional<Subscriber> getSubscriber();
+  Optional<OgcSubscriber> getSubscriber();
 }
