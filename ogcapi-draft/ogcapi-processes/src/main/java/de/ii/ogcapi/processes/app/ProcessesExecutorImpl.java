@@ -13,10 +13,12 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.Subscriber;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcSubscriber;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.web.domain.Http;
@@ -24,6 +26,7 @@ import de.ii.xtraplatform.web.domain.HttpClient;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +53,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
   private final ProcessRepository processRepository;
   private final ObjectMapper mapper;
+
+  // ToDo Move to config
+  private final int maxCallbackRetries = 3;
 
   private final HttpClient httpClient;
 
@@ -86,7 +92,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> inputs = executeRequest.getInputs();
     Optional<Map<String, String>> outputs = executeRequest.getOutputs();
-    Optional<Subscriber> subscriber = executeRequest.getSubscriber();
+    Optional<OgcSubscriber> subscriber = executeRequest.getSubscriber();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
     if (!options.contains(JobControlOptions.ASYNC_EXECUTE)) {
@@ -101,6 +107,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         () -> {
           resultsMap.put(jobId, processesMap.get(processId).apply(inputs, outputs));
           setStatus(jobId, StatusCode.SUCCESSFUL, subscriber);
+          // setStatus(jobId, StatusCode.FAILED, subscriber);
         },
         2,
         TimeUnit.SECONDS);
@@ -133,7 +140,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     setStatus(jobId, status, Optional.empty());
   }
 
-  private void setStatus(String jobId, StatusCode status, Optional<Subscriber> subscriber) {
+  private void setStatus(String jobId, StatusCode status, Optional<OgcSubscriber> subscriber) {
     if (!jobsMap.containsKey(jobId)) {
       throw new NoSuchElementException("No job found with job id '" + jobId + "'.");
     }
@@ -150,7 +157,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         case ACCEPTED -> subscriber.get().inProgressUri().ifPresent(this::callBackInProgress);
         case SUCCESSFUL ->
             subscriber.get().successUri().ifPresent(uri -> callBackSuccess(uri, jobId));
-        case FAILED -> subscriber.get().failedUri().ifPresent(this::callBackFailed);
+        case FAILED -> subscriber.get().failedUri().ifPresent(uri -> callBackFailed(uri, jobId));
       }
     }
   }
@@ -162,19 +169,99 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     OgcResults results =
         new ImmutableOgcResults.Builder().additionalProperties(result(jobId)).build();
 
+    byte[] respond;
     try {
-      byte[] respond = mapper.writeValueAsBytes(results);
-      httpClient.postAsInputStream(
-          successUri,
-          respond,
-          MediaType.APPLICATION_JSON_TYPE,
-          Map.of("Accept", MediaType.APPLICATION_JSON));
+      respond = mapper.writeValueAsBytes(results);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
+
+    int currentRetries = 0;
+    do {
+      try {
+        httpClient.postAsInputStream(
+            successUri,
+            respond,
+            MediaType.APPLICATION_JSON_TYPE,
+            Map.of("Accept", MediaType.APPLICATION_JSON));
+        break;
+
+      } catch (Exception e) {
+        if (currentRetries < maxCallbackRetries) {
+          int delay = 100 * (currentRetries + 1);
+          if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                "Failed send success callback for job '{}', retrying in {}ms", jobId, delay);
+          }
+          try {
+            Thread.sleep(delay);
+          } catch (InterruptedException ex) {
+            // ignore
+          }
+        } else {
+          LogContext.error(
+              LOGGER,
+              e,
+              "Giving up writing sending success callback for job '{}' after {} retries",
+              jobId,
+              currentRetries + 1);
+          LOGGER.error(
+              "Failed sending the success callback for {}: {}",
+              jobId,
+              new String(respond, StandardCharsets.UTF_8));
+        }
+      }
+      currentRetries++;
+    } while (currentRetries <= maxCallbackRetries);
   }
 
-  private void callBackFailed(String failedUri) {}
+  private void callBackFailed(String failedUri, String jobId) {
+
+    byte[] respond;
+    try {
+      OgcStatusInfo ogcStatusInfoResponse =
+          new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.FAILED).build();
+      respond = mapper.writeValueAsBytes(ogcStatusInfoResponse);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+
+    int currentRetries = 0;
+    do {
+      try {
+        httpClient.postAsInputStream(
+            failedUri,
+            respond,
+            MediaType.APPLICATION_JSON_TYPE,
+            Map.of("Accept", MediaType.APPLICATION_JSON));
+        break;
+      } catch (Exception e) {
+        if (currentRetries < maxCallbackRetries) {
+          int delay = 100 * (currentRetries + 1);
+          if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Failed send failed callback for job '{}', retrying in {}ms", jobId, delay);
+          }
+          try {
+            Thread.sleep(delay);
+          } catch (InterruptedException ex) {
+            // ignore
+          }
+        } else {
+          LogContext.error(
+              LOGGER,
+              e,
+              "Giving up writing sending failed callback for job '{}' after {} retries",
+              jobId,
+              currentRetries + 1);
+          LOGGER.error(
+              "Failed sending the failed callback for {}: {}",
+              jobId,
+              new String(respond, StandardCharsets.UTF_8));
+        }
+      }
+      currentRetries++;
+    } while (currentRetries <= maxCallbackRetries);
+  }
 
   /** Functions for faking the job queue ToDo remove after integrating the job queue */
   private Map<String, Object> echoProcess(
