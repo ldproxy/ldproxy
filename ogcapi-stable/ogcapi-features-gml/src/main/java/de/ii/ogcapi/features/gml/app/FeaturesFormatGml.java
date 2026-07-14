@@ -28,6 +28,7 @@ import de.ii.ogcapi.features.gml.domain.ImmutableCollectionEncodingGml;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
 import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
 import de.ii.ogcapi.features.gml.domain.UomMapping;
+import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
 import de.ii.ogcapi.features.gml.domain.VariableName;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -534,7 +535,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .config(config)
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
-        .valueWrap(remapKeys(config.getValueWrap(), aliasRewrites))
+        .valueWrap(parseValueWrap(remapKeys(config.getValueWrap(), aliasRewrites)))
         .objectTypeSuffixedProperties(
             remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
         .codelists(resolveCodelists(config.getCodelistProperties()))
@@ -1008,6 +1009,22 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   // Identity-pass when the rewrite map is empty, so the common (useAlias=false) path is a no-op.
+  // The chain entries are parsed once per collection at encoder-build time; validity was already
+  // enforced at service load by GmlConfiguration#checkValueWrap.
+  static Map<String, List<ValueWrapElement>> parseValueWrap(Map<String, List<String>> valueWrap) {
+    if (valueWrap == null || valueWrap.isEmpty()) {
+      return ImmutableMap.of();
+    }
+    return valueWrap.entrySet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                Map.Entry::getKey,
+                entry ->
+                    entry.getValue().stream()
+                        .map(ValueWrapElement::parse)
+                        .collect(ImmutableList.toImmutableList())));
+  }
+
   static <V> Map<String, V> remapKeys(Map<String, V> map, Map<String, String> rewrites) {
     if (rewrites.isEmpty() || map == null || map.isEmpty()) {
       return map;

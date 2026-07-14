@@ -252,7 +252,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getCodelistProperties();
   }
 
-  public Map<String, List<String>> getValueWrap() {
+  public Map<String, List<ValueWrapElement>> getValueWrap() {
     return currentEncoding().getValueWrap();
   }
 

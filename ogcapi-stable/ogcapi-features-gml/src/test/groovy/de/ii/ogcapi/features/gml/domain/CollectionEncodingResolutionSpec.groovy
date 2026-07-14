@@ -21,10 +21,10 @@ class CollectionEncodingResolutionSpec extends Specification {
     // ax_anderefestlegungnachstrassenrecht in AX_LI_ProcessStep_MitDatenerhebung_Description.
     def encodings = [
             'ax_anschrift'                          : ImmutableCollectionEncodingGml.builder()
-                    .valueWrap([(PATH): ['AX_LI_ProcessStep_OhneDatenerhebung_Description']])
+                    .valueWrap([(PATH): [ValueWrapElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]])
                     .build(),
             'ax_anderefestlegungnachstrassenrecht'  : ImmutableCollectionEncodingGml.builder()
-                    .valueWrap([(PATH): ['AX_LI_ProcessStep_MitDatenerhebung_Description']])
+                    .valueWrap([(PATH): [ValueWrapElement.parse('AX_LI_ProcessStep_MitDatenerhebung_Description')]])
                     .build(),
             'aa_aktivitaet'                         : ImmutableCollectionEncodingGml.builder()
                     .build(),
@@ -36,19 +36,19 @@ class CollectionEncodingResolutionSpec extends Specification {
                 encodings, Optional.of('ax_anschrift'))
 
         then:
-        active.getValueWrap()[PATH] == ['AX_LI_ProcessStep_OhneDatenerhebung_Description']
+        active.getValueWrap()[PATH] == [ValueWrapElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]
     }
 
     def 'the same property path wraps differently per collection in one response'() {
         expect:
         FeatureTransformationContextGml.resolveCurrentEncoding(
                 encodings, Optional.of(collectionId))
-                .getValueWrap()[PATH] == wrapper
+                .getValueWrap()[PATH] == (wrapper == null ? null : [ValueWrapElement.parse(wrapper)])
 
         where:
         collectionId                            || wrapper
-        'ax_anschrift'                          || ['AX_LI_ProcessStep_OhneDatenerhebung_Description']
-        'ax_anderefestlegungnachstrassenrecht'  || ['AX_LI_ProcessStep_MitDatenerhebung_Description']
+        'ax_anschrift'                          || 'AX_LI_ProcessStep_OhneDatenerhebung_Description'
+        'ax_anderefestlegungnachstrassenrecht'  || 'AX_LI_ProcessStep_MitDatenerhebung_Description'
         'aa_aktivitaet'                          || null
     }
 

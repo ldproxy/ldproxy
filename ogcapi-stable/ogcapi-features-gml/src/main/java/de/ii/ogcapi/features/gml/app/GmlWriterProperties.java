@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
+import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
@@ -193,18 +194,29 @@ public class GmlWriterProperties implements GmlWriter {
               context.encoding().writeAttribute("name", name[1]);
             }
             writeUnitIfNecessary(context, schema);
-            List<String> wrapElements =
+            List<ValueWrapElement> wrapElements =
                 context
                     .encoding()
                     .getValueWrap()
                     .getOrDefault(schema.getFullPathAsString(), List.of());
-            for (String wrapEl : wrapElements) {
-              context.encoding().writeStartElement(wrapEl);
-              writeIso19139CodeListAttributes(context, schema, wrapEl, value);
+            int openWrappers = 0;
+            for (ValueWrapElement wrapEl : wrapElements) {
+              context.encoding().writeStartElement(wrapEl.getName());
+              for (Map.Entry<String, String> attribute : wrapEl.getAttributes().entrySet()) {
+                context.encoding().writeAttribute(attribute.getKey(), attribute.getValue());
+              }
+              if (wrapEl.isEmptyElement()) {
+                // injected constant element (e.g. ISO 19139 valueUnit) — closed immediately, the
+                // chain continues inside the enclosing wrapper
+                context.encoding().writeEndElement();
+              } else {
+                writeIso19139CodeListAttributes(context, schema, wrapEl.getName(), value);
+                openWrappers++;
+              }
             }
             // writeCharacters emits the pending '>' and writes the (escaped) value
             writeValue(context, value, schema.getType());
-            for (int i = wrapElements.size() - 1; i >= 0; i--) {
+            for (int i = 0; i < openWrappers; i++) {
               context.encoding().writeEndElement();
             }
             context.encoding().writeEndElement();

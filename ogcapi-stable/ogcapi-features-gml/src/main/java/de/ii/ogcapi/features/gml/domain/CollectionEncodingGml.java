@@ -30,7 +30,8 @@ import org.immutables.value.Value;
  *   <li>{@link #getXmlAttributes()}, {@link #getCodelistProperties()}, {@link #getValueWrap()},
  *       {@link #getObjectTypeSuffixedProperties()} — their path keys are alias-rewritten (id →
  *       alias) when {@code useAlias} is on, to match the alias-form paths {@code
- *       GmlWriterProperties} sees at runtime;
+ *       GmlWriterProperties} sees at runtime; the {@code valueWrap} chain entries are additionally
+ *       parsed into {@link ValueWrapElement}s;
  *   <li>{@link #getCodelists()} — the codelist ids are resolved to {@code Codelist} instances via
  *       the codelist store;
  *   <li>{@link #getAppendTemporalSuffixToGmlId()} — the configured flag folded with whether the
@@ -57,7 +58,7 @@ public interface CollectionEncodingGml {
   }
 
   @Value.Default
-  default Map<String, List<String>> getValueWrap() {
+  default Map<String, List<ValueWrapElement>> getValueWrap() {
     return ImmutableMap.of();
   }
 

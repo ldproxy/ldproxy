@@ -44,7 +44,10 @@ import org.immutables.value.Value;
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
  *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
  *     formatting decisions with no input counterpart, or because the decoder is permissive of any
- *     equivalent input form. {@code codeListUriTemplateIso19139} likewise affects output only.
+ *     equivalent input form. {@code codeListUriTemplateIso19139} likewise affects output only, as
+ *     do attributes and injected empty elements in {@code valueWrap} entries — on input, an empty
+ *     element inside a value-wrap chain is skipped and an {@code xsi:type} attribute on a value
+ *     element is dropped.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -62,7 +65,9 @@ import org.immutables.value.Value;
  *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
  *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
  *     Eingabeform permissiv ist. {@code codeListUriTemplateIso19139} wirkt sich ebenfalls nur auf
- *     die Ausgabe aus.
+ *     die Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in {@code
+ *     valueWrap}-Einträgen — beim Einlesen wird ein leeres Element innerhalb einer Wrapper-Kette
+ *     übersprungen und ein {@code xsi:type}-Attribut auf einem Wert-Element verworfen.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.
@@ -154,6 +159,13 @@ import org.immutables.value.Value;
  *       - gco:DateTime
  *     qualitaetsangaben.herkunft.processStep.source.description:
  *       - AX_Datenerhebung_Punktort
+ *     qualitaetsangaben.genauigkeitswert:
+ *       - gmd:DQ_RelativeInternalPositionalAccuracy
+ *       - gmd:result
+ *       - gmd:DQ_QuantitativeResult
+ *       - gmd:valueUnit[xlink:href=urn:adv:uom:m]/
+ *       - gmd:value
+ *       - gco:Record[xsi:type=gml:doubleList]
  * ```
  *     </code>
  * @examplesDe Das folgende Beispiel zeigt eine grundlegende Deklaration von Namespaces und deren
@@ -250,6 +262,13 @@ import org.immutables.value.Value;
  *       - gco:DateTime
  *     qualitaetsangaben.herkunft.processStep.source.description:
  *       - AX_Datenerhebung_Punktort
+ *     qualitaetsangaben.genauigkeitswert:
+ *       - gmd:DQ_RelativeInternalPositionalAccuracy
+ *       - gmd:result
+ *       - gmd:DQ_QuantitativeResult
+ *       - gmd:valueUnit[xlink:href=urn:adv:uom:m]/
+ *       - gmd:value
+ *       - gco:Record[xsi:type=gml:doubleList]
  * ```
  *     </code>
  */
@@ -578,7 +597,7 @@ public interface GmlConfiguration
    *   - gehoertZuBauwerk
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   List<String> getObjectTypeSuffixedProperties();
 
@@ -822,7 +841,7 @@ public interface GmlConfiguration
    *     srsNameMappings} und verwendet den zugeordneten Wert; CRS ohne Mapping fallen auf die
    *     {@code OGC}-Form zurück.
    * @default OGC
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   SrsNameStyle getSrsNameStyle();
@@ -847,7 +866,7 @@ public interface GmlConfiguration
    *       value: 'urn:adv:crs:ETRS89_UTM32'
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   List<SrsNameMapping> getSrsNameMappings();
 
@@ -861,7 +880,7 @@ public interface GmlConfiguration
    *     TEMPLATE} sucht die Einheit in {@code uomMappings} und verwendet den zugeordneten Wert;
    *     Einheiten ohne Mapping fallen auf den Rohwert zurück.
    * @default RAW
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   UomStyle getUomStyle();
@@ -884,7 +903,7 @@ public interface GmlConfiguration
    *       value: 'urn:adv:uom:m'
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   List<UomMapping> getUomMappings();
 
@@ -909,7 +928,7 @@ public interface GmlConfiguration
    *   featureRefTemplate: 'urn:adv:oid:{{value}}'
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   String getFeatureRefTemplate();
@@ -935,7 +954,7 @@ public interface GmlConfiguration
    *     valueTemplate: 'urn:adv:oid:{{value}}'
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   GmlIdentifier getGmlIdentifier();
@@ -954,7 +973,7 @@ public interface GmlConfiguration
    *     Nützlich für Anwendungsschemata, die je Feature-Version eine eindeutige {@code gml:id}
    *     verlangen (z.B. AdV NAS Zeitreihen-Anfragen). Wirkt nicht auf {@code gml:identifier}.
    * @default false
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   Boolean getAppendTemporalSuffixToGmlId();
@@ -982,7 +1001,7 @@ public interface GmlConfiguration
    *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   @Nullable
   String getCodelistUriTemplate();
@@ -1007,24 +1026,40 @@ public interface GmlConfiguration
    *     bauwerk.funktion: AX_Funktion_Bauwerk
    * ```
    * </code>
-   * @since v4.9
+   * @since v4.8
    */
   Map<String, String> getCodelistProperties();
 
   /**
    * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()} at encoding
-   *     time, i.e. after any {@code rename} transformations) to a list of XML element names (outer
-   *     to inner) that wrap the scalar value. When a path matches, the property element content is
+   *     time, i.e. after any {@code rename} transformations) to a list of XML elements (outer to
+   *     inner) that wrap the scalar value. When a path matches, the property element content is
    *     encoded as {@code <wrapper1>...<wrapperN>value</wrapperN>...</wrapper1>} instead of the
-   *     plain value. Element names may be namespace-qualified (e.g. {@code gco:DateTime}), provided
-   *     the prefix is declared in {@code applicationNamespaces}.
+   *     plain value. Each entry is an element name, optionally followed by constant attributes as
+   *     `[attribute=value]` predicates (e.g. `gco:Record[xsi:type=gml:doubleList]`; the value may
+   *     be quoted) and/or a trailing `/`. An entry with a trailing `/` does not wrap the remainder
+   *     of the chain; instead an empty element with the given attributes is written at that
+   *     position — e.g. the mandatory `valueUnit` child of an ISO 19139 `DQ_QuantitativeResult`,
+   *     which precedes the `value` element. Element and attribute names may be namespace-qualified,
+   *     provided the prefix is declared in `applicationNamespaces` or is a standard prefix (`xsi`,
+   *     `xlink`). Attributes and injected empty elements affect output only; on input, attributes
+   *     on wrapper elements are dropped and empty elements inside the chain are skipped.
    * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()} zum
    *     Kodierungszeitpunkt, d.h. nach eventuellen {@code rename}-Transformationen) auf eine Liste
-   *     von XML-Elementnamen ab (von außen nach innen), die den skalaren Wert einschließen. Bei
-   *     einem Treffer wird der Inhalt des Eigenschaftselements als {@code
-   *     <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert kodiert.
-   *     Elementnamen können Namespace-Präfixe tragen (z.B. {@code gco:DateTime}), sofern das Präfix
-   *     in {@code applicationNamespaces} deklariert ist.
+   *     von XML-Elementen ab (von außen nach innen), die den skalaren Wert einschließen. Bei einem
+   *     Treffer wird der Inhalt des Eigenschaftselements als {@code
+   *     <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert kodiert. Jeder
+   *     Eintrag ist ein Elementname, optional gefolgt von konstanten Attributen als
+   *     `[Attribut=Wert]`-Prädikate (z.B. `gco:Record[xsi:type=gml:doubleList]`; der Wert kann in
+   *     Anführungszeichen stehen) und/oder einem abschließenden `/`. Ein Eintrag mit abschließendem
+   *     `/` umschließt nicht den Rest der Kette; stattdessen wird an dieser Stelle ein leeres
+   *     Element mit den angegebenen Attributen geschrieben — z.B. das obligatorische
+   *     `valueUnit`-Kind eines ISO-19139-`DQ_QuantitativeResult`, das dem `value`-Element
+   *     vorangeht. Element- und Attributnamen können Namespace-Präfixe tragen, sofern das Präfix in
+   *     `applicationNamespaces` deklariert oder ein Standard-Präfix (`xsi`, `xlink`) ist. Attribute
+   *     und eingefügte leere Elemente wirken sich nur auf die Ausgabe aus; beim Einlesen werden
+   *     Attribute auf Wrapper-Elementen verworfen und leere Elemente innerhalb der Kette
+   *     übersprungen.
    * @default {}
    * @examplesAll <code>
    * ```yaml
@@ -1036,6 +1071,13 @@ public interface GmlConfiguration
    *       - ns1:wrapperChild
    *     anotherProperty:
    *       - gco:DateTime
+   *     qualitaetsangaben.genauigkeitswert:
+   *       - gmd:DQ_RelativeInternalPositionalAccuracy
+   *       - gmd:result
+   *       - gmd:DQ_QuantitativeResult
+   *       - gmd:valueUnit[xlink:href=urn:adv:uom:m]/
+   *       - gmd:value
+   *       - gco:Record[xsi:type=gml:doubleList]
    * ```
    * </code>
    * @since v4.8
@@ -1079,6 +1121,29 @@ public interface GmlConfiguration
    * value carrying a {@code {{…}}} template (e.g. {@code {{serviceUrl}}}) is resolved at request
    * time and is therefore not checked here.
    */
+  /**
+   * Fails fast when a {@code valueWrap} entry does not parse under the {@code
+   * name([attribute=value])*'/'?} grammar, so a syntax slip is reported at service load with the
+   * offending property path instead of producing malformed XML at request time.
+   */
+  @Value.Check
+  default void checkValueWrap() {
+    getValueWrap()
+        .forEach(
+            (path, chain) ->
+                chain.forEach(
+                    entry -> {
+                      try {
+                        ValueWrapElement.parse(entry);
+                      } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException(
+                            String.format(
+                                "GML configuration: invalid valueWrap entry '%s' for property '%s': %s",
+                                entry, path, e.getMessage()));
+                      }
+                    }));
+  }
+
   @Value.Check
   default void checkSchemaLocations() {
     getSchemaLocations()

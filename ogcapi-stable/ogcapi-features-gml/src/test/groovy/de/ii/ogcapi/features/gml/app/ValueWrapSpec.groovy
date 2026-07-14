@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.gml.app
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml
 import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGml
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml
+import de.ii.ogcapi.features.gml.domain.ValueWrapElement
 import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.SchemaBase.Type
 import de.ii.xtraplatform.features.domain.SchemaConstraints
@@ -19,14 +20,18 @@ import java.util.function.Consumer
 
 class ValueWrapSpec extends Specification {
 
+    static List<ValueWrapElement> chain(String... entries) {
+        entries.collect { ValueWrapElement.parse(it) }
+    }
+
     def 'single wrapper element is emitted around value'() {
-        // given
+        given:
         def encoding = Mock(FeatureTransformationContextGml)
         def state = ModifiableStateGml.create()
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.dateTime': ['gco:DateTime']]
+        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.dateTime': chain('gco:DateTime')]
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
         def schema = Stub(FeatureSchema) {
@@ -37,16 +42,15 @@ class ValueWrapSpec extends Specification {
             getFullPathAsString() >> 'qualitaetsangaben.herkunft.processStep.dateTime'
             getUnit() >> Optional.empty()
         }
-        def context = Stub(EncodingAwareContextGml) {
-            schema() >> Optional.of(schema)
-            value() >> '2010-11-06T20:53:16Z'
-            encoding() >> encoding
-        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '2010-11-06T20:53:16Z'
+        context.encoding() >> encoding
 
-        // when
+        when:
         new GmlWriterProperties().onValue(context, {} as Consumer)
 
-        // then
+        then:
         1 * encoding.writeStartElement('gmd:dateTime')
         1 * encoding.writeStartElement('gco:DateTime')
         1 * encoding.writeCharacters('2010-11-06T20:53:16Z')
@@ -54,13 +58,13 @@ class ValueWrapSpec extends Specification {
     }
 
     def 'multiple wrapper elements are emitted outer to inner'() {
-        // given
+        given:
         def encoding = Mock(FeatureTransformationContextGml)
         def state = ModifiableStateGml.create()
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['lebenszeitintervall': ['aaa:AA_Lebenszeitintervall', 'aaa:beginnt']]
+        encoding.getValueWrap() >> ['lebenszeitintervall': chain('aaa:AA_Lebenszeitintervall', 'aaa:beginnt')]
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
 
         def schema = Stub(FeatureSchema) {
@@ -71,16 +75,15 @@ class ValueWrapSpec extends Specification {
             getFullPathAsString() >> 'lebenszeitintervall'
             getUnit() >> Optional.empty()
         }
-        def context = Stub(EncodingAwareContextGml) {
-            schema() >> Optional.of(schema)
-            value() >> '2010-11-11T02:43:17Z'
-            encoding() >> encoding
-        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '2010-11-11T02:43:17Z'
+        context.encoding() >> encoding
 
-        // when
+        when:
         new GmlWriterProperties().onValue(context, {} as Consumer)
 
-        // then
+        then:
         1 * encoding.writeStartElement('lebenszeitintervall')
         1 * encoding.writeStartElement('aaa:AA_Lebenszeitintervall')
         1 * encoding.writeStartElement('aaa:beginnt')
@@ -89,7 +92,7 @@ class ValueWrapSpec extends Specification {
     }
 
     def 'no wrapping when path is not in valueWrap'() {
-        // given
+        given:
         def encoding = Mock(FeatureTransformationContextGml)
         def state = ModifiableStateGml.create()
         encoding.getState() >> state
@@ -106,16 +109,15 @@ class ValueWrapSpec extends Specification {
             getFullPathAsString() >> 'gebaeudefunktion'
             getUnit() >> Optional.empty()
         }
-        def context = Stub(EncodingAwareContextGml) {
-            schema() >> Optional.of(schema)
-            value() >> '2000'
-            encoding() >> encoding
-        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '2000'
+        context.encoding() >> encoding
 
-        // when
+        when:
         new GmlWriterProperties().onValue(context, {} as Consumer)
 
-        // then
+        then:
         1 * encoding.writeStartElement('gebaeudefunktion')
         1 * encoding.writeCharacters('2000')
         1 * encoding.writeEndElement()
@@ -128,7 +130,7 @@ class ValueWrapSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.responsibleParty.role': ['gmd:CI_RoleCode']]
+        encoding.getValueWrap() >> ['qualitaetsangaben.herkunft.processStep.responsibleParty.role': chain('gmd:CI_RoleCode')]
         encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
@@ -168,7 +170,7 @@ class ValueWrapSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['organisationName': ['gco:CharacterString']]
+        encoding.getValueWrap() >> ['organisationName': chain('gco:CharacterString')]
         encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
@@ -205,7 +207,7 @@ class ValueWrapSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['role': ['gco:CharacterString']]
+        encoding.getValueWrap() >> ['role': chain('gco:CharacterString')]
         encoding.getCodeListUriTemplateIso19139() >> Optional.of('https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}')
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
@@ -247,7 +249,7 @@ class ValueWrapSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> ['role': ['gmd:CI_RoleCode']]
+        encoding.getValueWrap() >> ['role': chain('gmd:CI_RoleCode')]
         encoding.getCodeListUriTemplateIso19139() >> Optional.empty()
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> 'gmd:' + n }
 
@@ -278,5 +280,98 @@ class ValueWrapSpec extends Specification {
         2 * encoding.writeEndElement()
         0 * encoding.writeAttribute('codeList', _)
         0 * encoding.writeAttribute('codeListValue', _)
+    }
+
+    def 'iso 19139 quantitative result: valueUnit element and xsi:type on the record are emitted'() {
+        given:
+        // The full ISO 19139 quantitative-result pattern (NAS genauigkeitswert): the trailing '/'
+        // entry injects the empty gmd:valueUnit as first child of gmd:DQ_QuantitativeResult
+        // (before gmd:value), and the innermost anyType gco:Record carries its declared xsi:type.
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['qualitaetsangaben.genauigkeitswert': chain(
+                'gmd:DQ_RelativeInternalPositionalAccuracy',
+                'gmd:result',
+                'gmd:DQ_QuantitativeResult',
+                'gmd:valueUnit[xlink:href=urn:adv:uom:m]/',
+                'gmd:value',
+                'gco:Record[xsi:type=gml:doubleList]')]
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
+
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'genauigkeitswert'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'qualitaetsangaben.genauigkeitswert'
+            getUnit() >> Optional.empty()
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '0.0074721'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('genauigkeitswert')
+        1 * encoding.writeStartElement('gmd:DQ_RelativeInternalPositionalAccuracy')
+        1 * encoding.writeStartElement('gmd:result')
+        1 * encoding.writeStartElement('gmd:DQ_QuantitativeResult')
+
+        then:
+        1 * encoding.writeStartElement('gmd:valueUnit')
+        1 * encoding.writeAttribute('xlink:href', 'urn:adv:uom:m')
+
+        then:
+        1 * encoding.writeStartElement('gmd:value')
+        1 * encoding.writeStartElement('gco:Record')
+        1 * encoding.writeAttribute('xsi:type', 'gml:doubleList')
+        1 * encoding.writeCharacters('0.0074721')
+        7 * encoding.writeEndElement()
+    }
+
+    def 'plain chain entries emit no attributes and no injected elements'() {
+        given:
+        // Entries without predicates or a trailing '/' behave exactly as before — no attributes,
+        // nothing injected — even when the chain contains a DQ_QuantitativeResult element.
+        def encoding = Mock(FeatureTransformationContextGml)
+        def state = ModifiableStateGml.create()
+        encoding.getState() >> state
+        encoding.getXmlAttributes() >> []
+        encoding.getCodelistProperties() >> [:]
+        encoding.getValueWrap() >> ['sonstigewerte': chain(
+                'gmd:DQ_QuantitativeResult',
+                'gco:Record')]
+        encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
+
+        def schema = Stub(FeatureSchema) {
+            isValue() >> true
+            isId() >> false
+            getName() >> 'sonstigewerte'
+            getType() >> Type.STRING
+            getFullPathAsString() >> 'sonstigewerte'
+            getUnit() >> Optional.empty()
+        }
+        def context = Stub(EncodingAwareContextGml)
+        context.schema() >> Optional.of(schema)
+        context.value() >> '0.5'
+        context.encoding() >> encoding
+
+        when:
+        new GmlWriterProperties().onValue(context, {} as Consumer)
+
+        then:
+        1 * encoding.writeStartElement('sonstigewerte')
+        1 * encoding.writeStartElement('gmd:DQ_QuantitativeResult')
+        1 * encoding.writeStartElement('gco:Record')
+        1 * encoding.writeCharacters('0.5')
+        3 * encoding.writeEndElement()
+        0 * encoding.writeStartElement('gmd:valueUnit')
+        0 * encoding.writeAttribute(_, _)
     }
 }
