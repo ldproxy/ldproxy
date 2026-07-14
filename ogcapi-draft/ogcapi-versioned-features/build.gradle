@@ -24,7 +24,9 @@ dependencies {
     // references OgcApiExtent from ogcapi-common.
     testImplementation 'de.interactive_instruments:ogcapi-common'
     // FeatureSchema return-type signatures transitively reference GeometryType from
-    // xtraplatform-geometries; Spock's Stub factory still walks the method table during
-    // proxy generation, so the class must be on the test classpath.
+    // xtraplatform-geometries and EpsgCrs from xtraplatform-crs; Spock's Stub factory still
+    // walks the method table during proxy generation, so the classes must be on the test
+    // classpath.
     provided 'de.interactive_instruments:xtraplatform-geometries'
+    provided 'de.interactive_instruments:xtraplatform-crs'
 }
