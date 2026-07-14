@@ -256,6 +256,10 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getValueWrap();
   }
 
+  public Map<String, PositionVariants> getPositionVariants() {
+    return currentEncoding().getPositionVariants();
+  }
+
   public Map<String, Codelist> getCodelists() {
     return currentEncoding().getCodelists();
   }

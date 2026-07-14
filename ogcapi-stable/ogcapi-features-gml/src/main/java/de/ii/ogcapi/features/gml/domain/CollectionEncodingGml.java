@@ -63,6 +63,11 @@ public interface CollectionEncodingGml {
   }
 
   @Value.Default
+  default Map<String, PositionVariants> getPositionVariants() {
+    return ImmutableMap.of();
+  }
+
+  @Value.Default
   default List<String> getObjectTypeSuffixedProperties() {
     return ImmutableList.of();
   }

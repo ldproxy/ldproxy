@@ -26,6 +26,8 @@ import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
 import de.ii.ogcapi.features.gml.domain.ImmutableCollectionEncodingGml;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
+import de.ii.ogcapi.features.gml.domain.ImmutablePositionVariants;
+import de.ii.ogcapi.features.gml.domain.PositionVariants;
 import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
 import de.ii.ogcapi.features.gml.domain.UomMapping;
 import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
@@ -58,7 +60,9 @@ import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGml;
 import de.ii.xtraplatform.features.gml.domain.FeatureTokenDecoderGmlInputProfile;
+import de.ii.xtraplatform.features.gml.domain.GmlGeometryVariants;
 import de.ii.xtraplatform.features.gml.domain.ImmutableFeatureTokenDecoderGmlInputProfile;
+import de.ii.xtraplatform.features.gml.domain.ImmutableGmlGeometryVariants;
 import de.ii.xtraplatform.features.gml.domain.ImmutableVariableObjectName;
 import de.ii.xtraplatform.features.gml.domain.VariableObjectName;
 import de.ii.xtraplatform.values.domain.ValueStore;
@@ -536,6 +540,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
         .valueWrap(parseValueWrap(remapKeys(config.getValueWrap(), aliasRewrites)))
+        .positionVariants(
+            remapPositionVariants(
+                remapKeys(config.getPositionVariants(), aliasRewrites), aliasRewrites))
         .objectTypeSuffixedProperties(
             remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
         .codelists(resolveCodelists(config.getCodelistProperties()))
@@ -912,8 +919,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 Collectors.toUnmodifiableMap(
                     Map.Entry::getKey, e -> toVariableObjectName(e.getValue())));
 
+    Map<String, Double> srsNameFalseEastingDifferences =
+        config.getSrsNameMappings().stream()
+            .filter(m -> m.getFalseEastingDifference() != 0)
+            .collect(
+                Collectors.toUnmodifiableMap(
+                    SrsNameMapping::getValue, SrsNameMapping::getFalseEastingDifference));
+
     return ImmutableFeatureTokenDecoderGmlInputProfile.builder()
         .srsNameMappings(srsNameMappings)
+        .srsNameFalseEastingDifferences(srsNameFalseEastingDifferences)
         .gmlIdPrefix(Objects.requireNonNullElse(config.getGmlIdPrefix(), ""))
         .codelistProperties(config.getCodelistProperties())
         .featureRefTemplate(Objects.requireNonNullElse(config.getFeatureRefTemplate(), ""))
@@ -930,7 +945,27 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         // against each property's technical full path (it never sees the alias rewrites, which are
         // an encoder-only concern), so no remapping is applied here.
         .objectTypeSuffixedProperties(config.getObjectTypeSuffixedProperties())
+        .geometryVariants(
+            config.getPositionVariants().entrySet().stream()
+                .collect(
+                    Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey, e -> toGeometryVariants(e.getValue()))))
         .build();
+  }
+
+  private static GmlGeometryVariants toGeometryVariants(PositionVariants variants) {
+    ImmutableGmlGeometryVariants.Builder builder =
+        ImmutableGmlGeometryVariants.builder()
+            .bySrsName(variants.getVariantProperties())
+            .srsNameProperty(variants.getSrsNameProperty());
+    variants
+        .getVerticalProperty()
+        .ifPresent(
+            verticalProperty ->
+                variants
+                    .getVerticalSrsNames()
+                    .forEach(srsName -> builder.putVerticalBySrsName(srsName, verticalProperty)));
+    return builder.build();
   }
 
   private static VariableObjectName toVariableObjectName(VariableName variableName) {
@@ -1009,6 +1044,41 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   // Identity-pass when the rewrite map is empty, so the common (useAlias=false) path is a no-op.
+  // The property names referenced inside a PositionVariants (variant/vertical/srsName
+  // properties) are root-level or sibling names in technical form; rewrite them to their
+  // alias-form the same way the map keys are rewritten, so the writer's runtime path lookups
+  // match. Names without a rewrite entry pass through unchanged.
+  static Map<String, PositionVariants> remapPositionVariants(
+      Map<String, PositionVariants> positionVariants, Map<String, String> rewrites) {
+    if (rewrites.isEmpty() || positionVariants == null || positionVariants.isEmpty()) {
+      return positionVariants == null ? ImmutableMap.of() : positionVariants;
+    }
+    return positionVariants.entrySet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                Map.Entry::getKey,
+                entry ->
+                    new ImmutablePositionVariants.Builder()
+                        .variantProperties(
+                            entry.getValue().getVariantProperties().entrySet().stream()
+                                .collect(
+                                    ImmutableMap.toImmutableMap(
+                                        Map.Entry::getKey,
+                                        e -> rewrites.getOrDefault(e.getValue(), e.getValue()))))
+                        .verticalProperty(
+                            entry
+                                .getValue()
+                                .getVerticalProperty()
+                                .map(p -> rewrites.getOrDefault(p, p)))
+                        .verticalSrsNames(entry.getValue().getVerticalSrsNames())
+                        .srsNameProperty(
+                            entry
+                                .getValue()
+                                .getSrsNameProperty()
+                                .map(p -> rewrites.getOrDefault(p, p)))
+                        .build()));
+  }
+
   // The chain entries are parsed once per collection at encoder-build time; validity was already
   // enforced at service load by GmlConfiguration#checkValueWrap.
   static Map<String, List<ValueWrapElement>> parseValueWrap(Map<String, List<String>> valueWrap) {

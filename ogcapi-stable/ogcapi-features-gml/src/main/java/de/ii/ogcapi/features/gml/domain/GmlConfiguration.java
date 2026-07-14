@@ -1085,6 +1085,56 @@ public interface GmlConfiguration
   Map<String, List<String>> getValueWrap();
 
   /**
+   * @langEn Maps the property path of a geometry property to the configuration of its CRS-specific
+   *     position variants. Some application schemas (e.g. `AX_PunktortAU` in the German
+   *     AFIS-ALKIS-ATKIS NAS schema) carry exactly one position per feature, but in one of several
+   *     CRSs — including CRSs that PostGIS cannot distinguish (two AdV realizations mapping to the
+   *     same EPSG code) and 1D vertical reference systems. Each variant is stored in its own
+   *     sibling property (see the `crs` option in the provider schema), 1D positions in a FLOAT
+   *     property, and the verbatim wire `srsName` in a STRING property. On input, the decoder
+   *     routes a position by its `srsName` to the matching variant property; on output, the encoder
+   *     writes a single position element from whichever variant is set, with the stored `srsName`
+   *     reproduced verbatim (and `srsDimension="1"` for 1D positions). The variant and helper
+   *     properties themselves are not encoded as separate elements in GML. In output formats with a
+   *     single CRS (e.g. GeoJSON), suppress the helper properties with `remove: ALWAYS`
+   *     transformations; the base geometry property carries the position in the native CRS.
+   * @langDe Bildet den Eigenschaftspfad einer Geometrieeigenschaft auf die Konfiguration ihrer
+   *     CRS-spezifischen Positionsvarianten ab. Einige Anwendungsschemas (z.B. `AX_PunktortAU` im
+   *     AFIS-ALKIS-ATKIS-NAS-Schema) führen genau eine Position pro Feature, aber in einem von
+   *     mehreren CRS — darunter CRS, die PostGIS nicht unterscheiden kann (zwei AdV-Realisierungen
+   *     mit demselben EPSG-Code), sowie 1D-Höhenreferenzsysteme. Jede Variante wird in einer
+   *     eigenen Geschwistereigenschaft gespeichert (siehe die `crs`-Option im Provider-Schema),
+   *     1D-Positionen in einer FLOAT-Eigenschaft und der `srsName` unverändert in einer
+   *     STRING-Eigenschaft. Beim Einlesen leitet der Decoder eine Position anhand ihres `srsName`
+   *     in die passende Variante; bei der Ausgabe schreibt der Encoder ein einzelnes
+   *     Positionselement aus der gesetzten Variante mit dem gespeicherten `srsName` (und
+   *     `srsDimension="1"` für 1D-Positionen). Die Varianten- und Hilfseigenschaften selbst werden
+   *     in GML nicht als eigene Elemente kodiert. In Ausgabeformaten mit einem einzigen CRS (z.B.
+   *     GeoJSON) sind die Hilfseigenschaften mit `remove: ALWAYS`-Transformationen zu unterdrücken;
+   *     die Basis-Geometrieeigenschaft enthält die Position im nativen CRS.
+   * @default {}
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   positionVariants:
+   *     geo:
+   *       srsNameProperty: pos_srs
+   *       verticalProperty: pos_h
+   *       verticalSrsNames:
+   *       - 'urn:adv:crs:DE_DHHN2016_NH'
+   *       - 'urn:adv:crs:DE_DHHN92_NH'
+   *       variantProperties:
+   *         'urn:adv:crs:DE_DHDN_3GK3_HE100': pos_gk3
+   *         'urn:adv:crs:DE_DHDN_3GK3_HE120': pos_gk3
+   *         'urn:adv:crs:ETRS89_Lat-Lon-h': pos_llh
+   * ```
+   * </code>
+   * @since v4.8
+   */
+  Map<String, PositionVariants> getPositionVariants();
+
+  /**
    * @langEn URI template for codelist values encoded according to ISO 19139. The template may
    *     contain the placeholder `{{codelistId}}`, which is replaced with the codelist id. When set,
    *     a property that references a codelist (through the `codelist` constraint in the provider
@@ -1204,6 +1254,7 @@ public interface GmlConfiguration
             mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
         .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
+        .positionVariants(mergeMaps(src.getPositionVariants(), getPositionVariants()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
         .objectTypeSuffixedProperties(
             mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
