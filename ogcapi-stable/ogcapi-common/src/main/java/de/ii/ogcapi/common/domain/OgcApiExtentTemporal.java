@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.TemporalExtent;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Objects;
@@ -50,10 +51,12 @@ public interface OgcApiExtentTemporal {
             new Instant[][] {
               {
                 (interval.getStart() != null)
-                    ? Instant.ofEpochMilli(interval.getStart()).truncatedTo(ChronoUnit.SECONDS)
+                    ? Instant.from(DateTimeFormatter.ISO_INSTANT.parse(interval.getStart()))
+                        .truncatedTo(ChronoUnit.SECONDS)
                     : null,
                 (interval.getEnd() != null)
-                    ? Instant.ofEpochMilli(interval.getEnd()).truncatedTo(ChronoUnit.SECONDS)
+                    ? Instant.from(DateTimeFormatter.ISO_INSTANT.parse(interval.getEnd()))
+                        .truncatedTo(ChronoUnit.SECONDS)
                     : null
               }
             })

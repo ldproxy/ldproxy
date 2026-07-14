@@ -7,10 +7,8 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
-import de.ii.xtraplatform.docs.DocIgnore;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -63,14 +61,9 @@ public interface CollectionExtent {
   Optional<BoundingBox> getSpatial();
 
   /**
-   * @langEn The spatial extent of each collection is automatically dervied from the data during the
-   *     startup of the API. If the collection has no temporal properties, the collection will not
-   *     have a temporal extent.
-   * @langDe Die räumliche Ausdehnung jeder Collection wird beim Starten der API automatisch aus den
-   *     Daten abgeleitet. Wenn die Collection keine räumlichen Eigenschaften hat, hat die
-   *     Collection keine räumliche Ausdehnung.
-   * @default true
+   * @deprecated Wird entfernt. Die automatische Berechnung erfolgt, wenn kein Wert gesetzt ist.
    */
+  @Deprecated
   Optional<Boolean> getSpatialComputed();
 
   /**
@@ -84,27 +77,10 @@ public interface CollectionExtent {
   Optional<TemporalExtent> getTemporal();
 
   /**
-   * @langEn The temporal extent of each collection is automatically dervied from the data during
-   *     the startup of the API. If the collection has no temporal properties, the collection will
-   *     not have a temporal extent.
-   * @langDe Die zeitliche Ausdehnung jeder Collection wird beim Starten der API automatisch aus den
-   *     Daten abgeleitet. Wenn die Collection keine zeitlichen Eigenschaften hat, hat die
-   *     Collection keine zeitliche Ausdehnung.
-   * @default true
+   * @deprecated Wird entfernt. Die automatische Berechnung erfolgt, wenn kein Wert gesetzt ist.
    */
+  @Deprecated
   Optional<Boolean> getTemporalComputed();
 
-  @DocIgnore
-  @JsonIgnore
-  @Value.Lazy
-  default boolean isSpatialComputed() {
-    return getSpatialComputed().orElse(false);
-  }
-
-  @DocIgnore
-  @JsonIgnore
-  @Value.Lazy
-  default boolean isTemporalComputed() {
-    return getTemporalComputed().orElse(false);
-  }
+  // Deprecated: Berechnungs-Logik wird entfernt. Nur noch Wertecontainer.
 }

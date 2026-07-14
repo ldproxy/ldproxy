@@ -274,12 +274,14 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       }
       getTilesConfiguration(apiData, cid)
           .filter(cfg -> cfg.hasCollectionTiles(tilesProviders, apiData, cid))
-          .map(cfg -> cfg.getCollectionTileset(cid))
           .ifPresent(
-              tileset -> {
+              cfg -> {
+                String tileset = cfg.getCollectionTileset(cid);
+                Optional<BoundingBox> clipBbox =
+                    cfg.getExtent().or(() -> bbox).or(() -> api.getSpatialExtent(cid));
                 TileGenerationParameters generationParameters =
                     new ImmutableTileGenerationParameters.Builder()
-                        .clipBoundingBox(bbox.or(() -> api.getSpatialExtent(cid)))
+                        .clipBoundingBox(clipBbox)
                         .substitutions(
                             FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(
                                 api.getUri().toString()))
@@ -299,12 +301,14 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
     apiData
         .getExtension(TilesConfiguration.class)
         .filter(cfg -> cfg.hasDatasetVectorTiles(tilesProviders, apiData))
-        .map(TilesConfiguration::getDatasetTileset)
         .ifPresent(
-            tileset -> {
+            cfg -> {
+              String tileset = cfg.getDatasetTileset();
+              Optional<BoundingBox> clipBbox =
+                  cfg.getExtent().or(() -> bbox).or(() -> api.getSpatialExtent());
               TileGenerationParameters generationParameters =
                   new ImmutableTileGenerationParameters.Builder()
-                      .clipBoundingBox(bbox.or(() -> api.getSpatialExtent()))
+                      .clipBoundingBox(clipBbox)
                       .substitutions(
                           FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(
                               api.getUri().toString()))
