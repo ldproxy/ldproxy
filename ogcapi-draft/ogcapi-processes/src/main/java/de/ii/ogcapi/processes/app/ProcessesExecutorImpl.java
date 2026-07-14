@@ -11,9 +11,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
+import de.ii.ogcapi.processes.domain.model.ExecuteReduced;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults.Builder;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
@@ -75,7 +76,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
-    Optional<Map<String, String>> outputs = executeRequest.getOutputs();
+    Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
     if (options.contains(JobControlOptions.ASYNC_EXECUTE)
@@ -84,14 +85,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           "Process '" + processId + "' only supports async execution.");
     }
 
-    return processesMap.get(processId).apply(inputs, outputs);
+    return processesMap.get(processId).apply(inputs, outputsSelection);
   }
 
   @Override
   public String executeAsync(String processId, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
-    Optional<Map<String, String>> outputs = executeRequest.getOutputs();
+    Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
     Optional<OgcSubscriber> subscriber = executeRequest.getSubscriber();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
@@ -105,9 +106,12 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     scheduler.schedule(
         () -> {
-          resultsMap.put(jobId, processesMap.get(processId).apply(inputs, outputs));
-          setStatus(jobId, StatusCode.SUCCESSFUL, subscriber);
-          // setStatus(jobId, StatusCode.FAILED, subscriber);
+          try {
+            resultsMap.put(jobId, processesMap.get(processId).apply(inputs, outputsSelection));
+            setStatus(jobId, StatusCode.SUCCESSFUL, subscriber);
+          } catch (Exception e) {
+            setStatus(jobId, StatusCode.FAILED, subscriber);
+          }
         },
         2,
         TimeUnit.SECONDS);
@@ -166,8 +170,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private void callBackSuccess(String successUri, String jobId) {
 
-    OgcResults results =
-        new ImmutableOgcResults.Builder().additionalProperties(result(jobId)).build();
+    OgcResults results = new Builder().additionalProperties(result(jobId)).build();
 
     byte[] respond;
     try {
@@ -263,19 +266,62 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
+  private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
+    Map<String, Object> resolvedInput = new LinkedHashMap<>();
+
+    for (String key : inputs.keySet()) {
+      Object value = inputs.get(key);
+      if (!(value instanceof LinkedHashMap map)) {
+        resolvedInput.put(key, inputs.get(key));
+        continue;
+      }
+
+      if (!map.containsKey("process")) {
+        resolvedInput.put(key, inputs.get(key));
+        continue;
+      }
+
+      ExecuteReduced nested = mapper.convertValue(map, ExecuteReduced.class);
+
+      String nestedProcess = nested.getProcess().orElseThrow();
+
+      Object resultFromNested;
+      if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
+        // If outputSelection is omitted or empty, pick the first result
+        resultFromNested =
+            processesMap
+                .get(nestedProcess)
+                .apply(resolveInputs(nested.getInputs()), Optional.empty())
+                .values()
+                .stream()
+                .findFirst()
+                .orElseThrow();
+      } else {
+        // Else pick all outputs in the outputSelection
+        resultFromNested =
+            processesMap
+                .get(nestedProcess)
+                .apply(resolveInputs(nested.getInputs()), nested.getOutputs());
+      }
+      resolvedInput.put(key, resultFromNested);
+    }
+    return resolvedInput;
+  }
+
   /** Functions for faking the job queue ToDo remove after integrating the job queue */
   private Map<String, Object> echoProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputs) {
-    return inputs;
+      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
+
+    return resolveInputs(inputs);
   }
 
   private Map<String, Object> answerProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputs) {
-    if (outputs.isEmpty()) {
+      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
+    if (outputsSelection.isEmpty()) {
       return Map.of("answer", 42, "answerStr", "42");
     }
     Map<String, Object> results = new LinkedHashMap<>();
-    outputs
+    outputsSelection
         .get()
         .keySet()
         .forEach(
