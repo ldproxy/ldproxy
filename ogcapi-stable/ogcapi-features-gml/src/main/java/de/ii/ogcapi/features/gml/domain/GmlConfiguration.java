@@ -37,9 +37,9 @@ import org.immutables.value.Value;
  *     the `rename` transformation, which takes precedence over the inherited namespace.
  *     <p>When the CRUD building block is enabled, the options that shape GML output are honoured
  *     symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,
- *     `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `srsNameMappings`,
- *     `uomMappings`, `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`,
- *     `valueWrap`, `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
+ *     `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,
+ *     `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `valueWrap`,
+ *     `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
  *     `featureMemberElementName`. The remaining options affect output only — `schemaLocations` (XSD
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
  *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
@@ -57,7 +57,7 @@ import org.immutables.value.Value;
  *     <p>Wenn der CRUD-Baustein aktiviert ist, werden die für die GML-Ausgabe wirksamen Optionen
  *     beim Decodieren von GML-POST/PUT-Anfrage-Bodies symmetrisch berücksichtigt:
  *     `applicationNamespaces`, `defaultNamespace`, `objectTypeNamespaces`, `useAlias`,
- *     `gmlIdPrefix`, `srsNameMappings`, `uomMappings`, `codelistProperties`, `codelistUriTemplate`,
+ *     `gmlIdPrefix`, `uomMappings`, `codelistProperties`, `codelistUriTemplate`,
  *     `featureRefTemplate`, `valueWrap`, `xmlAttributes`, `variableObjectElementNames`,
  *     `featureCollectionElementName`, `featureMemberElementName`. Die übrigen Optionen wirken sich
  *     ausschließlich auf die Ausgabe aus — `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
@@ -103,6 +103,20 @@ import org.immutables.value.Value;
  *     of its short three-letter code, if that is used in the provider schema.
  *     <p><code>
  * ```yaml
+ * - buildingBlock: CRS
+ *   additionalCrs:
+ *     - code: 25832
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:ETRS89_UTM32'
+ *     - code: 25833
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:ETRS89_UTM33'
+ *     - code: 4326
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:WGS84_Lat-Lon'
+ *     - code: 4326
+ *       forceAxisOrder: LON_LAT
+ *       alternativeUri: 'urn:adv:crs:WGS84_Lon-Lat'
  * - buildingBlock: GML
  *   enabled: true
  *   useAlias: true
@@ -118,23 +132,6 @@ import org.immutables.value.Value;
  *     valueTemplate: 'urn:adv:oid:{{value}}'
  *   appendTemporalSuffixToGmlId: true
  *   srsNameStyle: TEMPLATE
- *   srsNameMappings:
- *     - crs:
- *         code: 25832
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:ETRS89_UTM32'
- *     - crs:
- *         code: 25833
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:ETRS89_UTM33'
- *     - crs:
- *         code: 4326
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:WGS84_Lat-Lon'
- *     - crs:
- *         code: 4326
- *         forceAxisOrder: LON_LAT
- *       value: 'urn:adv:crs:WGS84_Lon-Lat'
  *   uomStyle: TEMPLATE
  *   uomMappings:
  *     - uom: 'm'
@@ -206,6 +203,20 @@ import org.immutables.value.Value;
  *     `rename`-Transformationsliste pro Eigenschaft pflegen zu müssen.
  *     <p><code>
  * ```yaml
+ * - buildingBlock: CRS
+ *   additionalCrs:
+ *     - code: 25832
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:ETRS89_UTM32'
+ *     - code: 25833
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:ETRS89_UTM33'
+ *     - code: 4326
+ *       forceAxisOrder: NONE
+ *       alternativeUri: 'urn:adv:crs:WGS84_Lat-Lon'
+ *     - code: 4326
+ *       forceAxisOrder: LON_LAT
+ *       alternativeUri: 'urn:adv:crs:WGS84_Lon-Lat'
  * - buildingBlock: GML
  *   enabled: true
  *   useAlias: true
@@ -221,23 +232,6 @@ import org.immutables.value.Value;
  *     valueTemplate: 'urn:adv:oid:{{value}}'
  *   appendTemporalSuffixToGmlId: true
  *   srsNameStyle: TEMPLATE
- *   srsNameMappings:
- *     - crs:
- *         code: 25832
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:ETRS89_UTM32'
- *     - crs:
- *         code: 25833
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:ETRS89_UTM33'
- *     - crs:
- *         code: 4326
- *         forceAxisOrder: NONE
- *       value: 'urn:adv:crs:WGS84_Lat-Lon'
- *     - crs:
- *         code: 4326
- *         forceAxisOrder: LON_LAT
- *       value: 'urn:adv:crs:WGS84_Lon-Lat'
  *   uomStyle: TEMPLATE
  *   uomMappings:
  *     - uom: 'm'
@@ -833,42 +827,19 @@ public interface GmlConfiguration
   /**
    * @langEn Controls how the {@code srsName} attribute on geometries is rendered. {@code OGC} (the
    *     default) emits the OGC URI form (e.g. {@code http://www.opengis.net/def/crs/EPSG/0/25832}).
-   *     {@code TEMPLATE} looks up the CRS in {@code srsNameMappings} and uses the mapped value; CRS
-   *     without a mapping fall back to the {@code OGC} form.
+   *     {@code TEMPLATE} looks up the CRS in the {@code additionalCrs} entries of the CRS building
+   *     block and uses the declared {@code alternativeUri}; CRS without one fall back to the {@code
+   *     OGC} form.
    * @langDe Steuert, wie das {@code srsName}-Attribut von Geometrien gerendert wird. {@code OGC}
    *     (Standard) erzeugt die OGC-URI-Form (z.B. {@code
-   *     http://www.opengis.net/def/crs/EPSG/0/25832}). {@code TEMPLATE} sucht das CRS in {@code
-   *     srsNameMappings} und verwendet den zugeordneten Wert; CRS ohne Mapping fallen auf die
-   *     {@code OGC}-Form zurück.
+   *     http://www.opengis.net/def/crs/EPSG/0/25832}). {@code TEMPLATE} sucht das CRS in den {@code
+   *     additionalCrs}-Einträgen des CRS-Bausteins und verwendet die deklarierte {@code
+   *     alternativeUri}; CRS ohne eine solche fallen auf die {@code OGC}-Form zurück.
    * @default OGC
    * @since v4.8
    */
   @Nullable
   SrsNameStyle getSrsNameStyle();
-
-  /**
-   * @langEn Mapping list used when {@code srsNameStyle} is {@code TEMPLATE}. Each entry binds a CRS
-   *     to a fixed {@code srsName} value. Useful for application schemas that require non-OGC URIs
-   *     (e.g. AdV: {@code urn:adv:crs:ETRS89_UTM32}).
-   * @langDe Mapping-Liste für {@code srsNameStyle: TEMPLATE}. Jeder Eintrag bindet ein CRS an einen
-   *     festen {@code srsName}-Wert. Nützlich für Anwendungsschemata, die Nicht-OGC-URIs verlangen
-   *     (z.B. AdV: {@code urn:adv:crs:ETRS89_UTM32}).
-   * @default []
-   * @examplesAll <code>
-   * ```yaml
-   * - buildingBlock: GML
-   *   enabled: true
-   *   srsNameStyle: TEMPLATE
-   *   srsNameMappings:
-   *     - crs:
-   *         code: 25832
-   *         forceAxisOrder: NONE
-   *       value: 'urn:adv:crs:ETRS89_UTM32'
-   * ```
-   * </code>
-   * @since v4.8
-   */
-  List<SrsNameMapping> getSrsNameMappings();
 
   /**
    * @langEn Controls how the {@code uom} attribute on measure-typed properties is rendered. {@code
@@ -1085,56 +1056,6 @@ public interface GmlConfiguration
   Map<String, List<String>> getValueWrap();
 
   /**
-   * @langEn Maps the property path of a geometry property to the configuration of its CRS-specific
-   *     position variants. Some application schemas (e.g. `AX_PunktortAU` in the German
-   *     AFIS-ALKIS-ATKIS NAS schema) carry exactly one position per feature, but in one of several
-   *     CRSs — including CRSs that PostGIS cannot distinguish (two AdV realizations mapping to the
-   *     same EPSG code) and 1D vertical reference systems. Each variant is stored in its own
-   *     sibling property (see the `crs` option in the provider schema), 1D positions in a FLOAT
-   *     property, and the verbatim wire `srsName` in a STRING property. On input, the decoder
-   *     routes a position by its `srsName` to the matching variant property; on output, the encoder
-   *     writes a single position element from whichever variant is set, with the stored `srsName`
-   *     reproduced verbatim (and `srsDimension="1"` for 1D positions). The variant and helper
-   *     properties themselves are not encoded as separate elements in GML. In output formats with a
-   *     single CRS (e.g. GeoJSON), suppress the helper properties with `remove: ALWAYS`
-   *     transformations; the base geometry property carries the position in the native CRS.
-   * @langDe Bildet den Eigenschaftspfad einer Geometrieeigenschaft auf die Konfiguration ihrer
-   *     CRS-spezifischen Positionsvarianten ab. Einige Anwendungsschemas (z.B. `AX_PunktortAU` im
-   *     AFIS-ALKIS-ATKIS-NAS-Schema) führen genau eine Position pro Feature, aber in einem von
-   *     mehreren CRS — darunter CRS, die PostGIS nicht unterscheiden kann (zwei AdV-Realisierungen
-   *     mit demselben EPSG-Code), sowie 1D-Höhenreferenzsysteme. Jede Variante wird in einer
-   *     eigenen Geschwistereigenschaft gespeichert (siehe die `crs`-Option im Provider-Schema),
-   *     1D-Positionen in einer FLOAT-Eigenschaft und der `srsName` unverändert in einer
-   *     STRING-Eigenschaft. Beim Einlesen leitet der Decoder eine Position anhand ihres `srsName`
-   *     in die passende Variante; bei der Ausgabe schreibt der Encoder ein einzelnes
-   *     Positionselement aus der gesetzten Variante mit dem gespeicherten `srsName` (und
-   *     `srsDimension="1"` für 1D-Positionen). Die Varianten- und Hilfseigenschaften selbst werden
-   *     in GML nicht als eigene Elemente kodiert. In Ausgabeformaten mit einem einzigen CRS (z.B.
-   *     GeoJSON) sind die Hilfseigenschaften mit `remove: ALWAYS`-Transformationen zu unterdrücken;
-   *     die Basis-Geometrieeigenschaft enthält die Position im nativen CRS.
-   * @default {}
-   * @examplesAll <code>
-   * ```yaml
-   * - buildingBlock: GML
-   *   enabled: true
-   *   positionVariants:
-   *     geo:
-   *       srsNameProperty: pos_srs
-   *       verticalProperty: pos_h
-   *       verticalSrsNames:
-   *       - 'urn:adv:crs:DE_DHHN2016_NH'
-   *       - 'urn:adv:crs:DE_DHHN92_NH'
-   *       variantProperties:
-   *         'urn:adv:crs:DE_DHDN_3GK3_HE100': pos_gk3
-   *         'urn:adv:crs:DE_DHDN_3GK3_HE120': pos_gk3
-   *         'urn:adv:crs:ETRS89_Lat-Lon-h': pos_llh
-   * ```
-   * </code>
-   * @since v4.8
-   */
-  Map<String, PositionVariants> getPositionVariants();
-
-  /**
    * @langEn URI template for codelist values encoded according to ISO 19139. The template may
    *     contain the placeholder `{{codelistId}}`, which is replaced with the codelist id. When set,
    *     a property that references a codelist (through the `codelist` constraint in the provider
@@ -1254,11 +1175,9 @@ public interface GmlConfiguration
             mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
         .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
-        .positionVariants(mergeMaps(src.getPositionVariants(), getPositionVariants()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
         .objectTypeSuffixedProperties(
             mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
-        .srsNameMappings(mergeLists(src.getSrsNameMappings(), getSrsNameMappings()))
         .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))
         .transformations(
             PropertyTransformations.super

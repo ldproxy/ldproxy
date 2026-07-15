@@ -10,10 +10,9 @@ package de.ii.ogcapi.features.gml.app
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml
 import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGml
 import de.ii.xtraplatform.features.gml.domain.GmlVersion
-import de.ii.ogcapi.features.gml.domain.ImmutablePositionVariants
-import de.ii.ogcapi.features.gml.domain.ImmutableSrsNameMapping
-import de.ii.ogcapi.features.gml.domain.PositionVariants
-import de.ii.xtraplatform.crs.domain.CrsTransformerFactory
+import de.ii.xtraplatform.features.domain.ImmutableSchemaVariants
+import de.ii.xtraplatform.features.domain.SchemaVariants
+import de.ii.ogcapi.foundation.domain.Profile
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.geometries.domain.Point
@@ -23,31 +22,28 @@ import java.util.function.Consumer
 
 /**
  * {@link GmlWriterPositionVariants}: a foreign-CRS position is written once, from the variant
- * property, with the stored verbatim srsName and the false-easting difference subtracted; a 1D
- * position is reconstructed as a gml:Point with srsDimension="1"; the helper properties and the
- * derived native copy are suppressed; native rows pass through to the normal geometry writer.
+ * property (already in its originalCrs, restored by the read pipeline), with the stored verbatim
+ * srsName and the false-easting difference subtracted; a 1D position is reconstructed as a
+ * gml:Point with srsDimension="1"; the helper properties and the derived native copy are
+ * suppressed; native rows pass through to the normal geometry writer.
  */
 class PositionVariantsWriterSpec extends Specification {
 
     static final String GK3_HE100 = 'urn:adv:crs:DE_DHDN_3GK3_HE100'
     static final String DHHN92 = 'urn:adv:crs:DE_DHHN92_NH'
 
-    static PositionVariants variants() {
-        new ImmutablePositionVariants.Builder()
-                .putVariantProperties(GK3_HE100, 'pos_gk3')
+    static SchemaVariants variants() {
+        new ImmutableSchemaVariants.Builder()
+                .addGeometryProperties('pos_gk3')
                 .verticalProperty('pos_h')
-                .addVerticalSrsNames(DHHN92)
-                .srsNameProperty('pos_srs')
+                .crsProperty('pos_srs')
                 .build()
     }
 
     def encoding = Mock(FeatureTransformationContextGml)
     def writer = new StringWriter()
     def xmlWriter = javax.xml.stream.XMLOutputFactory.newInstance().createXMLStreamWriter(writer)
-    def crsTransformerFactory = Stub(CrsTransformerFactory) {
-        getTransformer(_, _) >> Optional.empty()
-    }
-    def gmlWriter = new GmlWriterPositionVariants(crsTransformerFactory)
+    def gmlWriter = new GmlWriterPositionVariants()
 
     def setup() {
         encoding.getPositionVariants() >> ['position': variants()]
@@ -57,11 +53,20 @@ class PositionVariantsWriterSpec extends Specification {
         encoding.getGmlIdOnGeometries() >> false
         encoding.getUseSurfaceAndCurve() >> false
         encoding.getGmlIdPrefix() >> Optional.empty()
-        encoding.getSrsNameMappings() >> [new ImmutableSrsNameMapping.Builder()
-                                                  .crs(EpsgCrs.of(5677))
-                                                  .value(GK3_HE100)
-                                                  .falseEastingDifference(3000000d)
-                                                  .build()]
+    }
+
+    /**
+     * Sets the negotiated profiles and runs the feature-start hook that latches them. The
+     * faithful behaviour requires the crs-original profile; without it the writer only
+     * suppresses the variant group.
+     */
+    def startFeature(boolean crsOriginal) {
+        def profile = Stub(Profile)
+        profile.getId() >> 'crs-original'
+        encoding.getProfiles() >> (crsOriginal ? [profile] : [])
+        def featureContext = Stub(EncodingAwareContextGml)
+        featureContext.encoding() >> encoding
+        gmlWriter.onFeatureStart(featureContext, {} as Consumer)
     }
 
     def valueContext(String path, String value) {
@@ -75,10 +80,10 @@ class PositionVariantsWriterSpec extends Specification {
         return context
     }
 
-    def geometryContext(String path, Point point) {
-        def schema = Stub(FeatureSchema) {
-            getFullPathAsString() >> path
-        }
+    def geometryContext(String path, Point point, Double falseEastingDifference = null) {
+        def schema = Stub(FeatureSchema)
+        schema.getFullPathAsString() >> path
+        schema.getFalseEastingDifference() >> Optional.ofNullable(falseEastingDifference)
         def context = Stub(EncodingAwareContextGml)
         context.schema() >> Optional.of(schema)
         context.geometry() >> point
@@ -89,6 +94,7 @@ class PositionVariantsWriterSpec extends Specification {
     def 'a 1D position is reconstructed at the vertical property token'() {
         given:
         def next = Mock(Consumer)
+        startFeature(true)
 
         when:
         gmlWriter.onValue(valueContext('pos_srs', DHHN92), next)
@@ -110,10 +116,11 @@ class PositionVariantsWriterSpec extends Specification {
         def next = Mock(Consumer)
         def variant = Point.of(3446104.62d, 5551059.77d, EpsgCrs.of(5677))
         def derivedNative = Point.of(446051.2d, 5549279.4d, EpsgCrs.of(25832))
+        startFeature(true)
 
         when:
         gmlWriter.onValue(valueContext('pos_srs', GK3_HE100), next)
-        gmlWriter.onGeometry(geometryContext('pos_gk3', variant), next)
+        gmlWriter.onGeometry(geometryContext('pos_gk3', variant, 3000000d), next)
         gmlWriter.onGeometry(geometryContext('position', derivedNative), next)
 
         then:
@@ -133,6 +140,7 @@ class PositionVariantsWriterSpec extends Specification {
         def next = Mock(Consumer)
         def nativePoint = Point.of(448733.315d, 5539621.758d, EpsgCrs.of(25832))
         def context = geometryContext('position', nativePoint)
+        startFeature(true)
 
         when:
         gmlWriter.onGeometry(context, next)
@@ -140,5 +148,39 @@ class PositionVariantsWriterSpec extends Specification {
         then:
         1 * next.accept(context)
         0 * encoding.writeStartElement(_)
+    }
+
+    def 'without the profile a foreign-CRS row suppresses the variant and passes the base through'() {
+        given:
+        def next = Mock(Consumer)
+        def variant = Point.of(3446104.62d, 5551059.77d, EpsgCrs.of(5677))
+        def base = Point.of(446051.2d, 5549279.4d, EpsgCrs.of(25832))
+        def baseContext = geometryContext('position', base)
+        startFeature(false)
+
+        when:
+        gmlWriter.onValue(valueContext('pos_srs', GK3_HE100), next)
+        gmlWriter.onGeometry(geometryContext('pos_gk3', variant, 3000000d), next)
+        gmlWriter.onGeometry(baseContext, next)
+
+        then: 'only the base geometry reaches the normal geometry writer'
+        1 * next.accept(baseContext)
+        0 * next.accept(_)
+        0 * encoding.writeStartElement(_)
+    }
+
+    def 'without the profile a 1D row emits no position element'() {
+        given:
+        def next = Mock(Consumer)
+        startFeature(false)
+
+        when:
+        gmlWriter.onValue(valueContext('pos_srs', DHHN92), next)
+        gmlWriter.onValue(valueContext('pos_h', '229.94'), next)
+
+        then: 'the helper properties are suppressed and nothing is written'
+        0 * next.accept(_)
+        0 * encoding.writeStartElement(_)
+        0 * encoding.writeCharacters(_)
     }
 }

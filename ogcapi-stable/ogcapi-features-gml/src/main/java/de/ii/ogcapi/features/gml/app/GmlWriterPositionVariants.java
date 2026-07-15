@@ -11,15 +11,12 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
-import de.ii.ogcapi.features.gml.domain.PositionVariants;
-import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
-import de.ii.xtraplatform.features.domain.SchemaBase;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaVariants;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
 import de.ii.xtraplatform.geometries.domain.Geometry;
 import de.ii.xtraplatform.geometries.domain.transform.CoordinatesTransformer;
-import de.ii.xtraplatform.geometries.domain.transform.ImmutableCrsTransform;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -30,9 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encodes the CRS-specific position variants of a geometry property (see {@code
- * GmlConfiguration#getPositionVariants()}) as a single position element and suppresses the variant
- * and helper properties as elements of their own. Runs before {@link GmlWriterGeometry} and {@link
+ * Encodes the CRS-specific position variants of a geometry property (see the {@code variants}
+ * declarations in the provider schema) as a single position element and suppresses the variant and
+ * helper properties as elements of their own. Runs before {@link GmlWriterGeometry} and {@link
  * GmlWriterProperties} in the writer chain.
  *
  * <p>Exactly one of the group's properties carries the position: the base geometry property (a
@@ -51,21 +48,29 @@ public class GmlWriterPositionVariants implements GmlWriter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GmlWriterPositionVariants.class);
 
-  private final CrsTransformerFactory crsTransformerFactory;
+  /**
+   * The id of the {@code crs-original} profile (defined in the {@code PROFILE_CRS} building block,
+   * referenced here by its literal value — the encoder must not depend on the profile module). With
+   * the profile active, positions are written as recorded: from whichever variant property is set,
+   * with the stored verbatim srsName. Without it, the variant and helper properties are only
+   * suppressed — the base geometry property (transformed to the requested CRS upstream) passes
+   * through to the normal geometry writer, and a feature without a base geometry (a 1D position)
+   * has no position element.
+   */
+  static final String PROFILE_CRS_ORIGINAL = "crs-original";
 
   private String stashedSrsName;
   private Geometry<?> stashedVariant;
-  private EpsgCrs stashedVariantCrs;
+  private double stashedVariantShift;
   private boolean positionWritten;
+  private boolean crsOriginal;
 
   @Inject
-  public GmlWriterPositionVariants(CrsTransformerFactory crsTransformerFactory) {
-    this.crsTransformerFactory = crsTransformerFactory;
-  }
+  public GmlWriterPositionVariants() {}
 
   @Override
   public GmlWriterPositionVariants create() {
-    return new GmlWriterPositionVariants(crsTransformerFactory);
+    return new GmlWriterPositionVariants();
   }
 
   @Override
@@ -78,8 +83,11 @@ public class GmlWriterPositionVariants implements GmlWriter {
       EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next) throws IOException {
     this.stashedSrsName = null;
     this.stashedVariant = null;
-    this.stashedVariantCrs = null;
+    this.stashedVariantShift = 0;
     this.positionWritten = false;
+    this.crsOriginal =
+        context.encoding().getProfiles().stream()
+            .anyMatch(profile -> PROFILE_CRS_ORIGINAL.equals(profile.getId()));
 
     next.accept(context);
   }
@@ -87,7 +95,7 @@ public class GmlWriterPositionVariants implements GmlWriter {
   @Override
   public void onFeatureEnd(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    if (stashedVariant != null && !positionWritten && LOGGER.isWarnEnabled()) {
+    if (crsOriginal && stashedVariant != null && !positionWritten && LOGGER.isWarnEnabled()) {
       LOGGER.warn(
           "A position variant was not written: the base geometry property did not follow the"
               + " variant properties for the current feature. Check the property order in the"
@@ -100,19 +108,24 @@ public class GmlWriterPositionVariants implements GmlWriter {
   @Override
   public void onValue(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    Map<String, PositionVariants> positionVariants = context.encoding().getPositionVariants();
+    Map<String, SchemaVariants> positionVariants = context.encoding().getPositionVariants();
     if (!positionVariants.isEmpty() && context.schema().isPresent()) {
       String path = context.schema().get().getFullPathAsString();
-      for (Map.Entry<String, PositionVariants> entry : positionVariants.entrySet()) {
+      for (Map.Entry<String, SchemaVariants> entry : positionVariants.entrySet()) {
         String parentPrefix = parentPrefix(entry.getKey());
-        PositionVariants variants = entry.getValue();
-        if (matches(variants.getSrsNameProperty(), parentPrefix, path)) {
+        SchemaVariants variants = entry.getValue();
+        if (matches(variants.getCrsProperty(), parentPrefix, path)) {
+          // suppressed as an element in both modes; the stash is only consumed with crs-original
           this.stashedSrsName = context.value();
           return;
         }
         if (matches(variants.getVerticalProperty(), parentPrefix, path)) {
-          // 1D row — the base geometry column is NULL, so this token anchors the position element
-          writeVerticalPosition(context, elementName(entry.getKey()), context.value());
+          if (crsOriginal) {
+            // 1D row — the base geometry column is NULL, so this token anchors the position
+            // element
+            writeVerticalPosition(context, elementName(entry.getKey()), context.value());
+          }
+          // without the profile a 1D position has no representation — no position element
           return;
         }
       }
@@ -124,26 +137,31 @@ public class GmlWriterPositionVariants implements GmlWriter {
   @Override
   public void onGeometry(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    Map<String, PositionVariants> positionVariants = context.encoding().getPositionVariants();
+    Map<String, SchemaVariants> positionVariants = context.encoding().getPositionVariants();
     if (!positionVariants.isEmpty() && context.schema().isPresent()) {
       String path = context.schema().get().getFullPathAsString();
-      for (Map.Entry<String, PositionVariants> entry : positionVariants.entrySet()) {
+      for (Map.Entry<String, SchemaVariants> entry : positionVariants.entrySet()) {
         String parentPrefix = parentPrefix(entry.getKey());
-        PositionVariants variants = entry.getValue();
+        SchemaVariants variants = entry.getValue();
         boolean isVariant =
-            variants.getVariantProperties().values().stream()
+            variants.getGeometryProperties().stream()
                 .anyMatch(name -> matches(Optional.of(name), parentPrefix, path));
         if (isVariant) {
-          // foreign 2D/3D row — the original position replaces the derived native copy held by
-          // the base property; anchor here when the srsName is already known
-          this.stashedVariant = context.geometry();
-          this.stashedVariantCrs = context.schema().flatMap(SchemaBase::getCrs).orElse(null);
-          if (stashedSrsName != null) {
-            writeVariantPosition(context, elementName(entry.getKey()));
+          if (crsOriginal) {
+            // foreign 2D/3D row — the original position replaces the derived native copy held by
+            // the base property; anchor here when the srsName is already known
+            this.stashedVariant = context.geometry();
+            this.stashedVariantShift =
+                context.schema().flatMap(FeatureSchema::getFalseEastingDifference).orElse(0.0);
+            if (stashedSrsName != null) {
+              writeVariantPosition(context, elementName(entry.getKey()));
+            }
           }
+          // without the profile the variant is suppressed; the base property carries the derived
+          // native position, transformed to the requested CRS upstream
           return;
         }
-        if (path.equals(entry.getKey())) {
+        if (crsOriginal && path.equals(entry.getKey())) {
           if (positionWritten) {
             // the original position was already written from a variant or vertical property —
             // suppress the derived native copy
@@ -185,33 +203,14 @@ public class GmlWriterPositionVariants implements GmlWriter {
     Geometry<?> geometry = stashedVariant;
     // the wire form of this srsName may use a different false easting than the CRS the
     // coordinates are stored in (e.g. Gauss-Krüger without the zone prefix) — subtract the
-    // configured difference to reproduce the wire form
-    double falseEastingDifference =
-        context.encoding().getSrsNameMappings().stream()
-            .filter(m -> m.getValue().equals(srsName))
-            .map(de.ii.ogcapi.features.gml.domain.SrsNameMapping::getFalseEastingDifference)
-            .findFirst()
-            .orElse(0.0);
+    // difference declared on the variant property to reproduce the wire form
+    double falseEastingDifference = stashedVariantShift;
     if (falseEastingDifference != 0) {
       geometry =
           geometry.accept(
               new CoordinatesTransformer(
                   de.ii.xtraplatform.geometries.domain.transform.ImmutableEastingShift.of(
                       Optional.empty(), -falseEastingDifference)));
-    }
-    // the column stores axis-forced coordinates (e.g. lon/lat for PostGIS); the wire form uses
-    // the authority axis order, so the force is inverted before serializing
-    if (stashedVariantCrs != null
-        && stashedVariantCrs.getForceAxisOrder() == EpsgCrs.Force.LON_LAT) {
-      Optional<de.ii.xtraplatform.crs.domain.CrsTransformer> transformer =
-          crsTransformerFactory.getTransformer(
-              stashedVariantCrs, EpsgCrs.of(stashedVariantCrs.getCode()));
-      if (transformer.isPresent()) {
-        geometry =
-            geometry.accept(
-                new CoordinatesTransformer(
-                    ImmutableCrsTransform.of(Optional.empty(), transformer.get())));
-      }
     }
     ImmutableSet.Builder<Options> options =
         ImmutableSet.<Options>builder().add(Options.WITH_SRS_NAME);
@@ -238,7 +237,7 @@ public class GmlWriterPositionVariants implements GmlWriter {
     context.encoding().writeEndElement();
     this.positionWritten = true;
     this.stashedVariant = null;
-    this.stashedVariantCrs = null;
+    this.stashedVariantShift = 0;
   }
 
   private static String parentPrefix(String basePath) {

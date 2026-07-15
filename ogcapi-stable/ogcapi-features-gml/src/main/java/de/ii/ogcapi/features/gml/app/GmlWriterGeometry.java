@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
-import de.ii.ogcapi.features.gml.domain.SrsNameMapping;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
@@ -75,17 +74,17 @@ public class GmlWriterGeometry implements GmlWriter {
             context.encoding().getGeometryPrecision(),
             buildSrsNameMapper(
                 context.encoding().getSrsNameStyle().orElse(GmlConfiguration.SrsNameStyle.OGC),
-                context.encoding().getSrsNameMappings()));
+                context.encoding().getAlternativeCrss()));
   }
 
   private static Function<EpsgCrs, String> buildSrsNameMapper(
-      GmlConfiguration.SrsNameStyle style, List<SrsNameMapping> mappings) {
-    if (style != GmlConfiguration.SrsNameStyle.TEMPLATE || mappings.isEmpty()) {
+      GmlConfiguration.SrsNameStyle style, List<EpsgCrs> alternativeCrss) {
+    if (style != GmlConfiguration.SrsNameStyle.TEMPLATE || alternativeCrss.isEmpty()) {
       return EpsgCrs::toUriString;
     }
     Map<EpsgCrs, String> table = new HashMap<>();
-    for (SrsNameMapping m : mappings) {
-      table.put(m.getCrs(), m.getValue());
+    for (EpsgCrs crs : alternativeCrss) {
+      crs.getAlternativeUri().ifPresent(uri -> table.put(crs, uri));
     }
     return crs -> {
       String mapped = table.get(crs);
@@ -106,6 +105,13 @@ public class GmlWriterGeometry implements GmlWriter {
   public void onGeometry(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
     FeatureSchema schema = context.schema().orElseThrow();
+
+    // internal geometry properties are never encoded as regular elements; the position-variant
+    // group is intercepted earlier by GmlWriterPositionVariants, this covers internal geometries
+    // outside a variants group
+    if (schema.isInternal()) {
+      return;
+    }
 
     String elementNameProperty = schema.getName();
     context.encoding().writeStartElement(elementNameProperty);

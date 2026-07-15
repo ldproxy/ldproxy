@@ -11,7 +11,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.FeatureTransformationContext;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SchemaVariants;
 import de.ii.xtraplatform.features.gml.domain.GmlVersion;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import java.io.IOException;
@@ -210,8 +212,8 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return Optional.ofNullable(currentEncoding().getConfig().getSrsNameStyle());
   }
 
-  public List<SrsNameMapping> getSrsNameMappings() {
-    return currentEncoding().getConfig().getSrsNameMappings();
+  public List<EpsgCrs> getAlternativeCrss() {
+    return currentEncoding().getAlternativeCrss();
   }
 
   public Optional<GmlConfiguration.UomStyle> getUomStyle() {
@@ -256,7 +258,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getValueWrap();
   }
 
-  public Map<String, PositionVariants> getPositionVariants() {
+  public Map<String, SchemaVariants> getPositionVariants() {
     return currentEncoding().getPositionVariants();
   }
 

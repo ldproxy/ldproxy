@@ -411,7 +411,12 @@ public class GmlWriterProperties implements GmlWriter {
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {
-    return !hasMappingAndValue(context) || context.schema().orElseThrow().isId();
+    // internal properties are never encoded as regular elements; GML receives their tokens
+    // (unlike formats that rely on the implicit remove transformations) because
+    // GmlWriterPositionVariants consumes the position-variant group
+    return !hasMappingAndValue(context)
+        || context.schema().orElseThrow().isId()
+        || context.schema().orElseThrow().isInternal();
   }
 
   private boolean hasMappingAndValue(EncodingAwareContextGml context) {

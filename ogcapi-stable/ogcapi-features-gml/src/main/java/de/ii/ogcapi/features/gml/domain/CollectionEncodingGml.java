@@ -10,6 +10,8 @@ package de.ii.ogcapi.features.gml.domain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.SchemaVariants;
 import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
@@ -62,8 +64,23 @@ public interface CollectionEncodingGml {
     return ImmutableMap.of();
   }
 
+  /**
+   * The {@code additionalCrs} entries of the collection's CRS configuration that declare an {@code
+   * alternativeUri} — consumed by the GML encoding for {@code srsNameStyle: TEMPLATE}.
+   */
   @Value.Default
-  default Map<String, PositionVariants> getPositionVariants() {
+  default List<EpsgCrs> getAlternativeCrss() {
+    return ImmutableList.of();
+  }
+
+  /**
+   * The position-variant groups of the collection, derived from the {@code variants} declarations
+   * in the provider schema (not from the {@code GmlConfiguration}): per geometry property — keyed
+   * by its full path, alias-rewritten like the other path-keyed options — the {@code
+   * SchemaVariants} with alias-form sibling names.
+   */
+  @Value.Default
+  default Map<String, SchemaVariants> getPositionVariants() {
     return ImmutableMap.of();
   }
 

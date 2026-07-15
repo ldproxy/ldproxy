@@ -1,0 +1,11 @@
+
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = 'Profile for positions stored in a reference system that differs from the storage CRS.'
+descriptionDe = 'Profil für Positionen, die in einem anderen Referenzsystem als dem Speicher-CRS gespeichert sind.'
+
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:ogcapi-features-core'
+}
