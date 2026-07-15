@@ -8,7 +8,9 @@
 package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -20,6 +22,14 @@ import org.immutables.value.Value;
 public interface OgcSubscriber {
 
   String SCHEMA_REF = "#/components/schemas/Subscriber";
+
+  @SuppressWarnings("UnstableApiUsage")
+  Funnel<OgcSubscriber> FUNNEL =
+      (from, into) -> {
+        from.successUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.inProgressUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.failedUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+      };
 
   Optional<String> successUri();
 
