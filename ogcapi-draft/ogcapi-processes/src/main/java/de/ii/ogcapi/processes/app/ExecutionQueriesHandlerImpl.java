@@ -20,12 +20,12 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
+import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
@@ -175,10 +175,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    String jobId = processesExecutor.executeAsync(processId, executeRequest);
+    StatusInfo statusInfo = processesExecutor.executeAsync(processId, executeRequest);
 
-    OgcStatusInfo statusInfo =
-        new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.ACCEPTED).build();
+    OgcStatusInfo ogcStatusInfo = new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -188,7 +187,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(statusInfo, api, requestContext))
+        .entity(outputFormat.getEntity(ogcStatusInfo, api, requestContext))
         .build();
   }
 }

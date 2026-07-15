@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import java.util.List;
 import java.util.Map;
@@ -31,31 +32,13 @@ public interface ProcessesExecutor {
    */
   Map<String, Object> executeSync(String processId, OgcExecute executeRequest);
 
-  /**
-   * Executes a process asynchronously and returns a job ID for retrieving status and results later.
-   *
-   * @param processId the process to execute
-   * @param executeRequest details about the requested exeuction
-   * @return a unique job ID
-   */
-  String executeAsync(String processId, OgcExecute executeRequest);
+  StatusInfo executeAsync(String processId, OgcExecute executeRequest);
 
-  /**
-   * Returns the current status of a job or empty if it does not exist
-   *
-   * @param jobId the job ID returned by {@link #executeAsync}
-   */
-  Optional<StatusCode> status(String jobId);
+  Optional<StatusInfo> getStatusInfo(String jobId);
 
-  /**
-   * Returns the results of a successfully completed job.
-   *
-   * @param jobId the job ID returned by {@link #executeAsync}
-   * @throws IllegalStateException if the job has not finished successfully
-   */
-  Map<String, Object> result(String jobId);
+  Map<String, Object> getResults(String jobId);
 
   List<String> getJobs();
 
-  Optional<StatusCode> dismissJob(String jobId);
+  Optional<StatusInfo> dismissJob(String jobId);
 }

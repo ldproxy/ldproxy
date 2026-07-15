@@ -14,10 +14,15 @@ import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.Optional;
 
+// ToDo Add missing properties
 public interface StatusInfo {
   String getId();
 
   Optional<String> getProcessId();
+
+  // Optional<ProcessingEntityType> getProcessingEntityType;
+
+  // Optional<ProfileEntityType> getProfileEntityType;
 
   Optional<OgcExecute> getRequest();
 
