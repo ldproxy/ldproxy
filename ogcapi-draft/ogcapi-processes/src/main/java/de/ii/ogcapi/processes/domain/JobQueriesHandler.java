@@ -21,13 +21,16 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
 
   String GROUP_JOBS = "jobs";
   PermissionGroup GROUP_JOBS_READ = PermissionGroup.of(Base.READ, GROUP_JOBS, "access jobs");
+  // ToDo Change permission to WRITE (READ is easier during development)
+  PermissionGroup GROUP_JOBS_DISMISS = PermissionGroup.of(Base.READ, GROUP_JOBS, "dismiss jobs");
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
     JOB,
-    RESULTS
+    RESULTS,
+    DISMISS
   }
 
   @Value.Immutable
@@ -38,6 +41,11 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
 
   @Value.Immutable
   interface QueryInputResults extends QueryInput {
+    String getJobId();
+  }
+
+  @Value.Immutable
+  interface QueryInputDismiss extends QueryInput {
     String getJobId();
   }
 }

@@ -72,7 +72,9 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             Query.JOB,
             QueryHandler.with(QueryInputJob.class, this::getJobResponse),
             Query.RESULTS,
-            QueryHandler.with(QueryInputResults.class, this::getJobResultsResponse));
+            QueryHandler.with(QueryInputResults.class, this::getJobResultsResponse),
+            Query.DISMISS,
+            QueryHandler.with(QueryInputDismiss.class, this::dismissJobResponse));
 
     onVolatileStart();
 
@@ -162,6 +164,56 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
         .entity(outputFormat.getEntity(results, api, requestContext))
+        .build();
+  }
+
+  private Response dismissJobResponse(
+      QueryInputDismiss queryInput, ApiRequestContext requestContext) {
+    OgcApi api = requestContext.getApi();
+    String jobId = queryInput.getJobId();
+
+    StatusInfoFormatExtension outputFormat =
+        api.getOutputFormat(
+                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    // ToDo Links
+
+    StatusCode status =
+        processesExecutor
+            .dismissJob(jobId)
+            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
+
+    OgcStatusInfo ogcStatusInfoResponse =
+        new ImmutableOgcStatusInfo.Builder().id(jobId).status(status).build();
+
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(
+                ogcStatusInfoResponse, OgcStatusInfo.FUNNEL, outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(lastModified, etag, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(outputFormat.getEntity(ogcStatusInfoResponse, api, requestContext))
         .build();
   }
 }

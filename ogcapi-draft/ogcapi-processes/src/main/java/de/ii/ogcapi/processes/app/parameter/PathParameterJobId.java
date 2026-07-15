@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
@@ -38,10 +39,12 @@ public class PathParameterJobId implements OgcApiPathParameter {
   public static final String JOB_ID_REGEX = "[\\w-]+";
 
   private final SchemaValidator schemaValidator;
+  private final ProcessesExecutor processesExecutor;
 
   @Inject
-  public PathParameterJobId(SchemaValidator schemaValidator) {
+  public PathParameterJobId(SchemaValidator schemaValidator, ProcessesExecutor processesExecutor) {
     this.schemaValidator = schemaValidator;
+    this.processesExecutor = processesExecutor;
   }
 
   @Override
@@ -51,7 +54,7 @@ public class PathParameterJobId implements OgcApiPathParameter {
 
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    return List.of();
+    return processesExecutor.getJobs();
   }
 
   @Override
