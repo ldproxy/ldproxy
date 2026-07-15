@@ -20,10 +20,10 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor.StatusCode;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
@@ -104,13 +104,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     // ToDo Links
 
-    StatusCode status =
+    StatusInfo statusInfo =
         processesExecutor
-            .status(jobId)
+            .getStatusInfo(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
     OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().id(jobId).status(status).build();
+        new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -152,7 +152,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    Map<String, Object> jobResults = processesExecutor.result(jobId);
+    Map<String, Object> jobResults = processesExecutor.getResults(jobId);
     OgcResults results = new ImmutableOgcResults.Builder().additionalProperties(jobResults).build();
 
     return prepareSuccessResponse(
@@ -184,13 +184,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     // ToDo Links
 
-    StatusCode status =
+    StatusInfo statusInfo =
         processesExecutor
             .dismissJob(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
     OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().id(jobId).status(status).build();
+        new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =

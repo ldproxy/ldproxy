@@ -17,6 +17,7 @@ import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "StatusInfo")
 @Value.Immutable
+@Value.Modifiable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcStatusInfo.Builder.class)
 public abstract class OgcStatusInfo extends PageRepresentation implements StatusInfo {
