@@ -85,7 +85,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = resolveInputs(executeRequest.getInputs());
+    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
@@ -95,13 +95,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           "Process '" + processId + "' only supports async execution.");
     }
 
-    return processesMap.get(processId).apply(inputs, outputsSelection);
+    return processesMap.get(processId).apply(resolvedInputs, outputsSelection);
   }
 
   @Override
   public StatusInfo executeAsync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = executeRequest.getInputs();
+    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
     Optional<OgcSubscriber> subscriber = executeRequest.getSubscriber();
 
@@ -124,22 +124,35 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     // Put job in queue
     jobsMap.put(jobId, statusInfo);
 
+    // Start job
     scheduler.schedule(
         () -> {
-          // Start job
           statusInfo.setStarted(Instant.now());
-          setStatus(jobId, StatusCode.RUNNING);
-          setProgress(jobId, 0, executeRequest.getSubscriber());
+          setRunning(jobId, subscriber);
+        },
+        3,
+        TimeUnit.SECONDS);
 
+    // Update job
+    scheduler.schedule(
+        () -> {
+          setProgress(jobId, 60, subscriber);
+        },
+        6,
+        TimeUnit.SECONDS);
+
+    // Finished job
+    scheduler.schedule(
+        () -> {
           try {
-            resultsMap.put(
-                jobId, processesMap.get(processId).apply(resolveInputs(inputs), outputsSelection));
+            Map<String, Object> results =
+                processesMap.get(processId).apply(resolvedInputs, outputsSelection);
+            resultsMap.put(jobId, results);
             statusInfo.setFinished(Instant.now());
-            setProgress(jobId, 100, executeRequest.getSubscriber());
-            setStatus(jobId, StatusCode.SUCCESSFUL, subscriber);
+            setSuccess(jobId, subscriber);
           } catch (Exception e) {
-            setStatus(jobId, StatusCode.FAILED, subscriber);
             // jobsMap.get(jobId).setException...
+            setFailed(jobId, subscriber);
           }
         },
         10,
@@ -150,18 +163,27 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<StatusInfo> getStatusInfo(String jobId) {
-    if (!jobsMap.containsKey(jobId)) {
-      return Optional.empty();
-    }
-
-    return Optional.of(jobsMap.get(jobId));
+    return Optional.ofNullable(jobsMap.get(jobId));
   }
 
   @Override
   public Map<String, Object> getResults(String jobId) {
+    if (!jobsMap.containsKey(jobId)) {
+      throw new NoSuchElementException("No job found with job id '" + jobId + "'.");
+    }
+
     if (jobsMap.get(jobId).getStatus() == StatusCode.SUCCESSFUL) {
+      if (!resultsMap.containsKey(jobId)) {
+        throw new NoSuchElementException("No results found for job id '" + jobId + "'.");
+      }
       return resultsMap.get(jobId);
-    } else throw new IllegalStateException("Job '" + jobId + " ' did not finish.");
+    } else
+      throw new IllegalStateException(
+          "Job '"
+              + jobId
+              + " ' did not finish. Progress: "
+              + jobsMap.get(jobId).getProgress()
+              + ".");
   }
 
   @Override
@@ -175,49 +197,105 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return Optional.empty();
     }
 
-    StatusCode currentStatus = jobsMap.get(jobId).getStatus();
+    ModifiableOgcStatusInfo statusInfo = jobsMap.get(jobId);
+    StatusCode currentStatus = statusInfo.getStatus();
+
+    // Set to dismiss if its job is accepted or running
     if (StatusCode.ACCEPTED.equals(currentStatus) || StatusCode.RUNNING.equals(currentStatus)) {
-      jobsMap.get(jobId).setStatus(StatusCode.DISMISSED);
-      return Optional.of(jobsMap.get(jobId));
+      // ToDo Stop job if running
+      statusInfo.setStatus(StatusCode.DISMISSED);
+      return Optional.of(statusInfo);
     }
 
+    // Remove if job is already finished or dismissed
+    statusInfo.setStatus(StatusCode.DISMISSED);
+    resultsMap.remove(jobId);
     return Optional.of(jobsMap.remove(jobId));
   }
 
-  /** Helper functions */
+  /***
+   * Helper functions
+   ***/
+
+  /**
+   * Recursively resolve nested processes inside the inputs.
+   *
+   * @param inputs The inputs Map
+   * @return A new inputs Map in which each nested process is replaced by the return value of its
+   *     execution
+   */
+  private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
+    Map<String, Object> resolvedInput = new LinkedHashMap<>();
+
+    // Simplified assumption: Processes are always at the top level
+    for (String key : inputs.keySet()) {
+      Object value = inputs.get(key);
+
+      // Value is not a map, put and skip
+      if (!(value instanceof Map map)) {
+        resolvedInput.put(key, value);
+        continue;
+      }
+
+      // Simplified assumption: Processes are passed directly with id
+      // Map does not contain a process, put and skip
+      if (!map.containsKey("process")) {
+        resolvedInput.put(key, value);
+        continue;
+      }
+
+      // Convert the process Map to an ExecuteReduced object
+      ExecuteNested nested = mapper.convertValue(map, ExecuteNested.class);
+
+      String nestedProcess = nested.getProcess();
+      Object resultFromNested;
+
+      // Get results from process execution
+      if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
+        // If outputSelection is omitted or empty, pick the first result
+        resultFromNested =
+            processesMap
+                .get(nestedProcess)
+                .apply(resolveInputs(nested.getInputs()), Optional.empty())
+                .values()
+                .stream()
+                .findFirst()
+                .orElseThrow();
+      } else {
+        // Else pick all outputs in the outputSelection
+        resultFromNested =
+            processesMap
+                .get(nestedProcess)
+                .apply(resolveInputs(nested.getInputs()), nested.getOutputs());
+      }
+      resolvedInput.put(key, resultFromNested);
+    }
+
+    return resolvedInput;
+  }
+
   private List<JobControlOptions> getJobControlOptions(String processId) {
     return processRepository.getDirect(processId).getJobControlOptions();
   }
 
-  private void setProgress(String jobId, int progress, Optional<OgcSubscriber> subscriber) {}
-
-  private void setStatus(String jobId, StatusCode status) {
-    setStatus(jobId, status, Optional.empty());
-  }
-
-  private void setStatus(String jobId, StatusCode status, Optional<OgcSubscriber> subscriber) {
+  private ModifiableOgcStatusInfo getStatusInfoDirect(String jobId) {
     if (!jobsMap.containsKey(jobId)) {
       throw new NoSuchElementException("No job found with job id '" + jobId + "'.");
     }
 
-    StatusCode currentStatus = jobsMap.get(jobId).getStatus();
-    if (currentStatus == StatusCode.DISMISSED) {
-      return;
-    }
-
-    // Simple unfinished logic
-    jobsMap.get(jobId).setStatus(status);
-    if (subscriber.isPresent()) {
-      switch (status) {
-        case ACCEPTED -> subscriber.get().inProgressUri().ifPresent(this::callBackInProgress);
-        case SUCCESSFUL ->
-            subscriber.get().successUri().ifPresent(uri -> callBackSuccess(uri, jobId));
-        case FAILED -> subscriber.get().failedUri().ifPresent(uri -> callBackFailed(uri, jobId));
-      }
-    }
+    return jobsMap.get(jobId);
   }
 
-  private void callBackInProgress(String inProgressUri) {}
+  private void setRunning(String jobId, Optional<OgcSubscriber> subscriber) {
+    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+
+    StatusCode currentStatusCode = statusInfo.getStatus();
+
+    if (StatusCode.ACCEPTED.equals(currentStatusCode)) {
+      statusInfo.setStatus(StatusCode.RUNNING);
+      setProgress(jobId, 0, subscriber);
+    }
+  }
 
   private void callBackSuccess(String successUri, String jobId) {
 
@@ -269,12 +347,26 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
-  private void callBackFailed(String failedUri, String jobId) {
+  private void setSuccess(String jobId, Optional<OgcSubscriber> subscriber) {
+    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+
+    StatusCode currentStatusCode = statusInfo.getStatus();
+
+    if (StatusCode.ACCEPTED.equals(currentStatusCode)
+        || StatusCode.RUNNING.equals(currentStatusCode)) {
+      statusInfo.setStatus(StatusCode.SUCCESSFUL);
+      setProgress(jobId, 100, subscriber);
+      subscriber.flatMap(OgcSubscriber::successUri).ifPresent(uri -> callBackSuccess(uri, jobId));
+    }
+  }
+
+  private void callBackStatusInfo(String type, String uri, String jobId) {
 
     byte[] respond;
     try {
+      ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
       OgcStatusInfo ogcStatusInfoResponse =
-          new ImmutableOgcStatusInfo.Builder().id(jobId).status(StatusCode.FAILED).build();
+          new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
       respond = mapper.writeValueAsBytes(ogcStatusInfoResponse);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
@@ -284,7 +376,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     do {
       try {
         httpClient.postAsInputStream(
-            failedUri,
+            uri,
             respond,
             MediaType.APPLICATION_JSON_TYPE,
             Map.of("Accept", MediaType.APPLICATION_JSON));
@@ -293,7 +385,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         if (currentRetries < maxCallbackRetries) {
           int delay = 100 * (currentRetries + 1);
           if (LOGGER.isWarnEnabled()) {
-            LOGGER.warn("Failed send failed callback for job '{}', retrying in {}ms", jobId, delay);
+            LOGGER.warn(
+                "Failed send {} callback for job '{}', retrying in {}ms", type, jobId, delay);
           }
           try {
             Thread.sleep(delay);
@@ -304,11 +397,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           LogContext.error(
               LOGGER,
               e,
-              "Giving up writing sending failed callback for job '{}' after {} retries",
+              "Giving up writing sending {} callback for job '{}' after {} retries",
+              type,
               jobId,
               currentRetries + 1);
           LOGGER.error(
-              "Failed sending the failed callback for {}: {}",
+              "Failed sending the {} callback for {}: {}",
+              type,
               jobId,
               new String(respond, StandardCharsets.UTF_8));
         }
@@ -317,57 +412,39 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
-  private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
-    Map<String, Object> resolvedInput = new LinkedHashMap<>();
+  private void setFailed(String jobId, Optional<OgcSubscriber> subscriber) {
+    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
 
-    // Simplified assumption: Processes are always at the top level
-    for (String key : inputs.keySet()) {
-      Object value = inputs.get(key);
-
-      // Value is not a map, put and skip
-      if (!(value instanceof LinkedHashMap map)) {
-        resolvedInput.put(key, value);
-        continue;
-      }
-
-      // Simplified assumption: Processes are passed directly with id
-      // Map does not contain a process, put and skip
-      if (!map.containsKey("process")) {
-        resolvedInput.put(key, value);
-        continue;
-      }
-
-      // Convert the process Map to an ExecuteReduced object
-      ExecuteNested nested = mapper.convertValue(map, ExecuteNested.class);
-
-      String nestedProcess = nested.getProcess();
-      Object resultFromNested;
-
-      // Get results from process execution
-      if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
-        // If outputSelection is omitted or empty, pick the first result
-        resultFromNested =
-            processesMap
-                .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs()), Optional.empty())
-                .values()
-                .stream()
-                .findFirst()
-                .orElseThrow();
-      } else {
-        // Else pick all outputs in the outputSelection
-        resultFromNested =
-            processesMap
-                .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs()), nested.getOutputs());
-      }
-      resolvedInput.put(key, resultFromNested);
+    StatusCode currentStatusCode = statusInfo.getStatus();
+    if (StatusCode.DISMISSED.equals(currentStatusCode)) {
+      return;
     }
 
-    return resolvedInput;
+    statusInfo.setStatus(StatusCode.FAILED);
+    subscriber
+        .flatMap(OgcSubscriber::failedUri)
+        .ifPresent(uri -> callBackStatusInfo("failed", uri, jobId));
   }
 
-  /** Functions for faking the job queue ToDo remove after integrating the job queue */
+  private void setProgress(String jobId, int progress, Optional<OgcSubscriber> subscriber) {
+    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+
+    if (progress < 0 || progress > 100) {
+      return;
+    }
+
+    statusInfo.setProgress(progress);
+    statusInfo.setUpdated(Instant.now());
+    subscriber
+        .flatMap(OgcSubscriber::inProgressUri)
+        .ifPresent(uri -> callBackStatusInfo("progress", uri, jobId));
+  }
+
+  /***
+   * Functions for faking the job queue
+   * ToDo Remove after integrating the job queue
+   ***/
+
   private Map<String, Object> echoProcess(
       Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
     return inputs;

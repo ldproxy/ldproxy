@@ -9,7 +9,9 @@ package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -22,6 +24,27 @@ import org.immutables.value.Value;
 public interface OgcExecute {
 
   String SCHEMA_REF = "#/components/schemas/Execute";
+
+  @SuppressWarnings("UnstableApiUsage")
+  Funnel<OgcExecute> FUNNEL =
+      (from, into) -> {
+        from.getProcess().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getInputs()
+            .forEach(
+                (k, v) -> {
+                  into.putString(k, StandardCharsets.UTF_8);
+                  into.putString(v.toString(), StandardCharsets.UTF_8);
+                });
+        from.getOutputs()
+            .ifPresent(
+                m ->
+                    m.forEach(
+                        (k, v) -> {
+                          into.putString(k, StandardCharsets.UTF_8);
+                          into.putString(v, StandardCharsets.UTF_8);
+                        }));
+        from.getSubscriber().ifPresent(v -> OgcSubscriber.FUNNEL.funnel(v, into));
+      };
 
   Optional<String> getProcess();
 
