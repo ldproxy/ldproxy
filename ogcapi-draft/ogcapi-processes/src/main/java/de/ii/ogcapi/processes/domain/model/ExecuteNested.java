@@ -15,10 +15,10 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableExecuteReduced.Builder.class)
-public interface ExecuteReduced {
+@JsonDeserialize(builder = ImmutableExecuteNested.Builder.class)
+public interface ExecuteNested {
 
-  Optional<String> getProcess();
+  String getProcess();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, Object> getInputs();

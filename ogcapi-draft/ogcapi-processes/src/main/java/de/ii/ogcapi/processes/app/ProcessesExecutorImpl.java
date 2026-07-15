@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.model.ExecuteReduced;
+import de.ii.ogcapi.processes.domain.model.ExecuteNested;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults.Builder;
@@ -63,7 +63,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final Map<
           String,
           BiFunction<Map<String, Object>, Optional<Map<String, String>>, Map<String, Object>>>
-      processesMap = Map.of("AnswerProcess", this::answerProcess, "EchoProcess", this::echoProcess);
+      processesMap =
+          Map.of(
+              "AnswerProcess",
+              this::answerProcess,
+              "EchoProcess",
+              this::echoProcess,
+              "AdditionProcess",
+              this::additionProcess);
 
   @Inject
   ProcessesExecutorImpl(ProcessRepository processRepository, Http http, Jackson jackson) {
@@ -75,7 +82,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = executeRequest.getInputs();
+    Map<String, Object> inputs = resolveInputs(executeRequest.getInputs());
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
@@ -107,13 +114,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     scheduler.schedule(
         () -> {
           try {
-            resultsMap.put(jobId, processesMap.get(processId).apply(inputs, outputsSelection));
+            resultsMap.put(
+                jobId, processesMap.get(processId).apply(resolveInputs(inputs), outputsSelection));
             setStatus(jobId, StatusCode.SUCCESSFUL, subscriber);
           } catch (Exception e) {
             setStatus(jobId, StatusCode.FAILED, subscriber);
           }
         },
-        2,
+        10,
         TimeUnit.SECONDS);
 
     return jobId;
@@ -121,11 +129,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<StatusCode> status(String jobId) {
-    if (jobsMap.containsKey(jobId)) {
-      return Optional.of(jobsMap.get(jobId));
-    } else {
+    if (!jobsMap.containsKey(jobId)) {
       return Optional.empty();
     }
+
+    return Optional.of(jobsMap.get(jobId));
   }
 
   @Override
@@ -133,6 +141,27 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     if (jobsMap.get(jobId) == StatusCode.SUCCESSFUL) {
       return resultsMap.get(jobId);
     } else throw new IllegalStateException("Job '" + jobId + " ' did not finish.");
+  }
+
+  @Override
+  public List<String> getJobs() {
+    return jobsMap.keySet().stream().toList();
+  }
+
+  @Override
+  public Optional<StatusCode> dismissJob(String jobId) {
+    if (!jobsMap.containsKey(jobId)) {
+      return Optional.empty();
+    }
+
+    StatusCode currentStatus = jobsMap.get(jobId);
+    if (StatusCode.ACCEPTED.equals(currentStatus) || StatusCode.RUNNING.equals(currentStatus)) {
+      jobsMap.put(jobId, StatusCode.DISMISSED);
+      return Optional.of(jobsMap.get(jobId));
+    }
+
+    jobsMap.remove(jobId);
+    return Optional.of(StatusCode.DISMISSED);
   }
 
   /** Helper functions */
@@ -269,23 +298,30 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
     Map<String, Object> resolvedInput = new LinkedHashMap<>();
 
+    // Simplified assumption: Processes are always at the top level
     for (String key : inputs.keySet()) {
       Object value = inputs.get(key);
+
+      // Value is not a map, put and skip
       if (!(value instanceof LinkedHashMap map)) {
-        resolvedInput.put(key, inputs.get(key));
+        resolvedInput.put(key, value);
         continue;
       }
 
+      // Simplified assumption: Processes are passed directly with id
+      // Map does not contain a process, put and skip
       if (!map.containsKey("process")) {
-        resolvedInput.put(key, inputs.get(key));
+        resolvedInput.put(key, value);
         continue;
       }
 
-      ExecuteReduced nested = mapper.convertValue(map, ExecuteReduced.class);
+      // Convert the process Map to an ExecuteReduced object
+      ExecuteNested nested = mapper.convertValue(map, ExecuteNested.class);
 
-      String nestedProcess = nested.getProcess().orElseThrow();
-
+      String nestedProcess = nested.getProcess();
       Object resultFromNested;
+
+      // Get results from process execution
       if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
         // If outputSelection is omitted or empty, pick the first result
         resultFromNested =
@@ -305,30 +341,38 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       }
       resolvedInput.put(key, resultFromNested);
     }
+
     return resolvedInput;
   }
 
   /** Functions for faking the job queue ToDo remove after integrating the job queue */
   private Map<String, Object> echoProcess(
       Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-
-    return resolveInputs(inputs);
+    return inputs;
   }
 
   private Map<String, Object> answerProcess(
       Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-    if (outputsSelection.isEmpty()) {
-      return Map.of("answer", 42, "answerStr", "42");
+
+    if (outputsSelection.isEmpty() || outputsSelection.get().containsKey("answer")) {
+      return Map.of("answer", 42);
     }
-    Map<String, Object> results = new LinkedHashMap<>();
-    outputsSelection
-        .get()
-        .keySet()
-        .forEach(
-            k -> {
-              if ("answer".equals(k)) results.put("answer", 42);
-              if ("answerStr".equals(k)) results.put("answerStr", "42");
-            });
-    return results;
+    return Map.of();
+  }
+
+  private Map<String, Object> additionProcess(
+      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
+    if (!inputs.containsKey("firstAddend") || !inputs.containsKey("secondAddend")) {
+      throw new RuntimeException("Wrong inputs");
+    }
+
+    int firstAddend = (Integer) inputs.get("firstAddend");
+    int secondAddend = (Integer) inputs.get("secondAddend");
+
+    if (outputsSelection.isEmpty() || outputsSelection.get().containsKey("sum")) {
+      return Map.of("sum", firstAddend + secondAddend);
+    }
+
+    return Map.of();
   }
 }
