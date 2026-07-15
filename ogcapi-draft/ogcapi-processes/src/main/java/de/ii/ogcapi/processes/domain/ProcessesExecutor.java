@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.domain;
 
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,7 +41,7 @@ public interface ProcessesExecutor {
   String executeAsync(String processId, OgcExecute executeRequest);
 
   /**
-   * Returns the current status of a job, or empty if the job ID is unknown.
+   * Returns the current status of a job or empty if it does not exist
    *
    * @param jobId the job ID returned by {@link #executeAsync}
    */
@@ -53,4 +54,8 @@ public interface ProcessesExecutor {
    * @throws IllegalStateException if the job has not finished successfully
    */
   Map<String, Object> result(String jobId);
+
+  List<String> getJobs();
+
+  Optional<StatusCode> dismissJob(String jobId);
 }

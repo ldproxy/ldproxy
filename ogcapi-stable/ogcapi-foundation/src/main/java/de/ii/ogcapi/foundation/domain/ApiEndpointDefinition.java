@@ -77,6 +77,7 @@ public abstract class ApiEndpointDefinition {
   public static final int SORT_PRIORITY_PROCESS = 2610;
   public static final int SORT_PRIORITY_EXECUTE = 2620;
   public static final int SORT_PRIORITY_JOB = 2630;
+  public static final int SORT_PRIORITY_JOB_DISMISS = 2640;
 
   public static final int SORT_PRIORITY_3D_TILES = 3000;
   public static final int SORT_PRIORITY_3D_TILES_CONTENT = 3050;

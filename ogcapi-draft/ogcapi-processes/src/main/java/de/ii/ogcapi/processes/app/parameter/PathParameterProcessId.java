@@ -57,8 +57,6 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    ProcessesCoreConfiguration cfg =
-        apiData.getExtension(ProcessesCoreConfiguration.class).orElseThrow();
     return repository.getAll().keySet().stream().toList();
   }
 

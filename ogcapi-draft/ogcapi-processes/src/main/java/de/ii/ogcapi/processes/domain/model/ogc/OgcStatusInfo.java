@@ -28,7 +28,15 @@ public abstract class OgcStatusInfo extends PageRepresentation implements Status
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
         into.putString(from.getId(), StandardCharsets.UTF_8);
+        from.getProcessId().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getRequest().ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
         into.putString(from.getStatus().name(), StandardCharsets.UTF_8);
+        from.getMessage().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getCreated().ifPresent(v -> into.putLong(v.toEpochMilli()));
+        from.getStarted().ifPresent(v -> into.putLong(v.toEpochMilli()));
+        from.getFinished().ifPresent(v -> into.putLong(v.toEpochMilli()));
+        from.getUpdated().ifPresent(v -> into.putLong(v.toEpochMilli()));
+        from.getProgress().ifPresent(into::putInt);
       };
 
   public static OgcStatusInfo of(StatusInfo statusInfo) {
