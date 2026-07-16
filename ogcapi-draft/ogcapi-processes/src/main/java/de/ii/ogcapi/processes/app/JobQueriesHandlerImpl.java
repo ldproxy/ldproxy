@@ -14,10 +14,12 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
+import de.ii.ogcapi.processes.app.format.StatusInfoLinksGenerator;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
@@ -40,6 +42,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -102,15 +105,18 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // ToDo Links
-
     StatusInfo statusInfo =
         processesExecutor
             .getStatusInfo(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
+    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
+    List<Link> links =
+        linkGenerator.generateLinks(
+            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 0);
+
     OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
+        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -127,7 +133,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     return prepareSuccessResponse(
             requestContext,
-            null,
+            queryInput.getIncludeLinkHeader() ? links : null,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
@@ -182,15 +188,18 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    // ToDo Links
-
     StatusInfo statusInfo =
         processesExecutor
             .dismissJob(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
+    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
+    List<Link> links =
+        linkGenerator.generateLinks(
+            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 1);
+
     OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
+        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -207,7 +216,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     return prepareSuccessResponse(
             requestContext,
-            null,
+            queryInput.getIncludeLinkHeader() ? links : null,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(

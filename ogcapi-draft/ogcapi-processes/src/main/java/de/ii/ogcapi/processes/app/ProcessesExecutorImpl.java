@@ -15,6 +15,7 @@ import de.ii.ogcapi.processes.domain.model.ExecuteNested;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
+import de.ii.ogcapi.processes.domain.model.StatusInfo.StatusCode;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults.Builder;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ModifiableOgcStatusInfo;

@@ -15,14 +15,6 @@ import java.util.Optional;
 
 public interface ProcessesExecutor {
 
-  enum StatusCode {
-    ACCEPTED,
-    RUNNING,
-    SUCCESSFUL,
-    FAILED,
-    DISMISSED
-  }
-
   /**
    * Executes a process synchronously and returns the results immediately.
    *

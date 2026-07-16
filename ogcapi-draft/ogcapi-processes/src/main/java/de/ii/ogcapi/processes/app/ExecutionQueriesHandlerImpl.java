@@ -15,9 +15,11 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.processes.app.format.StatusInfoLinksGenerator;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
@@ -177,11 +179,17 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     StatusInfo statusInfo = processesExecutor.executeAsync(processId, executeRequest);
 
-    OgcStatusInfo ogcStatusInfo = new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
+    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
+    List<Link> links =
+        linkGenerator.generateLinks(
+            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 3);
+
+    OgcStatusInfo ogcStatusInfo =
+        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
 
     return prepareSuccessResponse(
             requestContext,
-            null,
+            queryInput.getIncludeLinkHeader() ? links : null,
             HeaderCaching.of(null, null, queryInput),
             null,
             HeaderContentDisposition.of(

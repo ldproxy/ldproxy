@@ -44,7 +44,7 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
               .title(i18n.get("nextLink", language))
               .build());
     }
-    if (offset > 0) {
+    if (offset >= limit) {
       builder.add(
           new ImmutableLink.Builder()
               .href(getUrlWithPageAndCount(uriBuilder.copy(), offset - limit, limit, defaultLimit))
@@ -69,7 +69,7 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
 
     URICustomizer uri = uriBuilder.ensureNoTrailingSlash().removeParameters("offset", "limit");
 
-    if (offset != 0) uri.setParameter("offset", String.valueOf(Integer.max(0, offset)));
+    if (offset >= limit) uri.setParameter("offset", String.valueOf(offset));
 
     if (limit != defaultLimit) uri.setParameter("limit", String.valueOf(limit));
 
@@ -95,9 +95,7 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
                     uriBuilder
                         .copy()
                         .ensureLastPathSegment(processId)
-                        .removeParameters("f")
-                        .removeParameters("limit")
-                        .removeParameters("offset")
+                        .removeParameters("f", "limit", "offset")
                         .addParameter("f", "json")
                         .toString())
                 .rel("self")
@@ -110,9 +108,7 @@ public class ProcessListLinksGenerator extends DefaultLinksGenerator {
                     uriBuilder
                         .copy()
                         .ensureLastPathSegment(processId)
-                        .removeParameters("f")
-                        .removeParameters("limit")
-                        .removeParameters("offset")
+                        .removeParameters("f", "limit", "offset")
                         .addParameter("f", "html")
                         .toString())
                 .rel("alternate")
