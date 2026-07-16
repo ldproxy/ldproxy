@@ -248,9 +248,10 @@ public class GmlWriterProperties implements GmlWriter {
 
   private void writeUnitIfNecessary(EncodingAwareContextGml context, FeatureSchema schema)
       throws IOException {
-    if (schema.getType() == Type.FLOAT || schema.getType() == Type.INTEGER) {
-      // write as gml:MeasureType, if we have a numeric property with a 'unit'
-      // property in the provider schema
+    // write as gml:MeasureType, if we have a numeric property with a 'unit' in the provider
+    // schema; for arrays the member type is the value type (e.g. VALUE_ARRAY of FLOAT)
+    Type valueType = schema.getValueType().orElse(schema.getType());
+    if (valueType == Type.FLOAT || valueType == Type.INTEGER) {
       schema
           .getUnit()
           .ifPresent(
