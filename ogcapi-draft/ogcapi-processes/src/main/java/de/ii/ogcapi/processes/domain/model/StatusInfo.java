@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -16,6 +15,15 @@ import java.util.Optional;
 
 // ToDo Add missing properties
 public interface StatusInfo {
+
+  enum StatusCode {
+    ACCEPTED,
+    RUNNING,
+    SUCCESSFUL,
+    FAILED,
+    DISMISSED
+  }
+
   String getId();
 
   Optional<String> getProcessId();
@@ -26,7 +34,7 @@ public interface StatusInfo {
 
   Optional<OgcExecute> getRequest();
 
-  ProcessesExecutor.StatusCode getStatus();
+  StatusCode getStatus();
 
   Optional<String> getMessage();
 
