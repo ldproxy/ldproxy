@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,5 +15,6 @@ public interface Values {
 
   Optional<Object> getInlineOrRefValue();
 
-  Optional<List<Object>> getInlineOrRefValues();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<Object> getInlineOrRefValues();
 }

@@ -56,7 +56,7 @@ public class ProcessRepositoryImpl extends AbstractVolatile
             identifier -> {
               ProcessData processData = customProcessStore.get(identifier);
 
-              processMap.put(processData.getId(), Process.custom(processData));
+              processMap.put(processData.getId(), processData);
             });
 
     setState(State.AVAILABLE);

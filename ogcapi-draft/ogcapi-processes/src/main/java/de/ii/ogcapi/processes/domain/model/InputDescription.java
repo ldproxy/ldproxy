@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import org.immutables.value.Value;
 
+// ToDo Add missing properties
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableInputDescription.Builder.class)

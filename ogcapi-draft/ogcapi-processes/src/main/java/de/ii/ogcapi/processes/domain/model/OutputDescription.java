@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.immutables.value.Value;
 
+// ToDo Add missing properties
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOutputDescription.Builder.class)
