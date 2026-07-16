@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Optional;
 
+// ToDo Add missing properties
 public interface DescriptionType {
 
   Optional<String> getTitle();
