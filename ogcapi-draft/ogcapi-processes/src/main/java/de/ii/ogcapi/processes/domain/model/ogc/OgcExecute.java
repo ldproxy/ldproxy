@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-// ToDo use correct types
+// ToDo Use correct types for properties
 @ApiInfo(schemaId = "Execute")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")

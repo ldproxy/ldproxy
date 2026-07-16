@@ -12,10 +12,6 @@ import java.util.Map;
 
 public interface Process extends ProcessSummary {
 
-  static Process custom(ProcessData data) {
-    return data;
-  }
-
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, InputDescription> getInputs();
 

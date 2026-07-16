@@ -10,7 +10,7 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import java.util.Map;
 
-// ToDO use correct types
+// ToDo Use correct types for properties
 public interface Results {
 
   // @JsonAnyGetter
