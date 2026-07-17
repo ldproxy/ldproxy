@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Singleton
 @AutoBind
-public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
+public class QueryParameterLimitProcessList extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Integer> {
 
   private final SchemaValidator schemaValidator;
@@ -46,7 +46,7 @@ public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
   private final ConcurrentMap<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();
 
   @Inject
-  public QueryParameterLimitProcesses(SchemaValidator schemaValidator) {
+  public QueryParameterLimitProcessList(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
@@ -57,7 +57,7 @@ public class QueryParameterLimitProcesses extends OgcApiQueryParameterBase
 
   @Override
   public String getId() {
-    return "limitProcesses";
+    return "limitProcessList";
   }
 
   @Override

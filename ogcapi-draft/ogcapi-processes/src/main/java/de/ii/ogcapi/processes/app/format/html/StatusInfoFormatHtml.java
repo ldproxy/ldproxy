@@ -20,29 +20,28 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
-import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcess;
+import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 
 // ToDo Proper language handling
+
 /**
  * @title HTML
  */
 @Singleton
 @AutoBind
-public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, ConformanceClass {
+public class StatusInfoFormatHtml
+    implements StatusInfoFormatExtension, FormatHtml, ConformanceClass {
 
   private final I18n i18n;
-  private final ProcessRepository repository;
 
   @Inject
-  public ProcessFormatHtml(I18n i18n, ProcessRepository repository) {
+  public StatusInfoFormatHtml(I18n i18n) {
     this.i18n = i18n;
-    this.repository = repository;
   }
 
   @Override
@@ -72,10 +71,11 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
   }
 
   @Override
-  public Object getEntity(OgcProcess process, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(OgcStatusInfo statusInfo, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String processId = process.getId();
-    String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
+    String jobId = statusInfo.getId();
+    // ToDo
+    String jobListTitle = i18n.get("jobListTitle", requestContext.getLanguage());
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 
@@ -94,27 +94,25 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
                 new NavigationDTO(
                     api.getData().getLabel(),
                     resourceUri.copy().removeLastPathSegments(2).toString()))
-            .add(
-                new NavigationDTO(
-                    processListTitle, resourceUri.copy().removeLastPathSegments(1).toString()))
-            .add(new NavigationDTO(processId))
+            .add(new NavigationDTO(jobListTitle))
+            .add(new NavigationDTO(jobId))
             .build();
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
-    return ImmutableProcessView.builder()
+    return ImmutableStatusInfoView.builder()
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
         .noIndex(isNoIndexEnabledForApi(api.getData()))
         .breadCrumbs(breadCrumbs)
+        .title(jobId)
         .apiData(api.getData())
         .user(requestContext.getUser())
-        .process(process)
         .language(requestContext.getLanguage())
         .htmlConfig(htmlConfig)
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
-        .rawLinks(process.getLinks())
-        .title(processId)
+        .rawLinks(statusInfo.getLinks())
+        .statusInfo(statusInfo)
         .build();
   }
 }
