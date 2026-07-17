@@ -106,8 +106,6 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
         .apiPath(requestContext.getApiPath())
         .noIndex(isNoIndexEnabledForApi(api.getData()))
         .breadCrumbs(breadCrumbs)
-        .rawLinks(process.getLinks())
-        .title(processId)
         .apiData(api.getData())
         .user(requestContext.getUser())
         .process(process)
@@ -115,6 +113,8 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
         .htmlConfig(htmlConfig)
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
+        .rawLinks(process.getLinks())
+        .title(processId)
         .build();
   }
 }

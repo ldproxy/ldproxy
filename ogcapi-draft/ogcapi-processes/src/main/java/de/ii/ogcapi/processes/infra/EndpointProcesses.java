@@ -27,8 +27,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
-import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
+import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList;
+import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
@@ -135,15 +135,15 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
     Optional<Integer> offset = Optional.empty();
 
     for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
-      if (queryParameter instanceof QueryParameterLimitProcesses) {
-        limit = ((QueryParameterLimitProcesses) queryParameter).parse(queryParameterSet);
+      if (queryParameter instanceof QueryParameterLimitProcessList) {
+        limit = ((QueryParameterLimitProcessList) queryParameter).parse(queryParameterSet);
         break;
       }
     }
 
     for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
-      if (queryParameter instanceof QueryParameterOffsetProcesses) {
-        offset = ((QueryParameterOffsetProcesses) queryParameter).parse(queryParameterSet);
+      if (queryParameter instanceof QueryParameterOffsetProcessList) {
+        offset = ((QueryParameterOffsetProcessList) queryParameter).parse(queryParameterSet);
         break;
       }
     }
