@@ -46,12 +46,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo Docs @ref:formats {@link ...Extension}
 /**
  * @title Job Results
  * @path jobs/{jobId}/results
  * @langEn Returns the results of a specific job.
  * @langDe Gibt die Ergebnisse eines bestimmten Jobs zurück.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -74,7 +74,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("jobs")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB);
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
 
     String path = "/jobs/{jobId}/results";
     HttpMethods method = HttpMethods.GET;
@@ -83,16 +83,15 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
 
     if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '"
-              + path
-              + "'. The GET method will not be available.");
+          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
+          path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Results of a specific job";
+      String operationSummary = "Retrieve all requested processing results";
       Optional<String> operationDescription =
-          Optional.of("Returns the results for the job with the specified jobID.");
+          Optional.of("Returns the results for the job with the specified jobId.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -119,9 +118,8 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
-  @Path("/{jobId}/results")
   @GET
+  @Path("/{jobId}/results")
   public Response getJobResults(
       @PathParam("jobId") String jobId,
       @Context OgcApi api,

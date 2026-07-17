@@ -15,13 +15,6 @@ import java.util.Optional;
 
 public interface ProcessesExecutor {
 
-  /**
-   * Executes a process synchronously and returns the results immediately.
-   *
-   * @param processId the process to execute
-   * @param executeRequest details about the requested exeuction
-   * @return the process results
-   */
   Map<String, Object> executeSync(String processId, OgcExecute executeRequest);
 
   StatusInfo executeAsync(String processId, OgcExecute executeRequest);

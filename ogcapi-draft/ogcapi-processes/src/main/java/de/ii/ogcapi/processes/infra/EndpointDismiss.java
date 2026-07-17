@@ -36,9 +36,6 @@ import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DELETE;
@@ -53,6 +50,16 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @title Dismiss Job
+ * @path jobs/{jobId}
+ * @langEn Dismiss a job. If the job is currently in the accepted or running state, its status is
+ *     set to dismissed. Otherwise, the job is removed from the API.
+ * @langDe Einen Job abbrechen. Wenn sich der Job aktuell im Zustand "accepted" oder "running"
+ *     befindet, wird sein Status auf "dismissed" gesetzt. Andernfalls wird der Job aus der API
+ *     entfernt.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
+ */
 @Singleton
 @AutoBind
 public class EndpointDismiss extends Endpoint implements ApiExtensionHealth {
@@ -83,15 +90,16 @@ public class EndpointDismiss extends Endpoint implements ApiExtensionHealth {
 
     if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '"
-              + path
-              + "'. The DELETE method will not be available.");
+          "Path parameter 'jobId' missing for resource at path '{}'. The DELETE method will not be available.",
+          path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "ToDo";
-      Optional<String> operationDescription = Optional.of("ToDo");
+      String operationSummary = "Dismiss a job";
+      Optional<String> operationDescription =
+          Optional.of(
+              "If the job is currently in the accepted or running state, its status is set to dismissed. Otherwise, the job is removed from the API.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -119,14 +127,8 @@ public class EndpointDismiss extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
-  @Path("/{jobId}")
   @DELETE
-  @Operation(summary = "ToDo", description = "ToDo")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "ToDo"),
-    @ApiResponse(responseCode = "404", description = "ToDo"),
-  })
+  @Path("/{jobId}")
   public Response dismissJob(
       @PathParam("jobId") String jobId,
       @Auth Optional<User> optionalUser,
