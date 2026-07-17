@@ -33,10 +33,9 @@ import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
+import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -57,18 +56,30 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo docs
-/** */
+/**
+ * @title Execute
+ * @path processes/{processId}/execution
+ * @langEn Triggers the execution of a process. The inputs, output selection and possible
+ *     subscribers are sent in the request. The respond depends on the number of outputs requested,
+ *     the negotiated content type for the response, the mode of execution, and whether an output is
+ *     single- or multi-valued. For more information refer to the [draft
+ *     document](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427).
+ * @langDe Löst die Ausführung eines Prozesses aus. Die Eingaben, die Ausgabeauswahl und mögliche
+ *     Subscriber werden im Request-body übermittelt. Die Antwort hängt von der Anzahl der
+ *     angeforderten Ausgaben, dem ausgehandelten Inhaltstyp, dem Ausführungsmodus und davon ab, ob
+ *     eine Ausgabe ein- oder mehrwertig ist. Weitere Informationen finden Sie im
+ *     [Entwurfsdokument](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427).
+ */
 @Singleton
 @AutoBind
 public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointExecute.class);
-  private static final List<String> TAGS = ImmutableList.of("EXECUTE");
+  private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ExecutionQueriesHandler queryHandler;
-  private List<? extends FormatExtension> resourceFormats;
   private List<? extends FormatExtension> requestFormats;
+  private List<? extends FormatExtension> resourceFormats;
 
   @Inject
   public EndpointExecute(
@@ -92,16 +103,21 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
     if (pathParameters.stream().noneMatch(param -> "processId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'processId' missing for resource at path '"
-              + path
-              + "'. The POST method will not be available.");
+          "Path parameter 'processId' missing for resource at path '{}'. The POST method will not be available.",
+          path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "TODO SUMMARY";
-      Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
+      String operationSummary = "The endpoint used to trigger execution of a process";
+      Optional<String> operationDescription =
+          Optional.of(
+              """
+                  Trigger the execution of a process with specific inputs and an output selection. \
 
+                  Certain processes can be executed asynchronously. If this is desired, `respond-async` should be included in the `Prefer` header. \
+
+                  The response depends on the number of outputs requested, the negotiated content type for the response, the mode of execution, and whether an output is single- or multi-valued. For more information refer to the [draft document](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427). """);
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
@@ -130,16 +146,9 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
-  @Path("/{processId}/execution")
   @POST
+  @Path("/{processId}/execution")
   @Consumes(MediaType.APPLICATION_JSON)
-  @Operation(
-      summary = "Execute a process",
-      description = "Start the execution of a process with specific inputs and output selection.")
-  @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Process successfully started"),
-  })
   public Response executeProcess(
       @PathParam("processId") String processId,
       @Context OgcApi api,
@@ -180,17 +189,22 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
   }
 
   @Override
-  public List<? extends FormatExtension> getResourceFormats() {
-    if (resourceFormats == null)
-      resourceFormats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
-    return resourceFormats;
-  }
-
-  @Override
   public List<? extends FormatExtension> getRequestFormats() {
     if (requestFormats == null)
       requestFormats = extensionRegistry.getExtensionsForType(ExecuteFormatExtension.class);
     return requestFormats;
+  }
+
+  @Override
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (resourceFormats == null)
+      resourceFormats =
+          ImmutableList.<FormatExtension>builder()
+              .addAll(extensionRegistry.getExtensionsForType(ResultsFormatExtension.class))
+              .addAll(extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class))
+              .addAll(extensionRegistry.getExtensionsForType(ValuesFormatExtension.class))
+              .build();
+    return resourceFormats;
   }
 
   @Override

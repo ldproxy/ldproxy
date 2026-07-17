@@ -9,12 +9,16 @@ package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
+import de.ii.ogcapi.foundation.domain.ApiInfo;
 import org.immutables.value.Value;
 
+@ApiInfo(schemaId = "ProcessSummary")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
 @JsonDeserialize(builder = ImmutableOgcProcessSummary.Builder.class)
 public abstract class OgcProcessSummary extends ProcessSummaryBase {
+
+  public static final String SCHEMA_REF = "#/components/schemas/ProcessSummary";
 
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<OgcProcessSummary> FUNNEL = ProcessSummaryBase.FUNNEL::funnel;

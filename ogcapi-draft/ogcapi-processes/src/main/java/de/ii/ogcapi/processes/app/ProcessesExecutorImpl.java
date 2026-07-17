@@ -208,7 +208,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return Optional.of(statusInfo);
     }
 
-    // Remove if job is already finished or dismissed
+    // Remove the job else
     statusInfo.setStatus(StatusCode.DISMISSED);
     resultsMap.remove(jobId);
     return Optional.of(jobsMap.remove(jobId));

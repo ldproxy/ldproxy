@@ -46,12 +46,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo Docs @ref:formats {@link ProcessFormatExtension}
 /**
  * @title Process
  * @path processes/{processId}
  * @langEn Returns the full details of a process.
  * @langDe Gibt die gesamten Details eines Prozesses zurück.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ProcessFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -84,15 +84,16 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
 
     if (pathParameters.stream().noneMatch(param -> "processId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'processId' missing for resource at path '"
-              + path
-              + "'. The GET method will not be available.");
+          "Path parameter 'processId' missing for resource at path '{}'. The GET method will not be available.",
+          path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "TODO SUMMARY";
-      Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
+      String operationSummary = "Provides detailed metadata about a specific process";
+      Optional<String> operationDescription =
+          Optional.of(
+              "This operation fetches the full details of the process identified by `processId`.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -119,9 +120,8 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
-  @Path("/{processId}")
   @GET
+  @Path("/{processId}")
   public Response getProcess(
       @PathParam("processId") String processId,
       @Context OgcApi api,
