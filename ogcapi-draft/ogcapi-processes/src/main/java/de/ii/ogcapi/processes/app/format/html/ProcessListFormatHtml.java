@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -41,7 +42,8 @@ import java.util.Optional;
  */
 @Singleton
 @AutoBind
-public class ProcessListFormatHtml implements ProcessListFormatExtension, FormatHtml {
+public class ProcessListFormatHtml
+    implements ProcessListFormatExtension, FormatHtml, ConformanceClass {
 
   private final I18n i18n;
   private final ProcessRepository repository;
@@ -50,6 +52,15 @@ public class ProcessListFormatHtml implements ProcessListFormatExtension, Format
   public ProcessListFormatHtml(I18n i18n, ProcessRepository repository) {
     this.i18n = i18n;
     this.repository = repository;
+  }
+
+  @Override
+  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
+    if (isEnabledForApi(apiData)) {
+      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
+    }
+
+    return ImmutableList.of();
   }
 
   @Override

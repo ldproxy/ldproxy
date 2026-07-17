@@ -8,17 +8,21 @@
 package de.ii.ogcapi.processes.app.format.json;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
+import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcValues;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +30,7 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ValuesFormatJson implements ValuesFormatExtension {
+public class ValuesFormatJson implements ValuesFormatExtension, ConformanceClass {
 
   private final Schema<?> schemaValues;
   private final Map<String, Schema<?>> referencedSchemasValues;
@@ -35,6 +39,15 @@ public class ValuesFormatJson implements ValuesFormatExtension {
   public ValuesFormatJson(ClassSchemaCache classSchemaCache) {
     schemaValues = classSchemaCache.getSchema(OgcValues.class);
     referencedSchemasValues = classSchemaCache.getReferencedSchemas(OgcValues.class);
+  }
+
+  @Override
+  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
+    if (isEnabledForApi(apiData)) {
+      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
+    }
+
+    return ImmutableList.of();
   }
 
   @Override
