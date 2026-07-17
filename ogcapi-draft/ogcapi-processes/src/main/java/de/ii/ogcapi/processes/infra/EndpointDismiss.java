@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -62,7 +63,7 @@ import org.slf4j.LoggerFactory;
  */
 @Singleton
 @AutoBind
-public class EndpointDismiss extends Endpoint implements ApiExtensionHealth {
+public class EndpointDismiss extends Endpoint implements ApiExtensionHealth, ConformanceClass {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointDismiss.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
@@ -73,6 +74,15 @@ public class EndpointDismiss extends Endpoint implements ApiExtensionHealth {
   public EndpointDismiss(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+  }
+
+  @Override
+  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
+    if (isEnabledForApi(apiData)) {
+      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/dismiss");
+    }
+
+    return ImmutableList.of();
   }
 
   @Override

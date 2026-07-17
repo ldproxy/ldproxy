@@ -43,7 +43,10 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core");
+    return ImmutableList.of(
+        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
+        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
+        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description");
   }
 
   @Override
