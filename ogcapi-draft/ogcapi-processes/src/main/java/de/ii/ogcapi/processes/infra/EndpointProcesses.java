@@ -39,18 +39,22 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-// ToDo Docs (dont forget limit parameter) @ref:formats {@link ProcessListFormatExtension}
 /**
  * @title Processes
  * @path processes
- * @langEn Returns a list containing the summaries of all processes supported by this API.
- * @langDe Gibt eine List zurück, die eine Zusammenfassung aller Prozesse diser API enthält.
+ * @langEn Returns a list containing the summaries of a subset of all processes supported by this
+ *     API. Supports pagination using links (first, next, prev and last) to discover all subsets.
+ * @langDe Gibt eine Liste mit Zusammenfassungen einer Teilmenge aller von dieser API unterstützten
+ *     Prozesse zurück. Unterstützt die Paginierung über Links (first, next, prev and last), um alle
+ *     Teilmengen zu erkunden.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -70,15 +74,32 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
   @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
-        new ImmutableApiEndpointDefinition.Builder()
-            .apiEntrypoint("processes")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_PROCESSES);
+        new ImmutableApiEndpointDefinition.Builder();
+
+    definitionBuilder
+        .apiEntrypoint("processes")
+        .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_PROCESSES);
+
     String path = "/processes";
     HttpMethods method = HttpMethods.GET;
     List<OgcApiQueryParameter> queryParameters =
         getQueryParameters(extensionRegistry, apiData, path);
-    String operationSummary = "TODO SUMMARY";
-    Optional<String> operationDescription = Optional.of("TODO DESCRIPTION");
+    String operationSummary = "Lists all available processes offered by the server";
+
+    Optional<ProcessesCoreConfiguration> config =
+        apiData.getExtension(ProcessesCoreConfiguration.class);
+    Optional<String> operationDescription =
+        Optional.of(
+            String.format(
+                """
+                   This operation fetches a list of summaries of processes supported by this API. \
+                   The response is a document containing a list of process summaries. \
+
+                   To support access to all process summaries without overloading the client, the API supports paged access with links to the next, first, previous and last page if applicable. \
+                   For example if more processes are available than the page size, which is controlled by the `limit` parameter (default: %d, maximum: %d, minimum: %d), a next-link will be included.""",
+                config.map(ProcessesCoreConfiguration::getDefaultPageSize).get(),
+                config.map(ProcessesCoreConfiguration::getMaximumPageSize).get(),
+                config.map(ProcessesCoreConfiguration::getMinimumPageSize).get()));
     ImmutableOgcApiResourceSet.Builder resourceBuilderSet =
         new ImmutableOgcApiResourceSet.Builder().path(path).subResourceType("ProcessSummary");
     ApiOperation.getResource(
@@ -102,8 +123,8 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
   @GET
+  @Path("/")
   public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
     if (!isEnabledForApi(api.getData()))

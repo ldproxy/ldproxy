@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+// ToDo Use correct types for properties
 public interface SchemaAndOccurrences {
 
   String getSchema();

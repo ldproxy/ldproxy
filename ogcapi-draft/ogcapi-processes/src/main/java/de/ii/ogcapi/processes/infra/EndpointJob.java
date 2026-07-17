@@ -46,12 +46,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo Docs @ref:formats {@link StatusFormatExtension}
 /**
  * @title Job
  * @path jobs/{jobId}
- * @langEn Returns the status of a specific job.
- * @langDe Gibt den Status eines bestimmten Jobs zurück.
+ * @langEn Returns the complete status of a specific job.
+ * @langDe Gibt den gesamten Status eines bestimmten Jobs zurück.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -83,16 +83,15 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
 
     if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '"
-              + path
-              + "'. The GET method will not be available.");
+          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
+          path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
       String operationSummary = "Status of a specific job";
       Optional<String> operationDescription =
-          Optional.of("Returns the status information for the job with the specified jobID.");
+          Optional.of("Returns the status information for the job with the specified jobId.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -119,9 +118,8 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
     return definitionBuilder.build();
   }
 
-  // ToDo Docs
-  @Path("/{jobId}")
   @GET
+  @Path("/{jobId}")
   public Response getJob(
       @PathParam("jobId") String jobId,
       @Context OgcApi api,
