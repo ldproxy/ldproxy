@@ -37,20 +37,20 @@ import java.util.Optional;
  */
 @Singleton
 @AutoBind
-public class QueryParameterOffsetProcesses extends OgcApiQueryParameterBase
+public class QueryParameterOffsetProcessList extends OgcApiQueryParameterBase
     implements TypedQueryParameter<Integer> {
 
   private final SchemaValidator schemaValidator;
   private Schema<?> schema = null;
 
   @Inject
-  QueryParameterOffsetProcesses(SchemaValidator schemaValidator) {
+  QueryParameterOffsetProcessList(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
   @Override
   public String getId() {
-    return "offsetProcesses";
+    return "offsetProcessList";
   }
 
   @Override

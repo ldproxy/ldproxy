@@ -14,34 +14,35 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
+import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 // ToDo docs
 @Singleton
 @AutoBind
-public class QueryParameterFExecution extends QueryParameterF {
+public class QueryParameterFStatusInfo extends QueryParameterF {
 
   @Inject
-  public QueryParameterFExecution(
+  public QueryParameterFStatusInfo(
       ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
     super(extensionRegistry, schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "fExecution";
+    return "fStatusInfo";
   }
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return "/processes/{processId}/execution".equals(definitionPath);
+    return "/processes/{processId}/execution".equals(definitionPath)
+        || "/jobs/{jobId}".equals(definitionPath);
   }
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return ResultsFormatExtension.class;
+    return StatusInfoFormatExtension.class;
   }
 
   @Override

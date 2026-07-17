@@ -28,17 +28,17 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 @AutoBind
-public class QueryParameterFProcesses extends QueryParameterF {
+public class QueryParameterFProcessList extends QueryParameterF {
 
   @Inject
-  public QueryParameterFProcesses(
+  public QueryParameterFProcessList(
       ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
     super(extensionRegistry, schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "fProcesses";
+    return "fProcessList";
   }
 
   @Override

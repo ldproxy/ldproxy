@@ -22,8 +22,8 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
-import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcesses;
-import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcesses;
+import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList;
+import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary;
@@ -111,11 +111,12 @@ public class ProcessListFormatHtml
     Optional<Integer> optionalLimit = Optional.empty();
     Optional<Integer> optionalOffset = Optional.empty();
     for (OgcApiQueryParameter queryParameter : queryParameterSet.getDefinitions()) {
-      if (queryParameter instanceof QueryParameterLimitProcesses) {
-        optionalLimit = ((QueryParameterLimitProcesses) queryParameter).parse(queryParameterSet);
+      if (queryParameter instanceof QueryParameterLimitProcessList) {
+        optionalLimit = ((QueryParameterLimitProcessList) queryParameter).parse(queryParameterSet);
       }
-      if (queryParameter instanceof QueryParameterOffsetProcesses) {
-        optionalOffset = ((QueryParameterOffsetProcesses) queryParameter).parse(queryParameterSet);
+      if (queryParameter instanceof QueryParameterOffsetProcessList) {
+        optionalOffset =
+            ((QueryParameterOffsetProcessList) queryParameter).parse(queryParameterSet);
       }
     }
 

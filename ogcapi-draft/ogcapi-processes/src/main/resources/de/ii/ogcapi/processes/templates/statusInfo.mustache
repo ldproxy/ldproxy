@@ -1,0 +1,69 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+
+  {{#statusInfo}}
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Id</div>
+      <div class="col-md-10">{{id}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Process Id</div>
+      <div class="col-md-10">
+        {{#processId}}{{.}}{{/processId}}{{^processId}}None{{/processId}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Status</div>
+      <div class="col-md-10">{{status}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Message</div>
+      <div class="col-md-10">
+        {{#message}}{{.}}{{/message}}{{^message}}None{{/message}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Created</div>
+      <div class="col-md-10">
+        {{#created}}{{.}}{{/created}}{{^created}}None{{/created}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Started</div>
+      <div class="col-md-10">
+        {{#started}}{{.}}{{/started}}{{^started}}None{{/started}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Finished</div>
+      <div class="col-md-10">
+        {{#finished}}{{.}}{{/finished}}{{^finished}}None{{/finished}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Updated</div>
+      <div class="col-md-10">
+        {{#updated}}{{.}}{{/updated}}{{^updated}}None{{/updated}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Progress</div>
+      <div class="col-md-10">
+        {{#progress}}{{.}}%{{/progress}}{{^progress}}None{{/progress}}
+      </div>
+    </div>
+  {{/statusInfo}}
+</div>
+
+
+{{> footer}}
