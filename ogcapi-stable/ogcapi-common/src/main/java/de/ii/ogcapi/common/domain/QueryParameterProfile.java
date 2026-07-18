@@ -125,7 +125,8 @@ public abstract class QueryParameterProfile extends OgcApiQueryParameterBase
     return extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
         .filter(
             profileSet ->
-                profileSet.isEnabledForApi(apiData) && profileSet.getResourceType() == resourceType)
+                profileSet.isEnabledForApi(apiData)
+                    && profileSet.getResourceTypes().contains(resourceType))
         .map(profileSet -> profileSet.getProfiles(apiData, Optional.empty()))
         .flatMap(List::stream)
         .collect(Collectors.toList());
@@ -137,8 +138,7 @@ public abstract class QueryParameterProfile extends OgcApiQueryParameterBase
         .filter(
             profileSet ->
                 profileSet.isEnabledForApi(apiData, collectionId)
-                    && profileSet.getResourceType() == resourceType)
-        .filter(profileSet -> profileSet.isEnabledForApi(apiData, collectionId))
+                    && profileSet.getResourceTypes().contains(resourceType))
         .map(profileSet -> profileSet.getProfiles(apiData, Optional.of(collectionId)))
         .flatMap(List::stream)
         .collect(Collectors.toList());

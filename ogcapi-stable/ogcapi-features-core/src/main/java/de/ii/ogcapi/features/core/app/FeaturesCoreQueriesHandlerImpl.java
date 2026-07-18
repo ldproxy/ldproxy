@@ -296,6 +296,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(
             allProfileSets,
+            ResourceType.FEATURE,
             api.getData(),
             collectionId,
             requestContext.getMediaType(),

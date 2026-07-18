@@ -68,7 +68,7 @@ public class QueryParameterProfileSchema extends QueryParameterProfile implement
 
   @Override
   public ResourceType getResourceType() {
-    return ResourceType.SCHEMA;
+    return ResourceType.SCHEMA_RETURNABLES_AND_RECEIVABLES;
   }
 
   @Override

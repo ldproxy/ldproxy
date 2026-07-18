@@ -69,7 +69,7 @@ public class QueryParameterProfileQueryables extends QueryParameterProfile
 
   @Override
   public ResourceType getResourceType() {
-    return ResourceType.SCHEMA;
+    return ResourceType.SCHEMA_QUERYABLES;
   }
 
   @Override
