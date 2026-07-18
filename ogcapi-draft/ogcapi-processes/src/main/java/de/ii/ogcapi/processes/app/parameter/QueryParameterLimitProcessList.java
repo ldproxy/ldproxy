@@ -30,11 +30,17 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+// ToDo docs
 /**
  * @title limit
- * @endpoints Processes
- * @langEn
- * @langDe
+ * @endpoints processes/{processId}
+ * @langEn The maximum number of process summaries that are presented in the response document. If
+ *     more process summaries are available, a link to the next page is provided with the response.
+ *     If no parameter value is provided, the default value that is configured for the API applies.
+ * @langDe Die maximale Anzahl von Prozess-Zusammenfassungen, die im Antwortdokument zurückgegeben
+ *     werden. Wenn mehr Prozess-Zusammenfassungen verfügbar sind, wird ein Link zur nächsten Seite
+ *     mit der Antwort zurückgeliefert. Wird kein Wert für den Parameter angegeben, gilt der
+ *     Standardwert, der für die API konfiguriert ist.
  */
 @Singleton
 @AutoBind

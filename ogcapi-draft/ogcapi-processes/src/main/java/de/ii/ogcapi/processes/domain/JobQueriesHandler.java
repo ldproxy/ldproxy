@@ -30,6 +30,8 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
   enum Query implements QueryIdentifier {
     JOB,
     RESULTS,
+    RESULTS_SPECIFIC,
+    RESULTS_SPECIFIC_N,
     DISMISS
   }
 
@@ -42,6 +44,22 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
   @Value.Immutable
   interface QueryInputResults extends QueryInput {
     String getJobId();
+  }
+
+  @Value.Immutable
+  interface QueryInputResultsSpecfic extends QueryInput {
+    String getJobId();
+
+    String getOutputId();
+  }
+
+  @Value.Immutable
+  interface QueryInputResultsSpecficN extends QueryInput {
+    String getJobId();
+
+    String getOutputId();
+
+    Integer getIndexN();
   }
 
   @Value.Immutable

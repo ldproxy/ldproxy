@@ -24,11 +24,10 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo: Docs
-
 /**
  * @title jobId
- * @endpoints jobs/{jobId}
+ * @endpoints jobs/{jobId}, jobs/{jobId}/results, jobs/{jobId}/results/{outputId},
+ *     jobs/{jobId}/results/{outputId}/{N}
  * @langEn The identifier of a job.
  * @langDe Der Identifikator eines Jobs.
  */
@@ -99,7 +98,9 @@ public class PathParameterJobId implements OgcApiPathParameter {
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
         && ("/jobs/{jobId}".equals(definitionPath)
-            || "/jobs/{jobId}/results".equals(definitionPath));
+            || "/jobs/{jobId}/results".equals(definitionPath)
+            || "/jobs/{jobId}/results/{outputId}".equals(definitionPath)
+            || "/jobs/{jobId}/results/{outputId}/{N}".equals(definitionPath));
   }
 
   @Override

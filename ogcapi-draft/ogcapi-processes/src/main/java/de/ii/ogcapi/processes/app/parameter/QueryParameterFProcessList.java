@@ -20,7 +20,7 @@ import jakarta.inject.Singleton;
 
 /**
  * @title f
- * @endpoints Processes
+ * @endpoints processes
  * @langEn Select the output format of the response. If no value is provided, the standard HTTP
  *     rules apply, i.e., the "Accept" header will be used to determine the format.
  * @langDe Wählt das Ausgabeformat der Antwort. Wenn kein Wert angegeben wird, gelten die
