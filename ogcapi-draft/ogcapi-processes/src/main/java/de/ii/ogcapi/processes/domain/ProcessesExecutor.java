@@ -21,7 +21,7 @@ public interface ProcessesExecutor {
 
   Optional<StatusInfo> getStatusInfo(String jobId);
 
-  Map<String, Object> getResults(String jobId);
+  Optional<Map<String, Object>> getResults(String jobId);
 
   List<String> getJobs();
 

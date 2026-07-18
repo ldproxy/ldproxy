@@ -29,7 +29,7 @@ import java.util.Optional;
 
 /**
  * @title offset
- * @endpoints Processes
+ * @endpoints processes/{processId}
  * @langEn The index of the first processes description in the response in the overall result set.
  *     This parameter is used for response paging.
  * @langDe Der Index der ersten Prozessbeschreibung in der Antwort in der Gesamtergebnismenge.

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 // ToDo: Docs
 /**
  * @title processId
- * @endpoints process
+ * @endpoints processes/{processId}, processes/{processId}/execution
  * @langEn The identifier of a process.
  * @langDe Der Identifikator eines Prozesses.
  */
