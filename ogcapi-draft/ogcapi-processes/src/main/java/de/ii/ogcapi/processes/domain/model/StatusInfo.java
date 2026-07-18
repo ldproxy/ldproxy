@@ -26,7 +26,7 @@ public interface StatusInfo {
 
   String getId();
 
-  Optional<String> getProcessId();
+  String getProcessId();
 
   // Optional<ProcessingEntityType> getProcessingEntityType;
 

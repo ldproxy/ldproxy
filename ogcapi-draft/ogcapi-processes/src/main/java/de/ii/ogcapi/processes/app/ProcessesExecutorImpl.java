@@ -131,7 +131,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           statusInfo.setStarted(Instant.now());
           setRunning(jobId, subscriber);
         },
-        3,
+        1,
         TimeUnit.SECONDS);
 
     // Update job
@@ -139,7 +139,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         () -> {
           setProgress(jobId, 60, subscriber);
         },
-        6,
+        2,
         TimeUnit.SECONDS);
 
     // Finished job
@@ -156,7 +156,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
             setFailed(jobId, subscriber);
           }
         },
-        10,
+        3,
         TimeUnit.SECONDS);
 
     return statusInfo;
@@ -168,23 +168,12 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public Map<String, Object> getResults(String jobId) {
-    if (!jobsMap.containsKey(jobId)) {
-      throw new NoSuchElementException("No job found with job id '" + jobId + "'.");
+  public Optional<Map<String, Object>> getResults(String jobId) {
+    if ((jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL) || !jobsMap.containsKey(jobId)) {
+      return Optional.empty();
     }
 
-    if (jobsMap.get(jobId).getStatus() == StatusCode.SUCCESSFUL) {
-      if (!resultsMap.containsKey(jobId)) {
-        throw new NoSuchElementException("No results found for job id '" + jobId + "'.");
-      }
-      return resultsMap.get(jobId);
-    } else
-      throw new IllegalStateException(
-          "Job '"
-              + jobId
-              + " ' did not finish. Progress: "
-              + jobsMap.get(jobId).getProgress()
-              + ".");
+    return Optional.of(resultsMap.get(jobId));
   }
 
   @Override
@@ -287,6 +276,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return jobsMap.get(jobId);
   }
 
+  private Map<String, Object> getResultsDirect(String jobId) {
+    if ((jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL) || !jobsMap.containsKey(jobId)) {
+      throw new NoSuchElementException("No results found for job '" + jobId + "'.");
+    }
+
+    return resultsMap.get(jobId);
+  }
+
   private void setRunning(String jobId, Optional<OgcSubscriber> subscriber) {
     ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
 
@@ -300,7 +297,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private void callBackSuccess(String successUri, String jobId) {
 
-    OgcResults results = new Builder().additionalProperties(getResults(jobId)).build();
+    OgcResults results = new Builder().additionalProperties(getResultsDirect(jobId)).build();
 
     byte[] respond;
     try {
