@@ -65,6 +65,10 @@ public class MetadataOnLandingPage implements LandingPageExtension {
 
       OgcApiExtent.of(api.getSpatialExtent(), api.getTemporalExtent())
           .ifPresent(extent -> landingPageBuilder.putExtensions("extent", extent));
+
+      api.getItemCount()
+          .filter(count -> count >= 0)
+          .ifPresent(count -> landingPageBuilder.putExtensions("itemCount", count));
     }
 
     return landingPageBuilder;
