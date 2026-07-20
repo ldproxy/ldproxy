@@ -39,6 +39,7 @@ import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServerErrorException;
@@ -244,7 +245,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     Object specficResult;
 
     if (maxOccurs < (indexN + 1)) {
-      throw new NotFoundException(
+      throw new BadRequestException(
           "Out-of-bound: "
               + "Attempting to access element at index "
               + indexN

@@ -29,6 +29,7 @@ import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.MediaType;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -61,6 +62,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // ToDo Move to config
   private final int maxCallbackRetries = 3;
+  private final int maxResolveDepth = 10;
 
   private final HttpClient httpClient;
 
@@ -102,7 +104,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public StatusInfo executeAsync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
+    Map<String, Object> inputs = executeRequest.getInputs();
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
     Optional<OgcSubscriber> subscriber = executeRequest.getSubscriber();
 
@@ -147,7 +149,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         () -> {
           try {
             Map<String, Object> results =
-                processesMap.get(processId).apply(resolvedInputs, outputsSelection);
+                processesMap.get(processId).apply(resolveInputs(inputs), outputsSelection);
             resultsMap.put(jobId, results);
             statusInfo.setFinished(Instant.now());
             setSuccess(jobId, subscriber);
@@ -203,13 +205,18 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
    ***/
 
   /**
-   * ToDo depth limit Recursively resolve nested processes inside the inputs.
-   *
    * @param inputs The inputs Map
    * @return A new inputs Map in which each nested process is replaced by the return value of its
    *     execution
    */
   private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
+    return resolveInputs(inputs, 0);
+  }
+
+  private Map<String, Object> resolveInputs(Map<String, Object> inputs, int depth) {
+    if (depth > maxResolveDepth) {
+      throw new BadRequestException("Resolve depth limit reached.");
+    }
     Map<String, Object> resolvedInput = new LinkedHashMap<>();
 
     // Simplified assumption: Processes are always at the top level
@@ -241,7 +248,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         resultFromNested =
             processesMap
                 .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs()), Optional.empty())
+                .apply(resolveInputs(nested.getInputs(), depth + 1), Optional.empty())
                 .values()
                 .stream()
                 .findFirst()
@@ -251,7 +258,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         resultFromNested =
             processesMap
                 .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs()), nested.getOutputs());
+                .apply(resolveInputs(nested.getInputs(), depth + 1), nested.getOutputs());
       }
       resolvedInput.put(key, resultFromNested);
     }
