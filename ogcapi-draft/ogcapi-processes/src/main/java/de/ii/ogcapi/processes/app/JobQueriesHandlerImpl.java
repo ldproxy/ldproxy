@@ -293,7 +293,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
-    StatusInfo statusInfo = getStatusInfo(jobId);
+    StatusInfo statusInfo = processesExecutor.dismissJob(jobId).orElseThrow();
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =

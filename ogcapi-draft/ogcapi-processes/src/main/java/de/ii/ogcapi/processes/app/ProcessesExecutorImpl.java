@@ -139,7 +139,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         () -> {
           setProgress(jobId, 60, subscriber);
         },
-        2,
+        5,
         TimeUnit.SECONDS);
 
     // Finished job
@@ -156,7 +156,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
             setFailed(jobId, subscriber);
           }
         },
-        3,
+        10,
         TimeUnit.SECONDS);
 
     return statusInfo;
@@ -188,19 +188,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     ModifiableOgcStatusInfo statusInfo = jobsMap.get(jobId);
-    StatusCode currentStatus = statusInfo.getStatus();
 
-    // Set to dismiss if its job is accepted or running
+    // Set to dismiss if job is currently accepted or running
+    StatusCode currentStatus = statusInfo.getStatus();
     if (StatusCode.ACCEPTED.equals(currentStatus) || StatusCode.RUNNING.equals(currentStatus)) {
-      // ToDo Stop job if running
       statusInfo.setStatus(StatusCode.DISMISSED);
-      return Optional.of(statusInfo);
     }
 
-    // Remove the job else
-    statusInfo.setStatus(StatusCode.DISMISSED);
-    resultsMap.remove(jobId);
-    return Optional.of(jobsMap.remove(jobId));
+    return Optional.of(statusInfo);
   }
 
   /***
@@ -208,7 +203,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
    ***/
 
   /**
-   * Recursively resolve nested processes inside the inputs.
+   * ToDo depth limit Recursively resolve nested processes inside the inputs.
    *
    * @param inputs The inputs Map
    * @return A new inputs Map in which each nested process is replaced by the return value of its
@@ -426,6 +421,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private void setProgress(String jobId, int progress, Optional<OgcSubscriber> subscriber) {
     ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+
+    StatusCode currentStatusCode = statusInfo.getStatus();
+    if (StatusCode.DISMISSED.equals(currentStatusCode)) {
+      return;
+    }
 
     if (progress < 0 || progress > 100) {
       return;
