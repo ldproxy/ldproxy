@@ -17,6 +17,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.transform.WithScope;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import de.ii.xtraplatform.features.domain.transform.WithoutInternal;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
 import java.util.EnumSet;
@@ -30,6 +31,7 @@ public class ReceivablesJsonSchemaCache extends JsonSchemaCache {
   private final Supplier<Map<String, Codelist>> codelistSupplier;
   private static final WithTransformationsApplied WITH_TRANSFORMATIONS_APPLIED =
       new WithTransformationsApplied();
+  private static final WithoutInternal WITHOUT_INTERNAL = new WithoutInternal();
   private static final WithScope WITH_SCOPE_SCHEMA =
       new WithScope(EnumSet.of(SchemaBase.Scope.RECEIVABLE));
 
@@ -58,6 +60,7 @@ public class ReceivablesJsonSchemaCache extends JsonSchemaCache {
     return (JsonSchemaDocument)
         schema
             .accept(WITH_SCOPE_SCHEMA)
+            .accept(WITHOUT_INTERNAL)
             .accept(WITH_TRANSFORMATIONS_APPLIED)
             .accept(schemaDeriverFeatures);
   }

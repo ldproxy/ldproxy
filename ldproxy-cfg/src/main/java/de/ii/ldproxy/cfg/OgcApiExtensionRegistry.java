@@ -41,6 +41,7 @@ import de.ii.ogcapi.json.app.JsonBuildingBlock;
 import de.ii.ogcapi.mcp.app.McpBuildingBlock;
 import de.ii.ogcapi.oas30.app.OpenApiBuildingBlock;
 import de.ii.ogcapi.profile.codelist.app.ProfileCodelistBuildingBlock;
+import de.ii.ogcapi.profile.crs.app.ProfileCrsBuildingBlock;
 import de.ii.ogcapi.profile.rel.app.ProfileRelBuildingBlock;
 import de.ii.ogcapi.profile.val.app.ProfileValBuildingBlock;
 import de.ii.ogcapi.projections.app.ProjectionsBuildingBlock;
@@ -94,6 +95,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new OpenApiBuildingBlock())
             .add(new ProfileCodelistBuildingBlock())
             .add(new ProfileRelBuildingBlock())
+            .add(new ProfileCrsBuildingBlock())
             .add(new ProfileValBuildingBlock())
             .add(new ProjectionsBuildingBlock())
             .add(new PubSubBuildingBlock(null, this, null, null))

@@ -36,6 +36,7 @@ import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.features.search.domain.StoredQueryValidator;
+import de.ii.ogcapi.features.search.domain.StringOrParameter;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -457,16 +458,42 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         .build();
   }
 
+  // Static counterpart of the HTML check in executeQuery(): HTML is only available for queries
+  // with paging that use the default CRS. A parameterized CRS may resolve to a non-default CRS
+  // at execution time, so HTML is not offered for such queries.
+  static boolean offersHtml(StoredQueryExpression query, EpsgCrs defaultCrs) {
+    if (!query.getSupportPaging().orElse(false)) {
+      return false;
+    }
+    if (query.getCrs().isEmpty()) {
+      return true;
+    }
+    if (query.getVerticalCrs().isPresent()) {
+      return false;
+    }
+    return query
+        .getCrs()
+        .flatMap(StringOrParameter::getValue)
+        .map(uri -> EpsgCrs.fromString(uri).equals(defaultCrs))
+        .orElse(false);
+  }
+
   private Response getStoredQueries(
       QueryInputStoredQueries queryInput, ApiRequestContext requestContext) {
     ImmutableStoredQueries.Builder builder = new ImmutableStoredQueries.Builder();
 
     OgcApiDataV2 apiData = requestContext.getApi().getData();
+    EpsgCrs defaultCrs =
+        apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
+            .orElse(OgcCrs.CRS84);
     repository
         .getAll(apiData)
         .forEach(
             q -> {
               String queryId = q.getId();
+              boolean offersHtml = offersHtml(q, defaultCrs);
               builder.addQueries(
                   new ImmutableStoredQuery.Builder()
                       .id(queryId)
@@ -498,6 +525,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                               .filter(
                                   outputFormatExtension ->
                                       outputFormatExtension.isEnabledForApi(apiData))
+                              .filter(
+                                  f ->
+                                      offersHtml
+                                          || !f.getMediaType().matches(MediaType.TEXT_HTML_TYPE))
                               .filter(
                                   f ->
                                       Objects.nonNull(
@@ -640,13 +671,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                         .orElse(hCrs))
             .orElse(queryInput.getDefaultCrs());
 
-    if (requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE)) {
-      if (!crs.equals(queryInput.getDefaultCrs())) {
-        // For HTML the requested CRS is not relevant. The only geometries in the HTML
-        // representation are the schema.org annotations, for which the request must use the
-        // default CRS. Force the use of the default CRS.
-        crs = queryInput.getDefaultCrs();
-      }
+    boolean isDefaultCrs = crs.equals(queryInput.getDefaultCrs());
+    boolean supportsPaging = queryExpression.getSupportPaging().orElse(false);
+    // the embedded map in the HTML representation only supports the default CRS and an unpaged
+    // response may be too large for a browser to render
+    boolean htmlSupported = isDefaultCrs && supportsPaging;
+    if (!htmlSupported && requestContext.getMediaType().matches(MediaType.TEXT_HTML_TYPE)) {
+      throw new NotAcceptableException(
+          MessageFormat.format(
+              isDefaultCrs
+                  ? "The media type ''{0}'' is not supported for queries with paging disabled."
+                  : "The media type ''{0}'' is not supported for queries that request a CRS other than the default CRS.",
+              requestContext.getMediaType().type()));
     }
 
     MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
@@ -659,6 +695,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                 .map(q -> q.getCollections().get(0))
                 .toList();
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
+    List<ApiMediaType> alternateMediaTypes =
+        htmlSupported
+            ? requestContext.getAlternateMediaTypes()
+            : requestContext.getAlternateMediaTypes().stream()
+                .filter(mediaType -> !mediaType.matches(MediaType.TEXT_HTML_TYPE))
+                .collect(Collectors.toUnmodifiableList());
     List<Link> links =
         queryInput.isStoredQuery()
             ? new StoredQueriesLinkGenerator()
@@ -668,7 +710,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                     query.getLimit(),
                     query.getSupportPaging(),
                     requestContext.getMediaType(),
-                    requestContext.getAlternateMediaTypes(),
+                    alternateMediaTypes,
                     i18n,
                     requestContext.getLanguage())
             : ImmutableList.of();
@@ -712,7 +754,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             targetCrs,
             HeaderContentDisposition.of(
                 String.format(
-                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension())),
+                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension()),
+                // without paging, responses may be too large for a browser to render directly
+                !query.getSupportPaging()),
             collectionMetadata,
             i18n.getLanguages())
         .entity(streamingOutput)

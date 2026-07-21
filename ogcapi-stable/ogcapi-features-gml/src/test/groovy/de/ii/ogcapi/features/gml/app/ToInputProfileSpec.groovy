@@ -8,7 +8,7 @@
 package de.ii.ogcapi.features.gml.app
 
 import de.ii.ogcapi.features.gml.domain.ImmutableGmlConfiguration
-import de.ii.ogcapi.features.gml.domain.ImmutableSrsNameMapping
+import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs
 import de.ii.ogcapi.features.gml.domain.ImmutableUomMapping
 import de.ii.ogcapi.features.gml.domain.ImmutableVariableName
 import de.ii.xtraplatform.crs.domain.EpsgCrs
@@ -17,7 +17,7 @@ import spock.lang.Specification
 /**
  * Verifies that {@link FeaturesFormatGml#toInputProfile} surfaces every reversible
  * GmlConfiguration option to the decoder's input profile, including the two list-to-map
- * conversions ({@code srsNameMappings}, {@code uomMappings}) and the per-entry direction
+ * conversions ({@code additionalCrs} alternative URIs, {@code uomMappings}) and the per-entry direction
  * reversal of {@code variableObjectElementNames} (encoder: source value → wire qualified name;
  * decoder profile: wire qualified name → source value). The decoder's runtime behaviour for
  * each option is exercised in {@code FeatureTokenDecoderGmlSpec}; this spec only locks
@@ -45,14 +45,6 @@ class ToInputProfileSpec extends Specification {
                 .putValueWrap('qag.dpl.prs.des', ['AX_LI_ProcessStep_MitDatenerhebung_Description'])
                 .addXmlAttributes('mat.som.codeListValue')
                 .addObjectTypeSuffixedProperties('gehoertZuBauwerk')
-                .addSrsNameMappings(new ImmutableSrsNameMapping.Builder()
-                        .crs(EpsgCrs.of(25832))
-                        .value('urn:adv:crs:ETRS89_UTM32')
-                        .build())
-                .addSrsNameMappings(new ImmutableSrsNameMapping.Builder()
-                        .crs(EpsgCrs.of(4326))
-                        .value('urn:adv:crs:WGS84_Lat-Lon')
-                        .build())
                 .addUomMappings(new ImmutableUomMapping.Builder()
                         .uom('m')
                         .value('urn:adv:uom:m')
@@ -69,9 +61,19 @@ class ToInputProfileSpec extends Specification {
                         .putMapping('Punktort', 'aaa:AX_LI_ProcessStep_OhneDatenerhebung_Punktort')
                         .build())
                 .build()
+        def alternativeCrss = [
+                new ImmutableEpsgCrs.Builder()
+                        .from(EpsgCrs.of(25832))
+                        .alternativeUri('urn:adv:crs:ETRS89_UTM32')
+                        .build(),
+                new ImmutableEpsgCrs.Builder()
+                        .from(EpsgCrs.of(4326))
+                        .alternativeUri('urn:adv:crs:WGS84_Lat-Lon')
+                        .build()
+        ]
 
         when:
-        def profile = FeaturesFormatGml.toInputProfile(config)
+        def profile = FeaturesFormatGml.toInputProfile(config, alternativeCrss)
 
         then:
         profile.useAlias
@@ -94,7 +96,7 @@ class ToInputProfileSpec extends Specification {
         and: 'objectTypeSuffixedProperties propagate to the input profile as a set'
         profile.objectTypeSuffixedProperties == ['gehoertZuBauwerk'] as Set
 
-        and: 'list-of-pairs srsNameMappings flatten to a wire→CRS map'
+        and: 'the alternative URIs flatten to a wire→CRS map'
         profile.srsNameMappings == [
                 'urn:adv:crs:ETRS89_UTM32': EpsgCrs.of(25832),
                 'urn:adv:crs:WGS84_Lat-Lon': EpsgCrs.of(4326)
@@ -127,7 +129,7 @@ class ToInputProfileSpec extends Specification {
                 .build()
 
         when:
-        def profile = FeaturesFormatGml.toInputProfile(config)
+        def profile = FeaturesFormatGml.toInputProfile(config, [])
 
         then:
         profile.gmlIdPrefix == ''
