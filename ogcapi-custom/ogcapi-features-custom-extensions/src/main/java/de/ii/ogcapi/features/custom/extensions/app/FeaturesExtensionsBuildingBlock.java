@@ -29,6 +29,10 @@ import java.util.Optional;
  *     WKT geometry or a URL for a GeoJSON object with a geometry. In case of a FeatureCollection
  *     the first geometry is used.
  *     </code>
+ *     <p>The building block is deprecated and will be removed with version 5.0. An ad-hoc query
+ *     should be used instead.
+ *     <p>Use with caution: When the query parameter `intersects` is enabled and the request
+ *     provides a URL, the referenced content is parsed, which may introduce security issues.
  * @scopeDe Der Baustein ergänzt die Unterstützung für den folgenden Query-Parameter:
  *     <p><code>
  * - `intersects`: Ist der Parameter angegeben, werden die Features
@@ -38,6 +42,11 @@ import java.util.Optional;
  *     GeoJSON-Objekt mit einer Geometrie. Im Fall einer FeatureCollection wird die erste Geometrie
  *     verwendet.
  *     </code>
+ *     <p>Der Baustein ist veraltet und wird mit Version 5.0 entfernt. Stattdessen sollte eine
+ *     Ad-hoc-Query verwendet werden.
+ *     <p>Achtung: Wenn der Abfrageparameter `intersects` aktiviert ist und die Anfrage eine URL
+ *     enthält, wird der referenzierte Inhalt verarbeitet, was je nach Inhalt zu
+ *     Sicherheitsproblemen führen kann.
  * @ref:cfg {@link de.ii.ogcapi.features.custom.extensions.domain.FeaturesExtensionsConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.features.custom.extensions.domain.ImmutableFeaturesExtensionsConfiguration}
