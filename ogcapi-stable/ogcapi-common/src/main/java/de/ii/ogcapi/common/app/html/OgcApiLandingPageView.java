@@ -166,6 +166,7 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
   }
 
   public Optional<Link> getData() {
+    List<Link> TEST = rawLinks();
     return rawLinks().stream()
         .filter(
             link ->
@@ -200,6 +201,14 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
     return rawLinks().stream()
         .filter(
             link -> Objects.equals(link.getRel(), "http://www.opengis.net/def/rel/ogc/1.0/routes"))
+        .findFirst();
+  }
+
+  public Optional<Link> getProcesses() {
+    return rawLinks().stream()
+        .filter(
+            link ->
+                Objects.equals(link.getRel(), "https://www.opengis.net/def/rel/ogc/1.0/processes"))
         .findFirst();
   }
 
