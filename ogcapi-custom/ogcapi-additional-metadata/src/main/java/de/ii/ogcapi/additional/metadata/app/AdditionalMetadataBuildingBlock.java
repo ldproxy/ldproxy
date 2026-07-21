@@ -19,10 +19,13 @@ import jakarta.inject.Singleton;
  * @langEn Additional metadata on Landing Page, Collections an Collection resources.
  * @langDe Zusätzliche Metadaten auf den Ressourcen Landing Page, Collections und Collection.
  * @scopeEn Adds additional information to the Landing Page, Collections and Collection resources
- *     that is not specified in OGC API standards. For example, license and attribution information.
+ *     that is not specified in OGC API standards. For example, license and attribution information
+ *     as well as the aggregated spatial and temporal extents and the aggregated number of features
+ *     of all collections on the Landing Page.
  * @scopeDe Fügt der Landing Page, den Collections- und Collection-Ressourcen zusätzliche
  *     Informationen hinzu, die nicht in den OGC-API-Standards festgelegt sind. Zum Beispiel die
- *     Lizenz der Daten und Vorgaben zur Namensnennung.
+ *     Lizenz der Daten und Vorgaben zur Namensnennung sowie auf der Landing Page die aggregierte
+ *     räumliche und zeitliche Ausdehnung und die aggregierte Anzahl der Features aller Collections.
  * @ref:cfg {@link de.ii.ogcapi.additional.metadata.domain.AdditionalMetadataConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.additional.metadata.domain.ImmutableAdditionalMetadataConfiguration}

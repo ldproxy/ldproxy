@@ -23,6 +23,7 @@ import de.ii.xtraplatform.cql.domain.AContains;
 import de.ii.xtraplatform.cql.domain.ArrayLiteral;
 import de.ii.xtraplatform.cql.domain.BooleanValue2;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
+import de.ii.xtraplatform.cql.domain.CqlParseException;
 import de.ii.xtraplatform.cql.domain.Eq;
 import de.ii.xtraplatform.cql.domain.Function;
 import de.ii.xtraplatform.cql.domain.Like;
@@ -117,38 +118,46 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
       return null;
     }
 
-    // handle array case
-    if (getType() == Type.VALUE_ARRAY) {
-      if (value.contains("*")) {
-        return Function.of(
-            "ALIKE",
-            ImmutableList.of(
-                Property.of(getName()), ScalarLiteral.of(value.replaceAll("\\*", "%"))));
-      }
-      return AContains.of(
-          Property.of(getName()),
-          ArrayLiteral.of(
-              ARRAY_SPLITTER.splitToList(value).stream()
-                  .map(s -> getScalarLiteral(s, getValueType().orElse(Type.STRING)))
-                  .collect(Collectors.toUnmodifiableList())));
-    }
-
-    Type t = getValueType().orElse(getType());
-    switch (t) {
-      case INTEGER:
-      case FLOAT:
-      case BOOLEAN:
-        return Eq.of(getName(), getScalarLiteral(value, t));
-      case STRING:
+    try {
+      // handle array case
+      if (getType() == Type.VALUE_ARRAY) {
         if (value.contains("*")) {
-          return Like.of(getName(), ScalarLiteral.of(value.replaceAll("\\*", "%")));
+          return Function.of(
+              "ALIKE",
+              ImmutableList.of(
+                  Property.of(getName()), ScalarLiteral.of(value.replaceAll("\\*", "%"))));
         }
-        return Eq.of(getName(), ScalarLiteral.of(value));
-      case DATE:
-      case DATETIME:
-        return Eq.of(getName(), TemporalLiteral.of(value));
-      default:
-        return BooleanValue2.of(false);
+        return AContains.of(
+            Property.of(getName()),
+            ArrayLiteral.of(
+                ARRAY_SPLITTER.splitToList(value).stream()
+                    .map(s -> getScalarLiteral(s, getValueType().orElse(Type.STRING)))
+                    .collect(Collectors.toUnmodifiableList())));
+      }
+
+      Type t = getValueType().orElse(getType());
+      switch (t) {
+        case INTEGER:
+        case FLOAT:
+        case BOOLEAN:
+          return Eq.of(getName(), getScalarLiteral(value, t));
+        case STRING:
+          if (value.contains("*")) {
+            return Like.of(getName(), ScalarLiteral.of(value.replaceAll("\\*", "%")));
+          }
+          return Eq.of(getName(), ScalarLiteral.of(value));
+        case DATE:
+        case DATETIME:
+          return Eq.of(getName(), TemporalLiteral.of(value));
+        default:
+          return BooleanValue2.of(false);
+      }
+    } catch (CqlParseException | NumberFormatException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The parameter '%s' is invalid: '%s' is not a valid value (%s).",
+              getName(), value, e.getMessage()),
+          e);
     }
   }
 
