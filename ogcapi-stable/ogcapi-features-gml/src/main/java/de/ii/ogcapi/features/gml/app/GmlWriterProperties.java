@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
+import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
@@ -193,18 +194,29 @@ public class GmlWriterProperties implements GmlWriter {
               context.encoding().writeAttribute("name", name[1]);
             }
             writeUnitIfNecessary(context, schema);
-            List<String> wrapElements =
+            List<ValueWrapElement> wrapElements =
                 context
                     .encoding()
                     .getValueWrap()
                     .getOrDefault(schema.getFullPathAsString(), List.of());
-            for (String wrapEl : wrapElements) {
-              context.encoding().writeStartElement(wrapEl);
-              writeIso19139CodeListAttributes(context, schema, wrapEl, value);
+            int openWrappers = 0;
+            for (ValueWrapElement wrapEl : wrapElements) {
+              context.encoding().writeStartElement(wrapEl.getName());
+              for (Map.Entry<String, String> attribute : wrapEl.getAttributes().entrySet()) {
+                context.encoding().writeAttribute(attribute.getKey(), attribute.getValue());
+              }
+              if (wrapEl.isEmptyElement()) {
+                // injected constant element (e.g. ISO 19139 valueUnit) — closed immediately, the
+                // chain continues inside the enclosing wrapper
+                context.encoding().writeEndElement();
+              } else {
+                writeIso19139CodeListAttributes(context, schema, wrapEl.getName(), value);
+                openWrappers++;
+              }
             }
             // writeCharacters emits the pending '>' and writes the (escaped) value
             writeValue(context, value, schema.getType());
-            for (int i = wrapElements.size() - 1; i >= 0; i--) {
+            for (int i = 0; i < openWrappers; i++) {
               context.encoding().writeEndElement();
             }
             context.encoding().writeEndElement();
@@ -236,9 +248,10 @@ public class GmlWriterProperties implements GmlWriter {
 
   private void writeUnitIfNecessary(EncodingAwareContextGml context, FeatureSchema schema)
       throws IOException {
-    if (schema.getType() == Type.FLOAT || schema.getType() == Type.INTEGER) {
-      // write as gml:MeasureType, if we have a numeric property with a 'unit'
-      // property in the provider schema
+    // write as gml:MeasureType, if we have a numeric property with a 'unit' in the provider
+    // schema; for arrays the member type is the value type (e.g. VALUE_ARRAY of FLOAT)
+    Type valueType = schema.getValueType().orElse(schema.getType());
+    if (valueType == Type.FLOAT || valueType == Type.INTEGER) {
       schema
           .getUnit()
           .ifPresent(
@@ -399,7 +412,12 @@ public class GmlWriterProperties implements GmlWriter {
   }
 
   private boolean shouldSkipProperty(EncodingAwareContextGml context) {
-    return !hasMappingAndValue(context) || context.schema().orElseThrow().isId();
+    // internal properties are never encoded as regular elements; GML receives their tokens
+    // (unlike formats that rely on the implicit remove transformations) because
+    // GmlWriterPositionVariants consumes the position-variant group
+    return !hasMappingAndValue(context)
+        || context.schema().orElseThrow().isId()
+        || context.schema().orElseThrow().isInternal();
   }
 
   private boolean hasMappingAndValue(EncodingAwareContextGml context) {

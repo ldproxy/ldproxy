@@ -121,6 +121,10 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
                         .map(s -> s.secondaryGeometryProperty.stream().anyMatch(p::equals))
                         .orElse(false))
             .orElse(false)
+        // internal geometry properties are storage artifacts (e.g. position variants, encoded by
+        // JsonFgWriterPlace with the crs-original profile) and are never written to "properties";
+        // internal value properties may surface when a format lets the tokens through
+        && !context.schema().map(FeatureSchema::isInternal).orElse(false)
         && context.geometry() != null) {
       startIfNecessary(context);
 

@@ -21,6 +21,7 @@ import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformat
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.domain.transform.WithScope;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
+import de.ii.xtraplatform.features.domain.transform.WithoutInternal;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import io.swagger.v3.oas.models.media.Schema;
@@ -40,6 +41,7 @@ public class SchemaGeneratorFeatureOpenApi implements SchemaGeneratorOpenApi {
   public static final String DEFAULT_FLATTENING_SEPARATOR = ".";
   private static final WithTransformationsApplied WITH_TRANSFORMATIONS_APPLIED =
       new WithTransformationsApplied();
+  private static final WithoutInternal WITHOUT_INTERNAL = new WithoutInternal();
   private static final WithScope WITH_SCOPE_SCHEMA =
       new WithScope(EnumSet.of(SchemaBase.Scope.RETURNABLE, SchemaBase.Scope.RECEIVABLE));
 
@@ -105,6 +107,7 @@ public class SchemaGeneratorFeatureOpenApi implements SchemaGeneratorOpenApi {
 
     return featureSchema
         .accept(WITH_SCOPE_SCHEMA)
+        .accept(WITHOUT_INTERNAL)
         .accept(WITH_TRANSFORMATIONS_APPLIED)
         .accept(schemaDeriver);
   }
