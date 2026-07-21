@@ -10,6 +10,8 @@ package de.ii.ogcapi.features.gml.domain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.codelists.domain.Codelist;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.CrsVariants;
 import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
@@ -30,7 +32,8 @@ import org.immutables.value.Value;
  *   <li>{@link #getXmlAttributes()}, {@link #getCodelistProperties()}, {@link #getValueWrap()},
  *       {@link #getObjectTypeSuffixedProperties()} — their path keys are alias-rewritten (id →
  *       alias) when {@code useAlias} is on, to match the alias-form paths {@code
- *       GmlWriterProperties} sees at runtime;
+ *       GmlWriterProperties} sees at runtime; the {@code valueWrap} chain entries are additionally
+ *       parsed into {@link ValueWrapElement}s;
  *   <li>{@link #getCodelists()} — the codelist ids are resolved to {@code Codelist} instances via
  *       the codelist store;
  *   <li>{@link #getAppendTemporalSuffixToGmlId()} — the configured flag folded with whether the
@@ -57,7 +60,27 @@ public interface CollectionEncodingGml {
   }
 
   @Value.Default
-  default Map<String, List<String>> getValueWrap() {
+  default Map<String, List<ValueWrapElement>> getValueWrap() {
+    return ImmutableMap.of();
+  }
+
+  /**
+   * The {@code additionalCrs} entries of the collection's CRS configuration that declare an {@code
+   * alternativeUri} — consumed by the GML encoding for {@code srsNameStyle: TEMPLATE}.
+   */
+  @Value.Default
+  default List<EpsgCrs> getAlternativeCrss() {
+    return ImmutableList.of();
+  }
+
+  /**
+   * The position-variant groups of the collection, derived from the {@code crsVariants}
+   * declarations in the provider schema (not from the {@code GmlConfiguration}): per geometry
+   * property — keyed by its full path, alias-rewritten like the other path-keyed options — the
+   * {@code CrsVariants} with alias-form sibling names.
+   */
+  @Value.Default
+  default Map<String, CrsVariants> getPositionVariants() {
     return ImmutableMap.of();
   }
 

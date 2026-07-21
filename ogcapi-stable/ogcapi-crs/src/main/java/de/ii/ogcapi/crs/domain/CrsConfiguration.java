@@ -24,6 +24,7 @@ import org.immutables.value.Value;
  *   additionalCrs:
  *   - code: 25832
  *     forceAxisOrder: NONE
+ *     alternativeUri: 'urn:adv:crs:ETRS89_UTM32'
  *   - code: 4258
  *     forceAxisOrder: NONE
  *   - code: 4326
@@ -48,7 +49,12 @@ public interface CrsConfiguration extends ExtensionConfiguration {
    *     systems are identified by their EPSG code (`code`). Additionally, the order of the
    *     coordinate axes must be specified in `forceAxisOrder` (`NONE`: as in the coordinate
    *     reference system, `LON_LAT` or `LAT_LON`: the order in the coordinate reference system is
-   *     ignored and the specified order is used).
+   *     ignored and the specified order is used). Optionally, an alternative identifier under which
+   *     the CRS is known in a community may be declared in `alternativeUri` (e.g. the AdV
+   *     identifier `urn:adv:crs:ETRS89_UTM32` for EPSG:25832); it is used by feature encodings that
+   *     render CRS identifiers on the wire (e.g. the GML `srsName` with `srsNameStyle: TEMPLATE`)
+   *     and when decoding such identifiers on input — requests and the `Content-Crs` header always
+   *     use the OGC URI.
    * @langDe Steuert, welche weitere Koordinatenreferenzsysteme in einer API oder für eine Feature
    *     Collection unterstützt werden sollen. Das native Koordinatenreferenzsystem der Daten und
    *     das Default-Koordinatenreferenzsystem der API sind automatisch aktiviert.
@@ -56,6 +62,11 @@ public interface CrsConfiguration extends ExtensionConfiguration {
    *     ist in `forceAxisOrder` die Reihenfolge der Koordinatenachsen anzugeben (`NONE`: wie im
    *     Koordinatenreferenzsystem, `LON_LAT` oder `LAT_LON`: die Reihenfolge im
    *     Koordinatenreferenzsystem wird ignoriert und die angegebene Reihenfolge wird verwendet).
+   *     Optional kann in `alternativeUri` eine alternative Kennung deklariert werden, unter der das
+   *     CRS in einer Community bekannt ist (z.B. die AdV-Kennung `urn:adv:crs:ETRS89_UTM32` für
+   *     EPSG:25832); sie wird von Feature-Kodierungen verwendet, die CRS-Kennungen kodieren (z.B.
+   *     das GML-`srsName` mit `srsNameStyle: TEMPLATE`), sowie beim Einlesen solcher Kennungen —
+   *     Requests und der `Content-Crs`-Header verwenden immer die OGC-URI.
    * @default {}
    */
   Set<EpsgCrs> getAdditionalCrs();

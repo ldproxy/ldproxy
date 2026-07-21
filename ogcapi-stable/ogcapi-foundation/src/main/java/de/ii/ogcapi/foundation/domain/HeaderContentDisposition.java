@@ -30,4 +30,11 @@ public interface HeaderContentDisposition {
         .filename(filename)
         .build();
   }
+
+  static HeaderContentDisposition of(String filename, boolean attachment) {
+    return new ImmutableHeaderContentDisposition.Builder()
+        .attachment(attachment)
+        .filename(filename)
+        .build();
+  }
 }
