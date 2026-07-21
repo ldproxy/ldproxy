@@ -83,7 +83,7 @@ public class ProfileSetCrs extends ProfileSet {
                     .map(
                         featureSchema ->
                             featureSchema.getAllNestedProperties().stream()
-                                .anyMatch(p -> p.getVariants().isPresent()))
+                                .anyMatch(p -> p.getCrsVariants().isPresent()))
                     .orElse(false))
         .orElse(false);
   }

@@ -11,8 +11,8 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
+import de.ii.xtraplatform.features.domain.CrsVariants;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
-import de.ii.xtraplatform.features.domain.SchemaVariants;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml;
 import de.ii.xtraplatform.features.gml.domain.GeometryEncoderGml.Options;
 import de.ii.xtraplatform.geometries.domain.Geometry;
@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encodes the CRS-specific position variants of a geometry property (see the {@code variants}
+ * Encodes the CRS-specific position variants of a geometry property (see the {@code crsVariants}
  * declarations in the provider schema) as a single position element and suppresses the variant and
  * helper properties as elements of their own. Runs before {@link GmlWriterGeometry} and {@link
  * GmlWriterProperties} in the writer chain.
@@ -108,12 +108,12 @@ public class GmlWriterPositionVariants implements GmlWriter {
   @Override
   public void onValue(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    Map<String, SchemaVariants> positionVariants = context.encoding().getPositionVariants();
+    Map<String, CrsVariants> positionVariants = context.encoding().getPositionVariants();
     if (!positionVariants.isEmpty() && context.schema().isPresent()) {
       String path = context.schema().get().getFullPathAsString();
-      for (Map.Entry<String, SchemaVariants> entry : positionVariants.entrySet()) {
+      for (Map.Entry<String, CrsVariants> entry : positionVariants.entrySet()) {
         String parentPrefix = parentPrefix(entry.getKey());
-        SchemaVariants variants = entry.getValue();
+        CrsVariants variants = entry.getValue();
         if (matches(variants.getCrsProperty(), parentPrefix, path)) {
           // suppressed as an element in both modes; the stash is only consumed with crs-original
           this.stashedSrsName = context.value();
@@ -137,12 +137,12 @@ public class GmlWriterPositionVariants implements GmlWriter {
   @Override
   public void onGeometry(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    Map<String, SchemaVariants> positionVariants = context.encoding().getPositionVariants();
+    Map<String, CrsVariants> positionVariants = context.encoding().getPositionVariants();
     if (!positionVariants.isEmpty() && context.schema().isPresent()) {
       String path = context.schema().get().getFullPathAsString();
-      for (Map.Entry<String, SchemaVariants> entry : positionVariants.entrySet()) {
+      for (Map.Entry<String, CrsVariants> entry : positionVariants.entrySet()) {
         String parentPrefix = parentPrefix(entry.getKey());
-        SchemaVariants variants = entry.getValue();
+        CrsVariants variants = entry.getValue();
         boolean isVariant =
             variants.getGeometryProperties().stream()
                 .anyMatch(name -> matches(Optional.of(name), parentPrefix, path));

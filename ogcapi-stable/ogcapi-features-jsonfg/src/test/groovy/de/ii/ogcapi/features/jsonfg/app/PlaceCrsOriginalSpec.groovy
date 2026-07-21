@@ -19,7 +19,7 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.features.domain.FeatureSchema
 import de.ii.xtraplatform.features.domain.ImmutableFeatureSchema
-import de.ii.xtraplatform.features.domain.ImmutableSchemaVariants
+import de.ii.xtraplatform.features.domain.ImmutableCrsVariants
 import de.ii.xtraplatform.features.domain.SchemaBase
 import de.ii.xtraplatform.geometries.domain.GeometryType
 import de.ii.xtraplatform.geometries.domain.Point
@@ -63,7 +63,7 @@ class PlaceCrsOriginalSpec extends Specification {
                         .type(SchemaBase.Type.GEOMETRY)
                         .role(SchemaBase.Role.PRIMARY_GEOMETRY)
                         .geometryType(GeometryType.POINT)
-                        .variants(new ImmutableSchemaVariants.Builder()
+                        .crsVariants(new ImmutableCrsVariants.Builder()
                                 .crsProperty("pos_srs")
                                 .addGeometryProperties("pos_gk3")
                                 .build()))

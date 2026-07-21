@@ -10,8 +10,8 @@ package de.ii.ogcapi.features.gml.app
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml
 import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGml
 import de.ii.xtraplatform.features.gml.domain.GmlVersion
-import de.ii.xtraplatform.features.domain.ImmutableSchemaVariants
-import de.ii.xtraplatform.features.domain.SchemaVariants
+import de.ii.xtraplatform.features.domain.ImmutableCrsVariants
+import de.ii.xtraplatform.features.domain.CrsVariants
 import de.ii.ogcapi.foundation.domain.Profile
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.features.domain.FeatureSchema
@@ -32,8 +32,8 @@ class PositionVariantsWriterSpec extends Specification {
     static final String GK3_HE100 = 'urn:adv:crs:DE_DHDN_3GK3_HE100'
     static final String DHHN92 = 'urn:adv:crs:DE_DHHN92_NH'
 
-    static SchemaVariants variants() {
-        new ImmutableSchemaVariants.Builder()
+    static CrsVariants variants() {
+        new ImmutableCrsVariants.Builder()
                 .addGeometryProperties('pos_gk3')
                 .verticalProperty('pos_h')
                 .crsProperty('pos_srs')

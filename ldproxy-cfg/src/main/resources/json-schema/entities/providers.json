@@ -2551,9 +2551,9 @@
       },
       "additionalProperties": false
     },
-    "SchemaVariants": {
-      "title": "SchemaVariants",
-      "description": "Some feature types store the same logical position in one of several CRSs \\u2014 including    CRSs that cannot be expressed as the storage CRS of the property (realizations that map to    the same coordinate reference system, or 1D vertical reference systems). Each variant is    stored in its own property; `variants` on the main geometry property declares which sibling    properties hold the variants. All referenced properties must be siblings of the geometry    property (properties of the same object) and are implicitly `internal`.",
+    "CrsVariants": {
+      "title": "CrsVariants",
+      "description": "Some feature types store the same logical position in one of several CRSs \\u2014 including    CRSs that cannot be expressed as the storage CRS of the property (realizations that map to    the same coordinate reference system, or 1D vertical reference systems). Each variant is    stored in its own property; `crsVariants` on the main geometry property declares which sibling    properties hold the variants. All referenced properties must be siblings of the geometry    property (properties of the same object) and are implicitly `internal`.",
       "type": "object",
       "properties": {
         "crsProperty": {
@@ -3158,11 +3158,11 @@
           "type": "object",
           "$ref": "#/$defs/EpsgCrs"
         },
-        "variants": {
-          "title": "variants",
+        "crsVariants": {
+          "title": "crsVariants",
           "description": "Declares sibling properties that store the position of this geometry property in other    reference systems, for feature types that store the same logical position in one of several    CRSs \\u2014 including CRSs that cannot be expressed as a storage CRS (realizations that map to    the same coordinate reference system, or 1D vertical reference systems). Only relevant for    properties with `type: GEOMETRY` in SQL feature providers. All referenced properties are    implicitly `internal`. See [Position Variants](#position-variants).",
           "type": "object",
-          "$ref": "#/$defs/SchemaVariants"
+          "$ref": "#/$defs/CrsVariants"
         },
         "originalCrsIdentifiers": {
           "title": "originalCrsIdentifiers",

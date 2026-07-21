@@ -48,12 +48,12 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.features.domain.CrsVariants;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTokenEncoder;
+import de.ii.xtraplatform.features.domain.ImmutableCrsVariants;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
-import de.ii.xtraplatform.features.domain.ImmutableSchemaVariants;
 import de.ii.xtraplatform.features.domain.SchemaMapping;
-import de.ii.xtraplatform.features.domain.SchemaVariants;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.ModifiableContext;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
@@ -1043,16 +1043,17 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   // Derives the position-variant groups from the provider schema: every geometry property with a
-  // `variants` declaration contributes an entry keyed by its full path. Like the other path-keyed
-  // options of the encoding bundle, the keys and the referenced sibling names are alias-rewritten
+  // `crsVariants` declaration contributes an entry keyed by its full path. Like the other
+  // path-keyed options of the encoding bundle, the keys and the referenced sibling names are
+  // alias-rewritten
   // (technical → alias) so the writer's runtime path lookups match. Package-private for unit
   // testing.
-  static Map<String, SchemaVariants> derivePositionVariants(
+  static Map<String, CrsVariants> derivePositionVariants(
       Optional<FeatureSchema> featureSchema, Map<String, String> rewrites) {
     if (featureSchema.isEmpty()) {
       return ImmutableMap.of();
     }
-    Map<String, SchemaVariants> positionVariants = new LinkedHashMap<>();
+    Map<String, CrsVariants> positionVariants = new LinkedHashMap<>();
     collectPositionVariants(featureSchema.get(), "", rewrites, positionVariants);
     return positionVariants;
   }
@@ -1061,16 +1062,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       FeatureSchema schema,
       String parentPath,
       Map<String, String> rewrites,
-      Map<String, SchemaVariants> out) {
+      Map<String, CrsVariants> out) {
     for (FeatureSchema child : schema.getProperties()) {
       String path = parentPath.isEmpty() ? child.getName() : parentPath + "." + child.getName();
       child
-          .getVariants()
+          .getCrsVariants()
           .ifPresent(
               variants ->
                   out.put(
                       rewrites.getOrDefault(path, path),
-                      new ImmutableSchemaVariants.Builder()
+                      new ImmutableCrsVariants.Builder()
                           .crsProperty(
                               variants
                                   .getCrsProperty()
@@ -1088,7 +1089,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     }
   }
 
-  // The names inside a `variants` declaration are sibling names; their alias form is the last
+  // The names inside a `crsVariants` declaration are sibling names; their alias form is the last
   // segment of the sibling's rewritten full path. Names without a rewrite entry pass through
   // unchanged.
   private static String aliasName(String name, String parentPath, Map<String, String> rewrites) {

@@ -15,9 +15,9 @@ import de.ii.ogcapi.features.geojson.domain.EncodingAwareContextGeoJson;
 import de.ii.ogcapi.features.geojson.domain.FeatureTransformationContextGeoJson.GeometryState;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonWriterGeometryBase;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
+import de.ii.xtraplatform.features.domain.CrsVariants;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase;
-import de.ii.xtraplatform.features.domain.SchemaVariants;
 import de.ii.xtraplatform.geometries.domain.Geometry;
 import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.geometries.domain.PolyhedralSurface;
@@ -50,7 +50,7 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
   /**
    * The id of the {@code crs-original} profile (defined in the {@code PROFILE_CRS} building block,
    * referenced here by its literal value — stable modules must not depend on the profile module).
-   * With the profile active, the position of a geometry property with a {@code variants}
+   * With the profile active, the position of a geometry property with a {@code crsVariants}
    * declaration is written to {@code place} from the variant property as recorded: with the stored
    * verbatim CRS identifier in {@code coordRefSys} and the coordinates in the convention of that
    * identifier (the read pipeline restores the {@code originalCrs}; the writer applies the inverse
@@ -322,7 +322,7 @@ public class JsonFgWriterPlace extends GeoJsonWriterGeometryBase {
   private static void collectGroups(FeatureSchema schema, String parentPath, VariantsGroups out) {
     for (FeatureSchema child : schema.getProperties()) {
       String path = parentPath.isEmpty() ? child.getName() : parentPath + "." + child.getName();
-      Optional<SchemaVariants> variants = child.getVariants();
+      Optional<CrsVariants> variants = child.getCrsVariants();
       if (variants.isPresent() && variants.get().getCrsProperty().isPresent()) {
         String crsPropertyPath =
             parentPath.isEmpty()

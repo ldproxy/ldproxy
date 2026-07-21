@@ -11,7 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
-import de.ii.xtraplatform.features.domain.SchemaVariants;
+import de.ii.xtraplatform.features.domain.CrsVariants;
 import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
@@ -74,13 +74,13 @@ public interface CollectionEncodingGml {
   }
 
   /**
-   * The position-variant groups of the collection, derived from the {@code variants} declarations
-   * in the provider schema (not from the {@code GmlConfiguration}): per geometry property — keyed
-   * by its full path, alias-rewritten like the other path-keyed options — the {@code
-   * SchemaVariants} with alias-form sibling names.
+   * The position-variant groups of the collection, derived from the {@code crsVariants}
+   * declarations in the provider schema (not from the {@code GmlConfiguration}): per geometry
+   * property — keyed by its full path, alias-rewritten like the other path-keyed options — the
+   * {@code CrsVariants} with alias-form sibling names.
    */
   @Value.Default
-  default Map<String, SchemaVariants> getPositionVariants() {
+  default Map<String, CrsVariants> getPositionVariants() {
     return ImmutableMap.of();
   }
 
