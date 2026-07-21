@@ -26,6 +26,8 @@ import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerSimple.Mod
 import de.ii.xtraplatform.features.domain.pipeline.FeatureTokenDecoderSimple;
 import de.ii.xtraplatform.features.domain.profile.ImmutableProfileTransformations;
 import de.ii.xtraplatform.features.domain.profile.ProfileTransformations;
+import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation;
+import de.ii.xtraplatform.features.domain.transform.PropertyTransformation;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,12 +192,49 @@ public abstract class FeatureFormatExtension implements FormatExtension {
                   .orElse(profileTransformations));
     }
 
+    if (schema.isPresent() && !supportsInternalProperties(profiles)) {
+      Optional<PropertyTransformations> internalRemoves = internalPropertyRemoves(schema.get());
+      if (internalRemoves.isPresent()) {
+        result = result.map(pts -> internalRemoves.get().mergeInto(pts)).or(() -> internalRemoves);
+      }
+    }
+
     if (schema.isPresent() && isUseAlias(collectionData)) {
       FeatureSchema s = schema.get();
       result = result.map(pts -> FeatureSchemaAliases.injectAliasRenames(pts, s));
     }
 
     return result;
+  }
+
+  /**
+   * Whether the format handles {@code internal} properties itself for the negotiated profiles (for
+   * example, GML, which encodes position variants from internal properties and suppresses them in
+   * its writers; or GeoJSON with the JSON-FG extensions and the {@code crs-original} profile).
+   * Otherwise an implicit {@code remove: ALWAYS} transformation is added for every internal
+   * property, so internal properties never appear in feature representations.
+   */
+  public boolean supportsInternalProperties(List<Profile> profiles) {
+    return false;
+  }
+
+  private static Optional<PropertyTransformations> internalPropertyRemoves(FeatureSchema schema) {
+    Map<String, List<PropertyTransformation>> removes =
+        schema.getAllNestedProperties().stream()
+            .filter(FeatureSchema::isInternal)
+            .collect(
+                Collectors.toMap(
+                    FeatureSchema::getFullPathAsString,
+                    property ->
+                        List.of(
+                            new ImmutablePropertyTransformation.Builder().remove("ALWAYS").build()),
+                    (first, second) -> first));
+
+    if (removes.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(() -> removes);
   }
 
   private boolean isUseAlias(FeatureTypeConfigurationOgcApi collectionData) {

@@ -21,7 +21,6 @@ import org.immutables.value.Value;
  * ```yaml
  * - buildingBlock: FEATURES_EXTENSIONS
  *   enabled: true
- *   postOnItems: true
  *   intersectsParameter: true
  * ```
  *     </code>
@@ -35,12 +34,14 @@ public interface FeaturesExtensionsConfiguration extends ExtensionConfiguration 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   /**
-   * @langEn Enables support for the `intersects` query parameter on the "Features" resource
-   * @langDe Aktiviert die Unterstützung für den Query-Parameter `intersects` auf der Ressource
-   *     "Features"
+   * @langEn *Deprecated* (use an ad-hoc query). Enables support for the `intersects` query
+   *     parameter on the "Features" resource
+   * @langDe *Deprecated* (verwenden Sie eine Ad-hoc-Query). Aktiviert die Unterstützung für den
+   *     Query-Parameter `intersects` auf der Ressource "Features"
    * @default false
    * @since v3.1
    */
+  @Deprecated(since = "4.8", forRemoval = true)
   @Nullable
   Boolean getIntersectsParameter();
 

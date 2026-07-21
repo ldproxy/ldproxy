@@ -36,6 +36,8 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
 
   public abstract Optional<String> dataSourceUrl();
 
+  public abstract Optional<Long> itemCount();
+
   @Value.Derived
   public String mainLinksTitle() {
     return i18n().get("mainLinksTitle", language());
@@ -106,6 +108,11 @@ public abstract class OgcApiLandingPageView extends OgcApiDatasetView {
   @Value.Derived
   public String temporalExtentTitle() {
     return i18n().get("temporalExtentTitle", language());
+  }
+
+  @Value.Derived
+  public String itemCountTitle() {
+    return i18n().get("itemCountTitle", language());
   }
 
   @Value.Derived

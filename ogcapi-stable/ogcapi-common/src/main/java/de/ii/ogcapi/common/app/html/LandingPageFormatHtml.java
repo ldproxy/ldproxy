@@ -108,6 +108,11 @@ public class LandingPageFormatHtml
                     apiLandingPage.getExtensions().containsKey("extent")
                         ? (OgcApiExtent) apiLandingPage.getExtensions().get("extent")
                         : null))
+            .itemCount(
+                Optional.ofNullable(
+                    apiLandingPage.getExtensions().containsKey("itemCount")
+                        ? (Long) apiLandingPage.getExtensions().get("itemCount")
+                        : null))
             .language(requestContext.getLanguage())
             .user(requestContext.getUser())
             .build();

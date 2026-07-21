@@ -90,6 +90,10 @@ import java.util.concurrent.ConcurrentMap;
 public class FeaturesFormatGeoJson extends FeatureFormatExtension
     implements ItemTypeSpecificConformanceClass {
 
+  // The id of the crs-original profile (defined in the PROFILE_CRS building block, referenced by
+  // its literal value — stable modules must not depend on the profile module).
+  static final String PROFILE_CRS_ORIGINAL = "crs-original";
+
   private static final String CONFORMANCE_CLASS_FEATURES =
       "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson";
   private static final String CONFORMANCE_CLASS_RECORDS =
@@ -156,6 +160,25 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
         .findFirst()
         .map(profile -> ((ProfileGeoJson) profile).writeSecondaryGeometry())
         .orElse(true);
+  }
+
+  /**
+   * With the JSON-FG extensions and the {@code crs-original} profile, position variants are encoded
+   * from the internal properties ({@code place} with the original CRS identifier; the vertical
+   * position and the identifier of a 1D position appear in {@code properties}), so the implicit
+   * {@code remove} transformations must not drop the tokens. In all other cases — including plain
+   * GeoJSON, which cannot represent positions in other CRSs — internal properties are removed.
+   */
+  @Override
+  public boolean supportsInternalProperties(List<Profile> profiles) {
+    boolean jsonFgExtensions =
+        profiles.stream()
+            .filter(p -> p instanceof ProfileGeoJson)
+            .findFirst()
+            .map(profile -> ((ProfileGeoJson) profile).writeJsonFgExtensions())
+            .orElse(false);
+    return jsonFgExtensions
+        && profiles.stream().anyMatch(profile -> PROFILE_CRS_ORIGINAL.equals(profile.getId()));
   }
 
   @Override
