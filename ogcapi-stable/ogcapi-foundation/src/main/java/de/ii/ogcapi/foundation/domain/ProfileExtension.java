@@ -46,11 +46,12 @@ public interface ProfileExtension extends ApiExtension {
    */
   static String getUri(Profile profile) {
     if (profile.getId().startsWith("val-")
+        || profile.getId().startsWith("crs-")
         || profile.getId().startsWith("all-")
         || profile.getId().startsWith("validation-")) {
       return String.format("https://def.ldproxy.net/profile/%s", profile.getId());
     }
-    return String.format("http://www.opengis.net/def/profile/ogc/0/%s", profile.getId());
+    return String.format("http://www.opengis.net/def/profile/OGC/0/%s", profile.getId());
   }
 
   /**
