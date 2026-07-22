@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.7.2 (14/07/2026)
+#### Fixed bugs
+
+-  duplicated properties after `xtractl entity reload` [#1690](https://github.com/ldproxy/ldproxy/issues/1690)
+-  XACML policy decisions always fail [#1689](https://github.com/ldproxy/ldproxy/issues/1689)
+
+#### Dependency updates
+
+* Update minio to v9.0.3 (maintenance-6.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/415
+* Update swagger to v2.2.52 (maintenance-6.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/424
+* Update dependency org.postgresql:postgresql to v42.7.13 (maintenance-7.7) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/573
+* Update dependency org.spdx:java-spdx-library to v2.0.4 (maintenance-4.7) by @renovate[bot] in https://github.com/ldproxy/ldproxy/pull/1674
+
+---
 ## v4.7.1 (05/06/2026)
 #### Fixed bugs
 

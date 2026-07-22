@@ -92,12 +92,21 @@ import java.util.Optional;
  *     "supportPaging" to true to be paged instead: the response then reports "numberMatched" and
  *     "numberReturned" and the result can be retrieved page by page via "offset", with "next"/"prev"
  *     links. Ad-hoc queries (POST) are always single-shot, as there is no addressable URL to page
- *     through.
+ *     through. Since a single-shot response may be too large to be rendered in a browser, it is
+ *     returned with a "Content-Disposition: attachment" header, i.e., browsers save the response
+ *     as a file instead of rendering it. This also applies to formats that browsers otherwise
+ *     display directly, like GeoJSON.
  * - The “crs” and “verticalCrs” members are optional and can be used to specify the coordinate
  *     reference system for the coordinates in the response. If no value is specified, the default
  *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
  *     of a vertical coordinate reference system and "crs" must be specified and be the URI of a
  *     horizontal 2D coordinate reference system.
+ * - HTML is only available for queries with "supportPaging" set to true that return the response
+ *     in the default coordinate reference system (the embedded map does not support other
+ *     coordinate reference systems). For all other queries, HTML is not included in the list of
+ *     output formats of the query and requests for HTML are rejected with a 406 (Not Acceptable).
+ *     If the value of "crs" is a parameter, HTML is not offered, since the coordinate reference
+ *     system is only known when the query is executed.
  * - "sortby" will only apply per query. A global "sortby" would require that the
  *     results of all queries are compiled first and then the combined result set is sorted. This
  *     would not support "streaming" the response.
@@ -157,8 +166,9 @@ import java.util.Optional;
  *     <p>Allgemeines:
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
- * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt.
+ * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt. Da eine in einem Durchgang ausgegebene Antwort zu groß sein kann, um in einem Browser dargestellt zu werden, wird sie mit einem Header "Content-Disposition: attachment" ausgegeben, d. h. Browser speichern die Antwort als Datei, anstatt sie anzuzeigen. Dies gilt auch für Formate, die Browser sonst direkt anzeigen, wie GeoJSON.
  * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
+ * - HTML ist nur für Abfragen verfügbar, bei denen "supportPaging" auf true gesetzt ist und die die Antwort im Standard-Koordinatenreferenzsystem zurückgeben (die eingebettete Karte unterstützt keine anderen Koordinatenreferenzsysteme). Für alle anderen Abfragen wird HTML nicht in der Liste der Ausgabeformate der Abfrage aufgeführt und Anfragen nach HTML werden mit einem 406 (Not Acceptable) abgelehnt. Ist der Wert von "crs" ein Parameter, wird HTML nicht angeboten, da das Koordinatenreferenzsystem erst bei der Ausführung der Abfrage bekannt ist.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
