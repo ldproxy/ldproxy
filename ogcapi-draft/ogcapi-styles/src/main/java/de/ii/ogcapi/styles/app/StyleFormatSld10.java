@@ -20,6 +20,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.SecureXml;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
@@ -34,13 +35,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
-import javax.xml.XMLConstants;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -80,11 +80,13 @@ public class StyleFormatSld10 implements ConformanceClass, StyleFormatExtension,
 
   public void init() {
     try {
-      SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+      SchemaFactory factory = SecureXml.schemaFactory();
       Schema schema =
           factory.newSchema(Resources.getResource(StyleFormatSld10.class, "/schemas/sld10.xsd"));
 
-      this.validator = Optional.ofNullable(schema.newValidator());
+      Validator newValidator = schema.newValidator();
+      SecureXml.harden(newValidator);
+      this.validator = Optional.ofNullable(newValidator);
     } catch (SAXException e) {
       LogContext.error(
           LOGGER, e, "StyleFormatSld10 initialization failed, could not process SLD 1.0 XSD");
@@ -151,10 +153,13 @@ public class StyleFormatSld10 implements ConformanceClass, StyleFormatExtension,
 
     if (strict && validator.isPresent()) {
       try {
+        // The stylesheet content is attacker-supplied on style create/replace; parse it through a
+        // reader hardened against XXE and entity expansion. See SecureXml.
         validator
             .get()
             .validate(
-                new StreamSource(ByteSource.wrap(stylesheetContent.getContent()).openStream()));
+                SecureXml.source(
+                    new InputSource(ByteSource.wrap(stylesheetContent.getContent()).openStream())));
       } catch (IOException | SAXException e) {
         throw new IllegalArgumentException(
             String.format(
