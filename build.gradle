@@ -14,6 +14,7 @@ application {
     applicationDefaultJvmArgs = [
             '--enable-native-access=de.ii.xtraplatform.nativ.loader',
             '--enable-native-access=de.ii.xtraplatform.proj.tpl',
+            '--enable-native-access=de.ii.xtraplatform.features.sql.tpl',
     ]
 }
 
