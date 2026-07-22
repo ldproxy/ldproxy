@@ -248,7 +248,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
       OgcApiDataV2 apiData, Optional<String> collectionId, ApiRequestContext requestContext) {
     final StylesLinkGenerator stylesLinkGenerator = new StylesLinkGenerator();
 
-    List<String> additionalTileMatrixSets = getAdditionalTileMatrixSets(apiData);
+    List<String> additionalTileMatrixSets = getAdditionalTileMatrixSets(apiData, collectionId);
 
     List<StyleEntry> styleEntries =
         getStyleIds(apiData, collectionId).stream()
@@ -273,35 +273,7 @@ public class StyleRepositoryFiles extends AbstractVolatile
                           mediaTypes,
                           i18n,
                           requestContext.getLanguage());
-                  if (!additionalTileMatrixSets.isEmpty()) {
-                    links =
-                        links.stream()
-                            .flatMap(
-                                link -> {
-                                  if (Objects.equals(
-                                      link.getType(),
-                                      StyleFormatMbStyle.MEDIA_TYPE.type().toString())) {
-                                    return Stream.concat(
-                                        Stream.of(link),
-                                        additionalTileMatrixSets.stream()
-                                            .map(
-                                                tms ->
-                                                    new ImmutableLink.Builder()
-                                                        .from(link)
-                                                        .href(
-                                                            String.format(
-                                                                "%s&tile-matrix-set=%s",
-                                                                link.getHref(), tms))
-                                                        .title(link.getTitle() + " (" + tms + ")")
-                                                        .build()));
-                                  }
-
-                                  return Stream.of(link);
-                                })
-                            .toList();
-                  }
-
-                  builder.links(links);
+                  builder.links(expandWithTileMatrixSets(links, additionalTileMatrixSets));
                   if (collectionId.isPresent()) {
                     List<ApiMediaType> additionalMediaTypes =
                         getStyleFormatStream(apiData, collectionId)
@@ -315,12 +287,14 @@ public class StyleRepositoryFiles extends AbstractVolatile
                             .collect(Collectors.toUnmodifiableList());
                     if (!additionalMediaTypes.isEmpty()) {
                       builder.addAllLinks(
-                          stylesLinkGenerator.generateStyleLinks(
-                              requestContext.getUriCustomizer(),
-                              styleId,
-                              additionalMediaTypes,
-                              i18n,
-                              requestContext.getLanguage()));
+                          expandWithTileMatrixSets(
+                              stylesLinkGenerator.generateStyleLinks(
+                                  requestContext.getUriCustomizer(),
+                                  styleId,
+                                  additionalMediaTypes,
+                                  i18n,
+                                  requestContext.getLanguage()),
+                              additionalTileMatrixSets));
                     }
                   }
                   builder.addLinks(
@@ -875,6 +849,9 @@ public class StyleRepositoryFiles extends AbstractVolatile
     final String styleId = rootStyleEntry.getId();
     final StylesLinkGenerator stylesLinkGenerator = new StylesLinkGenerator();
 
+    List<String> additionalTileMatrixSets =
+        getAdditionalTileMatrixSets(apiData, Optional.of(collectionId));
+
     ImmutableStyleEntry.Builder builder =
         ImmutableStyleEntry.builder().from(rootStyleEntry).links(ImmutableList.of());
 
@@ -895,12 +872,14 @@ public class StyleRepositoryFiles extends AbstractVolatile
               if (derivedStylesheet.isEmpty()) return;
 
               builder.addAllLinks(
-                  stylesLinkGenerator.generateStyleLinks(
-                      requestContext.getUriCustomizer(),
-                      styleId,
-                      ImmutableList.of(format.getMediaType()),
-                      i18n,
-                      requestContext.getLanguage()));
+                  expandWithTileMatrixSets(
+                      stylesLinkGenerator.generateStyleLinks(
+                          requestContext.getUriCustomizer(),
+                          styleId,
+                          ImmutableList.of(format.getMediaType()),
+                          i18n,
+                          requestContext.getLanguage()),
+                      additionalTileMatrixSets));
             });
 
     if (tilesProviders
@@ -1067,9 +1046,10 @@ public class StyleRepositoryFiles extends AbstractVolatile
     return getStyleIds(apiData, collectionId);
   }
 
-  private List<String> getAdditionalTileMatrixSets(OgcApiDataV2 apiData) {
+  private List<String> getAdditionalTileMatrixSets(
+      OgcApiDataV2 apiData, Optional<String> collectionId) {
     return tilesProviders
-        .getTilesetMetadata(apiData)
+        .getTilesetMetadata(apiData, collectionId.flatMap(apiData::getCollectionData))
         .map(TilesetMetadata::getTileMatrixSets)
         .map(
             tms ->
@@ -1084,5 +1064,33 @@ public class StyleRepositoryFiles extends AbstractVolatile
                     .sorted()
                     .toList())
         .orElse(List.of());
+  }
+
+  private List<Link> expandWithTileMatrixSets(
+      List<Link> links, List<String> additionalTileMatrixSets) {
+    if (additionalTileMatrixSets.isEmpty()) {
+      return links;
+    }
+
+    return links.stream()
+        .flatMap(
+            link -> {
+              if (Objects.equals(link.getType(), StyleFormatMbStyle.MEDIA_TYPE.type().toString())) {
+                return Stream.concat(
+                    Stream.of(link),
+                    additionalTileMatrixSets.stream()
+                        .map(
+                            tms ->
+                                new ImmutableLink.Builder()
+                                    .from(link)
+                                    .href(
+                                        String.format("%s&tile-matrix-set=%s", link.getHref(), tms))
+                                    .title(link.getTitle() + " (" + tms + ")")
+                                    .build()));
+              }
+
+              return Stream.of(link);
+            })
+        .toList();
   }
 }
