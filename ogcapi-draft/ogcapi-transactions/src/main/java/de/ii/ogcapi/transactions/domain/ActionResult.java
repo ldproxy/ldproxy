@@ -41,6 +41,17 @@ public interface ActionResult {
   Optional<String> getError();
 
   /**
+   * Non-fatal warnings the data source emitted while executing this action (e.g. PostgreSQL {@code
+   * RAISE WARNING} / {@code RAISE NOTICE} from triggers or functions invoked by the action's
+   * statements). Present on any outcome — a failed action keeps the warnings emitted before its
+   * error.
+   */
+  @Value.Default
+  default List<String> getWarnings() {
+    return List.of();
+  }
+
+  /**
    * Source-side identifiers (e.g. gml:id, GeoJSON id) of the features that may have caused a FAILED
    * outcome. For inserts that fail at batch commit time, this is the full set of feature ids in the
    * failing batch — the broken one is among them but cannot be narrowed further from a batch error.

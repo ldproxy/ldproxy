@@ -8,6 +8,7 @@
 package de.ii.ogcapi.transactions.domain;
 
 import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /** Result of executing a {@link Transaction}. */
@@ -29,10 +30,18 @@ public interface ExecutionResult {
    */
   List<String> getWarnings();
 
+  /**
+   * Transaction-level failure that is not attributable to a single action — a failed pre-commit
+   * hook or a failed commit. Every action that had succeeded is {@link ActionStatus#ROLLED_BACK} in
+   * that case.
+   */
+  Optional<String> getTransactionError();
+
   /** Whether the transaction as a whole succeeded (no FAILED actions in atomic; any in batch). */
   @Value.Derived
   default boolean isSuccess() {
-    return getActionResults().stream().noneMatch(r -> r.getStatus() == ActionStatus.FAILED);
+    return getTransactionError().isEmpty()
+        && getActionResults().stream().noneMatch(r -> r.getStatus() == ActionStatus.FAILED);
   }
 
   @Value.Derived
@@ -58,6 +67,18 @@ public interface ExecutionResult {
   @Value.Derived
   default long getFailedCount() {
     return getActionResults().stream().filter(r -> r.getStatus() == ActionStatus.FAILED).count();
+  }
+
+  @Value.Derived
+  default long getRolledBackCount() {
+    return getActionResults().stream()
+        .filter(r -> r.getStatus() == ActionStatus.ROLLED_BACK)
+        .count();
+  }
+
+  @Value.Derived
+  default long getSkippedCount() {
+    return getActionResults().stream().filter(r -> r.getStatus() == ActionStatus.SKIPPED).count();
   }
 
   private long countFeatures(TxActionType type) {
