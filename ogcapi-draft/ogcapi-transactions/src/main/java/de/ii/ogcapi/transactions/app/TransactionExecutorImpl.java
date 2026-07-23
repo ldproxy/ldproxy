@@ -160,14 +160,32 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
    * @param preCommit {@code true} for the pre-commit hook, {@code false} for the setup hook
    */
   private static List<String> hookStatements(
-      OgcApi api, HeaderPrefer.Handling handling, boolean preCommit) {
-    TransactionsConfiguration cfg =
-        api.getData().getExtension(TransactionsConfiguration.class).orElse(null);
+      TransactionsConfiguration cfg, HeaderPrefer.Handling handling, boolean preCommit) {
     if (cfg == null) {
       return List.of();
     }
     TransactionHooks hooks = preCommit ? cfg.getPreCommit() : cfg.getTransactionSetup();
     return hooks == null ? List.of() : hooks.effective(handling);
+  }
+
+  // Package-private (rather than private) so specs can swap the API-configuration and
+  // provider/session resolution out via an anonymous subclass — mocking the full OgcApi /
+  // FeatureProvider graph drags in classes that aren't on the test classpath (see
+  // resolveChanges).
+  TransactionsConfiguration transactionsConfig(OgcApi api) {
+    return api.getData().getExtension(TransactionsConfiguration.class).orElse(null);
+  }
+
+  String resolveProviderId(OgcApi api, String collectionId) {
+    return resolveProvider(api, collectionId).getId();
+  }
+
+  String canonicalCollectionId(OgcApi api, String collectionId) {
+    return canonicalCollectionId(api.getData(), collectionId);
+  }
+
+  Session openSessionFor(OgcApi api, String collectionId) {
+    return openSession(resolveProvider(api, collectionId), collectionId);
   }
 
   /**
@@ -199,8 +217,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       Optional<Instant> ogcMutationDatetime) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
-    List<String> setup = hookStatements(api, handling, false);
-    List<String> preCommit = hookStatements(api, handling, true);
+    TransactionsConfiguration cfg = transactionsConfig(api);
+    List<String> setup = hookStatements(cfg, handling, false);
+    List<String> preCommit = hookStatements(cfg, handling, true);
+    // collectErrors: keep executing after a failed action so the response reports every error.
+    // Each action then runs inside a savepoint — after a failed SQL statement the shared
+    // transaction is only usable again once the action's writes are rolled back to it.
+    boolean collectErrors = cfg != null && Boolean.TRUE.equals(cfg.getCollectErrors());
     List<String> warnings = new ArrayList<>();
     // Single timestamp for the whole atomic transaction — every action shares it so versioned
     // strategies can reject same-feature chains under the no-backdating rule.
@@ -215,32 +238,46 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     // MutationStrategy resolved once per (transaction, collectionId); the lookup walks every
     // registered strategy and is cheap but not free.
     Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
-    Throwable firstError = null;
+    // A fatal error leaves a session unusable (failed open, setup hook, or savepoint handling)
+    // and always stops execution; a failed action only stops it when errors are not collected.
+    Throwable fatalError = null;
+    boolean anyFailed = false;
 
     Iterator<TxAction> actions = transaction.actions();
     while (actions.hasNext()) {
       TxAction action = actions.next();
-      if (firstError != null) {
-        // a previous action already failed — atomic semantics: skip remaining actions but
-        // still drain insert items so the parser stays in a consistent state
+      if (fatalError != null || (anyFailed && !collectErrors)) {
+        // execution has stopped — skip remaining actions but still drain insert items so the
+        // parser stays in a consistent state
         drainQuietly(action);
-        results.add(skipped(action));
+        results.add(skipped(canonicalCollectionId(api, action.getCollectionId()), action));
         continue;
       }
+      ActionResult result = null;
       try {
-        FeatureProvider provider = resolveProvider(api, action.getCollectionId());
-        Session session = sessionsByProvider.get(provider.getId());
+        String providerId = resolveProviderId(api, action.getCollectionId());
+        Session session = sessionsByProvider.get(providerId);
         if (session == null) {
-          session = openSession(provider, action.getCollectionId());
+          session = openSessionFor(api, action.getCollectionId());
           // Store before running setup so a setup failure still leaves the session in the map
           // for the rollback/close paths below.
-          sessionsByProvider.put(provider.getId(), session);
+          sessionsByProvider.put(providerId, session);
           warnings.addAll(session.execute(setup));
+          if (collectErrors && !session.supportsSavepoints()) {
+            LOGGER.warn(
+                "collectErrors is enabled but the feature provider session does not support"
+                    + " savepoints — stopping at the first error for this transaction");
+            collectErrors = false;
+          }
         }
-        results.add(
+        boolean savepointActive = false;
+        if (collectErrors) {
+          session.savepoint();
+          savepointActive = true;
+        }
+        result =
             runAction(
                 action,
-                provider,
                 session,
                 api,
                 ctx,
@@ -251,26 +288,40 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 ogcMutationDatetime,
                 validate,
                 false,
-                transaction.isWfs()));
-        ActionResult lastResult = last(results);
-        if (lastResult.getStatus() == ActionStatus.FAILED) {
-          firstError =
-              new RuntimeException(
-                  lastResult.getError().orElse("action " + actionLabel(action) + " failed"));
-        } else if (lastResult.getStatus() == ActionStatus.SUCCESS) {
-          touchedIdsByCollection
-              .computeIfAbsent(lastResult.getCollectionId(), k -> new HashSet<>())
-              .addAll(lastResult.getFeatureIds());
+                transaction.isWfs());
+        result = withActionWarnings(result, session);
+        if (result.getStatus() == ActionStatus.FAILED) {
+          anyFailed = true;
+          if (savepointActive) {
+            // undo just this action's writes; the transaction stays usable for the rest
+            session.rollbackToSavepoint();
+          }
+        } else {
+          if (savepointActive) {
+            session.releaseSavepoint();
+          }
+          if (result.getStatus() == ActionStatus.SUCCESS) {
+            touchedIdsByCollection
+                .computeIfAbsent(result.getCollectionId(), k -> new HashSet<>())
+                .addAll(result.getFeatureIds());
+          }
         }
       } catch (RuntimeException e) {
+        // session acquisition, a setup hook, or savepoint handling failed — the transaction is
+        // no longer usable
         recoverHookWarnings(e, warnings);
-        results.add(failed(action, e));
-        firstError = e;
+        if (result == null) {
+          result = failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
+        }
+        anyFailed = true;
+        fatalError = e;
       }
+      results.add(result);
     }
 
     boolean commitSucceeded = false;
-    if (firstError == null) {
+    Optional<String> transactionError = Optional.empty();
+    if (!anyFailed) {
       try {
         // Pre-commit hooks run on the still-open transaction; a raised error aborts the
         // whole transaction, a warning lets it commit and is surfaced in the response.
@@ -280,8 +331,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         sessionsByProvider.values().forEach(Session::commit);
         commitSucceeded = true;
       } catch (RuntimeException e) {
-        // pre-commit or commit failed — flip every recorded SUCCESS to FAILED with the error,
-        // rollback whatever can still be rolled back
+        // pre-commit or commit failed — a transaction-level error not attributable to a single
+        // action; rollback whatever can still be rolled back
         recoverHookWarnings(e, warnings);
         if (e instanceof FeatureMutationHookException) {
           // expected, configuration-driven rollback (a hook check fired) — reported to the
@@ -291,10 +342,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           LOGGER.warn("Atomic transaction commit failed", e);
         }
         rollbackQuietly(sessionsByProvider.values());
-        results = flipSuccessesToFailed(results, e);
+        transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
+        results = flipSuccessesToRolledBack(results);
       }
     } else {
       rollbackQuietly(sessionsByProvider.values());
+      results = flipSuccessesToRolledBack(results);
     }
     closeQuietly(sessionsByProvider.values());
 
@@ -306,6 +359,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.ATOMIC)
         .actionResults(results)
         .warnings(warnings)
+        .transactionError(transactionError)
         .build();
   }
 
@@ -320,8 +374,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       Optional<Instant> ogcMutationDatetime) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
-    List<String> setup = hookStatements(api, handling, false);
-    List<String> preCommit = hookStatements(api, handling, true);
+    TransactionsConfiguration cfg = transactionsConfig(api);
+    List<String> setup = hookStatements(cfg, handling, false);
+    List<String> preCommit = hookStatements(cfg, handling, true);
     List<String> warnings = new ArrayList<>();
     List<ActionResult> results = new ArrayList<>();
     // Reused across actions in a batch even though each action commits independently — keeps the
@@ -333,8 +388,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       TxAction action = actions.next();
       Session session = null;
       try {
-        FeatureProvider provider = resolveProvider(api, action.getCollectionId());
-        session = openSession(provider, action.getCollectionId());
+        session = openSessionFor(api, action.getCollectionId());
         warnings.addAll(session.execute(setup));
         // Batch semantics commit between actions, so each action sees a fresh committed
         // snapshot — no need to track touched ids across actions.
@@ -343,7 +397,6 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         ActionResult r =
             runAction(
                 action,
-                provider,
                 session,
                 api,
                 ctx,
@@ -355,6 +408,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 validate,
                 true,
                 transaction.isWfs());
+        r = withActionWarnings(r, session);
         if (r.getStatus() == ActionStatus.SUCCESS) {
           // Pre-commit hooks run per action under batch semantics; a raised error fails just
           // this action (caught below), a warning lets it commit and is surfaced.
@@ -376,7 +430,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             // already failing, swallow
           }
         }
-        results.add(failed(action, e));
+        results.add(failed(canonicalCollectionId(api, action.getCollectionId()), action, e));
       } finally {
         if (session != null) {
           try {
@@ -399,9 +453,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
   // --- action dispatch ------------------------------------------------------
 
-  private ActionResult runAction(
+  // Package-private so specs can script per-action outcomes via an anonymous subclass without
+  // stubbing the OgcApi / FeatureProvider graph (see transactionsConfig above).
+  ActionResult runAction(
       TxAction action,
-      FeatureProvider provider,
       Session session,
       OgcApi api,
       ApiRequestContext ctx,
@@ -459,7 +514,6 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         case UPDATE ->
             runUpdate(
                 (TxUpdate) action,
-                provider,
                 session,
                 api,
                 ctx,
@@ -479,7 +533,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
       };
     } catch (RuntimeException e) {
-      return failed(action, e);
+      return failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
     }
   }
 
@@ -535,6 +589,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           && canonicalIdForItem.isPresent()
           && touched.contains(canonicalIdForItem.get())) {
         return failed(
+            canonicalCollectionId,
             action,
             chainRejectError(canonicalCollectionId, canonicalIdForItem.get(), action),
             List.of(canonicalIdForItem.get()));
@@ -565,7 +620,11 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
-          return failed(action, precheck.getError().get(), List.of(canonicalIdForItem.get()));
+          return failed(
+              canonicalCollectionId,
+              action,
+              precheck.getError().get(),
+              List.of(canonicalIdForItem.get()));
         }
       }
       try (InputStream payload = item.payload()) {
@@ -755,7 +814,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         candidatePayloads.add(payloadString(it));
       }
     }
-    return failed(action, error, candidateIds, candidatePayloads);
+    return failed(
+        canonicalCollectionId(apiData, action.getCollectionId()),
+        action,
+        error,
+        candidateIds,
+        candidatePayloads);
   }
 
   private ActionResult runReplace(
@@ -783,7 +847,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Replace action filter matched no feature ids for collection '"
-              + action.getCollectionId()
+              + canonicalCollectionId
               + "'.");
     }
     if (targetIds.size() > 1) {
@@ -791,7 +855,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           "Replace action must target exactly one feature id; got "
               + targetIds.size()
               + " for collection '"
-              + action.getCollectionId()
+              + canonicalCollectionId
               + "'.");
     }
     String rawId = targetIds.get(0);
@@ -806,7 +870,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             strategy, apiData, action, List.of(id), touchedIdsByCollection, canonicalCollectionId);
     if (chainConflict != null) {
       return failed(
-          action, chainRejectError(canonicalCollectionId, chainConflict, action), List.of(id));
+          canonicalCollectionId,
+          action,
+          chainRejectError(canonicalCollectionId, chainConflict, action),
+          List.of(id));
     }
 
     MutationResult mr;
@@ -858,7 +925,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 "Precondition failed: feature id '"
                     + id
                     + "' in collection '"
-                    + action.getCollectionId()
+                    + canonicalCollectionId
                     + "' has no open version with PRIMARY_INTERVAL_START = "
                     + composite.expectedStart().get()
                     + " (the composite rid suffix is stale or the open version has been"
@@ -868,7 +935,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
               "No open version of feature id '"
                   + id
                   + "' in collection '"
-                  + action.getCollectionId()
+                  + canonicalCollectionId
                   + "' was available for retirement (already retired or unknown).");
         }
         Map<SchemaBase.Role, Object> roleOverrides =
@@ -891,7 +958,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         rejectIfError(mr);
       }
     } catch (RuntimeException e) {
-      return failed(action, e, List.of(id));
+      return failed(canonicalCollectionId, action, e, List.of(id));
     }
 
     return new ImmutableActionResult.Builder()
@@ -907,7 +974,6 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
   private ActionResult runUpdate(
       TxUpdate action,
-      FeatureProvider provider,
       Session session,
       OgcApi api,
       ApiRequestContext ctx,
@@ -931,7 +997,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Update action filter matched no feature ids for collection '"
-              + action.getCollectionId()
+              + canonicalCollectionId
               + "'.");
     }
 
@@ -940,7 +1006,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             strategy, apiData, action, targetIds, touchedIdsByCollection, canonicalCollectionId);
     if (chainConflict != null) {
       return failed(
-          action, chainRejectError(canonicalCollectionId, chainConflict, action), targetIds);
+          canonicalCollectionId,
+          action,
+          chainRejectError(canonicalCollectionId, chainConflict, action),
+          targetIds);
     }
 
     // Every Update is a native SQL UPDATE issued on the session's own connection, so
@@ -957,7 +1026,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       // Action-level failure (bad payload, non-whitelisted property, unknown path, etc.) —
       // attribute it to every target id so the log line and the result both name the
       // features the client tried to update.
-      return failed(action, e, targetIds);
+      return failed(canonicalCollectionId, action, e, targetIds);
     }
 
     MutationStrategy.UpdateMode mode;
@@ -965,7 +1034,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       FeatureSchema schema = resolveFeatureSchema(apiData, canonicalCollectionId);
       mode = strategy.chooseUpdateMode(apiData, schema, action, updates, mutationTimestamp);
     } catch (RuntimeException e) {
-      return failed(action, e, targetIds);
+      return failed(canonicalCollectionId, action, e, targetIds);
     }
 
     List<String> updatedIds = new ArrayList<>();
@@ -993,12 +1062,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   || mode == MutationStrategy.UpdateMode.CLONE_AND_PATCH;
           if (retireOrClone && composite.expectedStart().isPresent()) {
             return failed(
+                canonicalCollectionId,
                 action,
                 new IllegalArgumentException(
                     "Precondition failed: feature id '"
                         + id
                         + "' in collection '"
-                        + action.getCollectionId()
+                        + canonicalCollectionId
                         + "' has no open version with PRIMARY_INTERVAL_START = "
                         + composite.expectedStart().get()
                         + " (the composite rid suffix is stale or the open version has been"
@@ -1010,7 +1080,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           updatedIds.addAll(mr.getIds());
         }
       } catch (RuntimeException e) {
-        return failed(action, e, List.of(id));
+        return failed(canonicalCollectionId, action, e, List.of(id));
       }
     }
 
@@ -1232,7 +1302,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     if (targetIds.isEmpty()) {
       throw new IllegalArgumentException(
           "Delete action filter matched no feature ids for collection '"
-              + action.getCollectionId()
+              + canonicalCollectionId
               + "'.");
     }
 
@@ -1241,7 +1311,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             strategy, apiData, action, targetIds, touchedIdsByCollection, canonicalCollectionId);
     if (chainConflict != null) {
       return failed(
-          action, chainRejectError(canonicalCollectionId, chainConflict, action), targetIds);
+          canonicalCollectionId,
+          action,
+          chainRejectError(canonicalCollectionId, chainConflict, action),
+          targetIds);
     }
 
     String featureType = resolveFeatureType(api.getData(), action.getCollectionId());
@@ -1271,7 +1344,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   "Precondition failed: feature id '"
                       + id
                       + "' in collection '"
-                      + action.getCollectionId()
+                      + canonicalCollectionId
                       + "' has no open version with PRIMARY_INTERVAL_START = "
                       + composite.expectedStart().get()
                       + " (the composite rid suffix is stale or the open version has been"
@@ -1281,7 +1354,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 "No open version of feature id '"
                     + id
                     + "' in collection '"
-                    + action.getCollectionId()
+                    + canonicalCollectionId
                     + "' was available for retirement (already retired or unknown).");
           }
           deleted.addAll(mr.getIds());
@@ -1295,7 +1368,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           }
         }
       } catch (RuntimeException e) {
-        return failed(action, e, List.of(id));
+        return failed(canonicalCollectionId, action, e, List.of(id));
       }
     }
 
@@ -1772,22 +1845,22 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             });
   }
 
-  private static ActionResult skipped(TxAction action) {
+  private static ActionResult skipped(String collectionId, TxAction action) {
     return new ImmutableActionResult.Builder()
         .type(action.getType())
-        .collectionId(action.getCollectionId())
+        .collectionId(collectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SKIPPED)
         .build();
   }
 
-  private static ActionResult failed(TxAction action, Throwable error) {
-    return failed(action, error, List.of(), List.of());
+  private static ActionResult failed(String collectionId, TxAction action, Throwable error) {
+    return failed(collectionId, action, error, List.of(), List.of());
   }
 
   private static ActionResult failed(
-      TxAction action, Throwable error, List<String> failedFeatureIds) {
-    return failed(action, error, failedFeatureIds, List.of());
+      String collectionId, TxAction action, Throwable error, List<String> failedFeatureIds) {
+    return failed(collectionId, action, error, failedFeatureIds, List.of());
   }
 
   // Build a FAILED ActionResult and log the failure. User-input errors
@@ -1799,6 +1872,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // request. In the log line we truncate the payload to keep entries readable; the full
   // payload is preserved in the ActionResult.
   private static ActionResult failed(
+      String collectionId,
       TxAction action,
       Throwable error,
       List<String> failedFeatureIds,
@@ -1812,7 +1886,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     }
     return new ImmutableActionResult.Builder()
         .type(action.getType())
-        .collectionId(action.getCollectionId())
+        .collectionId(collectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.FAILED)
         .error(errorMessage(error))
@@ -1866,26 +1940,35 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     return error instanceof IllegalArgumentException;
   }
 
-  private static ActionResult last(List<ActionResult> results) {
-    return results.get(results.size() - 1);
-  }
-
   private static String actionLabel(TxAction action) {
     return action.getActionId().orElse(action.getType() + "@" + action.getCollectionId());
   }
 
-  private static List<ActionResult> flipSuccessesToFailed(
-      List<ActionResult> results, Throwable cause) {
+  /**
+   * Attaches the non-fatal SQL warnings the session collected while this action ran (e.g.
+   * PostgreSQL {@code RAISE WARNING} / {@code RAISE NOTICE} from triggers). Draining per action
+   * attributes each warning to the action that caused it.
+   */
+  private static ActionResult withActionWarnings(ActionResult result, Session session) {
+    List<String> actionWarnings = session.drainWarnings();
+    if (actionWarnings.isEmpty()) {
+      return result;
+    }
+    return new ImmutableActionResult.Builder().from(result).warnings(actionWarnings).build();
+  }
+
+  /**
+   * The atomic transaction failed after some actions had already succeeded — their writes are gone,
+   * so their results must not read as successes in the response.
+   */
+  private static List<ActionResult> flipSuccessesToRolledBack(List<ActionResult> results) {
     List<ActionResult> out = new ArrayList<>(results.size());
     for (ActionResult r : results) {
       if (r.getStatus() == ActionStatus.SUCCESS) {
         out.add(
             new ImmutableActionResult.Builder()
                 .from(r)
-                .status(ActionStatus.FAILED)
-                .error(
-                    "atomic commit failed: "
-                        + (cause.getMessage() == null ? cause.toString() : cause.getMessage()))
+                .status(ActionStatus.ROLLED_BACK)
                 .featureIds(List.of())
                 .build());
       } else {

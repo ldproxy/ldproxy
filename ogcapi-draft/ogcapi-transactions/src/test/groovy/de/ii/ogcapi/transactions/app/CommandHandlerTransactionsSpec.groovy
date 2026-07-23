@@ -10,8 +10,12 @@ package de.ii.ogcapi.transactions.app
 import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.HeaderPrefer
 import de.ii.ogcapi.foundation.domain.OgcApi
+import de.ii.ogcapi.transactions.domain.ActionStatus
 import de.ii.ogcapi.transactions.domain.ExecutionResult
+import de.ii.ogcapi.transactions.domain.ImmutableActionResult
 import de.ii.ogcapi.transactions.domain.ImmutableExecutionResult
+import de.ii.ogcapi.transactions.domain.TxActionType
+import groovy.json.JsonSlurper
 import de.ii.ogcapi.transactions.domain.ImmutableTransactionsConfiguration
 import de.ii.ogcapi.transactions.domain.ImmutableTxDelete
 import de.ii.ogcapi.transactions.domain.Transaction
@@ -85,6 +89,112 @@ class CommandHandlerTransactionsSpec extends Specification {
         then:
         response.status == 200
         executor.seen == 1
+    }
+
+    def 'a failed atomic transaction reports every error and hides rolled-back successes'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        FixedResultExecutor executor = new FixedResultExecutor(result: new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([
+                        actionResult('a1', ActionStatus.FAILED, 'first error'),
+                        actionResult('a2', ActionStatus.FAILED, 'second error'),
+                        actionResult('a3', ActionStatus.ROLLED_BACK, null),
+                        actionResult('a4', ActionStatus.SKIPPED, null),
+                ])
+                .build())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 422
+
+        and: 'one exception per failed action, in request order'
+        List exceptions = (List) json.get('exceptions')
+        exceptions.size() == 2
+        ((Map) exceptions[0]).get('detail') == 'first error'
+        ((Map) exceptions[1]).get('detail') == 'second error'
+
+        and: 'rolled-back and skipped actions are counted but contribute no successes'
+        Map summary = (Map) json.get('summary')
+        summary.get('totalDeleted') == 0
+        summary.get('totalFailed') == 2
+        summary.get('totalRolledBack') == 1
+        summary.get('totalSkipped') == 1
+        ((List) json.get('deleteResults')).isEmpty()
+    }
+
+    def 'a transaction-level error (failed commit or pre-commit hook) is rendered as its own exception'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        FixedResultExecutor executor = new FixedResultExecutor(result: new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([actionResult('a1', ActionStatus.ROLLED_BACK, null)])
+                .transactionError('atomic commit failed: deferred constraint')
+                .build())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 422
+        List exceptions = (List) json.get('exceptions')
+        exceptions.size() == 1
+        ((Map) exceptions[0]).get('title') == 'Transaction failed'
+        ((Map) exceptions[0]).get('detail') == 'atomic commit failed: deferred constraint'
+        ((Map) json.get('summary')).get('totalRolledBack') == 1
+    }
+
+    def 'per-action warnings are rendered with the action label, after the hook warnings'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        FixedResultExecutor executor = new FixedResultExecutor(result: new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([new ImmutableActionResult.Builder()
+                                        .type(TxActionType.DELETE)
+                                        .collectionId('c')
+                                        .actionId('a1')
+                                        .status(ActionStatus.SUCCESS)
+                                        .warnings(['trigger touched a protected row'])
+                                        .build()])
+                .warnings(['pre-commit check: 2 orphaned rows'])
+                .build())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 200
+        ((List) json.get('warnings')) == [
+                'pre-commit check: 2 orphaned rows',
+                'action a1: trigger touched a protected row',
+        ]
+    }
+
+    private static de.ii.ogcapi.transactions.domain.ActionResult actionResult(
+            String actionId, ActionStatus status, String error) {
+        def builder = new ImmutableActionResult.Builder()
+                .type(TxActionType.DELETE)
+                .collectionId('c')
+                .actionId(actionId)
+                .status(status)
+        if (error != null) {
+            builder.error(error)
+        }
+        return builder.build()
     }
 
     private static CommandHandlerTransactions.QueryInputTransaction queryInput(
@@ -162,6 +272,22 @@ class CommandHandlerTransactionsSpec extends Specification {
         @Override
         void close() {
             closed = true
+        }
+    }
+
+    private static class FixedResultExecutor extends CountingExecutor {
+        ExecutionResult result
+
+        @Override
+        ExecutionResult execute(
+                Transaction transaction,
+                OgcApi api,
+                ApiRequestContext requestContext,
+                EpsgCrs requestCrs,
+                HeaderPrefer.Handling handling,
+                Optional<Instant> ogcMutationDatetime) {
+            super.execute(transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
+            return result
         }
     }
 

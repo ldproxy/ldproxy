@@ -31,7 +31,9 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -194,7 +196,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     int status = (atomic && failed) ? 422 : 200;
     String preferenceApplied = preferenceApplied(ret, handling);
 
-    if (ret == HeaderPrefer.Return.NONE && !failed && result.getWarnings().isEmpty()) {
+    if (ret == HeaderPrefer.Return.NONE && !failed && collectWarnings(result).isEmpty()) {
       return Response.noContent().header("Preference-Applied", preferenceApplied).build();
     }
 
@@ -224,6 +226,9 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     summary.put("totalReplaced", result.getReplacedCount());
     summary.put("totalUpdated", result.getUpdatedCount());
     summary.put("totalDeleted", result.getDeletedCount());
+    summary.put("totalFailed", result.getFailedCount());
+    summary.put("totalRolledBack", result.getRolledBackCount());
+    summary.put("totalSkipped", result.getSkippedCount());
 
     ArrayNode insertResults = body.putArray("insertResults");
     ArrayNode replaceResults = body.putArray("replaceResults");
@@ -252,14 +257,43 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
       body.remove("deleteResults");
     }
 
+    result
+        .getTransactionError()
+        .ifPresent(error -> exceptions.add(renderTransactionException(error)));
+
     if (!exceptions.isEmpty()) {
       body.set("exceptions", exceptions);
     }
-    if (!result.getWarnings().isEmpty()) {
+    List<String> allWarnings = collectWarnings(result);
+    if (!allWarnings.isEmpty()) {
       ArrayNode warnings = body.putArray("warnings");
-      result.getWarnings().forEach(warnings::add);
+      allWarnings.forEach(warnings::add);
     }
     return body;
+  }
+
+  /**
+   * Transaction-level hook warnings plus the per-action SQL warnings, the latter prefixed with the
+   * action label so they stay attributable without a schema change to the response.
+   */
+  private static List<String> collectWarnings(ExecutionResult result) {
+    List<String> all = new ArrayList<>(result.getWarnings());
+    for (ActionResult r : result.getActionResults()) {
+      if (r.getWarnings().isEmpty()) {
+        continue;
+      }
+      String label =
+          r.getActionId()
+              .orElseGet(
+                  () ->
+                      r.getType().toString().toLowerCase(java.util.Locale.ROOT)
+                          + "@"
+                          + r.getCollectionId());
+      for (String w : r.getWarnings()) {
+        all.add("action " + label + ": " + w);
+      }
+    }
+    return all;
   }
 
   private static void addExceptionsFor(ActionResult r, ArrayNode exceptions) {
@@ -308,6 +342,19 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
       ArrayNode payloads = ex.putArray("featurePayloads");
       payloads.add(featurePayload);
     }
+    return ex;
+  }
+
+  /**
+   * A failure of the transaction as a whole (pre-commit hook or commit), not attributable to a
+   * single action — rendered without action-level fields.
+   */
+  private static ObjectNode renderTransactionException(String error) {
+    ObjectNode ex = MAPPER.createObjectNode();
+    ex.put("type", "about:blank");
+    ex.put("title", "Transaction failed");
+    ex.put("status", 422);
+    ex.put("detail", error);
     return ex;
   }
 
