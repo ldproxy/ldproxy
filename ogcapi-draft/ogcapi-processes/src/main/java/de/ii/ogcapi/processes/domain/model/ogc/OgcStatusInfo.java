@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model.ogc;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -20,6 +21,26 @@ import org.immutables.value.Value;
 @Value.Modifiable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcStatusInfo.Builder.class)
+@JsonPropertyOrder({
+  "id",
+  "processId",
+  "status",
+  "progress",
+  "processingEntityType",
+  "profileEntityType",
+  "message",
+  "exception",
+  "created",
+  "started",
+  "finished",
+  "updated",
+  "request",
+  "title",
+  "description",
+  "keywords",
+  "metadata",
+  "links"
+})
 public abstract class OgcStatusInfo extends PageRepresentation implements StatusInfo {
 
   public static final String SCHEMA_REF = "#/components/schemas/StatusInfo";

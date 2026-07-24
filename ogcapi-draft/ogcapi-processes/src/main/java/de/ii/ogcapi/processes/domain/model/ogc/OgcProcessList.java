@@ -25,7 +25,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
 @JsonDeserialize(builder = ImmutableOgcProcessList.Builder.class)
-@JsonPropertyOrder({"pro"})
+@JsonPropertyOrder({"processes", "links"})
 public abstract class OgcProcessList extends PageRepresentation {
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessList";
