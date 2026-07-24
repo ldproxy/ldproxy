@@ -8,6 +8,9 @@
 package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -22,6 +25,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
 @JsonDeserialize(builder = ImmutableOgcProcessList.Builder.class)
+@JsonPropertyOrder({"pro"})
 public abstract class OgcProcessList extends PageRepresentation {
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessList";
@@ -30,7 +34,7 @@ public abstract class OgcProcessList extends PageRepresentation {
   public static final Funnel<OgcProcessList> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
-        from.getProcesses().stream()
+        from.getProcessList().stream()
             .sorted(Comparator.comparing(OgcProcessSummary::getId))
             .forEachOrdered(val -> OgcProcessSummary.FUNNEL.funnel(val, into));
         from.getExtensions().keySet().stream()
@@ -38,7 +42,9 @@ public abstract class OgcProcessList extends PageRepresentation {
             .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
       };
 
-  public abstract List<OgcProcessSummary> getProcesses();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  @JsonProperty("processes")
+  public abstract List<OgcProcessSummary> getProcessList();
 
   @JsonAnyGetter
   public abstract Map<String, Object> getExtensions();

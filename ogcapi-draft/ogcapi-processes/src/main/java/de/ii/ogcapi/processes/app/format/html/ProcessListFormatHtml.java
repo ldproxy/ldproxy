@@ -167,7 +167,7 @@ public class ProcessListFormatHtml
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
         .processList(
-            processList.getProcesses().stream()
+            processList.getProcessList().stream()
                 .sorted(Comparator.comparing(ProcessSummary::getId))
                 .toList())
         .breadCrumbs(breadCrumbs)

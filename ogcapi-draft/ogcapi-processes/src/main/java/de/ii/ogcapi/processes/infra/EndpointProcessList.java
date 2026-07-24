@@ -29,7 +29,7 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcesses;
+import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcessList;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.Query;
@@ -47,7 +47,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * @title Processes
+ * @title ProcessList
  * @path processes
  * @langEn Returns a list containing the summaries of a subset of all processes supported by this
  *     API. Supports pagination using links (first, next, prev and last) to discover all subsets.
@@ -58,14 +58,14 @@ import java.util.Set;
  */
 @Singleton
 @AutoBind
-public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
+public class EndpointProcessList extends Endpoint implements ApiExtensionHealth {
 
   private static final List<String> TAGS = ImmutableList.of("Processes");
 
   private final ProcessesQueriesHandler queryHandler;
 
   @Inject
-  public EndpointProcesses(
+  public EndpointProcessList(
       ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
@@ -125,7 +125,7 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
 
   @GET
   @Path("/")
-  public Response getProcesses(@Context OgcApi api, @Context ApiRequestContext requestContext) {
+  public Response getProcessList(@Context OgcApi api, @Context ApiRequestContext requestContext) {
 
     if (!isEnabledForApi(api.getData()))
       throw new NotFoundException("Processes are not available in this API.");
@@ -148,8 +148,8 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
       }
     }
 
-    ProcessesQueriesHandler.QueryInputProcesses queryInput =
-        new ImmutableQueryInputProcesses.Builder()
+    ProcessesQueriesHandler.QueryInputProcessList queryInput =
+        new ImmutableQueryInputProcessList.Builder()
             .from(getGenericQueryInput(api.getData()))
             // We just .get() because of the default values
             .offset(offset.get())
@@ -161,7 +161,7 @@ public class EndpointProcesses extends Endpoint implements ApiExtensionHealth {
                     .getDefaultPageSize())
             .build();
 
-    return queryHandler.handle(Query.PROCESSES, queryInput, requestContext);
+    return queryHandler.handle(Query.PROCESS_LIST, queryInput, requestContext);
   }
 
   @Override
