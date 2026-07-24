@@ -555,7 +555,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                 .map(
                     url ->
                         extensionRegistry.getExtensionsForType(Profile.class).stream()
-                            .filter(p -> url.equals(ProfileExtension.getUri(p)))
+                            .filter(p -> url.equalsIgnoreCase(ProfileExtension.getUri(p)))
                             .findFirst())
                 .filter(Optional::isPresent)
                 .map(Optional::get)

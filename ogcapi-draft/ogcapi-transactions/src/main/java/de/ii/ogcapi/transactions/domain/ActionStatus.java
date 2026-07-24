@@ -19,5 +19,11 @@ public enum ActionStatus {
   SKIPPED,
 
   /** Action ran or was rejected before any change was made and produced an error. */
-  FAILED
+  FAILED,
+
+  /**
+   * Atomic-only: action ran successfully, but its changes were undone because the transaction as a
+   * whole failed (a sibling action failed, or the commit was aborted).
+   */
+  ROLLED_BACK
 }

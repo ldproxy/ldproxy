@@ -41,6 +41,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
+import de.ii.ogcapi.foundation.domain.SecureXml;
 import de.ii.xtraplatform.blobs.domain.Blob;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.codelists.domain.Codelist;
@@ -91,7 +92,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -101,6 +101,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -731,7 +732,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     }
     Validator validator = borrowValidator(schema);
     try {
-      validator.validate(new StreamSource(new StringReader(content)));
+      // The instance document is attacker-supplied (WFS-T request body); parse it through a reader
+      // hardened against XXE and entity expansion. See SecureXml.
+      validator.validate(SecureXml.source(new InputSource(new StringReader(content))));
     } catch (SAXException e) {
       throw new IllegalArgumentException(
           "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
@@ -751,6 +754,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     } else {
       validator.reset();
     }
+    // reset() reverts validator configuration, so (re-)apply the hardening on every borrow.
+    SecureXml.harden(validator);
     return validator;
   }
 
@@ -819,8 +824,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                     .flatMap(
                         cfg -> {
                           Map<String, String> catalog = cfg.getXsdCatalog();
-                          SchemaFactory factory =
-                              SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                          SchemaFactory factory = SecureXml.schemaFactory();
                           factory.setResourceResolver(new XsdCatalogResolver(catalog));
                           try {
                             return Optional.of(

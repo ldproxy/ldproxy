@@ -25,6 +25,7 @@ import org.immutables.value.Value;
  *   batch: true
  *   wfsTransaction: false
  *   defaultSemantic: ATOMIC
+ *   collectErrors: true
  * ```
  *
  * Per-collection partial-update whitelist (allows `wfs:Update` / JSON-transaction `update`
@@ -137,6 +138,35 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   Integer getMaxActionsPerRequest();
+
+  /**
+   * @langEn Only relevant for atomic semantics. When enabled, a failing action does not stop the
+   *     processing of the transaction: the remaining actions are still executed, every error is
+   *     collected, and the response reports all of them, while all changes are still rolled back.
+   *     This lets clients fix every error in a large transaction in one pass instead of one error
+   *     per attempt. Later actions see the changes of earlier successful actions, but not those of
+   *     failed actions — an action that depends on a failed action therefore typically reports a
+   *     follow-on error. Each action adds a small database overhead (a savepoint), which can be
+   *     noticeable in very large transactions. Requires a SQL feature provider; otherwise the
+   *     option is ignored. When disabled, processing stops at the first error, the remaining
+   *     actions are skipped, and only the first error is reported.
+   * @langDe Nur für atomare Semantik relevant. Wenn aktiviert, beendet eine fehlschlagende Aktion
+   *     die Verarbeitung der Transaktion nicht: Die verbleibenden Aktionen werden trotzdem
+   *     ausgeführt, alle Fehler werden gesammelt und in der Antwort gemeldet, während alle
+   *     Änderungen dennoch zurückgerollt werden. Clients können so alle Fehler einer großen
+   *     Transaktion in einem Durchgang beheben statt einen Fehler pro Versuch. Spätere Aktionen
+   *     sehen die Änderungen früherer erfolgreicher Aktionen, nicht aber die fehlgeschlagener
+   *     Aktionen — eine Aktion, die von einer fehlgeschlagenen Aktion abhängt, meldet daher in der
+   *     Regel einen Folgefehler. Jede Aktion verursacht einen kleinen Mehraufwand in der Datenbank
+   *     (einen Savepoint), der bei sehr großen Transaktionen spürbar sein kann. Erfordert einen
+   *     SQL-Feature-Provider; andernfalls wird die Option ignoriert. Wenn deaktiviert, stoppt die
+   *     Verarbeitung beim ersten Fehler, die verbleibenden Aktionen werden übersprungen und nur der
+   *     erste Fehler wird gemeldet.
+   * @default false
+   * @since v4.8
+   */
+  @Nullable
+  Boolean getCollectErrors();
 
   /**
    * @langEn Whitelist of feature properties that may be the target of a partial update (the

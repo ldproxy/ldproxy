@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.SecureXml;
 import de.ii.ogcapi.transactions.domain.CompositeId;
 import de.ii.ogcapi.transactions.domain.MutationStrategy;
 import de.ii.ogcapi.transactions.domain.TxAction;
@@ -334,15 +335,7 @@ public class VersionedMutationStrategy implements MutationStrategy {
   private static final String DEFAULT_TIMESTAMP_FORMAT = "yyyyMMdd'T'HHmmss'Z'";
 
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-  private static final XMLInputFactory XML_INPUT_FACTORY = newSecureXmlInputFactory();
-
-  private static XMLInputFactory newSecureXmlInputFactory() {
-    XMLInputFactory f = XMLInputFactory.newInstance();
-    // Defensive: disable DTD/external-entity processing on the read-only scan.
-    f.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
-    f.setProperty("javax.xml.stream.isSupportingExternalEntities", Boolean.FALSE);
-    return f;
-  }
+  private static final XMLInputFactory XML_INPUT_FACTORY = SecureXml.inputFactory();
 
   @Override
   public Optional<Instant> extractPrimaryIntervalStart(
