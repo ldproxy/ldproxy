@@ -28,12 +28,12 @@ public interface ProcessesQueriesHandler
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
 
   enum Query implements QueryIdentifier {
-    PROCESSES,
+    PROCESS_LIST,
     PROCESS
   }
 
   @Value.Immutable
-  interface QueryInputProcesses extends QueryInput {
+  interface QueryInputProcessList extends QueryInput {
 
     Integer getOffset();
 

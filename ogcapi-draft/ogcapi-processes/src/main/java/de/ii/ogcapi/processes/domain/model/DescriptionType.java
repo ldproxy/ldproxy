@@ -8,10 +8,10 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcMetadata;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo Add missing properties
 public interface DescriptionType {
 
   Optional<String> getTitle();
@@ -21,6 +21,6 @@ public interface DescriptionType {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getKeywords();
 
-  // @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  // List<MetaData> getMetaData();
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<OgcMetadata> getMetadata();
 }

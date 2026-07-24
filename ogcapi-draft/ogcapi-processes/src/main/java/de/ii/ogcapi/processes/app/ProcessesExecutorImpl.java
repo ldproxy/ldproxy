@@ -286,6 +286,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return resultsMap.get(jobId);
   }
 
+  // ToDo Per Recommendation 24 the updated field should be updated whenever there is a status
+  // change and not a progress change
   private void setRunning(String jobId, Optional<OgcSubscriber> subscriber) {
     ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
 
