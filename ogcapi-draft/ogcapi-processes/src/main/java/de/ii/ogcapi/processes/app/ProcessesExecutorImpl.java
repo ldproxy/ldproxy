@@ -16,9 +16,11 @@ import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.StatusInfo.StatusCode;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcException;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults.Builder;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ModifiableOgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ogc.OgcException;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
@@ -30,13 +32,14 @@ import de.ii.xtraplatform.web.domain.HttpClient;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -76,7 +79,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
               "EchoProcess",
               this::echoProcess,
               "AdditionProcess",
-              this::additionProcess);
+              this::additionProcess,
+              "ArrayProcess",
+              this::arrayProcess);
 
   @Inject
   ProcessesExecutorImpl(ProcessRepository processRepository, Http http, Jackson jackson) {
@@ -154,7 +159,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
             statusInfo.setFinished(Instant.now());
             setSuccess(jobId, subscriber);
           } catch (Exception e) {
-            // jobsMap.get(jobId).setException...
+            LogContext.error(LOGGER, e, "Process '{}' failed for job ''", processId, jobId);
+            OgcException ogcException =
+                new ImmutableOgcException.Builder().type(e.toString()).build();
+            jobsMap.get(jobId).setException(ogcException);
+            jobsMap.get(jobId).setMessage(e.getMessage());
             setFailed(jobId, subscriber);
           }
         },
@@ -171,7 +180,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<Map<String, Object>> getResults(String jobId) {
-    if ((jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL) || !jobsMap.containsKey(jobId)) {
+    if ((!jobsMap.containsKey(jobId))
+        || (jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL)) {
       return Optional.empty();
     }
 
@@ -272,7 +282,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private ModifiableOgcStatusInfo getStatusInfoDirect(String jobId) {
     if (!jobsMap.containsKey(jobId)) {
-      throw new NoSuchElementException("No job found with job id '" + jobId + "'.");
+      throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
 
     return jobsMap.get(jobId);
@@ -280,7 +290,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private Map<String, Object> getResultsDirect(String jobId) {
     if ((jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL) || !jobsMap.containsKey(jobId)) {
-      throw new NoSuchElementException("No results found for job '" + jobId + "'.");
+      throw new NotFoundException("No results found for job '" + jobId + "'.");
     }
 
     return resultsMap.get(jobId);
@@ -469,7 +479,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private Map<String, Object> additionProcess(
       Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
     if (!inputs.containsKey("firstAddend") || !inputs.containsKey("secondAddend")) {
-      throw new RuntimeException("Wrong inputs");
+      throw new BadRequestException("Wrong inputs");
     }
 
     int firstAddend = (Integer) inputs.get("firstAddend");
@@ -480,5 +490,22 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     return Map.of();
+  }
+
+  private Map<String, Object> arrayProcess(
+      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
+    if (!inputs.containsKey("lengthN")) {
+      throw new BadRequestException("Wrong inputs");
+    }
+
+    int lengthN = (Integer) inputs.get("lengthN");
+
+    if (lengthN <= 0) {
+      throw new RuntimeException("Wrong inputs");
+    }
+
+    List<Integer> arr = new ArrayList<>(lengthN);
+    for (int i = 1; i <= lengthN; i++) arr.add(i);
+    return Map.of("arrayN", arr);
   }
 }

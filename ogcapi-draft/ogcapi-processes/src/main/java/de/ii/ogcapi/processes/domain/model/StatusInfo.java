@@ -7,13 +7,14 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import de.ii.ogcapi.processes.domain.model.ogc.OgcException;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.Optional;
+import org.immutables.value.Value;
 
-// ToDo Add missing properties
 public interface StatusInfo {
 
   enum StatusCode {
@@ -24,13 +25,37 @@ public interface StatusInfo {
     DISMISSED
   }
 
+  enum Api {
+    OGC_API_PROCESSES,
+    OPENNEO,
+    OGC_API_FEATURES,
+    OGC_API_COVERAGES,
+    OGC_API_EDR,
+    OGC_API_TILES,
+    OGC_API_MOVING_FEATURES,
+    OGC_API_SENSOR_THINGS,
+    OGC_API_RECORDS,
+    OGC_API_DGGS,
+    STAC_API
+  }
+
   String getId();
 
   String getProcessId();
 
-  // Optional<ProcessingEntityType> getProcessingEntityType;
+  // The type of entity that created the job and is doing the processing.
+  @Value.Default
+  default Api getProcessingEntityType() {
+    return Api.OGC_API_PROCESSES;
+  }
 
-  // Optional<ProfileEntityType> getProfileEntityType;
+  // The type of entity requesting this status information.  This may be differernt than the
+  // processing entity.  For example, the processing entity may be OGC API Processes but the status
+  // information is requested via the OpenEO API.
+  @Value.Default
+  default Api getProfileEntityType() {
+    return Api.OGC_API_PROCESSES;
+  }
 
   Optional<OgcExecute> getRequest();
 
@@ -38,7 +63,7 @@ public interface StatusInfo {
 
   Optional<String> getMessage();
 
-  // Optional<Exception> getException();
+  Optional<OgcException> getException();
 
   Optional<Instant> getCreated();
 

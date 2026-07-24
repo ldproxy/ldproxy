@@ -47,14 +47,14 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
   }
 
   @Value.Immutable
-  interface QueryInputResultsSpecfic extends QueryInput {
+  interface QueryInputResultsSpecific extends QueryInput {
     String getJobId();
 
     String getOutputId();
   }
 
   @Value.Immutable
-  interface QueryInputResultsSpecficN extends QueryInput {
+  interface QueryInputResultsSpecificN extends QueryInput {
     String getJobId();
 
     String getOutputId();

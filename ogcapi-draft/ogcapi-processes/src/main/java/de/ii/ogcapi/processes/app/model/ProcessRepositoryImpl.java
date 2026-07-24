@@ -19,9 +19,9 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.NotFoundException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -66,7 +66,7 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   @Override
   public Process getDirect(String processId) {
     if (!processMap.containsKey(processId)) {
-      throw new NoSuchElementException("No process found with process id '" + processId + "'.");
+      throw new NotFoundException("No process found with process id '" + processId + "'.");
     }
     return processMap.get(processId);
   }

@@ -28,8 +28,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputResults;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecfic;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecficN;
+import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecific;
+import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecificN;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
@@ -258,8 +258,8 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
 
     checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputResultsSpecfic queryInput =
-        new ImmutableQueryInputResultsSpecfic.Builder()
+    JobQueriesHandler.QueryInputResultsSpecific queryInput =
+        new ImmutableQueryInputResultsSpecific.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
             .outputId(outputId)
@@ -282,8 +282,8 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
 
     checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputResultsSpecficN queryInput =
-        new ImmutableQueryInputResultsSpecficN.Builder()
+    JobQueriesHandler.QueryInputResultsSpecificN queryInput =
+        new ImmutableQueryInputResultsSpecificN.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
             .outputId(outputId)
