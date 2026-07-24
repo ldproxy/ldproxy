@@ -84,10 +84,10 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             Query.RESULTS,
             QueryHandler.with(QueryInputResults.class, this::getJobResultsResponse),
             Query.RESULTS_SPECIFIC,
-            QueryHandler.with(QueryInputResultsSpecfic.class, this::getJobResultsResponseSpecific),
+            QueryHandler.with(QueryInputResultsSpecific.class, this::getJobResultsResponseSpecific),
             Query.RESULTS_SPECIFIC_N,
             QueryHandler.with(
-                QueryInputResultsSpecficN.class, this::getJobResultsResponseSpecificN),
+                QueryInputResultsSpecificN.class, this::getJobResultsResponseSpecificN),
             Query.DISMISS,
             QueryHandler.with(QueryInputDismiss.class, this::dismissJobResponse));
 
@@ -117,10 +117,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    StatusInfo statusInfo =
-        processesExecutor
-            .getStatusInfo(jobId)
-            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
+    StatusInfo statusInfo = getStatusInfo(jobId);
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
@@ -169,8 +166,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
-    StatusInfo statusInfo = getStatusInfo(jobId);
-    Map<String, Object> jobResults = getResults(jobId, statusInfo);
+    Map<String, Object> jobResults = getResults(jobId);
 
     OgcResults results = new ImmutableOgcResults.Builder().additionalProperties(jobResults).build();
 
@@ -187,7 +183,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   }
 
   private Response getJobResultsResponseSpecific(
-      QueryInputResultsSpecfic queryInput, ApiRequestContext requestContext) {
+      QueryInputResultsSpecific queryInput, ApiRequestContext requestContext) {
     OgcApi api = requestContext.getApi();
     ValuesFormatExtension outputFormat =
         api.getOutputFormat(
@@ -202,7 +198,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     StatusInfo statusInfo = getStatusInfo(jobId);
-    Map<String, Object> jobResults = getResults(jobId, statusInfo);
+    Map<String, Object> jobResults = getResults(jobId);
     validateOutputId(jobId, outputId, statusInfo, jobResults);
 
     OgcValues results =
@@ -221,7 +217,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   }
 
   private Response getJobResultsResponseSpecificN(
-      QueryInputResultsSpecficN queryInput, ApiRequestContext requestContext) {
+      QueryInputResultsSpecificN queryInput, ApiRequestContext requestContext) {
     OgcApi api = requestContext.getApi();
     ValuesFormatExtension outputFormat =
         api.getOutputFormat(
@@ -237,13 +233,10 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String outputId = queryInput.getOutputId();
     int indexN = queryInput.getIndexN();
     StatusInfo statusInfo = getStatusInfo(jobId);
-    Map<String, Object> jobResults = getResults(jobId, statusInfo);
+    Map<String, Object> jobResults = getResults(jobId);
     validateOutputId(jobId, outputId, statusInfo, jobResults);
 
     int maxOccurs = getMaxOccurs(jobId, outputId, statusInfo);
-
-    Object specficResult;
-
     if (maxOccurs < (indexN + 1)) {
       throw new BadRequestException(
           "Out-of-bound: "
@@ -256,18 +249,31 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
               + ".");
     }
 
-    if (indexN <= 1) {
-      specficResult = jobResults.get(outputId);
-    } else {
-      if (!(jobResults.get(outputId) instanceof ArrayList<?>)) {
+    Object specificResult;
+    if (!(jobResults.get(outputId) instanceof ArrayList<?> arrayList)) {
+      // Necessary to support requirement 50
+      if (indexN <= 0) {
+        specificResult = jobResults.get(outputId);
+      } else {
         throw new ServerErrorException("Result of output '" + outputId + "' is not an Array.", 500);
       }
+    } else {
+      if (arrayList.size() <= indexN) {
+        throw new BadRequestException(
+            "Out-of-bound: "
+                + "Attempting to access element at index "
+                + indexN
+                + " of output '"
+                + outputId
+                + "' with size "
+                + arrayList.size()
+                + ".");
+      }
 
-      specficResult = ((ArrayList<?>) jobResults.get(outputId)).get(indexN);
+      specificResult = arrayList.get(indexN);
     }
 
-    OgcValues results = new ImmutableOgcValues.Builder().inlineOrRefValue(specficResult).build();
-
+    OgcValues results = new ImmutableOgcValues.Builder().inlineOrRefValue(specificResult).build();
     return prepareSuccessResponse(
             requestContext,
             null,
@@ -294,7 +300,10 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
-    StatusInfo statusInfo = processesExecutor.dismissJob(jobId).orElseThrow();
+    StatusInfo statusInfo =
+        processesExecutor
+            .dismissJob(jobId)
+            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
@@ -331,10 +340,12 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
   /*** Helper methods ***/
   private StatusInfo getStatusInfo(String jobId) {
-    return processesExecutor.getStatusInfo(jobId).orElseThrow();
+    return processesExecutor
+        .getStatusInfo(jobId)
+        .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
   }
 
-  private Map<String, Object> getResults(String jobId, StatusInfo statusInfo) {
+  private Map<String, Object> getResults(String jobId) {
     return processesExecutor
         .getResults(jobId)
         .orElseThrow(() -> new NotFoundException("Job '" + jobId + " ' did not finish or failed."));
