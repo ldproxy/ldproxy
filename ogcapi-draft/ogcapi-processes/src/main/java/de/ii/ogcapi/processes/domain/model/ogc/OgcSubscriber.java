@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model.ogc;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -18,6 +19,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcSubscriber.Builder.class)
+@JsonPropertyOrder({"successUri", "inProgressUri", "failedUri"})
 /** Optional URIs for callbacks for asynchronous execution. */
 public interface OgcSubscriber {
 
