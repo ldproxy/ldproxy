@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model.ogc;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcMetadata.Builder.class)
+@JsonPropertyOrder({"role", "title", "lang", "value"})
 public interface OgcMetadata {
 
   String SCHEMA_REF = "#/components/schemas/Metadata";
