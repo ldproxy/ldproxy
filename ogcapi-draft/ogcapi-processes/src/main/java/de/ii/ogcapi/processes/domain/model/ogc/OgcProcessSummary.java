@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model.ogc;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -16,6 +17,16 @@ import org.immutables.value.Value;
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
 @JsonDeserialize(builder = ImmutableOgcProcessSummary.Builder.class)
+@JsonPropertyOrder({
+  "id",
+  "version",
+  "jobControlOptions",
+  "title",
+  "description",
+  "keywords",
+  "metadata",
+  "links"
+})
 public abstract class OgcProcessSummary extends ProcessSummaryBase {
 
   public static final String SCHEMA_REF = "#/components/schemas/ProcessSummary";

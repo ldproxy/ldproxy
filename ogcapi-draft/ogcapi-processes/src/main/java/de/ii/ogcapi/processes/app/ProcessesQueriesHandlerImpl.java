@@ -73,8 +73,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     this.queryHandlers =
         ImmutableMap.of(
-            Query.PROCESSES,
-            QueryHandler.with(QueryInputProcesses.class, this::getProcessesResponse),
+            Query.PROCESS_LIST,
+            QueryHandler.with(QueryInputProcessList.class, this::getProcessListResponse),
             Query.PROCESS,
             QueryHandler.with(QueryInputProcess.class, this::getProcessResponse));
 
@@ -90,8 +90,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     return queryHandlers;
   }
 
-  private Response getProcessesResponse(
-      QueryInputProcesses queryInput, ApiRequestContext requestContext) {
+  private Response getProcessListResponse(
+      QueryInputProcessList queryInput, ApiRequestContext requestContext) {
     OgcApi api = requestContext.getApi();
 
     ProcessListFormatExtension outputFormat =
@@ -126,7 +126,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcProcessList processList =
         ImmutableOgcProcessList.builder()
-            .processes(
+            .processList(
                 processIds.stream()
                     .skip(offset)
                     .limit(limit)
@@ -137,10 +137,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(
                         processSummary ->
                             ImmutableOgcProcessSummary.builder()
-                                .id(processSummary.getId())
-                                .title(processSummary.getTitle())
-                                .version(processSummary.getVersion())
-                                .jobControlOptions(processSummary.getJobControlOptions())
+                                .from(processSummary)
                                 .links(
                                     linkGenerator.generateProcessLink(
                                         requestContext.getUriCustomizer(),

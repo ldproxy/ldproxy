@@ -15,6 +15,16 @@
     </div>
 
     <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Job Control Options</div>
+      <div class="col-md-10">
+        {{#jobControlOptions}}
+          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
+        {{/jobControlOptions}}
+        {{^jobControlOptions}}None{{/jobControlOptions}}
+      </div>
+    </div>
+
+    <div class="row my-3">
       <div class="col-md-2 font-weight-bold">Title</div>
       <div class="col-md-10">
         {{#title}}{{.}}{{/title}}{{^title}}None{{/title}}
@@ -39,14 +49,26 @@
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Job Control Options</div>
+      <div class="col-md-2 font-weight-bold">Metadata</div>
       <div class="col-md-10">
-        {{#jobControlOptions}}
-          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
-        {{/jobControlOptions}}
-        {{^jobControlOptions}}None{{/jobControlOptions}}
+        {{#metadata}}
+          {{#.}}
+            <div class="row">
+              <div class="col-md-10">{{#role}}Role: {{.}}{{/role}}</div>
+            </div>
+            <div class="row">
+              <div class="col-md-10">{{#title}}Title: {{.}}{{/title}}</div>
+            </div>
+            <div class="row">
+              <div class="col-md-10">{{#lang}}Lang: {{.}}{{/lang}}</div>
+            </div>
+            <hr>
+          {{/.}}
+        {{/metadata}}
+        {{^metadata}}None{{/metadata}}
       </div>
     </div>
+
   {{/process}}
 </div>
 
