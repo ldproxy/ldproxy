@@ -41,8 +41,8 @@ class ToInputProfileSpec extends Specification {
                 .putObjectTypeNamespaces('CI_ResponsibleParty', 'gmd')
                 .putCodelistProperties('anl', 'AA_Anlassart')
                 .putCodelistProperties('som', 'AA_WeitereModellart')
-                .putValueWrap('lebenszeitintervall', ['AA_Lebenszeitintervall', 'beginnt'])
-                .putValueWrap('qag.dpl.prs.des', ['AX_LI_ProcessStep_MitDatenerhebung_Description'])
+                .putXmlPaths('lzi_beg', ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'beginnt'])
+                .putXmlPaths('qag.dpl.prs.des', ['gmd:description', 'AX_LI_ProcessStep_MitDatenerhebung_Description'])
                 .addXmlAttributes('mat.som.codeListValue')
                 .addObjectTypeSuffixedProperties('gehoertZuBauwerk')
                 .addUomMappings(new ImmutableUomMapping.Builder()
@@ -87,9 +87,9 @@ class ToInputProfileSpec extends Specification {
         ]
         profile.objectTypeNamespaces == [LI_Lineage: 'gmd', CI_ResponsibleParty: 'gmd']
         profile.codelistProperties == [anl: 'AA_Anlassart', som: 'AA_WeitereModellart']
-        profile.valueWrap == [
-                lebenszeitintervall: ['AA_Lebenszeitintervall', 'beginnt'],
-                'qag.dpl.prs.des': ['AX_LI_ProcessStep_MitDatenerhebung_Description']
+        profile.xmlPaths == [
+                lzi_beg: ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'beginnt'],
+                'qag.dpl.prs.des': ['gmd:description', 'AX_LI_ProcessStep_MitDatenerhebung_Description']
         ]
         profile.xmlAttributes == ['mat.som.codeListValue']
 
@@ -140,7 +140,7 @@ class ToInputProfileSpec extends Specification {
         profile.uomMappings.isEmpty()
         profile.variableObjectElementNames.isEmpty()
         profile.codelistProperties.isEmpty()
-        profile.valueWrap.isEmpty()
+        profile.xmlPaths.isEmpty()
         profile.xmlAttributes.isEmpty()
         profile.applicationNamespaces.isEmpty()
         profile.objectTypeNamespaces.isEmpty()

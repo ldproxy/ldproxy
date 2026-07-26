@@ -510,7 +510,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 touchedIdsByCollection,
                 validate,
                 strategy,
-                mutationTimestamp);
+                mutationTimestamp,
+                fromWfs);
         case UPDATE ->
             runUpdate(
                 (TxUpdate) action,
@@ -831,7 +832,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       Map<String, Set<String>> touchedIdsByCollection,
       boolean validate,
       MutationStrategy strategy,
-      Instant mutationTimestamp) {
+      Instant mutationTimestamp,
+      boolean fromWfs) {
     Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
@@ -904,7 +906,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         // retire itself sets the retired row's SUCCESSOR_INTERVAL_START to the same ts.
         //
         // Body-extracted retire timestamp: in client mode the new version's start lives in the
-        // Replace body's lzi.beg; using it as the retire timestamp gives v1 a contiguous
+        // Replace body's lifetime start element; using it as the retire timestamp gives v1 a
+        // contiguous
         // interval [old_start, new_start] instead of leaving end = now (the scopeTimestamp
         // placeholder). Falls back to mutationTimestamp when the body has no recognisable
         // start.
@@ -913,7 +916,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         Instant retireTimestamp =
             strategy
                 .extractPrimaryIntervalStart(
-                    apiData, collectionSchemaForReplace, action.getMediaType(), action.getFeature())
+                    apiData,
+                    collectionSchemaForReplace,
+                    action.getMediaType(),
+                    action.getFeature(),
+                    gmlXmlPaths(apiData, canonicalCollectionId),
+                    fromWfs
+                        ? gmlUseAlias(apiData, canonicalCollectionId)
+                        : geoJsonUseAlias(apiData, canonicalCollectionId))
                 .orElse(mutationTimestamp);
         Optional<String> predecessorStart = session.getOpenVersionStart(featureType, id);
         MutationResult retire =
@@ -1108,6 +1118,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         fromWfs
             ? gmlUseAlias(apiData, canonicalCollectionId)
             : geoJsonUseAlias(apiData, canonicalCollectionId);
+    Map<String, List<String>> xmlPaths =
+        fromWfs ? gmlXmlPaths(apiData, canonicalCollectionId) : Map.of();
     Set<List<String>> whitelist =
         new java.util.HashSet<>(updatablePaths(apiData, canonicalCollectionId));
 
@@ -1125,8 +1137,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           nv.getPath(),
           inputUseAlias,
           inputHasObjectTypeSteps,
+          xmlPaths,
           whitelist,
-          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, crs),
+          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, xmlPaths, crs),
           canonicalCollectionId);
     }
     for (TxUpdate.NameValue nv : action.getModify()) {
@@ -1136,8 +1149,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
           nv.getPath(),
           inputUseAlias,
           inputHasObjectTypeSteps,
+          xmlPaths,
           whitelist,
-          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, crs),
+          nameValueAsJson(nv, rootSchema, inputUseAlias, inputHasObjectTypeSteps, xmlPaths, crs),
           canonicalCollectionId);
     }
     java.util.Set<List<String>> clearedPaths = new java.util.LinkedHashSet<>();
@@ -1148,6 +1162,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
               path,
               inputUseAlias,
               inputHasObjectTypeSteps,
+              xmlPaths,
               whitelist,
               canonicalCollectionId);
       clearedPaths.add(canonical);
@@ -1171,6 +1186,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       List<String> inputPath,
       boolean inputUseAlias,
       boolean inputHasObjectTypeSteps,
+      Map<String, List<String>> xmlPaths,
       Set<List<String>> whitelist,
       JsonNode value,
       String canonicalCollectionId) {
@@ -1180,6 +1196,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             inputPath,
             inputUseAlias,
             inputHasObjectTypeSteps,
+            xmlPaths,
             whitelist,
             canonicalCollectionId);
     byPath.computeIfAbsent(canonical, k -> new ArrayList<>()).add(value);
@@ -1193,13 +1210,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       FeatureSchema rootSchema,
       boolean inputUseAlias,
       boolean inputHasObjectTypeSteps,
+      Map<String, List<String>> xmlPaths,
       EpsgCrs crs) {
     if (nv.getValueXml().isEmpty()) {
       return nv.getValue();
     }
     List<FeatureSchema> resolved =
         UpdatePathResolver.resolve(
-            rootSchema, nv.getPath(), inputUseAlias, inputHasObjectTypeSteps);
+            rootSchema, nv.getPath(), inputUseAlias, inputHasObjectTypeSteps, xmlPaths);
     if (resolved.isEmpty()) {
       throw new IllegalArgumentException(
           "Could not resolve property path for <wfs:Value> XML content.");
@@ -1228,10 +1246,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       List<String> inputPath,
       boolean inputUseAlias,
       boolean inputHasObjectTypeSteps,
+      Map<String, List<String>> xmlPaths,
       Set<List<String>> whitelist,
       String canonicalCollectionId) {
     List<FeatureSchema> resolved =
-        UpdatePathResolver.resolve(root, inputPath, inputUseAlias, inputHasObjectTypeSteps);
+        UpdatePathResolver.resolve(
+            root, inputPath, inputUseAlias, inputHasObjectTypeSteps, xmlPaths);
     List<String> canonicalPath = UpdatePathResolver.toOutputPath(resolved, false);
     if (!whitelist.contains(canonicalPath)) {
       throw new IllegalArgumentException(
@@ -1263,6 +1283,19 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             () ->
                 new IllegalStateException(
                     "No feature schema for collection '" + canonicalCollectionId + "'"));
+  }
+
+  // The GML building block's xmlPaths chains for the collection: the element structures a
+  // wfs:ValueReference may use to address a property whose own element the NAS wire form does not
+  // carry (a flat property encoded as a nested chain).
+  private static Map<String, List<String>> gmlXmlPaths(
+      OgcApiDataV2 apiData, String canonicalCollectionId) {
+    FeatureTypeConfigurationOgcApi collectionCfg =
+        resolveCollection(apiData, canonicalCollectionId);
+    return collectionCfg
+        .getExtension(GmlConfiguration.class)
+        .map(GmlConfiguration::getXmlPaths)
+        .orElse(Map.of());
   }
 
   private static boolean gmlUseAlias(OgcApiDataV2 apiData, String canonicalCollectionId) {

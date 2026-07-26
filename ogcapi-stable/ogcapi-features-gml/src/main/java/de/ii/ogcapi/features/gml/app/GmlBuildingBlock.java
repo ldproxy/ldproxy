@@ -79,10 +79,12 @@ import java.util.Optional;
  *   instead. The element is placed in the namespace of its parent object type as declared by
  *   `objectTypeNamespaces`. An explicit `prefix:name` in the schema or a `rename`
  *   transformation takes precedence over both the inherited namespace and the alias.
- * - Properties listed in `valueWrap` have their scalar value wrapped in one or more nested
- *   XML elements declared in the configuration (outer to inner), with the value appearing
- *   inside the innermost wrapper. This is useful for application schemas that nest atomic
- *   values inside wrapper types.
+ * - Properties listed in `xmlPaths` are encoded as the complete chain of XML elements
+ *   declared in the configuration (outer to inner), with the value appearing inside the
+ *   innermost element; consecutive properties whose chains share leading elements are encoded
+ *   inside one instance of the shared wrapper elements. This is useful for application
+ *   schemas that nest atomic values inside wrapper types, and to encode flat properties as
+ *   nested structures.
  *     </code>
  * @scopeDe Bei einem WFS-Feature-Provider werden die Features als GML vom WFS abgerufen und in die
  *     Antwort umgeschrieben. Im Falle von *Features* ist das Wurzelelement `sf:FeatureCollection`.
@@ -145,10 +147,13 @@ import java.util.Optional;
  *   kodiert. Das Element wird im Namensraum seines übergeordneten Objekttyps platziert, wie
  *   in `objectTypeNamespaces` deklariert. Ein explizit angegebenes `prefix:name` im Schema
  *   oder eine `rename`-Transformation hat Vorrang vor dem geerbten Namensraum und dem Alias.
- * - Eigenschaften, die in `valueWrap` aufgeführt sind, haben ihren skalaren Wert in ein oder
- *   mehrere geschachtelte XML-Elemente eingebettet, die in der Konfiguration deklariert sind
- *   (von außen nach innen); der Wert steht innerhalb des innersten Wrappers. Dies ist
- *   nützlich für Anwendungsschemata, die atomare Werte in Wrappertypen einbetten.
+ * - Eigenschaften, die in `xmlPaths` aufgeführt sind, werden als die vollständige, in der
+ *   Konfiguration deklarierte Kette von XML-Elementen kodiert (von außen nach innen); der
+ *   Wert steht innerhalb des innersten Elements. Aufeinanderfolgende Eigenschaften, deren
+ *   Ketten mit denselben Elementen beginnen, werden innerhalb einer Instanz der geteilten
+ *   Wrapper-Elemente kodiert. Dies ist nützlich für Anwendungsschemata, die atomare Werte in
+ *   Wrappertypen einbetten, sowie um flache Eigenschaften als geschachtelte Strukturen zu
+ *   kodieren.
  *     </code>
  * @conformanceEn In general, *Features GML* implements all requirements of conformance class
  *     *Geography Markup Language (GML), Simple Features Profile, Level 0* and *Geography Markup

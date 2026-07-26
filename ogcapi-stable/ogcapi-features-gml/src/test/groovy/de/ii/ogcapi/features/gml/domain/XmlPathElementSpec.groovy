@@ -10,12 +10,12 @@ package de.ii.ogcapi.features.gml.domain
 import spock.lang.Specification
 import spock.lang.Unroll
 
-class ValueWrapElementSpec extends Specification {
+class XmlPathElementSpec extends Specification {
 
     @Unroll
     def 'parses "#entry"'() {
         when:
-        def el = ValueWrapElement.parse(entry)
+        def el = XmlPathElement.parse(entry)
 
         then:
         el.getName() == name
@@ -36,7 +36,7 @@ class ValueWrapElementSpec extends Specification {
     @Unroll
     def 'rejects "#entry"'() {
         when:
-        ValueWrapElement.parse(entry)
+        XmlPathElement.parse(entry)
 
         then:
         thrown(IllegalArgumentException)
@@ -48,7 +48,7 @@ class ValueWrapElementSpec extends Specification {
     @Unroll
     def 'toString round-trips "#entry"'() {
         expect:
-        ValueWrapElement.parse(entry).toString() == entry
+        XmlPathElement.parse(entry).toString() == entry
 
         where:
         entry << ['beginnt', 'gco:Record[xsi:type=gml:doubleList]', 'gmd:valueUnit[xlink:href=urn:adv:uom:m]/']

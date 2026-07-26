@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * One parsed element of a {@code valueWrap} chain. The configured entry syntax is {@code
+ * One parsed segment of an {@code xmlPaths} chain. The configured segment syntax is {@code
  * name([attribute=value])*}, optionally followed by a trailing {@code /}: without it the element
  * wraps the remainder of the chain (and eventually the property value); with it the element is
  * <em>empty</em> and injected into the chain at its position — written with its attributes and
@@ -21,24 +21,24 @@ import java.util.Objects;
  * {@code DQ_QuantitativeResult}, which must precede the {@code value} element. Attribute values may
  * be single- or double-quoted; a {@code ]} inside a value is not supported.
  */
-public final class ValueWrapElement {
+public final class XmlPathElement {
 
   private final String name;
   private final Map<String, String> attributes;
   private final boolean emptyElement;
 
-  private ValueWrapElement(String name, Map<String, String> attributes, boolean emptyElement) {
+  private XmlPathElement(String name, Map<String, String> attributes, boolean emptyElement) {
     this.name = name;
     this.attributes = Collections.unmodifiableMap(attributes);
     this.emptyElement = emptyElement;
   }
 
   /**
-   * Parses a {@code valueWrap} chain entry. Throws {@link IllegalArgumentException} with a
+   * Parses an {@code xmlPaths} chain segment. Throws {@link IllegalArgumentException} with a
    * human-readable reason on malformed input; {@code GmlConfiguration} maps that to a startup
    * failure naming the property path.
    */
-  public static ValueWrapElement parse(String entry) {
+  public static XmlPathElement parse(String entry) {
     String s = Objects.requireNonNullElse(entry, "").trim();
     boolean emptyElement = s.endsWith("/");
     if (emptyElement) {
@@ -80,7 +80,7 @@ public final class ValueWrapElement {
       }
       pos = close + 1;
     }
-    return new ValueWrapElement(name, attributes, emptyElement);
+    return new XmlPathElement(name, attributes, emptyElement);
   }
 
   private static String unquote(String value) {
@@ -108,10 +108,10 @@ public final class ValueWrapElement {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ValueWrapElement)) {
+    if (!(o instanceof XmlPathElement)) {
       return false;
     }
-    ValueWrapElement other = (ValueWrapElement) o;
+    XmlPathElement other = (XmlPathElement) o;
     return name.equals(other.name)
         && attributes.equals(other.attributes)
         && emptyElement == other.emptyElement;
