@@ -12,14 +12,14 @@
     "providerSubType": {
       "enum": [
         "GEOPARQUET",
-        "ORACLE",
         "SQL",
+        "ORACLE",
+        "GRAPHQL",
+        "WFS",
         "MBTILES",
         "FEATURES",
         "HTTP",
-        "WFS",
-        "FILES",
-        "GRAPHQL"
+        "FILES"
       ]
     }
   },
@@ -36,6 +36,25 @@
           },
           "providerSubType": {
             "const": "GEOPARQUET"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "SQL"
           }
         },
         "required": [
@@ -73,7 +92,7 @@
             "const": "FEATURE"
           },
           "providerSubType": {
-            "const": "SQL"
+            "const": "GRAPHQL"
           }
         },
         "required": [
@@ -82,7 +101,26 @@
         ]
       },
       "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
+        "$ref": "#/$defs/FeatureProviderGraphQlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "WFS"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderWfsData"
       }
     },
     {
@@ -146,25 +184,6 @@
       "if": {
         "properties": {
           "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "WFS"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderWfsData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
             "const": "3DTILE"
           },
           "providerSubType": {
@@ -197,25 +216,6 @@
       },
       "then": {
         "$ref": "#/$defs/Tile3dProviderFeaturesData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "GRAPHQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderGraphQlData"
       }
     }
   ],
@@ -490,6 +490,504 @@
       },
       "additionalProperties": false
     },
+    "FeatureProviderGraphQlData": {
+      "title": "FeatureProviderGraphQlData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "globallyUniqueFeatureIds": {
+          "title": "globallyUniqueFeatureIds",
+          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cql2Functions": {
+          "title": "cql2Functions",
+          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/CustomFunction"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/CustomFunction"
+              }
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
+        },
+        "queries": {
+          "title": "queries",
+          "description": "Options for query generation, for details see [Queries](#queries) below.",
+          "type": "object",
+          "$ref": "#/$defs/GraphQlQueries"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureProviderWfsData": {
+      "title": "FeatureProviderWfsData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "globallyUniqueFeatureIds": {
+          "title": "globallyUniqueFeatureIds",
+          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cql2Functions": {
+          "title": "cql2Functions",
+          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/CustomFunction"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/CustomFunction"
+              }
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoWfsHttp"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "TileProviderMbtilesData": {
       "title": "TileProviderMbtilesData",
       "description": "# MBTiles  With this tile provider, the tiles are provided via an [MBTiles    file](https://github.com/mapbox/mbtiles-spec). The tile format and all other properties of    the tileset are derived from the contents of the MBTiles file. Only the `WebMercatorQuad`    tiling scheme is supported.      ## Configuration      {@docTable:properties}      ### Tileset      {@docTable:tileset}      ## Example      {@docVar:examples}",
@@ -748,252 +1246,6 @@
       },
       "additionalProperties": false
     },
-    "FeatureProviderWfsData": {
-      "title": "FeatureProviderWfsData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providesGeometryTypes": {
-          "title": "providesGeometryTypes",
-          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "globallyUniqueFeatureIds": {
-          "title": "globallyUniqueFeatureIds",
-          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "cql2Functions": {
-          "title": "cql2Functions",
-          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/CustomFunction"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/CustomFunction"
-              }
-            }
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoWfsHttp"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "Tile3dProviderFilesData": {
       "title": "Tile3dProviderFilesData",
       "description": "# Files  With this 3D tile provider, the tilesets are retrieved from the store. For each tileset    the root `tileset.json` has to be configured. Version 1.0 and 1.1 of the 3D Tiles    specification are supported.      ## Configuration      {@docTable:properties}      ### Tileset      {@docTable:tileset}      ## Example      {@docVar:examples}",
@@ -1156,258 +1408,6 @@
               }
             }
           ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureProviderGraphQlData": {
-      "title": "FeatureProviderGraphQlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providesGeometryTypes": {
-          "title": "providesGeometryTypes",
-          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "globallyUniqueFeatureIds": {
-          "title": "globallyUniqueFeatureIds",
-          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "cql2Functions": {
-          "title": "cql2Functions",
-          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/CustomFunction"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/CustomFunction"
-              }
-            }
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoGraphQlHttp"
-        },
-        "queries": {
-          "title": "queries",
-          "description": "Options for query generation, for details see [Queries](#queries) below.",
-          "type": "object",
-          "$ref": "#/$defs/GraphQlQueries"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
         }
       },
       "additionalProperties": false
@@ -1829,6 +1829,85 @@
       },
       "additionalProperties": false
     },
+    "FeatureChangesPgConfiguration": {
+      "title": "FeatureChangesPgConfiguration",
+      "description": "```yaml  - type: FEATURE_CHANGES_PG  enabled: true  listenForTypes: # optional, default is to listen for all types  - governmentalservice  pollingInterval: 30s # optional, default is 60s  ```",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `FEATURE_CHANGES_PG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FEATURE_CHANGES_PG"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the extension?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "listenForTypes": {
+          "title": "listenForTypes",
+          "description": "List of types that should be observed. An empty list means all types.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pollingInterval": {
+          "title": "pollingInterval",
+          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be    polled for changes with the given interval.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "JsonSchemaConfiguration": {
       "title": "JsonSchemaConfiguration",
       "description": "```yaml  - type: JSON_SCHEMA  enabled: true  objectTypeRefs:    \u0027#/$defs/Link\u0027: Link  ```",
@@ -1941,94 +2020,15 @@
       },
       "additionalProperties": false
     },
-    "FeatureChangesPgConfiguration": {
-      "title": "FeatureChangesPgConfiguration",
-      "description": "```yaml  - type: FEATURE_CHANGES_PG  enabled: true  listenForTypes: # optional, default is to listen for all types  - governmentalservice  pollingInterval: 30s # optional, default is 60s  ```",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Always `FEATURE_CHANGES_PG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FEATURE_CHANGES_PG"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the extension?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "listenForTypes": {
-          "title": "listenForTypes",
-          "description": "List of types that should be observed. An empty list means all types.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pollingInterval": {
-          "title": "pollingInterval",
-          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be    polled for changes with the given interval.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
     "ExtensionConfiguration": {
       "type": "object",
       "properties": {
         "type": {
           "enum": [
             "ROUTES",
+            "FEATURE_CHANGES_PG",
             "JSON_SCHEMA",
-            "PGIS_TILES",
-            "FEATURE_CHANGES_PG"
+            "PGIS_TILES"
           ]
         }
       },
@@ -2049,6 +2049,21 @@
           },
           "then": {
             "$ref": "#/$defs/RoutesConfiguration"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "FEATURE_CHANGES_PG"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FeatureChangesPgConfiguration"
           }
         },
         {
@@ -2079,21 +2094,6 @@
           },
           "then": {
             "$ref": "#/$defs/PgisTilesConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "FEATURE_CHANGES_PG"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/FeatureChangesPgConfiguration"
           }
         }
       ]
@@ -2553,7 +2553,7 @@
     },
     "CrsVariants": {
       "title": "CrsVariants",
-      "description": "Some feature types store the same logical position in one of several CRSs \\u2014 including    CRSs that cannot be expressed as the storage CRS of the property (realizations that map to    the same coordinate reference system, or 1D vertical reference systems). Each variant is    stored in its own property; `crsVariants` on the main geometry property declares which sibling    properties hold the variants. All referenced properties must be siblings of the geometry    property (properties of the same object) and are implicitly `internal`.",
+      "description": "Some feature types store the same logical position in one of several CRSs \\u2014 including    CRSs that cannot be expressed as the storage CRS of the property (realizations that map to    the same coordinate reference system, or 1D vertical reference systems). Each variant is    stored in its own property; `crsVariants` on the main geometry property declares which    sibling properties hold the variants. All referenced properties must be siblings of the    geometry property (properties of the same object) and are implicitly `internal`.",
       "type": "object",
       "properties": {
         "crsProperty": {
@@ -3544,6 +3544,362 @@
         },
         "additionalInfo": {
           "title": "additionalInfo",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoGraphQlHttp": {
+      "title": "ConnectionInfoGraphQlHttp",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "connectorType": {
+          "title": "connectorType",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "uri": {
+          "title": "uri",
+          "description": "The URI of the GraphQL endpoint.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "accept": {
+          "title": "accept",
+          "description": "The Accept header sent for GraphQL requests.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryArgumentsCollection": {
+      "title": "QueryArgumentsCollection",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Argument to select a feature with a specific id. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the id property and `{{value}}` is replaced with the actual    id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "limit": {
+          "title": "limit",
+          "description": "Argument to limit the number of selected features. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the limit.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "offset": {
+          "title": "offset",
+          "description": "Argument to change the index of the first feature in the overall result set. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the offset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "filter": {
+          "title": "filter",
+          "description": "Argument that wraps filter expressions. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the filter expressions.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "bbox": {
+          "title": "bbox",
+          "description": "Argument for a bounding box filter. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the primary spatial property and `{{value}}` is replaced    with spatial value (see `geometry` below).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "geometry": {
+          "title": "geometry",
+          "description": "Argument that wraps geometries in filter expressions. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the spatial value. A filter to convert the geometry to a textual    representation is required, currently only `toWkt` is supported (`{{value \\| toWkt}}`).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryFields": {
+      "title": "QueryFields",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "title": "geometry",
+          "description": "Subfield or argument for properties of type `GEOMETRY`. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the spatial property.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CollectionQuery": {
+      "title": "CollectionQuery",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "name",
+          "description": "Name of the GraphQL query.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "arguments": {
+          "title": "arguments",
+          "description": "Arguments for the GraphQL query.",
+          "type": "object",
+          "$ref": "#/$defs/QueryArgumentsCollection"
+        },
+        "fields": {
+          "title": "fields",
+          "description": "Subfields or arguments for specific types.",
+          "type": "object",
+          "$ref": "#/$defs/QueryFields"
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryArgumentsSingle": {
+      "title": "QueryArgumentsSingle",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Argument to select a feature with a specific id. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the id property and `{{value}}` is replaced with the actual    id.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SingleQuery": {
+      "title": "SingleQuery",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "name",
+          "description": "Name of the GraphQL query.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "arguments": {
+          "title": "arguments",
+          "description": "Arguments for the GraphQL query.",
+          "type": "object",
+          "$ref": "#/$defs/QueryArgumentsSingle"
+        },
+        "fields": {
+          "title": "fields",
+          "description": "Subfields for specific types.",
+          "type": "object",
+          "$ref": "#/$defs/QueryFields"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraphQlQueries": {
+      "title": "GraphQlQueries",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "collection": {
+          "title": "collection",
+          "description": "Options for collection queries.",
+          "type": "object",
+          "$ref": "#/$defs/CollectionQuery"
+        },
+        "single": {
+          "title": "single",
+          "description": "Options for single feature queries. If not set, a collection query will be used.",
+          "type": "object",
+          "$ref": "#/$defs/SingleQuery"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoWfsHttp": {
+      "title": "ConnectionInfoWfsHttp",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "version": {
+          "title": "version",
+          "description": "The WFS version to use.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "gmlVersion": {
+          "title": "gmlVersion",
+          "description": "The GML version to use.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "namespaces": {
+          "title": "namespaces",
+          "description": "A map of namespace prefixes and URIs used in the mapping paths.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "connectorType": {
+          "title": "connectorType",
+          "description": "Always `HTTP`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "uri": {
+          "title": "uri",
+          "description": "The URI of the GetCapabilities operation for the WFS.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "method": {
+          "title": "method",
+          "description": "The HTTP method to use, `GET` or `POST`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password for HTTP Basic Auth.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "otherUrls": {
+          "title": "otherUrls",
           "description": "",
           "type": "object",
           "additionalProperties": {
@@ -4651,110 +5007,6 @@
       },
       "additionalProperties": false
     },
-    "ConnectionInfoWfsHttp": {
-      "title": "ConnectionInfoWfsHttp",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "version": {
-          "title": "version",
-          "description": "The WFS version to use.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "gmlVersion": {
-          "title": "gmlVersion",
-          "description": "The GML version to use.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "namespaces": {
-          "title": "namespaces",
-          "description": "A map of namespace prefixes and URIs used in the mapping paths.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "connectorType": {
-          "title": "connectorType",
-          "description": "Always `HTTP`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "uri": {
-          "title": "uri",
-          "description": "The URI of the GetCapabilities operation for the WFS.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "method": {
-          "title": "method",
-          "description": "The HTTP method to use, `GET` or `POST`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "otherUrls": {
-          "title": "otherUrls",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "Tileset3dFilesDefaults": {
       "title": "Tileset3dFilesDefaults",
       "description": "",
@@ -5266,258 +5518,6 @@
           "additionalProperties": {
             "$ref": "#/$defs/MinMax"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "ConnectionInfoGraphQlHttp": {
-      "title": "ConnectionInfoGraphQlHttp",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "connectorType": {
-          "title": "connectorType",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "uri": {
-          "title": "uri",
-          "description": "The URI of the GraphQL endpoint.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "accept": {
-          "title": "accept",
-          "description": "The Accept header sent for GraphQL requests.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password for HTTP Basic Auth.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryArgumentsCollection": {
-      "title": "QueryArgumentsCollection",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Argument to select a feature with a specific id. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the id property and `{{value}}` is replaced with the actual    id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "limit": {
-          "title": "limit",
-          "description": "Argument to limit the number of selected features. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the limit.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "offset": {
-          "title": "offset",
-          "description": "Argument to change the index of the first feature in the overall result set. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the offset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "filter": {
-          "title": "filter",
-          "description": "Argument that wraps filter expressions. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the filter expressions.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "bbox": {
-          "title": "bbox",
-          "description": "Argument for a bounding box filter. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the primary spatial property and `{{value}}` is replaced    with spatial value (see `geometry` below).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "geometry": {
-          "title": "geometry",
-          "description": "Argument that wraps geometries in filter expressions. [String    template](../details/transformations.md#examples-for-stringformat) where `{{value}}` is    replaced with the spatial value. A filter to convert the geometry to a textual    representation is required, currently only `toWkt` is supported (`{{value \\| toWkt}}`).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryFields": {
-      "title": "QueryFields",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "geometry": {
-          "title": "geometry",
-          "description": "Subfield or argument for properties of type `GEOMETRY`. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the spatial property.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "CollectionQuery": {
-      "title": "CollectionQuery",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "name",
-          "description": "Name of the GraphQL query.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "arguments": {
-          "title": "arguments",
-          "description": "Arguments for the GraphQL query.",
-          "type": "object",
-          "$ref": "#/$defs/QueryArgumentsCollection"
-        },
-        "fields": {
-          "title": "fields",
-          "description": "Subfields or arguments for specific types.",
-          "type": "object",
-          "$ref": "#/$defs/QueryFields"
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryArgumentsSingle": {
-      "title": "QueryArgumentsSingle",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Argument to select a feature with a specific id. [String    template](../details/transformations.md#examples-for-stringformat) where `{{sourcePath}}`    is replaced with the name of the id property and `{{value}}` is replaced with the actual    id.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "SingleQuery": {
-      "title": "SingleQuery",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "name",
-          "description": "Name of the GraphQL query.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "arguments": {
-          "title": "arguments",
-          "description": "Arguments for the GraphQL query.",
-          "type": "object",
-          "$ref": "#/$defs/QueryArgumentsSingle"
-        },
-        "fields": {
-          "title": "fields",
-          "description": "Subfields for specific types.",
-          "type": "object",
-          "$ref": "#/$defs/QueryFields"
-        }
-      },
-      "additionalProperties": false
-    },
-    "GraphQlQueries": {
-      "title": "GraphQlQueries",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "collection": {
-          "title": "collection",
-          "description": "Options for collection queries.",
-          "type": "object",
-          "$ref": "#/$defs/CollectionQuery"
-        },
-        "single": {
-          "title": "single",
-          "description": "Options for single feature queries. If not set, a collection query will be used.",
-          "type": "object",
-          "$ref": "#/$defs/SingleQuery"
         }
       },
       "additionalProperties": false

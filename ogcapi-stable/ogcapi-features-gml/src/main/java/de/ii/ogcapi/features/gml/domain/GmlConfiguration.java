@@ -40,12 +40,12 @@ import org.immutables.value.Value;
  *     `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,
  *     `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,
  *     `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
- *     `featureMemberElementName`. The remaining options affect output only — `schemaLocations` (XSD
+ *     `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
- *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
+ *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder
  *     formatting decisions with no input counterpart, or because the decoder is permissive of any
  *     equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do
- *     attributes and injected empty elements in `xmlPaths` chains — on input, an empty element
+ *     attributes and injected empty elements in `xmlPaths` chains - on input, an empty element
  *     inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
@@ -59,12 +59,12 @@ import org.immutables.value.Value;
  *     `gmlIdPrefix`, `uomMappings`, `codelistProperties`, `codelistUriTemplate`,
  *     `featureRefTemplate`, `xmlPaths`, `xmlAttributes`, `variableObjectElementNames`,
  *     `featureCollectionElementName`, `featureMemberElementName`. Die übrigen Optionen wirken sich
- *     ausschließlich auf die Ausgabe aus — `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
+ *     ausschließlich auf die Ausgabe aus - `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
  *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
- *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
+ *     `useSurfaceAndCurve`, `defaultProfiles` - entweder weil sie Formatierungsentscheidungen des
  *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
  *     Eingabeform permissiv ist. `codeListUriTemplateIso19139` wirkt sich ebenfalls nur auf die
- *     Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in `xmlPaths`-Ketten — beim
+ *     Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in `xmlPaths`-Ketten - beim
  *     Einlesen wird ein leeres Element innerhalb einer Kette übersprungen und ein
  *     `xsi:type`-Attribut auf einem Wert-Element verworfen.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
@@ -1006,7 +1006,7 @@ public interface GmlConfiguration
    *     attributes as `[attribute=value]` predicates (e.g. `gco:Record[xsi:type=gml:doubleList]`;
    *     the value may be quoted) and/or a trailing `/`. A segment with a trailing `/` does not wrap
    *     the remainder of the chain; instead an empty element with the given attributes is written
-   *     at that position — e.g. the mandatory `valueUnit` child of an ISO 19139
+   *     at that position - e.g. the mandatory `valueUnit` child of an ISO 19139
    *     `DQ_QuantitativeResult`, which precedes the `value` element; the innermost segment must not
    *     have a trailing `/`. Element and attribute names may be namespace-qualified, provided the
    *     prefix is declared in `applicationNamespaces` or is a standard prefix (`xsi`, `xlink`);
@@ -1029,7 +1029,7 @@ public interface GmlConfiguration
    *     (z.B. `gco:Record[xsi:type=gml:doubleList]`; der Wert kann in Anführungszeichen stehen)
    *     und/oder einem abschließenden `/`. Ein Segment mit abschließendem `/` umschließt nicht den
    *     Rest der Kette; stattdessen wird an dieser Stelle ein leeres Element mit den angegebenen
-   *     Attributen geschrieben — z.B. das obligatorische `valueUnit`-Kind eines
+   *     Attributen geschrieben - z.B. das obligatorische `valueUnit`-Kind eines
    *     ISO-19139-`DQ_QuantitativeResult`, das dem `value`-Element vorangeht; das innerste Segment
    *     darf kein abschließendes `/` tragen. Element- und Attributnamen können Namespace-Präfixe
    *     tragen, sofern das Präfix in `applicationNamespaces` deklariert oder ein Standard-Präfix

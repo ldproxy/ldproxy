@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  *     features includes a geometry.
  *     <p>Note that there may be reasons that the map is blank and does not show any features. For
  *     example, if the primary geometry property is not included in the response.
- * @scopeDe Der Baustein *Features – HTML* bietet Unterstützung für die Darstellung von Features in
+ * @scopeDe Der Baustein *Features - HTML* bietet Unterstützung für die Darstellung von Features in
  *     HTML.
  *     <p>Werden Features in einem Koordinatenreferenzsystem angefordert, das nicht dem
  *     Standard-Koordinatenreferenzsystem entspricht (WGS84-Längen-/Breitengrad mit oder ohne

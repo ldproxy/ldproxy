@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  *     default), `return=minimal`, or `return=none` controls how much of the transaction response is
  *     returned; `handling=strict` validates every `insert` and `replace` payload against the
  *     feature-type schema before any provider write (this only takes effect when the collection has
- *     schema validation configured — JSON Schema for GeoJSON payloads, XSD for GML payloads).
+ *     schema validation configured: JSON Schema for GeoJSON payloads, XSD for GML payloads).
  *     `respond-async` is rejected with `501`.
  *     <p>The `Content-Crs` request header declares the CRS of coordinates in the request body. When
  *     omitted, the API's default CRS (CRS84 unless overridden) is assumed; values that are
@@ -60,8 +60,8 @@ import org.slf4j.LoggerFactory;
  *     <p>Der Anfrage-Header `Prefer` wird gemäß RFC 7240 ausgewertet: `return=representation`
  *     (Standard), `return=minimal` oder `return=none` steuert den Umfang der Transaktionsantwort;
  *     `handling=strict` validiert jeden `insert`- und `replace`-Payload vor dem Schreiben gegen das
- *     Schema der Objektart (greift nur, wenn die Objektart eine Schema-Validierung konfiguriert hat
- *     — JSON Schema für GeoJSON-Payloads, XSD für GML-Payloads). `respond-async` wird mit `501`
+ *     Schema der Objektart (greift nur, wenn die Objektart eine Schema-Validierung konfiguriert
+ *     hat: JSON Schema für GeoJSON-Payloads, XSD für GML-Payloads). `respond-async` wird mit `501`
  *     abgelehnt.
  *     <p>Der Anfrage-Header `Content-Crs` gibt das CRS der Koordinaten im Anfragetext an. Fehlt der
  *     Header, wird das Standard-CRS der API angenommen (CRS84, sofern nicht überschrieben);

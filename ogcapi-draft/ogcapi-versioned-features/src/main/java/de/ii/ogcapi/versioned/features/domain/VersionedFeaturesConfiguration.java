@@ -119,7 +119,7 @@ public interface VersionedFeaturesConfiguration extends ExtensionConfiguration {
   List<String> getRetireWithModifications();
 
   /**
-   * @langEn Regex pattern that splits a composite feature id (used in `<fes:ResourceId rid="…"/>`
+   * @langEn Regex pattern that splits a composite feature id (used in `<fes:ResourceId rid="..."/>`
    *     filters and `gml:id` values) into a canonical id and an expected `PRIMARY_INTERVAL_START`
    *     suffix. The pattern must declare two named groups: `id` for the canonical id (stored
    *     verbatim in the database) and `start` for the packed timestamp suffix (parsed via
@@ -128,12 +128,12 @@ public interface VersionedFeaturesConfiguration extends ExtensionConfiguration {
    *     else the action fails with 412 Precondition Failed. On `Insert` the suffix is simply
    *     stripped so the canonical id is what lands in the database (this lets clients reuse the
    *     same logical feature id more than once in one transaction by attaching a unique suffix to
-   *     each `gml:id` — XML IDs must be unique).
+   *     each `gml:id` - XML IDs must be unique).
    * @langDe Regulärer Ausdruck, der einen zusammengesetzten Feature-Identifikator (verwendet in
-   *     `<fes:ResourceId rid="…"/>`-Filtern und `gml:id`-Werten) in einen kanonischen Identifikator
-   *     und einen erwarteten Suffix für `PRIMARY_INTERVAL_START` aufteilt. Das Muster muss zwei
-   *     benannte Gruppen enthalten: `id` für den kanonischen Identifikator (unverändert in der
-   *     Datenbank gespeichert) und `start` für das gepackte Zeitstempel-Suffix (geparst über
+   *     `<fes:ResourceId rid="..."/>`-Filtern und `gml:id`-Werten) in einen kanonischen
+   *     Identifikator und einen erwarteten Suffix für `PRIMARY_INTERVAL_START` aufteilt. Das Muster
+   *     muss zwei benannte Gruppen enthalten: `id` für den kanonischen Identifikator (unverändert
+   *     in der Datenbank gespeichert) und `start` für das gepackte Zeitstempel-Suffix (geparst über
    *     `compositeIdTimestampFormat`). Bei `Replace`, `Update` und `Delete` wird das geparste
    *     Suffix als If-Unmodified-Since-artige Vorbedingung interpretiert: der Start der offenen
    *     Version muss damit übereinstimmen, sonst scheitert die Aktion mit 412 Precondition Failed.
@@ -146,11 +146,11 @@ public interface VersionedFeaturesConfiguration extends ExtensionConfiguration {
 
   /**
    * @langEn `java.time.format.DateTimeFormatter`-style pattern used to parse the suffix captured by
-   *     `compositeIdPattern`. Defaults to `yyyyMMdd'T'HHmmss'Z'` — the compact ISO-8601
+   *     `compositeIdPattern`. Defaults to `yyyyMMdd'T'HHmmss'Z'` - the compact ISO-8601
    *     basic-format with explicit `T`/`Z` markers, e.g. `20240215T121156Z`. Ignored when
    *     `compositeIdPattern` is unset.
    * @langDe `java.time.format.DateTimeFormatter`-Muster zum Parsen des durch `compositeIdPattern`
-   *     erfassten Suffixes. Standard: `yyyyMMdd'T'HHmmss'Z'` — das kompakte ISO-8601-Basisformat
+   *     erfassten Suffixes. Standard: `yyyyMMdd'T'HHmmss'Z'` - das kompakte ISO-8601-Basisformat
    *     mit expliziten `T`-/`Z`-Markern, z. B. `20240215T121156Z`. Wird ignoriert, wenn
    *     `compositeIdPattern` nicht gesetzt ist.
    * @default "yyyyMMdd'T'HHmmss'Z'"
