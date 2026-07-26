@@ -36,19 +36,18 @@ import java.util.Optional;
  *     Map resource. The `datetime` query parameter is reinterpreted to select the version of each
  *     feature that intersects the supplied instant or interval; when omitted, the current version
  *     is returned. Per-version responses carry a `Memento-Datetime` header and the link relations
- *     defined by RFC 7089 ({@code predecessor-version}, {@code successor-version}, {@code
- *     latest-version}, {@code version-history}, {@code timemap}, {@code memento}, {@code
- *     original}). Combined with the Transactions and CRUD building blocks, mutations create new
- *     versions (or retire existing ones) instead of overwriting rows in place.
+ *     defined by RFC 7089 (`predecessor-version`, `successor-version`, `latest-version`,
+ *     `version-history`, `timemap`, `memento`, `original`). Combined with the Transactions and CRUD
+ *     building blocks, mutations create new versions (or retire existing ones) instead of
+ *     overwriting rows in place.
  * @scopeDe Erweitert die vorhandenen Features-Ressourcen um Versionsauswahl-Semantik und stellt
  *     eine Time-Map-Ressource bereit. Der Anfrageparameter `datetime` selektiert die Version jedes
  *     Features, die den angegebenen Zeitpunkt oder das Intervall schneidet; ohne Angabe wird die
  *     aktuelle Version geliefert. Antworten zu einzelnen Versionen enthalten den Header
- *     `Memento-Datetime` sowie die in RFC 7089 definierten Linkrelationen ({@code
- *     predecessor-version}, {@code successor-version}, {@code latest-version}, {@code
- *     version-history}, {@code timemap}, {@code memento}, {@code original}). Zusammen mit den
- *     Bausteinen Transactions und CRUD erzeugen Mutationen neue Versionen (bzw. stellen vorhandene
- *     still), statt Zeilen in der Datenbank zu überschreiben.
+ *     `Memento-Datetime` sowie die in RFC 7089 definierten Linkrelationen (`predecessor-version`,
+ *     `successor-version`, `latest-version`, `version-history`, `timemap`, `memento`, `original`).
+ *     Zusammen mit den Bausteinen Transactions und CRUD erzeugen Mutationen neue Versionen (bzw.
+ *     stellen vorhandene still), statt Zeilen in der Datenbank zu überschreiben.
  * @ref:cfg {@link de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.versioned.features.domain.ImmutableVersionedFeaturesConfiguration}
