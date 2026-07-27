@@ -72,8 +72,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -88,8 +88,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -104,8 +104,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -470,8 +470,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -486,8 +486,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -506,7 +506,7 @@
         },
         "alternativeUri": {
           "title": "alternativeUri",
-          "description": "An alternative identifier under which this CRS is known in a community (e.g. the AdV identifier   {@code urn:adv:crs:ETRS89_UTM32}   for EPSG:25832), declared on the entries of the   {@code additionalCrs}   option of the CRS building block. Unlike   {@link #getUriOverride()}   \\u2014 which echoes the identifier a request used \\u2014 the alternative URI is only used when a feature encoding renders CRS identifiers on the wire (e.g. the GML   {@code srsName}   with   {@code srsNameStyle: TEMPLATE}  ) and when decoding such identifiers on input. Auxiliary, i.e., excluded from   {@code equals()}  /  {@code hashCode()}  : instances differing only in this attribute represent the same CRS.",
+          "description": "An alternative identifier under which this CRS is known in a community (e.g. the AdV identifier `urn:adv:crs:ETRS89_UTM32` for EPSG:25832), declared on the entries of the `additionalCrs` option of the CRS building block. Unlike `uriOverride`, which echoes the identifier a request used, the alternative URI is only used when a feature encoding renders CRS identifiers on the wire (e.g. the GML `srsName` with `srsNameStyle: TEMPLATE`) and when decoding such identifiers on input. Auxiliary, i.e., excluded from `equals()`/`hashCode()`: instances differing only in this attribute represent the same CRS.",
           "type": [
             "string",
             "number",
@@ -530,8 +530,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -546,8 +546,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -562,8 +562,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -578,8 +578,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -594,8 +594,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -610,8 +610,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -640,8 +640,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -656,8 +656,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -686,8 +686,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -708,8 +708,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -813,8 +813,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -853,8 +853,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1082,8 +1082,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1098,8 +1098,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1230,8 +1230,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1273,8 +1273,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1289,8 +1289,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1305,8 +1305,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1375,8 +1375,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1410,8 +1410,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1485,8 +1485,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1520,8 +1520,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1574,8 +1574,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1811,8 +1811,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1854,8 +1854,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -1880,8 +1880,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2000,8 +2000,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2060,8 +2060,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2076,8 +2076,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2092,8 +2092,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2108,8 +2108,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2192,8 +2192,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2292,8 +2292,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2335,8 +2335,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2351,8 +2351,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2489,8 +2489,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2569,8 +2569,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2585,8 +2585,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2601,8 +2601,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2651,8 +2651,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2712,8 +2712,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2752,8 +2752,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2787,8 +2787,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2838,8 +2838,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2854,8 +2854,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -2961,8 +2961,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3033,8 +3033,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3049,8 +3049,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3092,8 +3092,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3108,8 +3108,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3124,8 +3124,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3140,8 +3140,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3156,8 +3156,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3172,8 +3172,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3188,8 +3188,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3323,8 +3323,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3388,8 +3388,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3423,8 +3423,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3464,8 +3464,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3504,8 +3504,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3520,8 +3520,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3555,8 +3555,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3571,8 +3571,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3587,8 +3587,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3622,8 +3622,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3665,8 +3665,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3681,8 +3681,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3734,8 +3734,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3769,8 +3769,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3824,8 +3824,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3918,8 +3918,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3934,8 +3934,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -3977,8 +3977,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4060,8 +4060,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4111,8 +4111,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4127,8 +4127,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4143,8 +4143,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4159,8 +4159,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4182,8 +4182,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -4202,8 +4202,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -4248,8 +4248,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4451,8 +4451,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4494,8 +4494,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4510,8 +4510,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4526,8 +4526,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4542,8 +4542,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4566,8 +4566,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4582,8 +4582,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4616,8 +4616,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4651,8 +4651,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4769,8 +4769,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4785,8 +4785,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4862,8 +4862,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4878,8 +4878,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -4913,8 +4913,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5084,8 +5084,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5100,8 +5100,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5116,8 +5116,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5132,8 +5132,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5158,8 +5158,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5174,8 +5174,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5337,8 +5337,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5359,8 +5359,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5375,8 +5375,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5391,8 +5391,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5407,8 +5407,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5423,8 +5423,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5439,8 +5439,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5477,8 +5477,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5493,8 +5493,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5528,8 +5528,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5563,8 +5563,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5619,8 +5619,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5635,8 +5635,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5651,8 +5651,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5667,8 +5667,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5683,8 +5683,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5699,8 +5699,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5715,8 +5715,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5731,8 +5731,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5747,8 +5747,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5763,8 +5763,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5779,8 +5779,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5813,8 +5813,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -5864,8 +5864,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -5884,8 +5884,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -5910,8 +5910,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -5930,8 +5930,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -5956,8 +5956,8 @@
                       "type": "number"
                     },
                     {
-                      "type": "string",
-                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                      "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                      "type": "string"
                     },
                     {
                       "type": "null"
@@ -5976,8 +5976,8 @@
                     "type": "number"
                   },
                   {
-                    "type": "string",
-                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+                    "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+                    "type": "string"
                   },
                   {
                     "type": "null"
@@ -5995,8 +5995,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6019,8 +6019,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6060,8 +6060,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6092,8 +6092,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6108,8 +6108,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6124,8 +6124,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6140,8 +6140,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6156,8 +6156,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6228,8 +6228,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6269,8 +6269,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6327,8 +6327,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6353,8 +6353,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6369,8 +6369,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6385,8 +6385,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6401,8 +6401,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6428,8 +6428,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6463,8 +6463,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6499,8 +6499,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6516,8 +6516,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6603,8 +6603,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6620,8 +6620,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6644,8 +6644,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6691,8 +6691,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6736,8 +6736,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6771,8 +6771,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6888,8 +6888,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6916,8 +6916,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6951,8 +6951,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -6994,8 +6994,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7010,8 +7010,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7053,8 +7053,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7069,8 +7069,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7105,8 +7105,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7127,8 +7127,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7143,8 +7143,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7159,8 +7159,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7194,8 +7194,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7237,8 +7237,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7253,8 +7253,8 @@
               "type": "number"
             },
             {
-              "type": "string",
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?"
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7296,8 +7296,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7395,8 +7395,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7430,8 +7430,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7465,8 +7465,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7512,8 +7512,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -7547,8 +7547,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -8366,8 +8366,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -8454,8 +8454,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
@@ -8470,8 +8470,8 @@
               "type": "boolean"
             },
             {
-              "type": "string",
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF"
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
             },
             {
               "type": "null"
