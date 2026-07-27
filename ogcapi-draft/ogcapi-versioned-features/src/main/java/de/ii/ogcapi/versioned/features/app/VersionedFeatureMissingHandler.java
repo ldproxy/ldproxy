@@ -144,14 +144,17 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
         path -> probeBuilder.addSortKeys(SortKey.of(path, SortKey.Direction.DESCENDING)));
     FeatureQuery probe = probeBuilder.build();
 
-    long matched;
+    boolean exists;
     Optional<Instant> latestStart = Optional.empty();
     try {
       FeatureStream stream = provider.queries().get().getFeatureStream(probe);
       CompletableFuture<CollectionMetadata> onMetadata = new CompletableFuture<>();
       FeatureStream.Result result =
           stream.runWith(Sink.ignore(), Map.of(), onMetadata).toCompletableFuture().join();
-      matched = onMetadata.join().getNumberMatched().orElse(0L);
+      // Whether the probe produced the feature is the signal that always works: `numberMatched`
+      // is absent whenever the provider runs with `computeNumberMatched: false`, and treating
+      // that absence as "no such feature" would answer 404 for every retired feature.
+      exists = result.hasFeatures() || onMetadata.join().getNumberMatched().orElse(0L) > 0L;
       latestStart = result.getTemporalExtent().map(Tuple::first).filter(java.util.Objects::nonNull);
     } catch (Exception e) {
       LOGGER.debug(
@@ -159,7 +162,7 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
       return Optional.empty();
     }
 
-    if (matched > 0L) {
+    if (exists) {
       String originalHref = requestContext.getUriCustomizer().copy().clearParameters().toString();
       // On a DATE-typed interval the datetime parameter stays a date, matching the memento hrefs
       // on the Time Map.

@@ -95,32 +95,32 @@ class GmlConfigurationMergeSpec extends Specification {
         merged.getDefaultNamespace() == "aaa"
     }
 
-    def "mergeInto: valueWrap declared at both levels merges without throwing"() {
+    def "mergeInto: xmlPaths declared at both levels merges without throwing"() {
         given: "the same property path configured at the API and the collection level"
         def apiLevel = baseBuilder()
-                .putValueWrap("qag.gwt", ["gmd:value", "gco:Record[xsi:type=gml:doubleList]"])
+                .putXmlPaths("qag.gwt", ["gmd:value", "gco:Record[xsi:type=gml:doubleList]"])
                 .build()
         def collectionLevel = baseBuilder()
-                .putValueWrap("qag.gwt", ["gmd:value", "gco:Record[xsi:type=gml:integerList]"])
-                .putValueWrap("lzi", ["AA_Lebenszeitintervall", "beginnt"])
+                .putXmlPaths("qag.gwt", ["gmd:value", "gco:Record[xsi:type=gml:integerList]"])
+                .putXmlPaths("lzi", ["AA_Lebenszeitintervall", "beginnt"])
                 .build()
 
         when:
         def merged = collectionLevel.mergeInto(apiLevel as ExtensionConfiguration) as GmlConfiguration
 
         then: "union of keys, collection-level chain wins for the shared key"
-        merged.getValueWrap() == [
+        merged.getXmlPaths() == [
                 "qag.gwt": ["gmd:value", "gco:Record[xsi:type=gml:integerList]"],
                 "lzi"    : ["AA_Lebenszeitintervall", "beginnt"]]
     }
 
-    def "an invalid valueWrap entry is rejected at configuration build time"() {
+    def "an invalid xmlPaths segment is rejected at configuration build time"() {
         when:
-        baseBuilder().putValueWrap("qag.gwt", ["gco:Record[xsi:type"]).build()
+        baseBuilder().putXmlPaths("qag.gwt", ["gco:Record[xsi:type"]).build()
 
         then:
         def e = thrown(IllegalStateException)
-        e.message.contains("valueWrap")
+        e.message.contains("xmlPaths")
         e.message.contains("qag.gwt")
     }
 }

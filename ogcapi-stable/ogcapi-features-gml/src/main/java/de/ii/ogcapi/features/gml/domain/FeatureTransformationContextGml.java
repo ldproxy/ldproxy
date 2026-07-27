@@ -254,8 +254,28 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getCodelistProperties();
   }
 
-  public Map<String, List<ValueWrapElement>> getValueWrap() {
-    return currentEncoding().getValueWrap();
+  public Map<String, List<XmlPathElement>> getXmlPaths() {
+    return currentEncoding().getXmlPaths();
+  }
+
+  /**
+   * Closes all {@code xmlPaths} wrapper elements that are currently kept open for property-chain
+   * merging (see {@link StateGml#getXmlPathOpenPrefix()}). Called before any emission that must not
+   * appear inside a wrapper chain — an unmapped property, an object or array boundary, a geometry,
+   * or the feature end.
+   */
+  public void closeXmlPathWrappers() throws IOException {
+    List<XmlPathElement> open = getState().getXmlPathOpenPrefix();
+    if (open.isEmpty()) {
+      return;
+    }
+    for (int i = open.size() - 1; i >= 0; i--) {
+      if (!open.get(i).isEmptyElement()) {
+        writeEndElement();
+      }
+    }
+    getState().setXmlPathOpenPrefix(ImmutableList.of());
+    getState().setXmlPathOwner(Optional.empty());
   }
 
   public Map<String, CrsVariants> getPositionVariants() {
@@ -987,6 +1007,26 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     }
 
     public abstract Optional<String> getFirstMeasureProperty();
+
+    /**
+     * The {@code xmlPaths} chain prefix (all segments except the innermost value element) whose
+     * non-empty elements are currently open, kept open across consecutive properties that share
+     * leading segments so they are encoded inside one wrapper instance. Empty-element segments are
+     * part of the prefix for the sharing comparison but are never open. Cleared by {@link
+     * FeatureTransformationContextGml#closeXmlPathWrappers()}.
+     */
+    @Value.Default
+    public List<XmlPathElement> getXmlPathOpenPrefix() {
+      return ImmutableList.of();
+    }
+
+    /**
+     * The property path that opened the current {@link #getXmlPathOpenPrefix()}. A repeated value
+     * of the <em>same</em> property (an array) never shares wrapper instances — the full chain is
+     * closed and reopened per value — while a different property sharing leading segments continues
+     * inside the open wrappers.
+     */
+    public abstract Optional<String> getXmlPathOwner();
 
     @Value.Default
     public boolean getInGeometry() {

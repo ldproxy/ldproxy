@@ -57,10 +57,10 @@ import java.util.stream.Collectors;
 /**
  * @title Time Map
  * @path collections/{collectionId}/items/{featureId}/versions
- * @langEn Returns the Time Map of a feature — a JSON document listing every version of the feature
- *     as a {@code memento} link with its RFC 7089 {@code datetime} link attribute.
- * @langDe Liefert die Time Map eines Features — ein JSON-Dokument, das jede Version des Features
- *     als {@code memento}-Link mit einem RFC-7089-{@code datetime}-Linkattribut auflistet.
+ * @langEn Returns the Time Map of a feature - a JSON document listing every version of the feature
+ *     as a `memento` link with its RFC 7089 `datetime` link attribute.
+ * @langDe Liefert die Time Map eines Features - ein JSON-Dokument, das jede Version des Features
+ *     als `memento`-Link mit einem RFC-7089-`datetime`-Linkattribut auflistet.
  */
 @Singleton
 @AutoBind

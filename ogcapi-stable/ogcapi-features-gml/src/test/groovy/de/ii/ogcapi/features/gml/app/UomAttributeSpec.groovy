@@ -31,7 +31,7 @@ class UomAttributeSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
-        encoding.getValueWrap() >> [:]
+        encoding.getXmlPaths() >> [:]
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
         encoding.mapUom(_) >> { String uom -> 'urn:adv:uom:' + uom }
     }

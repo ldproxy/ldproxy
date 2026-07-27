@@ -96,7 +96,7 @@ import java.util.Optional;
  *     returned with a "Content-Disposition: attachment" header, i.e., browsers save the response
  *     as a file instead of rendering it. This also applies to formats that browsers otherwise
  *     display directly, like GeoJSON.
- * - The “crs” and “verticalCrs” members are optional and can be used to specify the coordinate
+ * - The "crs" and "verticalCrs" members are optional and can be used to specify the coordinate
  *     reference system for the coordinates in the response. If no value is specified, the default
  *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
  *     of a vertical coordinate reference system and "crs" must be specified and be the URI of a

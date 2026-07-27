@@ -232,13 +232,23 @@ public interface MutationStrategy extends ApiExtension {
    *
    * @param apiData the API data, used for per-collection configuration lookups
    * @param collectionSchema the canonical feature schema (used to find which property carries the
-   *     {@code PRIMARY_INTERVAL_START} role and what alias the wire payload uses)
+   *     {@code PRIMARY_INTERVAL_START} role and what key the wire payload uses for it)
    * @param mediaType the request body's media type ({@code application/xml} for {@code
    *     wfs:Transaction}, {@code application/ogc-tx+json} for JSON-tx)
    * @param body the Replace action's payload bytes (a single feature)
+   * @param xmlPaths the element chains the XML encoding maps properties to, keyed by property path;
+   *     a property that has one carries no element of its own, so the chain's innermost segment —
+   *     not the property's alias — is the element the payload uses
+   * @param useAlias whether the format the body is encoded in names properties by their alias
+   *     rather than by their name ({@code useAlias} of the GML or GeoJSON building block)
    */
   default Optional<Instant> extractPrimaryIntervalStart(
-      OgcApiDataV2 apiData, FeatureSchema collectionSchema, MediaType mediaType, byte[] body) {
+      OgcApiDataV2 apiData,
+      FeatureSchema collectionSchema,
+      MediaType mediaType,
+      byte[] body,
+      Map<String, List<String>> xmlPaths,
+      boolean useAlias) {
     return Optional.empty();
   }
 }

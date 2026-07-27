@@ -146,7 +146,9 @@ class VersionedMutationStrategySpec extends Specification {
                         apiData,
                         schema,
                         MediaType.APPLICATION_XML_TYPE,
-                        '<AP_PTO/>'.getBytes('UTF-8'))
+                        '<AP_PTO/>'.getBytes('UTF-8'),
+                        [:],
+                        true)
 
         then:
         result.isEmpty()
@@ -175,7 +177,9 @@ class VersionedMutationStrategySpec extends Specification {
                         apiData,
                         schema,
                         MediaType.APPLICATION_XML_TYPE,
-                        xml.getBytes('UTF-8'))
+                        xml.getBytes('UTF-8'),
+                        [:],
+                        true)
 
         then:
         result.get() == Instant.parse('2025-10-21T05:46:11Z')
@@ -193,10 +197,71 @@ class VersionedMutationStrategySpec extends Specification {
                         apiData,
                         schema,
                         MediaType.APPLICATION_JSON_TYPE,
-                        json.getBytes('UTF-8'))
+                        json.getBytes('UTF-8'),
+                        [:],
+                        true)
 
         then:
         result.get() == Instant.parse('2025-10-21T05:46:11Z')
+    }
+
+    def 'extractPrimaryIntervalStart: a chained property is read from its innermost element'() {
+        given: 'lzi_beg carries the role, has no alias, and is mapped by a chain'
+        OgcApiDataV2 apiData = apiWith(VersionedFeaturesConfiguration.MutationTime.CLIENT, [])
+        FeatureSchema schema = schemaWithFlatLziBeg()
+        String xml = '''<AP_PTO xmlns="http://www.adv-online.de/namespaces/adv/gid/7.1">
+              <lebenszeitintervall>
+                <AA_Lebenszeitintervall>
+                  <beginnt>2025-10-21T05:46:11Z</beginnt>
+                </AA_Lebenszeitintervall>
+              </lebenszeitintervall>
+            </AP_PTO>'''
+
+        when:
+        Optional<Instant> result =
+                subject.extractPrimaryIntervalStart(
+                        apiData,
+                        schema,
+                        MediaType.APPLICATION_XML_TYPE,
+                        xml.getBytes('UTF-8'),
+                        ['lzi_beg': ['lebenszeitintervall', 'AA_Lebenszeitintervall', 'beginnt']],
+                        true)
+
+        then: 'the chain names the element, not the property'
+        result.get() == Instant.parse('2025-10-21T05:46:11Z')
+    }
+
+    def 'extractPrimaryIntervalStart: without useAlias the property name names the JSON key'() {
+        given:
+        OgcApiDataV2 apiData = apiWith(VersionedFeaturesConfiguration.MutationTime.CLIENT, [])
+        FeatureSchema schema = schemaWithFlatLziBeg()
+        String json = '{"id":"DEABCDEF12345678","lzi_beg":"2025-10-21T05:46:11Z"}'
+
+        when:
+        Optional<Instant> result =
+                subject.extractPrimaryIntervalStart(
+                        apiData,
+                        schema,
+                        MediaType.APPLICATION_JSON_TYPE,
+                        json.getBytes('UTF-8'),
+                        [:],
+                        false)
+
+        then:
+        result.get() == Instant.parse('2025-10-21T05:46:11Z')
+    }
+
+    private FeatureSchema schemaWithFlatLziBeg() {
+        FeatureSchema beg = Stub(FeatureSchema)
+        beg.getName() >> 'lzi_beg'
+        beg.getAlias() >> Optional.empty()
+        beg.getFullPathAsString() >> 'lzi_beg'
+        beg.getRole() >> Optional.of(SchemaBase.Role.PRIMARY_INTERVAL_START)
+        beg.getProperties() >> []
+        FeatureSchema root = Stub(FeatureSchema)
+        root.getName() >> 'ap_pto'
+        root.getProperties() >> [beg]
+        return root
     }
 
     private FeatureSchema schemaWithLziBegAlias() {

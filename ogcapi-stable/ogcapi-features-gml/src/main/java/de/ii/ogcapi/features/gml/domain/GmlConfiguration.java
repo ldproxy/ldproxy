@@ -38,16 +38,15 @@ import org.immutables.value.Value;
  *     <p>When the CRUD building block is enabled, the options that shape GML output are honoured
  *     symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,
  *     `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,
- *     `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `valueWrap`,
+ *     `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,
  *     `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
- *     `featureMemberElementName`. The remaining options affect output only — `schemaLocations` (XSD
+ *     `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
- *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` — either because they govern encoder
+ *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder
  *     formatting decisions with no input counterpart, or because the decoder is permissive of any
- *     equivalent input form. {@code codeListUriTemplateIso19139} likewise affects output only, as
- *     do attributes and injected empty elements in {@code valueWrap} entries — on input, an empty
- *     element inside a value-wrap chain is skipped and an {@code xsi:type} attribute on a value
- *     element is dropped.
+ *     equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do
+ *     attributes and injected empty elements in `xmlPaths` chains - on input, an empty element
+ *     inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -58,16 +57,16 @@ import org.immutables.value.Value;
  *     beim Decodieren von GML-POST/PUT-Anfrage-Bodies symmetrisch berücksichtigt:
  *     `applicationNamespaces`, `defaultNamespace`, `objectTypeNamespaces`, `useAlias`,
  *     `gmlIdPrefix`, `uomMappings`, `codelistProperties`, `codelistUriTemplate`,
- *     `featureRefTemplate`, `valueWrap`, `xmlAttributes`, `variableObjectElementNames`,
+ *     `featureRefTemplate`, `xmlPaths`, `xmlAttributes`, `variableObjectElementNames`,
  *     `featureCollectionElementName`, `featureMemberElementName`. Die übrigen Optionen wirken sich
- *     ausschließlich auf die Ausgabe aus — `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
+ *     ausschließlich auf die Ausgabe aus - `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
  *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
- *     `useSurfaceAndCurve`, `defaultProfiles` — entweder weil sie Formatierungsentscheidungen des
+ *     `useSurfaceAndCurve`, `defaultProfiles` - entweder weil sie Formatierungsentscheidungen des
  *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
- *     Eingabeform permissiv ist. {@code codeListUriTemplateIso19139} wirkt sich ebenfalls nur auf
- *     die Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in {@code
- *     valueWrap}-Einträgen — beim Einlesen wird ein leeres Element innerhalb einer Wrapper-Kette
- *     übersprungen und ein {@code xsi:type}-Attribut auf einem Wert-Element verworfen.
+ *     Eingabeform permissiv ist. `codeListUriTemplateIso19139` wirkt sich ebenfalls nur auf die
+ *     Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in `xmlPaths`-Ketten - beim
+ *     Einlesen wird ein leeres Element innerhalb einer Kette übersprungen und ein
+ *     `xsi:type`-Attribut auf einem Wert-Element verworfen.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.
@@ -140,23 +139,24 @@ import org.immutables.value.Value;
  *       value: 'urn:adv:uom:grad'
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
- *     anlass: AX_Anlassart
+ *     anl: AX_Anlassart
  *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
  *     LI_Source: gmd
- *   valueWrap:
- *     lebenszeitintervall:
- *       - AA_Lebenszeitintervall
- *       - beginnt
- *     qualitaetsangaben.herkunft.processStep.description:
+ *   xmlPaths:
+ *     daq.dpl.prs.des:
+ *       - gmd:description
  *       - AX_LI_ProcessStep_Punktort_Description
- *     qualitaetsangaben.herkunft.processStep.dateTime:
+ *     daq.dpl.prs.dat:
+ *       - gmd:dateTime
  *       - gco:DateTime
- *     qualitaetsangaben.herkunft.processStep.source.description:
+ *     daq.dpl.prs.src.des:
+ *       - gmd:description
  *       - AX_Datenerhebung_Punktort
- *     qualitaetsangaben.genauigkeitswert:
+ *     q2d.gwt:
+ *       - genauigkeitswert
  *       - gmd:DQ_RelativeInternalPositionalAccuracy
  *       - gmd:result
  *       - gmd:DQ_QuantitativeResult
@@ -240,23 +240,24 @@ import org.immutables.value.Value;
  *       value: 'urn:adv:uom:grad'
  *   codelistUriTemplate: 'https://registry.gdi-de.org/codelist/de.adv-online.gid/{{codelistId}}/{{value}}'
  *   codelistProperties:
- *     anlass: AX_Anlassart
+ *     anl: AX_Anlassart
  *   codeListUriTemplateIso19139: 'https://schemas.isotc211.org/19139/resources/codelists/gmxCodelists.xml/gmxCodelists.xml#{{codelistId}}'
  *   objectTypeNamespaces:
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
  *     LI_Source: gmd
- *   valueWrap:
- *     lebenszeitintervall:
- *       - AA_Lebenszeitintervall
- *       - beginnt
- *     qualitaetsangaben.herkunft.processStep.description:
+ *   xmlPaths:
+ *     daq.dpl.prs.des:
+ *       - gmd:description
  *       - AX_LI_ProcessStep_Punktort_Description
- *     qualitaetsangaben.herkunft.processStep.dateTime:
+ *     daq.dpl.prs.dat:
+ *       - gmd:dateTime
  *       - gco:DateTime
- *     qualitaetsangaben.herkunft.processStep.source.description:
+ *     daq.dpl.prs.src.des:
+ *       - gmd:description
  *       - AX_Datenerhebung_Punktort
- *     qualitaetsangaben.genauigkeitswert:
+ *     q2d.gwt:
+ *       - genauigkeitswert
  *       - gmd:DQ_RelativeInternalPositionalAccuracy
  *       - gmd:result
  *       - gmd:DQ_QuantitativeResult
@@ -751,18 +752,18 @@ public interface GmlConfiguration
   Boolean getSrsDimension();
 
   /**
-   * @langEn If enabled, simple polygons are encoded as {@code gml:Surface} with a single {@code
-   *     gml:PolygonPatch} instead of {@code gml:Polygon}, and simple line strings are encoded as
-   *     {@code gml:Curve} with a single {@code gml:LineStringSegment} instead of {@code
-   *     gml:LineString}. All rings are encoded as {@code gml:Ring} with a single {@code
-   *     gml:LineStringSegment} curve member instead of {@code gml:LinearRing}. This option is
-   *     useful when the target GML application schema requires these geometry types.
-   * @langDe Wenn aktiviert, werden einfache Polygone statt als {@code gml:Polygon} als {@code
-   *     gml:Surface} mit genau einem {@code gml:PolygonPatch} kodiert, und einfache Linienzüge
-   *     statt als {@code gml:LineString} als {@code gml:Curve} mit genau einem {@code
-   *     gml:LineStringSegment}. Alle Ringe werden als {@code gml:Ring} mit genau einem {@code
-   *     gml:LineStringSegment} als Curve-Member statt als {@code gml:LinearRing} kodiert. Diese
-   *     Option ist nützlich, wenn das Ziel-GML-Anwendungsschema diese Geometrietypen erfordert.
+   * @langEn If enabled, simple polygons are encoded as `gml:Surface` with a single
+   *     `gml:PolygonPatch` instead of `gml:Polygon`, and simple line strings are encoded as
+   *     `gml:Curve` with a single `gml:LineStringSegment` instead of `gml:LineString`. All rings
+   *     are encoded as `gml:Ring` with a single `gml:LineStringSegment` curve member instead of
+   *     `gml:LinearRing`. This option is useful when the target GML application schema requires
+   *     these geometry types.
+   * @langDe Wenn aktiviert, werden einfache Polygone statt als `gml:Polygon` als `gml:Surface` mit
+   *     genau einem `gml:PolygonPatch` kodiert, und einfache Linienzüge statt als `gml:LineString`
+   *     als `gml:Curve` mit genau einem `gml:LineStringSegment`. Alle Ringe werden als `gml:Ring`
+   *     mit genau einem `gml:LineStringSegment` als Curve-Member statt als `gml:LinearRing`
+   *     kodiert. Diese Option ist nützlich, wenn das Ziel-GML-Anwendungsschema diese Geometrietypen
+   *     erfordert.
    * @default false
    * @examplesAll <code>
    * ```yaml
@@ -777,17 +778,16 @@ public interface GmlConfiguration
   Boolean getUseSurfaceAndCurve();
 
   /**
-   * @langEn If enabled, a curve geometry is always encoded as {@code gml:CompositeCurve} (with one
-   *     {@code gml:curveMember} per curve component), even when the geometry has only a single
-   *     component. This is useful when the target GML application schema requires {@code
-   *     gml:CompositeCurve} for the geometry of a feature type. Set this per collection on the
-   *     affected feature types. Has an effect only together with {@code useSurfaceAndCurve}.
-   * @langDe Wenn aktiviert, wird eine Kurvengeometrie immer als {@code gml:CompositeCurve} kodiert
-   *     (mit einem {@code gml:curveMember} je Kurvenkomponente), auch wenn die Geometrie nur eine
-   *     einzige Komponente hat. Dies ist nützlich, wenn das Ziel-GML-Anwendungsschema {@code
-   *     gml:CompositeCurve} für die Geometrie einer Objektart erfordert. Diese Option wird je
-   *     Collection auf den betroffenen Objektarten gesetzt. Sie ist nur zusammen mit {@code
-   *     useSurfaceAndCurve} wirksam.
+   * @langEn If enabled, a curve geometry is always encoded as `gml:CompositeCurve` (with one
+   *     `gml:curveMember` per curve component), even when the geometry has only a single component.
+   *     This is useful when the target GML application schema requires `gml:CompositeCurve` for the
+   *     geometry of a feature type. Set this per collection on the affected feature types. Has an
+   *     effect only together with `useSurfaceAndCurve`.
+   * @langDe Wenn aktiviert, wird eine Kurvengeometrie immer als `gml:CompositeCurve` kodiert (mit
+   *     einem `gml:curveMember` je Kurvenkomponente), auch wenn die Geometrie nur eine einzige
+   *     Komponente hat. Dies ist nützlich, wenn das Ziel-GML-Anwendungsschema `gml:CompositeCurve`
+   *     für die Geometrie einer Objektart erfordert. Diese Option wird je Collection auf den
+   *     betroffenen Objektarten gesetzt. Sie ist nur zusammen mit `useSurfaceAndCurve` wirksam.
    * @default false
    * @examplesAll <code>
    * ```yaml
@@ -825,16 +825,14 @@ public interface GmlConfiguration
   Map<String, String> getDefaultProfiles();
 
   /**
-   * @langEn Controls how the {@code srsName} attribute on geometries is rendered. {@code OGC} (the
-   *     default) emits the OGC URI form (e.g. {@code http://www.opengis.net/def/crs/EPSG/0/25832}).
-   *     {@code TEMPLATE} looks up the CRS in the {@code additionalCrs} entries of the CRS building
-   *     block and uses the declared {@code alternativeUri}; CRS without one fall back to the {@code
-   *     OGC} form.
-   * @langDe Steuert, wie das {@code srsName}-Attribut von Geometrien gerendert wird. {@code OGC}
-   *     (Standard) erzeugt die OGC-URI-Form (z.B. {@code
-   *     http://www.opengis.net/def/crs/EPSG/0/25832}). {@code TEMPLATE} sucht das CRS in den {@code
-   *     additionalCrs}-Einträgen des CRS-Bausteins und verwendet die deklarierte {@code
-   *     alternativeUri}; CRS ohne eine solche fallen auf die {@code OGC}-Form zurück.
+   * @langEn Controls how the `srsName` attribute on geometries is rendered. `OGC` (the default)
+   *     emits the OGC URI form (e.g. `http://www.opengis.net/def/crs/EPSG/0/25832`). `TEMPLATE`
+   *     looks up the CRS in the `additionalCrs` entries of the CRS building block and uses the
+   *     declared `alternativeUri`; CRS without one fall back to the `OGC` form.
+   * @langDe Steuert, wie das `srsName`-Attribut von Geometrien gerendert wird. `OGC` (Standard)
+   *     erzeugt die OGC-URI-Form (z.B. `http://www.opengis.net/def/crs/EPSG/0/25832`). `TEMPLATE`
+   *     sucht das CRS in den `additionalCrs`-Einträgen des CRS-Bausteins und verwendet die
+   *     deklarierte `alternativeUri`; CRS ohne eine solche fallen auf die `OGC`-Form zurück.
    * @default OGC
    * @since v4.8
    */
@@ -842,14 +840,14 @@ public interface GmlConfiguration
   SrsNameStyle getSrsNameStyle();
 
   /**
-   * @langEn Controls how the {@code uom} attribute on measure-typed properties is rendered. {@code
-   *     RAW} (the default) writes the unit string from the provider schema verbatim. {@code
-   *     TEMPLATE} looks up the unit in {@code uomMappings} and uses the mapped value; units without
-   *     a mapping fall back to the raw value.
-   * @langDe Steuert, wie das {@code uom}-Attribut bei Measure-Eigenschaften gerendert wird. {@code
-   *     RAW} (Standard) schreibt den Einheitenwert aus dem Provider-Schema unverändert. {@code
-   *     TEMPLATE} sucht die Einheit in {@code uomMappings} und verwendet den zugeordneten Wert;
-   *     Einheiten ohne Mapping fallen auf den Rohwert zurück.
+   * @langEn Controls how the `uom` attribute on measure-typed properties is rendered. `RAW` (the
+   *     default) writes the unit string from the provider schema verbatim. `TEMPLATE` looks up the
+   *     unit in `uomMappings` and uses the mapped value; units without a mapping fall back to the
+   *     raw value.
+   * @langDe Steuert, wie das `uom`-Attribut bei Measure-Eigenschaften gerendert wird. `RAW`
+   *     (Standard) schreibt den Einheitenwert aus dem Provider-Schema unverändert. `TEMPLATE` sucht
+   *     die Einheit in `uomMappings` und verwendet den zugeordneten Wert; Einheiten ohne Mapping
+   *     fallen auf den Rohwert zurück.
    * @default RAW
    * @since v4.8
    */
@@ -857,12 +855,12 @@ public interface GmlConfiguration
   UomStyle getUomStyle();
 
   /**
-   * @langEn Mapping list used when {@code uomStyle} is {@code TEMPLATE}. Each entry binds a unit
-   *     string to a fixed {@code uom} value. Useful for application schemas that require non-UCUM
-   *     identifiers (e.g. AdV: {@code urn:adv:uom:m}).
-   * @langDe Mapping-Liste für {@code uomStyle: TEMPLATE}. Jeder Eintrag bindet einen
-   *     Einheiten-String an einen festen {@code uom}-Wert. Nützlich für Anwendungsschemata, die
-   *     Nicht-UCUM-Bezeichner verlangen (z.B. AdV: {@code urn:adv:uom:m}).
+   * @langEn Mapping list used when `uomStyle` is `TEMPLATE`. Each entry binds a unit string to a
+   *     fixed `uom` value. Useful for application schemas that require non-UCUM identifiers (e.g.
+   *     AdV: `urn:adv:uom:m`).
+   * @langDe Mapping-Liste für `uomStyle: TEMPLATE`. Jeder Eintrag bindet einen Einheiten-String an
+   *     einen festen `uom`-Wert. Nützlich für Anwendungsschemata, die Nicht-UCUM-Bezeichner
+   *     verlangen (z.B. AdV: `urn:adv:uom:m`).
    * @default []
    * @examplesAll <code>
    * ```yaml
@@ -879,18 +877,16 @@ public interface GmlConfiguration
   List<UomMapping> getUomMappings();
 
   /**
-   * @langEn URI/URN template applied to {@code xlink:href} of feature reference properties (i.e.
-   *     properties with {@code refType}). The placeholder {@code {{value}}} is replaced with the
-   *     referenced feature id (the segment after {@code /items/} in the original href). Default
-   *     {@code null} keeps the original href. Useful for application schemas that require URN-style
-   *     references (e.g. AdV: {@code urn:adv:oid:{{value}}}). Does not affect links inside generic
-   *     {@code Link} objects.
-   * @langDe URI/URN-Template für {@code xlink:href} von Feature-Referenz-Eigenschaften (d.h.
-   *     Properties mit {@code refType}). Der Platzhalter {@code {{value}}} wird durch die
-   *     referenzierte Feature-ID (das Segment nach {@code /items/} in der Original-URL) ersetzt.
-   *     Standardwert {@code null} belässt die Original-URL. Nützlich für Anwendungsschemata, die
-   *     URN-Referenzen verlangen (z.B. AdV: {@code urn:adv:oid:{{value}}}). Wirkt nicht auf Links
-   *     in generischen {@code Link}-Objekten.
+   * @langEn URI/URN template applied to `xlink:href` of feature reference properties (i.e.
+   *     properties with `refType`). The placeholder `{{value}}` is replaced with the referenced
+   *     feature id (the segment after `/items/` in the original href). Default `null` keeps the
+   *     original href. Useful for application schemas that require URN-style references (e.g. AdV:
+   *     `urn:adv:oid:{{value}}`). Does not affect links inside generic `Link` objects.
+   * @langDe URI/URN-Template für `xlink:href` von Feature-Referenz-Eigenschaften (d.h. Properties
+   *     mit `refType`). Der Platzhalter `{{value}}` wird durch die referenzierte Feature-ID (das
+   *     Segment nach `/items/` in der Original-URL) ersetzt. Standardwert `null` belässt die
+   *     Original-URL. Nützlich für Anwendungsschemata, die URN-Referenzen verlangen (z.B. AdV:
+   *     `urn:adv:oid:{{value}}`). Wirkt nicht auf Links in generischen `Link`-Objekten.
    * @default null
    * @examplesAll <code>
    * ```yaml
@@ -905,16 +901,16 @@ public interface GmlConfiguration
   String getFeatureRefTemplate();
 
   /**
-   * @langEn If set, a {@code gml:identifier} child element is emitted as the first child of every
-   *     feature with the configured {@code codeSpace} attribute. The element's text value is the
-   *     raw feature id from the provider, optionally substituted into {@code valueTemplate} (where
-   *     {@code {{value}}} is replaced with the raw id). Useful for application schemas that mandate
-   *     {@code gml:identifier} (e.g. AdV NAS).
-   * @langDe Wenn gesetzt, wird ein {@code gml:identifier}-Kindelement als erstes Kind jedes
-   *     Features mit dem konfigurierten {@code codeSpace}-Attribut ausgegeben. Der Textinhalt des
-   *     Elements ist die rohe Feature-ID aus dem Provider, optional eingesetzt in {@code
-   *     valueTemplate} (wobei {@code {{value}}} durch die rohe ID ersetzt wird). Nützlich für
-   *     Anwendungsschemata, die {@code gml:identifier} verlangen (z.B. AdV NAS).
+   * @langEn If set, a `gml:identifier` child element is emitted as the first child of every feature
+   *     with the configured `codeSpace` attribute. The element's text value is the raw feature id
+   *     from the provider, optionally substituted into `valueTemplate` (where `{{value}}` is
+   *     replaced with the raw id). Useful for application schemas that mandate `gml:identifier`
+   *     (e.g. AdV NAS).
+   * @langDe Wenn gesetzt, wird ein `gml:identifier`-Kindelement als erstes Kind jedes Features mit
+   *     dem konfigurierten `codeSpace`-Attribut ausgegeben. Der Textinhalt des Elements ist die
+   *     rohe Feature-ID aus dem Provider, optional eingesetzt in `valueTemplate` (wobei `{{value}}`
+   *     durch die rohe ID ersetzt wird). Nützlich für Anwendungsschemata, die `gml:identifier`
+   *     verlangen (z.B. AdV NAS).
    * @default null
    * @examplesAll <code>
    * ```yaml
@@ -931,18 +927,18 @@ public interface GmlConfiguration
   GmlIdentifier getGmlIdentifier();
 
   /**
-   * @langEn If {@code true} and the request's {@code datetime} parameter is an interval (contains
-   *     {@code /}), the {@code gml:id} of every feature is suffixed with the feature's primary
-   *     temporal property value formatted as {@code yyyyMMddTHHmmssX}. The source property is the
-   *     one with role {@code PRIMARY_INSTANT}, falling back to {@code PRIMARY_INTERVAL_START}.
-   *     Useful for application schemas that require {@code gml:id} to be unique per feature version
-   *     (e.g. AdV NAS time-series queries). Does not affect {@code gml:identifier}.
-   * @langDe Wenn {@code true} und der {@code datetime}-Parameter der Anfrage ein Intervall ist
-   *     (enthält {@code /}), wird die {@code gml:id} jedes Features um den Wert der primären
-   *     zeitlichen Eigenschaft formatiert als {@code yyyyMMddTHHmmssX} ergänzt. Quelle ist die
-   *     Eigenschaft mit Rolle {@code PRIMARY_INSTANT}, ersatzweise {@code PRIMARY_INTERVAL_START}.
-   *     Nützlich für Anwendungsschemata, die je Feature-Version eine eindeutige {@code gml:id}
-   *     verlangen (z.B. AdV NAS Zeitreihen-Anfragen). Wirkt nicht auf {@code gml:identifier}.
+   * @langEn If `true` and the request's `datetime` parameter is an interval (contains `/`), the
+   *     `gml:id` of every feature is suffixed with the feature's primary temporal property value
+   *     formatted as `yyyyMMddTHHmmssX`. The source property is the one with role
+   *     `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application schemas
+   *     that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series queries).
+   *     Does not affect `gml:identifier`.
+   * @langDe Wenn `true` und der `datetime`-Parameter der Anfrage ein Intervall ist (enthält `/`),
+   *     wird die `gml:id` jedes Features um den Wert der primären zeitlichen Eigenschaft formatiert
+   *     als `yyyyMMddTHHmmssX` ergänzt. Quelle ist die Eigenschaft mit Rolle `PRIMARY_INSTANT`,
+   *     ersatzweise `PRIMARY_INTERVAL_START`. Nützlich für Anwendungsschemata, die je
+   *     Feature-Version eine eindeutige `gml:id` verlangen (z.B. AdV NAS Zeitreihen-Anfragen).
+   *     Wirkt nicht auf `gml:identifier`.
    * @default false
    * @since v4.8
    */
@@ -950,20 +946,20 @@ public interface GmlConfiguration
   Boolean getAppendTemporalSuffixToGmlId();
 
   /**
-   * @langEn URI template used to construct the {@code xlink:href} for properties that carry a
-   *     codelist value. The template may contain the placeholders {@code {{codelistId}}} (replaced
-   *     with the codelist id from {@code codelistProperties}) and {@code {{value}}} (replaced with
-   *     the raw property value). When set together with {@code codelistProperties}, the matching
-   *     property is encoded as an empty element {@code <prop xlink:href="..." xlink:title="..."/>}
-   *     where {@code xlink:title} is the codelist label looked up from the resolved codelist
-   *     (falling back to the raw value if no label is found).
-   * @langDe URI-Template zum Aufbau des {@code xlink:href} für Eigenschaften mit Codelist-Werten.
-   *     Das Template darf die Platzhalter {@code {{codelistId}}} (ersetzt durch die Codelist-ID aus
-   *     {@code codelistProperties}) und {@code {{value}}} (ersetzt durch den rohen
-   *     Eigenschaftswert) enthalten. Wenn zusammen mit {@code codelistProperties} gesetzt, wird die
-   *     betroffene Eigenschaft als leeres Element {@code <prop xlink:href="..."
-   *     xlink:title="..."/>} kodiert, wobei {@code xlink:title} das Codelist-Label aus der
-   *     aufgelösten Codelist ist (Fallback ist der rohe Wert, wenn kein Label gefunden wird).
+   * @langEn URI template used to construct the `xlink:href` for properties that carry a codelist
+   *     value. The template may contain the placeholders `{{codelistId}}` (replaced with the
+   *     codelist id from `codelistProperties`) and `{{value}}` (replaced with the raw property
+   *     value). When set together with `codelistProperties`, the matching property is encoded as an
+   *     empty element `<prop xlink:href="..." xlink:title="..."/>` where `xlink:title` is the
+   *     codelist label looked up from the resolved codelist (falling back to the raw value if no
+   *     label is found).
+   * @langDe URI-Template zum Aufbau des `xlink:href` für Eigenschaften mit Codelist-Werten. Das
+   *     Template darf die Platzhalter `{{codelistId}}` (ersetzt durch die Codelist-ID aus
+   *     `codelistProperties`) und `{{value}}` (ersetzt durch den rohen Eigenschaftswert) enthalten.
+   *     Wenn zusammen mit `codelistProperties` gesetzt, wird die betroffene Eigenschaft als leeres
+   *     Element `<prop xlink:href="..." xlink:title="..."/>` kodiert, wobei `xlink:title` das
+   *     Codelist-Label aus der aufgelösten Codelist ist (Fallback ist der rohe Wert, wenn kein
+   *     Label gefunden wird).
    * @default null
    * @examplesAll <code>
    * ```yaml
@@ -978,16 +974,15 @@ public interface GmlConfiguration
   String getCodelistUriTemplate();
 
   /**
-   * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()}) to a
-   *     codelist id. Properties listed here are encoded as xlink elements using {@code
-   *     codelistUriTemplate} instead of the raw value being written as element text. Entries
-   *     defined at the building-block (API) level apply to all collections; per-collection entries
-   *     are merged on top.
-   * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()}) auf
-   *     eine Codelist-ID ab. Hier aufgeführte Eigenschaften werden als xlink-Elemente mittels
-   *     {@code codelistUriTemplate} kodiert anstatt den rohen Wert als Elementtext zu schreiben.
-   *     Auf Building-Block-Ebene (API) definierte Einträge gelten für alle Collections; Einträge
-   *     auf Collection-Ebene werden ergänzt.
+   * @langEn Maps property paths (matching `FeatureSchema#getFullPathAsString()`) to a codelist id.
+   *     Properties listed here are encoded as xlink elements using `codelistUriTemplate` instead of
+   *     the raw value being written as element text. Entries defined at the building-block (API)
+   *     level apply to all collections; per-collection entries are merged on top.
+   * @langDe Bildet Eigenschaftspfade (entsprechend `FeatureSchema#getFullPathAsString()`) auf eine
+   *     Codelist-ID ab. Hier aufgeführte Eigenschaften werden als xlink-Elemente mittels
+   *     `codelistUriTemplate` kodiert anstatt den rohen Wert als Elementtext zu schreiben. Auf
+   *     Building-Block-Ebene (API) definierte Einträge gelten für alle Collections; Einträge auf
+   *     Collection-Ebene werden ergänzt.
    * @default {}
    * @examplesAll <code>
    * ```yaml
@@ -1002,47 +997,78 @@ public interface GmlConfiguration
   Map<String, String> getCodelistProperties();
 
   /**
-   * @langEn Maps property paths (matching {@code FeatureSchema#getFullPathAsString()} at encoding
-   *     time, i.e. after any {@code rename} transformations) to a list of XML elements (outer to
-   *     inner) that wrap the scalar value. When a path matches, the property element content is
-   *     encoded as {@code <wrapper1>...<wrapperN>value</wrapperN>...</wrapper1>} instead of the
-   *     plain value. Each entry is an element name, optionally followed by constant attributes as
-   *     `[attribute=value]` predicates (e.g. `gco:Record[xsi:type=gml:doubleList]`; the value may
-   *     be quoted) and/or a trailing `/`. An entry with a trailing `/` does not wrap the remainder
-   *     of the chain; instead an empty element with the given attributes is written at that
-   *     position — e.g. the mandatory `valueUnit` child of an ISO 19139 `DQ_QuantitativeResult`,
-   *     which precedes the `value` element. Element and attribute names may be namespace-qualified,
-   *     provided the prefix is declared in `applicationNamespaces` or is a standard prefix (`xsi`,
-   *     `xlink`). Attributes and injected empty elements affect output only; on input, attributes
-   *     on wrapper elements are dropped and empty elements inside the chain are skipped.
-   * @langDe Bildet Eigenschaftspfade (entsprechend {@code FeatureSchema#getFullPathAsString()} zum
-   *     Kodierungszeitpunkt, d.h. nach eventuellen {@code rename}-Transformationen) auf eine Liste
-   *     von XML-Elementen ab (von außen nach innen), die den skalaren Wert einschließen. Bei einem
-   *     Treffer wird der Inhalt des Eigenschaftselements als {@code
-   *     <wrapper1>...<wrapperN>Wert</wrapperN>...</wrapper1>} statt als reiner Wert kodiert. Jeder
-   *     Eintrag ist ein Elementname, optional gefolgt von konstanten Attributen als
-   *     `[Attribut=Wert]`-Prädikate (z.B. `gco:Record[xsi:type=gml:doubleList]`; der Wert kann in
-   *     Anführungszeichen stehen) und/oder einem abschließenden `/`. Ein Eintrag mit abschließendem
-   *     `/` umschließt nicht den Rest der Kette; stattdessen wird an dieser Stelle ein leeres
-   *     Element mit den angegebenen Attributen geschrieben — z.B. das obligatorische
-   *     `valueUnit`-Kind eines ISO-19139-`DQ_QuantitativeResult`, das dem `value`-Element
-   *     vorangeht. Element- und Attributnamen können Namespace-Präfixe tragen, sofern das Präfix in
-   *     `applicationNamespaces` deklariert oder ein Standard-Präfix (`xsi`, `xlink`) ist. Attribute
-   *     und eingefügte leere Elemente wirken sich nur auf die Ausgabe aus; beim Einlesen werden
-   *     Attribute auf Wrapper-Elementen verworfen und leere Elemente innerhalb der Kette
-   *     übersprungen.
+   * @langEn Maps property paths (property ids; matching `FeatureSchema#getFullPathAsString()` at
+   *     encoding time, i.e. after any `rename` transformations) to the complete chain of XML
+   *     elements (outer to inner) that represents the property. The first element replaces the
+   *     property element (the property's name or alias is not used for a mapped property) and the
+   *     innermost element contains the value, so a flat property can be encoded as an arbitrarily
+   *     nested structure. Each segment is an element name, optionally followed by constant
+   *     attributes as `[attribute=value]` predicates (e.g. `gco:Record[xsi:type=gml:doubleList]`;
+   *     the value may be quoted) and/or a trailing `/`. A segment with a trailing `/` does not wrap
+   *     the remainder of the chain; instead an empty element with the given attributes is written
+   *     at that position - e.g. the mandatory `valueUnit` child of an ISO 19139
+   *     `DQ_QuantitativeResult`, which precedes the `value` element; the innermost segment must not
+   *     have a trailing `/`. Element and attribute names may be namespace-qualified, provided the
+   *     prefix is declared in `applicationNamespaces` or is a standard prefix (`xsi`, `xlink`);
+   *     unqualified names use the default namespace. Consecutive properties whose chains start with
+   *     the same segments share those wrapper elements: the shared elements are opened once and
+   *     kept open, so two properties mapped to `[lebenszeitintervall, AA_Lebenszeitintervall,
+   *     beginnt]` and `[lebenszeitintervall, AA_Lebenszeitintervall, endet]` are encoded inside a
+   *     single `AA_Lebenszeitintervall` object, in the order of the provider schema. The shared
+   *     elements are closed when an unmapped property, a property with a different chain prefix, an
+   *     object or array boundary, a geometry, or the feature end follows. For a property with
+   *     multiple values, the full chain is repeated for each value.
+   * @langDe Bildet Eigenschaftspfade (Eigenschafts-IDs; entsprechend
+   *     `FeatureSchema#getFullPathAsString()` zum Kodierungszeitpunkt, d.h. nach eventuellen
+   *     `rename`-Transformationen) auf die vollständige Kette von XML-Elementen ab (von außen nach
+   *     innen), die die Eigenschaft repräsentiert. Das erste Element ersetzt das
+   *     Eigenschaftselement (Name bzw. Alias der Eigenschaft werden für eine abgebildete
+   *     Eigenschaft nicht verwendet), das innerste Element enthält den Wert; eine flache
+   *     Eigenschaft kann so als beliebig geschachtelte Struktur kodiert werden. Jedes Segment ist
+   *     ein Elementname, optional gefolgt von konstanten Attributen als `[Attribut=Wert]`-Prädikate
+   *     (z.B. `gco:Record[xsi:type=gml:doubleList]`; der Wert kann in Anführungszeichen stehen)
+   *     und/oder einem abschließenden `/`. Ein Segment mit abschließendem `/` umschließt nicht den
+   *     Rest der Kette; stattdessen wird an dieser Stelle ein leeres Element mit den angegebenen
+   *     Attributen geschrieben - z.B. das obligatorische `valueUnit`-Kind eines
+   *     ISO-19139-`DQ_QuantitativeResult`, das dem `value`-Element vorangeht; das innerste Segment
+   *     darf kein abschließendes `/` tragen. Element- und Attributnamen können Namespace-Präfixe
+   *     tragen, sofern das Präfix in `applicationNamespaces` deklariert oder ein Standard-Präfix
+   *     (`xsi`, `xlink`) ist; Namen ohne Präfix verwenden den Standard-Namespace.
+   *     Aufeinanderfolgende Eigenschaften, deren Ketten mit denselben Segmenten beginnen, teilen
+   *     sich diese Wrapper-Elemente: Die geteilten Elemente werden einmal geöffnet und bleiben
+   *     offen, so dass zwei Eigenschaften mit den Ketten `[lebenszeitintervall,
+   *     AA_Lebenszeitintervall, beginnt]` und `[lebenszeitintervall, AA_Lebenszeitintervall,
+   *     endet]` innerhalb eines einzigen `AA_Lebenszeitintervall`-Objekts kodiert werden, in der
+   *     Reihenfolge des Provider-Schemas. Die geteilten Elemente werden geschlossen, sobald eine
+   *     nicht abgebildete Eigenschaft, eine Eigenschaft mit einem anderen Kettenanfang, eine
+   *     Objekt- oder Array-Grenze, eine Geometrie oder das Ende des Features folgt. Bei einer
+   *     Eigenschaft mit mehreren Werten wird die vollständige Kette für jeden Wert wiederholt.
    * @default {}
    * @examplesAll <code>
    * ```yaml
    * - buildingBlock: GML
    *   enabled: true
-   *   valueWrap:
-   *     someProperty:
-   *       - ns1:WrapperType
-   *       - ns1:wrapperChild
-   *     anotherProperty:
+   *   xmlPaths:
+   *     lzi_beg:
+   *       - lebenszeitintervall
+   *       - AA_Lebenszeitintervall
+   *       - beginnt
+   *     lzi_end:
+   *       - lebenszeitintervall
+   *       - AA_Lebenszeitintervall
+   *       - endet
+   *     zpe:
+   *       - qualitaetsangaben
+   *       - AX_DQMitDatenerhebung
+   *       - herkunft
+   *       - gmd:LI_Lineage
+   *       - gmd:processStep
+   *       - gmd:LI_ProcessStep
+   *       - gmd:dateTime
    *       - gco:DateTime
-   *     qualitaetsangaben.genauigkeitswert:
+   *     gwt:
+   *       - qualitaetsangaben
+   *       - AX_DQMitDatenerhebung
    *       - gmd:DQ_RelativeInternalPositionalAccuracy
    *       - gmd:result
    *       - gmd:DQ_QuantitativeResult
@@ -1053,21 +1079,22 @@ public interface GmlConfiguration
    * </code>
    * @since v4.8
    */
-  Map<String, List<String>> getValueWrap();
+  Map<String, List<String>> getXmlPaths();
 
   /**
    * @langEn URI template for codelist values encoded according to ISO 19139. The template may
    *     contain the placeholder `{{codelistId}}`, which is replaced with the codelist id. When set,
    *     a property that references a codelist (through the `codelist` constraint in the provider
-   *     schema) and is wrapped via `valueWrap` in an element whose local name equals the codelist
-   *     id is encoded as an ISO 19139 codelist value: the wrapping element receives a `codeList`
-   *     attribute built from this template, and a `codeListValue` attribute set to the value (which
-   *     is also the element's text content). The default `null` disables this encoding.
+   *     schema) and is mapped via `xmlPaths` to a chain whose innermost element's local name equals
+   *     the codelist id is encoded as an ISO 19139 codelist value: the wrapping element receives a
+   *     `codeList` attribute built from this template, and a `codeListValue` attribute set to the
+   *     value (which is also the element's text content). The default `null` disables this
+   *     encoding.
    * @langDe URI-Template für Codelist-Werte, die gemäß ISO 19139 kodiert werden. Das Template kann
    *     den Platzhalter `{{codelistId}}` enthalten, der durch die Codelist-ID ersetzt wird. Wenn
    *     gesetzt, wird eine Eigenschaft, die über die `codelist`-Constraint im Provider-Schema auf
-   *     eine Codelist verweist und über `valueWrap` in ein Element eingeschlossen ist, dessen
-   *     lokaler Name der Codelist-ID entspricht, als ISO-19139-Codelist-Wert kodiert: Das
+   *     eine Codelist verweist und über `xmlPaths` auf eine Kette abgebildet ist, deren innerstes
+   *     Element den lokalen Namen der Codelist-ID trägt, als ISO-19139-Codelist-Wert kodiert: Das
    *     einschließende Element erhält ein `codeList`-Attribut, das aus diesem Template gebildet
    *     wird, sowie ein `codeListValue`-Attribut mit dem Wert (der zugleich der Textinhalt des
    *     Elements ist). Der Standardwert `null` deaktiviert diese Kodierung.
@@ -1093,26 +1120,39 @@ public interface GmlConfiguration
    * time and is therefore not checked here.
    */
   /**
-   * Fails fast when a {@code valueWrap} entry does not parse under the {@code
-   * name([attribute=value])*'/'?} grammar, so a syntax slip is reported at service load with the
-   * offending property path instead of producing malformed XML at request time.
+   * Fails fast when an {@code xmlPaths} chain is empty, ends in an injected empty element, or
+   * contains a segment that does not parse under the {@code name([attribute=value])*'/'?} grammar,
+   * so a configuration slip is reported at service load with the offending property path instead of
+   * producing malformed XML at request time.
    */
   @Value.Check
-  default void checkValueWrap() {
-    getValueWrap()
+  default void checkXmlPaths() {
+    getXmlPaths()
         .forEach(
-            (path, chain) ->
-                chain.forEach(
-                    entry -> {
-                      try {
-                        ValueWrapElement.parse(entry);
-                      } catch (IllegalArgumentException e) {
-                        throw new IllegalStateException(
-                            String.format(
-                                "GML configuration: invalid valueWrap entry '%s' for property '%s': %s",
-                                entry, path, e.getMessage()));
-                      }
-                    }));
+            (path, chain) -> {
+              if (chain.isEmpty()) {
+                throw new IllegalStateException(
+                    String.format(
+                        "GML configuration: the xmlPaths chain for property '%s' is empty", path));
+              }
+              for (int i = 0; i < chain.size(); i++) {
+                XmlPathElement element;
+                try {
+                  element = XmlPathElement.parse(chain.get(i));
+                } catch (IllegalArgumentException e) {
+                  throw new IllegalStateException(
+                      String.format(
+                          "GML configuration: invalid xmlPaths segment '%s' for property '%s': %s",
+                          chain.get(i), path, e.getMessage()));
+                }
+                if (i == chain.size() - 1 && element.isEmptyElement()) {
+                  throw new IllegalStateException(
+                      String.format(
+                          "GML configuration: the innermost xmlPaths segment '%s' for property '%s' must not be an injected empty element (trailing '/')",
+                          chain.get(i), path));
+                }
+              }
+            });
   }
 
   @Value.Check
@@ -1174,7 +1214,7 @@ public interface GmlConfiguration
         .variableObjectElementNames(
             mergeMaps(src.getVariableObjectElementNames(), getVariableObjectElementNames()))
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
-        .valueWrap(mergeMaps(src.getValueWrap(), getValueWrap()))
+        .xmlPaths(mergeMaps(src.getXmlPaths(), getXmlPaths()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
         .objectTypeSuffixedProperties(
             mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
