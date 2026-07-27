@@ -10,7 +10,7 @@ package de.ii.ogcapi.features.gml.domain
 import spock.lang.Specification
 
 // A /search response mixes features from several collections, each with its own GmlConfiguration.
-// The GML context resolves the per-collection options (here: valueWrap) from the collection of the
+// The GML context resolves the per-collection options (here: xmlPaths) from the collection of the
 // feature currently being encoded, so the same property path wraps differently per collection
 // instead of all features inheriting the arbitrary first collection's config.
 class CollectionEncodingResolutionSpec extends Specification {
@@ -21,10 +21,10 @@ class CollectionEncodingResolutionSpec extends Specification {
     // ax_anderefestlegungnachstrassenrecht in AX_LI_ProcessStep_MitDatenerhebung_Description.
     def encodings = [
             'ax_anschrift'                          : ImmutableCollectionEncodingGml.builder()
-                    .valueWrap([(PATH): [ValueWrapElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]])
+                    .xmlPaths([(PATH): [XmlPathElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]])
                     .build(),
             'ax_anderefestlegungnachstrassenrecht'  : ImmutableCollectionEncodingGml.builder()
-                    .valueWrap([(PATH): [ValueWrapElement.parse('AX_LI_ProcessStep_MitDatenerhebung_Description')]])
+                    .xmlPaths([(PATH): [XmlPathElement.parse('AX_LI_ProcessStep_MitDatenerhebung_Description')]])
                     .build(),
             'aa_aktivitaet'                         : ImmutableCollectionEncodingGml.builder()
                     .build(),
@@ -36,14 +36,14 @@ class CollectionEncodingResolutionSpec extends Specification {
                 encodings, Optional.of('ax_anschrift'))
 
         then:
-        active.getValueWrap()[PATH] == [ValueWrapElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]
+        active.getXmlPaths()[PATH] == [XmlPathElement.parse('AX_LI_ProcessStep_OhneDatenerhebung_Description')]
     }
 
     def 'the same property path wraps differently per collection in one response'() {
         expect:
         FeatureTransformationContextGml.resolveCurrentEncoding(
                 encodings, Optional.of(collectionId))
-                .getValueWrap()[PATH] == (wrapper == null ? null : [ValueWrapElement.parse(wrapper)])
+                .getXmlPaths()[PATH] == (wrapper == null ? null : [XmlPathElement.parse(wrapper)])
 
         where:
         collectionId                            || wrapper
@@ -77,7 +77,7 @@ class CollectionEncodingResolutionSpec extends Specification {
                 [:], Optional.of('ax_anschrift'))
 
         then:
-        active.getValueWrap().isEmpty()
+        active.getXmlPaths().isEmpty()
         active.getCodelistProperties().isEmpty()
     }
 }

@@ -43,15 +43,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * @endpoints Feature
  * @langEn Select the version of the feature whose primary instant or interval covers the provided
  *     date or date-time. The default is the request time, which selects the current version, unless
- *     the collection configures a different {@code defaultDatetime}. Unlike the {@code datetime}
- *     parameter on the Features resource, intervals are not accepted here because the response
- *     carries a single feature representation.
+ *     the collection configures a different `defaultDatetime`. Unlike the `datetime` parameter on
+ *     the Features resource, intervals are not accepted here because the response carries a single
+ *     feature representation.
  * @langDe Wählt die Version des Features aus, deren primäre zeitliche Eigenschaft den angegebenen
  *     Wert (Datum oder Zeitstempel) abdeckt. Standardwert ist der Anfragezeitpunkt, womit die
- *     aktuelle Version geliefert wird, sofern die Collection keinen abweichenden {@code
- *     defaultDatetime} konfiguriert. Anders als der Parameter {@code datetime} auf der
- *     Features-Ressource sind hier keine Intervalle erlaubt, weil die Antwort genau eine Version
- *     liefert.
+ *     aktuelle Version geliefert wird, sofern die Collection keinen abweichenden `defaultDatetime`
+ *     konfiguriert. Anders als der Parameter `datetime` auf der Features-Ressource sind hier keine
+ *     Intervalle erlaubt, weil die Antwort genau eine Version liefert.
  */
 @Singleton
 @AutoBind

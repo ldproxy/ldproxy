@@ -145,7 +145,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     collected, and the response reports all of them, while all changes are still rolled back.
    *     This lets clients fix every error in a large transaction in one pass instead of one error
    *     per attempt. Later actions see the changes of earlier successful actions, but not those of
-   *     failed actions — an action that depends on a failed action therefore typically reports a
+   *     failed actions - an action that depends on a failed action therefore typically reports a
    *     follow-on error. Each action adds a small database overhead (a savepoint), which can be
    *     noticeable in very large transactions. Requires a SQL feature provider; otherwise the
    *     option is ignored. When disabled, processing stops at the first error, the remaining
@@ -156,7 +156,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     Änderungen dennoch zurückgerollt werden. Clients können so alle Fehler einer großen
    *     Transaktion in einem Durchgang beheben statt einen Fehler pro Versuch. Spätere Aktionen
    *     sehen die Änderungen früherer erfolgreicher Aktionen, nicht aber die fehlgeschlagener
-   *     Aktionen — eine Aktion, die von einer fehlgeschlagenen Aktion abhängt, meldet daher in der
+   *     Aktionen - eine Aktion, die von einer fehlgeschlagenen Aktion abhängt, meldet daher in der
    *     Regel einen Folgefehler. Jede Aktion verursacht einen kleinen Mehraufwand in der Datenbank
    *     (einen Savepoint), der bei sehr großen Transaktionen spürbar sein kann. Erfordert einen
    *     SQL-Feature-Provider; andernfalls wird die Option ignoriert. Wenn deaktiviert, stoppt die
@@ -196,15 +196,15 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
 
   /**
    * @langEn SQL statements executed on the database transaction right after it begins, before any
-   *     action runs. Typical uses are transaction-scoped settings (`SET LOCAL …`) or calling a
+   *     action runs. Typical uses are transaction-scoped settings (`SET LOCAL ...`) or calling a
    *     setup function. Each entry is a single statement run verbatim, in order, on the provider's
    *     transaction connection (PostgreSQL/PostGIS feature providers only). The `always`, `strict`
    *     and `lenient` lists select which statements run depending on the request's `Prefer:
    *     handling` preference. A statement that fails aborts the transaction.
    * @langDe SQL-Anweisungen, die auf der Datenbanktransaktion direkt nach deren Beginn ausgeführt
    *     werden, bevor eine Aktion läuft. Typische Anwendungen sind transaktionsbezogene
-   *     Einstellungen (`SET LOCAL …`) oder der Aufruf einer Setup-Funktion. Jeder Eintrag ist eine
-   *     einzelne Anweisung, die unverändert und in der angegebenen Reihenfolge auf der
+   *     Einstellungen (`SET LOCAL ...`) oder der Aufruf einer Setup-Funktion. Jeder Eintrag ist
+   *     eine einzelne Anweisung, die unverändert und in der angegebenen Reihenfolge auf der
    *     Transaktionsverbindung des Providers ausgeführt wird (nur PostgreSQL/PostGIS-Provider). Die
    *     Listen `always`, `strict` und `lenient` legen abhängig von der `Prefer: handling`-Präferenz
    *     der Anfrage fest, welche Anweisungen laufen. Eine fehlschlagende Anweisung bricht die
@@ -226,7 +226,7 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     commit and the warning is returned in the response. The error and warning text is relayed
    *     verbatim into the response (`exceptions` and `warnings`), and the statements run at the
    *     database level without access to the request actions, so write `RAISE` messages that
-   *     identify the affected feature(s) — e.g. include the feature identifier — to make the
+   *     identify the affected feature(s) - e.g. include the feature identifier - to make the
    *     response actionable.
    * @langDe SQL-Anweisungen, die auf der Datenbanktransaktion direkt vor dem Commit ausgeführt
    *     werden. Typische Anwendungen sind Funktionen, die abgeleitete Daten aktualisieren oder die
@@ -239,8 +239,8 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    *     Transaktion committen, und die Warnung wird in der Antwort zurückgegeben. Der Fehler- bzw.
    *     Warnungstext wird unverändert in die Antwort übernommen (`exceptions` und `warnings`), und
    *     die Anweisungen laufen auf Datenbankebene ohne Zugriff auf die Aktionen der Anfrage. Daher
-   *     sollten `RAISE`-Meldungen die betroffenen Objekte benennen — z.B. den Objektidentifikator
-   *     enthalten —, damit die Antwort auswertbar ist.
+   *     sollten `RAISE`-Meldungen die betroffenen Objekte benennen (z.B. den Objektidentifikator
+   *     enthalten), damit die Antwort auswertbar ist.
    * @default null
    * @since v4.8
    */

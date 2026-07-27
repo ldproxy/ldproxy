@@ -172,4 +172,128 @@ class UpdatePathResolverSpec extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
+
+    // -------------------------------------------------------------------------------------------
+    // xmlPaths chains: a flat property addressed through the element structure the GML encoder
+    // writes for it. The chain's elements name no schema property, so they are consumed as a
+    // whole and resolve to the mapped property.
+    // -------------------------------------------------------------------------------------------
+
+    def "xmlPaths chain resolves to the flat property it maps"() {
+        given:
+        def root = feature(scalar("lzi_beg", null, SchemaBase.Type.DATETIME))
+        def xmlPaths = ["lzi_beg": ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root, ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"], false, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["lzi_beg"]
+    }
+
+    def "xmlPaths chains sharing leading elements resolve to their own property"() {
+        given:
+        def root = feature(
+                scalar("lzi_beg", null, SchemaBase.Type.DATETIME),
+                scalar("lzi_end", null, SchemaBase.Type.DATETIME))
+        def xmlPaths = [
+                "lzi_beg": ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"],
+                "lzi_end": ["lebenszeitintervall", "AA_Lebenszeitintervall", "endet"]]
+
+        expect:
+        UpdatePathResolver.resolve(
+                root, ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"], false, true, xmlPaths)
+                *.getName() == ["lzi_beg"]
+        UpdatePathResolver.resolve(
+                root, ["lebenszeitintervall", "AA_Lebenszeitintervall", "endet"], false, true, xmlPaths)
+                *.getName() == ["lzi_end"]
+    }
+
+    def "an xmlPaths chain with prefixed and injected-empty segments resolves on local names"() {
+        given:
+        // The ValueReference carries local names only, and an injected empty element (trailing '/')
+        // is a sibling of a chain element — never part of a path to the value.
+        def root = feature(scalar("gwt"))
+        def xmlPaths = ["gwt": ["genauigkeitswert", "gmd:DQ_RelativeInternalPositionalAccuracy",
+                                "gmd:result", "gmd:DQ_QuantitativeResult",
+                                "gmd:valueUnit[xlink:href=urn:adv:uom:m]/", "gmd:value",
+                                "gco:Record[xsi:type=gml:doubleList]"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root,
+                ["genauigkeitswert", "DQ_RelativeInternalPositionalAccuracy", "result",
+                 "DQ_QuantitativeResult", "value", "Record"],
+                false, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["gwt"]
+    }
+
+    def "an xmlPaths chain segment with a repetition marker matches on its local name"() {
+        given:
+        // The '*' names the segment an object-array chain repeats from; the ValueReference
+        // carries the plain element name.
+        def root = feature(scalar("q2d_gst"))
+        def xmlPaths = ["q2d_gst": ["qualitaetsangaben", "AX_DQPunktort", "herkunft",
+                                    "gmd:LI_Lineage", "*gmd:processStep", "gmd:LI_ProcessStep",
+                                    "gmd:description", "AX_Description"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root,
+                ["qualitaetsangaben", "AX_DQPunktort", "herkunft", "LI_Lineage", "processStep",
+                 "LI_ProcessStep", "description", "AX_Description"],
+                false, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["q2d_gst"]
+    }
+
+    def "a path addressing only part of an xmlPaths chain is rejected with the full chain"() {
+        given:
+        def root = feature(scalar("lzi_beg", null, SchemaBase.Type.DATETIME))
+        def xmlPaths = ["lzi_beg": ["lebenszeitintervall", "AA_Lebenszeitintervall", "beginnt"]]
+
+        when:
+        UpdatePathResolver.resolve(root, ["lebenszeitintervall"], false, true, xmlPaths)
+
+        then:
+        def ex = thrown(IllegalArgumentException)
+        ex.message.contains("lzi_beg")
+        ex.message.contains("lebenszeitintervall/AA_Lebenszeitintervall/beginnt")
+    }
+
+    def "an xmlPaths chain of a member property resolves inside its object"() {
+        given:
+        def root = feature(
+                object("fdv", "zeigtAufExternes", "AA_Fachdatenverbindung",
+                        scalar("art", "art"), scalar("nam")))
+        def xmlPaths = ["fdv.nam": ["fachdatenobjekt", "AA_Fachdatenobjekt", "name"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root,
+                ["zeigtAufExternes", "AA_Fachdatenverbindung", "fachdatenobjekt",
+                 "AA_Fachdatenobjekt", "name"],
+                true, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["fdv", "nam"]
+    }
+
+    def "a directly matching property wins over an xmlPaths chain"() {
+        given:
+        // The value-wrapping use of the option keys a chain by a property whose own element the wire
+        // does carry; the ordinary lookup must still resolve it (the chain describes its content).
+        def root = feature(scalar("dat", "dateTime", SchemaBase.Type.DATETIME))
+        def xmlPaths = ["dat": ["dateTime", "gco:DateTime"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(root, ["dateTime"], true, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["dat"]
+    }
 }

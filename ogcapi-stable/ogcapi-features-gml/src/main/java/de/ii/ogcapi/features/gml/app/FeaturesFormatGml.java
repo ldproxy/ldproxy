@@ -28,8 +28,8 @@ import de.ii.ogcapi.features.gml.domain.GmlWriterRegistry;
 import de.ii.ogcapi.features.gml.domain.ImmutableCollectionEncodingGml;
 import de.ii.ogcapi.features.gml.domain.ImmutableFeatureTransformationContextGml;
 import de.ii.ogcapi.features.gml.domain.UomMapping;
-import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
 import de.ii.ogcapi.features.gml.domain.VariableName;
+import de.ii.ogcapi.features.gml.domain.XmlPathElement;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
@@ -464,7 +464,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       // provider config). Translate config-side technical paths to alias-form paths here so the
       // runtime lookup matches; without this remap, codelist properties silently fall through to
       // a plain <prop>value</prop> element instead of <prop xlink:href="…"/>, and xmlAttributes /
-      // valueWrap config entries are silently ignored for any aliased ancestor path.
+      // xmlPaths config entries are silently ignored for any aliased ancestor path.
       Optional<FeatureSchema> featureSchema =
           providers.getFeatureSchema(transformationContext.getApiData(), collectionData);
       Map<String, String> aliasRewrites =
@@ -560,7 +560,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .alternativeCrss(alternativeCrss)
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
-        .valueWrap(parseValueWrap(remapKeys(config.getValueWrap(), aliasRewrites)))
+        .xmlPaths(parseXmlPaths(remapKeys(config.getXmlPaths(), aliasRewrites)))
         .positionVariants(derivePositionVariants(featureSchema, aliasRewrites))
         .objectTypeSuffixedProperties(
             remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
@@ -963,7 +963,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .objectTypeNamespaces(config.getObjectTypeNamespaces())
         .variableObjectElementNames(variableObjectElementNames)
         .xmlAttributes(config.getXmlAttributes())
-        .valueWrap(config.getValueWrap())
+        .xmlPaths(config.getXmlPaths())
         // The configured property ids are passed through unchanged: the decoder matches them
         // against each property's technical full path (it never sees the alias rewrites, which are
         // an encoder-only concern), so no remapping is applied here.
@@ -1103,19 +1103,19 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     return lastDot < 0 ? aliasPath : aliasPath.substring(lastDot + 1);
   }
 
-  // The chain entries are parsed once per collection at encoder-build time; validity was already
-  // enforced at service load by GmlConfiguration#checkValueWrap.
-  static Map<String, List<ValueWrapElement>> parseValueWrap(Map<String, List<String>> valueWrap) {
-    if (valueWrap == null || valueWrap.isEmpty()) {
+  // The chain segments are parsed once per collection at encoder-build time; validity was already
+  // enforced at service load by GmlConfiguration#checkXmlPaths.
+  static Map<String, List<XmlPathElement>> parseXmlPaths(Map<String, List<String>> xmlPaths) {
+    if (xmlPaths == null || xmlPaths.isEmpty()) {
       return ImmutableMap.of();
     }
-    return valueWrap.entrySet().stream()
+    return xmlPaths.entrySet().stream()
         .collect(
             ImmutableMap.toImmutableMap(
                 Map.Entry::getKey,
                 entry ->
                     entry.getValue().stream()
-                        .map(ValueWrapElement::parse)
+                        .map(XmlPathElement::parse)
                         .collect(ImmutableList.toImmutableList())));
   }
 

@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  *     options of the GML building block (alias resolution, value-wrapping, namespace qualification,
  *     codelist URI templates, srsName mappings, uom mappings) symmetrically with the encoder; see
  *     the GML building block for the full list and the per-option direction notes. Structural
- *     validation is limited to the token stream — schema-aware checks against the collection's
+ *     validation is limited to the token stream - schema-aware checks against the collection's
  *     feature schema happen downstream as for the JSON formats.
  *     <p>For GML, the coordinate reference system of each geometry is resolved in this order: the
  *     geometry's own "srsName" attribute, the "OGC-Content-Crs" request header, the collection's
@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
  *     Value-Wrapping, Namespace-Qualifizierung, Codelist-URI-Templates, srsName-Mappings,
  *     UoM-Mappings) symmetrisch zum Encoder; die vollständige Liste mit den Hinweisen pro Option
  *     findet sich im GML-Baustein. Die strukturelle Validierung beschränkt sich auf den
- *     Token-Stream — schemabasierte Prüfungen gegen das Feature-Schema der Collection erfolgen wie
+ *     Token-Stream - schemabasierte Prüfungen gegen das Feature-Schema der Collection erfolgen wie
  *     bei den JSON-Formaten nachgelagert.
  *     <p>Bei GML wird das Koordinatenreferenzsystem jeder Geometrie in dieser Reihenfolge
  *     aufgelöst: das eigene "srsName"-Attribut der Geometrie, der Header "OGC-Content-Crs" der

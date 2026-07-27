@@ -17,7 +17,7 @@ import spock.lang.Specification
  * that {@link FeaturesFormatGml#getFeatureEncoder} applies when {@code useAlias: true}.
  *
  * <p>The runtime encoder ({@code GmlWriterProperties}) looks up properties in
- * {@code codelistProperties}, {@code xmlAttributes}, and {@code valueWrap} by
+ * {@code codelistProperties}, {@code xmlAttributes}, and {@code xmlPaths} by
  * {@code schema.getFullPathAsString()}. The schema reaching the encoder has been
  * alias-renamed by {@link de.ii.xtraplatform.features.domain.FeatureSchemaAliases} (it injects a
  * RENAME transformer per aliased property), so the lookup key is the alias-form path. The

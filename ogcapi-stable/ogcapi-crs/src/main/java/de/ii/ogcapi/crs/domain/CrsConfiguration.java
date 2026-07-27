@@ -53,7 +53,7 @@ public interface CrsConfiguration extends ExtensionConfiguration {
    *     the CRS is known in a community may be declared in `alternativeUri` (e.g. the AdV
    *     identifier `urn:adv:crs:ETRS89_UTM32` for EPSG:25832); it is used by feature encodings that
    *     render CRS identifiers on the wire (e.g. the GML `srsName` with `srsNameStyle: TEMPLATE`)
-   *     and when decoding such identifiers on input — requests and the `Content-Crs` header always
+   *     and when decoding such identifiers on input - requests and the `Content-Crs` header always
    *     use the OGC URI.
    * @langDe Steuert, welche weitere Koordinatenreferenzsysteme in einer API oder für eine Feature
    *     Collection unterstützt werden sollen. Das native Koordinatenreferenzsystem der Daten und
@@ -65,7 +65,7 @@ public interface CrsConfiguration extends ExtensionConfiguration {
    *     Optional kann in `alternativeUri` eine alternative Kennung deklariert werden, unter der das
    *     CRS in einer Community bekannt ist (z.B. die AdV-Kennung `urn:adv:crs:ETRS89_UTM32` für
    *     EPSG:25832); sie wird von Feature-Kodierungen verwendet, die CRS-Kennungen kodieren (z.B.
-   *     das GML-`srsName` mit `srsNameStyle: TEMPLATE`), sowie beim Einlesen solcher Kennungen —
+   *     das GML-`srsName` mit `srsNameStyle: TEMPLATE`), sowie beim Einlesen solcher Kennungen -
    *     Requests und der `Content-Crs`-Header verwenden immer die OGC-URI.
    * @default {}
    */

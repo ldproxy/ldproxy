@@ -242,8 +242,7 @@ public class VersionedMutationStrategy implements MutationStrategy {
         return UpdateMode.RETIRE_IN_PLACE;
       }
       // Retirement combined with other modifications: only allowed when every other path is on
-      // the strategy's retireWithModifications whitelist. ALKIS configures `anl` there so a
-      // retirement can carry a change-reason code.
+      // the strategy's retireWithModifications whitelist.
       List<String> whitelist =
           apiData
               .getExtension(VersionedFeaturesConfiguration.class, collectionId)
@@ -339,26 +338,29 @@ public class VersionedMutationStrategy implements MutationStrategy {
 
   @Override
   public Optional<Instant> extractPrimaryIntervalStart(
-      OgcApiDataV2 apiData, FeatureSchema collectionSchema, MediaType mediaType, byte[] body) {
+      OgcApiDataV2 apiData,
+      FeatureSchema collectionSchema,
+      MediaType mediaType,
+      byte[] body,
+      Map<String, List<String>> xmlPaths,
+      boolean useAlias) {
     if (body == null || body.length == 0 || collectionSchema == null) {
       return Optional.empty();
     }
-    // Find the property carrying PRIMARY_INTERVAL_START. The strategy reaches it by walking the
-    // canonical schema tree top-down; we return the leaf's `alias` (falling back to `name`) as
-    // the element / property key to look for in the wire payload.
-    Optional<String> aliasOpt = findPrimaryIntervalStartLeafKey(collectionSchema);
-    if (aliasOpt.isEmpty()) {
+    // Find the property carrying PRIMARY_INTERVAL_START by walking the canonical schema tree
+    // top-down, then ask for the key the wire payload uses for it.
+    Optional<FeatureSchema> leaf = findPrimaryIntervalStartLeaf(collectionSchema);
+    if (leaf.isEmpty()) {
       return Optional.empty();
     }
-    String key = aliasOpt.get();
     String raw;
     if (mediaType != null && isXmlLike(mediaType)) {
       // application/xml, plus application/*+xml (notably application/gml+xml which the
       // WfsTransactionParser stamps on Replace actions).
-      raw = scanXmlForFirstElement(body, key);
+      raw = scanXmlForFirstElement(body, xmlElementKey(leaf.get(), xmlPaths, useAlias));
     } else if (mediaType != null && isJsonLike(mediaType)) {
       // application/json, plus application/*+json (e.g. application/ogc-tx+json).
-      raw = scanJsonForFirstProperty(body, key);
+      raw = scanJsonForFirstProperty(body, propertyKey(leaf.get(), useAlias));
     } else {
       return Optional.empty();
     }
@@ -373,17 +375,44 @@ public class VersionedMutationStrategy implements MutationStrategy {
   }
 
   // Walk the schema's leaf properties for the first one bearing PRIMARY_INTERVAL_START. Returns
-  // its alias (or its name if no alias is set) — the element / property key the wire payload
-  // uses. Returns empty if no such property exists on the type.
-  private static Optional<String> findPrimaryIntervalStartLeafKey(FeatureSchema root) {
+  // empty if no such property exists on the type.
+  private static Optional<FeatureSchema> findPrimaryIntervalStartLeaf(FeatureSchema root) {
     for (FeatureSchema p : root.getProperties()) {
-      Optional<String> nested = findPrimaryIntervalStartLeafKey(p);
+      Optional<FeatureSchema> nested = findPrimaryIntervalStartLeaf(p);
       if (nested.isPresent()) return nested;
       if (p.getRole().filter(r -> r == SchemaBase.Role.PRIMARY_INTERVAL_START).isPresent()) {
-        return Optional.of(p.getAlias().orElseGet(p::getName));
+        return Optional.of(p);
       }
     }
     return Optional.empty();
+  }
+
+  // The key a payload names the property with: its alias only where the format is configured to
+  // use aliases, its name otherwise.
+  private static String propertyKey(FeatureSchema leaf, boolean useAlias) {
+    return useAlias ? leaf.getAlias().orElseGet(leaf::getName) : leaf.getName();
+  }
+
+  // The element the XML payload carries the property's value in. A property mapped by the GML
+  // building block's `xmlPaths` has no element of its own — its chain's innermost segment holds
+  // the value — so the chain decides, whatever the alias configuration is.
+  private static String xmlElementKey(
+      FeatureSchema leaf, Map<String, List<String>> xmlPaths, boolean useAlias) {
+    List<String> chain = xmlPaths.get(leaf.getFullPathAsString());
+    if (Objects.nonNull(chain) && !chain.isEmpty()) {
+      // the segment grammar is name([attr=value])*, optionally followed by "/" for an injected
+      // empty element — only the element name identifies it in the payload
+      String innermost = chain.get(chain.size() - 1);
+      int cut = innermost.indexOf('[');
+      if (cut < 0) {
+        cut = innermost.indexOf('/');
+      }
+      String name = (cut < 0 ? innermost : innermost.substring(0, cut)).trim();
+      if (!name.isEmpty()) {
+        return name.contains(":") ? name.substring(name.indexOf(':') + 1) : name;
+      }
+    }
+    return propertyKey(leaf, useAlias);
   }
 
   // Scan the XML payload for the first element whose local name matches `localName`; return its

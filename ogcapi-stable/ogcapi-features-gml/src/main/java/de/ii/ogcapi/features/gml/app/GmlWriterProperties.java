@@ -10,10 +10,11 @@ package de.ii.ogcapi.features.gml.app;
 import static de.ii.xtraplatform.base.domain.util.LambdaWithException.consumerMayThrow;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.ogcapi.features.gml.domain.ModifiableStateGml;
-import de.ii.ogcapi.features.gml.domain.ValueWrapElement;
+import de.ii.ogcapi.features.gml.domain.XmlPathElement;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import de.ii.xtraplatform.features.domain.SchemaConstraints;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 @SuppressWarnings({
@@ -37,6 +39,8 @@ import java.util.function.Consumer;
 public class GmlWriterProperties implements GmlWriter {
 
   private static final String XML_NAME_ATTRIBUTE_SEPARATOR = "___";
+  private static final Set<String> ISO_19139_NAMESPACES =
+      Set.of("http://www.isotc211.org/2005/gmd", "http://www.isotc211.org/2005/gco");
 
   @Inject
   public GmlWriterProperties() {}
@@ -63,6 +67,13 @@ public class GmlWriterProperties implements GmlWriter {
       throws IOException {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       FeatureSchema schema = context.schema().orElseThrow();
+
+      if (isXmlPathObject(context, schema)) {
+        // the chain contributes both the property element and the object element; it was opened
+        // by GmlWriterXmlPaths, which runs before this writer
+        next.accept(context);
+        return;
+      }
 
       String elementNameProperty =
           context
@@ -120,6 +131,11 @@ public class GmlWriterProperties implements GmlWriter {
   public void onObjectEnd(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
+      if (isXmlPathObject(context, context.schema().orElseThrow())) {
+        // closed by GmlWriterXmlPaths together with the members' own wrappers
+        next.accept(context);
+        return;
+      }
       boolean inLink = context.encoding().getState().getInLink();
       boolean inMeasure = context.encoding().getState().getInMeasure();
 
@@ -173,53 +189,45 @@ public class GmlWriterProperties implements GmlWriter {
           writeMeasure(context, schema, value);
         } else {
           if (context.encoding().getXmlAttributes().contains(schema.getFullPathAsString())) {
-            // encode as XML attribute of the parent object element
+            // encode as XML attribute of the parent object element; the attribute is injected via
+            // a placeholder in the object element's start tag, so wrappers kept open for xmlPaths
+            // merging are unaffected and remain open
             context.encoding().writeAsXmlAtt(schema.getName(), value);
-          } else if (context
-              .encoding()
-              .getCodelistProperties()
-              .containsKey(schema.getFullPathAsString())) {
-            writeCodelistXlink(context, schema, value);
           } else {
-            // <propName [name="…"] [uom="…"]><wrap…>value</wrap…></propName>
-            String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
-            context
-                .encoding()
-                .writeStartElement(
-                    context
-                        .encoding()
-                        .qualifyPropertyElementName(
-                            name[0], schema.getOriginObjectType().orElse(null)));
-            if (name.length == 2) {
-              context.encoding().writeAttribute("name", name[1]);
-            }
-            writeUnitIfNecessary(context, schema);
-            List<ValueWrapElement> wrapElements =
+            List<XmlPathElement> chain =
+                context.encoding().getXmlPaths().get(schema.getFullPathAsString());
+            boolean codelist =
                 context
                     .encoding()
-                    .getValueWrap()
-                    .getOrDefault(schema.getFullPathAsString(), List.of());
-            int openWrappers = 0;
-            for (ValueWrapElement wrapEl : wrapElements) {
-              context.encoding().writeStartElement(wrapEl.getName());
-              for (Map.Entry<String, String> attribute : wrapEl.getAttributes().entrySet()) {
-                context.encoding().writeAttribute(attribute.getKey(), attribute.getValue());
+                    .getCodelistProperties()
+                    .containsKey(schema.getFullPathAsString());
+            if (Objects.nonNull(chain) && !chain.isEmpty()) {
+              // the chain contributes the elements, its innermost one carries the value — as a
+              // codelist reference when the property has one
+              writeXmlPathValue(context, schema, chain, value, codelist);
+            } else if (codelist) {
+              context.encoding().closeXmlPathWrappers();
+              writeCodelistXlink(context, schema, value);
+            } else {
+              // an unmapped sibling ends any wrapper chain kept open for xmlPaths merging
+              context.encoding().closeXmlPathWrappers();
+              // <propName [name="…"] [uom="…"]>value</propName>
+              String[] name = schema.getName().split(XML_NAME_ATTRIBUTE_SEPARATOR, 2);
+              context
+                  .encoding()
+                  .writeStartElement(
+                      context
+                          .encoding()
+                          .qualifyPropertyElementName(
+                              name[0], schema.getOriginObjectType().orElse(null)));
+              if (name.length == 2) {
+                context.encoding().writeAttribute("name", name[1]);
               }
-              if (wrapEl.isEmptyElement()) {
-                // injected constant element (e.g. ISO 19139 valueUnit) — closed immediately, the
-                // chain continues inside the enclosing wrapper
-                context.encoding().writeEndElement();
-              } else {
-                writeIso19139CodeListAttributes(context, schema, wrapEl.getName(), value);
-                openWrappers++;
-              }
-            }
-            // writeCharacters emits the pending '>' and writes the (escaped) value
-            writeValue(context, value, schema.getType());
-            for (int i = 0; i < openWrappers; i++) {
+              writeUnitIfNecessary(context, schema);
+              // writeCharacters emits the pending '>' and writes the (escaped) value
+              writeValue(context, value, schema.getType());
               context.encoding().writeEndElement();
             }
-            context.encoding().writeEndElement();
           }
         }
       } else {
@@ -228,6 +236,73 @@ public class GmlWriterProperties implements GmlWriter {
     }
 
     next.accept(context);
+  }
+
+  /**
+   * Encodes a property mapped in {@code xmlPaths} as its configured element chain. The chain prefix
+   * (all segments but the innermost) is aligned with the wrappers already kept open for merging:
+   * leading segments shared with the previous mapped property stay open, the remainder is closed
+   * and the missing segments are opened. The innermost element receives the value and is closed
+   * immediately; the prefix stays open for a following property with the same leading segments and
+   * is closed by {@code closeXmlPathWrappers()} at the next boundary. A repeated value of the same
+   * property (an array) closes and reopens the full chain, so each value gets its own wrapper
+   * instance.
+   */
+  private void writeXmlPathValue(
+      EncodingAwareContextGml context,
+      FeatureSchema schema,
+      List<XmlPathElement> chain,
+      String value,
+      boolean codelist)
+      throws IOException {
+    ModifiableStateGml state = context.encoding().getState();
+    List<XmlPathElement> prefix = chain.subList(0, chain.size() - 1);
+    XmlPathElement valueElement = chain.get(chain.size() - 1);
+    String path = schema.getFullPathAsString();
+
+    int shared = XmlPathWriter.closeToShared(context.encoding(), prefix, path, true);
+    for (int i = shared; i < prefix.size(); i++) {
+      XmlPathElement element = prefix.get(i);
+      // an injected constant element (e.g. ISO 19139 valueUnit) is written and closed right away,
+      // and the chain continues inside the enclosing wrapper
+      XmlPathWriter.writeElement(context.encoding(), element);
+      if (!element.isEmptyElement()) {
+        writeIso19139CodeListAttributes(context, schema, element.getName(), value);
+      }
+    }
+    state.setXmlPathOpenPrefix(ImmutableList.copyOf(prefix));
+    state.setXmlPathOwner(Optional.of(path));
+
+    XmlPathWriter.writeElement(context.encoding(), valueElement);
+    // the unit qualifies the value, so it belongs on the element that carries it — the innermost
+    // segment of the chain, exactly where a gml:MeasureType expects it
+    writeUnitIfNecessary(context, schema);
+    writeIso19139CodeListAttributes(context, schema, valueElement.getName(), value);
+    if (codelist) {
+      writeCodelistValue(context, schema, value);
+    } else {
+      writeValue(context, value, schema.getType());
+    }
+    context.encoding().writeEndElement();
+  }
+
+  /**
+   * Writes a codelist-valued property's content into the element that is already open: the {@code
+   * xlink:href}/{@code xlink:title} of the resolved codelist entry, or the plain value when the
+   * codelist does not resolve it.
+   */
+  private void writeCodelistValue(
+      EncodingAwareContextGml context, FeatureSchema schema, String value) throws IOException {
+    String propPath = schema.getFullPathAsString();
+    Optional<String> href = context.encoding().resolveCodelistUri(propPath, value);
+    if (href.isPresent()) {
+      context.encoding().writeAttribute("xlink:href", href.get());
+      context
+          .encoding()
+          .writeAttribute("xlink:title", context.encoding().resolveCodelistLabel(propPath, value));
+    } else {
+      writeValue(context, value, schema.getType());
+    }
   }
 
   private void setVariableObjectElementName(
@@ -365,29 +440,22 @@ public class GmlWriterProperties implements GmlWriter {
     if (name.length == 2) {
       context.encoding().writeAttribute("name", name[1]);
     }
-    String propPath = schema.getFullPathAsString();
-    Optional<String> href = context.encoding().resolveCodelistUri(propPath, value);
-    if (href.isPresent()) {
-      context.encoding().writeAttribute("xlink:href", href.get());
-      context
-          .encoding()
-          .writeAttribute("xlink:title", context.encoding().resolveCodelistLabel(propPath, value));
-      context.encoding().writeEndElement();
-    } else {
-      writeValue(context, value, schema.getType());
-      context.encoding().writeEndElement();
-    }
+    writeCodelistValue(context, schema, value);
+    context.encoding().writeEndElement();
   }
 
   /**
    * For a property that references a codelist (via its {@code codelist} constraint) and is wrapped
-   * in an element whose local name equals the codelist id, emits the ISO 19139 {@code codeList} and
-   * {@code codeListValue} attributes on that wrapper, turning {@code
+   * in an <em>ISO-namespace</em> element whose local name equals the codelist id, emits the ISO
+   * 19139 {@code codeList} and {@code codeListValue} attributes on that wrapper, turning {@code
    * <gmd:CI_RoleCode>v</gmd:CI_RoleCode>} into {@code <gmd:CI_RoleCode
    * codeList="<base>#CI_RoleCode" codeListValue="v">v</gmd:CI_RoleCode>}. The {@code codeList} URI
    * is built from the configured {@code codeListUriTemplateIso19139} (with {@code {{codelistId}}}
-   * replaced by the codelist id); when it is absent the method is a no-op. Must be called while the
-   * wrapper element's start tag is still open (before any characters or child element).
+   * replaced by the codelist id); when it is absent the method is a no-op. The attributes belong to
+   * the ISO 19139 {@code CodeListValue_Type}, so they are only emitted when the element is in one
+   * of the ISO namespaces ({@code gmd}/{@code gco}) — application-schema codelist wrappers like the
+   * NAS {@code AX_Datenerhebung} do not allow them. Must be called while the wrapper element's
+   * start tag is still open (before any characters or child element).
    */
   private void writeIso19139CodeListAttributes(
       EncodingAwareContextGml context, FeatureSchema schema, String wrapElement, String value)
@@ -401,8 +469,15 @@ public class GmlWriterProperties implements GmlWriter {
       return;
     }
     int colon = wrapElement.indexOf(':');
-    String localName = colon < 0 ? wrapElement : wrapElement.substring(colon + 1);
+    if (colon < 0) {
+      return;
+    }
+    String localName = wrapElement.substring(colon + 1);
     if (!localName.equals(codelistId.get())) {
+      return;
+    }
+    String namespaceUri = context.encoding().getNamespaces().get(wrapElement.substring(0, colon));
+    if (!ISO_19139_NAMESPACES.contains(namespaceUri)) {
       return;
     }
     context
