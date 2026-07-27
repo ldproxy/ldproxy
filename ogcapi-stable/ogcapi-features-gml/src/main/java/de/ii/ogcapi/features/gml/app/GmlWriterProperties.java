@@ -68,6 +68,13 @@ public class GmlWriterProperties implements GmlWriter {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
       FeatureSchema schema = context.schema().orElseThrow();
 
+      if (isXmlPathObject(context, schema)) {
+        // the chain contributes both the property element and the object element; it was opened
+        // by GmlWriterXmlPaths, which runs before this writer
+        next.accept(context);
+        return;
+      }
+
       String elementNameProperty =
           context
               .encoding()
@@ -124,6 +131,11 @@ public class GmlWriterProperties implements GmlWriter {
   public void onObjectEnd(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
     if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
+      if (isXmlPathObject(context, context.schema().orElseThrow())) {
+        // closed by GmlWriterXmlPaths together with the members' own wrappers
+        next.accept(context);
+        return;
+      }
       boolean inLink = context.encoding().getState().getInLink();
       boolean inMeasure = context.encoding().getState().getInMeasure();
 
@@ -248,41 +260,20 @@ public class GmlWriterProperties implements GmlWriter {
     XmlPathElement valueElement = chain.get(chain.size() - 1);
     String path = schema.getFullPathAsString();
 
-    List<XmlPathElement> open = state.getXmlPathOpenPrefix();
-    int shared = 0;
-    if (state.getXmlPathOwner().filter(path::equals).isEmpty()) {
-      while (shared < open.size()
-          && shared < prefix.size()
-          && open.get(shared).equals(prefix.get(shared))) {
-        shared++;
-      }
-    }
-    for (int i = open.size() - 1; i >= shared; i--) {
-      if (!open.get(i).isEmptyElement()) {
-        context.encoding().writeEndElement();
-      }
-    }
+    int shared = XmlPathWriter.closeToShared(context.encoding(), prefix, path, true);
     for (int i = shared; i < prefix.size(); i++) {
       XmlPathElement element = prefix.get(i);
-      context.encoding().writeStartElement(element.getName());
-      for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
-        context.encoding().writeAttribute(attribute.getKey(), attribute.getValue());
-      }
-      if (element.isEmptyElement()) {
-        // injected constant element (e.g. ISO 19139 valueUnit) — closed immediately, the chain
-        // continues inside the enclosing wrapper
-        context.encoding().writeEndElement();
-      } else {
+      // an injected constant element (e.g. ISO 19139 valueUnit) is written and closed right away,
+      // and the chain continues inside the enclosing wrapper
+      XmlPathWriter.writeElement(context.encoding(), element);
+      if (!element.isEmptyElement()) {
         writeIso19139CodeListAttributes(context, schema, element.getName(), value);
       }
     }
     state.setXmlPathOpenPrefix(ImmutableList.copyOf(prefix));
     state.setXmlPathOwner(Optional.of(path));
 
-    context.encoding().writeStartElement(valueElement.getName());
-    for (Map.Entry<String, String> attribute : valueElement.getAttributes().entrySet()) {
-      context.encoding().writeAttribute(attribute.getKey(), attribute.getValue());
-    }
+    XmlPathWriter.writeElement(context.encoding(), valueElement);
     // the unit qualifies the value, so it belongs on the element that carries it — the innermost
     // segment of the chain, exactly where a gml:MeasureType expects it
     writeUnitIfNecessary(context, schema);

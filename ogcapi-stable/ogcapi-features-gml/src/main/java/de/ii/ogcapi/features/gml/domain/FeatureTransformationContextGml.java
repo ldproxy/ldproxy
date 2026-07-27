@@ -1028,6 +1028,17 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
      */
     public abstract Optional<String> getXmlPathOwner();
 
+    /**
+     * The chain of object properties whose {@code xmlPaths} elements are currently open, innermost
+     * last. Each frame holds the wrapper state of the scope enclosing the object, so the object's
+     * members merge their own chains among themselves and the enclosing scope resumes when the
+     * object ends.
+     */
+    @Value.Default
+    public List<XmlPathObjectFrame> getXmlPathObjectStack() {
+      return ImmutableList.of();
+    }
+
     @Value.Default
     public boolean getInGeometry() {
       return false;

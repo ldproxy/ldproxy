@@ -31,6 +31,7 @@ class XmlPathsSpec extends Specification {
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
         encoding.getCodelistProperties() >> [:]
+        encoding.getVariableObjectElementNames() >> [:]
         encoding.getNamespaces() >> [gmd: 'http://www.isotc211.org/2005/gmd', gco: 'http://www.isotc211.org/2005/gco']
     }
 
@@ -53,6 +54,105 @@ class XmlPathsSpec extends Specification {
             getConstraints() >> Optional.empty()
         }
         return schema
+    }
+
+    private FeatureSchema objectSchema(String name, String path) {
+        def schema = Stub(FeatureSchema) {
+            isObject() >> true
+            isValue() >> false
+            isFeatureRef() >> false
+            getName() >> name
+            getType() >> Type.OBJECT_ARRAY
+            getObjectType() >> Optional.empty()
+            getFullPathAsString() >> path
+        }
+        return schema
+    }
+
+    def 'the chain of an object array wraps the array once and repeats from the marked segment'() {
+        given: 'an object array whose chain is shared down to LI_Lineage and repeats from processStep'
+        encoding.getXmlPaths() >> [
+                'prs'    : chain('qualitaetsangaben', 'AX_DQPunktort', 'herkunft', 'gmd:LI_Lineage', '*gmd:processStep', 'gmd:LI_ProcessStep'),
+                'prs.zpe': chain('gmd:dateTime', 'gco:DateTime')]
+
+        def array = objectSchema('prs', 'prs')
+        def member = valueSchema('zpe', 'prs.zpe', Type.DATETIME)
+        def boundary = new GmlWriterXmlPaths()
+        def properties = new GmlWriterProperties()
+
+        when: 'two members are encoded'
+        boundary.onArrayStart(contextFor(array, null), {} as Consumer)
+        boundary.onObjectStart(contextFor(array, null), {} as Consumer)
+        properties.onValue(contextFor(member, '2008-08-26T00:00:00Z'), {} as Consumer)
+        boundary.onObjectEnd(contextFor(array, null), {} as Consumer)
+        boundary.onObjectStart(contextFor(array, null), {} as Consumer)
+        properties.onValue(contextFor(member, '2015-12-01T00:00:00Z'), {} as Consumer)
+        boundary.onObjectEnd(contextFor(array, null), {} as Consumer)
+        boundary.onArrayEnd(contextFor(array, null), {} as Consumer)
+
+        then: 'the segments before the marker are written once, the segments from it per member'
+        1 * encoding.writeStartElement('qualitaetsangaben')
+        1 * encoding.writeStartElement('AX_DQPunktort')
+        1 * encoding.writeStartElement('herkunft')
+        1 * encoding.writeStartElement('gmd:LI_Lineage')
+        2 * encoding.writeStartElement('gmd:processStep')
+        2 * encoding.writeStartElement('gmd:LI_ProcessStep')
+
+        and: 'the members are encoded inside the innermost element, their own chains relative to it'
+        2 * encoding.writeStartElement('gmd:dateTime')
+        2 * encoding.writeStartElement('gco:DateTime')
+        1 * encoding.writeCharacters('2008-08-26T00:00:00Z')
+        1 * encoding.writeCharacters('2015-12-01T00:00:00Z')
+
+        and: 'per member the value element and the two repeated segments are closed'
+        6 * encoding.writeEndElement()
+
+        and: 'the array boundary leaves the wrappers alone; only the members own scope is closed'
+        2 * encoding.closeXmlPathWrappers()
+
+        and: 'the shared segments stay open for whatever follows the array'
+        state.getXmlPathOpenPrefix().collect { it.getName() } == ['qualitaetsangaben', 'AX_DQPunktort', 'herkunft', 'gmd:LI_Lineage']
+    }
+
+    def 'a property following a chained object array merges into the segments they share'() {
+        given:
+        encoding.getXmlPaths() >> [
+                'prs'    : chain('qualitaetsangaben', 'AX_DQPunktort', 'herkunft', 'gmd:LI_Lineage', '*gmd:processStep', 'gmd:LI_ProcessStep'),
+                'q2d_gst': chain('qualitaetsangaben', 'AX_DQPunktort', 'genauigkeitsstufe')]
+
+        def array = objectSchema('prs', 'prs')
+        def boundary = new GmlWriterXmlPaths()
+
+        when:
+        boundary.onObjectStart(contextFor(array, null), {} as Consumer)
+        boundary.onObjectEnd(contextFor(array, null), {} as Consumer)
+        new GmlWriterProperties().onValue(contextFor(valueSchema('q2d_gst', 'q2d_gst'), '2000'), {} as Consumer)
+
+        then: 'only the two segments the following property does not share are closed'
+        1 * encoding.writeStartElement('qualitaetsangaben')
+        1 * encoding.writeStartElement('AX_DQPunktort')
+        1 * encoding.writeStartElement('genauigkeitsstufe')
+        1 * encoding.writeCharacters('2000')
+
+        and:
+        state.getXmlPathOpenPrefix().collect { it.getName() } == ['qualitaetsangaben', 'AX_DQPunktort']
+    }
+
+    def 'a chained object contributes neither its property element nor its object element'() {
+        given:
+        encoding.getXmlPaths() >> ['prs': chain('herkunft', 'gmd:LI_Lineage', '*gmd:processStep', 'gmd:LI_ProcessStep')]
+
+        def array = objectSchema('prs', 'prs')
+        def writer = new GmlWriterProperties()
+
+        when: 'the property writer sees the object boundaries of a chained object'
+        writer.onObjectStart(contextFor(array, null), {} as Consumer)
+        writer.onObjectEnd(contextFor(array, null), {} as Consumer)
+
+        then: 'it writes nothing — the chain already carries both elements'
+        0 * encoding.writeStartElement(_)
+        0 * encoding.writeEndElement()
+        0 * encoding.startGmlObject(_)
     }
 
     def 'the uom of a chained property goes on the innermost element'() {

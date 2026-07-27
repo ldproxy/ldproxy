@@ -231,6 +231,26 @@ class UpdatePathResolverSpec extends Specification {
         resolved*.getName() == ["gwt"]
     }
 
+    def "an xmlPaths chain segment with a repetition marker matches on its local name"() {
+        given:
+        // The '*' names the segment an object-array chain repeats from; the ValueReference
+        // carries the plain element name.
+        def root = feature(scalar("q2d_gst"))
+        def xmlPaths = ["q2d_gst": ["qualitaetsangaben", "AX_DQPunktort", "herkunft",
+                                    "gmd:LI_Lineage", "*gmd:processStep", "gmd:LI_ProcessStep",
+                                    "gmd:description", "AX_Description"]]
+
+        when:
+        def resolved = UpdatePathResolver.resolve(
+                root,
+                ["qualitaetsangaben", "AX_DQPunktort", "herkunft", "LI_Lineage", "processStep",
+                 "LI_ProcessStep", "description", "AX_Description"],
+                false, true, xmlPaths)
+
+        then:
+        resolved*.getName() == ["q2d_gst"]
+    }
+
     def "a path addressing only part of an xmlPaths chain is rejected with the full chain"() {
         given:
         def root = feature(scalar("lzi_beg", null, SchemaBase.Type.DATETIME))

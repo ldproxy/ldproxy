@@ -230,9 +230,15 @@ final class UpdatePathResolver {
     return segment.trim().endsWith("/");
   }
 
-  /** The local name of a chain segment: its {@code prefix:} and attribute predicates removed. */
+  /**
+   * The local name of a chain segment: its repetition marker (leading {@code *}), {@code prefix:}
+   * and attribute predicates removed.
+   */
   private static String localName(String segment) {
     String name = segment.trim();
+    if (name.startsWith("*")) {
+      name = name.substring(1).trim();
+    }
     int bracket = name.indexOf('[');
     if (bracket >= 0) {
       name = name.substring(0, bracket).trim();

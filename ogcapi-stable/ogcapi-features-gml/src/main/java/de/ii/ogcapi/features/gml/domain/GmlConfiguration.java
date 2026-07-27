@@ -1017,7 +1017,12 @@ public interface GmlConfiguration
    *     single `AA_Lebenszeitintervall` object, in the order of the provider schema. The shared
    *     elements are closed when an unmapped property, a property with a different chain prefix, an
    *     object or array boundary, a geometry, or the feature end follows. For a property with
-   *     multiple values, the full chain is repeated for each value.
+   *     multiple values, the full chain is repeated for each value. An object property can be
+   *     mapped as well: its chain replaces both the property element and the object element, the
+   *     innermost element holds the object's properties, and their own chains are relative to it.
+   *     For an array of objects, a leading `*` on a segment marks where the chain starts repeating:
+   *     the segments before it wrap the array as a whole and are written once, the segments from it
+   *     are written again for every member. Without the marker the whole chain repeats.
    * @langDe Bildet Eigenschaftspfade (Eigenschafts-IDs; entsprechend
    *     `FeatureSchema#getFullPathAsString()` zum Kodierungszeitpunkt, d.h. nach eventuellen
    *     `rename`-Transformationen) auf die vollständige Kette von XML-Elementen ab (von außen nach
@@ -1042,7 +1047,14 @@ public interface GmlConfiguration
    *     Reihenfolge des Provider-Schemas. Die geteilten Elemente werden geschlossen, sobald eine
    *     nicht abgebildete Eigenschaft, eine Eigenschaft mit einem anderen Kettenanfang, eine
    *     Objekt- oder Array-Grenze, eine Geometrie oder das Ende des Features folgt. Bei einer
-   *     Eigenschaft mit mehreren Werten wird die vollständige Kette für jeden Wert wiederholt.
+   *     Eigenschaft mit mehreren Werten wird die vollständige Kette für jeden Wert wiederholt. Auch
+   *     eine Objekt-Eigenschaft kann abgebildet werden: Ihre Kette ersetzt sowohl das
+   *     Eigenschaftselement als auch das Objektelement, das innerste Element enthält die
+   *     Eigenschaften des Objekts, deren eigene Ketten relativ dazu sind. Bei einem Array von
+   *     Objekten markiert ein vorangestelltes `*` an einem Segment, ab wo sich die Kette
+   *     wiederholt: Die Segmente davor umschließen das gesamte Array und werden einmal geschrieben,
+   *     die Segmente ab dem markierten für jedes Element erneut. Ohne Markierung wiederholt sich
+   *     die gesamte Kette.
    * @default {}
    * @examplesAll <code>
    * ```yaml
@@ -1075,6 +1087,16 @@ public interface GmlConfiguration
    *       - gmd:valueUnit[xlink:href=urn:adv:uom:m]/
    *       - gmd:value
    *       - gco:Record[xsi:type=gml:doubleList]
+   *     q2d_dpl_prs:
+   *       - qualitaetsangaben
+   *       - AX_DQPunktort
+   *       - herkunft
+   *       - gmd:LI_Lineage
+   *       - '*gmd:processStep'
+   *       - gmd:LI_ProcessStep
+   *     q2d_dpl_prs.zpe:
+   *       - gmd:dateTime
+   *       - gco:DateTime
    * ```
    * </code>
    * @since v4.8
@@ -1135,6 +1157,7 @@ public interface GmlConfiguration
                     String.format(
                         "GML configuration: the xmlPaths chain for property '%s' is empty", path));
               }
+              boolean repeatSeen = false;
               for (int i = 0; i < chain.size(); i++) {
                 XmlPathElement element;
                 try {
@@ -1150,6 +1173,15 @@ public interface GmlConfiguration
                       String.format(
                           "GML configuration: the innermost xmlPaths segment '%s' for property '%s' must not be an injected empty element (trailing '/')",
                           chain.get(i), path));
+                }
+                if (element.repeats()) {
+                  if (repeatSeen) {
+                    throw new IllegalStateException(
+                        String.format(
+                            "GML configuration: the xmlPaths chain for property '%s' marks more than one segment with '*'; the marker names the single segment from which the chain repeats per array member",
+                            path));
+                  }
+                  repeatSeen = true;
                 }
               }
             });
