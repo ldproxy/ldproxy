@@ -14,23 +14,31 @@ import java.util.Objects;
 
 /**
  * One parsed segment of an {@code xmlPaths} chain. The configured segment syntax is {@code
- * name([attribute=value])*}, optionally followed by a trailing {@code /}: without it the element
+ * [*]name([attribute=value])*}, optionally followed by a trailing {@code /}: without it the element
  * wraps the remainder of the chain (and eventually the property value); with it the element is
  * <em>empty</em> and injected into the chain at its position — written with its attributes and
  * closed immediately, as needed for constant elements like the ISO 19139 {@code valueUnit} child of
  * {@code DQ_QuantitativeResult}, which must precede the {@code value} element. Attribute values may
  * be single- or double-quoted; a {@code ]} inside a value is not supported.
+ *
+ * <p>A leading {@code *} marks the segment from which the chain repeats for each member of an
+ * object array: the segments before it wrap the array as a whole and are written once, the segments
+ * from it are written again for every member. Without the marker the whole chain repeats, which is
+ * what a repeated value needs.
  */
 public final class XmlPathElement {
 
   private final String name;
   private final Map<String, String> attributes;
   private final boolean emptyElement;
+  private final boolean repeats;
 
-  private XmlPathElement(String name, Map<String, String> attributes, boolean emptyElement) {
+  private XmlPathElement(
+      String name, Map<String, String> attributes, boolean emptyElement, boolean repeats) {
     this.name = name;
     this.attributes = Collections.unmodifiableMap(attributes);
     this.emptyElement = emptyElement;
+    this.repeats = repeats;
   }
 
   /**
@@ -40,6 +48,10 @@ public final class XmlPathElement {
    */
   public static XmlPathElement parse(String entry) {
     String s = Objects.requireNonNullElse(entry, "").trim();
+    boolean repeats = s.startsWith("*");
+    if (repeats) {
+      s = s.substring(1).trim();
+    }
     boolean emptyElement = s.endsWith("/");
     if (emptyElement) {
       s = s.substring(0, s.length() - 1).trim();
@@ -80,7 +92,7 @@ public final class XmlPathElement {
       }
       pos = close + 1;
     }
-    return new XmlPathElement(name, attributes, emptyElement);
+    return new XmlPathElement(name, attributes, emptyElement, repeats);
   }
 
   private static String unquote(String value) {
@@ -106,6 +118,11 @@ public final class XmlPathElement {
     return emptyElement;
   }
 
+  /** {@code true} for the segment (leading {@code *}) from which the chain repeats per member. */
+  public boolean repeats() {
+    return repeats;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof XmlPathElement)) {
@@ -114,17 +131,22 @@ public final class XmlPathElement {
     XmlPathElement other = (XmlPathElement) o;
     return name.equals(other.name)
         && attributes.equals(other.attributes)
-        && emptyElement == other.emptyElement;
+        && emptyElement == other.emptyElement
+        && repeats == other.repeats;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, attributes, emptyElement);
+    return Objects.hash(name, attributes, emptyElement, repeats);
   }
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder(name);
+    StringBuilder sb = new StringBuilder();
+    if (repeats) {
+      sb.append('*');
+    }
+    sb.append(name);
     attributes.forEach((k, v) -> sb.append('[').append(k).append('=').append(v).append(']'));
     if (emptyElement) {
       sb.append('/');
