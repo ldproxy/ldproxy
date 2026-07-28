@@ -13,7 +13,7 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
-import de.ii.ogcapi.processes.domain.model.StatusInfo.StatusCode;
+import de.ii.xtraplatform.jobs.domain.JobV2;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
@@ -46,10 +46,10 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
             .type("application/json")
             .build());
 
-    StatusCode currentStatus = statusInfo.getStatus();
+    JobV2.Status currentStatus = statusInfo.getStatus();
 
     // Results
-    if (StatusCode.SUCCESSFUL.equals(currentStatus)) {
+    if (JobV2.Status.SUCCESSFUL.equals(currentStatus)) {
       builder.add(
           new ImmutableLink.Builder()
               .href(baseHref.copy().ensureLastPathSegment("results").toString())
