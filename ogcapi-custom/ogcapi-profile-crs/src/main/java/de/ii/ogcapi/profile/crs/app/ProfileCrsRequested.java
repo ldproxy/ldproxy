@@ -17,10 +17,11 @@ import jakarta.inject.Singleton;
 
 /**
  * The standard behaviour and the default of the profile set: the position of the primary geometry
- * property is returned in the requested CRS in every feature encoding; positions that cannot be
- * represented in the requested CRS (for example, positions in a 1D vertical reference system) are
- * returned without a geometry. The profile exists so that a client can explicitly select the
- * standard behaviour on an API that declares {@code crs-original} as its default profile.
+ * property is returned in the requested CRS - or in the default CRS of the API, if the request does
+ * not include a {@code crs} parameter - in every feature encoding; positions that cannot be
+ * represented in that CRS (for example, positions in a 1D vertical reference system) are returned
+ * without a geometry. The profile exists so that a client can explicitly select the standard
+ * behaviour on an API that declares {@code crs-original} as its default profile.
  */
 @Singleton
 @AutoBind

@@ -1,11 +1,12 @@
 
 maturity = 'PROPOSAL'
 maintenance = 'NONE'
-description = 'Profile for positions stored in a reference system that differs from the storage CRS.'
-descriptionDe = 'Profil für Positionen, die in einem anderen Referenzsystem als dem Speicher-CRS gespeichert sind.'
+description = 'Profiles for the reference system of the positions in the response.'
+descriptionDe = 'Profile für das Referenzsystem der Positionen in der Antwort.'
 
 
 dependencies {
+    provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-features'
     provided 'de.interactive_instruments:ogcapi-features-core'
 }

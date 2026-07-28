@@ -53,9 +53,9 @@ public class GmlWriterPositionVariants implements GmlWriter {
    * referenced here by its literal value — the encoder must not depend on the profile module). With
    * the profile active, positions are written as recorded: from whichever variant property is set,
    * with the stored verbatim srsName. Without it, the variant and helper properties are only
-   * suppressed — the base geometry property (transformed to the requested CRS upstream) passes
-   * through to the normal geometry writer, and a feature without a base geometry (a 1D position)
-   * has no position element.
+   * suppressed — the base geometry property (transformed to the CRS of the response upstream)
+   * passes through to the normal geometry writer, and a feature without a base geometry (a 1D
+   * position) has no position element.
    */
   static final String PROFILE_CRS_ORIGINAL = "crs-original";
 
@@ -158,7 +158,7 @@ public class GmlWriterPositionVariants implements GmlWriter {
             }
           }
           // without the profile the variant is suppressed; the base property carries the derived
-          // native position, transformed to the requested CRS upstream
+          // native position, transformed to the CRS of the response upstream
           return;
         }
         if (crsOriginal && path.equals(entry.getKey())) {
@@ -171,7 +171,8 @@ public class GmlWriterPositionVariants implements GmlWriter {
             writeVariantPosition(context, elementName(entry.getKey()));
             return;
           }
-          // native row — the base property carries the original position
+          // native row — the base property carries the position in the CRS of the response, which
+          // with the profile is the CRS of the provider unless the request asks for another CRS
           break;
         }
       }
