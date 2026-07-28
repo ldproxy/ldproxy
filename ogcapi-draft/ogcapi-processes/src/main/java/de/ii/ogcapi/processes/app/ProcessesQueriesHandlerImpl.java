@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
@@ -107,7 +108,9 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     final int offset = queryInput.getOffset();
     final int limit = queryInput.getLimit();
     final int defaultLimit = queryInput.getDefaultLimit();
-    final List<String> processIds = processRepository.getAll().keySet().stream().toList();
+    OgcApiDataV2 data = api.getData();
+    final List<String> processIds =
+        processRepository.getAll(api.getData()).keySet().stream().toList();
     final int processesSize = processIds.size();
 
     final ProcessListLinksGenerator linkGenerator = new ProcessListLinksGenerator();
@@ -130,7 +133,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                 processIds.stream()
                     .skip(offset)
                     .limit(limit)
-                    .map(processRepository::get)
+                    .map(pid -> processRepository.get(api.getData(), pid))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .map(process -> (ProcessSummary) process)
@@ -195,7 +198,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     Process process =
         processRepository
-            .get(processId)
+            .get(api.getData(), processId)
             .orElseThrow(() -> new NotFoundException("Unknown process: " + processId));
 
     OgcProcess processEntity = new ImmutableOgcProcess.Builder().from(process).links(links).build();

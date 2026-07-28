@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
@@ -199,7 +200,10 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String outputId = queryInput.getOutputId();
     StatusInfo statusInfo = getStatusInfo(jobId);
     Map<String, Object> jobResults = getResults(jobId);
-    validateOutputId(jobId, outputId, statusInfo, jobResults);
+
+    OgcApiDataV2 apiData = api.getData();
+    Process executedProcess = processRepository.getDirect(apiData, statusInfo.getProcessId());
+    validateOutputId(executedProcess, jobId, outputId, statusInfo, jobResults);
 
     OgcValues results =
         new ImmutableOgcValues.Builder().inlineOrRefValue(jobResults.get(outputId)).build();
@@ -229,14 +233,17 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
+    String jobId = queryInput.getJobId();
     int indexN = queryInput.getIndexN();
-    StatusInfo statusInfo = getStatusInfo(jobId);
     Map<String, Object> jobResults = getResults(jobId);
-    validateOutputId(jobId, outputId, statusInfo, jobResults);
+    StatusInfo statusInfo = getStatusInfo(jobId);
 
-    int maxOccurs = getMaxOccurs(jobId, outputId, statusInfo);
+    OgcApiDataV2 apiData = api.getData();
+    Process executedProcess = processRepository.getDirect(apiData, statusInfo.getProcessId());
+    validateOutputId(executedProcess, jobId, outputId, statusInfo, jobResults);
+
+    int maxOccurs = getMaxOccurs(executedProcess, outputId);
     if (maxOccurs < (indexN + 1)) {
       throw new BadRequestException(
           "Out-of-bound: "
@@ -352,14 +359,15 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   }
 
   private void validateOutputId(
-      String jobId, String outputId, StatusInfo statusInfo, Map<String, Object> jobResults) {
-    String processId = statusInfo.getProcessId();
-    Process executedProcess = processRepository.getDirect(processId);
-
+      Process executedProcess,
+      String jobId,
+      String outputId,
+      StatusInfo statusInfo,
+      Map<String, Object> jobResults) {
     if (!executedProcess.getOutputs().containsKey(outputId)) {
       throw new NotFoundException(
           "The output of the process '"
-              + processId
+              + executedProcess.getId()
               + "', which was executed by job '"
               + jobId
               + "', does not contain an output '"
@@ -373,9 +381,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     }
   }
 
-  private int getMaxOccurs(String jobId, String outputId, StatusInfo statusInfo) {
-    String processId = statusInfo.getProcessId();
-    Process executedProcess = processRepository.getDirect(processId);
+  private int getMaxOccurs(Process executedProcess, String outputId) {
     return executedProcess.getOutputs().get(outputId).getMaxOccurs();
   }
 }
