@@ -9,7 +9,6 @@ package de.ii.ogcapi.processes.domain;
 
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,8 +21,6 @@ public interface ProcessesExecutor {
   Optional<StatusInfo> getStatusInfo(String jobId);
 
   Optional<Map<String, Object>> getResults(String jobId);
-
-  List<String> getJobs();
 
   Optional<StatusInfo> dismissJob(String jobId);
 }

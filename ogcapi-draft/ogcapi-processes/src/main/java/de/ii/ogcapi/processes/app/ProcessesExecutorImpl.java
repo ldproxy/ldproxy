@@ -15,18 +15,16 @@ import de.ii.ogcapi.processes.domain.model.ExecuteNested;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
-import de.ii.ogcapi.processes.domain.model.StatusInfo.StatusCode;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcException;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults.Builder;
+import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.ModifiableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcException;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcSubscriber;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.jobs.domain.JobQueueV2;
+import de.ii.xtraplatform.jobs.domain.JobV2;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import jakarta.inject.Inject;
@@ -35,17 +33,10 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,12 +47,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessesExecutorImpl.class);
 
-  // ToDo Handle memory leak
-  private final Map<String, ModifiableOgcStatusInfo> jobsMap = new ConcurrentHashMap<>();
-  private final Map<String, Map<String, Object>> resultsMap = new ConcurrentHashMap<>();
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
   private final ProcessRepository processRepository;
   private final ObjectMapper mapper;
+  private final JobQueueV2 jobQueue;
 
   // ToDo Move to config
   private final int maxCallbackRetries = 3;
@@ -69,31 +57,20 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private final HttpClient httpClient;
 
-  private final Map<
-          String,
-          BiFunction<Map<String, Object>, Optional<Map<String, String>>, Map<String, Object>>>
-      processesMap =
-          Map.of(
-              "AnswerProcess",
-              this::answerProcess,
-              "EchoProcess",
-              this::echoProcess,
-              "AdditionProcess",
-              this::additionProcess,
-              "ArrayProcess",
-              this::arrayProcess);
-
   @Inject
-  ProcessesExecutorImpl(ProcessRepository processRepository, Http http, Jackson jackson) {
+  ProcessesExecutorImpl(
+      ProcessRepository processRepository, Http http, Jackson jackson, JobQueueV2 jobQueue) {
     this.processRepository = processRepository;
     this.httpClient = http.getDefaultClient();
     this.mapper = jackson.getDefaultObjectMapper();
+    this.jobQueue = jobQueue;
   }
 
   @Override
   public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
 
     Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
+    // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
@@ -103,15 +80,19 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           "Process '" + processId + "' only supports async execution.");
     }
 
-    return processesMap.get(processId).apply(resolvedInputs, outputsSelection);
+    // Create job
+    JobV2 job = jobQueue.createJob(processId, resolvedInputs);
+
+    // Push it and wait for its results
+    return jobQueue.push(job).join().getOutputs();
   }
 
   @Override
   public StatusInfo executeAsync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = executeRequest.getInputs();
+    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
+    // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
-    Optional<OgcSubscriber> subscriber = executeRequest.getSubscriber();
 
     List<JobControlOptions> options = getJobControlOptions(processId);
     if (!options.contains(JobControlOptions.ASYNC_EXECUTE)) {
@@ -119,106 +100,44 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           "Process '" + processId + "' does not support async execution.");
     }
 
-    String jobId = LogContext.generateRandomUuid().toString();
+    // Create job
+    JobV2 job = jobQueue.createJob(processId, resolvedInputs, executeRequest.getSubscriber());
 
-    ModifiableOgcStatusInfo statusInfo =
-        ModifiableOgcStatusInfo.create()
-            .setId(jobId)
-            .setProcessId(processId)
-            .setRequest(executeRequest)
-            .setStatus(StatusCode.ACCEPTED)
-            .setCreated(Instant.now());
+    // Put job with callBack in queue
+    jobQueue.push(job, this::callBack);
 
-    // Put job in queue
-    jobsMap.put(jobId, statusInfo);
-
-    // Start job
-    scheduler.schedule(
-        () -> {
-          statusInfo.setStarted(Instant.now());
-          setRunning(jobId, subscriber);
-        },
-        1,
-        TimeUnit.SECONDS);
-
-    // Update job
-    scheduler.schedule(
-        () -> {
-          setProgress(jobId, 60, subscriber);
-        },
-        5,
-        TimeUnit.SECONDS);
-
-    // Finished job
-    scheduler.schedule(
-        () -> {
-          try {
-            Map<String, Object> results =
-                processesMap.get(processId).apply(resolveInputs(inputs), outputsSelection);
-            resultsMap.put(jobId, results);
-            statusInfo.setFinished(Instant.now());
-            setSuccess(jobId, subscriber);
-          } catch (Exception e) {
-            LogContext.error(LOGGER, e, "Process '{}' failed for job ''", processId, jobId);
-            OgcException ogcException =
-                new ImmutableOgcException.Builder().type(e.toString()).build();
-            jobsMap.get(jobId).setException(ogcException);
-            jobsMap.get(jobId).setMessage(e.getMessage());
-            setFailed(jobId, subscriber);
-          }
-        },
-        10,
-        TimeUnit.SECONDS);
-
-    return statusInfo;
+    return OgcStatusInfo.of(job);
   }
 
   @Override
   public Optional<StatusInfo> getStatusInfo(String jobId) {
-    return Optional.ofNullable(jobsMap.get(jobId));
+    JobV2 job = jobQueue.get(jobId);
+    if (job == null) {
+      return Optional.empty();
+    }
+    return Optional.of(OgcStatusInfo.of(job));
   }
 
   @Override
   public Optional<Map<String, Object>> getResults(String jobId) {
-    if ((!jobsMap.containsKey(jobId))
-        || (jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL)) {
+    JobV2 job = jobQueue.get(jobId);
+    if (job == null || (job.getStatus() != JobV2.Status.SUCCESSFUL)) {
       return Optional.empty();
     }
 
-    return Optional.of(resultsMap.get(jobId));
+    return Optional.of(job.getOutputs());
   }
 
-  @Override
-  public List<String> getJobs() {
-    return jobsMap.keySet().stream().toList();
-  }
-
+  // Needs support for cancel
   @Override
   public Optional<StatusInfo> dismissJob(String jobId) {
-    if (!jobsMap.containsKey(jobId)) {
-      return Optional.empty();
-    }
-
-    ModifiableOgcStatusInfo statusInfo = jobsMap.get(jobId);
-
-    // Set to dismiss if job is currently accepted or running
-    StatusCode currentStatus = statusInfo.getStatus();
-    if (StatusCode.ACCEPTED.equals(currentStatus) || StatusCode.RUNNING.equals(currentStatus)) {
-      statusInfo.setStatus(StatusCode.DISMISSED);
-    }
-
-    return Optional.of(statusInfo);
+    return Optional.of(getStatusInfoDirect(jobId));
   }
 
   /***
    * Helper functions
    ***/
 
-  /**
-   * @param inputs The inputs Map
-   * @return A new inputs Map in which each nested process is replaced by the return value of its
-   *     execution
-   */
   private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
     return resolveInputs(inputs, 0);
   }
@@ -230,8 +149,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     Map<String, Object> resolvedInput = new LinkedHashMap<>();
 
     // Simplified assumption: Processes are always at the top level
-    for (String key : inputs.keySet()) {
-      Object value = inputs.get(key);
+    for (Map.Entry<String, Object> entry : inputs.entrySet()) {
+      String key = entry.getKey();
+      Object value = entry.getValue();
 
       // Value is not a map, put and skip
       if (!(value instanceof Map map)) {
@@ -239,36 +159,29 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         continue;
       }
 
-      // Simplified assumption: Processes are passed directly with id
       // Map does not contain a process, put and skip
       if (!map.containsKey("process")) {
         resolvedInput.put(key, value);
         continue;
       }
 
-      // Convert the process Map to an ExecuteReduced object
+      // Convert the process Map to an ExecuteNested object
       ExecuteNested nested = mapper.convertValue(map, ExecuteNested.class);
 
       String nestedProcess = nested.getProcess();
       Object resultFromNested;
+      JobV2 job = jobQueue.createJob(nestedProcess, resolveInputs(nested.getInputs(), depth + 1));
 
       // Get results from process execution
       if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
         // If outputSelection is omitted or empty, pick the first result
         resultFromNested =
-            processesMap
-                .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs(), depth + 1), Optional.empty())
-                .values()
-                .stream()
-                .findFirst()
-                .orElseThrow();
+            jobQueue.push(job).join().getOutputs().values().stream().findFirst().orElseThrow();
       } else {
         // Else pick all outputs in the outputSelection
+        // ToDo Fix later
         resultFromNested =
-            processesMap
-                .get(nestedProcess)
-                .apply(resolveInputs(nested.getInputs(), depth + 1), nested.getOutputs());
+            jobQueue.push(job).join().getOutputs().values().stream().findFirst().orElseThrow();
       }
       resolvedInput.put(key, resultFromNested);
     }
@@ -276,42 +189,29 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return resolvedInput;
   }
 
-  private List<JobControlOptions> getJobControlOptions(String processId) {
-    return processRepository.getDirect(processId).getJobControlOptions();
-  }
-
-  private ModifiableOgcStatusInfo getStatusInfoDirect(String jobId) {
-    if (!jobsMap.containsKey(jobId)) {
-      throw new NotFoundException("No job found with job id '" + jobId + "'.");
+  // ToDo Rework once onChange details are known
+  private void callBack(JobV2 job) {
+    Optional<OgcSubscriber> subscriber = (Optional<OgcSubscriber>) job.getDetails();
+    if (subscriber.isEmpty()) {
+      return;
     }
 
-    return jobsMap.get(jobId);
-  }
-
-  private Map<String, Object> getResultsDirect(String jobId) {
-    if ((jobsMap.get(jobId).getStatus() != StatusCode.SUCCESSFUL) || !jobsMap.containsKey(jobId)) {
-      throw new NotFoundException("No results found for job '" + jobId + "'.");
-    }
-
-    return resultsMap.get(jobId);
-  }
-
-  // ToDo Per Recommendation 24 the updated field should be updated whenever there is a status
-  // change and not a progress change
-  private void setRunning(String jobId, Optional<OgcSubscriber> subscriber) {
-    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
-
-    StatusCode currentStatusCode = statusInfo.getStatus();
-
-    if (StatusCode.ACCEPTED.equals(currentStatusCode)) {
-      statusInfo.setStatus(StatusCode.RUNNING);
-      setProgress(jobId, 0, subscriber);
+    String jobId = job.getId();
+    JobV2.Status updatedStatus = job.getStatus();
+    switch (updatedStatus) {
+      case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get());
+      case FAILED -> callBackOnFailure(jobId, subscriber.get());
+      default -> callBackOnProgress(jobId, subscriber.get());
     }
   }
 
-  private void callBackSuccess(String successUri, String jobId) {
+  private void callBackOnSuccess(String jobId, OgcSubscriber subscriber) {
+    if (subscriber.successUri().isEmpty()) {
+      return;
+    }
 
-    OgcResults results = new Builder().additionalProperties(getResultsDirect(jobId)).build();
+    OgcResults results =
+        new ImmutableOgcResults.Builder().additionalProperties(getResultsDirect(jobId)).build();
 
     byte[] respond;
     try {
@@ -324,7 +224,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     do {
       try {
         httpClient.postAsInputStream(
-            successUri,
+            subscriber.successUri().get(),
             respond,
             MediaType.APPLICATION_JSON_TYPE,
             Map.of("Accept", MediaType.APPLICATION_JSON));
@@ -359,24 +259,19 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
-  private void setSuccess(String jobId, Optional<OgcSubscriber> subscriber) {
-    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
-
-    StatusCode currentStatusCode = statusInfo.getStatus();
-
-    if (StatusCode.ACCEPTED.equals(currentStatusCode)
-        || StatusCode.RUNNING.equals(currentStatusCode)) {
-      statusInfo.setStatus(StatusCode.SUCCESSFUL);
-      setProgress(jobId, 100, subscriber);
-      subscriber.flatMap(OgcSubscriber::successUri).ifPresent(uri -> callBackSuccess(uri, jobId));
-    }
+  private void callBackOnFailure(String jobId, OgcSubscriber subscriber) {
+    subscriber.failedUri().ifPresent(uri -> callBackStatusInfo(jobId, uri, "failed"));
   }
 
-  private void callBackStatusInfo(String type, String uri, String jobId) {
+  private void callBackOnProgress(String jobId, OgcSubscriber subscriber) {
+    subscriber.inProgressUri().ifPresent(uri -> callBackStatusInfo(jobId, uri, "inProgress"));
+  }
+
+  private void callBackStatusInfo(String jobId, String uri, String type) {
 
     byte[] respond;
     try {
-      ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+      StatusInfo statusInfo = getStatusInfoDirect(jobId);
       OgcStatusInfo ogcStatusInfoResponse =
           new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
       respond = mapper.writeValueAsBytes(ogcStatusInfoResponse);
@@ -424,88 +319,25 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
-  private void setFailed(String jobId, Optional<OgcSubscriber> subscriber) {
-    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
-
-    StatusCode currentStatusCode = statusInfo.getStatus();
-    if (StatusCode.DISMISSED.equals(currentStatusCode)) {
-      return;
-    }
-
-    statusInfo.setStatus(StatusCode.FAILED);
-    subscriber
-        .flatMap(OgcSubscriber::failedUri)
-        .ifPresent(uri -> callBackStatusInfo("failed", uri, jobId));
+  private List<JobControlOptions> getJobControlOptions(String processId) {
+    return processRepository.getDirect(processId).getJobControlOptions();
   }
 
-  private void setProgress(String jobId, int progress, Optional<OgcSubscriber> subscriber) {
-    ModifiableOgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
-
-    StatusCode currentStatusCode = statusInfo.getStatus();
-    if (StatusCode.DISMISSED.equals(currentStatusCode)) {
-      return;
+  private StatusInfo getStatusInfoDirect(String jobId) {
+    JobV2 job = jobQueue.get(jobId);
+    if (job == null) {
+      throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
 
-    if (progress < 0 || progress > 100) {
-      return;
-    }
-
-    statusInfo.setProgress(progress);
-    statusInfo.setUpdated(Instant.now());
-    subscriber
-        .flatMap(OgcSubscriber::inProgressUri)
-        .ifPresent(uri -> callBackStatusInfo("progress", uri, jobId));
+    return OgcStatusInfo.of(job);
   }
 
-  /***
-   * Functions for faking the job queue
-   * ToDo Remove after integrating the job queue
-   ***/
-
-  private Map<String, Object> echoProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-    return inputs;
-  }
-
-  private Map<String, Object> answerProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-
-    if (outputsSelection.isEmpty() || outputsSelection.get().containsKey("answer")) {
-      return Map.of("answer", 42);
-    }
-    return Map.of();
-  }
-
-  private Map<String, Object> additionProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-    if (!inputs.containsKey("firstAddend") || !inputs.containsKey("secondAddend")) {
-      throw new BadRequestException("Wrong inputs");
+  private Map<String, Object> getResultsDirect(String jobId) {
+    JobV2 job = jobQueue.get(jobId);
+    if (job == null || (job.getStatus() != JobV2.Status.SUCCESSFUL)) {
+      throw new NotFoundException("No results found for job '" + jobId + "'.");
     }
 
-    int firstAddend = (Integer) inputs.get("firstAddend");
-    int secondAddend = (Integer) inputs.get("secondAddend");
-
-    if (outputsSelection.isEmpty() || outputsSelection.get().containsKey("sum")) {
-      return Map.of("sum", firstAddend + secondAddend);
-    }
-
-    return Map.of();
-  }
-
-  private Map<String, Object> arrayProcess(
-      Map<String, Object> inputs, Optional<Map<String, String>> outputsSelection) {
-    if (!inputs.containsKey("lengthN")) {
-      throw new BadRequestException("Wrong inputs");
-    }
-
-    int lengthN = (Integer) inputs.get("lengthN");
-
-    if (lengthN <= 0) {
-      throw new RuntimeException("Wrong inputs");
-    }
-
-    List<Integer> arr = new ArrayList<>(lengthN);
-    for (int i = 1; i <= lengthN; i++) arr.add(i);
-    return Map.of("arrayN", arr);
+    return job.getOutputs();
   }
 }
