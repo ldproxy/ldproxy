@@ -72,19 +72,19 @@ public abstract class OgcStatusInfo extends PageRepresentation implements Status
             .id(job.getId())
             .processId(job.getType())
             .status(job.getStatus())
-            .created(Instant.ofEpochSecond(job.getCreatedAt().get()));
+            .created(Instant.ofEpochSecond(job.getCreatedAt()));
 
-    long startedAt = job.getStartedAt().get();
+    long startedAt = job.getStartedAt();
     if (startedAt != -1) {
       builder.started(Instant.ofEpochSecond(startedAt));
     }
 
-    long updatedAt = job.getUpdatedAt().get();
+    long updatedAt = job.getUpdatedAt();
     if (updatedAt != -1) {
       builder.updated(Instant.ofEpochSecond(updatedAt));
     }
 
-    long finishedAt = job.getFinishedAt().get();
+    long finishedAt = job.getFinishedAt();
     if (finishedAt != -1) {
       builder.finished(Instant.ofEpochSecond(finishedAt));
     }
