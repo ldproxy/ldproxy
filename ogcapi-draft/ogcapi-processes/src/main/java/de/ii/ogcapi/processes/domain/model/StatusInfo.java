@@ -9,6 +9,7 @@ package de.ii.ogcapi.processes.domain.model;
 
 import de.ii.ogcapi.processes.domain.model.ogc.OgcException;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
+import de.ii.xtraplatform.jobs.domain.JobV2;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
@@ -16,14 +17,6 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface StatusInfo {
-
-  enum StatusCode {
-    ACCEPTED,
-    RUNNING,
-    SUCCESSFUL,
-    FAILED,
-    DISMISSED
-  }
 
   enum Api {
     OGC_API_PROCESSES,
@@ -59,7 +52,7 @@ public interface StatusInfo {
 
   Optional<OgcExecute> getRequest();
 
-  StatusCode getStatus();
+  JobV2.Status getStatus();
 
   Optional<String> getMessage();
 

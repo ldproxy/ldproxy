@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.app.parameter;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -54,7 +55,7 @@ public class PathParameterJobId implements OgcApiPathParameter {
   // ToDo Evalute if this could leak Jobs CRITICAL
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    return processesExecutor.getJobs();
+    return ImmutableList.of("*");
   }
 
   @Override

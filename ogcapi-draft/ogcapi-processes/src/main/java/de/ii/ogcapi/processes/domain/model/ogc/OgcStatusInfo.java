@@ -13,12 +13,13 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
+import de.ii.xtraplatform.jobs.domain.JobV2;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "StatusInfo")
 @Value.Immutable
-@Value.Modifiable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcStatusInfo.Builder.class)
 @JsonPropertyOrder({
@@ -63,5 +64,36 @@ public abstract class OgcStatusInfo extends PageRepresentation implements Status
 
   public static OgcStatusInfo of(StatusInfo statusInfo) {
     return new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
+  }
+
+  public static OgcStatusInfo of(JobV2 job) {
+    ImmutableOgcStatusInfo.Builder builder =
+        new ImmutableOgcStatusInfo.Builder()
+            .id(job.getId())
+            .processId(job.getType())
+            .status(job.getStatus())
+            .created(Instant.ofEpochSecond(job.getCreatedAt().get()));
+
+    long startedAt = job.getStartedAt().get();
+    if (startedAt != -1) {
+      builder.started(Instant.ofEpochSecond(startedAt));
+    }
+
+    long updatedAt = job.getUpdatedAt().get();
+    if (updatedAt != -1) {
+      builder.updated(Instant.ofEpochSecond(updatedAt));
+    }
+
+    long finishedAt = job.getFinishedAt().get();
+    if (finishedAt != -1) {
+      builder.finished(Instant.ofEpochSecond(finishedAt));
+    }
+
+    int progress = job.getProgress();
+    if (progress != 0) {
+      builder.progress(progress);
+    }
+
+    return builder.build();
   }
 }
