@@ -19,44 +19,59 @@ import java.util.Optional;
 
 /**
  * @title Profile - Position CRS
- * @langEn Profiles for positions stored in a reference system that differs from the storage CRS.
- * @langDe Profile für Positionen, die in einem anderen Referenzsystem als dem Speicher-CRS
- *     gespeichert sind.
- * @scopeEn If the feature schema includes at least one geometry property with a `variants`
- *     declaration, one of two profiles can be used to select the representation of these positions
- *     in the response. With "crs-original", positions are represented as recorded: in their
- *     original reference system, identified by the stored verbatim CRS identifier, unaffected by
- *     the `crs` query parameter. This includes positions in reference systems that cannot be
- *     expressed as the CRS of the response, such as realizations that map to the same coordinate
- *     reference system or 1D vertical reference systems.
+ * @langEn Profiles for the reference system of the positions in the response.
+ * @langDe Profile für das Referenzsystem der Positionen in der Antwort.
+ * @scopeEn One of two profiles can be used to select the reference system of the positions in the
+ *     response.
+ *     <p>With "crs-original", positions are represented as recorded. A position of a geometry
+ *     property with a `crsVariants` declaration in the provider schema is returned in its original
+ *     reference system, identified by the stored verbatim CRS identifier. This includes positions
+ *     in reference systems that cannot be expressed as the CRS of the response, such as
+ *     realizations that map to the same coordinate reference system or 1D vertical reference
+ *     systems. Every other position is returned in the CRS in which the feature provider stores it,
+ *     that is, in the storage CRS of the collection.
  *     <p>With "crs-requested" (the default), the position of the primary geometry property is
  *     returned in the requested CRS in all feature encodings; a feature whose position cannot be
  *     represented in the requested CRS (for example, a position in a 1D vertical reference system)
  *     is returned without a geometry.
- *     <p>The profile is supported by GML (the position element carries the original identifier as
- *     `srsName`, 1D positions are encoded with `srsDimension="1"`) and by GeoJSON with the JSON-FG
+ *     <p>The CRS that "crs-original" selects is a fallback for the default CRS of the API: if the
+ *     request includes a `crs` parameter, the positions are returned in that CRS, except for the
+ *     positions of a geometry property with a `crsVariants` declaration, which are always returned
+ *     as recorded. In the HTML representation the profile is ignored, as is the `crs` parameter.
+ *     <p>The original reference system of a position of a geometry property with a `crsVariants`
+ *     declaration is represented in GML (the position element carries the original identifier as
+ *     `srsName`, 1D positions are encoded with `srsDimension="1"`) and in GeoJSON with the JSON-FG
  *     extensions (`place` carries the original position with the identifier in `coordRefSys`; for a
  *     1D position, the vertical coordinate and the identifier appear in `properties`). Feature
  *     encodings that cannot represent positions in other reference systems (for example, plain
- *     GeoJSON) ignore the profile.
- * @scopeDe Wenn das Feature-Schema mindestens eine Geometrieeigenschaft mit einer
- *     `variants`-Deklaration enthält, kann eines von zwei Profilen verwendet werden, um die
- *     Darstellung dieser Positionen in der Antwort auszuwählen. Mit "crs-original" werden die
- *     Positionen wie erfasst dargestellt: in ihrem ursprünglichen Referenzsystem, identifiziert
- *     durch die unverändert gespeicherte CRS-Kennung, unabhängig vom Query-Parameter `crs`. Dies
- *     schließt Positionen in Referenzsystemen ein, die nicht als CRS der Antwort ausgedrückt werden
- *     können, etwa Realisierungen, die auf dasselbe Koordinatenreferenzsystem abgebildet werden,
- *     oder eindimensionale Höhenreferenzsysteme.
+ *     GeoJSON) return such positions in the CRS of the response.
+ * @scopeDe Es kann eines von zwei Profilen verwendet werden, um das Referenzsystem der Positionen
+ *     in der Antwort auszuwählen.
+ *     <p>Mit "crs-original" werden die Positionen wie erfasst dargestellt. Eine Position einer
+ *     Geometrieeigenschaft mit einer `crsVariants`-Deklaration im Provider-Schema wird in ihrem
+ *     ursprünglichen Referenzsystem zurückgegeben, identifiziert durch die unverändert gespeicherte
+ *     CRS-Kennung. Dies schließt Positionen in Referenzsystemen ein, die nicht als CRS der Antwort
+ *     ausgedrückt werden können, etwa Realisierungen, die auf dasselbe Koordinatenreferenzsystem
+ *     abgebildet werden, oder eindimensionale Höhenreferenzsysteme. Alle anderen Positionen werden
+ *     in dem CRS zurückgegeben, in dem der Feature-Provider sie speichert, also im Speicher-CRS der
+ *     Collection.
  *     <p>Mit "crs-requested" (dem Default) wird die Position der Haupt-Geometrieeigenschaft in
  *     allen Feature-Kodierungen im angeforderten CRS zurückgegeben; ein Feature, dessen Position
  *     nicht im angeforderten CRS dargestellt werden kann (zum Beispiel eine Position in einem
  *     eindimensionalen Höhenreferenzsystem), wird ohne Geometrie zurückgegeben.
- *     <p>Das Profil wird von GML unterstützt (das Positionselement führt die ursprüngliche Kennung
- *     als `srsName`, 1D-Positionen werden mit `srsDimension="1"` kodiert) sowie von GeoJSON mit den
+ *     <p>Das CRS, das "crs-original" auswählt, ist ein Fallback für das Standard-CRS der API: Wenn
+ *     die Anfrage einen `crs`-Parameter enthält, werden die Positionen in diesem CRS zurückgegeben,
+ *     mit Ausnahme der Positionen einer Geometrieeigenschaft mit einer `crsVariants`-Deklaration,
+ *     die immer wie erfasst zurückgegeben werden. In der HTML-Ausgabe wird das Profil ignoriert,
+ *     ebenso wie der `crs`-Parameter.
+ *     <p>Das ursprüngliche Referenzsystem einer Position einer Geometrieeigenschaft mit einer
+ *     `crsVariants`-Deklaration wird in GML (das Positionselement führt die ursprüngliche Kennung
+ *     als `srsName`, 1D-Positionen werden mit `srsDimension="1"` kodiert) sowie in GeoJSON mit den
  *     JSON-FG-Erweiterungen (`place` enthält die ursprüngliche Position mit der Kennung in
  *     `coordRefSys`; bei einer 1D-Position erscheinen die Höhenkoordinate und die Kennung in
- *     `properties`). Feature-Kodierungen, die Positionen in anderen Referenzsystemen nicht
- *     darstellen können (zum Beispiel reines GeoJSON), ignorieren das Profil.
+ *     `properties`) dargestellt. Feature-Kodierungen, die Positionen in anderen Referenzsystemen
+ *     nicht darstellen können (zum Beispiel reines GeoJSON), geben diese Positionen im CRS der
+ *     Antwort zurück.
  * @ref:cfg {@link de.ii.ogcapi.profile.crs.domain.ProfileCrsConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.profile.crs.domain.ImmutableProfileCrsConfiguration}
  */
