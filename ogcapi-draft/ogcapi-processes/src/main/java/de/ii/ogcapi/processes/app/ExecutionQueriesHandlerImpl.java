@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.app.format.StatusInfoLinksGenerator;
@@ -101,8 +102,10 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
 
+    OgcApi api = requestContext.getApi();
+    OgcApiDataV2 apiData = api.getData();
     String processId = queryInput.getProcessId();
-    Process process = processRepository.getDirect(processId);
+    Process process = processRepository.getDirect(apiData, processId);
     List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
     boolean async = false;
 
@@ -120,15 +123,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       async = true;
     }
 
-    if (!async) return executionResponseSync(queryInput, requestContext, processId, executeRequest);
+    if (!async) return executionResponseSync(queryInput, requestContext, process, executeRequest);
 
-    return executionResponseAsync(queryInput, requestContext, processId, executeRequest);
+    return executionResponseAsync(queryInput, requestContext, process, executeRequest);
   }
 
   private Response executionResponseSync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      String processId,
+      Process process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
@@ -143,7 +146,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    Map<String, Object> processResults = processesExecutor.executeSync(processId, executeRequest);
+    Map<String, Object> processResults = processesExecutor.executeSync(process, executeRequest);
     OgcResults results =
         new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
 
@@ -153,7 +156,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(null, null, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+                String.format(
+                    "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
         .entity(outputFormat.getEntity(results, api, requestContext))
         .build();
@@ -162,7 +166,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponseAsync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      String processId,
+      Process process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
@@ -177,7 +181,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    StatusInfo statusInfo = processesExecutor.executeAsync(processId, executeRequest);
+    StatusInfo statusInfo = processesExecutor.executeAsync(process, executeRequest);
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
@@ -193,7 +197,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderCaching.of(null, null, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
+                String.format(
+                    "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
         .entity(outputFormat.getEntity(ogcStatusInfo, api, requestContext))
         .build();
