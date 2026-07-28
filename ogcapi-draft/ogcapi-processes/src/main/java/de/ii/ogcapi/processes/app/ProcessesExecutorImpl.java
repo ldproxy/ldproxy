@@ -11,7 +11,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.model.ExecuteNested;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
@@ -25,22 +24,20 @@ import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.jobs.domain.JobQueueV2;
 import de.ii.xtraplatform.jobs.domain.JobV2;
+import de.ii.xtraplatform.jobs.domain.JobV2.Status;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** For now this just simulates the execution of processes. It has many flaws. */
 @Singleton
 @AutoBind
 public class ProcessesExecutorImpl implements ProcessesExecutor {
@@ -53,7 +50,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // ToDo Move to config
   private final int maxCallbackRetries = 3;
-  private final int maxResolveDepth = 10;
 
   private final HttpClient httpClient;
 
@@ -69,7 +65,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
+    Map<String, Object> inputs = executeRequest.getInputs();
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -81,7 +77,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(processId, resolvedInputs);
+    JobV2 job = jobQueue.createJob(processId, inputs);
 
     // Push it and wait for its results
     return jobQueue.push(job).join().getOutputs();
@@ -90,7 +86,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public StatusInfo executeAsync(String processId, OgcExecute executeRequest) {
 
-    Map<String, Object> resolvedInputs = resolveInputs(executeRequest.getInputs());
+    Map<String, Object> inputs = executeRequest.getInputs();
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -101,7 +97,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(processId, resolvedInputs, executeRequest.getSubscriber());
+    JobV2 job = jobQueue.createJob(processId, inputs, executeRequest.getSubscriber());
 
     // Put job with callBack in queue
     jobQueue.push(job, this::callBack);
@@ -128,68 +124,23 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return Optional.of(job.getOutputs());
   }
 
-  // Needs support for cancel
   @Override
   public Optional<StatusInfo> dismissJob(String jobId) {
-    return Optional.of(getStatusInfoDirect(jobId));
+    JobV2.Status currentStatus = getStatusInfoDirect(jobId).getStatus();
+
+    // Only cancel job if it's accepted or running. Successful, dismissed and failed jobs keep their
+    // status. Note: this behavior is intentionally different from Requirement 114!
+    if (Status.ACCEPTED.equals(currentStatus) || Status.RUNNING.equals(currentStatus)) {
+      jobQueue.cancel(jobId);
+    }
+
+    return getStatusInfo(jobId);
   }
 
   /***
    * Helper functions
    ***/
 
-  private Map<String, Object> resolveInputs(Map<String, Object> inputs) {
-    return resolveInputs(inputs, 0);
-  }
-
-  private Map<String, Object> resolveInputs(Map<String, Object> inputs, int depth) {
-    if (depth > maxResolveDepth) {
-      throw new BadRequestException("Resolve depth limit reached.");
-    }
-    Map<String, Object> resolvedInput = new LinkedHashMap<>();
-
-    // Simplified assumption: Processes are always at the top level
-    for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-      String key = entry.getKey();
-      Object value = entry.getValue();
-
-      // Value is not a map, put and skip
-      if (!(value instanceof Map map)) {
-        resolvedInput.put(key, value);
-        continue;
-      }
-
-      // Map does not contain a process, put and skip
-      if (!map.containsKey("process")) {
-        resolvedInput.put(key, value);
-        continue;
-      }
-
-      // Convert the process Map to an ExecuteNested object
-      ExecuteNested nested = mapper.convertValue(map, ExecuteNested.class);
-
-      String nestedProcess = nested.getProcess();
-      Object resultFromNested;
-      JobV2 job = jobQueue.createJob(nestedProcess, resolveInputs(nested.getInputs(), depth + 1));
-
-      // Get results from process execution
-      if (nested.getOutputs().isEmpty() || nested.getOutputs().get().isEmpty()) {
-        // If outputSelection is omitted or empty, pick the first result
-        resultFromNested =
-            jobQueue.push(job).join().getOutputs().values().stream().findFirst().orElseThrow();
-      } else {
-        // Else pick all outputs in the outputSelection
-        // ToDo Fix later
-        resultFromNested =
-            jobQueue.push(job).join().getOutputs().values().stream().findFirst().orElseThrow();
-      }
-      resolvedInput.put(key, resultFromNested);
-    }
-
-    return resolvedInput;
-  }
-
-  // ToDo Rework once onChange details are known
   private void callBack(JobV2 job) {
     Optional<OgcSubscriber> subscriber = (Optional<OgcSubscriber>) job.getDetails();
     if (subscriber.isEmpty()) {
@@ -201,7 +152,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     switch (updatedStatus) {
       case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get());
       case FAILED -> callBackOnFailure(jobId, subscriber.get());
-      default -> callBackOnProgress(jobId, subscriber.get());
+      case RUNNING -> callBackOnProgress(jobId, subscriber.get());
     }
   }
 
@@ -260,14 +211,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private void callBackOnFailure(String jobId, OgcSubscriber subscriber) {
-    subscriber.failedUri().ifPresent(uri -> callBackStatusInfo(jobId, uri, "failed"));
+    subscriber.failedUri().ifPresent(uri -> postStatusInfo(jobId, uri, "failed"));
   }
 
   private void callBackOnProgress(String jobId, OgcSubscriber subscriber) {
-    subscriber.inProgressUri().ifPresent(uri -> callBackStatusInfo(jobId, uri, "inProgress"));
+    subscriber.inProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress"));
   }
 
-  private void callBackStatusInfo(String jobId, String uri, String type) {
+  private void postStatusInfo(String jobId, String uri, String type) {
 
     byte[] respond;
     try {
