@@ -8,7 +8,7 @@
 package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
@@ -21,9 +21,11 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 @AutoBind
@@ -31,16 +33,16 @@ public class ProcessRepositoryImpl extends AbstractVolatile
     implements ProcessRepository, AppLifeCycle {
 
   private final Values<ProcessData> customProcessStore;
-  private final Map<String, Process> processMap;
+  private final Map<String, Map<String, ProcessData>> apiProcessesCache;
+  private final Map<String, ProcessData> globalProcessesCache;
   private final VolatileRegistry volatileRegistry;
 
-  /** set data directory */
-  // ToDo seperate data directory for each API
   @Inject
   public ProcessRepositoryImpl(ValueStore valueStore, VolatileRegistry volatileRegistry) {
     super(volatileRegistry, "app/processes");
     this.customProcessStore = valueStore.forType(ProcessData.class);
-    this.processMap = new LinkedHashMap<>();
+    this.apiProcessesCache = new ConcurrentHashMap<>();
+    this.globalProcessesCache = new ConcurrentHashMap<>();
     this.volatileRegistry = volatileRegistry;
   }
 
@@ -55,29 +57,49 @@ public class ProcessRepositoryImpl extends AbstractVolatile
         .identifiers()
         .forEach(
             identifier -> {
-              ProcessData processData = customProcessStore.get(identifier);
-
-              processMap.put(processData.getId(), processData);
+              List<String> path = identifier.path();
+              String processId = identifier.id();
+              if (path.isEmpty()) {
+                globalProcessesCache.put(processId, customProcessStore.get(identifier));
+              } else {
+                String apiId = identifier.path().get(0);
+                apiProcessesCache
+                    .computeIfAbsent(apiId, k -> new ConcurrentHashMap<>())
+                    .put(processId, customProcessStore.get(identifier));
+              }
             });
 
     setState(State.AVAILABLE);
   }
 
   @Override
-  public Process getDirect(String processId) {
-    if (!processMap.containsKey(processId)) {
-      throw new NotFoundException("No process found with process id '" + processId + "'.");
+  public Process getDirect(OgcApiDataV2 apiData, String processId) {
+    return get(apiData, processId)
+        .orElseThrow(
+            () -> new NotFoundException("No process found with process id '" + processId + "'."));
+  }
+
+  @Override
+  public Optional<Process> get(OgcApiDataV2 apiData, String processId) {
+    Map<String, ProcessData> apiProcesses = apiProcessesCache.get(apiData.getId());
+    if (apiProcesses != null && apiProcesses.containsKey(processId)) {
+      return Optional.of(apiProcesses.get(processId));
     }
-    return processMap.get(processId);
+
+    if (globalProcessesCache.containsKey(processId)) {
+      return Optional.of(globalProcessesCache.get(processId));
+    }
+
+    return Optional.empty();
   }
 
   @Override
-  public Optional<Process> get(String processId) {
-    return Optional.ofNullable(processMap.get(processId));
-  }
-
-  @Override
-  public Map<String, Process> getAll() {
-    return new ImmutableMap.Builder<String, Process>().putAll(processMap).build();
+  public Map<String, Process> getAll(OgcApiDataV2 apiData) {
+    Map<String, Process> result = new LinkedHashMap<>(globalProcessesCache);
+    Map<String, ProcessData> apiMap = apiProcessesCache.get(apiData.getId());
+    if (apiMap != null) {
+      result.putAll(apiMap);
+    }
+    return result;
   }
 }

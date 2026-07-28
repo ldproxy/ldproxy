@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
@@ -44,7 +44,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessesExecutorImpl.class);
 
-  private final ProcessRepository processRepository;
   private final ObjectMapper mapper;
   private final JobQueueV2 jobQueue;
 
@@ -54,50 +53,48 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final HttpClient httpClient;
 
   @Inject
-  ProcessesExecutorImpl(
-      ProcessRepository processRepository, Http http, Jackson jackson, JobQueueV2 jobQueue) {
-    this.processRepository = processRepository;
+  ProcessesExecutorImpl(Http http, Jackson jackson, JobQueueV2 jobQueue) {
     this.httpClient = http.getDefaultClient();
     this.mapper = jackson.getDefaultObjectMapper();
     this.jobQueue = jobQueue;
   }
 
   @Override
-  public Map<String, Object> executeSync(String processId, OgcExecute executeRequest) {
+  public Map<String, Object> executeSync(Process process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
-    List<JobControlOptions> options = getJobControlOptions(processId);
+    List<JobControlOptions> options = process.getJobControlOptions();
     if (options.contains(JobControlOptions.ASYNC_EXECUTE)
         && !options.contains(JobControlOptions.SYNC_EXECUTE)) {
       throw new IllegalArgumentException(
-          "Process '" + processId + "' only supports async execution.");
+          "Process '" + process.getId() + "' only supports async execution.");
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(processId, inputs);
+    JobV2 job = jobQueue.createJob(process.getId(), inputs);
 
     // Push it and wait for its results
     return jobQueue.push(job).join().getOutputs();
   }
 
   @Override
-  public StatusInfo executeAsync(String processId, OgcExecute executeRequest) {
+  public StatusInfo executeAsync(Process process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
-    List<JobControlOptions> options = getJobControlOptions(processId);
+    List<JobControlOptions> options = process.getJobControlOptions();
     if (!options.contains(JobControlOptions.ASYNC_EXECUTE)) {
       throw new IllegalArgumentException(
-          "Process '" + processId + "' does not support async execution.");
+          "Process '" + process.getId() + "' does not support async execution.");
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(processId, inputs, executeRequest.getSubscriber());
+    JobV2 job = jobQueue.createJob(process.getId(), inputs, executeRequest.getSubscriber());
 
     // Put job with callBack in queue
     jobQueue.push(job, this::callBack);
@@ -268,10 +265,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       }
       currentRetries++;
     } while (currentRetries <= maxCallbackRetries);
-  }
-
-  private List<JobControlOptions> getJobControlOptions(String processId) {
-    return processRepository.getDirect(processId).getJobControlOptions();
   }
 
   private StatusInfo getStatusInfoDirect(String jobId) {
