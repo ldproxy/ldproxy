@@ -15,6 +15,7 @@ import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatile;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
+import de.ii.xtraplatform.values.domain.Identifier;
 import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.Values;
 import jakarta.inject.Inject;
@@ -26,12 +27,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind
 public class ProcessRepositoryImpl extends AbstractVolatile
     implements ProcessRepository, AppLifeCycle {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProcessRepositoryImpl.class);
   private final Values<ProcessData> customProcessStore;
   private final Map<String, Map<String, ProcessData>> apiProcessesCache;
   private final Map<String, ProcessData> globalProcessesCache;
@@ -53,20 +57,35 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   }
 
   private void initCache() {
-    customProcessStore
-        .identifiers()
+    List<Identifier> processes = customProcessStore.identifiers();
+
+    // Generate the global cache
+    processes.stream()
+        .filter(identifier -> identifier.path().isEmpty())
         .forEach(
             identifier -> {
-              List<String> path = identifier.path();
+              globalProcessesCache.put(identifier.id(), customProcessStore.get(identifier));
+            });
+
+    // Generate the API-cache
+    processes.stream()
+        .filter(identifier -> !identifier.path().isEmpty())
+        .forEach(
+            identifier -> {
+              String apiId = identifier.path().get(0);
               String processId = identifier.id();
-              if (path.isEmpty()) {
-                globalProcessesCache.put(processId, customProcessStore.get(identifier));
-              } else {
-                String apiId = identifier.path().get(0);
-                apiProcessesCache
-                    .computeIfAbsent(apiId, k -> new ConcurrentHashMap<>())
-                    .put(processId, customProcessStore.get(identifier));
+              if (globalProcessesCache.containsKey(processId)) {
+                if (LOGGER.isWarnEnabled()) {
+                  LOGGER.warn(
+                      "Process '{}' of API '{}' is already defined globally and will therefore be ignored!",
+                      processId,
+                      apiId);
+                }
+                return;
               }
+              apiProcessesCache
+                  .computeIfAbsent(apiId, k -> new ConcurrentHashMap<>())
+                  .put(processId, customProcessStore.get(identifier));
             });
 
     setState(State.AVAILABLE);
