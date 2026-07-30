@@ -10,7 +10,10 @@ package de.ii.ogcapi.processes.app;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
+import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
+import de.ii.ogcapi.processes.domain.model.InputDescription;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
@@ -31,10 +34,12 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +51,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private final ObjectMapper mapper;
   private final JobQueueV2 jobQueue;
+  private final SchemaValidator schemaValidator;
+  private final Map<String, Map<String, CompiledJsonSchema>> inputsSchemaCache;
 
   // ToDo Move to config
   private final int maxCallbackRetries = 3;
@@ -53,16 +60,20 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final HttpClient httpClient;
 
   @Inject
-  ProcessesExecutorImpl(Http http, Jackson jackson, JobQueueV2 jobQueue) {
+  ProcessesExecutorImpl(
+      Http http, Jackson jackson, JobQueueV2 jobQueue, SchemaValidator schemaValidator) {
     this.httpClient = http.getDefaultClient();
     this.mapper = jackson.getDefaultObjectMapper();
     this.jobQueue = jobQueue;
+    this.schemaValidator = schemaValidator;
+    inputsSchemaCache = new ConcurrentHashMap<>();
   }
 
   @Override
   public Map<String, Object> executeSync(Process process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
+    validateInputs(process, inputs);
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -84,6 +95,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   public StatusInfo executeAsync(Process process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = executeRequest.getInputs();
+    validateInputs(process, inputs);
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -137,6 +149,142 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   /***
    * Helper functions
    ***/
+
+  // Limitation: The draft allows for an input to have multiple schemas, but this implementation
+  // only allows a single schema!
+  private void validateInputs(Process process, Map<String, Object> providedInputs) {
+    Map<String, CompiledJsonSchema> schemaCache =
+        inputsSchemaCache.computeIfAbsent(process.getId(), k -> new ConcurrentHashMap<>());
+
+    Map<String, InputDescription> inputDescriptions = process.getInputs();
+    inputDescriptions.forEach(
+        (inputId, inputDescription) -> {
+          int minOccurs = inputDescription.getMinOccurs();
+          int maxOccurs = inputDescription.getMaxOccurs();
+          validateOccurs(inputId, providedInputs, minOccurs, maxOccurs);
+        });
+
+    providedInputs.forEach(
+        (inputId, value) -> {
+          InputDescription description = inputDescriptions.get(inputId);
+          if (description == null) {
+            throw new IllegalArgumentException(
+                "Invalid execute request: input '"
+                    + inputId
+                    + "' is not defined for this process.");
+          }
+
+          CompiledJsonSchema compiledSchema =
+              schemaCache.computeIfAbsent(
+                  inputId,
+                  k -> {
+                    String schemaString;
+                    try {
+                      schemaString = mapper.writeValueAsString(description.getSchema());
+                    } catch (JsonProcessingException e) {
+                      throw new RuntimeException(
+                          "Could not serialize Schema of input '" + inputId + "'.", e);
+                    }
+
+                    try {
+                      return schemaValidator.compile(schemaString);
+                    } catch (IOException e) {
+                      throw new RuntimeException(
+                          "Could not compile schema for String '" + schemaString + "'.", e);
+                    }
+                  });
+
+          // A schema describes a single instance. If the input is multi-valued, validate each
+          // instance separately, see Requirement 78.
+          if (description.getMaxOccurs() > 1) {
+            // Value must be a list, since we validatet maxOccurs beforehand
+            for (Object instance : (List<Object>) value) {
+              if (instance == null) {
+                throw new IllegalArgumentException(
+                    "Invalid execute request: An instance of input '" + inputId + "' is null");
+              }
+              validateInstance(inputId, compiledSchema, instance)
+                  .ifPresent(
+                      message -> {
+                        throw new IllegalArgumentException(
+                            "Invalid execute request: An instance of input '"
+                                + inputId
+                                + "' is invalid: "
+                                + message);
+                      });
+            }
+          } else {
+            validateInstance(inputId, compiledSchema, value)
+                .ifPresent(
+                    message -> {
+                      throw new IllegalArgumentException(
+                          "Invalid execute request: input '"
+                              + inputId
+                              + "' is invalid: "
+                              + message);
+                    });
+          }
+        });
+  }
+
+  private void validateOccurs(
+      String inputId, Map<String, Object> providedInputs, int minOccurs, int maxOccurs) {
+    if (!providedInputs.containsKey(inputId)) {
+      if (minOccurs > 0) {
+        throw new IllegalArgumentException(
+            "Invalid execute request: input '" + inputId + "' must be provided!");
+      }
+      return;
+    }
+
+    Object value = providedInputs.get(inputId);
+    if (value == null) {
+      throw new IllegalArgumentException(
+          "Invalid execute request: input '" + inputId + "' is null");
+    }
+
+    if (maxOccurs > 1) {
+      if (!(value instanceof List)) {
+        throw new IllegalArgumentException(
+            "Invalid execute request: input '" + inputId + "' must be an array!");
+      }
+
+      int listSize = ((List<Object>) value).size();
+      if (listSize > maxOccurs) {
+        throw new IllegalArgumentException(
+            "Invalid execute request: input '"
+                + inputId
+                + "' must have a maximum of '"
+                + maxOccurs
+                + "' entries!");
+      }
+
+      if (listSize < minOccurs) {
+        throw new IllegalArgumentException(
+            "Invalid execute request: input '"
+                + inputId
+                + "' must have at least '"
+                + minOccurs
+                + "' entries!");
+      }
+    }
+  }
+
+  private Optional<String> validateInstance(
+      String inputId, CompiledJsonSchema compiledSchema, Object value) {
+    String jsonContent;
+    try {
+      jsonContent = mapper.writeValueAsString(value);
+    } catch (IOException e) {
+      throw new RuntimeException("Could not serialize input '" + inputId + "'.", e);
+    }
+
+    try {
+      return schemaValidator.validate(compiledSchema, jsonContent);
+    } catch (IOException e) {
+      throw new RuntimeException("Could not validate input '" + inputId + "'.", e);
+    }
+  }
 
   private void callBack(JobV2 job) {
     Optional<OgcSubscriber> subscriber = (Optional<OgcSubscriber>) job.getDetails();
@@ -268,20 +416,12 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private StatusInfo getStatusInfoDirect(String jobId) {
-    JobV2 job = jobQueue.get(jobId);
-    if (job == null) {
-      throw new NotFoundException("No job found with job id '" + jobId + "'.");
-    }
-
-    return OgcStatusInfo.of(job);
+    return getStatusInfo(jobId)
+        .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));
   }
 
   private Map<String, Object> getResultsDirect(String jobId) {
-    JobV2 job = jobQueue.get(jobId);
-    if (job == null || (job.getStatus() != JobV2.Status.SUCCESSFUL)) {
-      throw new NotFoundException("No results found for job '" + jobId + "'.");
-    }
-
-    return job.getOutputs();
+    return getResults(jobId)
+        .orElseThrow(() -> new NotFoundException("No results found for job '" + jobId + "'."));
   }
 }
