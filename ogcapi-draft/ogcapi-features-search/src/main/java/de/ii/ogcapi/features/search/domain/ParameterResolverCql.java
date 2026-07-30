@@ -25,6 +25,7 @@ import de.ii.xtraplatform.geometries.domain.transcode.wktwkb.GeometryDecoderWkt;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaGeometry;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaString;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -92,14 +93,17 @@ public class ParameterResolverCql extends CqlVisitorCopy implements ParameterRes
     // recognized by a leading '{' (when passed as a string) or by being a structured object
     Geometry<?> geometry = decodeGeometry(name, value);
 
-    // a format like "geometry-polygon" restricts the parameter to that geometry type
+    // a format like "geometry-polygon" restricts the parameter to that geometry type; the geometry
+    // formats of OGC API - Features - Part 5 also allow alternatives joined by "-or-", e.g.
+    // "geometry-polygon-or-multipolygon", where any of the listed types qualifies
     String requestedType =
         format.startsWith(GEOMETRY_FORMAT_PREFIX + "-")
             ? format.substring(GEOMETRY_FORMAT_PREFIX.length() + 1)
             : "any";
     String actualType = geometry.getType().name().replace("_", "").toLowerCase(Locale.ROOT);
     if (!"any".equals(requestedType)
-        && !Objects.equals(requestedType.replace("-", ""), actualType)) {
+        && Arrays.stream(requestedType.split("-or-"))
+            .noneMatch(type -> Objects.equals(type.replace("-", ""), actualType))) {
       throw new IllegalArgumentException(
           String.format(
               "Parameter '%s' must be a geometry of type '%s'. Found: %s",

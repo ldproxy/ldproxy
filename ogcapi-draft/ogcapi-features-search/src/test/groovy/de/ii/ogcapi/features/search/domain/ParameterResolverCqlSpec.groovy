@@ -96,6 +96,34 @@ class ParameterResolverCqlSpec extends Specification {
         e.message.contains("polygon")
     }
 
+    def 'a format with "-or-" alternatives accepts either type'() {
+        given:
+        def schema = geometrySchema("geometry-polygon-or-multipolygon")
+        def resolver = resolver([aoi: value], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        expect:
+        parameter.accept(resolver) instanceof SpatialLiteral
+
+        where:
+        value << ["POLYGON((8 50,9 50,9 51,8 50))",
+                  "MULTIPOLYGON(((8 50,9 50,9 51,8 50)))"]
+    }
+
+    def 'a format with "-or-" alternatives still rejects a type it does not list'() {
+        given:
+        def schema = geometrySchema("geometry-polygon-or-multipolygon")
+        def resolver = resolver([aoi: "POINT(8 50)"], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        when:
+        parameter.accept(resolver)
+
+        then:
+        def e = thrown IllegalArgumentException
+        e.message.contains("polygon-or-multipolygon")
+    }
+
     def 'any geometry type is accepted without a specific format'() {
         given:
         def resolver = resolver([aoi: "POINT(8 50)"], geometrySchema("geometry"))
