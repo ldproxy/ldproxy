@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -17,22 +18,45 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableInputDescription.Builder.class)
 public interface InputDescription extends DescriptionType, SchemaAndOccurrences {
 
+  // ToDo Support references
   enum Passing {
-    BY_VALUE,
-    BY_REFERENCE
+    BY_VALUE
+    // BY_REFERENCE
   }
 
-  List<Passing> getValuePassing();
+  @Value.Default
+  default List<Passing> getValuePassing() {
+    return List.of(Passing.BY_VALUE);
+  }
 
   @Override
   @Value.Default
+  @Min(0)
   default int getMinOccurs() {
     return 1;
   }
 
   @Override
   @Value.Default
+  @Min(1)
   default int getMaxOccurs() {
     return 1;
+  }
+
+  @Value.Check
+  default InputDescription validate() {
+    if (getMinOccurs() < 0) {
+      throw new IllegalStateException("minOccurs (" + getMinOccurs() + ") + must be >= 0");
+    }
+
+    if (getMaxOccurs() < 1) {
+      throw new IllegalStateException("maxOccurs (" + getMaxOccurs() + ") must be >= 1");
+    }
+
+    if (getMinOccurs() > getMaxOccurs()) {
+      throw new IllegalStateException(
+          "minOccurs (" + getMinOccurs() + ") must be <= maxOccurs (" + getMaxOccurs() + ")");
+    }
+    return this;
   }
 }

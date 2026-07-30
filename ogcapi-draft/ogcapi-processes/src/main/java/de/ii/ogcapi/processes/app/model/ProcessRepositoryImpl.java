@@ -100,13 +100,13 @@ public class ProcessRepositoryImpl extends AbstractVolatile
 
   @Override
   public Optional<Process> get(OgcApiDataV2 apiData, String processId) {
+    if (globalProcessesCache.containsKey(processId)) {
+      return Optional.of(globalProcessesCache.get(processId));
+    }
+
     Map<String, ProcessData> apiProcesses = apiProcessesCache.get(apiData.getId());
     if (apiProcesses != null && apiProcesses.containsKey(processId)) {
       return Optional.of(apiProcesses.get(processId));
-    }
-
-    if (globalProcessesCache.containsKey(processId)) {
-      return Optional.of(globalProcessesCache.get(processId));
     }
 
     return Optional.empty();
