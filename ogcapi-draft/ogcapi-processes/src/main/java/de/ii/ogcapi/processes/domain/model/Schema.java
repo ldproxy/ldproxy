@@ -7,11 +7,13 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -33,7 +35,16 @@ public interface Schema {
     STRING
   }
 
+  enum Format {
+    @JsonProperty("ogc-bbox")
+    @JsonAlias("https://www.opengis.net/def/format/ogcapi-processes/0/ogc-bbox")
+    OGC_BBOX
+  }
+
   Type getType();
+
+  // Note: This is an addition to the draft
+  Optional<Format> getFormat();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getRequired();

@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.processes.domain.model.Schema.Type;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -18,6 +19,7 @@ import org.immutables.value.Value;
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutablePropertySchema.Builder.class)
 public interface PropertySchema {
+  // Note: This implementation does not allow null
   enum Type {
     @JsonProperty("array")
     ARRAY,
@@ -25,8 +27,6 @@ public interface PropertySchema {
     BOOLEAN,
     @JsonProperty("integer")
     INTEGER,
-    @JsonProperty("null")
-    NULL,
     @JsonProperty("number")
     NUMBER,
     @JsonProperty("object")
@@ -64,6 +64,9 @@ public interface PropertySchema {
   default int getMinItems() {
     return 0;
   }
+
+  // Note: This is an addition to the draft
+  Optional<Items> getItems();
 
   @JsonProperty("x-ogc-definition")
   Optional<String> getXOgcDefinition();
