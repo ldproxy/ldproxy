@@ -13,9 +13,11 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
+import de.ii.ogcapi.processes.domain.model.Bbox;
 import de.ii.ogcapi.processes.domain.model.InputDescription;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
+import de.ii.ogcapi.processes.domain.model.Schema;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
@@ -174,13 +176,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                     + "' is not defined for this process.");
           }
 
+          Schema schema = description.getSchema();
+
           CompiledJsonSchema compiledSchema =
               schemaCache.computeIfAbsent(
                   inputId,
                   k -> {
                     String schemaString;
                     try {
-                      schemaString = mapper.writeValueAsString(description.getSchema());
+                      schemaString = mapper.writeValueAsString(schema);
                     } catch (JsonProcessingException e) {
                       throw new RuntimeException(
                           "Could not serialize Schema of input '" + inputId + "'.", e);
@@ -224,6 +228,29 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                               + message);
                     });
           }
+
+          schema
+              .getFormat()
+              .ifPresent(
+                  format -> {
+                    switch (format) {
+                      case OGC_BBOX -> {
+                        try {
+                          Bbox bbox = mapper.convertValue(value, Bbox.class);
+                          // ToDo Discuss what to do with the value. Convert it to a BoundingBox
+                          // object from xtraplatform-spatial? That would require changing the
+                          // providedInputs, which could be done by duplicating the map.
+                          // providedInputs.put(inputId, bbox); // Does not work, immutable object
+                        } catch (Exception e) {
+                          throw new IllegalArgumentException(
+                              "Invalid execute request: Content of input '"
+                                  + inputId
+                                  + "' cannot be converted to a bbox: "
+                                  + e);
+                        }
+                      }
+                    }
+                  });
         });
   }
 
