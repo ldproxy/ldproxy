@@ -8,30 +8,42 @@
 package de.ii.ogcapi.profile.crs.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.ogcapi.profile.crs.domain.ProfileCrsConfiguration;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.FeatureCrs;
+import de.ii.xtraplatform.features.domain.FeatureProvider;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
 
 /**
- * Positions of a geometry property with a {@code variants} declaration in the provider schema are
- * represented as recorded: in their original reference system, identified by the stored verbatim
- * CRS identifier, unaffected by the {@code crs} query parameter. Feature encodings that do not
- * support the profile (for example, GeoJSON, which cannot represent other CRSs) ignore it. The
- * profile id is referenced by its literal value in the encoders (for example, {@code
- * GmlWriterPositionVariants}), which must not depend on this module.
+ * Positions are represented as recorded. Positions of a geometry property with a {@code
+ * crsVariants} declaration in the provider schema are returned in their original reference system,
+ * identified by the stored verbatim CRS identifier; every other position is returned in the CRS in
+ * which the feature provider stores it. The CRS of the provider is a fallback for the default CRS
+ * of the API, so a {@code crs} parameter in the request takes precedence; in the HTML
+ * representation the profile is ignored, as is the {@code crs} parameter. The profile id is
+ * referenced by its literal value in the encoders (for example, {@code GmlWriterPositionVariants}),
+ * which must not depend on this module.
  */
 @Singleton
 @AutoBind
-public class ProfileCrsOriginal extends ProfileGeneric {
+public class ProfileCrsOriginal extends ProfileGeneric implements ProfileResponseCrs {
 
   public static final String ID = "crs-original";
 
+  private final FeaturesCoreProviders providers;
+
   @Inject
-  ProfileCrsOriginal(ExtensionRegistry extensionRegistry) {
+  ProfileCrsOriginal(ExtensionRegistry extensionRegistry, FeaturesCoreProviders providers) {
     super(extensionRegistry);
+    this.providers = providers;
   }
 
   @Override
@@ -42,6 +54,16 @@ public class ProfileCrsOriginal extends ProfileGeneric {
   @Override
   public String getProfileSet() {
     return ProfileSetCrs.ID;
+  }
+
+  @Override
+  public Optional<EpsgCrs> getResponseCrs(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getCollectionData(collectionId)
+        .flatMap(
+            collectionData ->
+                providers.getFeatureProvider(apiData, collectionData, FeatureProvider::crs))
+        .map(FeatureCrs::getNativeCrs);
   }
 
   @Override

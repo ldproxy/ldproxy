@@ -20,6 +20,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesLinksGenerator;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
 import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
+import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
 import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
 import de.ii.ogcapi.features.core.domain.SingleFeatureMissingHandler;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -30,6 +31,7 @@ import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileExtension.ResourceType;
@@ -43,6 +45,7 @@ import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -105,8 +108,13 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
   private static final Logger LOGGER =
       LoggerFactory.getLogger(FeaturesCoreQueriesHandlerImpl.class);
 
+  // the name of the "crs" query parameter; the parameter is defined in the CRS building block,
+  // which depends on this module
+  private static final String CRS = "crs";
+
   private final I18n i18n;
   private final CrsTransformerFactory crsTransformerFactory;
+  private final CrsInfo crsInfo;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
   private final Values<Codelist> codelistStore;
   private final ExtensionRegistry extensionRegistry;
@@ -115,12 +123,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
   public FeaturesCoreQueriesHandlerImpl(
       I18n i18n,
       CrsTransformerFactory crsTransformerFactory,
+      CrsInfo crsInfo,
       ValueStore valueStore,
       VolatileRegistry volatileRegistry,
       ExtensionRegistry extensionRegistry) {
     super(FeaturesCoreQueriesHandler.class.getSimpleName(), volatileRegistry, true);
     this.i18n = i18n;
     this.crsTransformerFactory = crsTransformerFactory;
+    this.crsInfo = crsInfo;
     this.codelistStore = valueStore.forType(Codelist.class);
     this.extensionRegistry = extensionRegistry;
 
@@ -132,6 +142,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     onVolatileStart();
 
     addSubcomponent(crsTransformerFactory);
+    addSubcomponent(crsInfo);
 
     onVolatileStarted();
   }
@@ -149,6 +160,37 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
   @Override
   public Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers() {
     return queryHandlers;
+  }
+
+  private static Optional<EpsgCrs> crsFromProfile(
+      List<Profile> profiles, OgcApiDataV2 apiData, String collectionId) {
+    return profiles.stream()
+        .filter(ProfileResponseCrs.class::isInstance)
+        .flatMap(
+            profile ->
+                ((ProfileResponseCrs) profile).getResponseCrs(apiData, collectionId).stream())
+        .findFirst();
+  }
+
+  private FeatureQuery withCrs(
+      FeatureQuery query, EpsgCrs crs, OgcApiDataV2 apiData, String collectionId) {
+    if (query.getCrs().filter(crs::equals).isPresent()) {
+      return query;
+    }
+
+    ImmutableFeatureQuery.Builder builder = ImmutableFeatureQuery.builder().from(query).crs(crs);
+
+    // the coordinate precision depends on the units of the CRS
+    Map<String, Integer> coordinatePrecision =
+        apiData
+            .getExtension(FeaturesCoreConfiguration.class, collectionId)
+            .map(FeaturesCoreConfiguration::getCoordinatePrecision)
+            .orElse(Map.of());
+    if (!coordinatePrecision.isEmpty()) {
+      builder.geometryPrecision(crsInfo.getPrecisionList(crs, coordinatePrecision));
+    }
+
+    return builder.build();
   }
 
   private Response getItemsResponse(
@@ -270,15 +312,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     QueriesHandler.ensureCollectionIdExists(api.getData(), collectionId);
     QueriesHandler.ensureFeatureProviderSupportsQueries(featureProvider);
 
-    Optional<CrsTransformer> crsTransformer = Optional.empty();
-
-    EpsgCrs sourceCrs = null;
-    EpsgCrs targetCrs = query.getCrs().orElse(defaultCrs);
-    if (featureProvider.crs().isAvailable()) {
-      sourceCrs = featureProvider.crs().get().getNativeCrs();
-      crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
-    }
-
     List<ApiMediaType> alternateMediaTypes = requestContext.getAlternateMediaTypes();
 
     List<ProfileSet> allProfileSets = extensionRegistry.getExtensionsForType(ProfileSet.class);
@@ -292,6 +325,26 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             Optional.of(collectionId),
             queryInput.getProfiles(),
             queryInput.getDefaultProfilesResource());
+
+    // A profile may select the CRS of the response, but only as a fallback for the default CRS.
+    // HTML is excluded for the same reason the endpoint already drops the "crs" parameter for it:
+    // the representation is always in the default CRS.
+    if (!requestContext.getQueryParameterSet().getValues().containsKey(CRS)
+        && !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())) {
+      Optional<EpsgCrs> profileCrs = crsFromProfile(profiles, api.getData(), collectionId);
+      if (profileCrs.isPresent()) {
+        query = withCrs(query, profileCrs.get(), api.getData(), collectionId);
+      }
+    }
+
+    Optional<CrsTransformer> crsTransformer = Optional.empty();
+
+    EpsgCrs sourceCrs = null;
+    EpsgCrs targetCrs = query.getCrs().orElse(defaultCrs);
+    if (featureProvider.crs().isAvailable()) {
+      sourceCrs = featureProvider.crs().get().getNativeCrs();
+      crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
+    }
 
     Map<ApiMediaType, List<Profile>> alternateProfiles =
         getAlternateProfiles(

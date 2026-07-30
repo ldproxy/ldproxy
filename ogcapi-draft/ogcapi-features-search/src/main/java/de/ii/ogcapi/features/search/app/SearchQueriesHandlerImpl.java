@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
+import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
 import de.ii.ogcapi.features.search.domain.FilterOperator;
 import de.ii.ogcapi.features.search.domain.ImmutableParameter;
 import de.ii.ogcapi.features.search.domain.ImmutableParameters;
@@ -459,10 +460,15 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   // Static counterpart of the HTML check in executeQuery(): HTML is only available for queries
-  // with paging that use the default CRS. A parameterized CRS may resolve to a non-default CRS
-  // at execution time, so HTML is not offered for such queries.
-  static boolean offersHtml(StoredQueryExpression query, EpsgCrs defaultCrs) {
+  // with paging whose positions are in the default CRS. A parameterized CRS or profile may
+  // resolve to a non-default CRS at execution time, so HTML is not offered for such queries.
+  // `crsProfileIds` are the ids of the profiles that select the CRS of the response.
+  static boolean offersHtml(
+      StoredQueryExpression query, EpsgCrs defaultCrs, Set<String> crsProfileIds) {
     if (!query.getSupportPaging().orElse(false)) {
+      return false;
+    }
+    if (selectsCrs(query, crsProfileIds)) {
       return false;
     }
     if (query.getCrs().isEmpty()) {
@@ -478,6 +484,32 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         .orElse(false);
   }
 
+  private static boolean selectsCrs(StoredQueryExpression query, Set<String> crsProfileIds) {
+    if (query.getProfiles().isEmpty() || crsProfileIds.isEmpty()) {
+      return false;
+    }
+    Optional<List<StringOrParameter>> profiles = query.getProfiles().get().getValue();
+    if (profiles.isEmpty()) {
+      // the whole list is a parameter, so its values are only known at execution time
+      return true;
+    }
+    return profiles.get().stream()
+        .anyMatch(
+            profile ->
+                profile
+                    .getValue()
+                    .map(crsProfileIds::contains)
+                    // a parameterized entry may resolve to such a profile
+                    .orElse(true));
+  }
+
+  private Set<String> crsProfileIds() {
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(ProfileResponseCrs.class::isInstance)
+        .map(Profile::getId)
+        .collect(Collectors.toUnmodifiableSet());
+  }
+
   private Response getStoredQueries(
       QueryInputStoredQueries queryInput, ApiRequestContext requestContext) {
     ImmutableStoredQueries.Builder builder = new ImmutableStoredQueries.Builder();
@@ -488,12 +520,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .getExtension(FeaturesCoreConfiguration.class)
             .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
             .orElse(OgcCrs.CRS84);
+    Set<String> crsProfileIds = crsProfileIds();
     repository
         .getAll(apiData)
         .forEach(
             q -> {
               String queryId = q.getId();
-              boolean offersHtml = offersHtml(q, defaultCrs);
+              boolean offersHtml = offersHtml(q, defaultCrs, crsProfileIds);
               builder.addQueries(
                   new ImmutableStoredQuery.Builder()
                       .id(queryId)
@@ -653,7 +686,31 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     QueryExpression queryExpression = queryInput.getQuery();
-    EpsgCrs crs =
+
+    List<String> collectionIds =
+        queryExpression.getCollections().size() == 1
+            ? ImmutableList.of(queryExpression.getCollections().get(0))
+            : queryExpression.getQueries().stream()
+                .filter(q -> !q.getResultSetOnly())
+                .map(q -> q.getCollections().get(0))
+                .toList();
+
+    FeatureFormatExtension outputFormat =
+        requestContext
+            .getApi()
+            .getOutputFormat(
+                FeatureFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    List<Profile> profiles =
+        negotiateQueryProfiles(requestContext, queryExpression, collectionIds, outputFormat);
+
+    Optional<EpsgCrs> requestedCrs =
         queryExpression
             .getCrs()
             .map(EpsgCrs::fromString)
@@ -668,10 +725,15 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                                         .from(hCrs)
                                         .verticalCode(EpsgCrs.fromString(vCrsUri).getCode())
                                         .build())
-                        .orElse(hCrs))
-            .orElse(queryInput.getDefaultCrs());
+                        .orElse(hCrs));
 
-    boolean isDefaultCrs = crs.equals(queryInput.getDefaultCrs());
+    // a profile may select the CRS of the response, but only as a fallback for the CRS of the
+    // query expression (a query has no "crs" parameter)
+    Optional<EpsgCrs> responseCrs =
+        requestedCrs.or(
+            () -> crsFromProfile(profiles, requestContext.getApi().getData(), collectionIds));
+
+    boolean isDefaultCrs = responseCrs.map(queryInput.getDefaultCrs()::equals).orElse(true);
     boolean supportsPaging = queryExpression.getSupportPaging().orElse(false);
     // the embedded map in the HTML representation only supports the default CRS and an unpaged
     // response may be too large for a browser to render
@@ -681,19 +743,14 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
           MessageFormat.format(
               isDefaultCrs
                   ? "The media type ''{0}'' is not supported for queries with paging disabled."
-                  : "The media type ''{0}'' is not supported for queries that request a CRS other than the default CRS.",
+                  : "The media type ''{0}'' is not supported for queries whose positions are not in the default CRS.",
               requestContext.getMediaType().type()));
     }
 
+    EpsgCrs crs = responseCrs.orElse(queryInput.getDefaultCrs());
+
     MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
 
-    List<String> collectionIds =
-        queryExpression.getCollections().size() == 1
-            ? ImmutableList.of(queryExpression.getCollections().get(0))
-            : queryExpression.getQueries().stream()
-                .filter(q -> !q.getResultSetOnly())
-                .map(q -> q.getCollections().get(0))
-                .toList();
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<ApiMediaType> alternateMediaTypes =
         htmlSupported
@@ -714,17 +771,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                     i18n,
                     requestContext.getLanguage())
             : ImmutableList.of();
-    FeatureFormatExtension outputFormat =
-        requestContext
-            .getApi()
-            .getOutputFormat(
-                FeatureFormatExtension.class, requestContext.getMediaType(), Optional.empty())
-            .orElseThrow(
-                () ->
-                    new NotAcceptableException(
-                        MessageFormat.format(
-                            "The requested media type ''{0}'' is not supported for this resource.",
-                            requestContext.getMediaType())));
 
     Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
         getStreamingOutput(
@@ -735,6 +781,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             collectionIds,
             featureProvider,
             outputFormat,
+            profiles,
             queryInput.getDefaultCrs(),
             targetCrs,
             queryInput.includeBodyLinks() ? links : List.of(),
@@ -761,6 +808,73 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             i18n.getLanguages())
         .entity(streamingOutput)
         .build();
+  }
+
+  private List<Profile> negotiateQueryProfiles(
+      ApiRequestContext requestContext,
+      QueryExpression queryExpression,
+      List<String> collectionIds,
+      FeatureFormatExtension outputFormat) {
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+    List<Profile> requestedProfiles =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(profile -> queryExpression.getProfiles().contains(profile.getId()))
+            .toList();
+    FeaturesCoreConfiguration coreConfiguration =
+        apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .filter(ExtensionConfiguration::isEnabled)
+            .filter(
+                cfg ->
+                    cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
+                        != FeaturesCoreConfiguration.ItemType.unknown)
+            .orElseThrow(() -> new NotFoundException("Features are not supported for this API."));
+    List<Profile> defaultProfilesFeaturesCore =
+        extensionRegistry.getExtensionsForType(Profile.class).stream()
+            .filter(
+                profile ->
+                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
+                        && profile
+                            .getId()
+                            .equals(
+                                coreConfiguration
+                                    .getDefaultProfiles()
+                                    .get(profile.getProfileSet())))
+            .toList();
+
+    return collectionIds.stream()
+        .flatMap(
+            collectionId ->
+                extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
+                    .filter(p -> p.isEnabledForApi(apiData, collectionId))
+                    .map(
+                        profileSet ->
+                            profileSet
+                                .negotiateProfile(
+                                    requestedProfiles,
+                                    defaultProfilesFeaturesCore,
+                                    outputFormat,
+                                    ResourceType.FEATURE,
+                                    apiData,
+                                    Optional.of(collectionId))
+                                .orElse(null))
+                    .filter(Objects::nonNull))
+        .distinct()
+        .toList();
+  }
+
+  private static Optional<EpsgCrs> crsFromProfile(
+      List<Profile> profiles, OgcApiDataV2 apiData, List<String> collectionIds) {
+    return profiles.stream()
+        .filter(ProfileResponseCrs.class::isInstance)
+        .flatMap(
+            profile ->
+                collectionIds.stream()
+                    .flatMap(
+                        collectionId ->
+                            ((ProfileResponseCrs) profile)
+                                .getResponseCrs(apiData, collectionId).stream()))
+        .findFirst();
   }
 
   private MultiFeatureQuery getMultiFeatureQuery(
@@ -1052,6 +1166,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       List<String> collectionIds,
       FeatureProvider featureProvider,
       FeatureFormatExtension outputFormat,
+      List<Profile> profiles,
       EpsgCrs defaultCrs,
       EpsgCrs targetCrs,
       List<Link> links,
@@ -1063,56 +1178,6 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       sourceCrs = featureProvider.crs().get().getNativeCrs();
       crsTransformer = crsTransformerFactory.getTransformer(sourceCrs, targetCrs);
     }
-
-    // negotiate profiles
-    List<Profile> requestedProfiles =
-        extensionRegistry.getExtensionsForType(Profile.class).stream()
-            .filter(profile -> queryExpression.getProfiles().contains(profile.getId()))
-            .toList();
-    FeaturesCoreConfiguration coreConfiguration =
-        requestContext
-            .getApi()
-            .getData()
-            .getExtension(FeaturesCoreConfiguration.class)
-            .filter(ExtensionConfiguration::isEnabled)
-            .filter(
-                cfg ->
-                    cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
-                        != FeaturesCoreConfiguration.ItemType.unknown)
-            .orElseThrow(() -> new NotFoundException("Features are not supported for this API."));
-    List<Profile> defaultProfilesFeaturesCore =
-        extensionRegistry.getExtensionsForType(Profile.class).stream()
-            .filter(
-                profile ->
-                    coreConfiguration.getDefaultProfiles().containsKey(profile.getProfileSet())
-                        && profile
-                            .getId()
-                            .equals(
-                                coreConfiguration
-                                    .getDefaultProfiles()
-                                    .get(profile.getProfileSet())))
-            .toList();
-    List<Profile> profiles =
-        collectionIds.stream()
-            .flatMap(
-                collectionId ->
-                    extensionRegistry.getExtensionsForType(ProfileSet.class).stream()
-                        .filter(
-                            p -> p.isEnabledForApi(requestContext.getApi().getData(), collectionId))
-                        .map(
-                            profileSet ->
-                                profileSet
-                                    .negotiateProfile(
-                                        requestedProfiles,
-                                        defaultProfilesFeaturesCore,
-                                        outputFormat,
-                                        ResourceType.FEATURE,
-                                        api.getData(),
-                                        Optional.of(collectionId))
-                                    .orElse(null))
-                        .filter(Objects::nonNull))
-            .distinct()
-            .toList();
 
     // multiple queries may use the same feature type, all type-keyed maps need a merge function
     Map<String, Optional<FeatureSchema>> schemas =
