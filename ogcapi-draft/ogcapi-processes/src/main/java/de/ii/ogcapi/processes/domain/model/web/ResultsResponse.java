@@ -5,12 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.ogc;
+package de.ii.ogcapi.processes.domain.model.web;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
-import de.ii.ogcapi.processes.domain.model.Results;
+import de.ii.ogcapi.processes.domain.model.OgcResults;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import org.immutables.value.Value;
@@ -18,13 +18,13 @@ import org.immutables.value.Value;
 @ApiInfo(schemaId = "Results")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOgcResults.Builder.class)
-public abstract class OgcResults implements Results {
+@JsonDeserialize(builder = ImmutableResultsResponse.Builder.class)
+public abstract class ResultsResponse implements OgcResults {
 
   public static final String SCHEMA_REF = "#/components/schemas/Results";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<OgcResults> FUNNEL =
+  public static final Funnel<ResultsResponse> FUNNEL =
       (from, into) -> {
         from.getAdditionalProperties().keySet().stream()
             .sorted()
@@ -34,7 +34,7 @@ public abstract class OgcResults implements Results {
             .forEachOrdered(value -> into.putInt(value.hashCode()));
       };
 
-  public static OgcResults of(Results results) {
-    return new ImmutableOgcResults.Builder().from(results).build();
+  public static ResultsResponse of(OgcResults results) {
+    return new ImmutableResultsResponse.Builder().from(results).build();
   }
 }

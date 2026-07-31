@@ -25,14 +25,14 @@ import de.ii.ogcapi.processes.app.format.ProcessListLinksGenerator;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
-import de.ii.ogcapi.processes.domain.model.Process;
+import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.OgcProcessSummary;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessSummary;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcProcess;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcProcessList;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcProcessSummary;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcess;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcessList;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableProcessListResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableProcessResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableProcessSummaryResponse;
+import de.ii.ogcapi.processes.domain.model.web.ProcessListResponse;
+import de.ii.ogcapi.processes.domain.model.web.ProcessResponse;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -127,8 +127,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             i18n,
             requestContext.getLanguage());
 
-    OgcProcessList processList =
-        ImmutableOgcProcessList.builder()
+    ProcessListResponse processListResponse =
+        ImmutableProcessListResponse.builder()
             .processList(
                 processIds.stream()
                     .skip(offset)
@@ -136,10 +136,10 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(pid -> processRepository.get(api.getData(), pid))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
-                    .map(process -> (ProcessSummary) process)
+                    .map(process -> (OgcProcessSummary) process)
                     .map(
                         processSummary ->
-                            ImmutableOgcProcessSummary.builder()
+                            ImmutableProcessSummaryResponse.builder()
                                 .from(processSummary)
                                 .links(
                                     linkGenerator.generateProcessLink(
@@ -154,7 +154,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
-        ETag.from(processList, OgcProcessList.FUNNEL, outputFormat.getMediaType().label());
+        ETag.from(
+            processListResponse, ProcessListResponse.FUNNEL, outputFormat.getMediaType().label());
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
 
@@ -166,7 +167,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format("processes.%s", outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(processList, api, requestContext))
+        .entity(outputFormat.getEntity(processListResponse, api, requestContext))
         .build();
   }
 
@@ -196,12 +197,13 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             requestContext.getLanguage(),
             processId);
 
-    Process process =
+    OgcProcess process =
         processRepository
             .get(api.getData(), processId)
             .orElseThrow(() -> new NotFoundException("Unknown process: " + processId));
 
-    OgcProcess processEntity = new ImmutableOgcProcess.Builder().from(process).links(links).build();
+    ProcessResponse processResponse =
+        new ImmutableProcessResponse.Builder().from(process).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -210,7 +212,8 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .getExtension(HtmlConfiguration.class)
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
-            ? ETag.from(processEntity, OgcProcess.FUNNEL, outputFormat.getMediaType().label())
+            ? ETag.from(
+                processResponse, ProcessResponse.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -223,7 +226,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             HeaderContentDisposition.of(
                 String.format("%s.%s", processId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(processEntity, api, requestContext))
+        .entity(outputFormat.getEntity(processResponse, api, requestContext))
         .header("Profile", linkGenerator.generateProfileLink(i18n, requestContext.getLanguage()))
         .build();
   }

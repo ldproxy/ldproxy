@@ -18,7 +18,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
+import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,8 +37,8 @@ public class ResultsFormatJson implements ResultsFormatExtension, ConformanceCla
 
   @Inject
   public ResultsFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaResults = classSchemaCache.getSchema(OgcResults.class);
-    referencedSchemasResults = classSchemaCache.getReferencedSchemas(OgcResults.class);
+    schemaResults = classSchemaCache.getSchema(ResultsResponse.class);
+    referencedSchemasResults = classSchemaCache.getReferencedSchemas(ResultsResponse.class);
   }
 
   @Override
@@ -59,14 +59,14 @@ public class ResultsFormatJson implements ResultsFormatExtension, ConformanceCla
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaResults)
-        .schemaRef(OgcResults.SCHEMA_REF)
+        .schemaRef(ResultsResponse.SCHEMA_REF)
         .referencedSchemas(referencedSchemasResults)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(OgcResults results, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(ResultsResponse results, OgcApi api, ApiRequestContext requestContext) {
     return results;
   }
 }

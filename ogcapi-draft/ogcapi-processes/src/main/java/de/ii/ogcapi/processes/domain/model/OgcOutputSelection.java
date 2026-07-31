@@ -7,22 +7,18 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableExecuteNested.Builder.class)
-public interface ExecuteNested {
+@JsonDeserialize(builder = ImmutableOgcOutputSelection.Builder.class)
+public interface OgcOutputSelection {
 
-  String getProcess();
+  Optional<String> getMediaType();
 
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  Map<String, Object> getInputs();
+  Optional<String> getEncoding();
 
-  // Optional must be used to distinguish between empty and omitted Output
-  Optional<Map<String, String>> getOutputs();
+  Optional<OgcSchema> getSchema();
 }

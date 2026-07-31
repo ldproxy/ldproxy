@@ -20,7 +20,7 @@ import org.immutables.value.Value;
 @FromValueStore(type = "processes")
 @JsonInclude(Include.NON_EMPTY)
 @JsonDeserialize(builder = ImmutableProcessData.Builder.class)
-public interface ProcessData extends StoredValue, Process {
+public interface ProcessData extends StoredValue, OgcProcess {
 
   abstract class Builder implements ValueBuilder<ProcessData> {}
 }

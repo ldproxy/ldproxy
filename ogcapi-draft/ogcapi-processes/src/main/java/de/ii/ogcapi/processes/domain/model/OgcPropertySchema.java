@@ -16,8 +16,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutablePropertySchema.Builder.class)
-public interface PropertySchema {
+@JsonDeserialize(builder = ImmutableOgcPropertySchema.Builder.class)
+public interface OgcPropertySchema {
   // Limitation: This implementation does not allow null
   enum Type {
     @JsonProperty("array")

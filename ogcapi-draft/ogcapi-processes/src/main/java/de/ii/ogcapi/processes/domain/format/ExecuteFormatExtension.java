@@ -11,10 +11,10 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.common.domain.GenericFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
+import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 
 @AutoMultiBind
 public interface ExecuteFormatExtension extends GenericFormatExtension {
 
-  Object getEntity(OgcExecute execute, OgcApi api, ApiRequestContext requestContext);
+  Object getEntity(ExecuteRequest execute, OgcApi api, ApiRequestContext requestContext);
 }

@@ -37,7 +37,7 @@ import java.util.Optional;
 public class PathParameterJobId implements OgcApiPathParameter {
 
   // ToDo Improve regex
-  public static final String JOB_ID_REGEX = "*";
+  public static final String JOB_ID_REGEX = "[\\w-]+";
 
   private final SchemaValidator schemaValidator;
 

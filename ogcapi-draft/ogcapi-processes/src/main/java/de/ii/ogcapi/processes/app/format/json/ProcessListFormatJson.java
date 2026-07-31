@@ -18,7 +18,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcessList;
+import de.ii.ogcapi.processes.domain.model.web.ProcessListResponse;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,8 +37,8 @@ public class ProcessListFormatJson implements ProcessListFormatExtension, Confor
 
   @Inject
   public ProcessListFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaProcessList = classSchemaCache.getSchema(OgcProcessList.class);
-    referencedSchemasProcessList = classSchemaCache.getReferencedSchemas(OgcProcessList.class);
+    schemaProcessList = classSchemaCache.getSchema(ProcessListResponse.class);
+    referencedSchemasProcessList = classSchemaCache.getReferencedSchemas(ProcessListResponse.class);
   }
 
   @Override
@@ -59,7 +59,7 @@ public class ProcessListFormatJson implements ProcessListFormatExtension, Confor
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaProcessList)
-        .schemaRef(OgcProcessList.SCHEMA_REF)
+        .schemaRef(ProcessListResponse.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcessList)
         .ogcApiMediaType(getMediaType())
         .build();
@@ -67,7 +67,7 @@ public class ProcessListFormatJson implements ProcessListFormatExtension, Confor
 
   @Override
   public Object getEntity(
-      OgcProcessList processList, OgcApi api, ApiRequestContext requestContext) {
-    return processList;
+      ProcessListResponse processListResponse, OgcApi api, ApiRequestContext requestContext) {
+    return processListResponse;
   }
 }

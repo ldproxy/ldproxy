@@ -7,15 +7,11 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import java.util.Map;
+public interface OgcSchemaAndOccurrences {
 
-// ToDo Use correct types for properties
-public interface Results {
+  OgcSchema getSchema();
 
-  // @JsonAnyGetter
-  // Map<String, Values> getAdditionalProperties();
+  int getMinOccurs();
 
-  @JsonAnyGetter
-  Map<String, Object> getAdditionalProperties();
+  int getMaxOccurs();
 }

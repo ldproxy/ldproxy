@@ -7,18 +7,22 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOutputSelection.Builder.class)
-public interface OutputSelection {
+@JsonDeserialize(builder = ImmutableOgcMetadata.Builder.class)
+@JsonPropertyOrder({"role", "title", "lang", "value"})
+public interface OgcMetadata {
 
-  Optional<String> getMediaType();
+  Optional<String> getRole();
 
-  Optional<String> getEncoding();
+  Optional<String> getTitle();
 
-  Optional<OgcSchema> getSchema();
+  Optional<String> getLang();
+
+  Optional<Object> getValue();
 }
