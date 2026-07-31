@@ -14,10 +14,12 @@ import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.Bbox;
+import de.ii.ogcapi.processes.domain.model.Bbox.CRS;
 import de.ii.ogcapi.processes.domain.model.InputDescription;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.Schema;
+import de.ii.ogcapi.processes.domain.model.Schema.Format;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
@@ -27,6 +29,8 @@ import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.OgcSubscriber;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.jobs.domain.JobQueueV2;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import de.ii.xtraplatform.jobs.domain.JobV2.Status;
@@ -38,6 +42,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,8 +79,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public Map<String, Object> executeSync(Process process, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = executeRequest.getInputs();
-    validateInputs(process, inputs);
+    Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
+    validateAndUpdateInputs(process, inputs);
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -96,8 +101,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public StatusInfo executeAsync(Process process, OgcExecute executeRequest) {
 
-    Map<String, Object> inputs = executeRequest.getInputs();
-    validateInputs(process, inputs);
+    Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
+    validateAndUpdateInputs(process, inputs);
     // ToDo Filter return value using outputsSelection
     Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
@@ -154,7 +159,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation
   // only allows a single schema!
-  private void validateInputs(Process process, Map<String, Object> providedInputs) {
+  private void validateAndUpdateInputs(Process process, Map<String, Object> providedInputs) {
     Map<String, CompiledJsonSchema> schemaCache =
         inputsSchemaCache.computeIfAbsent(process.getId(), k -> new ConcurrentHashMap<>());
 
@@ -202,10 +207,17 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           // instance separately, see Requirement 78.
           if (description.getMaxOccurs() > 1) {
             // Value must be a list, since we validatet maxOccurs beforehand
-            for (Object instance : (List<Object>) value) {
+            List<Object> instances = (List<Object>) value;
+            for (int i = 0; i < instances.size(); i++) {
+              int index = i;
+              Object instance = instances.get(i);
               if (instance == null) {
                 throw new IllegalArgumentException(
-                    "Invalid execute request: An instance of input '" + inputId + "' is null");
+                    "Invalid execute request: An instance ["
+                        + i
+                        + "] of input '"
+                        + inputId
+                        + "' is null");
               }
               validateInstance(inputId, compiledSchema, instance)
                   .ifPresent(
@@ -216,6 +228,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                                 + "' is invalid: "
                                 + message);
                       });
+
+              applyFormat(inputId, schema, instance)
+                  .ifPresent(updatedObject -> instances.set(index, updatedObject));
             }
           } else {
             validateInstance(inputId, compiledSchema, value)
@@ -227,30 +242,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                               + "' is invalid: "
                               + message);
                     });
+            applyFormat(inputId, schema, value)
+                .ifPresent(updatedObject -> providedInputs.put(inputId, updatedObject));
           }
-
-          schema
-              .getFormat()
-              .ifPresent(
-                  format -> {
-                    switch (format) {
-                      case OGC_BBOX -> {
-                        try {
-                          Bbox bbox = mapper.convertValue(value, Bbox.class);
-                          // ToDo Discuss what to do with the value. Convert it to a BoundingBox
-                          // object from xtraplatform-spatial? That would require changing the
-                          // providedInputs, which could be done by duplicating the map.
-                          // providedInputs.put(inputId, bbox); // Does not work, immutable object
-                        } catch (Exception e) {
-                          throw new IllegalArgumentException(
-                              "Invalid execute request: Content of input '"
-                                  + inputId
-                                  + "' cannot be converted to a bbox: "
-                                  + e);
-                        }
-                      }
-                    }
-                  });
         });
   }
 
@@ -311,6 +305,67 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } catch (IOException e) {
       throw new RuntimeException("Could not validate input '" + inputId + "'.", e);
     }
+  }
+
+  private Optional<Object> applyFormat(String inputId, Schema schema, Object value) {
+    if (schema.getFormat().isPresent()) {
+      if (Format.OGC_BBOX.equals(schema.getFormat().get())) {
+        Bbox tempBbox;
+        try {
+          tempBbox = mapper.convertValue(value, Bbox.class);
+
+        } catch (Exception e) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: Content of input '"
+                  + inputId
+                  + "' cannot be converted to a bbox: "
+                  + e);
+        }
+
+        EpsgCrs epsgCrs;
+        if (tempBbox.getCrs().equals(CRS.CRS84h)) {
+          epsgCrs = EpsgCrs.fromString("http://www.opengis.net/def/crs/OGC/0/CRS84h");
+        } else {
+          epsgCrs = EpsgCrs.fromString("http://www.opengis.net/def/crs/OGC/1.3/CRS84");
+        }
+
+        List<Double> coordinates = tempBbox.getBbox();
+        int coordinatesCount = coordinates.size();
+
+        BoundingBox boundingBox;
+        if (coordinatesCount == 4) {
+          boundingBox =
+              BoundingBox.of(
+                  coordinates.get(0),
+                  coordinates.get(1),
+                  coordinates.get(2),
+                  coordinates.get(3),
+                  epsgCrs);
+        } else {
+          if (coordinatesCount == 6) {
+            boundingBox =
+                BoundingBox.of(
+                    coordinates.get(0),
+                    coordinates.get(1),
+                    coordinates.get(2),
+                    coordinates.get(3),
+                    coordinates.get(4),
+                    coordinates.get(5),
+                    epsgCrs);
+          } else {
+            throw new IllegalArgumentException(
+                "Invalid execute request: Content of input '"
+                    + inputId
+                    + "' cannot be converted to a bbox: "
+                    + "Bbox must contain either 4 (2D) or 6 (3D) coordinates");
+          }
+        }
+
+        return Optional.of(boundingBox);
+      }
+    }
+
+    return Optional.empty();
   }
 
   private void callBack(JobV2 job) {
