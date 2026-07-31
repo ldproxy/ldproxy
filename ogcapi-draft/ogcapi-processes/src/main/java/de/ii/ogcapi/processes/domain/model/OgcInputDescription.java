@@ -15,8 +15,8 @@ import org.immutables.value.Value;
 // ToDo Add missing properties
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableInputDescription.Builder.class)
-public interface InputDescription extends DescriptionType, SchemaAndOccurrences {
+@JsonDeserialize(builder = ImmutableOgcInputDescription.Builder.class)
+public interface OgcInputDescription extends OgcDescriptionType, OgcSchemaAndOccurrences {
 
   // ToDo Support references
   enum Passing {
@@ -44,7 +44,7 @@ public interface InputDescription extends DescriptionType, SchemaAndOccurrences 
   }
 
   @Value.Check
-  default InputDescription validate() {
+  default OgcInputDescription validate() {
     if (getMinOccurs() < 0) {
       throw new IllegalStateException("minOccurs (" + getMinOccurs() + ") + must be >= 0");
     }

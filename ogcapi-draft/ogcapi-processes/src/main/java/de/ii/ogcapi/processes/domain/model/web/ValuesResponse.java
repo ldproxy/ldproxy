@@ -5,24 +5,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.ogc;
+package de.ii.ogcapi.processes.domain.model.web;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
-import de.ii.ogcapi.processes.domain.model.Values;
+import de.ii.ogcapi.processes.domain.model.OgcValues;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "Values")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOgcValues.Builder.class)
-public abstract class OgcValues implements Values {
+@JsonDeserialize(builder = ImmutableValuesResponse.Builder.class)
+public abstract class ValuesResponse implements OgcValues {
 
   public static final String SCHEMA_REF = "#/components/schemas/Values";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<OgcValues> FUNNEL =
+  public static final Funnel<ValuesResponse> FUNNEL =
       (from, into) -> {
         from.getInlineOrRefValues().stream()
             .sorted()
@@ -30,7 +30,7 @@ public abstract class OgcValues implements Values {
         from.getInlineOrRefValue().ifPresent(v -> into.putInt(v.hashCode()));
       };
 
-  public static OgcValues of(Values values) {
-    return new ImmutableOgcValues.Builder().from(values).build();
+  public static ValuesResponse of(OgcValues values) {
+    return new ImmutableValuesResponse.Builder().from(values).build();
   }
 }

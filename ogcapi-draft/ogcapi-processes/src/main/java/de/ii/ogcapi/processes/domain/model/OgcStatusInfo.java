@@ -7,8 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.domain.model.ogc.OgcException;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
+import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -16,7 +15,7 @@ import java.time.Instant;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-public interface StatusInfo {
+public interface OgcStatusInfo {
 
   enum Api {
     OGC_API_PROCESSES,
@@ -50,7 +49,7 @@ public interface StatusInfo {
     return Api.OGC_API_PROCESSES;
   }
 
-  Optional<OgcExecute> getRequest();
+  Optional<ExecuteRequest> getRequest();
 
   JobV2.Status getStatus();
 

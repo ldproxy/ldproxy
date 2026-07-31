@@ -15,8 +15,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableBbox.Builder.class)
-public interface Bbox {
+@JsonDeserialize(builder = ImmutableOgcBbox.Builder.class)
+public interface OgcBbox {
   enum CRS {
     @JsonProperty("CRS84")
     @JsonAlias("http://www.opengis.net/def/crs/OGC/1.3/CRS84")

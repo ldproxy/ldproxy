@@ -11,10 +11,10 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.common.domain.GenericFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 
 @AutoMultiBind
 public interface StatusInfoFormatExtension extends GenericFormatExtension {
 
-  Object getEntity(OgcStatusInfo response, OgcApi api, ApiRequestContext requestContext);
+  Object getEntity(StatusInfoResponse response, OgcApi api, ApiRequestContext requestContext);
 }

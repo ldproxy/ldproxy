@@ -18,7 +18,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcValues;
+import de.ii.ogcapi.processes.domain.model.web.ValuesResponse;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,8 +37,8 @@ public class ValuesFormatJson implements ValuesFormatExtension, ConformanceClass
 
   @Inject
   public ValuesFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaValues = classSchemaCache.getSchema(OgcValues.class);
-    referencedSchemasValues = classSchemaCache.getReferencedSchemas(OgcValues.class);
+    schemaValues = classSchemaCache.getSchema(ValuesResponse.class);
+    referencedSchemasValues = classSchemaCache.getReferencedSchemas(ValuesResponse.class);
   }
 
   @Override
@@ -59,14 +59,14 @@ public class ValuesFormatJson implements ValuesFormatExtension, ConformanceClass
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaValues)
-        .schemaRef(OgcValues.SCHEMA_REF)
+        .schemaRef(ValuesResponse.SCHEMA_REF)
         .referencedSchemas(referencedSchemasValues)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(OgcValues values, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(ValuesResponse values, OgcApi api, ApiRequestContext requestContext) {
     return values;
   }
 }

@@ -5,14 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model.ogc;
+package de.ii.ogcapi.processes.domain.model.web;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 @ApiInfo(schemaId = "StatusInfo")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOgcStatusInfo.Builder.class)
+@JsonDeserialize(builder = ImmutableStatusInfoResponse.Builder.class)
 @JsonPropertyOrder({
   "id",
   "processId",
@@ -42,17 +42,17 @@ import org.immutables.value.Value;
   "metadata",
   "links"
 })
-public abstract class OgcStatusInfo extends PageRepresentation implements StatusInfo {
+public abstract class StatusInfoResponse extends PageRepresentation implements OgcStatusInfo {
 
   public static final String SCHEMA_REF = "#/components/schemas/StatusInfo";
 
   @SuppressWarnings("UnstableApiUsage")
-  public static final Funnel<OgcStatusInfo> FUNNEL =
+  public static final Funnel<StatusInfoResponse> FUNNEL =
       (from, into) -> {
         PageRepresentation.FUNNEL.funnel(from, into);
         into.putString(from.getId(), StandardCharsets.UTF_8);
         into.putString(from.getProcessId(), StandardCharsets.UTF_8);
-        from.getRequest().ifPresent(v -> OgcExecute.FUNNEL.funnel(v, into));
+        from.getRequest().ifPresent(v -> ExecuteRequest.FUNNEL.funnel(v, into));
         into.putString(from.getStatus().name(), StandardCharsets.UTF_8);
         from.getMessage().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getCreated().ifPresent(v -> into.putLong(v.toEpochMilli()));
@@ -62,13 +62,13 @@ public abstract class OgcStatusInfo extends PageRepresentation implements Status
         from.getProgress().ifPresent(into::putInt);
       };
 
-  public static OgcStatusInfo of(StatusInfo statusInfo) {
-    return new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
+  public static StatusInfoResponse of(OgcStatusInfo statusInfo) {
+    return new ImmutableStatusInfoResponse.Builder().from(statusInfo).build();
   }
 
-  public static OgcStatusInfo of(JobV2 job) {
-    ImmutableOgcStatusInfo.Builder builder =
-        new ImmutableOgcStatusInfo.Builder()
+  public static StatusInfoResponse of(JobV2 job) {
+    ImmutableStatusInfoResponse.Builder builder =
+        new ImmutableStatusInfoResponse.Builder()
             .id(job.getId())
             .processId(job.getType())
             .status(job.getStatus())

@@ -12,7 +12,7 @@ import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
@@ -25,7 +25,7 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
       URICustomizer uriBuilder,
       I18n i18n,
       Optional<Locale> language,
-      StatusInfo statusInfo,
+      OgcStatusInfo statusInfo,
       int segmentsToRemove) {
     final ImmutableList.Builder<Link> builder = new ImmutableList.Builder<Link>();
 

@@ -25,15 +25,15 @@ import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.Process;
+import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
+import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -95,9 +95,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponse(
       QueryInputExecution queryInput, ApiRequestContext requestContext) {
 
-    final OgcExecute executeRequest;
+    final ExecuteRequest executeRequest;
     try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), ExecuteRequest.class);
     } catch (IOException e) {
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
@@ -105,7 +105,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
     String processId = queryInput.getProcessId();
-    Process process = processRepository.getDirect(apiData, processId);
+    OgcProcess process = processRepository.getDirect(apiData, processId);
     List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
     boolean async = false;
 
@@ -131,8 +131,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponseSync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      Process process,
-      OgcExecute executeRequest) {
+      OgcProcess process,
+      ExecuteRequest executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -147,8 +147,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             requestContext.getMediaType())));
 
     Map<String, Object> processResults = processesExecutor.executeSync(process, executeRequest);
-    OgcResults results =
-        new ImmutableOgcResults.Builder().additionalProperties(processResults).build();
+    ResultsResponse resultsResponse =
+        new ImmutableResultsResponse.Builder().additionalProperties(processResults).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -159,15 +159,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                 String.format(
                     "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(results, api, requestContext))
+        .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
         .build();
   }
 
   private Response executionResponseAsync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      Process process,
-      OgcExecute executeRequest) {
+      OgcProcess process,
+      ExecuteRequest executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -181,15 +181,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    StatusInfo statusInfo = processesExecutor.executeAsync(process, executeRequest);
+    OgcStatusInfo statusInfo = processesExecutor.executeAsync(process, executeRequest);
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 3);
 
-    OgcStatusInfo ogcStatusInfo =
-        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
+    StatusInfoResponse statusInfoResponse =
+        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -200,7 +200,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                 String.format(
                     "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(ogcStatusInfo, api, requestContext))
+        .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
         .build();
   }
 }

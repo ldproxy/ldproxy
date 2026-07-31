@@ -13,21 +13,21 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.model.Bbox;
-import de.ii.ogcapi.processes.domain.model.Bbox.CRS;
-import de.ii.ogcapi.processes.domain.model.InputDescription;
+import de.ii.ogcapi.processes.domain.model.OgcBbox;
+import de.ii.ogcapi.processes.domain.model.OgcBbox.CRS;
+import de.ii.ogcapi.processes.domain.model.OgcInputDescription;
+import de.ii.ogcapi.processes.domain.model.OgcOutputSelection;
+import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchema;
 import de.ii.ogcapi.processes.domain.model.OgcSchema.Format;
-import de.ii.ogcapi.processes.domain.model.OutputSelection;
-import de.ii.ogcapi.processes.domain.model.Process;
-import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcSubscriber;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.OgcSubscriber;
+import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
+import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
@@ -78,7 +78,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public Map<String, Object> executeSync(Process process, OgcExecute executeRequest) {
+  public Map<String, Object> executeSync(OgcProcess process, ExecuteRequest executeRequest) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -101,7 +101,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public StatusInfo executeAsync(Process process, OgcExecute executeRequest) {
+  public OgcStatusInfo executeAsync(OgcProcess process, ExecuteRequest executeRequest) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -121,16 +121,16 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     // Put job with callBack in queue
     jobQueue.push(job, this::callBack);
 
-    return OgcStatusInfo.of(job);
+    return StatusInfoResponse.of(job);
   }
 
   @Override
-  public Optional<StatusInfo> getStatusInfo(String jobId) {
+  public Optional<OgcStatusInfo> getStatusInfo(String jobId) {
     JobV2 job = jobQueue.get(jobId);
     if (job == null) {
       return Optional.empty();
     }
-    return Optional.of(OgcStatusInfo.of(job));
+    return Optional.of(StatusInfoResponse.of(job));
   }
 
   @Override
@@ -142,15 +142,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> jobResults = job.getOutputs();
 
-    Optional<Map<String, OutputSelection>> outputsSelections =
-        (Optional<Map<String, OutputSelection>>) job.getDetails().get("outputSelections");
+    Optional<Map<String, OgcOutputSelection>> outputsSelections =
+        (Optional<Map<String, OgcOutputSelection>>) job.getDetails().get("outputSelections");
     Map<String, Object> selectedResults = selectOutputs(jobResults, outputsSelections);
 
     return Optional.of(selectedResults);
   }
 
   @Override
-  public Optional<StatusInfo> dismissJob(String jobId) {
+  public Optional<OgcStatusInfo> dismissJob(String jobId) {
     JobV2.Status currentStatus = getStatusInfoDirect(jobId).getStatus();
 
     // Only cancel job if it's accepted or running. Successful, dismissed and failed jobs keep their
@@ -168,11 +168,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation
   // only allows a single schema!
-  private void validateAndUpdateInputs(Process process, Map<String, Object> providedInputs) {
+  private void validateAndUpdateInputs(OgcProcess process, Map<String, Object> providedInputs) {
     Map<String, CompiledJsonSchema> schemaCache =
         inputsSchemaCache.computeIfAbsent(process.getId(), k -> new ConcurrentHashMap<>());
 
-    Map<String, InputDescription> inputDescriptions = process.getInputs();
+    Map<String, OgcInputDescription> inputDescriptions = process.getInputs();
     inputDescriptions.forEach(
         (inputId, inputDescription) -> {
           int minOccurs = inputDescription.getMinOccurs();
@@ -182,15 +182,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     providedInputs.forEach(
         (inputId, value) -> {
-          InputDescription description = inputDescriptions.get(inputId);
-          if (description == null) {
+          OgcInputDescription inputDescription = inputDescriptions.get(inputId);
+          if (inputDescription == null) {
             throw new IllegalArgumentException(
                 "Invalid execute request: input '"
                     + inputId
                     + "' is not defined for this process.");
           }
 
-          OgcSchema schema = description.getSchema();
+          OgcSchema schema = inputDescription.getSchema();
 
           CompiledJsonSchema compiledSchema =
               schemaCache.computeIfAbsent(
@@ -214,8 +214,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
           // A schema describes a single instance. If the input is multi-valued, validate each
           // instance separately, see Requirement 78.
-          if (description.getMaxOccurs() > 1) {
-            // Value must be a list, since we validatet maxOccurs beforehand
+          if (inputDescription.getMaxOccurs() > 1) {
+            // Value must be a list, since we validated maxOccurs beforehand
             List<Object> instances = (List<Object>) value;
             for (int i = 0; i < instances.size(); i++) {
               int index = i;
@@ -319,9 +319,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private Optional<Object> applyFormat(String inputId, OgcSchema schema, Object value) {
     if (schema.getFormat().isPresent()) {
       if (Format.OGC_BBOX.equals(schema.getFormat().get())) {
-        Bbox tempBbox;
+        OgcBbox bbox;
         try {
-          tempBbox = mapper.convertValue(value, Bbox.class);
+          bbox = mapper.convertValue(value, OgcBbox.class);
 
         } catch (Exception e) {
           throw new IllegalArgumentException(
@@ -332,13 +332,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         }
 
         EpsgCrs epsgCrs;
-        if (tempBbox.getCrs().equals(CRS.CRS84h)) {
+        if (bbox.getCrs().equals(CRS.CRS84h)) {
           epsgCrs = EpsgCrs.fromString("http://www.opengis.net/def/crs/OGC/0/CRS84h");
         } else {
           epsgCrs = EpsgCrs.fromString("http://www.opengis.net/def/crs/OGC/1.3/CRS84");
         }
 
-        List<Double> coordinates = tempBbox.getBbox();
+        List<Double> coordinates = bbox.getBbox();
         int coordinatesCount = coordinates.size();
 
         BoundingBox boundingBox;
@@ -379,7 +379,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // Limitation: MediaType, Encoding and Schema are not used in the selection!
   private Map<String, Object> selectOutputs(
-      Map<String, Object> output, Optional<Map<String, OutputSelection>> outputSelections) {
+      Map<String, Object> output, Optional<Map<String, OgcOutputSelection>> outputSelections) {
     // ToDo Validate if keys in outputSelections are indeed possible outputs
 
     // Requirement 27
@@ -387,7 +387,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return output;
     }
 
-    Map<String, OutputSelection> selection = outputSelections.get();
+    Map<String, OgcOutputSelection> selection = outputSelections.get();
 
     // Requirement 28
     if (selection.isEmpty()) {
@@ -408,8 +408,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     String jobId = job.getId();
-    JobV2.Status updatedStatus = job.getStatus();
-    switch (updatedStatus) {
+    JobV2.Status status = job.getStatus();
+    switch (status) {
       case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get());
       case FAILED -> callBackOnFailure(jobId, subscriber.get());
       case RUNNING -> callBackOnProgress(jobId, subscriber.get());
@@ -421,12 +421,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return;
     }
 
-    OgcResults results =
-        new ImmutableOgcResults.Builder().additionalProperties(getResultsDirect(jobId)).build();
+    ResultsResponse results =
+        new ImmutableResultsResponse.Builder()
+            .additionalProperties(getResultsDirect(jobId))
+            .build();
 
-    byte[] respond;
+    byte[] payload;
     try {
-      respond = mapper.writeValueAsBytes(results);
+      payload = mapper.writeValueAsBytes(results);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -436,7 +438,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       try {
         httpClient.postAsInputStream(
             subscriber.successUri().get(),
-            respond,
+            payload,
             MediaType.APPLICATION_JSON_TYPE,
             Map.of("Accept", MediaType.APPLICATION_JSON));
         break;
@@ -463,7 +465,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           LOGGER.error(
               "Failed sending the success callback for {}: {}",
               jobId,
-              new String(respond, StandardCharsets.UTF_8));
+              new String(payload, StandardCharsets.UTF_8));
         }
       }
       currentRetries++;
@@ -478,14 +480,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     subscriber.inProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress"));
   }
 
-  private void postStatusInfo(String jobId, String uri, String type) {
+  private void postStatusInfo(String jobId, String uri, String callbackType) {
 
-    byte[] respond;
+    byte[] response;
     try {
-      StatusInfo statusInfo = getStatusInfoDirect(jobId);
-      OgcStatusInfo ogcStatusInfoResponse =
-          new ImmutableOgcStatusInfo.Builder().from(statusInfo).build();
-      respond = mapper.writeValueAsBytes(ogcStatusInfoResponse);
+      OgcStatusInfo statusInfo = getStatusInfoDirect(jobId);
+      StatusInfoResponse statusInfoResponse =
+          new ImmutableStatusInfoResponse.Builder().from(statusInfo).build();
+      response = mapper.writeValueAsBytes(statusInfoResponse);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -495,7 +497,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       try {
         httpClient.postAsInputStream(
             uri,
-            respond,
+            response,
             MediaType.APPLICATION_JSON_TYPE,
             Map.of("Accept", MediaType.APPLICATION_JSON));
         break;
@@ -504,7 +506,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           int delay = 100 * (currentRetries + 1);
           if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
-                "Failed send {} callback for job '{}', retrying in {}ms", type, jobId, delay);
+                "Failed send {} callback for job '{}', retrying in {}ms",
+                callbackType,
+                jobId,
+                delay);
           }
           try {
             Thread.sleep(delay);
@@ -516,21 +521,21 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
               LOGGER,
               e,
               "Giving up writing sending {} callback for job '{}' after {} retries",
-              type,
+              callbackType,
               jobId,
               currentRetries + 1);
           LOGGER.error(
               "Failed sending the {} callback for {}: {}",
-              type,
+              callbackType,
               jobId,
-              new String(respond, StandardCharsets.UTF_8));
+              new String(response, StandardCharsets.UTF_8));
         }
       }
       currentRetries++;
     } while (currentRetries <= maxCallbackRetries);
   }
 
-  private StatusInfo getStatusInfoDirect(String jobId) {
+  private OgcStatusInfo getStatusInfoDirect(String jobId) {
     return getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));
   }

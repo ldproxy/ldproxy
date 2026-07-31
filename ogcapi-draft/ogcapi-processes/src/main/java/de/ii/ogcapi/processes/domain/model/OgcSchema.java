@@ -27,7 +27,7 @@ public interface OgcSchema {
     OGC_BBOX
   }
 
-  PropertySchema.Type getType();
+  OgcPropertySchema.Type getType();
 
   // Note: This is an addition to the draft
   Optional<Format> getFormat();
@@ -36,5 +36,5 @@ public interface OgcSchema {
   List<String> getRequired();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  Map<String, PropertySchema> getProperties();
+  Map<String, OgcPropertySchema> getProperties();
 }

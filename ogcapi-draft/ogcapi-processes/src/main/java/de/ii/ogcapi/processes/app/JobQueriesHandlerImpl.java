@@ -26,15 +26,15 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
-import de.ii.ogcapi.processes.domain.model.Process;
+import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcValues;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcResults;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcValues;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
+import de.ii.ogcapi.processes.domain.model.web.ImmutableValuesResponse;
+import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
+import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
+import de.ii.ogcapi.processes.domain.model.web.ValuesResponse;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -118,15 +118,15 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    StatusInfo statusInfo = getStatusInfo(jobId);
+    OgcStatusInfo statusInfo = getStatusInfo(jobId);
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 0);
 
-    OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
+    StatusInfoResponse statusInfoResponse =
+        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -136,7 +136,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                ogcStatusInfoResponse, OgcStatusInfo.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -149,7 +149,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(ogcStatusInfoResponse, api, requestContext))
+        .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
         .build();
   }
 
@@ -169,7 +169,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String jobId = queryInput.getJobId();
     Map<String, Object> jobResults = getResults(jobId);
 
-    OgcResults results = new ImmutableOgcResults.Builder().additionalProperties(jobResults).build();
+    ResultsResponse resultsResponse =
+        new ImmutableResultsResponse.Builder().additionalProperties(jobResults).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -179,7 +180,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(results, api, requestContext))
+        .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
         .build();
   }
 
@@ -198,15 +199,15 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
-    StatusInfo statusInfo = getStatusInfo(jobId);
+    OgcStatusInfo statusInfo = getStatusInfo(jobId);
     Map<String, Object> jobResults = getResults(jobId);
 
     OgcApiDataV2 apiData = api.getData();
-    Process executedProcess = processRepository.getDirect(apiData, statusInfo.getProcessId());
-    validateOutputId(executedProcess, jobId, outputId, statusInfo, jobResults);
+    OgcProcess process = processRepository.getDirect(apiData, statusInfo.getProcessId());
+    validateOutputId(process, jobId, outputId, jobResults);
 
-    OgcValues results =
-        new ImmutableOgcValues.Builder().inlineOrRefValue(jobResults.get(outputId)).build();
+    ValuesResponse valuesResponse =
+        new ImmutableValuesResponse.Builder().inlineOrRefValue(jobResults.get(outputId)).build();
 
     return prepareSuccessResponse(
             requestContext,
@@ -216,7 +217,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(results, api, requestContext))
+        .entity(outputFormat.getEntity(valuesResponse, api, requestContext))
         .build();
   }
 
@@ -237,13 +238,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String jobId = queryInput.getJobId();
     int indexN = queryInput.getIndexN();
     Map<String, Object> jobResults = getResults(jobId);
-    StatusInfo statusInfo = getStatusInfo(jobId);
+    OgcStatusInfo statusInfo = getStatusInfo(jobId);
 
     OgcApiDataV2 apiData = api.getData();
-    Process executedProcess = processRepository.getDirect(apiData, statusInfo.getProcessId());
-    validateOutputId(executedProcess, jobId, outputId, statusInfo, jobResults);
+    OgcProcess process = processRepository.getDirect(apiData, statusInfo.getProcessId());
+    validateOutputId(process, jobId, outputId, jobResults);
 
-    int maxOccurs = getMaxOccurs(executedProcess, outputId);
+    int maxOccurs = getMaxOccurs(process, outputId);
     if (maxOccurs < (indexN + 1)) {
       throw new BadRequestException(
           "Out-of-bound: "
@@ -257,7 +258,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     }
 
     Object specificResult;
-    if (!(jobResults.get(outputId) instanceof ArrayList<?> arrayList)) {
+    if (!(jobResults.get(outputId) instanceof ArrayList<?> resultList)) {
       // Necessary to support requirement 50
       if (indexN <= 0) {
         specificResult = jobResults.get(outputId);
@@ -265,7 +266,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
         throw new ServerErrorException("Result of output '" + outputId + "' is not an Array.", 500);
       }
     } else {
-      if (arrayList.size() <= indexN) {
+      if (resultList.size() <= indexN) {
         throw new BadRequestException(
             "Out-of-bound: "
                 + "Attempting to access element at index "
@@ -273,14 +274,15 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                 + " of output '"
                 + outputId
                 + "' with size "
-                + arrayList.size()
+                + resultList.size()
                 + ".");
       }
 
-      specificResult = arrayList.get(indexN);
+      specificResult = resultList.get(indexN);
     }
 
-    OgcValues results = new ImmutableOgcValues.Builder().inlineOrRefValue(specificResult).build();
+    ValuesResponse valuesResponse =
+        new ImmutableValuesResponse.Builder().inlineOrRefValue(specificResult).build();
     return prepareSuccessResponse(
             requestContext,
             null,
@@ -289,7 +291,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(results, api, requestContext))
+        .entity(outputFormat.getEntity(valuesResponse, api, requestContext))
         .build();
   }
 
@@ -307,7 +309,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
-    StatusInfo statusInfo =
+    OgcStatusInfo statusInfo =
         processesExecutor
             .dismissJob(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
@@ -317,8 +319,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 1);
 
-    OgcStatusInfo ogcStatusInfoResponse =
-        new ImmutableOgcStatusInfo.Builder().from(statusInfo).links(links).build();
+    StatusInfoResponse statusInfoResponse =
+        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -328,7 +330,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                ogcStatusInfoResponse, OgcStatusInfo.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -341,12 +343,12 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(outputFormat.getEntity(ogcStatusInfoResponse, api, requestContext))
+        .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
         .build();
   }
 
   /*** Helper methods ***/
-  private StatusInfo getStatusInfo(String jobId) {
+  private OgcStatusInfo getStatusInfo(String jobId) {
     return processesExecutor
         .getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
@@ -359,15 +361,11 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   }
 
   private void validateOutputId(
-      Process executedProcess,
-      String jobId,
-      String outputId,
-      StatusInfo statusInfo,
-      Map<String, Object> jobResults) {
-    if (!executedProcess.getOutputs().containsKey(outputId)) {
+      OgcProcess process, String jobId, String outputId, Map<String, Object> jobResults) {
+    if (!process.getOutputs().containsKey(outputId)) {
       throw new NotFoundException(
           "The output of the process '"
-              + executedProcess.getId()
+              + process.getId()
               + "', which was executed by job '"
               + jobId
               + "', does not contain an output '"
@@ -381,7 +379,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     }
   }
 
-  private int getMaxOccurs(Process executedProcess, String outputId) {
-    return executedProcess.getOutputs().get(outputId).getMaxOccurs();
+  private int getMaxOccurs(OgcProcess process, String outputId) {
+    return process.getOutputs().get(outputId).getMaxOccurs();
   }
 }

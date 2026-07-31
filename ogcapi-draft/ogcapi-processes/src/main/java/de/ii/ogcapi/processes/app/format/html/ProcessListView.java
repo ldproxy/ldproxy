@@ -11,7 +11,7 @@ import com.google.common.base.Splitter;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcessSummary;
+import de.ii.ogcapi.processes.domain.model.web.ProcessSummaryResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,7 +31,7 @@ public abstract class ProcessListView extends OgcApiView {
     super("processList.mustache");
   }
 
-  public abstract List<OgcProcessSummary> processList();
+  public abstract List<ProcessSummaryResponse> processList();
 
   @Nullable
   public abstract List<NavigationDTO> pagination();

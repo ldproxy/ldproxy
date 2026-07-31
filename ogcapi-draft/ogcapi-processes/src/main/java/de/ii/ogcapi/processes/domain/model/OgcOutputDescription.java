@@ -7,22 +7,24 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import java.util.Optional;
 import org.immutables.value.Value;
 
+// ToDo Add missing properties
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableMetadata.Builder.class)
-@JsonPropertyOrder({"role", "title", "lang", "value"})
-public interface Metadata {
+@JsonDeserialize(builder = ImmutableOgcOutputDescription.Builder.class)
+public interface OgcOutputDescription extends OgcDescriptionType, OgcSchemaAndOccurrences {
 
-  Optional<String> getRole();
+  @Override
+  @Value.Default
+  default int getMinOccurs() {
+    return 1;
+  }
 
-  Optional<String> getTitle();
-
-  Optional<String> getLang();
-
-  Optional<Object> getValue();
+  @Override
+  @Value.Default
+  default int getMaxOccurs() {
+    return 1;
+  }
 }
