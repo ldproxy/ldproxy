@@ -16,10 +16,11 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.Bbox;
 import de.ii.ogcapi.processes.domain.model.Bbox.CRS;
 import de.ii.ogcapi.processes.domain.model.InputDescription;
+import de.ii.ogcapi.processes.domain.model.OgcSchema;
+import de.ii.ogcapi.processes.domain.model.OgcSchema.Format;
+import de.ii.ogcapi.processes.domain.model.OutputSelection;
 import de.ii.ogcapi.processes.domain.model.Process;
 import de.ii.ogcapi.processes.domain.model.ProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.Schema;
-import de.ii.ogcapi.processes.domain.model.Schema.Format;
 import de.ii.ogcapi.processes.domain.model.StatusInfo;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcResults;
 import de.ii.ogcapi.processes.domain.model.ogc.ImmutableOgcStatusInfo;
@@ -81,8 +82,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
-    // ToDo Filter return value using outputsSelection
-    Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = process.getJobControlOptions();
     if (options.contains(JobControlOptions.ASYNC_EXECUTE)
@@ -95,7 +94,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     JobV2 job = jobQueue.createJob(process.getId(), inputs);
 
     // Push it and wait for its results
-    return jobQueue.push(job).join().getOutputs();
+    Map<String, Object> jobResults = jobQueue.push(job).join().getOutputs();
+
+    // Return only selected results
+    return selectOutputs(jobResults, executeRequest.getOutputSelections());
   }
 
   @Override
@@ -103,8 +105,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
-    // ToDo Filter return value using outputsSelection
-    Optional<Map<String, String>> outputsSelection = executeRequest.getOutputs();
 
     List<JobControlOptions> options = process.getJobControlOptions();
     if (!options.contains(JobControlOptions.ASYNC_EXECUTE)) {
@@ -113,7 +113,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(process.getId(), inputs, executeRequest.getSubscriber());
+    Map<String, Object> jobDetails = new LinkedHashMap<>();
+    jobDetails.put("subscriber", executeRequest.getSubscriber());
+    jobDetails.put("outputSelections", executeRequest.getOutputSelections());
+    JobV2 job = jobQueue.createJob(process.getId(), inputs, jobDetails);
 
     // Put job with callBack in queue
     jobQueue.push(job, this::callBack);
@@ -137,7 +140,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return Optional.empty();
     }
 
-    return Optional.of(job.getOutputs());
+    Map<String, Object> jobResults = job.getOutputs();
+
+    Optional<Map<String, OutputSelection>> outputsSelections =
+        (Optional<Map<String, OutputSelection>>) job.getDetails().get("outputSelections");
+    Map<String, Object> selectedResults = selectOutputs(jobResults, outputsSelections);
+
+    return Optional.of(selectedResults);
   }
 
   @Override
@@ -181,7 +190,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                     + "' is not defined for this process.");
           }
 
-          Schema schema = description.getSchema();
+          OgcSchema schema = description.getSchema();
 
           CompiledJsonSchema compiledSchema =
               schemaCache.computeIfAbsent(
@@ -307,7 +316,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
   }
 
-  private Optional<Object> applyFormat(String inputId, Schema schema, Object value) {
+  private Optional<Object> applyFormat(String inputId, OgcSchema schema, Object value) {
     if (schema.getFormat().isPresent()) {
       if (Format.OGC_BBOX.equals(schema.getFormat().get())) {
         Bbox tempBbox;
@@ -368,8 +377,32 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return Optional.empty();
   }
 
+  // Limitation: MediaType, Encoding and Schema are not used in the selection!
+  private Map<String, Object> selectOutputs(
+      Map<String, Object> output, Optional<Map<String, OutputSelection>> outputSelections) {
+    // ToDo Validate if keys in outputSelections are indeed possible outputs
+
+    // Requirement 27
+    if (outputSelections.isEmpty()) {
+      return output;
+    }
+
+    Map<String, OutputSelection> selection = outputSelections.get();
+
+    // Requirement 28
+    if (selection.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<String, Object> selectedOutput = new LinkedHashMap<>();
+    selection.keySet().forEach(k -> selectedOutput.put(k, output.get(k)));
+
+    return selectedOutput;
+  }
+
   private void callBack(JobV2 job) {
-    Optional<OgcSubscriber> subscriber = (Optional<OgcSubscriber>) job.getDetails();
+    Optional<OgcSubscriber> subscriber =
+        (Optional<OgcSubscriber>) job.getDetails().get("subscriber");
     if (subscriber.isEmpty()) {
       return;
     }

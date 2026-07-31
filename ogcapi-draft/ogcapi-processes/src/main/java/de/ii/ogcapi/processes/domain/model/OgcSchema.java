@@ -18,22 +18,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableSchema.Builder.class)
-public interface Schema {
-  enum Type {
-    @JsonProperty("array")
-    ARRAY,
-    @JsonProperty("boolean")
-    BOOLEAN,
-    @JsonProperty("integer")
-    INTEGER,
-    @JsonProperty("number")
-    NUMBER,
-    @JsonProperty("object")
-    OBJECT,
-    @JsonProperty("string")
-    STRING
-  }
+@JsonDeserialize(builder = ImmutableOgcSchema.Builder.class)
+public interface OgcSchema {
 
   enum Format {
     @JsonProperty("ogc-bbox")
@@ -41,7 +27,7 @@ public interface Schema {
     OGC_BBOX
   }
 
-  Type getType();
+  PropertySchema.Type getType();
 
   // Note: This is an addition to the draft
   Optional<Format> getFormat();
