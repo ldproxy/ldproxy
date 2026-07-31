@@ -21,7 +21,7 @@ import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -71,9 +71,10 @@ public class StatusInfoFormatHtml
   }
 
   @Override
-  public Object getEntity(OgcStatusInfo statusInfo, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(
+      StatusInfoResponse statusInfoResponse, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String jobId = statusInfo.getId();
+    String jobId = statusInfoResponse.getId();
     // ToDo
     String jobListTitle = i18n.get("jobListTitle", requestContext.getLanguage());
 
@@ -111,8 +112,8 @@ public class StatusInfoFormatHtml
         .htmlConfig(htmlConfig)
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
-        .rawLinks(statusInfo.getLinks())
-        .statusInfo(statusInfo)
+        .rawLinks(statusInfoResponse.getLinks())
+        .statusInfo(statusInfoResponse)
         .build();
   }
 }

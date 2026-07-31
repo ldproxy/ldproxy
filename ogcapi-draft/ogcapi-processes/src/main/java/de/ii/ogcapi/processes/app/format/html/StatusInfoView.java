@@ -9,7 +9,7 @@ package de.ii.ogcapi.processes.app.format.html;
 
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.html.domain.OgcApiView;
-import de.ii.ogcapi.processes.domain.model.StatusInfo;
+import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -20,7 +20,7 @@ public abstract class StatusInfoView extends OgcApiView {
     super("statusInfo.mustache");
   }
 
-  public abstract StatusInfo statusInfo();
+  public abstract OgcStatusInfo statusInfo();
 
   public abstract I18n i18n();
 

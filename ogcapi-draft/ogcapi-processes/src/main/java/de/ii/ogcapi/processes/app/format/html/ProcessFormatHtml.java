@@ -22,7 +22,7 @@ import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.web.ProcessResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -72,9 +72,10 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
   }
 
   @Override
-  public Object getEntity(OgcProcess process, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(
+      ProcessResponse processResponse, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String processId = process.getId();
+    String processId = processResponse.getId();
     String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
@@ -108,12 +109,12 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
         .breadCrumbs(breadCrumbs)
         .apiData(api.getData())
         .user(requestContext.getUser())
-        .process(process)
+        .process(processResponse)
         .language(requestContext.getLanguage())
         .htmlConfig(htmlConfig)
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
-        .rawLinks(process.getLinks())
+        .rawLinks(processResponse.getLinks())
         .title(processId)
         .build();
   }

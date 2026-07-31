@@ -8,13 +8,13 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
-public interface Values {
-
-  Optional<Object> getInlineOrRefValue();
+public interface OgcProcess extends OgcProcessSummary {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<Object> getInlineOrRefValues();
+  Map<String, OgcInputDescription> getInputs();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  Map<String, OgcOutputDescription> getOutputs();
 }

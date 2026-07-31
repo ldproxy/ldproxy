@@ -18,7 +18,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.web.ProcessResponse;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -37,8 +37,8 @@ public class ProcessFormatJson implements ProcessFormatExtension, ConformanceCla
 
   @Inject
   public ProcessFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaProcess = classSchemaCache.getSchema(OgcProcess.class);
-    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(OgcProcess.class);
+    schemaProcess = classSchemaCache.getSchema(ProcessResponse.class);
+    referencedSchemasProcess = classSchemaCache.getReferencedSchemas(ProcessResponse.class);
   }
 
   @Override
@@ -59,14 +59,15 @@ public class ProcessFormatJson implements ProcessFormatExtension, ConformanceCla
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaProcess)
-        .schemaRef(OgcProcess.SCHEMA_REF)
+        .schemaRef(ProcessResponse.SCHEMA_REF)
         .referencedSchemas(referencedSchemasProcess)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(OgcProcess processEntity, OgcApi api, ApiRequestContext requestContext) {
-    return processEntity;
+  public Object getEntity(
+      ProcessResponse processResponse, OgcApi api, ApiRequestContext requestContext) {
+    return processResponse;
   }
 }

@@ -9,17 +9,19 @@ package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
-import java.util.Optional;
 
-public interface DescriptionType {
+public interface OgcProcessSummary extends OgcDescriptionType {
 
-  Optional<String> getTitle();
+  enum JobControlOptions {
+    SYNC_EXECUTE,
+    ASYNC_EXECUTE,
+    DISMISS
+  }
 
-  Optional<String> getDescription();
+  String getId();
+
+  String getVersion();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<String> getKeywords();
-
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<Metadata> getMetadata();
+  List<JobControlOptions> getJobControlOptions();
 }

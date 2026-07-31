@@ -25,9 +25,9 @@ import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList;
 import de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList;
 import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
+import de.ii.ogcapi.processes.domain.model.OgcProcessSummary;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.ProcessSummary;
-import de.ii.ogcapi.processes.domain.model.ogc.OgcProcessList;
+import de.ii.ogcapi.processes.domain.model.web.ProcessListResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -82,7 +82,7 @@ public class ProcessListFormatHtml
 
   @Override
   public Object getEntity(
-      OgcProcessList processList, OgcApi api, ApiRequestContext requestContext) {
+      ProcessListResponse processListResponse, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
     String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
 
@@ -167,8 +167,8 @@ public class ProcessListFormatHtml
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
         .processList(
-            processList.getProcessList().stream()
-                .sorted(Comparator.comparing(ProcessSummary::getId))
+            processListResponse.getProcessList().stream()
+                .sorted(Comparator.comparing(OgcProcessSummary::getId))
                 .toList())
         .breadCrumbs(breadCrumbs)
         .htmlConfig(htmlConfig)
@@ -179,7 +179,7 @@ public class ProcessListFormatHtml
         .language(requestContext.getLanguage())
         .description(i18n.get("processListLink", requestContext.getLanguage()))
         .title(processListTitle)
-        .rawLinks(processList.getLinks())
+        .rawLinks(processListResponse.getLinks())
         .user(requestContext.getUser())
         .pagination(pagination.build())
         .build();

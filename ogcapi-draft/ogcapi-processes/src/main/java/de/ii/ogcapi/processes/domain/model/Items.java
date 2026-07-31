@@ -16,5 +16,5 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableItems.Builder.class)
 public interface Items {
 
-  PropertySchema.Type getType();
+  OgcPropertySchema.Type getType();
 }
