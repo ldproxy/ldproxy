@@ -36,15 +36,14 @@ import java.util.Optional;
 @AutoBind
 public class PathParameterJobId implements OgcApiPathParameter {
 
-  public static final String JOB_ID_REGEX = "[\\w-]+";
+  // ToDo Improve regex
+  public static final String JOB_ID_REGEX = "*";
 
   private final SchemaValidator schemaValidator;
-  private final ProcessesExecutor processesExecutor;
 
   @Inject
   public PathParameterJobId(SchemaValidator schemaValidator, ProcessesExecutor processesExecutor) {
     this.schemaValidator = schemaValidator;
-    this.processesExecutor = processesExecutor;
   }
 
   @Override
@@ -52,7 +51,6 @@ public class PathParameterJobId implements OgcApiPathParameter {
     return JOB_ID_REGEX;
   }
 
-  // ToDo Evalute if this could leak Jobs CRITICAL
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
     return ImmutableList.of("*");
