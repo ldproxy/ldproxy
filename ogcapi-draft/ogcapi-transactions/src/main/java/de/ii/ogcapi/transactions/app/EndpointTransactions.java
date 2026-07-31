@@ -131,6 +131,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
     return TransactionsConfiguration.class;
   }
 
+  // TODO: add format for TransactionResponse
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null) {
@@ -333,9 +334,10 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_TRANSACTIONS);
 
     String path = "/transactions";
+    HttpMethods method = HttpMethods.POST;
     List<OgcApiQueryParameter> queryParameters =
-        getQueryParameters(extensionRegistry, apiData, path, HttpMethods.POST);
-    List<ApiHeader> headers = getHeaders(extensionRegistry, apiData, path, HttpMethods.POST);
+        getQueryParameters(extensionRegistry, apiData, path, method);
+    List<ApiHeader> headers = getHeaders(extensionRegistry, apiData, path, method);
     String operationSummary = "execute a transaction";
     Optional<String> operationDescription =
         Optional.of(
@@ -344,17 +346,18 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
                 + "media types: `application/ogc-tx+json` (an OGC JSON Transaction object)"
                 + (apiData
                         .getExtension(TransactionsConfiguration.class)
-                        .map(cfg -> cfg.getWfsTransaction())
+                        .map(TransactionsConfiguration::getWfsTransaction)
                         .orElse(false)
                     ? " and `application/xml` (a `wfs:Transaction` element)."
                     : "."));
     ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
         new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
     Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
+    // TODO: Content is {}
+    Map<MediaType, ApiMediaTypeContent> responseContent = getResponseContent(apiData);
     ApiOperation.of(
-            path,
-            HttpMethods.POST,
             requestContent,
+            responseContent,
             queryParameters,
             headers,
             operationSummary,
@@ -364,9 +367,8 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
             GROUP_DATA_WRITE,
             TAGS,
             TransactionsBuildingBlock.MATURITY,
-            TransactionsBuildingBlock.SPEC,
-            false)
-        .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.POST.name(), operation));
+            TransactionsBuildingBlock.SPEC)
+        .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
     return definitionBuilder.build();
