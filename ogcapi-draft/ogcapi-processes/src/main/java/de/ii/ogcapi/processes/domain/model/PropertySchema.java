@@ -10,7 +10,6 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.processes.domain.model.Schema.Type;
 import java.util.List;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -19,7 +18,7 @@ import org.immutables.value.Value;
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutablePropertySchema.Builder.class)
 public interface PropertySchema {
-  // Note: This implementation does not allow null
+  // Limitation: This implementation does not allow null
   enum Type {
     @JsonProperty("array")
     ARRAY,

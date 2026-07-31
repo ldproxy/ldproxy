@@ -8,10 +8,12 @@
 package de.ii.ogcapi.processes.domain.model.ogc;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import de.ii.ogcapi.processes.domain.model.OutputSelection;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
@@ -37,13 +39,12 @@ public interface OgcExecute {
                   into.putString(k, StandardCharsets.UTF_8);
                   into.putString(v.toString(), StandardCharsets.UTF_8);
                 });
-        from.getOutputs()
+        from.getOutputSelections()
             .ifPresent(
                 m ->
                     m.forEach(
                         (k, v) -> {
                           into.putString(k, StandardCharsets.UTF_8);
-                          into.putString(v, StandardCharsets.UTF_8);
                         }));
         from.getSubscriber().ifPresent(v -> OgcSubscriber.FUNNEL.funnel(v, into));
       };
@@ -54,7 +55,8 @@ public interface OgcExecute {
   Map<String, Object> getInputs();
 
   // Optional must be used to distinguish between empty and omitted Output
-  Optional<Map<String, String>> getOutputs();
+  @JsonProperty("outputs")
+  Optional<Map<String, OutputSelection>> getOutputSelections();
 
   Optional<OgcSubscriber> getSubscriber();
 }
