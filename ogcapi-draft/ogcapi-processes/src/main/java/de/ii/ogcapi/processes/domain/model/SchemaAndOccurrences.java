@@ -9,7 +9,7 @@ package de.ii.ogcapi.processes.domain.model;
 
 public interface SchemaAndOccurrences {
 
-  Schema getSchema();
+  OgcSchema getSchema();
 
   int getMinOccurs();
 
