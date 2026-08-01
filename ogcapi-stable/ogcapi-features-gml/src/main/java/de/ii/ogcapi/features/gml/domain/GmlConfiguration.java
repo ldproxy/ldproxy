@@ -929,16 +929,16 @@ public interface GmlConfiguration
   /**
    * @langEn If `true` and the request's `datetime` parameter is an interval (contains `/`), the
    *     `gml:id` of every feature is suffixed with the feature's primary temporal property value
-   *     formatted as `yyyyMMddTHHmmssX`. The source property is the one with role
-   *     `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application schemas
-   *     that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series queries).
-   *     Does not affect `gml:identifier`.
+   *     converted to UTC and formatted as `yyyyMMddTHHmmssZ`. The source property is the one with
+   *     role `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application
+   *     schemas that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series
+   *     queries). Does not affect `gml:identifier`.
    * @langDe Wenn `true` und der `datetime`-Parameter der Anfrage ein Intervall ist (enthält `/`),
-   *     wird die `gml:id` jedes Features um den Wert der primären zeitlichen Eigenschaft formatiert
-   *     als `yyyyMMddTHHmmssX` ergänzt. Quelle ist die Eigenschaft mit Rolle `PRIMARY_INSTANT`,
-   *     ersatzweise `PRIMARY_INTERVAL_START`. Nützlich für Anwendungsschemata, die je
-   *     Feature-Version eine eindeutige `gml:id` verlangen (z.B. AdV NAS Zeitreihen-Anfragen).
-   *     Wirkt nicht auf `gml:identifier`.
+   *     wird die `gml:id` jedes Features um den Wert der primären zeitlichen Eigenschaft, nach UTC
+   *     konvertiert und formatiert als `yyyyMMddTHHmmssZ`, ergänzt. Quelle ist die Eigenschaft mit
+   *     Rolle `PRIMARY_INSTANT`, ersatzweise `PRIMARY_INTERVAL_START`. Nützlich für
+   *     Anwendungsschemata, die je Feature-Version eine eindeutige `gml:id` verlangen (z.B. AdV NAS
+   *     Zeitreihen-Anfragen). Wirkt nicht auf `gml:identifier`.
    * @default false
    * @since v4.8
    */

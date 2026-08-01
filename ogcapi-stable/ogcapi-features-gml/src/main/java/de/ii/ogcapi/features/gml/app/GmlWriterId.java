@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 public class GmlWriterId implements GmlWriter {
 
   private static final DateTimeFormatter TEMPORAL_SUFFIX_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'X'");
+      DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
 
   @Inject
   public GmlWriterId() {}
@@ -80,7 +80,9 @@ public class GmlWriterId implements GmlWriter {
 
   static String formatTemporalSuffix(String isoValue) {
     try {
-      return OffsetDateTime.parse(isoValue).format(TEMPORAL_SUFFIX_FORMATTER);
+      return OffsetDateTime.parse(isoValue)
+          .withOffsetSameInstant(ZoneOffset.UTC)
+          .format(TEMPORAL_SUFFIX_FORMATTER);
     } catch (DateTimeParseException ignored) {
     }
     try {
