@@ -82,7 +82,17 @@ public class GeoJsonWriterId implements GeoJsonWriter {
       // In a multi-collection response the path must use the feature's own collection and the bare
       // id; the JSON id may be qualified with a collection prefix to stay unique.
       String collectionId = context.encoding().getCollectionIdForType(type);
-      String pathId = context.encoding().getFeatureIdInPath(featureId, collectionId);
+      // When the composite-id profile rewrote the id token, the JSON id carries the composite, but
+      // URL paths always identify by the canonical id; the version is addressed by its interval
+      // start via the datetime parameter.
+      String canonicalId = context.canonicalFeatureId();
+      String versionStart = context.featureVersionStart();
+      String baseId = Objects.nonNull(canonicalId) ? canonicalId : featureId;
+      String pathId = context.encoding().getFeatureIdInPath(baseId, collectionId);
+      String versionQuery =
+          Objects.nonNull(canonicalId) && Objects.nonNull(versionStart)
+              ? "?datetime=" + versionStart
+              : "";
       context
           .encoding()
           .getState()
@@ -94,7 +104,8 @@ public class GeoJsonWriterId implements GeoJsonWriter {
                           + "/collections/"
                           + collectionId
                           + "/items/"
-                          + pathId)
+                          + pathId
+                          + versionQuery)
                   .build());
       Optional<String> template =
           context

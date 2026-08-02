@@ -38,6 +38,55 @@ class GeoJsonWriterIdSpec extends Specification {
         actual == expected
     }
 
+    def "self link uses the feature id when no composite id is set"() {
+        given:
+        EncodingAwareContextGeoJson context = encodeFeature(null, null)
+
+        when:
+        def self = context.encoding().getState().getCurrentFeatureLinks().find { it.getRel() == 'self' }
+
+        then:
+        self.getHref().endsWith('/collections/xyz/items/DEHE86202002C3mG20260601T111827Z')
+    }
+
+    def "self link uses the canonical id and the version start when a composite id is set"() {
+        given:
+        EncodingAwareContextGeoJson context = encodeFeature('DEHE86202002C3mG', '2026-06-01T11:18:27Z')
+
+        when:
+        def self = context.encoding().getState().getCurrentFeatureLinks().find { it.getRel() == 'self' }
+
+        then:
+        self.getHref().endsWith('/collections/xyz/items/DEHE86202002C3mG?datetime=2026-06-01T11:18:27Z')
+    }
+
+    private static EncodingAwareContextGeoJson encodeFeature(String canonicalId, String versionStart) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+        EncodingAwareContextGeoJson context = GeoJsonWriterSetupUtil.createTransformationContext(outputStream, true)
+        FeatureEncoderGeoJson encoder = new FeatureEncoderGeoJson(context.encoding(), ImmutableList.of(new GeoJsonWriterSkeleton(), new GeoJsonWriterId()))
+        FeatureSchema idSchema = new ImmutableFeatureSchema.Builder().name("p").type(SchemaBase.Type.STRING).role(SchemaBase.Role.ID).build()
+        FeatureSchema featureSchema = new ImmutableFeatureSchema.Builder().name("xyz")
+                .type(SchemaBase.Type.OBJECT)
+                .putPropertyMap("p", idSchema)
+                .build()
+        context.setIsUseTargetPaths(true)
+                .setType("xyz")
+                .setMappings(Map.of("xyz", SchemaMapping.of(featureSchema)))
+
+        encoder.onStart(context)
+        encoder.onFeatureStart(context)
+        // in the pipeline, FeatureTokenTransformerCompositeId sets these before re-emitting the id
+        context.setCanonicalFeatureId(canonicalId)
+        context.setFeatureVersionStart(versionStart)
+        context.pathTracker().track(featureSchema.getProperties().get(0).getFullPath())
+        context.setIndexes([])
+        context.setValue("DEHE86202002C3mG20260601T111827Z")
+        encoder.onValue(context)
+        encoder.onFeatureEnd(context)
+        encoder.onEnd(context)
+        return context
+    }
+
     private static void runTransformer(ByteArrayOutputStream outputStream, Map<String, FeatureSchema> mappings,
                                        List<List<Integer>> multiplicities,
                                        List<String> values) throws IOException, URISyntaxException {
