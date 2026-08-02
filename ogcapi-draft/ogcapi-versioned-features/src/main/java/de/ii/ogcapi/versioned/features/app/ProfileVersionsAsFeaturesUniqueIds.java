@@ -20,6 +20,8 @@ import de.ii.xtraplatform.cql.domain.TIntersects;
 import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
+import de.ii.xtraplatform.features.domain.ImmutableMultiFeatureQuery;
+import de.ii.xtraplatform.features.domain.MultiFeatureQuery;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
@@ -88,6 +90,31 @@ public class ProfileVersionsAsFeaturesUniqueIds extends ProfileFeatureQuery {
     String fmt =
         cfg.map(VersionedFeaturesConfiguration::getCompositeIdTimestampFormat).orElse(null);
     return ImmutableFeatureQuery.builder()
+        .from(query)
+        .addExtensions(new CompositeIdExtension(pattern, fmt))
+        .build();
+  }
+
+  @Override
+  public MultiFeatureQuery transformMultiFeatureQuery(
+      MultiFeatureQuery query, OgcApiDataV2 apiData) {
+    // A query expression has no datetime parameter and applies no snapshot default, so multiple
+    // versions of a feature can always appear in the response — no interval gate as on /items.
+    Optional<VersionedFeaturesConfiguration> cfg =
+        query.getQueries().stream()
+            .map(
+                subQuery ->
+                    apiData.getExtension(
+                        VersionedFeaturesConfiguration.class, subQuery.getCollectionId()))
+            .flatMap(Optional::stream)
+            .findFirst();
+    String pattern = cfg.map(VersionedFeaturesConfiguration::getCompositeIdPattern).orElse(null);
+    if (pattern == null || pattern.isBlank()) {
+      return query;
+    }
+    String fmt =
+        cfg.map(VersionedFeaturesConfiguration::getCompositeIdTimestampFormat).orElse(null);
+    return ImmutableMultiFeatureQuery.builder()
         .from(query)
         .addExtensions(new CompositeIdExtension(pattern, fmt))
         .build();

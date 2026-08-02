@@ -246,10 +246,6 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getXmlAttributes();
   }
 
-  public boolean getAppendTemporalSuffixToGmlId() {
-    return currentEncoding().getAppendTemporalSuffixToGmlId();
-  }
-
   public Map<String, String> getCodelistProperties() {
     return currentEncoding().getCodelistProperties();
   }
@@ -715,9 +711,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
    */
   public void setCurrentGmlId(String value) {
     int i = getState().getLastObject();
-    getState().putCurrentRawGmlIds(i, value);
-    String suffix = getState().getCurrentGmlIdSuffixes().getOrDefault(i, "");
-    getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), value + suffix);
+    getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), value);
     getGmlIdentifier()
         .ifPresent(
             cfg -> {
@@ -750,15 +744,6 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     getState()
         .putPlaceholders(
             GML_IDENTIFIER_VALUE_PLACEHOLDER.replace("i", String.valueOf(i)), resolved);
-  }
-
-  public void appendGmlIdSuffix(String suffix) {
-    int i = getState().getLastObject();
-    getState().putCurrentGmlIdSuffixes(i, suffix);
-    String raw = getState().getCurrentRawGmlIds().get(i);
-    if (raw != null) {
-      getState().putPlaceholders(GML_ID_PLACEHOLDER.replace("i", String.valueOf(i)), raw + suffix);
-    }
   }
 
   @Value.Auxiliary
@@ -1095,16 +1080,6 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
 
     @Value.Default
     public Map<String, String> getVariableNameMapping() {
-      return ImmutableMap.of();
-    }
-
-    @Value.Default
-    public Map<Integer, String> getCurrentRawGmlIds() {
-      return ImmutableMap.of();
-    }
-
-    @Value.Default
-    public Map<Integer, String> getCurrentGmlIdSuffixes() {
       return ImmutableMap.of();
     }
   }

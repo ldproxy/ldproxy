@@ -35,9 +35,7 @@ import org.immutables.value.Value;
  *       GmlWriterProperties} sees at runtime; the {@code xmlPaths} chain segments are additionally
  *       parsed into {@link XmlPathElement}s;
  *   <li>{@link #getCodelists()} — the codelist ids are resolved to {@code Codelist} instances via
- *       the codelist store;
- *   <li>{@link #getAppendTemporalSuffixToGmlId()} — the configured flag folded with whether the
- *       request is a datetime-interval request.
+ *       the codelist store.
  * </ul>
  */
 @Value.Immutable
@@ -92,10 +90,5 @@ public interface CollectionEncodingGml {
   @Value.Default
   default Map<String, Codelist> getCodelists() {
     return ImmutableMap.of();
-  }
-
-  @Value.Default
-  default boolean getAppendTemporalSuffixToGmlId() {
-    return false;
   }
 }

@@ -35,9 +35,10 @@ import java.util.Optional;
  * - The feature property with the role `ID` in the provider schema is mapped to the `gml:id`
  *   attribute of the feature. These properties must be a direct property of the feature type.
  *   If `gmlIdPrefix` is set, the prefix is prepended to every `gml:id` value to keep them
- *   valid XML IDs. If `appendTemporalSuffixToGmlId` is `true` and the request's `datetime`
- *   parameter is an interval, the value of the primary temporal property is appended to the
- *   `gml:id` formatted as `yyyyMMddTHHmmssX`.
+ *   valid XML IDs. On versioned collections, GML defaults to the profile
+ *   `versions-as-features-unique-ids`, so a response that can contain multiple versions of a
+ *   feature carries unique `gml:id` values (the composite of the canonical id and the
+ *   version's interval start).
  * - If `gmlIdentifier` is configured, a `gml:identifier` element is emitted as the first
  *   child of every feature, with the configured `codeSpace` attribute and the feature id
  *   (optionally substituted into `valueTemplate`) as text.
@@ -100,9 +101,10 @@ import java.util.Optional;
  * - Die Feature-Eigenschaft mit der Rolle `ID` im Provider-Schema wird auf das Attribut `gml:id`
  *   des Features abgebildet. Diese Eigenschaften müssen eine direkte Eigenschaft des Featuretyps
  *   sein. Wenn `gmlIdPrefix` gesetzt ist, wird das Präfix jedem `gml:id`-Wert vorangestellt,
- *   um gültige XML-IDs zu gewährleisten. Wenn `appendTemporalSuffixToGmlId: true` gesetzt ist
- *   und der `datetime`-Parameter der Anfrage ein Intervall ist, wird der Wert der primären
- *   zeitlichen Eigenschaft im Format `yyyyMMddTHHmmssX` an die `gml:id` angehängt.
+ *   um gültige XML-IDs zu gewährleisten. Bei versionierten Collections verwendet GML
+ *   standardmäßig das Profil `versions-as-features-unique-ids`, sodass eine Antwort, die
+ *   mehrere Versionen eines Features enthalten kann, eindeutige `gml:id`-Werte trägt (das
+ *   Kompositum aus kanonischer Id und Intervallbeginn der Version).
  * - Wenn `gmlIdentifier` konfiguriert ist, wird ein `gml:identifier`-Element als erstes
  *   Kindelement jedes Features ausgegeben, mit dem konfigurierten `codeSpace`-Attribut und
  *   der Feature-ID (optional eingesetzt in `valueTemplate`) als Textinhalt.

@@ -11,6 +11,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfileGeneric;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
+import de.ii.xtraplatform.features.domain.MultiFeatureQuery;
 import jakarta.validation.constraints.NotNull;
 
 public abstract class ProfileFeatureQuery extends ProfileGeneric {
@@ -29,5 +30,15 @@ public abstract class ProfileFeatureQuery extends ProfileGeneric {
   public FeatureQuery transformFeatureQuery(
       @NotNull FeatureQuery query, @NotNull OgcApiDataV2 apiData, @NotNull String collectionId) {
     return transformFeatureQuery(query);
+  }
+
+  /**
+   * Multi-query variant, applied by handlers that execute a query expression (ad-hoc or stored
+   * query). Defaults to no transformation; override when the profile also affects query
+   * expressions.
+   */
+  public MultiFeatureQuery transformMultiFeatureQuery(
+      @NotNull MultiFeatureQuery query, @NotNull OgcApiDataV2 apiData) {
+    return query;
   }
 }

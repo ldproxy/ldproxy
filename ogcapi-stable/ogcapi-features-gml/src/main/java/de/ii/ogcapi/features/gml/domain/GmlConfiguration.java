@@ -41,12 +41,12 @@ import org.immutables.value.Value;
  *     `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,
  *     `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,
  *     `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD
- *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,
- *     `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder
- *     formatting decisions with no input counterpart, or because the decoder is permissive of any
- *     equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do
- *     attributes and injected empty elements in `xmlPaths` chains - on input, an empty element
- *     inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.
+ *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `gmlSfLevel`, `useSurfaceAndCurve`,
+ *     `defaultProfiles` - either because they govern encoder formatting decisions with no input
+ *     counterpart, or because the decoder is permissive of any equivalent input form.
+ *     `codeListUriTemplateIso19139` likewise affects output only, as do attributes and injected
+ *     empty elements in `xmlPaths` chains - on input, an empty element inside a chain is skipped
+ *     and an `xsi:type` attribute on a value element is dropped.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -60,13 +60,12 @@ import org.immutables.value.Value;
  *     `featureRefTemplate`, `xmlPaths`, `xmlAttributes`, `variableObjectElementNames`,
  *     `featureCollectionElementName`, `featureMemberElementName`. Die übrigen Optionen wirken sich
  *     ausschließlich auf die Ausgabe aus - `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
- *     `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`, `gmlSfLevel`,
- *     `useSurfaceAndCurve`, `defaultProfiles` - entweder weil sie Formatierungsentscheidungen des
- *     Encoders ohne Eingabe-Pendant steuern oder weil der Decoder bei jeder äquivalenten
- *     Eingabeform permissiv ist. `codeListUriTemplateIso19139` wirkt sich ebenfalls nur auf die
- *     Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in `xmlPaths`-Ketten - beim
- *     Einlesen wird ein leeres Element innerhalb einer Kette übersprungen und ein
- *     `xsi:type`-Attribut auf einem Wert-Element verworfen.
+ *     `uomStyle`, `gmlIdentifier`, `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - entweder
+ *     weil sie Formatierungsentscheidungen des Encoders ohne Eingabe-Pendant steuern oder weil der
+ *     Decoder bei jeder äquivalenten Eingabeform permissiv ist. `codeListUriTemplateIso19139` wirkt
+ *     sich ebenfalls nur auf die Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in
+ *     `xmlPaths`-Ketten - beim Einlesen wird ein leeres Element innerhalb einer Kette übersprungen
+ *     und ein `xsi:type`-Attribut auf einem Wert-Element verworfen.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
  *     locations, the configuration of a gml:id prefix to ensure XML ID compatibility as well as
  *     specific configuration options for a feature type.
@@ -129,7 +128,6 @@ import org.immutables.value.Value;
  *   gmlIdentifier:
  *     codeSpace: 'http://www.adv-online.de/'
  *     valueTemplate: 'urn:adv:oid:{{value}}'
- *   appendTemporalSuffixToGmlId: true
  *   srsNameStyle: TEMPLATE
  *   uomStyle: TEMPLATE
  *   uomMappings:
@@ -230,7 +228,6 @@ import org.immutables.value.Value;
  *   gmlIdentifier:
  *     codeSpace: 'http://www.adv-online.de/'
  *     valueTemplate: 'urn:adv:oid:{{value}}'
- *   appendTemporalSuffixToGmlId: true
  *   srsNameStyle: TEMPLATE
  *   uomStyle: TEMPLATE
  *   uomMappings:
@@ -806,20 +803,28 @@ public interface GmlConfiguration
    *     this feature format. The value is an object where the key is the id of a profile set and
    *     the value is the default profile for the profile set. These defaults override the defaults
    *     specified in the [Features](features.md) building block. For GML, the following default
-   *     profiles are set: "rel-as-link" for feature relationships and "val-as-code" for properties
-   *     with coded values. Changing these profiles will likely result in a GML representation that
-   *     is not valid against the GML application schema which typically do not support variations
-   *     of the representation.
+   *     profiles are set: "rel-as-link" for feature relationships, "val-as-code" for properties
+   *     with coded values, and "versions-as-features-unique-ids" for versioned collections, since a
+   *     response that contains multiple versions of a feature requires unique `gml:id` values (each
+   *     version's id is rewritten to a composite of the canonical id and the version's interval
+   *     start; the `gml:identifier` element still carries the canonical id). Changing these
+   *     profiles will likely result in a GML representation that is not valid against the GML
+   *     application schema which typically do not support variations of the representation.
    * @langDe Spezifiziert den Standardwert des [Profile-Parameters](features.md#query-parameter) für
    *     Features. Der Wert ist ein Objekt, bei dem der Schlüssel die ID eines Profilsatzes ist und
    *     der Wert das Standardprofil für den Profilsatz. Diese Vorgaben haben Vorrang vor den im
    *     [Features](features.md)-Baustein angegebenen Standardprofilen. Für GML sind die folgenden
-   *     Standardprofile gesetzt: "rel-as-link" für Feature-Beziehungen und "val-as-code" für
-   *     Eigenschaften mit codierten Werten. Ein Ändern dieser Profile führt wahrscheinlich zu einer
-   *     GML-Kodierung, die nicht gegen das GML-Anwendungsschema valide ist, das typischerweise
-   *     keine Variationen der Kodierung unterstützt.
+   *     Standardprofile gesetzt: "rel-as-link" für Feature-Beziehungen, "val-as-code" für
+   *     Eigenschaften mit codierten Werten sowie "versions-as-features-unique-ids" für versionierte
+   *     Collections, da eine Antwort mit mehreren Versionen eines Features eindeutige
+   *     `gml:id`-Werte erfordert (die Id jeder Version wird zu einem Kompositum aus kanonischer Id
+   *     und Intervallbeginn der Version umgeschrieben; das Element `gml:identifier` trägt weiterhin
+   *     die kanonische Id). Ein Ändern dieser Profile führt wahrscheinlich zu einer GML-Kodierung,
+   *     die nicht gegen das GML-Anwendungsschema valide ist, das typischerweise keine Variationen
+   *     der Kodierung unterstützt.
    * @since v4.2
-   * @default {"rel": "rel-as-link", "val": "val-as-code"}
+   * @default {"rel": "rel-as-link", "val": "val-as-code", "versions":
+   *     "versions-as-features-unique-ids"}
    */
   @Override
   Map<String, String> getDefaultProfiles();
@@ -925,25 +930,6 @@ public interface GmlConfiguration
    */
   @Nullable
   GmlIdentifier getGmlIdentifier();
-
-  /**
-   * @langEn If `true` and the request's `datetime` parameter is an interval (contains `/`), the
-   *     `gml:id` of every feature is suffixed with the feature's primary temporal property value
-   *     converted to UTC and formatted as `yyyyMMddTHHmmssZ`. The source property is the one with
-   *     role `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application
-   *     schemas that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series
-   *     queries). Does not affect `gml:identifier`.
-   * @langDe Wenn `true` und der `datetime`-Parameter der Anfrage ein Intervall ist (enthält `/`),
-   *     wird die `gml:id` jedes Features um den Wert der primären zeitlichen Eigenschaft, nach UTC
-   *     konvertiert und formatiert als `yyyyMMddTHHmmssZ`, ergänzt. Quelle ist die Eigenschaft mit
-   *     Rolle `PRIMARY_INSTANT`, ersatzweise `PRIMARY_INTERVAL_START`. Nützlich für
-   *     Anwendungsschemata, die je Feature-Version eine eindeutige `gml:id` verlangen (z.B. AdV NAS
-   *     Zeitreihen-Anfragen). Wirkt nicht auf `gml:identifier`.
-   * @default false
-   * @since v4.8
-   */
-  @Nullable
-  Boolean getAppendTemporalSuffixToGmlId();
 
   /**
    * @langEn URI template used to construct the `xlink:href` for properties that carry a codelist
