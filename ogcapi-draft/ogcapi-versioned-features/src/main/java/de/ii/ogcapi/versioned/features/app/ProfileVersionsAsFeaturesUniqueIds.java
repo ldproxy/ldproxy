@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.CqlNode;
+import de.ii.xtraplatform.cql.domain.Interval;
 import de.ii.xtraplatform.cql.domain.TIntersects;
 import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
@@ -93,9 +94,10 @@ public class ProfileVersionsAsFeaturesUniqueIds extends ProfileFeatureQuery {
   }
 
   // Walk the query filter looking for a TIntersects whose temporal-literal operand carries an
-  // Interval value. That filter shape is what QueryParameterDatetime emits when the request's
-  // datetime parameter is an interval (bounded or half-bounded, including "../..").
-  private static boolean hasIntervalDatetime(FeatureQuery query) {
+  // interval value. That filter shape is what QueryParameterDatetime emits when the request's
+  // datetime parameter is an interval (bounded or half-bounded, including "../.."). Package-private
+  // for unit testing.
+  static boolean hasIntervalDatetime(FeatureQuery query) {
     for (Cql2Expression filter : query.getFilters()) {
       if (containsIntervalTemporalLiteral(filter)) {
         return true;
@@ -107,8 +109,7 @@ public class ProfileVersionsAsFeaturesUniqueIds extends ProfileFeatureQuery {
   private static boolean containsIntervalTemporalLiteral(CqlNode node) {
     if (node instanceof TIntersects) {
       for (CqlNode child : ((TIntersects) node).getArgs()) {
-        if (child instanceof TemporalLiteral
-            && ((TemporalLiteral) child).getInterval().isPresent()) {
+        if (child instanceof TemporalLiteral && isIntervalLiteral((TemporalLiteral) child)) {
           return true;
         }
       }
@@ -121,5 +122,12 @@ public class ProfileVersionsAsFeaturesUniqueIds extends ProfileFeatureQuery {
       }
     }
     return false;
+  }
+
+  // A temporal literal carries an interval in one of two representations: bounds that are both
+  // timestamps (or open) are resolved to an org.threeten.extra.Interval, while an interval with a
+  // date bound is kept as a CQL2 INTERVAL node (see TemporalLiteral.Builder).
+  private static boolean isIntervalLiteral(TemporalLiteral literal) {
+    return literal.getInterval().isPresent() || literal.getType() == Interval.class;
   }
 }
