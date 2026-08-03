@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
+import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import java.nio.charset.StandardCharsets;
@@ -52,7 +53,9 @@ public abstract class StatusInfoResponse extends PageRepresentation implements O
         PageRepresentation.FUNNEL.funnel(from, into);
         into.putString(from.getId(), StandardCharsets.UTF_8);
         into.putString(from.getProcessId(), StandardCharsets.UTF_8);
-        from.getRequest().ifPresent(v -> ExecuteRequest.FUNNEL.funnel(v, into));
+        into.putString(from.getProcessingEntityType().name(), StandardCharsets.UTF_8);
+        into.putString(from.getProfileEntityType().name(), StandardCharsets.UTF_8);
+        from.getRequest().ifPresent(v -> OgcExecute.FUNNEL.funnel(v, into));
         into.putString(from.getStatus().name(), StandardCharsets.UTF_8);
         from.getMessage().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getCreated().ifPresent(v -> into.putLong(v.toEpochMilli()));

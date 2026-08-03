@@ -13,6 +13,8 @@ import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.OgcResults;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.Map;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "Results")
@@ -26,12 +28,13 @@ public abstract class ResultsResponse implements OgcResults {
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<ResultsResponse> FUNNEL =
       (from, into) -> {
-        from.getAdditionalProperties().keySet().stream()
-            .sorted()
-            .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
-        from.getAdditionalProperties().values().stream()
-            .sorted(Comparator.comparingInt(Object::hashCode))
-            .forEachOrdered(value -> into.putInt(value.hashCode()));
+        from.getAdditionalProperties().entrySet().stream()
+            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .forEachOrdered(
+                e -> {
+                  into.putString(e.getKey(), StandardCharsets.UTF_8);
+                  into.putString(Objects.toString(e.getValue(), ""), StandardCharsets.UTF_8);
+                });
       };
 
   public static ResultsResponse of(OgcResults results) {

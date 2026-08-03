@@ -13,7 +13,6 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
-import java.nio.charset.StandardCharsets;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "Process")
@@ -36,19 +35,11 @@ public abstract class ProcessResponse extends PageRepresentationWithId implement
 
   public static final String SCHEMA_REF = "#/components/schemas/Process";
 
-  // ToDo Add Input / Outputs
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<ProcessResponse> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
-        into.putString(from.getVersion(), StandardCharsets.UTF_8);
-        from.getJobControlOptions().stream()
-            .map(JobControlOptions::name)
-            .sorted()
-            .forEachOrdered(name -> into.putString(name, StandardCharsets.UTF_8));
-        from.getKeywords().stream()
-            .sorted()
-            .forEachOrdered(keyword -> into.putString(keyword, StandardCharsets.UTF_8));
+        OgcProcess.FUNNEL.funnel(from, into);
       };
 
   public static ProcessResponse of(OgcProcess process) {

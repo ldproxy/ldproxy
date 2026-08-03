@@ -15,15 +15,15 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcBbox;
 import de.ii.ogcapi.processes.domain.model.OgcBbox.CRS;
+import de.ii.ogcapi.processes.domain.model.OgcExecute;
+import de.ii.ogcapi.processes.domain.model.OgcFormat;
 import de.ii.ogcapi.processes.domain.model.OgcInputDescription;
-import de.ii.ogcapi.processes.domain.model.OgcOutputSelection;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchema;
-import de.ii.ogcapi.processes.domain.model.OgcSchema.Format;
+import de.ii.ogcapi.processes.domain.model.OgcSchema.Formats;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.OgcSubscriber;
-import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
 import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
@@ -78,7 +78,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public Map<String, Object> executeSync(OgcProcess process, ExecuteRequest executeRequest) {
+  public Map<String, Object> executeSync(OgcProcess process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -101,7 +101,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public OgcStatusInfo executeAsync(OgcProcess process, ExecuteRequest executeRequest) {
+  public OgcStatusInfo executeAsync(OgcProcess process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -142,8 +142,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> jobResults = job.getOutputs();
 
-    Optional<Map<String, OgcOutputSelection>> outputsSelections =
-        (Optional<Map<String, OgcOutputSelection>>) job.getDetails().get("outputSelections");
+    Optional<Map<String, OgcFormat>> outputsSelections =
+        (Optional<Map<String, OgcFormat>>) job.getDetails().get("outputSelections");
     Map<String, Object> selectedResults = selectOutputs(jobResults, outputsSelections);
 
     return Optional.of(selectedResults);
@@ -318,7 +318,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private Optional<Object> applyFormat(String inputId, OgcSchema schema, Object value) {
     if (schema.getFormat().isPresent()) {
-      if (Format.OGC_BBOX.equals(schema.getFormat().get())) {
+      if (Formats.OGC_BBOX.equals(schema.getFormat().get())) {
         OgcBbox bbox;
         try {
           bbox = mapper.convertValue(value, OgcBbox.class);
@@ -379,7 +379,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // Limitation: MediaType, Encoding and Schema are not used in the selection!
   private Map<String, Object> selectOutputs(
-      Map<String, Object> output, Optional<Map<String, OgcOutputSelection>> outputSelections) {
+      Map<String, Object> output, Optional<Map<String, OgcFormat>> outputSelections) {
     // ToDo Validate if keys in outputSelections are indeed possible outputs
 
     // Requirement 27
@@ -387,7 +387,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return output;
     }
 
-    Map<String, OgcOutputSelection> selection = outputSelections.get();
+    Map<String, OgcFormat> selection = outputSelections.get();
 
     // Requirement 28
     if (selection.isEmpty()) {
@@ -417,7 +417,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private void callBackOnSuccess(String jobId, OgcSubscriber subscriber) {
-    if (subscriber.successUri().isEmpty()) {
+    if (subscriber.getSuccessUri().isEmpty()) {
       return;
     }
 
@@ -437,7 +437,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     do {
       try {
         httpClient.postAsInputStream(
-            subscriber.successUri().get(),
+            subscriber.getSuccessUri().get(),
             payload,
             MediaType.APPLICATION_JSON_TYPE,
             Map.of("Accept", MediaType.APPLICATION_JSON));
@@ -473,11 +473,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private void callBackOnFailure(String jobId, OgcSubscriber subscriber) {
-    subscriber.failedUri().ifPresent(uri -> postStatusInfo(jobId, uri, "failed"));
+    subscriber.getFailedUri().ifPresent(uri -> postStatusInfo(jobId, uri, "failed"));
   }
 
   private void callBackOnProgress(String jobId, OgcSubscriber subscriber) {
-    subscriber.inProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress"));
+    subscriber.getInProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress"));
   }
 
   private void postStatusInfo(String jobId, String uri, String callbackType) {

@@ -128,7 +128,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
             requestContext.getLanguage());
 
     ProcessListResponse processListResponse =
-        ImmutableProcessListResponse.builder()
+        new ImmutableProcessListResponse.Builder()
             .processList(
                 processIds.stream()
                     .skip(offset)
@@ -139,7 +139,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(process -> (OgcProcessSummary) process)
                     .map(
                         processSummary ->
-                            ImmutableProcessSummaryResponse.builder()
+                            new ImmutableProcessSummaryResponse.Builder()
                                 .from(processSummary)
                                 .links(
                                     linkGenerator.generateProcessLink(

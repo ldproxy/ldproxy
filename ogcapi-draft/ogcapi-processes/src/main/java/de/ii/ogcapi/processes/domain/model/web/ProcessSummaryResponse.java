@@ -12,13 +12,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
+import de.ii.ogcapi.processes.domain.model.OgcMetadata;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary;
 import java.nio.charset.StandardCharsets;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "ProcessSummary")
 @Value.Immutable
-@Value.Style(deepImmutablesDetection = true)
+@Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableProcessSummaryResponse.Builder.class)
 @JsonPropertyOrder({
   "id",
@@ -39,6 +40,7 @@ public abstract class ProcessSummaryResponse extends PageRepresentationWithId
   public static final Funnel<ProcessSummaryResponse> FUNNEL =
       (from, into) -> {
         PageRepresentationWithId.FUNNEL.funnel(from, into);
+        OgcProcessSummary.FUNNEL.funnel(from, into);
         into.putString(from.getVersion(), StandardCharsets.UTF_8);
         from.getJobControlOptions().stream()
             .map(JobControlOptions::name)
@@ -47,5 +49,6 @@ public abstract class ProcessSummaryResponse extends PageRepresentationWithId
         from.getKeywords().stream()
             .sorted()
             .forEachOrdered(keyword -> into.putString(keyword, StandardCharsets.UTF_8));
+        from.getMetadata().forEach(v -> OgcMetadata.FUNNEL.funnel(v, into));
       };
 }

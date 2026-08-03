@@ -10,13 +10,22 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.foundation.domain.ApiInfo;
 import java.util.List;
 import org.immutables.value.Value;
 
+/**
+ * See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/bbox.yaml
+ */
+@ApiInfo(schemaId = "Bbox")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcBbox.Builder.class)
 public interface OgcBbox {
+
+  String SCHEMA_REF = "#/components/schemas/Bbox";
+
   enum CRS {
     @JsonProperty("CRS84")
     @JsonAlias("http://www.opengis.net/def/crs/OGC/1.3/CRS84")

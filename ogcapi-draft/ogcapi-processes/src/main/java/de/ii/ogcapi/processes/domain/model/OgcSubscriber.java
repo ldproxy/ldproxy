@@ -15,12 +15,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+/**
+ * Optional URIs for callbacks for asynchronous execution.
+ *
+ * <p>See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/subscriber.yaml
+ */
 @ApiInfo(schemaId = "Subscriber")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcSubscriber.Builder.class)
 @JsonPropertyOrder({"successUri", "inProgressUri", "failedUri"})
-/** Optional URIs for callbacks for asynchronous execution. */
 public interface OgcSubscriber {
 
   String SCHEMA_REF = "#/components/schemas/Subscriber";
@@ -28,14 +33,14 @@ public interface OgcSubscriber {
   @SuppressWarnings("UnstableApiUsage")
   Funnel<OgcSubscriber> FUNNEL =
       (from, into) -> {
-        from.successUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
-        from.inProgressUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
-        from.failedUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getSuccessUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getInProgressUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getFailedUri().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
       };
 
-  Optional<String> successUri();
+  Optional<String> getSuccessUri();
 
-  Optional<String> inProgressUri();
+  Optional<String> getInProgressUri();
 
-  Optional<String> failedUri();
+  Optional<String> getFailedUri();
 }

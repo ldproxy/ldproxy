@@ -7,17 +7,17 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 import java.util.Map;
 import java.util.Optional;
 
 public interface ProcessesExecutor {
 
-  Map<String, Object> executeSync(OgcProcess process, ExecuteRequest executeRequest);
+  Map<String, Object> executeSync(OgcProcess process, OgcExecute executeRequest);
 
-  OgcStatusInfo executeAsync(OgcProcess process, ExecuteRequest executeRequest);
+  OgcStatusInfo executeAsync(OgcProcess process, OgcExecute executeRequest);
 
   Optional<OgcStatusInfo> getStatusInfo(String jobId);
 

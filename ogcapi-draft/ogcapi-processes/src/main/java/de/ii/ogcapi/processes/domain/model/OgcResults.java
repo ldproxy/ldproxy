@@ -10,11 +10,8 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import java.util.Map;
 
-// ToDo Use correct types for properties
+/** Simplified results model */
 public interface OgcResults {
-
-  // @JsonAnyGetter
-  // Map<String, Values> getAdditionalProperties();
 
   @JsonAnyGetter
   Map<String, Object> getAdditionalProperties();
