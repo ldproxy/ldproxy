@@ -7,14 +7,11 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.List;
-import java.util.Optional;
 
 public interface OgcValues {
 
-  Optional<Object> getInlineOrRefValue();
-
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  @JsonValue
   List<Object> getInlineOrRefValues();
 }

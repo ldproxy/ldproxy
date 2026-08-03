@@ -30,8 +30,6 @@ public abstract class ValuesResponse implements OgcValues {
             .map(v -> Objects.toString(v, ""))
             .sorted()
             .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
-        from.getInlineOrRefValue()
-            .ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
       };
 
   public static ValuesResponse of(OgcValues values) {

@@ -134,19 +134,20 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public Optional<Map<String, Object>> getResults(String jobId) {
+  public Map<String, Object> getResults(String jobId) {
     JobV2 job = jobQueue.get(jobId);
-    if (job == null || (job.getStatus() != JobV2.Status.SUCCESSFUL)) {
-      return Optional.empty();
+    if (job == null) {
+      throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
 
-    Map<String, Object> jobResults = job.getOutputs();
+    if (job.getStatus() != JobV2.Status.SUCCESSFUL) {
+      throw new IllegalStateException("Status of job '" + jobId + "' is not SUCCESSFUL");
+    }
 
     Optional<Map<String, OgcFormat>> outputsSelections =
         (Optional<Map<String, OgcFormat>>) job.getDetails().get("outputSelections");
-    Map<String, Object> selectedResults = selectOutputs(jobResults, outputsSelections);
-
-    return Optional.of(selectedResults);
+    Map<String, Object> jobResults = job.getOutputs();
+    return selectOutputs(jobResults, outputsSelections);
   }
 
   @Override
@@ -382,14 +383,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       Map<String, Object> output, Optional<Map<String, OgcFormat>> outputSelections) {
     // ToDo Validate if keys in outputSelections are indeed possible outputs
 
-    // Requirement 27
+    // Requirement 27 and Requirement 33
     if (outputSelections.isEmpty()) {
       return output;
     }
 
     Map<String, OgcFormat> selection = outputSelections.get();
 
-    // Requirement 28
+    // Requirement 28 and Requirement 34
     if (selection.isEmpty()) {
       return Map.of();
     }
@@ -421,16 +422,18 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       return;
     }
 
-    ResultsResponse results =
-        new ImmutableResultsResponse.Builder()
-            .additionalProperties(getResultsDirect(jobId))
-            .build();
+    Map<String, Object> results = getResults(jobId);
 
-    byte[] payload;
-    try {
-      payload = mapper.writeValueAsBytes(results);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+    byte[] payload = new byte[0];
+    if (!results.isEmpty()) {
+      ResultsResponse resultsResponse =
+          new ImmutableResultsResponse.Builder().additionalProperties(results).build();
+
+      try {
+        payload = mapper.writeValueAsBytes(resultsResponse);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     int currentRetries = 0;
@@ -538,10 +541,5 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private OgcStatusInfo getStatusInfoDirect(String jobId) {
     return getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));
-  }
-
-  private Map<String, Object> getResultsDirect(String jobId) {
-    return getResults(jobId)
-        .orElseThrow(() -> new NotFoundException("No results found for job '" + jobId + "'."));
   }
 }

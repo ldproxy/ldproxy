@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,7 +37,7 @@ public interface OgcExecute {
       (from, into) -> {
         from.getProcess().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getInputs().entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .sorted(Map.Entry.comparingByKey())
             .forEachOrdered(
                 e -> {
                   into.putString(e.getKey(), StandardCharsets.UTF_8);
@@ -48,7 +47,7 @@ public interface OgcExecute {
             .ifPresent(
                 m ->
                     m.entrySet().stream()
-                        .sorted(Comparator.comparing(Map.Entry::getKey))
+                        .sorted(Map.Entry.comparingByKey())
                         .forEachOrdered(
                             e -> {
                               into.putString(e.getKey(), StandardCharsets.UTF_8);
