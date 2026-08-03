@@ -25,11 +25,11 @@ import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
 import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
@@ -95,9 +95,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponse(
       QueryInputExecution queryInput, ApiRequestContext requestContext) {
 
-    final ExecuteRequest executeRequest;
+    final OgcExecute executeRequest;
     try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), ExecuteRequest.class);
+      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
     } catch (IOException e) {
       throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
     }
@@ -132,7 +132,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
       OgcProcess process,
-      ExecuteRequest executeRequest) {
+      OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
@@ -167,7 +167,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
       OgcProcess process,
-      ExecuteRequest executeRequest) {
+      OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 

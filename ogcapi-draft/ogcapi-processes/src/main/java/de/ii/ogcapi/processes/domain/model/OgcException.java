@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
@@ -14,10 +15,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+/**
+ * See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/common-core/exception.yaml
+ */
 @ApiInfo(schemaId = "Exception")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcException.Builder.class)
+@JsonPropertyOrder({"type", "title", "status", "detail", "instance"})
 public interface OgcException {
 
   String SCHEMA_REF = "#/components/schemas/Exception";

@@ -11,30 +11,58 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.hash.Funnel;
+import de.ii.ogcapi.foundation.domain.ApiInfo;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+/**
+ * See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/schema.yaml
+ */
+@ApiInfo(schemaId = "Schema")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableOgcSchema.Builder.class)
 public interface OgcSchema {
 
-  enum Format {
+  String SCHEMA_REF = "#/components/schemas/Schema";
+
+  enum Formats {
     @JsonProperty("ogc-bbox")
     @JsonAlias("https://www.opengis.net/def/format/ogcapi-processes/0/ogc-bbox")
     OGC_BBOX
   }
 
-  OgcPropertySchema.Type getType();
+  @SuppressWarnings("UnstableApiUsage")
+  Funnel<OgcSchema> FUNNEL =
+      (from, into) -> {
+        into.putString(from.getType().name(), StandardCharsets.UTF_8);
+        from.getFormat().ifPresent(f -> into.putString(f.name(), StandardCharsets.UTF_8));
+        from.getRequired().stream()
+            .sorted()
+            .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getProperties().entrySet().stream()
+            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .forEachOrdered(
+                e -> {
+                  into.putString(e.getKey(), StandardCharsets.UTF_8);
+                  Property.FUNNEL.funnel(e.getValue(), into);
+                });
+      };
 
-  // Note: This is an addition to the draft
-  Optional<Format> getFormat();
+  Property.Type getType();
+
+  // Note: This is an addition
+  Optional<Formats> getFormat();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getRequired();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  Map<String, OgcPropertySchema> getProperties();
+  Map<String, Property> getProperties();
 }

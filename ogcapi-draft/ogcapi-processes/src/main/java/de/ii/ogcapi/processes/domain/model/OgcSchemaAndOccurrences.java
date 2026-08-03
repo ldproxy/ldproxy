@@ -7,6 +7,12 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+/**
+ * See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/schemaAndOccurrences.yaml
+ *
+ * <p>Limitations: - No unbounded for maxOccurs
+ */
 public interface OgcSchemaAndOccurrences {
 
   OgcSchema getSchema();
