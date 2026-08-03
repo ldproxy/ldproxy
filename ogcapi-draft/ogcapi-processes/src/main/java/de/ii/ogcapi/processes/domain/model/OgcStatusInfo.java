@@ -7,7 +7,6 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
 import de.ii.xtraplatform.jobs.domain.JobV2;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,11 +14,15 @@ import java.time.Instant;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+/**
+ * See the following link for its OpenAPI 3.0 schema
+ * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/statusInfo.yaml
+ */
 public interface OgcStatusInfo {
 
   enum Api {
     OGC_API_PROCESSES,
-    OPENNEO,
+    OPENEO,
     OGC_API_FEATURES,
     OGC_API_COVERAGES,
     OGC_API_EDR,
@@ -41,7 +44,7 @@ public interface OgcStatusInfo {
     return Api.OGC_API_PROCESSES;
   }
 
-  // The type of entity requesting this status information.  This may be differernt than the
+  // The type of entity requesting this status information.  This may be different than the
   // processing entity.  For example, the processing entity may be OGC API Processes but the status
   // information is requested via the OpenEO API.
   @Value.Default
@@ -49,7 +52,7 @@ public interface OgcStatusInfo {
     return Api.OGC_API_PROCESSES;
   }
 
-  Optional<ExecuteRequest> getRequest();
+  Optional<OgcExecute> getRequest();
 
   JobV2.Status getStatus();
 

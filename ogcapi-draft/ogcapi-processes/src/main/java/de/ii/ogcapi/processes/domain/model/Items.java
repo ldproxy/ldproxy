@@ -8,13 +8,18 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.hash.Funnel;
+import java.nio.charset.StandardCharsets;
 import org.immutables.value.Value;
 
-// Note: This is an addition to the draft
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonDeserialize(builder = ImmutableItems.Builder.class)
 public interface Items {
 
-  OgcPropertySchema.Type getType();
+  @SuppressWarnings("UnstableApiUsage")
+  Funnel<Items> FUNNEL =
+      (from, into) -> into.putString(from.getType().name(), StandardCharsets.UTF_8);
+
+  Property.Type getType();
 }

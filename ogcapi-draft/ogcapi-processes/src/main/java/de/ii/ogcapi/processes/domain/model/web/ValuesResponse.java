@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.OgcValues;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "Values")
@@ -25,9 +27,11 @@ public abstract class ValuesResponse implements OgcValues {
   public static final Funnel<ValuesResponse> FUNNEL =
       (from, into) -> {
         from.getInlineOrRefValues().stream()
+            .map(v -> Objects.toString(v, ""))
             .sorted()
-            .forEachOrdered(v -> into.putInt(v.hashCode()));
-        from.getInlineOrRefValue().ifPresent(v -> into.putInt(v.hashCode()));
+            .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getInlineOrRefValue()
+            .ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
       };
 
   public static ValuesResponse of(OgcValues values) {

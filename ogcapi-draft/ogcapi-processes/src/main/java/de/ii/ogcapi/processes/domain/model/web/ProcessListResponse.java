@@ -19,12 +19,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "ProcessList")
 @Value.Immutable
-@Value.Style(deepImmutablesDetection = true)
 @JsonDeserialize(builder = ImmutableProcessListResponse.Builder.class)
+@Value.Style(deepImmutablesDetection = true, builder = "new")
 @JsonPropertyOrder({"processes", "links"})
 public abstract class ProcessListResponse extends PageRepresentation {
 
@@ -37,9 +38,13 @@ public abstract class ProcessListResponse extends PageRepresentation {
         from.getProcessList().stream()
             .sorted(Comparator.comparing(ProcessSummaryResponse::getId))
             .forEachOrdered(val -> ProcessSummaryResponse.FUNNEL.funnel(val, into));
-        from.getExtensions().keySet().stream()
-            .sorted()
-            .forEachOrdered(key -> into.putString(key, StandardCharsets.UTF_8));
+        from.getExtensions().entrySet().stream()
+            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .forEachOrdered(
+                e -> {
+                  into.putString(e.getKey(), StandardCharsets.UTF_8);
+                  into.putString(Objects.toString(e.getValue(), ""), StandardCharsets.UTF_8);
+                });
       };
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)

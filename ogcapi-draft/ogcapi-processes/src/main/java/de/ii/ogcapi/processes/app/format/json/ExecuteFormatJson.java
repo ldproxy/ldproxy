@@ -15,7 +15,7 @@ import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
-import de.ii.ogcapi.processes.domain.model.web.ExecuteRequest;
+import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,8 +33,8 @@ public class ExecuteFormatJson implements ExecuteFormatExtension {
 
   @Inject
   public ExecuteFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaExecute = classSchemaCache.getSchema(ExecuteRequest.class);
-    referencedSchemasExecute = classSchemaCache.getReferencedSchemas(ExecuteRequest.class);
+    schemaExecute = classSchemaCache.getSchema(OgcExecute.class);
+    referencedSchemasExecute = classSchemaCache.getReferencedSchemas(OgcExecute.class);
   }
 
   @Override
@@ -51,15 +51,14 @@ public class ExecuteFormatJson implements ExecuteFormatExtension {
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaExecute)
-        .schemaRef(ExecuteRequest.SCHEMA_REF)
+        .schemaRef(OgcExecute.SCHEMA_REF)
         .referencedSchemas(referencedSchemasExecute)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(
-      ExecuteRequest executeRequest, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(OgcExecute executeRequest, OgcApi api, ApiRequestContext requestContext) {
     return executeRequest;
   }
 }
