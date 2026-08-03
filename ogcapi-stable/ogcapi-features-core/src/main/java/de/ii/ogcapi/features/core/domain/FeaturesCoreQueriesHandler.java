@@ -55,6 +55,11 @@ public interface FeaturesCoreQueriesHandler
     default boolean includeBodyLinks() {
       return true;
     }
+
+    @Value.Default
+    default boolean shouldAuditLog() {
+      return true;
+    }
   }
 
   @Value.Immutable

@@ -224,7 +224,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         defaultPageSize,
         queryInput.getIncludeLinkHeader(),
         queryInput.getDefaultCrs(),
-        queryInput.sendResponseAsStream());
+        queryInput.sendResponseAsStream(),
+        queryInput.shouldAuditLog());
   }
 
   private Response getItemResponse(QueryInputFeature queryInput, ApiRequestContext requestContext) {
@@ -281,7 +282,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         Optional.empty(),
         queryInput.getIncludeLinkHeader(),
         queryInput.getDefaultCrs(),
-        sendResponseAsStream);
+        sendResponseAsStream,
+        queryInput.shouldAuditLog());
   }
 
   private Response getResponse(
@@ -297,7 +299,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       Optional<Integer> defaultPageSize,
       boolean includeLinkHeader,
       EpsgCrs defaultCrs,
-      boolean sendResponseAsStream) {
+      boolean sendResponseAsStream,
+      boolean shouldAuditLog) {
 
     QueriesHandler.ensureCollectionIdExists(api.getData(), collectionId);
     QueriesHandler.ensureFeatureProviderSupportsQueries(featureProvider);
@@ -546,7 +549,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               false,
               encoder,
               propertyTransformations,
-              requestContext.getRequestId());
+              shouldAuditLog ? requestContext.getRequestId() : Optional.empty());
       ResultReduced<byte[]> result = resultAndMetadata.first();
       collectionMetadata = resultAndMetadata.second();
       hasNextPage =
@@ -632,7 +635,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               Objects.nonNull(featureId),
               encoder,
               propertyTransformations,
-              requestContext.getRequestId());
+              shouldAuditLog ? requestContext.getRequestId() : Optional.empty());
       streamingOutput = streamingOutputAndMetadata.first();
       collectionMetadata = streamingOutputAndMetadata.second();
       hasNextPage =
@@ -759,7 +762,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations,
-      Optional<String> requestId) {
+      Optional<String> auditLogId) {
     DelayedOutputStream delayedOutputStream = new DelayedOutputStream();
     SinkTransformed<Object, byte[]> featureSink =
         encoder.to(Sink.outputStream(delayedOutputStream));
@@ -768,7 +771,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<Result> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, auditLogId)
             .toCompletableFuture();
 
     // wait for collection metadata
@@ -791,7 +794,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       boolean failIfNoFeatures,
       final FeatureTokenEncoder<?> encoder,
       Map<String, PropertyTransformations> propertyTransformations,
-      Optional<String> requestId) {
+      Optional<String> auditLogId) {
 
     SinkReduced<Object, byte[]> featureSink = encoder.to(Sink.reduceByteArray());
     CompletableFuture<CollectionMetadata> onCollectionMetadata = new CompletableFuture<>();
@@ -799,7 +802,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     // start stream asynchronously
     CompletableFuture<ResultReduced<byte[]>> stream =
         featureTransformStream
-            .runWith(featureSink, propertyTransformations, onCollectionMetadata, requestId)
+            .runWith(featureSink, propertyTransformations, onCollectionMetadata, auditLogId)
             .toCompletableFuture();
 
     // wait for collection metadata
