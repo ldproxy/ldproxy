@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.core.domain.FeatureQueryScope;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
+import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
 import de.ii.ogcapi.features.search.domain.FilterOperator;
 import de.ii.ogcapi.features.search.domain.ImmutableParameter;
@@ -750,6 +751,16 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     EpsgCrs crs = responseCrs.orElse(queryInput.getDefaultCrs());
 
     MultiFeatureQuery query = getMultiFeatureQuery(requestContext.getApi(), queryExpression, crs);
+
+    // profiles may transform the query, e.g. versions-as-features-unique-ids wires the
+    // composite-id rewrite into the feature stream
+    for (Profile profile : profiles) {
+      if (profile instanceof ProfileFeatureQuery) {
+        query =
+            ((ProfileFeatureQuery) profile)
+                .transformMultiFeatureQuery(query, requestContext.getApi().getData());
+      }
+    }
 
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<ApiMediaType> alternateMediaTypes =

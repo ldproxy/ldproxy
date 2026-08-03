@@ -474,11 +474,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       collectionEncodings.put(
           collectionId,
           buildCollectionEncoding(
-              transformationContext,
-              config,
-              featureSchema,
-              alternativeCrss(collectionData),
-              aliasRewrites));
+              config, featureSchema, alternativeCrss(collectionData), aliasRewrites));
       // Namespace and schemaLocation declarations are written once for the whole document, so they
       // are unioned across the response's collections.
       mergeMapInto(
@@ -547,10 +543,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   // Bundles a collection's GmlConfiguration with the few options the context cannot read off the
   // configuration as-is: the path-keyed maps/lists are alias-rewritten (technical → alias) when
   // useAlias is on, so they match the alias-form paths GmlWriterProperties sees at runtime; the
-  // codelist ids are resolved to Codelist instances; the temporal-suffix flag is folded with the
-  // request. All other options are read straight off getConfig() by the context.
+  // codelist ids are resolved to Codelist instances. All other options are read straight off
+  // getConfig() by the context.
   private CollectionEncodingGml buildCollectionEncoding(
-      FeatureTransformationContext transformationContext,
       GmlConfiguration config,
       Optional<FeatureSchema> featureSchema,
       List<EpsgCrs> alternativeCrss,
@@ -565,9 +560,6 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .objectTypeSuffixedProperties(
             remapList(config.getObjectTypeSuffixedProperties(), aliasRewrites))
         .codelists(resolveCodelists(config.getCodelistProperties()))
-        .appendTemporalSuffixToGmlId(
-            Boolean.TRUE.equals(config.getAppendTemporalSuffixToGmlId())
-                && isDatetimeIntervalRequest(transformationContext))
         .build();
   }
 
@@ -984,11 +976,6 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   @Override
   public boolean isComplex() {
     return true;
-  }
-
-  private static boolean isDatetimeIntervalRequest(FeatureTransformationContext context) {
-    String datetime = context.getOgcApiRequest().getParameters().get("datetime");
-    return datetime != null && datetime.contains("/");
   }
 
   // Merge the configured application namespaces with the standard ones. The STANDARD_NAMESPACES

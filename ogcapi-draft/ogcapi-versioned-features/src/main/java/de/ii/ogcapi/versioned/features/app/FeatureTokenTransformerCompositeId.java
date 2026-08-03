@@ -68,6 +68,7 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
     this.currentStart = null;
     this.currentStartIsDate = false;
     context.setCanonicalFeatureId(null);
+    context.setFeatureVersionStart(null);
     super.onFeatureStart(context);
   }
 
@@ -93,6 +94,7 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
   public void onFeatureEnd(ModifiableContext<FeatureSchema, SchemaMapping> context) {
     if (Objects.nonNull(heldIdValue)) {
       String emit = heldIdValue;
+      String versionStart = null;
       if (Objects.nonNull(currentStart)) {
         Instant inst = parseStart(currentStart);
         if (Objects.nonNull(inst)) {
@@ -101,13 +103,21 @@ public class FeatureTokenTransformerCompositeId extends FeatureTokenTransformer 
           emit =
               CompositeIdFormatter.format(
                   pattern, timestampFormat, heldIdValue, inst, currentStartIsDate);
+          // The raw value may use the SQL form (space separator, no zone designator), which is
+          // not a valid datetime parameter value; normalize to an ISO instant (or date).
+          versionStart =
+              currentStartIsDate
+                  ? LocalDate.ofInstant(inst, ZoneOffset.UTC).toString()
+                  : inst.toString();
         }
       }
       // Expose the untransformed id so format encoders that need the canonical (e.g.
       // GML's gml:identifier element) can use it instead of the composite that goes on
-      // gml:id / GeoJSON id.
+      // gml:id / GeoJSON id. The interval start travels along so encoders can address
+      // the version as <canonical>?datetime=<start>.
       if (!emit.equals(heldIdValue)) {
         context.setCanonicalFeatureId(heldIdValue);
+        context.setFeatureVersionStart(versionStart);
       }
       FeaturePathTracker tracker = context.pathTracker();
       tracker.track(heldIdPath);

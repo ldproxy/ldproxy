@@ -17,7 +17,9 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.QueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
+import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -356,6 +358,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
       }
 
+      // internal request, suppress audit logging of feature properties
+      QueryInputFeature queryInputFeature =
+          new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build();
+
       ApiRequestContext requestContextGeoJson =
           new ImmutableStaticRequestContext.Builder()
               .from(requestContext)
@@ -384,7 +390,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                       .collect(Collectors.toUnmodifiableSet()))
               .build();
 
-      return queriesHandler.handle(Query.FEATURE, queryInput, requestContextGeoJson);
+      return queriesHandler.handle(Query.FEATURE, queryInputFeature, requestContextGeoJson);
     } catch (URISyntaxException e) {
       throw new IllegalStateException(
           String.format(

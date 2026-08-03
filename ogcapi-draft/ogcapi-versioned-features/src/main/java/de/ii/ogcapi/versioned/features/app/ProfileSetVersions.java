@@ -21,8 +21,8 @@ import java.util.Set;
 
 /**
  * Profile set {@code versions} for the Versioned Features building block. Carries the {@code
- * versions-as-features} profile (and, later, {@code versions-as-features-unique-ids}) which select
- * the response shape on the items list of a versioned collection.
+ * versions-as-features} and {@code versions-as-features-unique-ids} profiles which select the
+ * response shape on the items list of a versioned collection.
  */
 @Singleton
 @AutoBind
