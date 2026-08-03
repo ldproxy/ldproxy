@@ -39,7 +39,7 @@ public abstract class ProcessListResponse extends PageRepresentation {
             .sorted(Comparator.comparing(ProcessSummaryResponse::getId))
             .forEachOrdered(val -> ProcessSummaryResponse.FUNNEL.funnel(val, into));
         from.getExtensions().entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .sorted(Map.Entry.comparingByKey())
             .forEachOrdered(
                 e -> {
                   into.putString(e.getKey(), StandardCharsets.UTF_8);

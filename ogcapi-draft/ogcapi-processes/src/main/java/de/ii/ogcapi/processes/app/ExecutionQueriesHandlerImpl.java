@@ -147,20 +147,32 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             requestContext.getMediaType())));
 
     Map<String, Object> processResults = processesExecutor.executeSync(process, executeRequest);
-    ResultsResponse resultsResponse =
-        new ImmutableResultsResponse.Builder().additionalProperties(processResults).build();
 
-    return prepareSuccessResponse(
-            requestContext,
-            null,
-            HeaderCaching.of(null, null, queryInput),
-            null,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
-            i18n.getLanguages())
-        .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
-        .build();
+    if (!processResults.isEmpty()) {
+      ResultsResponse resultsResponse =
+          new ImmutableResultsResponse.Builder().additionalProperties(processResults).build();
+
+      return prepareSuccessResponse(
+              requestContext,
+              null,
+              HeaderCaching.of(null, null, queryInput),
+              null,
+              HeaderContentDisposition.of(
+                  String.format(
+                      "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
+              i18n.getLanguages())
+          .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
+          .build();
+    } else {
+      return prepareSuccessResponse(
+              requestContext,
+              null,
+              HeaderCaching.of(null, null, queryInput),
+              null,
+              HeaderContentDisposition.of(String.format(process.getId())),
+              i18n.getLanguages())
+          .build();
+    }
   }
 
   private Response executionResponseAsync(

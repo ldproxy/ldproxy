@@ -21,7 +21,11 @@ public interface ProcessesExecutor {
 
   Optional<OgcStatusInfo> getStatusInfo(String jobId);
 
-  Optional<Map<String, Object>> getResults(String jobId);
+  Map<String, Object> getResults(String jobId);
+
+  // ToDo getResultsSpecific(String jobId, String outputId);
+
+  // ToDo getResultsSpecificN(String jobId, String outputId, int index);
 
   Optional<OgcStatusInfo> dismissJob(String jobId);
 }

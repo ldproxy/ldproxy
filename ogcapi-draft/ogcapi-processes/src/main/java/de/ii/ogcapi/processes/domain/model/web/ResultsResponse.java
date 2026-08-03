@@ -12,7 +12,6 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.OgcResults;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import org.immutables.value.Value;
@@ -29,7 +28,7 @@ public abstract class ResultsResponse implements OgcResults {
   public static final Funnel<ResultsResponse> FUNNEL =
       (from, into) -> {
         from.getAdditionalProperties().entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry::getKey))
+            .sorted(Map.Entry.comparingByKey())
             .forEachOrdered(
                 e -> {
                   into.putString(e.getKey(), StandardCharsets.UTF_8);
