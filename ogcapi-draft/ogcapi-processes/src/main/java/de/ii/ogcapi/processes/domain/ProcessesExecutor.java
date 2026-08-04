@@ -23,9 +23,9 @@ public interface ProcessesExecutor {
 
   Map<String, Object> getResults(String jobId);
 
-  // ToDo getResultsSpecific(String jobId, String outputId);
+  Object getResultsSpecific(String jobId, String outputId);
 
-  // ToDo getResultsSpecificN(String jobId, String outputId, int index);
+  Object getResultsSpecificN(String jobId, String outputId, int index);
 
   Optional<OgcStatusInfo> dismissJob(String jobId);
 }

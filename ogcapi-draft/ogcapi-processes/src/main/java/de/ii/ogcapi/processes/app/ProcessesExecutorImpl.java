@@ -83,6 +83,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
 
+    Optional<Map<String, OgcFormat>> outputSelections = executeRequest.getOutputSelections();
+    validateOutputSelections(process, outputSelections);
+
     List<JobControlOptions> options = process.getJobControlOptions();
     if (options.contains(JobControlOptions.ASYNC_EXECUTE)
         && !options.contains(JobControlOptions.SYNC_EXECUTE)) {
@@ -95,9 +98,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     // Push it and wait for its results
     Map<String, Object> jobResults = jobQueue.push(job).join().getOutputs();
+    validateResults(jobResults, outputSelections);
 
     // Return only selected results
-    return selectOutputs(jobResults, executeRequest.getOutputSelections());
+    return selectOutputs(jobResults, outputSelections);
   }
 
   @Override
@@ -105,6 +109,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
+
+    Optional<Map<String, OgcFormat>> outputSelections = executeRequest.getOutputSelections();
+    validateOutputSelections(process, outputSelections);
 
     List<JobControlOptions> options = process.getJobControlOptions();
     if (!options.contains(JobControlOptions.ASYNC_EXECUTE)) {
@@ -114,8 +121,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     // Create job
     Map<String, Object> jobDetails = new LinkedHashMap<>();
+    jobDetails.put("process", process);
     jobDetails.put("subscriber", executeRequest.getSubscriber());
-    jobDetails.put("outputSelections", executeRequest.getOutputSelections());
+    jobDetails.put("outputSelections", outputSelections);
     JobV2 job = jobQueue.createJob(process.getId(), inputs, jobDetails);
 
     // Put job with callBack in queue
@@ -147,7 +155,54 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     Optional<Map<String, OgcFormat>> outputsSelections =
         (Optional<Map<String, OgcFormat>>) job.getDetails().get("outputSelections");
     Map<String, Object> jobResults = job.getOutputs();
+    validateResults(jobResults, outputsSelections);
     return selectOutputs(jobResults, outputsSelections);
+  }
+
+  @Override
+  public Object getResultsSpecific(String jobId, String outputId) {
+    OgcProcess process = getProcessDirect(jobId);
+    validateOutputSelection(process, outputId);
+    Map<String, Object> jobResults = getResults(jobId);
+    validateResult(jobResults, outputId);
+    return jobResults.get(outputId);
+  }
+
+  @Override
+  public Object getResultsSpecificN(String jobId, String outputId, int index) {
+    OgcProcess process = getProcessDirect(jobId);
+    validateOutputSelection(process, outputId);
+
+    int maxOccurs = process.getOutputs().get(outputId).getMaxOccurs();
+    if (maxOccurs <= 1) {
+      throw new IllegalArgumentException(
+          "Output '" + outputId + "' is not multi-valued (MaxOccurs: " + maxOccurs + ")");
+    }
+
+    if (maxOccurs <= index) {
+      throw new IllegalArgumentException(
+          "Out of bound for '" + index + "' (MaxOccurs: " + maxOccurs + ")");
+    }
+
+    Object value = getResultsSpecific(jobId, outputId);
+
+    if (!(value instanceof List list)) {
+      throw new IllegalStateException(
+          "The output '" + outputId + "' of job '" + jobId + "' is not an Array");
+    } else {
+      int size = list.size();
+      if (size <= index) {
+        throw new IllegalArgumentException(
+            "Out of bound for '"
+                + index
+                + "' (MaxOccurs: "
+                + maxOccurs
+                + ", list size: "
+                + size
+                + ")");
+      }
+      return list.get(index);
+    }
   }
 
   @Override
@@ -163,10 +218,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return getStatusInfo(jobId);
   }
 
-  /***
-   * Helper functions
-   ***/
-
+  /*
+  input validation and format apply
+   */
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation
   // only allows a single schema!
   private void validateAndUpdateInputs(OgcProcess process, Map<String, Object> providedInputs) {
@@ -378,10 +432,61 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return Optional.empty();
   }
 
+  /*
+  output validation and selection
+   */
+  private void validateOutputSelections(
+      OgcProcess process, Optional<Map<String, OgcFormat>> outputSelections) {
+    if (outputSelections.isEmpty()) {
+      return;
+    }
+
+    outputSelections
+        .get()
+        .keySet()
+        .forEach(
+            outputId -> {
+              validateOutputSelection(process, outputId);
+            });
+  }
+
+  private void validateOutputSelection(OgcProcess process, String outputId) {
+
+    if (!process.getOutputs().containsKey(outputId)) {
+      throw new NotFoundException(
+          "The output of the process '"
+              + process.getId()
+              + "', does not contain an output '"
+              + outputId
+              + "'.");
+    }
+  }
+
+  private void validateResults(
+      Map<String, Object> jobResults, Optional<Map<String, OgcFormat>> outputSelections) {
+    if (outputSelections.isEmpty()) {
+      return;
+    }
+
+    outputSelections
+        .get()
+        .keySet()
+        .forEach(
+            outputId -> {
+              validateResult(jobResults, outputId);
+            });
+  }
+
+  private void validateResult(Map<String, Object> jobResults, String outputId) {
+
+    if (!jobResults.containsKey(outputId)) {
+      throw new NotFoundException("The results do not contain an output '" + outputId + "'.");
+    }
+  }
+
   // Limitation: MediaType, Encoding and Schema are not used in the selection!
   private Map<String, Object> selectOutputs(
       Map<String, Object> output, Optional<Map<String, OgcFormat>> outputSelections) {
-    // ToDo Validate if keys in outputSelections are indeed possible outputs
 
     // Requirement 27 and Requirement 33
     if (outputSelections.isEmpty()) {
@@ -396,11 +501,19 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     Map<String, Object> selectedOutput = new LinkedHashMap<>();
-    selection.keySet().forEach(k -> selectedOutput.put(k, output.get(k)));
+    selection
+        .keySet()
+        .forEach(
+            outputId -> {
+              selectedOutput.put(outputId, output.get(outputId));
+            });
 
     return selectedOutput;
   }
 
+  /*
+  callBack
+   */
   private void callBack(JobV2 job) {
     Optional<OgcSubscriber> subscriber =
         (Optional<OgcSubscriber>) job.getDetails().get("subscriber");
@@ -462,7 +575,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           LogContext.error(
               LOGGER,
               e,
-              "Giving up writing sending success callback for job '{}' after {} retries",
+              "Giving up sending success callback for job '{}' after {} retries",
               jobId,
               currentRetries + 1);
           LOGGER.error(
@@ -523,7 +636,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           LogContext.error(
               LOGGER,
               e,
-              "Giving up writing sending {} callback for job '{}' after {} retries",
+              "Giving up sending {} callback for job '{}' after {} retries",
               callbackType,
               jobId,
               currentRetries + 1);
@@ -538,8 +651,16 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= maxCallbackRetries);
   }
 
+  /*
+  misc
+   */
   private OgcStatusInfo getStatusInfoDirect(String jobId) {
     return getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));
+  }
+
+  private OgcProcess getProcessDirect(String jobId) {
+    JobV2 job = jobQueue.get(jobId);
+    return (OgcProcess) (job.getDetails().get("process"));
   }
 }
