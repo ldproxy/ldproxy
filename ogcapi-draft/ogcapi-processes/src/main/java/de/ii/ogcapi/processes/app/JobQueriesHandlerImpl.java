@@ -16,7 +16,6 @@ import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
@@ -26,7 +25,6 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
-import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
@@ -56,8 +54,6 @@ import java.util.Optional;
 @AutoBind
 public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements JobQueriesHandler {
 
-  // ToDo remove processRepository after extending ProcessesExecutor
-  private final ProcessRepository processRepository;
   private final ProcessesExecutor processesExecutor;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
   private final ExtensionRegistry extensionRegistry;
@@ -73,7 +69,6 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     super(JobQueriesHandler.class.getSimpleName(), volatileRegistry, true);
     this.i18n = i18n;
     this.extensionRegistry = extensionRegistry;
-    this.processRepository = processRepository;
     this.processesExecutor = processesExecutor;
 
     this.queryHandlers =
@@ -176,10 +171,23 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     ResultsResponse resultsResponse =
         new ImmutableResultsResponse.Builder().additionalProperties(jobResults).build();
 
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(
+                resultsResponse, ResultsResponse.FUNNEL, outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
     return prepareSuccessResponse(
             requestContext,
             null,
-            HeaderCaching.of(null, null, queryInput),
+            HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
@@ -192,25 +200,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
       QueryInputResultsSpecific queryInput, ApiRequestContext requestContext) {
 
     OgcApi api = requestContext.getApi();
-    OgcApiDataV2 apiData = api.getData();
 
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
-    OgcStatusInfo statusInfo = getStatusInfo(jobId);
-    OgcProcess process = processRepository.getDirect(apiData, statusInfo.getProcessId());
-    Map<String, Object> jobResults = processesExecutor.getResults(jobId);
-    Object output = getOutput(process, jobId, outputId, jobResults);
+    Object output = processesExecutor.getResultsSpecific(jobId, outputId);
 
-    if (getMaxOccurs(process, outputId) <= 1) {
-      return prepareSuccessResponse(
-              requestContext,
-              null,
-              HeaderCaching.of(null, null, queryInput),
-              null,
-              HeaderContentDisposition.of(output.toString()),
-              i18n.getLanguages())
-          .entity(output)
-          .build();
+    if (!(output instanceof List<?> list)) {
+      return basicResponse(requestContext, queryInput, jobId, output);
     }
 
     ValuesFormatExtension outputFormat =
@@ -224,12 +220,24 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     ValuesResponse valuesResponse =
-        new ImmutableValuesResponse.Builder().inlineOrRefValues((List<Object>) output).build();
+        new ImmutableValuesResponse.Builder().inlineOrRefValues(list).build();
+
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(valuesResponse, ValuesResponse.FUNNEL, outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
 
     return prepareSuccessResponse(
             requestContext,
             null,
-            HeaderCaching.of(null, null, queryInput),
+            HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
@@ -240,34 +248,13 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
   private Response getJobResultsResponseSpecificN(
       QueryInputResultsSpecificN queryInput, ApiRequestContext requestContext) {
-
-    OgcApi api = requestContext.getApi();
-    OgcApiDataV2 apiData = api.getData();
-
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
-    OgcStatusInfo statusInfo = getStatusInfo(jobId);
-    OgcProcess process = processRepository.getDirect(apiData, statusInfo.getProcessId());
-    Map<String, Object> jobResults = processesExecutor.getResults(jobId);
-    Object output = getOutput(process, jobId, outputId, jobResults);
-
-    int maxOccurs = process.getOutputs().get(outputId).getMaxOccurs();
-    if (maxOccurs <= 1) {
-      throw new IllegalArgumentException(
-          "Output '" + outputId + "' is not multi-valued (MaxOccurs: " + maxOccurs + ")");
-    }
-
     int indexN = queryInput.getIndexN();
-    Object result = ((List<Object>) output).get(indexN);
-    return prepareSuccessResponse(
-            requestContext,
-            null,
-            HeaderCaching.of(null, null, queryInput),
-            null,
-            HeaderContentDisposition.of(result.toString()),
-            i18n.getLanguages())
-        .entity(result)
-        .build();
+
+    Object output = processesExecutor.getResultsSpecificN(jobId, outputId, indexN);
+
+    return basicResponse(requestContext, queryInput, jobId, output);
   }
 
   private Response dismissJobResponse(
@@ -329,31 +316,6 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
         .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
   }
 
-  private Object getOutput(
-      OgcProcess process, String jobId, String outputId, Map<String, Object> jobResults) {
-    if (!process.getOutputs().containsKey(outputId)) {
-      throw new NotFoundException(
-          "The output of the process '"
-              + process.getId()
-              + "', which was executed by job '"
-              + jobId
-              + "', does not contain an output '"
-              + outputId
-              + "'.");
-    }
-
-    if (!jobResults.containsKey(outputId)) {
-      throw new NotFoundException(
-          "The results of job '" + jobId + "' do not contain an output '" + outputId + "'.");
-    }
-
-    return jobResults.get(outputId);
-  }
-
-  private int getMaxOccurs(OgcProcess process, String outputId) {
-    return process.getOutputs().get(outputId).getMaxOccurs();
-  }
-
   private Response emptyResponse(
       ApiRequestContext requestContext, QueryInput queryInput, String jobId) {
     return prepareSuccessResponse(
@@ -363,6 +325,21 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
             null,
             HeaderContentDisposition.of(jobId),
             i18n.getLanguages())
+        .build();
+  }
+
+  private Response basicResponse(
+      ApiRequestContext requestContext, QueryInput queryInput, String jobId, Object output) {
+    Date lastModified = getLastModified(queryInput);
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(lastModified, null, queryInput),
+            null,
+            HeaderContentDisposition.of(
+                String.format("%s.%s", jobId, requestContext.getMediaType().fileExtension())),
+            i18n.getLanguages())
+        .entity(output)
         .build();
   }
 }
