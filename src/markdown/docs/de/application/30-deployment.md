@@ -69,4 +69,25 @@ Ihre Daten werden in einem Volume gespeichert, nicht im Container, so dass Ihre 
 
 ## Kubernetes
 
-Coming soon.
+Für die Bereitstellung von ldproxy wird eine Installation von Helm benötigt. Helm ist für Linux, Windows und Mac verfügbar. Detaillierte Installationsanleitungen für jede Plattform finden Sie [hier](https://helm.sh/docs/intro/install/).
+
+### Installation mit Helm
+
+Um ldproxy zu installieren, führen Sie den folgenden Befehl aus:
+
+```bash
+$ helm install ldproxy oci://ghcr.io/ldproxy/charts/ldproxy
+```
+
+Der Befehl stellt die aktuellste Version von ldproxy im Kubernetes-Cluster im Default-Namespace bereit.
+
+Um eine bestehende Installation zu aktualisieren, verwenden Sie den folgenden Befehl:
+
+```bash
+$ helm upgrade ldproxy oci://ghcr.io/ldproxy/charts/ldproxy
+```
+
+Die Bereitstellung von ldproxy enthält noch keine APIs – zunächst muss eine Store-Quelle hinzugefügt werden. Um auf die bereitgestellten APIs zugreifen zu können, ist es außerdem in der Regel erforderlich, eine Ingress- oder Gateway-API-Route zu konfigurieren.
+Diese und weitere Konfigurationsoptionen können durch Angabe einer `values.yaml`-Datei mit der Option `-f` beim Aufruf von `helm install` oder `helm upgrade` gesetzt werden.
+Die Dokumentation der Konfigurationsoptionen ist [hier](https://github.com/ldproxy/ldproxy/blob/master/chart/README.md) verfügbar.
+

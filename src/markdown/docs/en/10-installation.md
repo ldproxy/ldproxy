@@ -2,6 +2,8 @@
 
 Docker images for ldproxy are available on [Docker Hub](https://hub.docker.com/r/iide/ldproxy/).
 
+For more details about deploying ldproxy in Docker or Kubernetes, see [Bereitstellung](application/30-deployment.md).
+
 ## Prerequisites
 
 For this guide, you will need an installation of Docker. Docker is available for Linux, Windows and Mac. You will find detailed installation guides for each platform [here](https://docs.docker.com/).

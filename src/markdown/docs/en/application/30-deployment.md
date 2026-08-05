@@ -69,4 +69,24 @@ Your data is saved in a volume, not in the container, so your configurations, AP
 
 ## Kubernetes
 
-Coming soon.
+To deploy ldproxy, you will need an installation of Helm. Helm is available for Linux, Windows and Mac. You will find detailed installation guides for each platform [here](https://helm.sh/docs/intro/install/).
+
+### Installing with Helm
+
+To install ldproxy, just run the following command:
+
+```bash
+$ helm install ldproxy oci://ghcr.io/ldproxy/charts/ldproxy
+```
+
+The command deploys the most recent version of ldproxy on the Kubernetes cluster in the default namespace. 
+
+To upgrade an existing installation, use the following command:
+
+```bash
+$ helm upgrade ldproxy oci://ghcr.io/ldproxy/charts/ldproxy
+```
+
+The deployment of ldproxy does not contain any APIs yet, you need to add a store source first. And to actually access the deployed APIs, you will most likely want to configure an Ingress or Gateway API route. 
+These and other configuration options can be set by providing a `values.yaml` file to the `helm install` or `helm upgrade` command with the `-f`option. 
+The documentation of the configuration options is available [here](https://github.com/ldproxy/ldproxy/blob/master/chart/README.md).
