@@ -336,21 +336,37 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
       int listSize = ((List<Object>) value).size();
       if (listSize > maxOccurs) {
+        if (maxOccurs == minOccurs) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: input '"
+                  + inputId
+                  + "' must have "
+                  + maxOccurs
+                  + " entries!");
+        }
         throw new IllegalArgumentException(
             "Invalid execute request: input '"
                 + inputId
-                + "' must have a maximum of '"
+                + "' must have a maximum of "
                 + maxOccurs
-                + "' entries!");
+                + " entries!");
       }
 
       if (listSize < minOccurs) {
+        if (maxOccurs == minOccurs) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: input '"
+                  + inputId
+                  + "' must have "
+                  + maxOccurs
+                  + " entries!");
+        }
         throw new IllegalArgumentException(
             "Invalid execute request: input '"
                 + inputId
-                + "' must have at least '"
+                + "' must have at least "
                 + minOccurs
-                + "' entries!");
+                + " entries!");
       }
     }
   }
