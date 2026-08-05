@@ -1,5 +1,59 @@
 # Changelog
 
+## v4.8.0 (05/08/2026)
+#### Implemented enhancements
+
+-  official helm chart [#1718](https://github.com/ldproxy/ldproxy/issues/1718)
+-  configurable token clock skew [#1713](https://github.com/ldproxy/ldproxy/issues/1713)
+-  Geometries in additional coordinate reference systems [#1692](https://github.com/ldproxy/ldproxy/issues/1692)
+-  Search: chain queries via semi-joins in a single query expression (result sets) [#1646](https://github.com/ldproxy/ldproxy/issues/1646)
+-  provider: add option to declare globally unique feature ids [#1642](https://github.com/ldproxy/ldproxy/issues/1642)
+-  add support for OGC API Features: Versioned Features [#1640](https://github.com/ldproxy/ldproxy/issues/1640)
+-  add audit logging [#1635](https://github.com/ldproxy/ldproxy/issues/1635)
+-  Feature Schema: support multiple geometry types [#1630](https://github.com/ldproxy/ldproxy/issues/1630)
+-  add support for OGC API Features Part 11: Atomic and Batch Transactions [#1623](https://github.com/ldproxy/ldproxy/issues/1623)
+-  add GML support for CRUD [#1621](https://github.com/ldproxy/ldproxy/issues/1621)
+-  NAS support [#1618](https://github.com/ldproxy/ldproxy/issues/1618)
+-  add GeoParquet feature provider [#1604](https://github.com/ldproxy/ldproxy/issues/1604)
+-  CQL2 custom functions [#1591](https://github.com/ldproxy/ldproxy/issues/1591)
+-  Versioning API definitions [#807](https://github.com/ldproxy/ldproxy/issues/807)
+
+#### Improvements
+
+-  Search: offer HTML only for queries in the default CRS [#1701](https://github.com/ldproxy/ldproxy/issues/1701)
+-  landing page: show the aggregated number of features of all collections [#1698](https://github.com/ldproxy/ldproxy/issues/1698)
+-  SQL: avoid redundant meta queries for large result limits [#1643](https://github.com/ldproxy/ldproxy/issues/1643)
+-  JSON-FG 1.0 and OGC API Features Part 5: Schemas 1.0 have been published [#1602](https://github.com/ldproxy/ldproxy/issues/1602)
+-  Search: links in ad-hoc queries [#906](https://github.com/ldproxy/ldproxy/issues/906)
+
+#### Fixed bugs
+
+-  Hikari Connection Pool starvation [#1711](https://github.com/ldproxy/ldproxy/issues/1711)
+-  Styles: tile-matrix-set style links missing in collection style listings [#1703](https://github.com/ldproxy/ldproxy/issues/1703)
+-  CQL2: NOT and IS NULL filter predicates on joined properties never match [#1694](https://github.com/ldproxy/ldproxy/issues/1694)
+-  Content-Crs header does not echo the CRS84 alias URI used in the request [#1681](https://github.com/ldproxy/ldproxy/issues/1681)
+-  Search: disable feature formats with fixed schemas [#1662](https://github.com/ldproxy/ldproxy/issues/1662)
+-  Search: incorrect encoding of features in multi-collection queries [#1661](https://github.com/ldproxy/ldproxy/issues/1661)
+-  GML: hide `conformance` configuration option [#1657](https://github.com/ldproxy/ldproxy/issues/1657)
+
+#### Dependency updates
+
+* Update dropwizard to 4.0.17 [#1039](https://github.com/ldproxy/ldproxy/issues/1039)
+* Update minio to v9.0.3 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/413
+* Update threeten to v1.10.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/418
+* Update dependency redis.clients:jedis to v7.5.3 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/430
+* Update dependency io.github.classgraph:classgraph to v4.8.186 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/444
+* Update dependency commons-codec:commons-codec to v1.22.1 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/447
+* Update swagger to v2.2.53 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/449
+* Update dependency com.fasterxml:aalto-xml to v1.4.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/510
+* Update dependency com.fasterxml.staxmate:staxmate to v2.4.2 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/513
+* Update commonmark to v0.29.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/545
+* Update hikaricp to v7.1.0 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/532
+* Update dependency org.postgresql:postgresql to v42.7.13 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/572
+* Update dependency org.xerial:sqlite-jdbc to v3.53.2.1 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/581
+* Update dependency org.duckdb:duckdb_jdbc to v1.5.5.1 (master) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/589
+
+---
 ## v4.7.2 (14/07/2026)
 #### Fixed bugs
 
