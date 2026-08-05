@@ -46,11 +46,15 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind
 public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     implements ExecutionQueriesHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionQueriesHandlerImpl.class);
 
   private final ProcessRepository processRepository;
   private final ProcessesExecutor processesExecutor;
@@ -99,7 +103,11 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     try {
       executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
     } catch (IOException e) {
-      throw new IllegalArgumentException("Could not parse request body: " + e.getMessage(), e);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Could not parse request body", e);
+      }
+      throw new IllegalArgumentException(
+          "Could not parse request body into a valid execute request.");
     }
 
     OgcApi api = requestContext.getApi();
