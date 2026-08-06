@@ -32,9 +32,12 @@ import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
 import de.ii.xtraplatform.tiles.domain.TileGenerationParameters;
+import de.ii.xtraplatform.tiles.domain.TileMatrixSetLimits;
 import de.ii.xtraplatform.tiles.domain.TileProvider;
 import de.ii.xtraplatform.tiles.domain.TileProviderFeaturesData;
 import de.ii.xtraplatform.tiles.domain.TileSeedingJobSet;
+import de.ii.xtraplatform.tiles.domain.TilesetFeatures;
+import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -45,8 +48,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -265,8 +271,10 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       Optional<String> collectionId,
       Optional<BoundingBox> bbox) {
     OgcApiDataV2 apiData = api.getData();
-    Map<String, TileGenerationParameters> tilesets = new LinkedHashMap<>();
-    Map<String, TileGenerationParameters> combinedTilesets = new LinkedHashMap<>();
+
+    // every tileset that has to be seeded, with the extent to fall back to, if the bounds of the
+    // tileset are unknown
+    Map<String, Supplier<Optional<BoundingBox>>> requiredTilesets = new LinkedHashMap<>();
 
     for (String cid : apiData.getCollections().keySet()) {
       if (collectionId.isPresent() && !collectionId.get().equals(cid)) {
@@ -276,48 +284,53 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
           .filter(cfg -> cfg.hasCollectionTiles(tilesProviders, apiData, cid))
           .map(cfg -> cfg.getCollectionTileset(cid))
           .ifPresent(
-              tileset -> {
-                TileGenerationParameters generationParameters =
-                    new ImmutableTileGenerationParameters.Builder()
-                        .clipBoundingBox(bbox.or(() -> api.getSpatialExtent(cid)))
-                        .substitutions(
-                            FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(
-                                api.getUri().toString()))
-                        .build();
-
-                if (((TileProviderFeaturesData) tileProvider.getData())
-                    .getTilesets()
-                    .get(tileset)
-                    .isCombined()) {
-                  combinedTilesets.putIfAbsent(tileset, generationParameters);
-                } else {
-                  tilesets.putIfAbsent(tileset, generationParameters);
-                }
-              });
+              tileset -> requiredTilesets.putIfAbsent(tileset, () -> api.getSpatialExtent(cid)));
     }
 
     apiData
         .getExtension(TilesConfiguration.class)
         .filter(cfg -> cfg.hasDatasetVectorTiles(tilesProviders, apiData))
         .map(TilesConfiguration::getDatasetTileset)
-        .ifPresent(
-            tileset -> {
-              TileGenerationParameters generationParameters =
-                  new ImmutableTileGenerationParameters.Builder()
-                      .clipBoundingBox(bbox.or(() -> api.getSpatialExtent()))
-                      .substitutions(
-                          FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(
-                              api.getUri().toString()))
-                      .build();
+        .ifPresent(tileset -> requiredTilesets.putIfAbsent(tileset, api::getSpatialExtent));
 
-              if (((TileProviderFeaturesData) tileProvider.getData())
-                  .getTilesets()
-                  .get(tileset)
-                  .isCombined()) {
-                combinedTilesets.putIfAbsent(tileset, generationParameters);
-              } else {
-                tilesets.putIfAbsent(tileset, generationParameters);
-              }
+    for (String tileset : getSourceTilesets(tileProvider, requiredTilesets.keySet())) {
+      requiredTilesets.putIfAbsent(tileset, Optional::empty);
+    }
+
+    Map<String, TileGenerationParameters> tilesets = new LinkedHashMap<>();
+    Map<String, TileGenerationParameters> combinedTilesets = new LinkedHashMap<>();
+
+    requiredTilesets.forEach(
+        (tileset, fallbackExtent) -> {
+          Optional<BoundingBox> clipBoundingBox =
+              bbox.or(() -> getTilesetBounds(tileProvider, tileset)).or(fallbackExtent);
+
+          // without an extent there is no area with data, so there is nothing to seed
+          if (clipBoundingBox.isEmpty()) {
+            return;
+          }
+
+          TileGenerationParameters generationParameters =
+              new ImmutableTileGenerationParameters.Builder()
+                  .clipBoundingBox(clipBoundingBox)
+                  .substitutions(
+                      FeaturesCoreProviders.DEFAULT_SUBSTITUTIONS.apply(api.getUri().toString()))
+                  .build();
+
+          if (isCombined(tileProvider, tileset)) {
+            combinedTilesets.put(tileset, generationParameters);
+          } else {
+            tilesets.put(tileset, generationParameters);
+          }
+        });
+
+    // A tileset whose zoom levels start above the levels of every seeded cache has no tiles to
+    // seed. Listing it in the job set would announce work that never happens.
+    getSeededCoverage(tileProvider, tilesets, combinedTilesets)
+        .ifPresent(
+            coverage -> {
+              tilesets.keySet().removeIf(t -> coverage.getOrDefault(t, Map.of()).isEmpty());
+              combinedTilesets.keySet().removeIf(t -> coverage.getOrDefault(t, Map.of()).isEmpty());
             });
 
     Map<String, List<String>> rasterForVectorTilesets =
@@ -383,6 +396,81 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       jobSet = jobSet.with(combinedJobSet);
     }
     return jobSet;
+  }
+
+  /**
+   * The tiles the seeded caches of the tile provider cover, per tileset. Empty if that cannot be
+   * determined, which is different from a tileset with no tiles to seed.
+   */
+  @SafeVarargs
+  private Optional<Map<String, Map<String, Set<TileMatrixSetLimits>>>> getSeededCoverage(
+      TileProvider tileProvider, Map<String, TileGenerationParameters>... tilesets) {
+    if (!tileProvider.seeding().isAvailable()) {
+      return Optional.empty();
+    }
+
+    Map<String, TileGenerationParameters> all = new LinkedHashMap<>();
+    for (Map<String, TileGenerationParameters> map : tilesets) {
+      all.putAll(map);
+    }
+
+    try {
+      return Optional.of(tileProvider.seeding().get().getCoverage(all));
+    } catch (IOException e) {
+      LOGGER.debug("Could not determine which tiles to seed: {}", e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * The area in which the tileset may have data, that is the spatial extent of the feature types of
+   * its layers. This is the extent that is also used to determine whether a tile of a sparse
+   * tileset can be empty and whether a tileset can contribute a layer to a combined tile, so it
+   * should also determine which tiles are seeded. The extent of the collection is only a fallback,
+   * it may differ, if the tiles are generated from another feature provider than the features.
+   */
+  private Optional<BoundingBox> getTilesetBounds(TileProvider tileProvider, String tileset) {
+    return tileProvider.access().isAvailable()
+        ? tileProvider.access().get().getMetadata(tileset).flatMap(TilesetMetadata::getBounds)
+        : Optional.empty();
+  }
+
+  /**
+   * The tilesets that are combined into one of the given tilesets. They are not necessarily
+   * published as a collection of this API, but since combining a tile requires a tile of every
+   * source tileset, they have to be seeded as well. Otherwise every tile of such a tileset would be
+   * generated on-the-fly while combining, which defeats the purpose of seeding.
+   */
+  private List<String> getSourceTilesets(TileProvider tileProvider, Set<String> tilesets) {
+    if (!(tileProvider.getData() instanceof TileProviderFeaturesData)) {
+      return List.of();
+    }
+
+    TileProviderFeaturesData data = (TileProviderFeaturesData) tileProvider.getData();
+
+    return tilesets.stream()
+        .filter(data.getTilesets()::containsKey)
+        .flatMap(tileset -> data.getTilesets().get(tileset).getCombine().stream())
+        .flatMap(
+            layer ->
+                Objects.equals(layer, TilesetFeatures.COMBINE_ALL)
+                    ? data.getTilesets().keySet().stream()
+                    : Stream.of(layer))
+        .distinct()
+        .filter(data.getTilesets()::containsKey)
+        .filter(tileset -> !data.getTilesets().get(tileset).isCombined())
+        .collect(Collectors.toList());
+  }
+
+  private boolean isCombined(TileProvider tileProvider, String tileset) {
+    if (!(tileProvider.getData() instanceof TileProviderFeaturesData)) {
+      return false;
+    }
+
+    TilesetFeatures tilesetFeatures =
+        ((TileProviderFeaturesData) tileProvider.getData()).getTilesets().get(tileset);
+
+    return Objects.nonNull(tilesetFeatures) && tilesetFeatures.isCombined();
   }
 
   @Override
