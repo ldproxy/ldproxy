@@ -62,9 +62,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final SchemaValidator schemaValidator;
   private final Map<String, Map<String, CompiledJsonSchema>> inputsSchemaCache;
 
-  // ToDo Move to config
-  private final int maxCallbackRetries = 3;
-
   private final HttpClient httpClient;
 
   @Inject
@@ -105,7 +102,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   @Override
-  public OgcStatusInfo executeAsync(OgcProcess process, OgcExecute executeRequest) {
+  public OgcStatusInfo executeAsync(
+      OgcProcess process, OgcExecute executeRequest, int callbackRetries) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -122,6 +120,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     // Create job
     Map<String, Object> jobDetails = new LinkedHashMap<>();
     jobDetails.put("process", process);
+    jobDetails.put("callbackRetries", callbackRetries);
     jobDetails.put("subscriber", executeRequest.getSubscriber());
     jobDetails.put("outputSelections", outputSelections);
     JobV2 job = jobQueue.createJob(process.getId(), inputs, jobDetails);
@@ -451,9 +450,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         Instant time;
         try {
           time = mapper.convertValue(value, Instant.class);
-          if (time == null) {
-            throw new NullPointerException();
-          }
         } catch (Exception e) {
           throw new IllegalArgumentException(
               "Invalid execute request: Content of input '"
@@ -461,9 +457,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                   + "' cannot be converted to an internal time representation.: "
                   + e);
         }
+        if (time == null) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: Content of input '"
+                  + inputId
+                  + "' cannot be converted to an internal time representation.");
+        }
         return Optional.of(time);
       default:
-        // ToDo Can the mapper automatically guess the correct Type from the format?
+        // Limitation : Not all standard JSON Schema formats are supported
         return Optional.empty();
     }
   }
@@ -559,14 +561,15 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     String jobId = job.getId();
     JobV2.Status status = job.getStatus();
+    int callbackRetries = (Integer) (job.getDetails().get("callbackRetries"));
     switch (status) {
-      case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get());
-      case FAILED -> callBackOnFailure(jobId, subscriber.get());
-      case RUNNING -> callBackOnProgress(jobId, subscriber.get());
+      case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get(), callbackRetries);
+      case FAILED -> callBackOnFailure(jobId, subscriber.get(), callbackRetries);
+      case RUNNING -> callBackOnProgress(jobId, subscriber.get(), callbackRetries);
     }
   }
 
-  private void callBackOnSuccess(String jobId, OgcSubscriber subscriber) {
+  private void callBackOnSuccess(String jobId, OgcSubscriber subscriber, int callbackRetries) {
     if (subscriber.getSuccessUri().isEmpty()) {
       return;
     }
@@ -596,7 +599,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         break;
 
       } catch (Exception e) {
-        if (currentRetries < maxCallbackRetries) {
+        if (currentRetries < callbackRetries) {
           int delay = 100 * (currentRetries + 1);
           if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
@@ -613,7 +616,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
               e,
               "Giving up sending success callback for job '{}' after {} retries",
               jobId,
-              currentRetries + 1);
+              currentRetries);
           LOGGER.error(
               "Failed sending the success callback for {}: {}",
               jobId,
@@ -621,18 +624,22 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         }
       }
       currentRetries++;
-    } while (currentRetries <= maxCallbackRetries);
+    } while (currentRetries <= callbackRetries);
   }
 
-  private void callBackOnFailure(String jobId, OgcSubscriber subscriber) {
-    subscriber.getFailedUri().ifPresent(uri -> postStatusInfo(jobId, uri, "failed"));
+  private void callBackOnFailure(String jobId, OgcSubscriber subscriber, int callbackRetries) {
+    subscriber
+        .getFailedUri()
+        .ifPresent(uri -> postStatusInfo(jobId, uri, "failed", callbackRetries));
   }
 
-  private void callBackOnProgress(String jobId, OgcSubscriber subscriber) {
-    subscriber.getInProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress"));
+  private void callBackOnProgress(String jobId, OgcSubscriber subscriber, int callbackRetries) {
+    subscriber
+        .getInProgressUri()
+        .ifPresent(uri -> postStatusInfo(jobId, uri, "inProgress", callbackRetries));
   }
 
-  private void postStatusInfo(String jobId, String uri, String callbackType) {
+  private void postStatusInfo(String jobId, String uri, String callbackType, int callbackRetries) {
 
     byte[] response;
     try {
@@ -654,7 +661,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
             Map.of("Accept", MediaType.APPLICATION_JSON));
         break;
       } catch (Exception e) {
-        if (currentRetries < maxCallbackRetries) {
+        if (currentRetries < callbackRetries) {
           int delay = 100 * (currentRetries + 1);
           if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
@@ -675,7 +682,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
               "Giving up sending {} callback for job '{}' after {} retries",
               callbackType,
               jobId,
-              currentRetries + 1);
+              currentRetries);
           LOGGER.error(
               "Failed sending the {} callback for {}: {}",
               callbackType,
@@ -684,7 +691,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         }
       }
       currentRetries++;
-    } while (currentRetries <= maxCallbackRetries);
+    } while (currentRetries <= callbackRetries);
   }
 
   /*
@@ -697,6 +704,9 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private OgcProcess getProcessDirect(String jobId) {
     JobV2 job = jobQueue.get(jobId);
+    if (job == null) {
+      throw new NotFoundException("No job found with job id '" + jobId + "'.");
+    }
     return (OgcProcess) (job.getDetails().get("process"));
   }
 }
