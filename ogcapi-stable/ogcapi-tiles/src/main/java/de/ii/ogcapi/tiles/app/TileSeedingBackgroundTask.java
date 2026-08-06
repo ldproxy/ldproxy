@@ -251,20 +251,30 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       return;
     }
 
-    JobSet jobSet = getJobSet(api, tileProvider, reseed);
+    Optional<JobSet> jobSet = getJobSet(api, tileProvider, reseed);
 
-    jobQueue.push(jobSet);
+    if (jobSet.isEmpty()) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "No tileset of tile provider '{}' has tiles to seed, skipping new task",
+            tileProvider.getId());
+      }
+
+      return;
+    }
+
+    jobQueue.push(jobSet.get());
 
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Added seeding job set to the queue ({})", jobSet.getId());
+      LOGGER.debug("Added seeding job set to the queue ({})", jobSet.get().getId());
     }
   }
 
-  private JobSet getJobSet(OgcApi api, TileProvider tileProvider, boolean reseed) {
+  private Optional<JobSet> getJobSet(OgcApi api, TileProvider tileProvider, boolean reseed) {
     return getJobSet(api, tileProvider, reseed, Optional.empty(), Optional.empty());
   }
 
-  private JobSet getJobSet(
+  private Optional<JobSet> getJobSet(
       OgcApi api,
       TileProvider tileProvider,
       boolean reseed,
@@ -333,6 +343,12 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
               combinedTilesets.keySet().removeIf(t -> coverage.getOrDefault(t, Map.of()).isEmpty());
             });
 
+    // an empty job set would never reach 100%, and while it is in the queue it suppresses every
+    // following seeding run of the tile provider
+    if (tilesets.isEmpty() && combinedTilesets.isEmpty()) {
+      return Optional.empty();
+    }
+
     Map<String, List<String>> rasterForVectorTilesets =
         tilesets.keySet().stream()
             .map(
@@ -395,7 +411,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
 
       jobSet = jobSet.with(combinedJobSet);
     }
-    return jobSet;
+    return Optional.of(jobSet);
   }
 
   /**
@@ -570,10 +586,8 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       }
 
       for (BoundingBox bbox : bboxes) {
-        JobSet jobSet =
-            getJobSet(api, tileProvider, true, Optional.of(collectionId), Optional.of(bbox));
-
-        jobQueue.push(jobSet);
+        getJobSet(api, tileProvider, true, Optional.of(collectionId), Optional.of(bbox))
+            .ifPresent(jobQueue::push);
       }
     };
   }
