@@ -22,6 +22,7 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.processes.app.format.StatusInfoLinksGenerator;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
+import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
@@ -115,20 +116,44 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     String processId = queryInput.getProcessId();
     OgcProcess process = processRepository.getDirect(apiData, processId);
     List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
-    boolean async = false;
+    ExecutionMode executionMode = queryInput.getExecutionMode();
 
-    /*
-     * Cases:
-     * 1. jobControlOptions is empty: execute synchronously
-     * 2. process can be executed in either mode: execute asynchronously if prefered, synchronously else
-     * 3. process can only be executed asynchronously: execute asynchronously
-     * 4. process can only be executed synchronously: execute synchronously
-     */
-    if (jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)
-        && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-      async = queryInput.getPreferAsync();
-    } else if (jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-      async = true;
+    boolean async = false;
+    switch (executionMode) {
+      case BOTH -> {
+        /*
+         * Cases:
+         * 1. jobControlOptions is empty: execute synchronously
+         * 2. process can be executed in either mode: execute asynchronously if prefered, synchronously else
+         * 3. process can only be executed asynchronously: execute asynchronously
+         * 4. process can only be executed synchronously: execute synchronously
+         */
+        if (jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)
+            && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
+          async = queryInput.getPreferAsync();
+        } else if (jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
+          async = true;
+        }
+      }
+
+      case SYNC -> {
+        if (!jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)) {
+          throw new IllegalArgumentException(
+              "This server only supports synchronous execution but the process '"
+                  + processId
+                  + "' cannot be executed synchronously.");
+        }
+      }
+
+      case ASYNC -> {
+        if (!jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
+          throw new IllegalArgumentException(
+              "This server only supports asynchronous execution but the process '"
+                  + processId
+                  + "' cannot be executed asynchronously.");
+        }
+        async = true;
+      }
     }
 
     if (!async) return executionResponseSync(queryInput, requestContext, process, executeRequest);
@@ -201,7 +226,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    OgcStatusInfo statusInfo = processesExecutor.executeAsync(process, executeRequest);
+    OgcStatusInfo statusInfo =
+        processesExecutor.executeAsync(process, executeRequest, queryInput.getCallbackRetries());
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =

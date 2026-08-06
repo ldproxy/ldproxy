@@ -184,12 +184,17 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
             && Arrays.stream(prefer.split(","))
                 .anyMatch(p -> ("respond-async".equals(p.trim()) || "wait".equals(p.trim())));
 
+    ProcessesCoreConfiguration config =
+        api.getData().getExtension(ProcessesCoreConfiguration.class).get();
+
     ExecutionQueriesHandler.QueryInputExecution queryInput =
         new ImmutableQueryInputExecution.Builder()
             .from(getGenericQueryInput(api.getData()))
             .processId(processId)
             .requestBody(requestBody)
             .preferAsync(preferAsync)
+            .executionMode(config.getExecutionMode())
+            .callbackRetries(config.getCallbackRetries())
             .build();
 
     return queryHandler.handle(ExecutionQueriesHandler.Query.EXECUTE, queryInput, requestContext);
