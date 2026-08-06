@@ -7,12 +7,11 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import de.ii.ogcapi.processes.domain.model.Property.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,10 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * See the following link for its OpenAPI 3.0 schema
+ * Note: This implementation includes many additions to the schema to support the examples in the
+ * draft, as the examples do not match the underlying model!
+ *
+ * <p>See the following link for its OpenAPI 3.0 schema
  * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/schema.yaml
  */
 @ApiInfo(schemaId = "Schema")
@@ -31,17 +33,25 @@ public interface OgcSchema {
 
   String SCHEMA_REF = "#/components/schemas/Schema";
 
-  enum Formats {
-    @JsonProperty("ogc-bbox")
-    @JsonAlias("https://www.opengis.net/def/format/ogcapi-processes/0/ogc-bbox")
-    OGC_BBOX
-  }
-
   @SuppressWarnings("UnstableApiUsage")
   Funnel<OgcSchema> FUNNEL =
       (from, into) -> {
+        from.getTitle().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getDescription().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         into.putString(from.getType().name(), StandardCharsets.UTF_8);
-        from.getFormat().ifPresent(f -> into.putString(f.name(), StandardCharsets.UTF_8));
+        from.getFormat().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getContentMediaType().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getMaximum().ifPresent(v -> into.putDouble(v));
+        from.getExclusiveMaximum().ifPresent(v -> into.putDouble(v));
+        from.getMinimum().ifPresent(v -> into.putDouble(v));
+        from.getExclusiveMinimum().ifPresent(v -> into.putDouble(v));
+        from.getPattern().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getMaxItems().ifPresent(v -> into.putInt(v));
+        into.putInt(from.getMinItems());
+        from.getEnum().stream()
+            .sorted()
+            .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getItems().ifPresent(v -> Items.FUNNEL.funnel(v, into));
         from.getRequired().stream()
             .sorted()
             .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
@@ -54,10 +64,37 @@ public interface OgcSchema {
                 });
       };
 
-  Property.Type getType();
+  Optional<String> getTitle();
 
-  // Note: This is an addition
-  Optional<Formats> getFormat();
+  Optional<String> getDescription();
+
+  Type getType();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<String> getEnum();
+
+  Optional<String> getFormat();
+
+  Optional<String> getContentMediaType();
+
+  Optional<Double> getMaximum();
+
+  Optional<Double> getExclusiveMaximum();
+
+  Optional<Double> getMinimum();
+
+  Optional<Double> getExclusiveMinimum();
+
+  Optional<String> getPattern();
+
+  Optional<Integer> getMaxItems();
+
+  @Value.Default
+  default int getMinItems() {
+    return 0;
+  }
+
+  Optional<Items> getItems();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getRequired();

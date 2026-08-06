@@ -21,7 +21,6 @@ import de.ii.ogcapi.processes.domain.model.OgcInputDescription;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchema;
-import de.ii.ogcapi.processes.domain.model.OgcSchema.Formats;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.OgcSubscriber;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
@@ -43,6 +42,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -388,8 +388,14 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private Optional<Object> applyFormat(String inputId, OgcSchema schema, Object value) {
-    if (schema.getFormat().isPresent()) {
-      if (Formats.OGC_BBOX.equals(schema.getFormat().get())) {
+    if (schema.getFormat().isEmpty()) {
+      return Optional.empty();
+    }
+
+    String format = schema.getFormat().get();
+    switch (format) {
+      case "ogc-bbox":
+      case "https://www.opengis.net/def/format/ogcapi-processes/0/ogc-bbox":
         OgcBbox bbox;
         try {
           bbox = mapper.convertValue(value, OgcBbox.class);
@@ -440,12 +446,26 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                     + "Bbox must contain either 4 (2D) or 6 (3D) coordinates");
           }
         }
-
         return Optional.of(boundingBox);
-      }
+      case "date-time":
+        Instant time;
+        try {
+          time = mapper.convertValue(value, Instant.class);
+          if (time == null) {
+            throw new NullPointerException();
+          }
+        } catch (Exception e) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: Content of input '"
+                  + inputId
+                  + "' cannot be converted to an internal time representation.: "
+                  + e);
+        }
+        return Optional.of(time);
+      default:
+        // ToDo Can the mapper automatically guess the correct Type from the format?
+        return Optional.empty();
     }
-
-    return Optional.empty();
   }
 
   /*
