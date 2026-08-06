@@ -40,9 +40,9 @@ public interface Property {
   @SuppressWarnings("UnstableApiUsage")
   Funnel<Property> FUNNEL =
       (from, into) -> {
-        from.getType().ifPresent(t -> into.putString(t.name(), StandardCharsets.UTF_8));
         from.getTitle().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getDescription().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
+        from.getType().ifPresent(t -> into.putString(t.name(), StandardCharsets.UTF_8));
         from.getFormat().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getContentMediaType().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getMaximum().ifPresent(v -> into.putDouble(v));
@@ -91,7 +91,6 @@ public interface Property {
     return 0;
   }
 
-  // Note: This is an addition
   Optional<Items> getItems();
 
   @JsonProperty("x-ogc-definition")
