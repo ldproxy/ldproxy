@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import jakarta.validation.constraints.Min;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -27,8 +28,15 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   int MINIMUM_PAGE_SIZE = 1;
   int MAXIMUM_PAGE_SIZE = 10_000;
 
+  enum ExecutionMode {
+    SYNC,
+    ASYNC,
+    BOTH
+  }
+
   /**
    * @default false
+   * @since 4.9
    */
   @Nullable
   @Override
@@ -36,6 +44,7 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
 
   /**
    * @default 10
+   * @since 4.9
    */
   @Value.Default
   default Integer getDefaultPageSize() {
@@ -44,6 +53,7 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
 
   /**
    * @default 1
+   * @since 4.9
    */
   @Value.Default
   default Integer getMinimumPageSize() {
@@ -52,10 +62,34 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
 
   /**
    * @default 10000
+   * @since 4.9
    */
   @Value.Default
   default Integer getMaximumPageSize() {
     return MAXIMUM_PAGE_SIZE;
+  }
+
+  /**
+   * @langEn Indicates how often the callback should be retried on errors. Should be set to `0` if
+   *     no retries are desired.
+   * @langDe Gibt an, wie oft der Callback bei Fehlern wiederholt werden soll. Sollte auf `0`
+   *     gesetzt werden, falls keine Wiederholungen erwünscht sind.
+   * @default 3
+   * @since 4.9
+   */
+  @Min(0)
+  @Value.Default
+  default Integer getCallbackRetries() {
+    return 3;
+  }
+
+  /**
+   * @default SYNC_ONLY
+   * @since 4.9
+   */
+  @Value.Default
+  default ExecutionMode getExecutionMode() {
+    return ExecutionMode.SYNC;
   }
 
   @Override
