@@ -17,36 +17,36 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
+import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * @title jobId
- * @endpoints jobs/{jobId}, jobs/{jobId}/results, jobs/{jobId}/results/{outputId},
- *     jobs/{jobId}/results/{outputId}/{N}
- * @langEn The local identifier of a job.
- * @langDe Der lokale Identifikator eines Jobs.
+ * @title index N
+ * @endpoints jobs/{jobId}/results/{outputId}/{N}
+ * @langEn The zero-based index to access a value of a multi-valued output.
+ * @langDe Der nullbasierte Index für den Zugriff auf einen Wert eines mehrwertigen Outputs.
  */
 @Singleton
 @AutoBind
-public class PathParameterJobId implements OgcApiPathParameter {
+public class PathParameterN implements OgcApiPathParameter {
 
-  public static final String JOB_ID_REGEX = "[a-f0-9-]+";
+  public static final String N_REGEX = "[0-9]+";
 
   private final SchemaValidator schemaValidator;
 
   @Inject
-  public PathParameterJobId(SchemaValidator schemaValidator) {
+  public PathParameterN(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
   @Override
   public String getPattern() {
-    return JOB_ID_REGEX;
+    return N_REGEX;
   }
 
   @Override
@@ -54,9 +54,11 @@ public class PathParameterJobId implements OgcApiPathParameter {
     return ImmutableList.of("*");
   }
 
+  private final Schema<?> schema = new IntegerSchema().minimum(BigDecimal.ZERO);
+
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return new StringSchema().pattern(getPattern());
+    return schema;
   }
 
   @Override
@@ -66,26 +68,23 @@ public class PathParameterJobId implements OgcApiPathParameter {
 
   @Override
   public String getId() {
-    return "jobIdProcesses";
+    return "NProcesses";
   }
 
   @Override
   public String getName() {
-    return "jobId";
+    return "N";
   }
 
   @Override
   public String getDescription() {
-    return "The local identifier of a job, unique within the API.";
+    return "The index of which to access a multi-valued output.";
   }
 
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
-        && ("/jobs/{jobId}".equals(definitionPath)
-            || "/jobs/{jobId}/results".equals(definitionPath)
-            || "/jobs/{jobId}/results/{outputId}".equals(definitionPath)
-            || "/jobs/{jobId}/results/{outputId}/{N}".equals(definitionPath));
+        && "/jobs/{jobId}/results/{outputId}/{N}".equals(definitionPath);
   }
 
   @Override
