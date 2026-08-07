@@ -28,10 +28,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputResults;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecific;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecificN;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -49,10 +46,10 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Improve docs
+// ToDo: Docs
 /**
- * @title Job Results
- * @path jobs/{jobId}/results, jobs/{jobId}/results/{outputId}, jobs/{jobId}/results/{outputId}/{N}
+ * @title Results (full)
+ * @path jobs/{jobId}/results
  * @langEn Returns the complete or specific results of a specific job.
  * @langDe Gibt die Ergebnisse eines bestimmten Jobs zurück.
  */
@@ -80,8 +77,6 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
 
     computeDefinitionResults(apiData, definitionBuilder);
-    computeDefinitionResultsSpecific(apiData, definitionBuilder);
-    computeDefinitionResultsSpecificN(apiData, definitionBuilder);
 
     return definitionBuilder.build();
   }
@@ -132,98 +127,6 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
     }
   }
 
-  private void computeDefinitionResultsSpecific(
-      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
-    String path = "/jobs/{jobId}/results/{outputId}";
-    HttpMethods method = HttpMethods.GET;
-
-    List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-
-    if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
-      LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
-          path);
-    } else {
-      List<OgcApiQueryParameter> queryParameters =
-          getQueryParameters(extensionRegistry, apiData, path);
-
-      String operationSummary = "Retrieve retrieve a specific processing result";
-      Optional<String> operationDescription =
-          Optional.of(
-              """
-                    Returns the a specific process output value identified by `outpudId`. \
-                    The response depends on the negotiated response type and the type of the specific value.
-                    """);
-
-      ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
-          new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
-
-      ApiOperation.getResource(
-              apiData,
-              path,
-              false,
-              queryParameters,
-              ImmutableList.of(),
-              getResponseContent(apiData),
-              operationSummary,
-              operationDescription,
-              Optional.empty(),
-              getOperationId("getJobResultsSpecific"),
-              GROUP_JOBS_READ,
-              TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
-          .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
-      definitionBuilder.putResources(path, resourceBuilder.build());
-    }
-  }
-
-  private void computeDefinitionResultsSpecificN(
-      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
-    String path = "/jobs/{jobId}/results/{outputId}/{N}";
-    HttpMethods method = HttpMethods.GET;
-
-    List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
-
-    if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
-      LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
-          path);
-    } else {
-      List<OgcApiQueryParameter> queryParameters =
-          getQueryParameters(extensionRegistry, apiData, path);
-
-      String operationSummary = "Retrieve the Nth value of a specific processing result";
-      Optional<String> operationDescription =
-          Optional.of(
-              """
-                    Returns the Nth value of a specific processing result identified by `outpudId` and `N`. \
-                    The response depends on the negotiated response type and the type of the specific value.
-                    """);
-
-      ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
-          new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
-
-      ApiOperation.getResource(
-              apiData,
-              path,
-              false,
-              queryParameters,
-              ImmutableList.of(),
-              getResponseContent(apiData),
-              operationSummary,
-              operationDescription,
-              Optional.empty(),
-              getOperationId("getJobResultsSpecificN"),
-              GROUP_JOBS_READ,
-              TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
-          .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
-      definitionBuilder.putResources(path, resourceBuilder.build());
-    }
-  }
-
   @GET
   @Path("/{jobId}/results")
   public Response getJobResults(
@@ -243,54 +146,6 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
             .build();
 
     return queryHandler.handle(JobQueriesHandler.Query.RESULTS, queryInput, requestContext);
-  }
-
-  @GET
-  @Path("/{jobId}/results/{outputId}")
-  public Response getJobResultsSpecific(
-      @PathParam("jobId") String jobId,
-      @PathParam("outputId") String outputId,
-      @Context OgcApi api,
-      @Context ApiRequestContext requestContext) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
-    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
-
-    JobQueriesHandler.QueryInputResultsSpecific queryInput =
-        new ImmutableQueryInputResultsSpecific.Builder()
-            .from(getGenericQueryInput(api.getData()))
-            .jobId(jobId)
-            .outputId(outputId)
-            .build();
-
-    return queryHandler.handle(Query.RESULTS_SPECIFIC, queryInput, requestContext);
-  }
-
-  @GET
-  @Path("/{jobId}/results/{outputId}/{N}")
-  public Response getJobResultsSpecificN(
-      @PathParam("jobId") String jobId,
-      @PathParam("outputId") String outputId,
-      @PathParam("N") int indexN,
-      @Context OgcApi api,
-      @Context ApiRequestContext requestContext) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
-    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
-
-    JobQueriesHandler.QueryInputResultsSpecificN queryInput =
-        new ImmutableQueryInputResultsSpecificN.Builder()
-            .from(getGenericQueryInput(api.getData()))
-            .jobId(jobId)
-            .outputId(outputId)
-            .indexN(indexN)
-            .build();
-
-    return queryHandler.handle(Query.RESULTS_SPECIFIC_N, queryInput, requestContext);
   }
 
   @Override

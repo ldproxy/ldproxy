@@ -217,9 +217,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return getStatusInfo(jobId);
   }
 
-  /*
-  input validation and format apply
-   */
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation
   // only allows a single schema!
   private void validateAndUpdateInputs(OgcProcess process, Map<String, Object> providedInputs) {
@@ -386,6 +383,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
   }
 
+  // Limitation: Not all standard JSON Schema formats and custom formats from OGC-Processes are
+  // supported
   private Optional<Object> applyFormat(String inputId, OgcSchema schema, Object value) {
     if (schema.getFormat().isEmpty()) {
       return Optional.empty();
@@ -465,14 +464,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
         }
         return Optional.of(time);
       default:
-        // Limitation : Not all standard JSON Schema formats are supported
         return Optional.empty();
     }
   }
 
-  /*
-  output validation and selection
-   */
   private void validateOutputSelections(
       OgcProcess process, Optional<Map<String, OgcFormat>> outputSelections) {
     if (outputSelections.isEmpty()) {
@@ -549,9 +544,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return selectedOutput;
   }
 
-  /*
-  callBack
-   */
   private void callBack(JobV2 job) {
     Optional<OgcSubscriber> subscriber =
         (Optional<OgcSubscriber>) job.getDetails().get("subscriber");
@@ -694,9 +686,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     } while (currentRetries <= callbackRetries);
   }
 
-  /*
-  misc
-   */
   private OgcStatusInfo getStatusInfoDirect(String jobId) {
     return getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));

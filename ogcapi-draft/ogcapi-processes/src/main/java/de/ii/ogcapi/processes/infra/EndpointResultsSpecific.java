@@ -27,10 +27,11 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputJob;
+import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecific;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
+import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,24 +48,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // ToDo: Docs
+
 /**
- * @title Job
- * @path jobs/{jobId}
- * @langEn Returns the complete status of a specific job.
- * @langDe Gibt den gesamten Status eines bestimmten Jobs zurück.
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
+ * @title Results (output)
+ * @path jobs/{jobId}/results/{outputId}
+ * @langEn ToDo
+ * @langDe ToDo
  */
 @Singleton
 @AutoBind
-public class EndpointJob extends Endpoint implements ApiExtensionHealth {
+public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointJob.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecific.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
 
   private final JobQueriesHandler queryHandler;
 
   @Inject
-  public EndpointJob(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
+  public EndpointResultsSpecific(
+      ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
   }
@@ -75,9 +77,16 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("jobs")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB);
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
 
-    String path = "/jobs/{jobId}";
+    computeDefinitionResultsSpecific(apiData, definitionBuilder);
+
+    return definitionBuilder.build();
+  }
+
+  private void computeDefinitionResultsSpecific(
+      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
+    String path = "/jobs/{jobId}/results/{outputId}";
     HttpMethods method = HttpMethods.GET;
 
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
@@ -90,9 +99,13 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Status of a specific job";
+      String operationSummary = "Retrieve retrieve a specific processing result";
       Optional<String> operationDescription =
-          Optional.of("Returns the status information for the job with the specified jobId.");
+          Optional.of(
+              """
+                    Returns the a specific process output value identified by `outpudId`. \
+                    The response depends on the negotiated response type and the type of the specific value.
+                    """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -107,7 +120,7 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
               operationSummary,
               operationDescription,
               Optional.empty(),
-              getOperationId("getJob"),
+              getOperationId("getJobResultsSpecific"),
               GROUP_JOBS_READ,
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
@@ -115,29 +128,29 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
-
-    return definitionBuilder.build();
   }
 
   @GET
-  @Path("/{jobId}")
-  public Response getJob(
+  @Path("/{jobId}/results/{outputId}")
+  public Response getJobResultsSpecific(
       @PathParam("jobId") String jobId,
+      @PathParam("outputId") String outputId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     if (!isEnabledForApi(api.getData()))
       throw new NotFoundException("Processes are not available in this API.");
 
-    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}", "jobId", jobId);
+    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputJob queryInput =
-        new ImmutableQueryInputJob.Builder()
+    JobQueriesHandler.QueryInputResultsSpecific queryInput =
+        new ImmutableQueryInputResultsSpecific.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
+            .outputId(outputId)
             .build();
 
-    return queryHandler.handle(JobQueriesHandler.Query.JOB, queryInput, requestContext);
+    return queryHandler.handle(Query.RESULTS_SPECIFIC, queryInput, requestContext);
   }
 
   @Override
@@ -148,7 +161,7 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
     return formats;
   }
 
