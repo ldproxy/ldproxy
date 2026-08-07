@@ -132,8 +132,6 @@ public class QueryParameterLimitProcessList extends OgcApiQueryParameterBase
     return schemaMap.get(apiHashCode);
   }
 
-  // ToDo Evaluate: Keep defensive code or omit since `validateSchema` already enforces
-  // requirements?
   @Override
   public Integer parse(
       String value,

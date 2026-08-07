@@ -49,7 +49,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo More Details in docs
+// ToDo: Improve docs
 /**
  * @title Job Results
  * @path jobs/{jobId}/results, jobs/{jobId}/results/{outputId}, jobs/{jobId}/results/{outputId}/{N}

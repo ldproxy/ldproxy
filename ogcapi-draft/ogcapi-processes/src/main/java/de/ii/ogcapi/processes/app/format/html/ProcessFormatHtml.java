@@ -21,14 +21,12 @@ import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.ogcapi.processes.domain.model.web.ProcessResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 
-// ToDo Proper language handling
 /**
  * @title HTML
  */
@@ -37,12 +35,10 @@ import java.util.List;
 public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, ConformanceClass {
 
   private final I18n i18n;
-  private final ProcessRepository repository;
 
   @Inject
-  public ProcessFormatHtml(I18n i18n, ProcessRepository repository) {
+  public ProcessFormatHtml(I18n i18n) {
     this.i18n = i18n;
-    this.repository = repository;
   }
 
   @Override
@@ -75,8 +71,8 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
   public Object getEntity(
       ProcessResponse processResponse, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String processId = processResponse.getId();
     String processListTitle = i18n.get("processListTitle", requestContext.getLanguage());
+    String processId = processResponse.getId();
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 

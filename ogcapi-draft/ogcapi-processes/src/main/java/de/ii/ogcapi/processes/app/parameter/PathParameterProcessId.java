@@ -24,23 +24,19 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-// ToDo: Docs
 /**
  * @title processId
  * @endpoints processes/{processId}, processes/{processId}/execution
- * @langEn The identifier of a process.
- * @langDe Der Identifikator eines Prozesses.
+ * @langEn The local identifier of a process.
+ * @langDe Der lokale Identifikator eines Prozesses.
  */
 @Singleton
 @AutoBind
 public class PathParameterProcessId implements OgcApiPathParameter {
 
-  public static final String PROCESS_ID_REGEX = "\\w+";
+  public static final String PROCESS_ID_REGEX = "[^/ ]+";
 
-  private final ConcurrentMap<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();
   private final SchemaValidator schemaValidator;
   private final ProcessRepository repository;
 
@@ -62,12 +58,7 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    if (!schemaMap.containsKey(apiData.hashCode())) {
-      schemaMap.put(
-          apiData.hashCode(), new StringSchema()._enum(ImmutableList.copyOf(getValues(apiData))));
-    }
-
-    return schemaMap.get(apiData.hashCode());
+    return new StringSchema()._enum(ImmutableList.copyOf(getValues(apiData)));
   }
 
   @Override
@@ -91,21 +82,10 @@ public class PathParameterProcessId implements OgcApiPathParameter {
   }
 
   @Override
-  public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, String collectionId) {
-    // ToDo Shouldn't this return true?
-    if (isApplicable(apiData, definitionPath)) return false;
-
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .map(ExtensionConfiguration::isEnabled)
-        .orElse(true);
-  }
-
-  @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
         && ("/processes/{processId}".equals(definitionPath)
-            || ("/processes/{processId}/execution".equals(definitionPath)));
+            || "/processes/{processId}/execution".equals(definitionPath));
   }
 
   @Override
