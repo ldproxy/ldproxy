@@ -17,7 +17,6 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
@@ -29,20 +28,19 @@ import java.util.Optional;
  * @title jobId
  * @endpoints jobs/{jobId}, jobs/{jobId}/results, jobs/{jobId}/results/{outputId},
  *     jobs/{jobId}/results/{outputId}/{N}
- * @langEn The identifier of a job.
- * @langDe Der Identifikator eines Jobs.
+ * @langEn The local identifier of a job.
+ * @langDe Der lokale Identifikator eines Jobs.
  */
 @Singleton
 @AutoBind
 public class PathParameterJobId implements OgcApiPathParameter {
 
-  // ToDo Improve regex
-  public static final String JOB_ID_REGEX = "[\\w-]+";
+  public static final String JOB_ID_REGEX = "[a-f0-9-]+";
 
   private final SchemaValidator schemaValidator;
 
   @Inject
-  public PathParameterJobId(SchemaValidator schemaValidator, ProcessesExecutor processesExecutor) {
+  public PathParameterJobId(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
@@ -58,9 +56,7 @@ public class PathParameterJobId implements OgcApiPathParameter {
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    Schema<String> schema = new StringSchema();
-    schema.format("uuid");
-    return schema;
+    return new StringSchema().pattern(getPattern());
   }
 
   @Override
@@ -81,17 +77,6 @@ public class PathParameterJobId implements OgcApiPathParameter {
   @Override
   public String getDescription() {
     return "The local identifier of a job, unique within the API.";
-  }
-
-  @Override
-  public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, String collectionId) {
-    // ToDo Shouldn't this return true?
-    if (isApplicable(apiData, definitionPath)) return false;
-
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .map(ExtensionConfiguration::isEnabled)
-        .orElse(true);
   }
 
   @Override

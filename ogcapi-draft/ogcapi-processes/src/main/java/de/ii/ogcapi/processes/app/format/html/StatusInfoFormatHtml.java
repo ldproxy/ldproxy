@@ -27,7 +27,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 
-// ToDo Proper language handling
+// ToDo Docs
 
 /**
  * @title HTML
@@ -74,9 +74,8 @@ public class StatusInfoFormatHtml
   public Object getEntity(
       StatusInfoResponse statusInfoResponse, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
-    String jobId = statusInfoResponse.getId();
-    // ToDo
     String jobListTitle = i18n.get("jobListTitle", requestContext.getLanguage());
+    String jobId = statusInfoResponse.getId();
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 

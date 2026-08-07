@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-// ToDo Language
 @Singleton
 @AutoBind
 public class ProcessesOnLandingPage implements LandingPageExtension {
