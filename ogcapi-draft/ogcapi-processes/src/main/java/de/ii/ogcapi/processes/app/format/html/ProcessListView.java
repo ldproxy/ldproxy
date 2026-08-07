@@ -25,6 +25,7 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
 import org.immutables.value.Value;
 
+// ToDo: Add german translation of keywords using Value.Derived
 @Value.Immutable
 public abstract class ProcessListView extends OgcApiView {
   public ProcessListView() {

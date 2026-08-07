@@ -27,8 +27,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 
-// ToDo Docs
-
 /**
  * @title HTML
  */

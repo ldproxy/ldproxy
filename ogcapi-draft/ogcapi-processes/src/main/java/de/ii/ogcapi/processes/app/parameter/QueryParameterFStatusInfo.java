@@ -18,7 +18,7 @@ import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-// ToDo docs
+// ToDo: Docs
 @Singleton
 @AutoBind
 public class QueryParameterFStatusInfo extends QueryParameterF {
