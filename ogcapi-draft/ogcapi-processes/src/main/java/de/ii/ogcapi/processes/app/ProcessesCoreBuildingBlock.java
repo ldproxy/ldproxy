@@ -21,11 +21,30 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo Docs
+// ToDo: Docs
 /**
  * @title PROCESSES_CORE
  * @langEn Docs WIP
  * @langDe Doku WIP
+ * @ref:cfg {@link de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration}
+ * @ref:cfgProperties {@link de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration}
+ * @ref:endpoints {@link de.ii.ogcapi.processes.infra.EndpointProcessList}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointProcess}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointExecute}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointJob}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointDismiss}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointResults}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointResultsSpecific}, {@link
+ *     de.ii.ogcapi.processes.infra.EndpointResultsSpecificN}
+ * @ref:pathParameters {@link de.ii.ogcapi.processes.app.parameter.PathParameterProcessId}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.PathParameterJobId}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.PathParameterOutputId}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.PathParameterN}
+ * @ref:queryParameters {@link de.ii.ogcapi.processes.app.parameter.QueryParameterFProcess}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcessList}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterFStatusInfo}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList} {@link
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList}
  */
 @Singleton
 @AutoBind

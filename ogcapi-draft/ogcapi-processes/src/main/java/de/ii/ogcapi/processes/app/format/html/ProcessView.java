@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+// ToDo: Add german translation of keywords using Value.Derived
 @Value.Immutable
 public abstract class ProcessView extends OgcApiView {
   public ProcessView() {
