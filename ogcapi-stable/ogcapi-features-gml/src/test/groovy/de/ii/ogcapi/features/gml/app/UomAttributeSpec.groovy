@@ -30,6 +30,7 @@ class UomAttributeSpec extends Specification {
         def state = ModifiableStateGml.create()
         encoding.getState() >> state
         encoding.getXmlAttributes() >> []
+        encoding.getXmlComments() >> []
         encoding.getCodelistProperties() >> [:]
         encoding.getXmlPaths() >> [:]
         encoding.qualifyPropertyElementName(_, _) >> { String n, String _o -> n }
