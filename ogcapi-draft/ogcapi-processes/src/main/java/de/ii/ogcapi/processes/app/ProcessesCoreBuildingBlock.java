@@ -38,7 +38,7 @@ import java.util.Optional;
  *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description) definiert.
  *     Sie können global und pro API definiert werden.
  *     <p>Dieser Baustein unterstützt sowohl synchrone als auch asynchrone Ausführung von Prozessen.
- *     Über die [Konfiguration](#configuration) kann die Unterstützung auf nur synchrone oder
+ *     Über die [Konfiguration](#konfiguration) kann die Unterstützung auf nur synchrone oder
  *     asynchrone Ausführung beschränkt oder beide Modi aktiviert werden.
  *     <p>Es gelten einige Einschränkungen; siehe den Abschnitt [Einschränkungen](#limitierungen).
  * @storageEn Process descriptions are stored locally as `values` using the
@@ -106,11 +106,11 @@ import java.util.Optional;
  *     de.ii.ogcapi.processes.app.parameter.PathParameterJobId}, {@link
  *     de.ii.ogcapi.processes.app.parameter.PathParameterOutputId}, {@link
  *     de.ii.ogcapi.processes.app.parameter.PathParameterN}
- * @ref:queryParameters {@link de.ii.ogcapi.processes.app.parameter.QueryParameterFProcess}, {@link
+ * @ref:queryParameters {@link de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList},
+ *     {@link de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList}, {@link
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcess}, {@link
  *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcessList}, {@link
- *     de.ii.ogcapi.processes.app.parameter.QueryParameterFStatusInfo}, {@link
- *     de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList} {@link
- *     de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList}
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterFStatusInfo}
  */
 @Singleton
 @AutoBind
