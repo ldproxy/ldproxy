@@ -19,6 +19,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.ImmutableFeatureTransformationContextGeneric;
 import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
+import de.ii.ogcapi.features.core.domain.SchemaInfo;
 import de.ii.ogcapi.features.search.domain.FilterOperator;
 import de.ii.ogcapi.features.search.domain.ImmutableParameter;
 import de.ii.ogcapi.features.search.domain.ImmutableParameters;
@@ -127,6 +128,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -152,6 +155,14 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
   private final StoredQueryRepository repository;
   private final StoredQueriesLinkGenerator linkGenerator;
   private final SchemaValidator schemaValidator;
+  private final SchemaInfo schemaInfo;
+
+  // Resolving an exclusion needs all property names of a collection, which means a full pass over
+  // its schema. A query expression can have hundreds of sub-queries over dozens of collections, so
+  // the names are cached per API version and collection, as the query parameters do for their
+  // schemas.
+  private final ConcurrentMap<Integer, ConcurrentMap<String, List<String>>> propertyNames =
+      new ConcurrentHashMap<>();
 
   @Inject
   public SearchQueriesHandlerImpl(
@@ -164,6 +175,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       FeaturesCoreProviders providers,
       StoredQueryRepository repository,
       SchemaValidator schemaValidator,
+      SchemaInfo schemaInfo,
       VolatileRegistry volatileRegistry) {
     super(SearchQueriesHandler.class.getSimpleName(), volatileRegistry, true);
     this.i18n = i18n;
@@ -175,6 +187,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     this.providers = providers;
     this.repository = repository;
     this.schemaValidator = schemaValidator;
+    this.schemaInfo = schemaInfo;
     this.linkGenerator = new StoredQueriesLinkGenerator();
 
     this.queryHandlers =
@@ -898,6 +911,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     if (queryExpression.getCollections().size() == 1) {
       String collectionId = queryExpression.getCollections().get(0);
       topLevelFilter.ifPresent(f -> validateFilter(api.getData(), collectionId, f, filterCrs));
+      validateGlobalExcludeProperties(
+          api.getData(), ImmutableList.of(collectionId), queryExpression.getExcludeProperties());
       queries =
           ImmutableList.of(
               getSubQuery(
@@ -909,6 +924,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   Optional.empty(),
                   queryExpression.getSortby(),
                   queryExpression.getProperties(),
+                  ImmutableList.of(),
+                  queryExpression.getExcludeProperties(),
                   ImmutableList.of()));
     } else {
       queries =
@@ -966,6 +983,14 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     Map<String, ResultSetResolver.ResolvedResultSet> resultSets = new LinkedHashMap<>();
     ImmutableList.Builder<SubQuery> queries = ImmutableList.builder();
 
+    validateGlobalExcludeProperties(
+        apiData,
+        queryExpression.getQueries().stream()
+            .map(query -> query.getCollections().get(0))
+            .distinct()
+            .toList(),
+        queryExpression.getExcludeProperties());
+
     for (SingleQuery query : queryExpression.getQueries()) {
       String collectionId = query.getCollections().get(0);
       Optional<Cql2Expression> effectiveFilter =
@@ -986,7 +1011,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               Optional.empty(),
               query.getSortby(),
               query.getProperties(),
-              queryExpression.getProperties());
+              queryExpression.getProperties(),
+              query.getExcludeProperties(),
+              queryExpression.getExcludeProperties());
 
       if (query.getResultSetOnly()) {
         if (query.getAllResultSets().isEmpty()) {
@@ -1031,7 +1058,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       Optional<FilterOperator> filterOperator,
       List<String> sortby,
       List<String> properties,
-      List<String> globalProperties) {
+      List<String> globalProperties,
+      List<String> excludeProperties,
+      List<String> globalExcludeProperties) {
     {
       ensureCollectionIdExists(apiData, collectionId);
 
@@ -1059,15 +1088,86 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
           .filters(
               getEffectiveCql2Expression(filter, globalFilter, filterOperator).stream().toList())
           .fields(
-              globalProperties.isEmpty() && properties.isEmpty()
-                  ? ImmutableList.of("*")
-                  : globalProperties.isEmpty()
-                      ? properties
-                      : properties.isEmpty()
-                          ? globalProperties
-                          : Stream.concat(globalProperties.stream(), properties.stream()).toList())
+              getFields(
+                  apiData,
+                  collectionId,
+                  properties,
+                  globalProperties,
+                  excludeProperties,
+                  globalExcludeProperties))
           .build();
     }
+  }
+
+  /**
+   * The effective property selection of a sub-query. A local exclusion names a property of this
+   * query's own collection, so a name the collection does not have is a typo and is rejected;
+   * global exclusions are checked once against all queried collections in {@link
+   * #validateGlobalExcludeProperties}.
+   */
+  private List<String> getFields(
+      OgcApiDataV2 apiData,
+      String collectionId,
+      List<String> properties,
+      List<String> globalProperties,
+      List<String> excludeProperties,
+      List<String> globalExcludeProperties) {
+    List<String> exclusions =
+        PropertySelection.exclusions(globalExcludeProperties, excludeProperties);
+    if (exclusions.isEmpty()) {
+      // nothing is subtracted, so the collection's property names are not needed and the schema
+      // pass behind them is skipped
+      return PropertySelection.fields(ImmutableList.of(), globalProperties, properties, exclusions);
+    }
+
+    List<String> all = getPropertyNames(apiData, collectionId);
+
+    List<String> unknown = PropertySelection.unknown(excludeProperties, all);
+    if (!unknown.isEmpty()) {
+      throw new BadRequestException(
+          String.format(
+              "The query for collection '%s' excludes properties that the collection does not have: %s.",
+              collectionId, String.join(", ", unknown)));
+    }
+
+    List<String> fields = PropertySelection.fields(all, globalProperties, properties, exclusions);
+    if (fields.isEmpty()) {
+      throw new BadRequestException(
+          String.format(
+              "The query for collection '%s' selects no property, every property is excluded.",
+              collectionId));
+    }
+    return fields;
+  }
+
+  /**
+   * A global exclusion is applied to every queried collection, so it only has to be known by one of
+   * them; a name that no queried collection has is reported, so that a typo does not pass silently
+   * as a no-op.
+   */
+  private void validateGlobalExcludeProperties(
+      OgcApiDataV2 apiData, List<String> collectionIds, List<String> globalExcludeProperties) {
+    if (globalExcludeProperties.isEmpty()) {
+      return;
+    }
+    Set<String> known =
+        collectionIds.stream()
+            .filter(collectionId -> apiData.getCollections().containsKey(collectionId))
+            .flatMap(collectionId -> getPropertyNames(apiData, collectionId).stream())
+            .collect(Collectors.toUnmodifiableSet());
+    List<String> unknown = PropertySelection.unknown(globalExcludeProperties, known);
+    if (!unknown.isEmpty()) {
+      throw new BadRequestException(
+          String.format(
+              "The query excludes properties that none of the queried collections has: %s.",
+              String.join(", ", unknown)));
+    }
+  }
+
+  private List<String> getPropertyNames(OgcApiDataV2 apiData, String collectionId) {
+    return propertyNames
+        .computeIfAbsent(apiData.hashCode(), apiHashCode -> new ConcurrentHashMap<>())
+        .computeIfAbsent(collectionId, id -> schemaInfo.getPropertyNames(apiData, id, true, false));
   }
 
   // The query-expression parser deserializes the filter inline and does not inject the filter CRS,
