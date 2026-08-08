@@ -12,6 +12,7 @@ import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.OgcValues;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import org.immutables.value.Value;
 
@@ -26,10 +27,15 @@ public abstract class ValuesResponse implements OgcValues {
   @SuppressWarnings("UnstableApiUsage")
   public static final Funnel<ValuesResponse> FUNNEL =
       (from, into) -> {
-        from.getInlineOrRefValues().stream()
-            .map(v -> Objects.toString(v, ""))
-            .sorted()
-            .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
+        Object value = from.getInlineOrRefValues();
+        if (value instanceof List<?> values) {
+          values.stream()
+              .map(v -> Objects.toString(v, ""))
+              .sorted()
+              .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
+        } else {
+          into.putString(value.toString(), StandardCharsets.UTF_8);
+        }
       };
 
   public static ValuesResponse of(OgcValues values) {
