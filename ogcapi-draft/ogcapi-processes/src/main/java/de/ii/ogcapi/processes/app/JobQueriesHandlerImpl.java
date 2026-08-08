@@ -199,51 +199,11 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   private Response getJobResultsResponseSpecific(
       QueryInputResultsSpecific queryInput, ApiRequestContext requestContext) {
 
-    OgcApi api = requestContext.getApi();
-
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     Object output = processesExecutor.getResultsSpecific(jobId, outputId);
 
-    if (!(output instanceof List<?> list)) {
-      return basicResponse(requestContext, queryInput, jobId, output);
-    }
-
-    ValuesFormatExtension outputFormat =
-        api.getOutputFormat(
-                ValuesFormatExtension.class, requestContext.getMediaType(), Optional.empty())
-            .orElseThrow(
-                () ->
-                    new NotAcceptableException(
-                        MessageFormat.format(
-                            "The requested media type ''{0}'' is not supported for this resource.",
-                            requestContext.getMediaType())));
-
-    ValuesResponse valuesResponse =
-        new ImmutableValuesResponse.Builder().inlineOrRefValues(list).build();
-
-    Date lastModified = getLastModified(queryInput);
-    EntityTag etag =
-        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
-                || api.getData()
-                    .getExtension(HtmlConfiguration.class)
-                    .map(HtmlConfiguration::getSendEtags)
-                    .orElse(false)
-            ? ETag.from(valuesResponse, ValuesResponse.FUNNEL, outputFormat.getMediaType().label())
-            : null;
-    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
-    if (Objects.nonNull(response)) return response.build();
-
-    return prepareSuccessResponse(
-            requestContext,
-            null,
-            HeaderCaching.of(lastModified, etag, queryInput),
-            null,
-            HeaderContentDisposition.of(
-                String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
-            i18n.getLanguages())
-        .entity(outputFormat.getEntity(valuesResponse, api, requestContext))
-        .build();
+    return basicResponse(requestContext, queryInput, jobId, output);
   }
 
   // Limitation: Requirement 50 ("0-th"-result) is not supported!
@@ -252,7 +212,6 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     int indexN = queryInput.getIndexN();
-
     Object output = processesExecutor.getResultsSpecificN(jobId, outputId, indexN);
 
     return basicResponse(requestContext, queryInput, jobId, output);
@@ -331,16 +290,41 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
   private Response basicResponse(
       ApiRequestContext requestContext, QueryInput queryInput, String jobId, Object output) {
+    OgcApi api = requestContext.getApi();
+    ValuesFormatExtension outputFormat =
+        api.getOutputFormat(
+                ValuesFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            .orElseThrow(
+                () ->
+                    new NotAcceptableException(
+                        MessageFormat.format(
+                            "The requested media type ''{0}'' is not supported for this resource.",
+                            requestContext.getMediaType())));
+
+    ValuesResponse valuesResponse =
+        new ImmutableValuesResponse.Builder().inlineOrRefValues(output).build();
+
     Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(valuesResponse, ValuesResponse.FUNNEL, outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
     return prepareSuccessResponse(
             requestContext,
             null,
-            HeaderCaching.of(lastModified, null, queryInput),
+            HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
-                String.format("%s.%s", jobId, requestContext.getMediaType().fileExtension())),
+                String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
-        .entity(output)
+        .entity(outputFormat.getEntity(valuesResponse, api, requestContext))
         .build();
   }
 }

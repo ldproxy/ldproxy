@@ -8,10 +8,9 @@
 package de.ii.ogcapi.processes.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.List;
 
 public interface OgcValues {
 
   @JsonValue
-  List<Object> getInlineOrRefValues();
+  Object getInlineOrRefValues();
 }

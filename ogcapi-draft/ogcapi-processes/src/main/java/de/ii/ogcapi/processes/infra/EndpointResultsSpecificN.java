@@ -31,7 +31,7 @@ import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecificN;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
  * @path jobs/{jobId}/results/{outputId}/{N}
  * @langEn Retrieve the Nth value of a specific multivalued processing result
  * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -162,7 +162,7 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ValuesFormatExtension.class);
     return formats;
   }
 
