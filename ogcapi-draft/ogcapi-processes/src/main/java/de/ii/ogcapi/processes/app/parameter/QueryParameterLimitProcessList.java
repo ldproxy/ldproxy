@@ -30,10 +30,9 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-// ToDo: Docs
 /**
  * @title limit
- * @endpoints processes/{processId}
+ * @endpoints processes
  * @langEn The maximum number of process summaries that are presented in the response document. If
  *     more process summaries are available, a link to the next page is provided with the response.
  *     If no parameter value is provided, the default value that is configured for the API applies.
@@ -89,7 +88,7 @@ public class QueryParameterLimitProcessList extends OgcApiQueryParameterBase
     if (values.size() != 1)
       return Optional.of(
           String.format(
-              "Parameter value '%s' is invalid for parameter '%s': The must be a single value.",
+              "Parameter value '%s' is invalid for parameter '%s': It must be a single value.",
               values, getName()));
 
     int limit;
@@ -183,7 +182,7 @@ public class QueryParameterLimitProcessList extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The optional limit parameter limits the number of process descriptions that are included in the list.";
+    return "The optional limit parameter limits the number of process summaries that are included in the list.";
   }
 
   @Override

@@ -46,12 +46,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
 /**
- * @title Job
+ * @title Job Status
  * @path jobs/{jobId}
- * @langEn Returns the complete status of a specific job.
- * @langDe Gibt den gesamten Status eines bestimmten Jobs zurück.
+ * @langEn Returns the status information of a specific job.
+ * @langDe Gibt die Statusinformationen eines bestimmten Jobs zurück.
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
  */
 @Singleton

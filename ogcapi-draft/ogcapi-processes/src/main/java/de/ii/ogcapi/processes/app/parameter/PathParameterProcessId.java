@@ -25,12 +25,11 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo: Docs
 /**
  * @title processId
  * @endpoints processes/{processId}, processes/{processId}/execution
- * @langEn The local identifier of a process.
- * @langDe Der lokale Identifikator eines Prozesses.
+ * @langEn The local identifier of a process, unique within the API.
+ * @langDe Der lokale Identifikator eines Prozesses, eindeutig innerhalb der API.
  */
 @Singleton
 @AutoBind

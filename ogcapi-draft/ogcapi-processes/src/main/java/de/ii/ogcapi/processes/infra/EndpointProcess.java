@@ -46,12 +46,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
 /**
- * @title Process
+ * @title Process details
  * @path processes/{processId}
- * @langEn Returns the full details of a process.
- * @langDe Gibt die gesamten Details eines Prozesses zurück.
+ * @langEn Returns the complete details of a process.
+ * @langDe Gibt die vollständigen Details eines Prozesses zurück.
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ProcessFormatExtension}
  */
 @Singleton

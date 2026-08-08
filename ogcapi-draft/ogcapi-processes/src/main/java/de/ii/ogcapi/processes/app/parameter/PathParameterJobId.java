@@ -24,13 +24,12 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo: Docs
 /**
  * @title jobId
  * @endpoints jobs/{jobId}, jobs/{jobId}/results, jobs/{jobId}/results/{outputId},
  *     jobs/{jobId}/results/{outputId}/{N}
- * @langEn The local identifier of a job.
- * @langDe Der lokale Identifikator eines Jobs.
+ * @langEn The local identifier of a job, unique within the API.
+ * @langDe Der lokale Identifikator eines Jobs, eindeutig innerhalb der API.
  */
 @Singleton
 @AutoBind

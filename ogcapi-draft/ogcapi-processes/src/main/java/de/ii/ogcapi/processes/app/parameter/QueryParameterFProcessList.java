@@ -18,14 +18,13 @@ import de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-// ToDo: Docs
 /**
  * @title f
  * @endpoints processes
  * @langEn Select the output format of the response. If no value is provided, the standard HTTP
  *     rules apply, i.e., the "Accept" header will be used to determine the format.
  * @langDe Wählt das Ausgabeformat der Antwort. Wenn kein Wert angegeben wird, gelten die
- *     Standard-HTTP Regeln, d.h. der "Accept"-Header wird zur Bestimmung des Formats verwendet.
+ *     Standard-HTTP-Regeln, d.h. der "Accept"-Header wird zur Bestimmung des Formats verwendet.
  */
 @Singleton
 @AutoBind
