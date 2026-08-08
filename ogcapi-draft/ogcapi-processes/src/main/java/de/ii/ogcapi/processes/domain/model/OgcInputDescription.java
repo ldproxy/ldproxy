@@ -18,8 +18,14 @@ import org.immutables.value.Value;
  * See the following link for its OpenAPI 3.0 schema
  * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/processes-core/inputDescription.yaml
  *
- * <p>Limitations: - The following extensions are missing: - dataClasses.yaml - dataAccessAPIs -
- * executionUnitRequirements
+ * <p><code>
+ *     ```
+ *- The following extensions are missing:
+ *  - dataClasses
+ *  - dataAccessAPIs
+ *  - executionUnitRequirements
+ *- References are not supported
+ *    ```
  */
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
