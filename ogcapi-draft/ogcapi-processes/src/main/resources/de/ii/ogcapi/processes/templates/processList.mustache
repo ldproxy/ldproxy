@@ -1,0 +1,68 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+  <span>{{{description}}}</span>
+  <br/>
+  <br/>
+
+  {{> pagination}}
+
+  <div class="row my-3">
+    <div class="col-md-10">
+      <ul class="list-unstyled">
+        {{#processList}}
+          <li>
+            <a href="processes/{{id}}">{{id}}</a>
+            <br/>
+            Title:
+            {{#title}}
+              {{.}}
+            {{/title}}
+            {{^title}}
+              {{none}}
+            {{/title}}
+            <br/>
+            Description:
+            {{#description}}
+              {{.}}
+            {{/description}}
+            {{^description}}
+              {{none}}
+            {{/description}}
+            <br/>
+            Version: {{version}}
+            <br/>
+            Job Control Options:
+            <ul>
+              {{#jobControlOptions}}
+                <li>{{.}}</li>
+              {{/jobControlOptions}}
+              {{^jobControlOptions}}
+                <li>{{none}}</li>
+              {{/jobControlOptions}}
+            </ul>
+            Keywords:
+            <ul>
+              {{#keywords}}
+                <li>{{.}}</li>
+              {{/keywords}}
+              {{^keywords}}
+                <li>{{none}}</li>
+              {{/keywords}}
+            </ul>
+            <br/>
+          </li>
+        {{/processList}}
+        {{^processList}}
+          <li>{{none}}</li>
+        {{/processList}}
+      </ul>
+    </div>
+  </div>
+
+  {{> pagination}}
+
+</div>
+
+{{> footer}}
