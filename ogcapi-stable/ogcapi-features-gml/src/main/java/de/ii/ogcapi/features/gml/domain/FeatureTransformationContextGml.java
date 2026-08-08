@@ -246,6 +246,10 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     return currentEncoding().getXmlAttributes();
   }
 
+  public List<String> getXmlComments() {
+    return currentEncoding().getXmlComments();
+  }
+
   public Map<String, String> getCodelistProperties() {
     return currentEncoding().getCodelistProperties();
   }
@@ -504,6 +508,25 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
     } catch (XMLStreamException e) {
       throw new IOException(e);
     }
+  }
+
+  /**
+   * Writes a {@code <!-- name: value -->} annotation comment in element-content position — the form
+   * the GML encoding uses for information that has no place in the application schema (a property
+   * listed in {@code xmlComments}, a property link).
+   */
+  public void writeAnnotationComment(String name, String value) throws IOException {
+    writeComment(" " + name + ": " + escapeCommentText(value) + " ");
+  }
+
+  /**
+   * Makes a value safe to carry inside an XML comment: {@code --} must not occur in comment
+   * content, so it is replaced by a hyphen followed by U+2010 HYPHEN, which reads the same but does
+   * not terminate the comment. The trailing {@code -} case needs no handling, because every comment
+   * this class writes ends with a space.
+   */
+  public static String escapeCommentText(String value) {
+    return value.replace("--", "-‐");
   }
 
   /**
