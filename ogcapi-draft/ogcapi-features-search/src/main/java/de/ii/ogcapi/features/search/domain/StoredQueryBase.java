@@ -47,6 +47,9 @@ public interface StoredQueryBase extends StoredQueryComponent {
   // List of string or parameter, or a parameter that is a string array
   Optional<ParameterOrListOfStringOrParameter> getProperties();
 
+  // List of string or parameter, or a parameter that is a string array
+  Optional<ParameterOrListOfStringOrParameter> getExcludeProperties();
+
   // CRS URI or a parameter
   Optional<StringOrParameter> getCrs();
 
