@@ -246,6 +246,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
         .build();
   }
 
+  // Limitation: Requirement 50 ("0-th"-result) is not supported!
   private Response getJobResultsResponseSpecificN(
       QueryInputResultsSpecificN queryInput, ApiRequestContext requestContext) {
     String jobId = queryInput.getJobId();

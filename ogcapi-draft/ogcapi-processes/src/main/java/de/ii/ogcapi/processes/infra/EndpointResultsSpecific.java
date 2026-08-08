@@ -31,7 +31,7 @@ import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecific;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -47,13 +47,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
-
 /**
- * @title Results (output)
+ * @title Results (specific)
  * @path jobs/{jobId}/results/{outputId}
- * @langEn ToDo
- * @langDe ToDo
+ * @langEn Retrieve a specific result from the requested processing results
+ * @langDe Ein bestimmtes der angeforderten Job-Ergebnisse abrufen
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -99,12 +98,11 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Retrieve retrieve a specific processing result";
+      String operationSummary = "Retrieve a specific result from the requested processing results";
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Returns the a specific process output value identified by `outpudId`. \
-                    The response depends on the negotiated response type and the type of the specific value.
+                    Retrieve a specific result from the requested processing results identified by `outputId`.
                     """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
@@ -161,7 +159,7 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ValuesFormatExtension.class);
     return formats;
   }
 

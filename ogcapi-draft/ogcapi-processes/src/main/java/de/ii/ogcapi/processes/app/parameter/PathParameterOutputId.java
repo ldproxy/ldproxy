@@ -24,12 +24,13 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo: Docs
 /**
  * @title outputId
  * @endpoints jobs/{jobId}/results/{outputId}, jobs/{jobId}/results/{outputId}/{N}
- * @langEn The identifier of a job's output.
- * @langDe Der Identifikator eines Outputs von einem Job.
+ * @langEn The identifier of a specific result of a job as described in the `outputs` section of the
+ *     executed process description.
+ * @langDe Der Bezeichner eines bestimmten Ergebnisses eines Jobs, wie im Abschnitt `outputs` der
+ *     Beschreibung des ausgeführten Prozesses angegeben.
  */
 @Singleton
 @AutoBind
@@ -76,7 +77,7 @@ public class PathParameterOutputId implements OgcApiPathParameter {
 
   @Override
   public String getDescription() {
-    return "The identifier of an output of a job as described in the process description of the executed process.";
+    return "The identifier of a specific result of a job as described in the `outputs`-section of the executed process' description.";
   }
 
   @Override

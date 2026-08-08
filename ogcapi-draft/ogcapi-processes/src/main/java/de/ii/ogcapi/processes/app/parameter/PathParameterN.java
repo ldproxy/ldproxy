@@ -25,12 +25,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-// ToDo: Docs
 /**
- * @title index N
+ * @title Index N
  * @endpoints jobs/{jobId}/results/{outputId}/{N}
- * @langEn The zero-based index to access a value of a multi-valued output.
- * @langDe Der nullbasierte Index für den Zugriff auf einen Wert eines mehrwertigen Outputs.
+ * @langEn The zero-based index to access a value of a multi-valued result.
+ * @langDe Der nullbasierte Index für den Zugriff auf einen Wert eines mehrwertigen Ergebnisses.
  */
 @Singleton
 @AutoBind
@@ -79,7 +78,7 @@ public class PathParameterN implements OgcApiPathParameter {
 
   @Override
   public String getDescription() {
-    return "The index of which to access a multi-valued output.";
+    return "The zero-based index to access a value of a multi-valued output.";
   }
 
   @Override

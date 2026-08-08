@@ -23,9 +23,16 @@ import java.util.Optional;
 
 // ToDo: Docs
 /**
- * @title PROCESSES_CORE
- * @langEn Docs WIP
- * @langDe Doku WIP
+ * @title Processes
+ * @langEn Processes allows for the execution of processes and the retrieval of metadata describing
+ *     those processes.
+ * @langDe GERMAN_TRANSLATION
+ * @scopeEn
+ * @scopeDe GERMAN_TRANSLATION
+ * @limitationsEn
+ * @limitationsDe GERMAN_TRANSLATION
+ * @conformanceEn
+ * @conformanceDe GERMAN_TRANSLATION
  * @ref:cfg {@link de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.processes.infra.EndpointProcessList}, {@link

@@ -27,14 +27,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-// ToDo: Docs
 /**
  * @title offset
- * @endpoints processes/{processId}
- * @langEn The index of the first processes description in the response in the overall result set.
- *     This parameter is used for response paging.
- * @langDe Der Index der ersten Prozessbeschreibung in der Antwort in der Gesamtergebnismenge.
- *     Dieser Parameter wird für das Paging verwendet.
+ * @endpoints processes
+ * @langEn The index of the first process summary in the overall result set to include in the
+ *     response. This parameter is used for paging.
+ * @langDe Der Index der ersten Prozesszusammenfassung im Gesamtergebnis, die in die Antwort
+ *     aufgenommen wird. Dieser Parameter wird für das Paging verwendet.
  */
 @Singleton
 @AutoBind
@@ -78,7 +77,7 @@ public class QueryParameterOffsetProcessList extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The optional offset parameter identifies the index of the first process description in the response in the overall result set.";
+    return "The optional offset parameter identifies the index of the first process summary in the overall result set to include in the response.";
   }
 
   public Optional<Integer> parse(QueryParameterSet parameters) {
