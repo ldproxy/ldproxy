@@ -35,7 +35,6 @@ import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
 import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -57,20 +56,19 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
 /**
  * @title Execute
  * @path processes/{processId}/execution
- * @langEn Triggers the execution of a process. The inputs, output selection and possible
- *     subscribers are sent in the request. The respond depends on the number of outputs requested,
- *     the negotiated content type for the response, the mode of execution, and whether an output is
- *     single- or multi-valued. For more information refer to the [draft
- *     document](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427).
+ * @langEn Triggers the execution of a process. The inputs, output selection and possible callback
+ *     subscribers are sent in the request body. If the process is executed synchronously, the
+ *     results are computed and returned directly, otherwise the status info of the corresponding
+ *     job is returned.
  * @langDe Löst die Ausführung eines Prozesses aus. Die Eingaben, die Ausgabeauswahl und mögliche
- *     Subscriber werden im Request-body übermittelt. Die Antwort hängt von der Anzahl der
- *     angeforderten Ausgaben, dem ausgehandelten Inhaltstyp, dem Ausführungsmodus und davon ab, ob
- *     eine Ausgabe ein- oder mehrwertig ist. Weitere Informationen finden Sie im
- *     [Entwurfsdokument](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427).
+ *     Callback-Subscriber werden im Request-Body übermittelt. Wird der Prozess synchron ausgeführt,
+ *     werden die Ergebnisse berechnet und direkt zurückgegeben, andernfalls werden die
+ *     Statusinformationen des zugehörigen Jobs zurückgegeben.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}, {@link
+ *     de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -126,11 +124,11 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
       Optional<String> operationDescription =
           Optional.of(
               """
-                  Trigger the execution of a process with specific inputs and an output selection. \
+                  Triggers the execution of a process with specific inputs and an output selection. \
 
                   Certain processes can be executed asynchronously. If this is desired, `respond-async` should be included in the `Prefer` header. \
 
-                  The response depends on the number of outputs requested, the negotiated content type for the response, the mode of execution, and whether an output is single- or multi-valued. For more information refer to the [draft document](https://docs.ogc.org/DRAFTS/18-062r3.html#_cacf1be8-0e26-1ccf-7dad-11c93a1e9427). """);
+                  Triggers the execution of a process. The inputs, output selection and possible callback subscribers are sent in the request body. If the process is executed synchronously, the results are computed and returned directly, otherwise the status info of the corresponding job is returned.""");
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
@@ -220,7 +218,6 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
           ImmutableList.<FormatExtension>builder()
               .addAll(extensionRegistry.getExtensionsForType(ResultsFormatExtension.class))
               .addAll(extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class))
-              .addAll(extensionRegistry.getExtensionsForType(ValuesFormatExtension.class))
               .build();
     return resourceFormats;
   }

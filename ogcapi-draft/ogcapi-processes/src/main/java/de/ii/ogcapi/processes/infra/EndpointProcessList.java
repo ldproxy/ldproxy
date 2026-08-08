@@ -46,14 +46,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-// ToDo: Docs
 /**
- * @title ProcessList
+ * @title Process List
  * @path processes
  * @langEn Returns a list containing the summaries of a subset of all processes supported by this
  *     API. Supports pagination using links (first, next, prev and last) to discover all subsets.
  * @langDe Gibt eine Liste mit Zusammenfassungen einer Teilmenge aller von dieser API unterstützten
- *     Prozesse zurück. Unterstützt die Paginierung über Links (first, next, prev and last), um alle
+ *     Prozesse zurück. Unterstützt die Paginierung über Links (first, next, prev und last), um alle
  *     Teilmengen zu erkunden.
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ProcessListFormatExtension}
  */
@@ -96,8 +95,8 @@ public class EndpointProcessList extends Endpoint implements ApiExtensionHealth 
                    This operation fetches a list of summaries of processes supported by this API. \
                    The response is a document containing a list of process summaries. \
 
-                   To support access to all process summaries without overloading the client, the API supports paged access with links to the next, first, previous and last page if applicable. \
-                   For example if more processes are available than the page size, which is controlled by the `limit` parameter (default: %d, maximum: %d, minimum: %d), a next-link will be included.""",
+                   To support access to all process summaries without overloading the client, the API supports paged access with links to the first, next, previous and last page if applicable. \
+                   For example, if more processes are available than the page size, which is controlled by the `limit` parameter (default: %d, maximum: %d, minimum: %d), a `next` link will be included.""",
                 config.map(ProcessesCoreConfiguration::getDefaultPageSize).get(),
                 config.map(ProcessesCoreConfiguration::getMaximumPageSize).get(),
                 config.map(ProcessesCoreConfiguration::getMinimumPageSize).get()));

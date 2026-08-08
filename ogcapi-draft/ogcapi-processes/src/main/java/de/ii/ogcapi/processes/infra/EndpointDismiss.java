@@ -51,15 +51,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
 /**
  * @title Dismiss Job
  * @path jobs/{jobId}
  * @langEn Dismiss a job. If the job is currently in the accepted or running state, its status is
- *     set to dismissed. Otherwise, the job is removed from the API.
+ *     set to dismissed. Otherwise, nothing is changed.
  * @langDe Einen Job abbrechen. Wenn sich der Job aktuell im Zustand "accepted" oder "running"
- *     befindet, wird sein Status auf "dismissed" gesetzt. Andernfalls wird der Job aus der API
- *     entfernt.
+ *     befindet, wird sein Status auf "dismissed" gesetzt. Andernfalls wird nichts geändert.
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
  */
 @Singleton
@@ -110,7 +108,7 @@ public class EndpointDismiss extends Endpoint implements ApiExtensionHealth, Con
       String operationSummary = "Dismiss a job";
       Optional<String> operationDescription =
           Optional.of(
-              "If the job is currently in the accepted or running state, its status is set to dismissed. Otherwise, the job is removed from the API.");
+              "If the job is currently in the accepted or running state, its status is set to dismissed. Otherwise, nothing is changed.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);

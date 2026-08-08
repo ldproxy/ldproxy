@@ -47,13 +47,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
-
 /**
  * @title Results (index)
  * @path jobs/{jobId}/results/{outputId}/{N}
- * @langEn ToDo
- * @langDe ToDo
+ * @langEn Retrieve the Nth value of a specific multivalued processing result
+ * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -103,7 +102,7 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Returns the Nth value of a specific processing result identified by `outpudId` and `N`. \
+                    Returns the Nth value of a specific processing result identified by `outputId` and `N`. \
                     The response depends on the negotiated response type and the type of the specific value.
                     """);
 

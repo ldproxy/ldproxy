@@ -46,12 +46,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// ToDo: Docs
 /**
  * @title Results (full)
  * @path jobs/{jobId}/results
- * @langEn Returns the complete or specific results of a specific job.
- * @langDe Gibt die Ergebnisse eines bestimmten Jobs zurück.
+ * @langEn Retrieve all requested processing results
+ * @langDe Alle angeforderten Job-Ergebnisse abrufen
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -100,8 +100,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Returns the results for the job with the specified by `jobId`.\
-                    The response depends on the negotiated response type and the type of the results.
+                    Returns the results for the job specified by `jobId`.
                     """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =

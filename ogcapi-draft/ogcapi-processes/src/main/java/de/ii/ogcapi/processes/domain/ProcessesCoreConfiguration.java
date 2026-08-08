@@ -14,9 +14,93 @@ import jakarta.validation.constraints.Min;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
-// ToDo: Docs
 /**
  * @buildingBlock PROCESSES_CORE
+ * @examplesEn Example config for an API:
+ *     <p><code>
+ *   ```yaml
+ *  - buildingBlock: PROCESSES_CORE
+ *     enabled: true
+ *     defaultPageSize: 10
+ *     minimumPageSize: 5
+ *     maximumPageSize: 100
+ *     callbackRetries: 2
+ *     executionMode: BOTH
+ *   ```
+ * </code>
+ *     <p>Example for the process description of a simple `Echo`-Process:<code>
+ *   ```yaml
+ *   id: "EchoProcess"
+ * title: "Echo Process"
+ * description: "This process simply echoes its input as an output."
+ * version: "1.0.0"
+ * jobControlOptions: [ SYNC_EXECUTE, ASYNC_EXECUTE ]
+ * outputs:
+ *   inputString:
+ *     title: "Input String"
+ *     description: "The echoed single string value."
+ *     valuePassing: [ BY_VALUE ]
+ *     schema:
+ *       type: string
+ *     maxOccurs: 1
+ *     minOccurs: 0
+ * inputs:
+ *   inputString:
+ *     title: "Input String"
+ *     description: "A single string value to echo."
+ *     valuePassing: [ BY_VALUE ]
+ *     schema:
+ *       type: string
+ *     maxOccurs: 1
+ *     minOccurs: 0
+ *   ```
+ * </code> If the process is meant to be global, this must be stored in `values/processes`. If the
+ *     process is for a specific API `foo`, it must be in `values/processes/foo`.
+ *     <p>For more information on how to describe a process, see [OGC PROCESS
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description).
+ * @exampleDe Beispielkonfiguration für eine API:
+ *     <p><code>
+ *   ```yaml
+ *  - buildingBlock: PROCESSES_CORE
+ *     enabled: true
+ *     defaultPageSize: 10
+ *     minimumPageSize: 5
+ *     maximumPageSize: 100
+ *     callbackRetries: 2
+ *     executionMode: BOTH
+ *   ```
+ * </code>
+ *     <p>Beispiel für die Prozessbeschreibung eines einfachen `Echo`-Prozesses:<code>
+ *   ```yaml
+ *   id: "EchoProcess"
+ * title: "Echo Process"
+ * description: "This process simply echoes its input as an output."
+ * version: "1.0.0"
+ * jobControlOptions: [ SYNC_EXECUTE, ASYNC_EXECUTE ]
+ * outputs:
+ *   inputString:
+ *     title: "Input String"
+ *     description: "The echoed single string value."
+ *     valuePassing: [ BY_VALUE ]
+ *     schema:
+ *       type: string
+ *     maxOccurs: 1
+ *     minOccurs: 0
+ * inputs:
+ *   inputString:
+ *     title: "Input String"
+ *     description: "A single string value to echo."
+ *     valuePassing: [ BY_VALUE ]
+ *     schema:
+ *       type: string
+ *     maxOccurs: 1
+ *     minOccurs: 0
+ *   ```
+ * </code> Wenn der Prozess global sein soll, muss die Beschreibung in `values/processes`
+ *     gespeichert werden. Falls der Prozess für eine bestimmte API `foo` gelten soll, muss dieser
+ *     in `values/processes/foo` liegen.
+ *     <p>Weitere Informationen zur Beschreibung eines Prozesses finden Sie unter [OGC PROCESS
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description).
  */
 @Value.Immutable
 @Value.Style(builder = "new")
@@ -24,15 +108,15 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessesCoreConfiguration.Builder.class)
 public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
 
-  int DEFAULT_PAGE_SIZE = 10;
-  int MINIMUM_PAGE_SIZE = 1;
-  int MAXIMUM_PAGE_SIZE = 10_000;
-
   enum ExecutionMode {
     SYNC,
     ASYNC,
     BOTH
   }
+
+  int DEFAULT_PAGE_SIZE = 10;
+  int MINIMUM_PAGE_SIZE = 1;
+  int MAXIMUM_PAGE_SIZE = 10_000;
 
   /**
    * @default false
@@ -43,6 +127,24 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   Boolean getEnabled();
 
   /**
+   * @langEn Sets the supported execution modes. If set to `SYNC`, only synchronous processes will
+   *     be supported and they will all be executed synchronously. Setting it to `ASYNC` has the
+   *     same effect for asynchronous processes and execution. To support both modes, set it to
+   *     `BOTH`.
+   * @langDe Legt die unterstützten Ausführungsmodi fest. Bei `SYNC` werden nur synchrone Prozesse
+   *     unterstützt und alle synchron ausgeführt. Bei `ASYNC` gilt dies entsprechend für asynchrone
+   *     Prozesse und Ausführung. Um beide Modi zu unterstützen, setzen Sie den Wert auf `BOTH`.
+   * @default SYNC
+   * @since 4.9
+   */
+  @Value.Default
+  default ExecutionMode getExecutionMode() {
+    return ExecutionMode.SYNC;
+  }
+
+  /**
+   * @langEn Sets the default value for parameter `limit`.
+   * @langDe Setzt den Defaultwert für den Parameter `limit`.
    * @default 10
    * @since 4.9
    */
@@ -52,6 +154,8 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   }
 
   /**
+   * @langEn Sets the minimum value for parameter `limit`.
+   * @langDe Setzt den Minimalwert für den Parameter `limit`.
    * @default 1
    * @since 4.9
    */
@@ -61,6 +165,8 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   }
 
   /**
+   * @langEn Sets the maximum value for parameter `limit`.
+   * @langDe Setzt den Maximalwert für den Parameter `limit`.
    * @default 10000
    * @since 4.9
    */
@@ -81,15 +187,6 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   @Value.Default
   default Integer getCallbackRetries() {
     return 3;
-  }
-
-  /**
-   * @default SYNC_ONLY
-   * @since 4.9
-   */
-  @Value.Default
-  default ExecutionMode getExecutionMode() {
-    return ExecutionMode.SYNC;
   }
 
   @Override
