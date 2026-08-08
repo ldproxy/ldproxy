@@ -553,8 +553,21 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
   /**
    * Appends a raw string directly to the underlying buffer, bypassing XMLStreamWriter. Use only for
    * the placeholder strings that are replaced before output.
+   *
+   * <p>XMLStreamWriter implementations buffer their output internally and only hand it to the
+   * underlying writer when that buffer fills or is flushed, so appending to {@link #buffer} without
+   * flushing first would place the raw string <em>before</em> everything the writer has not emitted
+   * yet — a placeholder meant for the start tag of the current element would end up in front of
+   * that element. Flushing pins the raw string at the current position; a start tag that is still
+   * open stays open (its {@code >} is emitted lazily), so a placeholder written here lands in
+   * attribute position and further {@link #writeAttribute} calls still apply to the same element.
    */
-  public void write(String value) {
+  public void write(String value) throws IOException {
+    try {
+      xmlWriter.flush();
+    } catch (XMLStreamException e) {
+      throw new IOException(e);
+    }
     buffer.append(value);
   }
 
@@ -657,7 +670,7 @@ public abstract class FeatureTransformationContextGml implements FeatureTransfor
    * {@link #closeStartElement()}, so that the placeholder appears in attribute position.
    */
   @Value.Auxiliary
-  public void writeXmlAttPlaceholder() {
+  public void writeXmlAttPlaceholder() throws IOException {
     int i = getState().getLastObject();
     String xmlAttPlaceholder = XML_ATTRIBUTE_PLACEHOLDER.replace("i", String.valueOf(i));
     // Raw write so the placeholder appears inside the start tag (attribute position)
