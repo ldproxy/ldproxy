@@ -86,24 +86,25 @@ public class QueryParameterFTileCollection extends QueryParameterF {
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      List<String> fEnum = new ArrayList<>();
-      extensionRegistry.getExtensionsForType(getFormatClass()).stream()
-          .filter(
-              f ->
-                  apiData.getCollections().keySet().stream()
-                      .anyMatch(collectionId -> f.isEnabledForApi(apiData, collectionId)))
-          .filter(f -> !f.isInternal())
-          .filter(f -> !"*".equals(f.getMediaType().parameter()))
-          .map(f -> f.getMediaType().parameter())
-          .distinct()
-          .sorted()
-          .forEach(fEnum::add);
-      schemaMap.get(apiHashCode).put("*", new StringSchema()._enum(fEnum));
-    }
-    return schemaMap.get(apiHashCode).get("*");
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            "*",
+            ignore -> {
+              List<String> fEnum = new ArrayList<>();
+              extensionRegistry.getExtensionsForType(getFormatClass()).stream()
+                  .filter(
+                      f ->
+                          apiData.getCollections().keySet().stream()
+                              .anyMatch(collectionId -> f.isEnabledForApi(apiData, collectionId)))
+                  .filter(f -> !f.isInternal())
+                  .filter(f -> !"*".equals(f.getMediaType().parameter()))
+                  .map(f -> f.getMediaType().parameter())
+                  .distinct()
+                  .sorted()
+                  .forEach(fEnum::add);
+              return new StringSchema()._enum(fEnum);
+            });
   }
 
   @Override

@@ -162,50 +162,44 @@ public class QueryParameterSortbyFeatures extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) {
-      schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    }
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      schemaMap.get(apiHashCode).put("*", new ArraySchema().items(new StringSchema()));
-    }
-    return schemaMap.get(apiHashCode).get("*");
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent("*", ignore -> new ArraySchema().items(new StringSchema()));
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) {
-      schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    }
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      FeatureTypeConfigurationOgcApi collectionData =
-          Objects.requireNonNull(apiData.getCollections().get(collectionId));
-      FeatureSchema featureSchema =
-          providers.getFeatureSchema(apiData, collectionData).orElseThrow();
-      List<String> sortables =
-          collectionData
-              .getExtension(SortingConfiguration.class)
-              .map(
-                  cfg ->
-                      cfg
-                          .getSortables(apiData, collectionData, featureSchema, providers)
-                          .keySet()
-                          .stream()
-                          .collect(Collectors.toUnmodifiableList()))
-              .orElse(ImmutableList.of());
-      List<String> enums =
-          sortables.stream()
-              .map(p -> ImmutableList.of(p, "+" + p, "-" + p))
-              .flatMap(Collection::stream)
-              .collect(Collectors.toUnmodifiableList());
-      StringSchema sortableSchema = new StringSchema();
-      if (!enums.isEmpty()) {
-        sortableSchema._enum(enums);
-      }
-      schemaMap.get(apiHashCode).put(collectionId, new ArraySchema().items(sortableSchema));
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              FeatureTypeConfigurationOgcApi collectionData =
+                  Objects.requireNonNull(apiData.getCollections().get(collectionId));
+              FeatureSchema featureSchema =
+                  providers.getFeatureSchema(apiData, collectionData).orElseThrow();
+              List<String> sortables =
+                  collectionData
+                      .getExtension(SortingConfiguration.class)
+                      .map(
+                          cfg ->
+                              cfg
+                                  .getSortables(apiData, collectionData, featureSchema, providers)
+                                  .keySet()
+                                  .stream()
+                                  .collect(Collectors.toUnmodifiableList()))
+                      .orElse(ImmutableList.of());
+              List<String> enums =
+                  sortables.stream()
+                      .map(p -> ImmutableList.of(p, "+" + p, "-" + p))
+                      .flatMap(Collection::stream)
+                      .collect(Collectors.toUnmodifiableList());
+              StringSchema sortableSchema = new StringSchema();
+              if (!enums.isEmpty()) {
+                sortableSchema._enum(enums);
+              }
+              return new ArraySchema().items(sortableSchema);
+            });
   }
 
   @Override
