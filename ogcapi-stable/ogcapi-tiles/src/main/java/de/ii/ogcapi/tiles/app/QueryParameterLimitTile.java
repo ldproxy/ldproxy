@@ -82,50 +82,54 @@ public class QueryParameterLimitTile extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            "*",
+            ignore -> {
+              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
 
-      Optional<Integer> limit =
-          tilesProviders
-              .getTileProvider(apiData)
-              .map(TileProvider::getData)
-              .map(TileProviderData::getTilesetDefaults)
-              .filter(defaults -> defaults instanceof TileGenerationOptions)
-              .flatMap(
-                  defaults ->
-                      Optional.ofNullable(((TileGenerationOptions) defaults).getFeatureLimit()));
+              Optional<Integer> limit =
+                  tilesProviders
+                      .getTileProvider(apiData)
+                      .map(TileProvider::getData)
+                      .map(TileProviderData::getTilesetDefaults)
+                      .filter(defaults -> defaults instanceof TileGenerationOptions)
+                      .flatMap(
+                          defaults ->
+                              Optional.ofNullable(
+                                  ((TileGenerationOptions) defaults).getFeatureLimit()));
 
-      limit.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
+              limit.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
 
-      schemaMap.get(apiHashCode).put("*", schema);
-    }
-    return schemaMap.get(apiHashCode).get("*");
+              return schema;
+            });
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
 
-      Optional<Integer> limit =
-          tilesProviders
-              .getTileProvider(apiData, apiData.getCollectionData(collectionId))
-              .map(TileProvider::getData)
-              .map(TileProviderData::getTilesetDefaults)
-              .filter(defaults -> defaults instanceof TileGenerationOptions)
-              .flatMap(
-                  defaults ->
-                      Optional.ofNullable(((TileGenerationOptions) defaults).getFeatureLimit()));
+              Optional<Integer> limit =
+                  tilesProviders
+                      .getTileProvider(apiData, apiData.getCollectionData(collectionId))
+                      .map(TileProvider::getData)
+                      .map(TileProviderData::getTilesetDefaults)
+                      .filter(defaults -> defaults instanceof TileGenerationOptions)
+                      .flatMap(
+                          defaults ->
+                              Optional.ofNullable(
+                                  ((TileGenerationOptions) defaults).getFeatureLimit()));
 
-      limit.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
+              limit.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
 
-      schemaMap.get(apiHashCode).put(collectionId, schema);
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+              return schema;
+            });
   }
 
   @Override
