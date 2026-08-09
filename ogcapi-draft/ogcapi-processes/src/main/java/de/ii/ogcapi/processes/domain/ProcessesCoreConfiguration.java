@@ -59,7 +59,7 @@ import org.immutables.value.Value;
  *     process is for a specific API `foo`, it must be in `values/processes/foo`.
  *     <p>For more information on how to describe a process, see [OGC PROCESS
  *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description).
- * @exampleDe Beispielkonfiguration für eine API:
+ * @examplesDe Beispielkonfiguration für eine API:
  *     <p><code>
  *   ```yaml
  *  - buildingBlock: PROCESSES_CORE
