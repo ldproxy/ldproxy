@@ -1,5 +1,5 @@
 [versions]
 xtraplatform-core    = '7.1.0-SNAPSHOT'
 xtraplatform-native  = '2.7.0-SNAPSHOT'
-xtraplatform-spatial = '8.1.0-SNAPSHOT'
+xtraplatform-spatial = '8.1.0-constraint-violation-exception-SNAPSHOT'
 
