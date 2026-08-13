@@ -236,7 +236,11 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     ArrayNode deleteResults = body.putArray("deleteResults");
     ArrayNode exceptions = MAPPER.createArrayNode();
 
-    boolean wantDetails = ret != HeaderPrefer.Return.MINIMAL;
+    // Only `return=representation` asks for the per-feature URIs. `return=none` reaches this
+    // point when the response cannot be empty after all — the transaction failed, or it
+    // succeeded with warnings — and a client that asked for nothing should then get the
+    // smallest body that still carries the outcome, not the largest one.
+    boolean wantDetails = ret == HeaderPrefer.Return.REPRESENTATION;
 
     for (ActionResult r : result.getActionResults()) {
       addExceptionsFor(r, exceptions);
@@ -250,7 +254,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
       }
     }
 
-    if (ret == HeaderPrefer.Return.MINIMAL) {
+    if (!wantDetails) {
       body.remove("insertResults");
       body.remove("replaceResults");
       body.remove("updateResults");
