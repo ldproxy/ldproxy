@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import Badge from "../../Badge";
 
-const EditorHeader = ({ isOpen, setOpen, isEnabled, filters, save, cancel }) => {
+const EditorHeader = ({ isOpen = false, setOpen, isEnabled, filters, save, cancel }) => {
   const { t } = useTranslation();
 
   const toggle = (event) => {
@@ -78,10 +78,6 @@ EditorHeader.propTypes = {
   filters: PropTypes.object.isRequired,
   save: PropTypes.func.isRequired,
   cancel: PropTypes.func.isRequired,
-};
-
-EditorHeader.defaultProps = {
-  isOpen: false,
 };
 
 export default EditorHeader;

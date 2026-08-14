@@ -7,7 +7,15 @@ import Resizer from "./Resizer";
 import "./style.css";
 
 // eslint-disable-next-line no-unused-vars
-const MapSelect = ({ bounds, backgroundUrl, attribution, onChange }) => {
+const MapSelect = ({
+  bounds = [
+    [0, 0],
+    [0, 0],
+  ],
+  backgroundUrl = null,
+  attribution = null,
+  onChange,
+}) => {
   return (
     <MapLibre
       backgroundUrl={backgroundUrl}
@@ -30,15 +38,6 @@ MapSelect.propTypes = {
   backgroundUrl: PropTypes.string,
   attribution: PropTypes.string,
   onChange: PropTypes.func.isRequired,
-};
-
-MapSelect.defaultProps = {
-  bounds: [
-    [0, 0],
-    [0, 0],
-  ],
-  backgroundUrl: null,
-  attribution: null,
 };
 
 export default MapSelect;

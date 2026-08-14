@@ -7,7 +7,7 @@ import moment from "moment";
 const doFormat = (date, hideTime) =>
   hideTime ? moment.utc(date).format("DD.MM.yyyy") : moment.utc(date).format("DD.MM.yyyy HH:mm:ss");
 
-const Header = ({ start, end, title, hideTime }) => {
+const Header = ({ start, end = null, title = "Date/Time", hideTime }) => {
   const text = end
     ? `${doFormat(start, hideTime)} -- ${doFormat(end, hideTime)}`
     : doFormat(start, hideTime);
@@ -32,11 +32,6 @@ Header.propTypes = {
   end: PropTypes.any,
   title: PropTypes.string,
   hideTime: PropTypes.bool.isRequired,
-};
-
-Header.defaultProps = {
-  end: null,
-  title: "Date/Time",
 };
 
 Header.displayName = "Header";

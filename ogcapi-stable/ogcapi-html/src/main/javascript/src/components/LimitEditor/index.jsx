@@ -254,10 +254,4 @@ LimitEditor.propTypes = {
   defaultLimit: PropTypes.number,
 };
 
-LimitEditor.defaultProps = {
-  limitOptions: [],
-  allowCustomLimit: false,
-  defaultLimit: null,
-};
-
 export default LimitEditor;

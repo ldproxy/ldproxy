@@ -8,13 +8,13 @@ import TemporalFilter from "./Temporal";
 import SpatialFilter, { MapSelect, roundBounds, boundsArraysEqual } from "./Spatial";
 
 const EditorBody = ({
-  isOpen,
-  fields,
+  isOpen = false,
+  fields = {},
   backgroundUrl,
   attribution,
-  spatial,
+  spatial = null,
   filters,
-  onAdd,
+  onAdd = () => {},
   deleteFilters,
   code,
   titleForFilter,
@@ -129,13 +129,6 @@ EditorBody.propTypes = {
   temporal: PropTypes.objectOf(PropTypes.number).isRequired,
   integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
   booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
-};
-
-EditorBody.defaultProps = {
-  isOpen: false,
-  fields: {},
-  spatial: null,
-  onAdd: () => {},
 };
 
 export default EditorBody;

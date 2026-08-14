@@ -6,7 +6,14 @@ import { useTranslation } from "react-i18next";
 import FilterValueField from "./FilterValueField";
 import ValueField from "./ValueField";
 
-const FieldFilter = ({ fields, onAdd, filters, deleteFilters, titleForFilter, isOpen }) => {
+const FieldFilter = ({
+  fields,
+  onAdd,
+  filters,
+  deleteFilters,
+  titleForFilter,
+  isOpen = false,
+}) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("ascending");
   const [changedValue, setChangedValue] = useState("");
@@ -170,10 +177,6 @@ FieldFilter.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   titleForFilter: PropTypes.objectOf(PropTypes.string).isRequired,
   isOpen: PropTypes.bool,
-};
-
-FieldFilter.defaultProps = {
-  isOpen: false,
 };
 
 export default FieldFilter;

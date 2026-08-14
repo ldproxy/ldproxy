@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import PropTypes from "prop-types/prop-types";
 import { useMaplibreUIEffect } from "react-maplibre-ui";
 import Control from "./Control";
@@ -11,7 +11,7 @@ const LayerControl = ({ opened, onlyLegend, preferStyle, entries }) => {
     map.addControl(
       {
         onAdd: () => {
-          ReactDOM.render(
+          createRoot(container).render(
             <React.StrictMode>
               <Control
                 opened={opened}
@@ -21,8 +21,7 @@ const LayerControl = ({ opened, onlyLegend, preferStyle, entries }) => {
                 map={map}
                 maxHeight={map.getContainer().offsetHeight * 0.75}
               />
-            </React.StrictMode>,
-            container
+            </React.StrictMode>
           );
           return container;
         },

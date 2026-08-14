@@ -28,6 +28,4 @@ FilterBadge.displayName = "FilterBadge";
 
 FilterBadge.propTypes = {};
 
-FilterBadge.defaultProps = {};
-
 export default FilterBadge;

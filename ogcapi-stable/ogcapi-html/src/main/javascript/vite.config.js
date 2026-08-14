@@ -18,11 +18,13 @@ const cesiumVersion = JSON.parse(
 ).version;
 const cesiumPath = `cesium/${cesiumVersion}`;
 
-// src/apps/common is a non-rendering entry that only ever existed to seed Neutrino/Webpack's
-// splitChunks vendor chunk; nothing on the Java side references its output (grep confirms no
-// "app-common" usage), and Rollup splits shared chunks automatically without needing an
-// anchor entry. Dropped rather than carried forward as dead output.
-const apps = readdirSync(resolve(root, 'src/apps')).filter((app) => app !== 'common');
+// NOTE: src/apps/common looks like a non-rendering leftover (just imports react/react-dom,
+// no render call — it used to seed Neutrino/Webpack's splitChunks vendor chunk), but its
+// generated app-common.mustache IS a real Mustache partial, included via `{{> app-common}}`
+// from featureCollection.mustache (and transitively from landingPage.mustache). Dropping it
+// broke every dataset landing/collection page with a 500 (MustacheNotFoundException) — a `grep`
+// over src/main/java alone doesn't catch it, the reference lives in a .mustache file. Keep it.
+const apps = readdirSync(resolve(root, 'src/apps'));
 const styles = readdirSync(resolve(root, 'src/styles'));
 
 const input = {};

@@ -13,7 +13,7 @@ const sliderStyle = {
   width: "100%",
 };
 
-const Slider = ({ start, end, min, max, isInstant, onChange, showHeader }) => {
+const Slider = ({ start, end, min, max, isInstant, onChange, showHeader = false }) => {
   const [updatedInstant, setUpdatedInstant] = useState(moment.utc(start).valueOf());
   const [updatedPeriod, setUpdatedPeriod] = useState([
     moment.utc(start).valueOf(),
@@ -138,10 +138,6 @@ Slider.propTypes = {
   isInstant: PropTypes.bool.isRequired,
   onChange: PropTypes.func.isRequired,
   showHeader: PropTypes.bool,
-};
-
-Slider.defaultProps = {
-  showHeader: false,
 };
 
 export default Slider;

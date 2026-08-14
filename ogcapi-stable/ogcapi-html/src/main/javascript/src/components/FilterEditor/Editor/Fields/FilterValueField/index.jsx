@@ -167,5 +167,3 @@ FilterValueField.propTypes = {
   booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
   overwriteFilters: PropTypes.func.isRequired,
 };
-
-FilterValueField.defaultProps = {};

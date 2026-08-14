@@ -32,12 +32,17 @@ function collectCss(entryChunk, bundle) {
 }
 
 export function ogcapiHtmlMustachePlugin({ apps, styles }) {
+  let base = '/';
+
   return {
     name: 'ogcapi-html-mustache',
     // Vite's own css-post plugin aggregates each entry's transitive importedCss (across
     // shared/vendor chunks) in its generateBundle hook; without enforce: 'post' this plugin
     // would run first and only see each entry's own, not-yet-aggregated CSS.
     enforce: 'post',
+    configResolved(config) {
+      base = config.base;
+    },
     generateBundle(_options, bundle) {
       // Only style-* templates get the favicon link — matches the original mustache.ejs +
       // .neutrinorc.js split, where `templateParameters` (and thus `files.favicon`) was only
@@ -69,18 +74,23 @@ export function ogcapiHtmlMustachePlugin({ apps, styles }) {
         const cssFiles = collectCss(chunk, bundle);
         const lines = [];
 
+        // {{assetsPrefix}} is filled in server-side with just the StaticResourceHandler prefix
+        // (e.g. "/___static___") — it does NOT know this module mounts its assets one level
+        // further down. The old webpack build closed that gap by baking `publicPath` ("/ogcapi-html")
+        // into every emitted URL; `base` here is Vite's equivalent and has to be prepended the
+        // same way, or every asset 404s one path segment short.
         if (includeFavicon && favicon) {
           lines.push(
-            `<link rel="shortcut icon" type="image/x-icon" href="{{assetsPrefix}}${favicon.fileName}">`
+            `<link rel="shortcut icon" type="image/x-icon" href="{{assetsPrefix}}${base}${favicon.fileName}">`
           );
         }
 
         cssFiles.forEach((file) => {
-          lines.push(`<link rel="stylesheet" href="{{assetsPrefix}}${file}">`);
+          lines.push(`<link rel="stylesheet" href="{{assetsPrefix}}${base}${file}">`);
         });
         // type="module": these chunks are real ESM (cross-chunk `import`s resolved natively
         // by the browser's module loader) — a classic script would throw a SyntaxError.
-        lines.push(`<script type="module" src="{{assetsPrefix}}${chunk.fileName}"></script>`);
+        lines.push(`<script type="module" src="{{assetsPrefix}}${base}${chunk.fileName}"></script>`);
 
         const outPath = join('templates', `${templateName}.mustache`);
         this.emitFile({ type: 'asset', fileName: outPath, source: `${lines.join('\n')}\n` });

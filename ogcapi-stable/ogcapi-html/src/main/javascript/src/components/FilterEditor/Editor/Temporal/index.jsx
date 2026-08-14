@@ -44,7 +44,7 @@ const formatDate = (date) => {
   return moment.utc(date).format();
 };
 
-const TemporalFilter = ({ start, end, filter, onChange, filters, deleteFilters }) => {
+const TemporalFilter = ({ start, end = null, filter = null, onChange, filters, deleteFilters }) => {
   const min = start;
   const max = end;
 
@@ -349,11 +349,6 @@ TemporalFilter.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   filters: PropTypes.object.isRequired,
   deleteFilters: PropTypes.func.isRequired,
-};
-
-TemporalFilter.defaultProps = {
-  end: null,
-  filter: null,
 };
 
 export default TemporalFilter;

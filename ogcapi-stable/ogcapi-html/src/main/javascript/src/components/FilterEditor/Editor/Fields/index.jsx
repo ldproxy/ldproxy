@@ -15,7 +15,7 @@ const FieldFilter = ({
   titleForFilter,
   integerKeys,
   booleanProperty,
-  isOpen,
+  isOpen = false,
 }) => {
   const [field, setField] = useState("");
   const [value, setValue] = useState("");
@@ -186,10 +186,6 @@ FieldFilter.propTypes = {
   integerKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
   booleanProperty: PropTypes.arrayOf(PropTypes.string).isRequired,
   isOpen: PropTypes.bool,
-};
-
-FieldFilter.defaultProps = {
-  isOpen: false,
 };
 
 export default FieldFilter;

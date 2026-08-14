@@ -15,7 +15,10 @@ const query = qs.parse(window.location.search, {
   ignoreQueryPrefix: true,
 });
 
-const FilterEditor = ({ backgroundUrl, attribution }) => {
+const FilterEditor = ({
+  backgroundUrl = "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  attribution = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+}) => {
   const initialFilters = useRef({});
 
   const [isOpen, setOpen] = useState(false);
@@ -174,11 +177,6 @@ FilterEditor.displayName = "FilterEditor";
 FilterEditor.propTypes = {
   backgroundUrl: PropTypes.string,
   attribution: PropTypes.string,
-};
-
-FilterEditor.defaultProps = {
-  backgroundUrl: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
 };
 
 export default FilterEditor;

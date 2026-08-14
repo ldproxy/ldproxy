@@ -27,7 +27,16 @@ import { useDebounce } from "../../hooks";
 export { default as MapSelect } from "./MapSelect";
 export { round, roundBounds, boundsArraysEqual } from "./util";
 
-const SpatialFilter = ({ bounds, setBounds, onChange, filters, deleteFilters }) => {
+const SpatialFilter = ({
+  bounds = [
+    [0, 0],
+    [0, 0],
+  ],
+  setBounds,
+  onChange,
+  filters,
+  deleteFilters,
+}) => {
   const [inputs, setInputs] = useState(boundsAsObject(bounds));
   const debouncedInput = useDebounce(inputs, 1000);
   const { t } = useTranslation();
@@ -189,13 +198,6 @@ SpatialFilter.propTypes = {
   filters: PropTypes.object.isRequired,
   deleteFilters: PropTypes.func.isRequired,
   setBounds: PropTypes.func.isRequired,
-};
-
-SpatialFilter.defaultProps = {
-  bounds: [
-    [0, 0],
-    [0, 0],
-  ],
 };
 
 export default SpatialFilter;

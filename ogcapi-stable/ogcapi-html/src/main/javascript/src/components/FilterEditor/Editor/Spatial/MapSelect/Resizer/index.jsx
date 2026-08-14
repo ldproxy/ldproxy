@@ -5,7 +5,15 @@ import PropTypes from "prop-types";
 import Handles from "./Handles";
 import { boundsToRect, rectToBounds, recalc } from "./calc";
 
-const Resizer = ({ map, maplibre, bounds, onChange }) => {
+const Resizer = ({
+  map,
+  maplibre,
+  bounds = [
+    [0, 0],
+    [0, 0],
+  ],
+  onChange,
+}) => {
   const boxRef = useRef();
   const [rect, setRect] = useState({ top: 0, left: 0, height: 0, width: 0 });
 
@@ -64,13 +72,6 @@ Resizer.propTypes = {
   maplibre: PropTypes.object.isRequired,
   bounds: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.number)),
   onChange: PropTypes.func.isRequired,
-};
-
-Resizer.defaultProps = {
-  bounds: [
-    [0, 0],
-    [0, 0],
-  ],
 };
 
 export default Resizer;

@@ -1,6 +1,6 @@
 /* eslint-disable prefer-template */
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import { useMaplibreUIEffect } from "react-maplibre-ui";
 
@@ -13,7 +13,7 @@ const CanvasPlugin = ({ children }) => {
 
     const childrenWithMap = React.cloneElement(children, { map, maplibre });
 
-    ReactDOM.render(<>{childrenWithMap}</>, wrapper);
+    createRoot(wrapper).render(<>{childrenWithMap}</>);
   }, []);
 
   return null;

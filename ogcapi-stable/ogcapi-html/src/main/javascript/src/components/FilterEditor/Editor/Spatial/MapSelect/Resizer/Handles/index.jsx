@@ -81,6 +81,4 @@ Handles.propTypes = {
   onResize: PropTypes.func.isRequired,
 };
 
-Handles.defaultProps = {};
-
 export default Handles;

@@ -93,10 +93,6 @@ Handle.propTypes = {
   disabled: PropTypes.bool,
 };
 
-Handle.defaultProps = {
-  disabled: false,
-};
-
 // *******************************************************
 // TRACK COMPONENT
 // *******************************************************
@@ -133,10 +129,6 @@ Track.propTypes = {
   }).isRequired,
   getTrackProps: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
-};
-
-Track.defaultProps = {
-  disabled: false,
 };
 
 // *******************************************************

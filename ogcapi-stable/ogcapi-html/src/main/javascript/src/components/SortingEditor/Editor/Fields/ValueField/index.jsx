@@ -35,5 +35,3 @@ ValueField.propTypes = {
   save: PropTypes.func.isRequired,
   disabled: PropTypes.bool.isRequired,
 };
-
-ValueField.defaultProps = {};
