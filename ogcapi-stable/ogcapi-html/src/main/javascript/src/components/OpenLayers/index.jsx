@@ -44,12 +44,12 @@ function getRasterBackgroundAndAttributions(style) {
 }
 
 const OpenLayers = ({
-  backgroundUrl,
+  backgroundUrl = "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   bounds,
   attribution,
   dataUrl,
   dataType,
-  tileMatrixSets,
+  tileMatrixSets = [],
   styleUrl,
 }) => {
   const effectiveStyleUrl = styleUrl && styleUrl.trim() ? styleUrl : null;

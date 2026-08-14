@@ -35,14 +35,13 @@
     "proj4": "^2.7.5",
     "prop-types": "^15.7.2",
     "qs": "^6.5.1",
+    "rc-slider": "^11.1.9",
     "react": "^19",
-    "react-compound-slider": "0.16.3",
-    "react-datetime": "^2.16.3",
-    "react-datetime-range-picker": "^3.0.0",
+    "react-datetime": "^3.3.1",
     "react-dom": "^19",
     "react-i18next": "^16.0.0",
     "react-maplibre-ui": "2.0.0",
-    "reactstrap": "^8.10.1",
+    "reactstrap": "^9.2.3",
     "rlayers": "^1.1.1"
   },
   "devDependencies": {

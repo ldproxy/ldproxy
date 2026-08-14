@@ -1,17 +1,35 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import moment from "moment";
-import { Slider as ReactSlider, Rail, Handles, Tracks, Ticks } from "react-compound-slider";
+import RcSlider from "rc-slider";
+import "rc-slider/assets/index.css";
 import { differenceInMonths } from "date-fns";
 import { scaleTime } from "d3-scale";
-import { SliderRail, Handle, Track, Tick } from "./Parts";
 import Header from "./Header";
 import { formatTick } from "../util";
 
-const sliderStyle = {
-  position: "relative",
-  width: "100%",
+// Matches the look of the old react-compound-slider-based Rail/Handle/Track (see git history of
+// ./Parts) as closely as possible: plain gray rail, blue round handles, no rc-slider chrome.
+// Colors are hardcoded (Bootstrap 4's $primary) rather than left to the `bg-primary` class,
+// since class vs. class specificity ties would otherwise depend on unpredictable CSS load order
+// between rc-slider's stylesheet and bootstrap.css.
+const RAIL_STYLE = { height: 8, borderRadius: 4, backgroundColor: "rgb(155, 155, 155)" };
+const TRACK_STYLE = { height: 8, borderRadius: 4, backgroundColor: "#007bff" };
+const HANDLE_STYLE = {
+  width: 20,
+  height: 20,
+  marginTop: -6,
+  borderRadius: "50%",
+  border: "none",
+  backgroundColor: "#007bff",
+  boxShadow: "1px 1px 1px 0px rgba(0, 0, 0, 0.3)",
+  opacity: 1,
 };
+
+const renderHandle = (origin) =>
+  React.cloneElement(origin, {
+    style: { ...origin.props.style, ...HANDLE_STYLE },
+  });
 
 const Slider = ({ start, end, min, max, isInstant, onChange, showHeader = false }) => {
   const [updatedInstant, setUpdatedInstant] = useState(moment.utc(start).valueOf());
@@ -24,12 +42,12 @@ const Slider = ({ start, end, min, max, isInstant, onChange, showHeader = false 
   const range = max - min;
   const step = range / numSteps;
 
-  const dateTicks = scaleTime()
+  const marks = scaleTime()
     .domain([min, max])
     .ticks(8)
-    .map((d) => +d);
+    .reduce((acc, d) => ({ ...acc, [+d]: formatTick(max, min)(+d) }), {});
 
-  const onUpdateInstant = ([ms]) => {
+  const onUpdateInstant = (ms) => {
     setUpdatedInstant(ms);
     onChange(moment.utc(ms));
   };
@@ -77,54 +95,31 @@ const Slider = ({ start, end, min, max, isInstant, onChange, showHeader = false 
           />
         ))}
       <div style={{ margin: "10px", height: 120 }}>
-        <ReactSlider
-          mode={1}
-          step={step}
-          domain={[+min, +max]}
-          rootStyle={sliderStyle}
-          onUpdate={isInstant ? onUpdateInstant : onUpdatePeriod}
-          values={isInstant ? [+updatedInstant] : [+updatedPeriod[0], +updatedPeriod[1]]}
-        >
-          <Rail>{({ getRailProps }) => <SliderRail getRailProps={getRailProps} />}</Rail>
-          <Handles>
-            {({ handles, getHandleProps }) => (
-              <div>
-                {handles.map((handle) => (
-                  <Handle
-                    key={handle.id}
-                    handle={handle}
-                    domain={[+min, +max]}
-                    getHandleProps={getHandleProps}
-                  />
-                ))}
-              </div>
-            )}
-          </Handles>
-          <Tracks right={false} left={false}>
-            {({ tracks, getTrackProps }) => (
-              <div>
-                {tracks.map(({ id, source, target }) => (
-                  <Track key={id} source={source} target={target} getTrackProps={getTrackProps} />
-                ))}
-              </div>
-            )}
-          </Tracks>
-
-          <Ticks values={dateTicks}>
-            {({ ticks }) => (
-              <div>
-                {ticks.map((tick) => (
-                  <Tick
-                    key={tick.id}
-                    tick={tick}
-                    count={ticks.length}
-                    format={formatTick(max, min)}
-                  />
-                ))}
-              </div>
-            )}
-          </Ticks>
-        </ReactSlider>
+        {isInstant ? (
+          <RcSlider
+            min={+min}
+            max={+max}
+            step={step}
+            marks={marks}
+            value={+updatedInstant}
+            onChange={onUpdateInstant}
+            handleRender={renderHandle}
+            styles={{ rail: RAIL_STYLE, track: { backgroundColor: "transparent" } }}
+          />
+        ) : (
+          <RcSlider
+            range
+            allowCross={false}
+            min={+min}
+            max={+max}
+            step={step}
+            marks={marks}
+            value={[+updatedPeriod[0], +updatedPeriod[1]]}
+            onChange={onUpdatePeriod}
+            handleRender={renderHandle}
+            styles={{ rail: RAIL_STYLE, track: TRACK_STYLE }}
+          />
+        )}
       </div>
     </div>
   );

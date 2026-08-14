@@ -1,16 +1,6 @@
-.map-sm {
-  height: 480px;
-  background: #f8f4f0;
-}
-
-.map-md {
-  height: 600px;
-  background: #f8f4f0;
-}
-
-.map-full {
-  height: 100vh;
-}
+/* .map-sm/.map-md/.map-full themselves moved to src/styles/common/style.css — they size
+   #map regardless of map client, but this file only ships with the MapLibre bundle. The
+   MapLibre-popup-specific overrides for those size classes stay here (see below). */
 
 #popup-index {
   display: inline-block;

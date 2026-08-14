@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Datetime from "react-datetime";
-import DatetimeRangePicker from "react-datetime-range-picker";
+import "react-datetime/css/react-datetime.css";
+import "./style.css";
 import PropTypes from "prop-types";
 import { Button, ButtonGroup, Form, Input, Row, Col, FormText } from "reactstrap";
 import moment from "moment";
@@ -8,6 +9,16 @@ import { useTranslation } from "react-i18next";
 import Slider from "./Slider";
 
 import { validateInstant, validatePeriod, errorInstant } from "./util";
+
+// react-datetime-range-picker's own `input` prop never toggled react-datetime's `input` prop
+// (which hides the text field entirely and shows the calendar permanently expanded) — it kept
+// the field visible and just made it read-only-with-a-different-style. Replicated here directly
+// via `inputProps`, since we render two plain <Datetime> instances instead of the old wrapper.
+const readOnlyInputStyle = {
+  cursor: "pointer",
+  backgroundColor: "white",
+  border: "1px solid #e2e2e2",
+};
 
 const fromFilterString = (filter) => {
   if (filter.indexOf("/") === -1) {
@@ -169,6 +180,30 @@ const TemporalFilter = ({ start, end = null, filter = null, onChange, filters, d
     }
   }, [instant, period]);
 
+  const hasRange = !moment.utc(start).isSame(moment.utc(end));
+
+  // Highlights the whole start-end span across both calendars, exactly like the old
+  // react-datetime-range-picker's own renderDay override did (see its source) — react-datetime
+  // itself only knows about a single `value` per instance, so without this each calendar would
+  // only ever mark its own end of the range as selected, with nothing shown in between.
+  const renderDay = (dayProps, currentDate) => {
+    const { className, ...rest } = dayProps;
+    const classes = [
+      className,
+      currentDate.isBetween(periodInput.start, periodInput.end, "day") && "in-selecting-range",
+      (currentDate.isSame(periodInput.start, "day") || currentDate.isSame(periodInput.end, "day")) &&
+        "rdtActive",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <td {...rest} className={classes}>
+        {currentDate.date()}
+      </td>
+    );
+  };
+
   return (
     <Form onSubmit={save}>
       <p className="text-muted text-uppercase">{t("dateTimeUtc")}</p>{" "}
@@ -258,30 +293,38 @@ const TemporalFilter = ({ start, end = null, filter = null, onChange, filters, d
               }
             </div>
 
-            <DatetimeRangePicker
-              className="col-md-10"
-              input={!moment.utc(start).isSame(moment.utc(end))}
-              inputProps={{
-                input: true,
-                inputProps: {
+            <div className="col-md-10">
+              <Datetime
+                inputProps={{
                   className:
                     validInstant && validPeriod.all
                       ? "form-control form-control-sm w-100 mb-3"
                       : "form-control form-control-sm w-100 mb-3 is-invalid",
-                },
-              }}
-              timeFormat="HH:mm:ss"
-              dateFormat="DD.MM.YYYY"
-              utc
-              startDate={periodInput.start}
-              endDate={periodInput.end}
-              onStartDateChange={
-                moment.utc(start).isSame(moment.utc(end))
-                  ? inputChangePeriodStartNoRange
-                  : inputChangePeriodStart
-              }
-              onEndDateChange={inputChangePeriodEnd}
-            />
+                  ...(hasRange ? {} : { readOnly: true, style: readOnlyInputStyle }),
+                }}
+                timeFormat="HH:mm:ss"
+                dateFormat="DD.MM.YYYY"
+                utc
+                value={periodInput.start}
+                onChange={hasRange ? inputChangePeriodStart : inputChangePeriodStartNoRange}
+                renderDay={renderDay}
+              />
+              <Datetime
+                inputProps={{
+                  className:
+                    validInstant && validPeriod.all
+                      ? "form-control form-control-sm w-100 mb-3"
+                      : "form-control form-control-sm w-100 mb-3 is-invalid",
+                  ...(hasRange ? {} : { readOnly: true, style: readOnlyInputStyle }),
+                }}
+                timeFormat="HH:mm:ss"
+                dateFormat="DD.MM.YYYY"
+                utc
+                value={periodInput.end}
+                onChange={inputChangePeriodEnd}
+                renderDay={renderDay}
+              />
+            </div>
           </>
         )}
         {hasDateTimeInFilters ? (

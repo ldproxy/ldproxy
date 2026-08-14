@@ -107,3 +107,20 @@ td:first-child {
 .popover {
   max-width: none !important;
 }
+
+/* #map's own size classes, used by mapClient.mustache regardless of which map client
+   (MapLibre/OpenLayers/Cesium) actually gets embedded — kept here (loaded on every page via
+   style-common) rather than in MapLibre/custom.css, which only ships with the MapLibre bundle. */
+.map-sm {
+  height: 480px;
+  background: #f8f4f0;
+}
+
+.map-md {
+  height: 600px;
+  background: #f8f4f0;
+}
+
+.map-full {
+  height: 100vh;
+}

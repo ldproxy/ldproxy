@@ -39,7 +39,14 @@ export default defineConfig({
   root,
   base: '/ogcapi-html/',
   plugins: [
-    react(),
+    // classic, not automatic (the @vitejs/plugin-react default): the automatic JSX runtime's
+    // jsx()/jsxs() helpers never resolve `Component.defaultProps` for function components —
+    // only React.createElement does. The old Babel/webpack build used the classic transform,
+    // so every component that still relies on defaultProps (MapLibre, OpenLayers, Cesium —
+    // deliberately deferred to Phase D) silently got `undefined` props instead under the
+    // automatic runtime. Every file already does `import React from "react"`, so classic mode
+    // is a drop-in fix with no source changes.
+    react({ jsxRuntime: 'classic' }),
     ogcapiHtmlMustachePlugin({ apps, styles }),
     viteStaticCopy({
       targets: [
