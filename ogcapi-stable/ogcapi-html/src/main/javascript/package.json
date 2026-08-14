@@ -6,8 +6,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "start": "APP=${0:-filtereditor} webpack-dev-server --mode development",
-    "build": "webpack --mode production",
+    "postinstall": "patch-package",
+    "start": "vite",
+    "build": "vite build",
     "test": "mocha",
     "lint": "eslint --cache --format codeframe --ext mjs,jsx,js src test",
     "storybook": "start-storybook -p 6006 --docs --ci",
@@ -40,39 +41,34 @@
     "react-datetime-range-picker": "^3.0.0",
     "react-dom": "^16",
     "react-i18next": "^16.0.0",
-    "react-maplibre-ui": "^2.0.0",
+    "react-maplibre-ui": "2.0.0",
     "reactstrap": "^8.10.1",
     "rlayers": "^1.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7",
-    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.16.0",
     "@babel/preset-env": "^7.16.4",
     "@mdx-js/react": "^1.6.22",
-    "@neutrinojs/airbnb": "^9.3.0",
-    "@neutrinojs/copy": "^9.3.0",
-    "@neutrinojs/mocha": "^9.3.0",
-    "@neutrinojs/react": "^9.3.0",
-    "@open-wc/webpack-import-meta-loader": "^0.4.7",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.4.3",
     "@storybook/addon-docs": "^6.3.8",
     "@storybook/addon-essentials": "^6.3.8",
     "@storybook/addon-links": "^6.3.8",
     "@storybook/react": "^6.3.8",
-    "@xtraplatform/neutrino": "^2.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
     "eslint": "^7",
     "eslint-plugin-babel": "*",
     "mocha": "^8",
-    "neutrino": "^9.3.0",
-    "pnp-webpack-plugin": "^1.6.4",
-    "react-refresh": "^0.9.0",
-    "webpack": "^4",
-    "webpack-cli": "^3",
-    "webpack-dev-server": "^3"
+    "patch-package": "^8.0.1",
+    "vite": "^8.0.0",
+    "vite-plugin-static-copy": "^4.1.1",
+    "webpack": "^4"
   },
-  "resolutions": {
-    "react-maplibre-ui/maplibre-gl": "3.2.1",
-    "react-maplibre-ui": "patch:react-maplibre-ui@npm:2.0.0#.yarn/patches/react-maplibre-ui-npm-2.0.0-641e2a759e"
+  "overrides": {
+    "react-maplibre-ui": {
+      "maplibre-gl": "3.2.1"
+    }
   },
-  "packageManager": "yarn@3.1.1"
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "packageManager": "npm@11.11.1"
 }

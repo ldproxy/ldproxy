@@ -34,29 +34,29 @@ jar {
 }
 
 node {
-    version = '16.15.1'
-    yarnVersion = '1.22.19'
+    version = '22.12.0'
     download = project.findProperty('downloadNode') != 'false' ?: false
     // do not declare the repository, that is not allowed outside of settings.gradle
     // it is automatically added by the settings plugin
     distBaseUrl = null
 }
 
-yarn_install {
+npmInstall {
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
+    inputs.file("src/main/javascript/package-lock.json")
     outputs.dir("src/main/javascript/node_modules")
-    outputs.dir("src/main/javascript/.yarn/cache")
     outputs.cacheIf { true }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
 }
 
-task yarn_build(type: YarnTask) {
-    dependsOn yarn_install
+task npmBuild(type: NpmTask) {
+    dependsOn npmInstall
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
+    inputs.file("src/main/javascript/package-lock.json")
+    inputs.file("src/main/javascript/vite.config.js")
+    inputs.dir("src/main/javascript/vite-plugins")
     inputs.dir("src/main/javascript/src")
     outputs.dir(generatedResourcesDir)
     outputs.cacheIf { true }
@@ -66,15 +66,20 @@ task yarn_build(type: YarnTask) {
     args = ['run', 'build']
 }
 
-yarn_start {
+task npmStart(type: NpmTask) {
+    dependsOn npmInstall
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
-}
-yarn_storybook {
-    execOverrides {
-        it.workingDir = 'src/main/javascript'
-    }
+    args = ['run', 'start']
 }
 
-processResources.dependsOn yarn_build
+task npmStorybook(type: NpmTask) {
+    dependsOn npmInstall
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'storybook']
+}
+
+processResources.dependsOn npmBuild

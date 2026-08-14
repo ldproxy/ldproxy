@@ -107,13 +107,6 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
-# yarn v2
-
-.yarn/*
-.pnp.*
-!.yarn/plugins/
-!.yarn/releases/
-!.yarn/sdks/
-
-# Neutrino build directory
+# Vite build directory
 build
+dist
