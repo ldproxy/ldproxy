@@ -711,6 +711,16 @@
             "null"
           ]
         },
+        "encryptionKey": {
+          "title": "encryptionKey",
+          "description": "The symmetric key for properties of type `ENCRYPTED` or `ENCRYPTED_ARRAY`, encoded as    Base64. The decoded key must be 32 bytes long (AES-256). It is recommended to reference an    environment variable, e.g. `${DB_ENCRYPTION_KEY}`, instead of storing the key in the    configuration.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
         "defaultLanguage": {
           "title": "defaultLanguage",
           "description": "",
@@ -981,6 +991,16 @@
             "null"
           ]
         },
+        "encryptionKey": {
+          "title": "encryptionKey",
+          "description": "The symmetric key for properties of type `ENCRYPTED` or `ENCRYPTED_ARRAY`, encoded as    Base64. The decoded key must be 32 bytes long (AES-256). It is recommended to reference an    environment variable, e.g. `${DB_ENCRYPTION_KEY}`, instead of storing the key in the    configuration.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
         "defaultLanguage": {
           "title": "defaultLanguage",
           "description": "",
@@ -1226,6 +1246,16 @@
         "nativeTimeZone": {
           "title": "nativeTimeZone",
           "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "encryptionKey": {
+          "title": "encryptionKey",
+          "description": "The symmetric key for properties of type `ENCRYPTED` or `ENCRYPTED_ARRAY`, encoded as    Base64. The decoded key must be 32 bytes long (AES-256). It is recommended to reference an    environment variable, e.g. `${DB_ENCRYPTION_KEY}`, instead of storing the key in the    configuration.",
           "type": [
             "string",
             "number",
