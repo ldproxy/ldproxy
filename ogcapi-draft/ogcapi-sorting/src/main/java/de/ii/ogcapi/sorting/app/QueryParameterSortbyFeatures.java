@@ -25,7 +25,6 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
-import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery.Builder;
 import de.ii.xtraplatform.features.domain.SortKey;
 import de.ii.xtraplatform.features.domain.SortKey.Direction;
@@ -48,11 +47,15 @@ import java.util.stream.Collectors;
  * @endpoints Features
  * @langEn If the parameter is specified, the features are returned sorted according to the
  *     attributes specified in a comma-separated list. The attribute name can be preceded by `+`
- *     (ascending, the default behavior) or `-` (descending). Example: `sortby=type,-name`.
+ *     (ascending, the default behavior) or `-` (descending). Example: `sortby=type,-name`. Only the
+ *     sortable properties of the collection are accepted; the parameter is not available for
+ *     collections without sortable properties.
  * @langDe Ist der Parameter angegeben, werden die Features sortiert zurückgegeben. Sortiert wird
  *     nach den in einer kommaseparierten Liste angegebenen Attributen. Dem Attributnamen kann ein
  *     `+` (aufsteigend, das Standardverhalten) oder ein `-` (absteigend) vorangestellt werden.
- *     Beispiel: `sortby=type,-name`.
+ *     Beispiel: `sortby=type,-name`. Es werden nur die sortierbaren Eigenschaften der Collection
+ *     akzeptiert; für Collections ohne sortierbare Eigenschaften steht der Parameter nicht zur
+ *     Verfügung.
  */
 @Singleton
 @AutoBind
@@ -161,6 +164,23 @@ public class QueryParameterSortbyFeatures extends OgcApiQueryParameterBase
   }
 
   @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    if (!apiData.isCollectionEnabled(collectionId)) {
+      return false;
+    }
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    if (!isExtensionEnabled(collectionData, SortingConfiguration.class)) {
+      return false;
+    }
+    boolean hasDefaultSortby =
+        collectionData
+            .getExtension(SortingConfiguration.class)
+            .map(cfg -> !cfg.getDefaultSortby().isEmpty())
+            .orElse(false);
+    return hasDefaultSortby || !getSortables(apiData, collectionData).isEmpty();
+  }
+
+  @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     int apiHashCode = apiData.hashCode();
     if (!schemaMap.containsKey(apiHashCode)) {
@@ -181,31 +201,41 @@ public class QueryParameterSortbyFeatures extends OgcApiQueryParameterBase
     if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
       FeatureTypeConfigurationOgcApi collectionData =
           Objects.requireNonNull(apiData.getCollections().get(collectionId));
-      FeatureSchema featureSchema =
-          providers.getFeatureSchema(apiData, collectionData).orElseThrow();
-      List<String> sortables =
-          collectionData
-              .getExtension(SortingConfiguration.class)
-              .map(
-                  cfg ->
-                      cfg
-                          .getSortables(apiData, collectionData, featureSchema, providers)
-                          .keySet()
-                          .stream()
-                          .collect(Collectors.toUnmodifiableList()))
-              .orElse(ImmutableList.of());
+      List<String> sortables = getSortables(apiData, collectionData);
       List<String> enums =
           sortables.stream()
               .map(p -> ImmutableList.of(p, "+" + p, "-" + p))
               .flatMap(Collection::stream)
               .collect(Collectors.toUnmodifiableList());
       StringSchema sortableSchema = new StringSchema();
-      if (!enums.isEmpty()) {
+      ArraySchema arraySchema = new ArraySchema().items(sortableSchema);
+      if (enums.isEmpty()) {
+        // no sortable properties, no sort key is valid
+        arraySchema.maxItems(0);
+      } else {
         sortableSchema._enum(enums);
       }
-      schemaMap.get(apiHashCode).put(collectionId, new ArraySchema().items(sortableSchema));
+      schemaMap.get(apiHashCode).put(collectionId, arraySchema);
     }
     return schemaMap.get(apiHashCode).get(collectionId);
+  }
+
+  private List<String> getSortables(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi collectionData) {
+    return collectionData
+        .getExtension(SortingConfiguration.class)
+        .flatMap(
+            cfg ->
+                providers
+                    .getFeatureSchema(apiData, collectionData)
+                    .map(
+                        featureSchema ->
+                            cfg
+                                .getSortables(apiData, collectionData, featureSchema, providers)
+                                .keySet()
+                                .stream()
+                                .collect(Collectors.toUnmodifiableList())))
+        .orElse(ImmutableList.of());
   }
 
   @Override
