@@ -7,31 +7,50 @@
  */
 package de.ii.ogcapi.styles.app
 
-import groovyx.net.http.Method
-import groovyx.net.http.RESTClient
 import spock.lang.Requires
+import spock.lang.Shared
 import spock.lang.Specification
 
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpResponse.BodyHandlers
+import java.time.Duration
+
+/**
+ * Manual smoke spec for the HTML map representation of a style. Gated on {@code SUT_URL} so it is
+ * skipped in CI; run it against a running ldproxy whose API exposes the STYLES building block with
+ * a map representation for the style under test.
+ *
+ * <p>Uses {@link java.net.http.HttpClient} so the spec works on Groovy 4 — the former
+ * http-builder dependency references {@code groovy.util.slurpersupport.GPathResult}, which
+ * Groovy 4 removed.
+ *
+ * <p>{@code SUT_PATH} and {@code SUT_STYLE} default to the demo API this spec was written against.
+ */
 @Requires({env['SUT_URL'] != null})
 class StylesRepresentationRESTApiSpec extends Specification {
 
     static final String SUT_URL = System.getenv('SUT_URL')
-    static final String SUT_PATH = "/daraa"
-    static final String SUT_STYLE = "topographic"
+    static final String SUT_PATH = System.getenv('SUT_PATH') ?: '/daraa'
+    static final String SUT_STYLE = System.getenv('SUT_STYLE') ?: 'topographic'
 
-    RESTClient restClient = new RESTClient(SUT_URL)
+    @Shared
+    HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
 
-    def 'Get Request for one Style Representation/Map'(){
+    def 'Get Request for one Style Representation/Map'() {
 
         when:
-
-        def response = restClient.request(SUT_URL, Method.GET, "text/html",{ req ->
-            uri.path = SUT_PATH + '/maps/' +SUT_STYLE
-            headers.Accept = 'text/html'
-        })
+        HttpResponse<String> response = httpClient.send(
+                HttpRequest.newBuilder(URI.create(SUT_URL + SUT_PATH + '/maps/' + SUT_STYLE))
+                        .header('Accept', 'text/html')
+                        .GET()
+                        .build(),
+                BodyHandlers.ofString())
 
         then:
-        response.status == 200
-
+        response.statusCode() == 200
     }
 }

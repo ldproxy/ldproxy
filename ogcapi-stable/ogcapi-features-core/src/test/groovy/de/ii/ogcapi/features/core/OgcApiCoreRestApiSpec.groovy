@@ -7,157 +7,165 @@
  */
 package de.ii.ogcapi.features.core
 
-import groovyx.net.http.ContentType
-import groovyx.net.http.Method
-import groovyx.net.http.RESTClient
-import groovyx.net.http.URIBuilder
-import groovyx.net.http.HttpResponseException
-import org.apache.http.ProtocolVersion
+import groovy.json.JsonSlurper
 import spock.lang.Requires
+import spock.lang.Shared
 import spock.lang.Specification
 
-import java.time.ZonedDateTime
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpResponse.BodyHandlers
+import java.time.Duration
 import java.time.ZoneOffset
-import  java.time.format.DateTimeFormatter
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
+/**
+ * Manual conformance-ish smoke spec for OGC API Features Part 1 core resources. Gated on
+ * {@code SUT_URL} so it is skipped in CI; run it against a running ldproxy serving the demo API
+ * this spec was written for, or override the path and collections through the environment.
+ *
+ * <p>Uses {@link java.net.http.HttpClient} so the spec works on Groovy 4 — the former
+ * http-builder dependency references {@code groovy.util.slurpersupport.GPathResult}, which
+ * Groovy 4 removed. The client is pinned to HTTP/1.1, which is what the previous
+ * (Apache-HttpClient-4-based) library used for every request.
+ *
+ * <p>The expected feature counts in the filter tests are specific to the demo data.
+ */
 @Requires({env['SUT_URL'] != null})
 class OgcApiCoreRestApiSpec extends Specification {
 
     static final String SUT_URL = System.getenv('SUT_URL')
-    static final String SUT_PATH = "/daraa"
-    static final String SUT_COLLECTION = "agriculturesrf"
-    static final String SUT_COLLECTION2 = "culturesrf"
-    static final String SUT_ID = "1"
+    static final String SUT_PATH = System.getenv('SUT_PATH') ?: '/daraa'
+    static final String SUT_COLLECTION = System.getenv('SUT_COLLECTION') ?: 'agriculturesrf'
+    static final String SUT_COLLECTION2 = System.getenv('SUT_COLLECTION2') ?: 'culturesrf'
+    static final String SUT_ID = System.getenv('SUT_ID') ?: '1'
 
-    RESTClient restClient = new RESTClient(SUT_URL)
+    static final String JSON = 'application/json'
+    static final String GEOJSON = 'application/geo+json'
 
+    @Shared
+    HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
 
-    def 'GET request to the landing page'(){
+    def 'GET request to the landing page'() {
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH
-            headers.Accept = 'application/json'
-        })
+        def response = get(SUT_PATH, JSON)
 
         then: "Requirement 1, 2: HTTP GET support at '/'"
-        response.status == 200
-        response.getContentType() == "application/json"
+        response.statusCode() == 200
+        contentType(response).startsWith(JSON)
 
         and:
-        response.responseData.containsKey("links")
-        response.responseData.links.any{it.rel == "service-desc"}
-        response.responseData.links.any{it.rel == "service-doc"}
-        response.responseData.links.any{it.rel == "conformance"}
-        response.responseData.links.any{it.rel == "data"}
+        def body = parse(response)
+        body.containsKey("links")
+        body.links.any { it.rel == "service-desc" }
+        body.links.any { it.rel == "service-doc" }
+        body.links.any { it.rel == "conformance" }
+        body.links.any { it.rel == "data" }
     }
 
-    def 'GET request to the API page'(){
+    def 'GET request to the API page'() {
 
         when:
-        def response = restClient.get(path: SUT_PATH +"/api")
+        def response = get(SUT_PATH + "/api", JSON)
 
         then: "Requirement 3: HTTP GET support at '/api'"
-        response.status == 200
+        response.statusCode() == 200
 
     }
 
-    def 'GET request to the Conformance page'(){
+    def 'GET request to the Conformance page'() {
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/conformance'
-            headers.Accept = 'application/json'
-        })
+        def response = get(SUT_PATH + '/conformance', JSON)
 
         then: "Requirement 5, 6: HTTP GET support at '/conformance'"
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.containsKey("conformsTo")
-        response.responseData.conformsTo.size > 0
+        def body = parse(response)
+        body.containsKey("conformsTo")
+        body.conformsTo.size > 0
 
     }
 
     def 'HTTP 1.1 Conformance'() {
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH
-            headers.Accept = 'application/json'
-        })
+        def response = get(SUT_PATH, JSON)
+
         then: "Requirement 7: the server shall conform to HTTP 1.1"
-        response.protocolVersion.compareToVersion(new ProtocolVersion("HTTP", 1, 1)) == 0
+        response.version() == HttpClient.Version.HTTP_1_1
     }
 
 
-    def 'GET request to the collections page'(){
+    def 'GET request to the collections page'() {
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections'
-            headers.Accept = 'application/json'
-        })
+        def response = get(SUT_PATH + '/collections', JSON)
 
         then: "Requirement 11, 12A: GET support at the path '/collections'"
-        response.status == 200
+        response.statusCode() == 200
 
         and: "Requirement 12B: schema conformance"
-        response.responseData.containsKey("links")
-        response.responseData.containsKey("collections")
+        def body = parse(response)
+        body.containsKey("links")
+        body.containsKey("collections")
 
         and: "Requirement 13A: links property, relations 'self' and 'alternate'"
-        response.responseData.links.any{ it.rel == "self" }
-        response.responseData.links.any{ it.rel == "alternate" }
+        body.links.any { it.rel == "self" }
+        body.links.any { it.rel == "alternate" }
 
         and: "Requirement 13B: all links shall include the 'rel' and 'type' link parameters:"
-        response.responseData.links.every{ it.rel?.trim() }
-        response.responseData.links.every{ it.type?.trim() }
+        body.links.every { it.rel?.trim() }
+        body.links.every { it.type?.trim() }
 
         and: "Requirement 14, 15A: for each feature collection provided by the server, an item SHALL be provided in the property 'collections'"
-        response.responseData.collections.every{ it.links.any{ it.rel == 'items' } }
+        body.collections.every { it.links.any { it.rel == 'items' } }
 
         and: "Requirement 15B: all links SHALL include the rel and type properties"
-        response.responseData.collections.every{ it.links.every{ it.rel == 'items' ? it.type?.trim() : true} }
+        body.collections.every { it.links.every { it.rel == 'items' ? it.type?.trim() : true } }
 
         and: "Requirement 16A: extent property"
-        response.responseData.collections.every{ it.containsKey("extent") ?
-                it.extent.containsKey("spatial") || it.extent.containsKey("temporal") : true }
-
+        body.collections.every {
+            it.containsKey("extent") ?
+                    it.extent.containsKey("spatial") || it.extent.containsKey("temporal") : true
         }
+
+    }
 
     def "GET request for single collection"() {
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION
-            headers.Accept = 'application/json'
-        })
-        def collectionsResponse = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections'
-            headers.Accept = 'application/json'
-        })
-        def collection = getCollection(SUT_COLLECTION, collectionsResponse.responseData.collections)
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION, JSON)
+        def collectionsResponse = get(SUT_PATH + '/collections', JSON)
+        def body = parse(response)
+        def collection = getCollection(SUT_COLLECTION, parse(collectionsResponse).collections)
 
         then: "Requirement 17, 18A: HTTP GET support at th path '/collections/{collectionId}'"
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.containsKey("title")
-        response.responseData.containsKey("links")
-        response.responseData.containsKey("id")
-        response.responseData.containsKey("crs")
-        response.responseData.containsKey("extent")
+        body.containsKey("title")
+        body.containsKey("links")
+        body.containsKey("id")
+        body.containsKey("crs")
+        body.containsKey("extent")
 
         and: "Requirement 18B: The response shall be consistent with the content in the /collections response (id, title, description, extent)"
-        collection.title == response.responseData.title
-        collection.description == response.responseData.description
+        collection.title == body.title
+        collection.description == body.description
         if (collection.extent.containsKey("spatial")) {
-            collection.extent.spatial.crs == response.responseData.extent.spatial.crs
-            collection.extent.spatial.bbox == response.responseData.extent.spatial.bbox
+            collection.extent.spatial.crs == body.extent.spatial.crs
+            collection.extent.spatial.bbox == body.extent.spatial.bbox
         }
         if (collection.extent.containsKey("temporal")) {
-            collection.extent.temporal.trs == response.responseData.extent.temporal.trs
-            collection.extent.temporal.interval == response.responseData.extent.temporal.interval
+            collection.extent.temporal.trs == body.extent.temporal.trs
+            collection.extent.temporal.interval == body.extent.temporal.interval
         }
 
 
@@ -169,28 +177,26 @@ class OgcApiCoreRestApiSpec extends Specification {
         String formattedTimestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").format(timestamp)
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION + "/items"
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION + "/items", GEOJSON)
 
         then:
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.containsKey("type")
-        response.responseData.containsKey("links")
-        response.responseData.containsKey("numberReturned")
-        response.responseData.containsKey("features")
+        def body = parse(response)
+        body.containsKey("type")
+        body.containsKey("links")
+        body.containsKey("numberReturned")
+        body.containsKey("features")
         and: "Requirement 27: include a link to this response document and a link to the response document in other supported formats"
-        response.responseData.links.any{ it.rel == "self" }
-        response.responseData.links.any{ it.rel == "alternate" }
+        body.links.any { it.rel == "self" }
+        body.links.any { it.rel == "alternate" }
         and: "Requirement 28: all links shall include the rel and type link parameters"
-        response.responseData.link.every{ it.rel?.trim() }
-        response.responseData.link.every{ it.type?.trim() }
+        body.links.every { it.rel?.trim() }
+        body.links.every { it.type?.trim() }
         and: "Requirement 29: if included, 'timestamp' shall be set to the time stamp when the response was generated"
-        if (response.responseData.containsKey("timestamp")) {
-            response.responseData.timestamp >= formattedTimestamp
+        if (body.containsKey("timestamp")) {
+            body.timestamp >= formattedTimestamp
         }
     }
 
@@ -200,19 +206,16 @@ class OgcApiCoreRestApiSpec extends Specification {
         int limit = 5
 
         when: "Requirement 19: HTTP GET support at the path '/collections/{collectionId}/items'"
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION + "/items"
-            uri.query = [limit:Integer.toString(limit)]
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION + "/items?limit=" + limit, GEOJSON)
 
         then: "Requirement 20: limit parameter support"
-        response.status == 200
+        response.statusCode() == 200
 
         and: "Requirement 21: the response shall not contain more features than specified by the optional limit parameter"
-        response.responseData.numberReturned == limit
-        response.responseData.containsKey("features")
-        response.responseData.features.size() == limit
+        def body = parse(response)
+        body.numberReturned == limit
+        body.containsKey("features")
+        body.features.size() == limit
     }
 
     def "GET request to one collection's items page (bbox filter parameter)"() {
@@ -221,20 +224,17 @@ class OgcApiCoreRestApiSpec extends Specification {
         def bbox = "35.898213,32.675795,36.023426,32.8370158"
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION + "/items"
-            uri.query = [bbox:bbox, limit:30]
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION + "/items?bbox=" + bbox + "&limit=30", GEOJSON)
 
         then: "bbox parameter support"
-        response.status == 200
+        response.statusCode() == 200
 
         and: "Requirement 23: only features that have a spatial geometry that intersects the bounding box shall be part of the result set"
-        response.responseData.numberReturned == 15
-        response.responseData.numberMatched == 15
-        response.responseData.containsKey("features")
-        response.responseData.features.size() == 15
+        def body = parse(response)
+        body.numberReturned == 15
+        body.numberMatched == 15
+        body.containsKey("features")
+        body.features.size() == 15
     }
 
     def "GET request to one collection's items page (dateTime filter parameter)"() {
@@ -243,26 +243,22 @@ class OgcApiCoreRestApiSpec extends Specification {
         def interval = "2014-11-01T00%3A00%3A00Z%2F2019-11-01T00%3A00%3A00Z"
 
         when:
-        def datetimeUri = new URIBuilder(
-                new URI(SUT_URL + SUT_PATH + '/collections/' + SUT_COLLECTION + '/items?limit=30&datetime=' + interval)
-        )
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri = datetimeUri
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(
+                SUT_PATH + '/collections/' + SUT_COLLECTION + '/items?limit=30&datetime=' + interval, GEOJSON)
 
         then: "Requirement 24: datetime parameter support"
-        response.status == 200
+        response.statusCode() == 200
 
         and: "Requirement 25: only features that have a temporal geometry that intersects the temporal information" +
                 " in the datetime parameter shall be part of the result set"
-        response.responseData.numberMatched == 12
-        response.responseData.numberReturned == 12
-        response.responseData.containsKey("features")
-        response.responseData.features.size() == 12
+        def body = parse(response)
+        body.numberMatched == 12
+        body.numberReturned == 12
+        body.containsKey("features")
+        body.features.size() == 12
     }
 
-    def "GET request to one collection's items page (combination of filter parameters)" () {
+    def "GET request to one collection's items page (combination of filter parameters)"() {
 
         given:
         int limit = 5
@@ -270,26 +266,22 @@ class OgcApiCoreRestApiSpec extends Specification {
         String bbox = "36.097641,32.586742,36.259689,32.776306"
 
         when:
-        def fullUri = new URIBuilder(
-                new URI(SUT_URL + SUT_PATH + '/collections/' + SUT_COLLECTION + '/items?limit=' + limit +
-                        '&datetime=' + interval + '&bbox=' + bbox)
-        )
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri = fullUri
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(
+                SUT_PATH + '/collections/' + SUT_COLLECTION + '/items?limit=' + limit +
+                        '&datetime=' + interval + '&bbox=' + bbox, GEOJSON)
 
         then:
-        response.status == 200
+        response.statusCode() == 200
 
         and: "Requirement 30: if included, 'numberMatched' shall be identical to the number of features that match the filter parameters"
-        if (response.responseData.containsKey("numberMatched")) {
-            response.responseData.numberMatched == 9
+        def body = parse(response)
+        if (body.containsKey("numberMatched")) {
+            body.numberMatched == 9
         }
         and: "Requirement 31: if included, 'numberReturned' shall be identical to the number of features returned in the response"
-        if (response.responseData.containsKey("numberReturned")) {
-            response.responseData.numberReturned == limit
-            response.responseData.features.size() == limit
+        if (body.containsKey("numberReturned")) {
+            body.numberReturned == limit
+            body.features.size() == limit
         }
 
     }
@@ -297,30 +289,28 @@ class OgcApiCoreRestApiSpec extends Specification {
     def 'GET request for one feature in a collection'() {
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION + "/items/" + SUT_ID
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION + "/items/" + SUT_ID, GEOJSON)
 
         then: "Requirement 32, 33: HTTP GET support at path '/collections/{collectionId}/items/{featureId}'"
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.containsKey("type")
-        response.responseData.containsKey("links")
-        response.responseData.containsKey("geometry")
-        response.responseData.get("geometry").containsKey("type")
-        response.responseData.get("geometry").containsKey("coordinates")
-        response.responseData.containsKey("properties")
-        response.responseData.containsKey("id")
-        response.responseData.get("id") == SUT_ID
+        def body = parse(response)
+        body.containsKey("type")
+        body.containsKey("links")
+        body.containsKey("geometry")
+        body.get("geometry").containsKey("type")
+        body.get("geometry").containsKey("coordinates")
+        body.containsKey("properties")
+        body.containsKey("id")
+        body.get("id") == SUT_ID
         and: "Requirement 34A: links with relations 'self', 'alternate', 'collection'"
-        response.responseData.links.any{ it.rel == "self" }
-        response.responseData.links.any{ it.rel == "alternate" }
-        response.responseData.links.any{ it.rel == "collection" }
+        body.links.any { it.rel == "self" }
+        body.links.any { it.rel == "alternate" }
+        body.links.any { it.rel == "collection" }
         and: "Requirement 34B: all links shall include the 'rel' and 'type' link parameters"
-        response.responseData.links.every{ it.rel?.trim() }
-        response.responseData.links.every{ it.type?.trim() }
+        body.links.every { it.rel?.trim() }
+        body.links.every { it.type?.trim() }
     }
 
     def 'Filter parameter with a valid property'() {
@@ -329,20 +319,15 @@ class OgcApiCoreRestApiSpec extends Specification {
         String filter = "f_code='AL012'"
 
         when:
-        def fullUri = new URIBuilder(
-                new URI(SUT_URL + SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter)
-        )
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri = fullUri
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter, GEOJSON)
 
         then:
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.numberMatched == 2
-        response.responseData.numberReturned == 2
+        def body = parse(response)
+        body.numberMatched == 2
+        body.numberReturned == 2
     }
 
     def 'Filter parameter with an invalid property'() {
@@ -351,17 +336,10 @@ class OgcApiCoreRestApiSpec extends Specification {
         String filter = "fcsubtype='100065'"
 
         when:
-        def fullUri = new URIBuilder(
-                new URI(SUT_URL + SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter)
-        )
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri = fullUri
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter, GEOJSON)
 
-        then:
-        def e = thrown(HttpResponseException)
-        e.statusCode == 400
+        then: "an unknown queryable is rejected"
+        response.statusCode() == 400
     }
 
     def 'Filter parameter with filter-lang=json'() {
@@ -369,27 +347,48 @@ class OgcApiCoreRestApiSpec extends Specification {
         String filter = '{"eq":{"property":"f_code","value":"AL012"}}'
 
         when:
-        def response = restClient.request(SUT_URL, Method.GET, ContentType.JSON, { req ->
-            uri.path = SUT_PATH + '/collections/' + SUT_COLLECTION2 + "/items"
-            uri.query = ["filter-lang":"cql-json", filter:filter]
-            headers.Accept = 'application/geo+json'
-        })
+        def response = get(
+                SUT_PATH + '/collections/' + SUT_COLLECTION2 + "/items?filter-lang=cql-json&filter=" +
+                        URLEncoder.encode(filter, 'UTF-8'), GEOJSON)
 
         then:
-        response.status == 200
+        response.statusCode() == 200
 
         and:
-        response.responseData.numberMatched == 2
-        response.responseData.numberReturned == 2
+        def body = parse(response)
+        body.numberMatched == 2
+        body.numberReturned == 2
     }
 
 
+    /**
+     * Matches on the collection id. The previous version compared against {@code collection.getName},
+     * which is not a property of the parsed JSON and therefore always returned null, so this helper
+     * never found a collection and its caller failed on the null result.
+     */
     def getCollection(collectionId, collections) {
         for (collection in collections) {
-            if (collectionId == collection.getName) {
+            if (collectionId == collection.id) {
                 return collection
             }
         }
         return null
+    }
+
+    HttpResponse<String> get(String path, String accept) {
+        httpClient.send(
+                HttpRequest.newBuilder(URI.create(SUT_URL + path))
+                        .header('Accept', accept)
+                        .GET()
+                        .build(),
+                BodyHandlers.ofString())
+    }
+
+    static def parse(HttpResponse<String> response) {
+        new JsonSlurper().parseText(response.body())
+    }
+
+    static String contentType(HttpResponse<String> response) {
+        response.headers().firstValue('content-type').orElse('')
     }
 }

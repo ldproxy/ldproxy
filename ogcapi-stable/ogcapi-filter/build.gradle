@@ -22,7 +22,6 @@ dependencies {
     provided project(":ogcapi-tiles")
 
     testProvided project(':ogcapi-common')
-    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
 }
 
 test {

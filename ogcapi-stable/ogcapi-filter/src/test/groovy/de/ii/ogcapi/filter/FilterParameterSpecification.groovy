@@ -10,14 +10,17 @@ package de.ii.ogcapi.filter
 import de.ii.ogcapi.common.domain.OgcApiDatasetView
 import de.ii.xtraplatform.cql.app.CqlImpl
 import de.ii.xtraplatform.cql.domain.Cql
-import groovyx.net.http.ContentType
-import groovyx.net.http.Method
-import groovyx.net.http.RESTClient
+import groovy.json.JsonSlurper
 import spock.lang.IgnoreIf
 import spock.lang.Requires
 import spock.lang.Shared
 import spock.lang.Specification
 
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpResponse.BodyHandlers
+import java.time.Duration
 import java.util.stream.Collectors
 import java.util.stream.IntStream
 
@@ -27,6 +30,14 @@ import java.util.stream.IntStream
  *     <li>geoinfodok (same data and configuration as https://demo.ldproxy.net/geoinfodok)
  *     <li>cshapes (same data and configuration as https://demo.ldproxy.net/cshapes)
  * </ul>
+ *
+ * <p>Uses {@link java.net.http.HttpClient} so the spec works on Groovy 4 — the former
+ * http-builder dependency references {@code groovy.util.slurpersupport.GPathResult}, which
+ * Groovy 4 removed. {@link #getRequest} returns a small adapter exposing {@code status},
+ * {@code responseData} and {@code getContentType()}, so the assertions read exactly as before.
+ * Note one deliberate difference: http-builder raised on a non-2xx status, whereas the adapter
+ * returns the response, so an unexpected error status now fails on the {@code assertSuccess}
+ * assertion instead of surfacing as a thrown exception.
  */
 @Requires({env['SUT_URL'] != null})
 class FilterParameterSpecification extends Specification {
@@ -57,7 +68,9 @@ class FilterParameterSpecification extends Specification {
     @Shared
     int limit = 250
     @Shared
-    RESTClient restClient = new RESTClient(SUT_URL)
+    HttpClient restClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
     @Shared
     def allCulturePntFeatures = getRequest(restClient, CULTURE_PNT_PATH, null)
     @Shared
@@ -2934,10 +2947,59 @@ class FilterParameterSpecification extends Specification {
     }
 
     static Object getRequest(restClient, path, query) {
-        return restClient.request(SUT_URL+path, Method.GET,  ContentType.JSON, { req ->
-            // uri.path = path
-            uri.query = query
-            headers.Accept = (path.contains("/items") ? GEO_JSON : JSON) + ", " + PROBLEM_JSON + "; q=0.8"
-        })
+        String uri = SUT_URL + path + queryString(query)
+        HttpResponse<String> response = restClient.send(
+                HttpRequest.newBuilder(URI.create(uri))
+                        .header('Accept',
+                                (path.contains("/items") ? GEO_JSON : JSON) + ", " + PROBLEM_JSON + "; q=0.8")
+                        .GET()
+                        .build(),
+                BodyHandlers.ofString())
+        return new ApiResponse(response)
+    }
+
+    /** Renders the parameter map the tests pass as an encoded query string; null means no query. */
+    static String queryString(query) {
+        if (query == null || query.isEmpty()) {
+            return ""
+        }
+        return "?" + query.collect { key, value ->
+            URLEncoder.encode(String.valueOf(key), "UTF-8") + "=" +
+                    URLEncoder.encode(String.valueOf(value), "UTF-8")
+        }.join("&")
+    }
+
+    /**
+     * Adapts a {@link java.net.http.HttpResponse} to the shape the assertions in this spec use:
+     * {@code status}, {@code responseData} (the parsed body) and {@code getContentType()}. The body
+     * is parsed lazily so responses without a JSON body do not fail here but where they are used.
+     */
+    static class ApiResponse {
+        private final HttpResponse<String> response
+        private Object parsed
+        private boolean parsedOnce
+
+        ApiResponse(HttpResponse<String> response) {
+            this.response = response
+        }
+
+        int getStatus() {
+            response.statusCode()
+        }
+
+        String getContentType() {
+            // The media type without parameters, so comparisons against a bare type still hold when
+            // the server appends e.g. a charset.
+            response.headers().firstValue("content-type").orElse("").split(";")[0].trim()
+        }
+
+        Object getResponseData() {
+            if (!parsedOnce) {
+                parsedOnce = true
+                String body = response.body()
+                parsed = (body == null || body.isEmpty()) ? null : new JsonSlurper().parseText(body)
+            }
+            return parsed
+        }
     }
 }
