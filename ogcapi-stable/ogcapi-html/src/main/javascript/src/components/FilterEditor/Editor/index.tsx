@@ -66,7 +66,7 @@ const EditorBody = ({
   );
 
   return (
-    <Collapse isOpen={isOpen} onEntered={() => setShowMap(true)} className={isOpen ? "mb-4" : ""}>
+    <Collapse isOpen={isOpen} onEntered={() => setShowMap(true)} className={isOpen ? "mb-3" : ""}>
       <Row>
         <Col md="7">
           {Object.keys(fields).length > 0 && (
