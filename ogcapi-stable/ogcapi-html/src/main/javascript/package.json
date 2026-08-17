@@ -20,6 +20,7 @@
     "@vis.gl/react-maplibre": "^8.1.2",
     "@xtramaps/layer-control-maplibre-react": "file:../../../../../../xtramaps/packages/react/layer-control-maplibre",
     "@xtramaps/web-map-maplibre-react": "file:../../../../../../xtramaps/packages/react/web-map-maplibre",
+    "@xtramaps/web-map-openlayers-react": "file:../../../../../../xtramaps/packages/react/web-map-openlayers",
     "bootstrap": "^4.6.0",
     "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
@@ -28,10 +29,8 @@
     "jquery": "^3",
     "maplibre-gl": "^6.3.0",
     "moment": "^2.29.1",
-    "ol": "^6.9.0",
-    "ol-mapbox-style": "8.2.1",
+    "ol": "10.8.0",
     "popper.js": "^1.16.1",
-    "proj4": "^2.7.5",
     "prop-types": "^15.7.2",
     "qs": "^6.5.1",
     "rc-slider": "^11.1.9",
@@ -40,7 +39,7 @@
     "react-dom": "^19",
     "react-i18next": "^16.0.0",
     "reactstrap": "^9.2.3",
-    "rlayers": "^1.1.1"
+    "rlayers": "^3.9.0"
   },
   "devDependencies": {
     "@babel/core": "^7",
@@ -62,7 +61,8 @@
     "@xtramaps/web-map-maplibre": "file:../../../../../../xtramaps/packages/core/web-map-maplibre",
     "@xtramaps/layer-control-maplibre": "file:../../../../../../xtramaps/packages/core/layer-control-maplibre",
     "@xtramaps/legend-symbols-maplibre": "file:../../../../../../xtramaps/packages/core/legend-symbols-maplibre",
-    "@xtramaps/legend-symbols-maplibre-react": "file:../../../../../../xtramaps/packages/react/legend-symbols-maplibre"
+    "@xtramaps/legend-symbols-maplibre-react": "file:../../../../../../xtramaps/packages/react/legend-symbols-maplibre",
+    "@xtramaps/web-map-openlayers": "file:../../../../../../xtramaps/packages/core/web-map-openlayers"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

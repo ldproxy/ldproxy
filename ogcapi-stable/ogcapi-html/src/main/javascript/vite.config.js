@@ -51,8 +51,11 @@ export default defineConfig({
     // project, own node_modules) — Node resolves their own `react`/`react-dom` from xtramaps'
     // node_modules, not ours, even though it's the same version. Two physically different
     // copies of React loaded at once breaks hooks ("Cannot read properties of null (reading
-    // 'useState')"); dedupe forces every resolution to our single copy.
-    dedupe: ['react', 'react-dom'],
+    // 'useState')"); dedupe forces every resolution to our single copy. `ol` carries its own
+    // global registry state (projections, EPSG codes, `setupProjections()`) that would silently
+    // split across two copies the same way; `rlayers` gets deduped alongside it for consistency
+    // since it wraps `ol` + React context providers of its own.
+    dedupe: ['react', 'react-dom', 'ol', 'rlayers'],
   },
   plugins: [
     // classic, not automatic (the @vitejs/plugin-react default): the automatic JSX runtime's
