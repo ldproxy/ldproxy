@@ -184,6 +184,59 @@ class CommandHandlerTransactionsSpec extends Specification {
         ]
     }
 
+    def "return=none falls back to the minimal body when warnings force a response"() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [action()])
+        FixedResultExecutor executor = new FixedResultExecutor(result: successWithFeature())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT,
+                        HeaderPrefer.Return.NONE),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then: "the outcome is reported, but not one URI per feature"
+        response.status == 200
+        !json.containsKey('deleteResults')
+        !json.containsKey('insertResults')
+        json.get('summary') != null
+        ((List) json.get('warnings')) == ['pre-commit check: 2 orphaned rows']
+    }
+
+    def "return=representation still carries the per-feature URIs"() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [action()])
+        FixedResultExecutor executor = new FixedResultExecutor(result: successWithFeature())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT,
+                        HeaderPrefer.Return.REPRESENTATION),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 200
+        ((List) json.get('deleteResults')).size() == 1
+    }
+
+    private static ExecutionResult successWithFeature() {
+        return new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([new ImmutableActionResult.Builder()
+                                        .type(TxActionType.DELETE)
+                                        .collectionId('c')
+                                        .actionId('a1')
+                                        .status(ActionStatus.SUCCESS)
+                                        .featureIds(['f1'])
+                                        .build()])
+                .warnings(['pre-commit check: 2 orphaned rows'])
+                .build()
+    }
+
     private static de.ii.ogcapi.transactions.domain.ActionResult actionResult(
             String actionId, ActionStatus status, String error) {
         def builder = new ImmutableActionResult.Builder()
@@ -202,6 +255,15 @@ class CommandHandlerTransactionsSpec extends Specification {
             String body,
             TransactionsConfiguration config,
             HeaderPrefer.Handling handling) {
+        return queryInput(parser, body, config, handling, HeaderPrefer.Return.REPRESENTATION)
+    }
+
+    private static CommandHandlerTransactions.QueryInputTransaction queryInput(
+            RecordingParser parser,
+            String body,
+            TransactionsConfiguration config,
+            HeaderPrefer.Handling handling,
+            HeaderPrefer.Return returnPreference) {
         return ImmutableQueryInputTransaction.builder()
                 .parser(parser)
                 .requestBody(new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)))
@@ -209,7 +271,7 @@ class CommandHandlerTransactionsSpec extends Specification {
                 .config(config)
                 .requestCrs(OgcCrs.CRS84)
                 .handling(handling)
-                .returnPreference(HeaderPrefer.Return.REPRESENTATION)
+                .returnPreference(returnPreference)
                 .build()
     }
 
