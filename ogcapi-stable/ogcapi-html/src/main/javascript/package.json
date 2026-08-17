@@ -10,8 +10,8 @@
     "build": "vite build",
     "test": "mocha",
     "lint": "eslint --cache --format codeframe --ext mjs,jsx,js src test",
-    "storybook": "start-storybook -p 6006 --docs --ci",
-    "build-storybook": "build-storybook --docs"
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@cesium/engine": "^26.2.0",
@@ -43,20 +43,14 @@
     "rlayers": "^3.9.0"
   },
   "devDependencies": {
-    "@babel/core": "^7",
-    "@babel/preset-env": "^7.16.4",
-    "@mdx-js/react": "^1.6.22",
-    "@storybook/addon-docs": "^6.3.8",
-    "@storybook/addon-essentials": "^6.3.8",
-    "@storybook/addon-links": "^6.3.8",
-    "@storybook/react": "^6.3.8",
+    "@storybook/react-vite": "10.5.7",
     "@vitejs/plugin-react": "^6.0.0",
     "eslint": "^7",
     "eslint-plugin-babel": "*",
     "mocha": "^8",
+    "storybook": "10.5.7",
     "vite": "^8.0.0",
-    "vite-plugin-static-copy": "^4.1.1",
-    "webpack": "^4"
+    "vite-plugin-static-copy": "^4.1.1"
   },
   "overrides": {
     "@xtramaps/web-map-maplibre": "file:../../../../../../xtramaps/packages/core/web-map-maplibre",

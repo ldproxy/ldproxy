@@ -1,174 +1,59 @@
-import React from "react";
-import { storiesOf } from "@storybook/react";
 import moment from "moment";
 import Slider from "./Slider";
 
-const Instant = (args) => {
-  return (
-    <>
-      <Slider {...args} />
-    </>
-  );
+export default {
+  title: "@ogcapi/html/FilterEditor/Editor/Temporal",
+  component: Slider,
 };
 
-const Period = (args) => {
-  return (
-    <>
-      <Slider {...args} />
-    </>
-  );
+const instantArgs = (min, max) => ({
+  min: moment.utc(min).valueOf(),
+  max: moment.utc(max).valueOf(),
+  start: moment.utc(min),
+  end: moment.utc(min),
+  onChange: () => {},
+  isInstant: true,
+  showHeader: true,
+});
+
+const periodArgs = (min, max, end) => ({
+  min: moment.utc(min).valueOf(),
+  max: moment.utc(max).valueOf(),
+  start: moment.utc(min),
+  end: moment.utc(end),
+  onChange: () => {},
+  isInstant: false,
+  showHeader: true,
+});
+
+export const InstantMoreThan7Years = {
+  args: instantArgs("01 Jan 2019 00:00:00", "01 Jan 2028 00:57:00"),
+};
+export const InstantMoreThan3Years = {
+  args: instantArgs("01 Jan 2019 00:00:00", "01 Jan 2024 00:57:00"),
+};
+export const InstantMoreThan7Months = {
+  args: instantArgs("01 Jan 2019 00:00:00", "01 Dec 2019 00:57:00"),
+};
+export const InstantMoreThan24h = {
+  args: instantArgs("01 Jan 2019 00:00:00", "08 Jan 2019 00:00:00"),
+};
+export const InstantLessThan24h = {
+  args: instantArgs("01 Jan 2019 00:00:00", "01 Jan 2019 23:00:00"),
 };
 
-// Stories for SliderInstant:
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Instant/MoreThan7Years", module).add(
-  "Default",
-  () => (
-    <Instant
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Jan 2028 00:57:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Instant/MoreThan3Years", module).add(
-  "Default",
-  () => (
-    <Instant
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Jan 2024 00:57:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Instant/MoreThan7Months", module).add(
-  "Default",
-  () => (
-    <Instant
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Dec 2019 00:57:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Instant/MoreThan24h", module).add(
-  "Default",
-  () => (
-    <Instant
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("08 Jan 2019 00:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Instant/LessThan24h", module).add(
-  "Default",
-  () => (
-    <Instant
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Jan 2019 23:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant
-      showHeader
-    />
-  )
-);
-
-// Stories for SliderPeriod:
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Period/MoreThan7Years", module).add(
-  "Default",
-  () => (
-    <Period
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("31 Dec 2028 00:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("31 Dec 2028 00:00:00")}
-      onChange={() => {}}
-      isInstant={false}
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Period/MoreThan3Years", module).add(
-  "Default",
-  () => (
-    <Period
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Jan 2024 00:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2024 00:00:00")}
-      onChange={() => {}}
-      isInstant={false}
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Period/MoreThan7Months", module).add(
-  "Default",
-  () => (
-    <Period
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Dec 2019 00:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Dec 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant={false}
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Period/MoreThan24h", module).add(
-  "Default",
-  () => (
-    <Period
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("07 Jun 2019 00:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("07 Jun 2019 00:00:00")}
-      onChange={() => {}}
-      isInstant={false}
-      showHeader
-    />
-  )
-);
-
-storiesOf("@ogcapi/html/FilterEditor/Editor/Temporal/Period/LessThan24h", module).add(
-  "Default",
-  () => (
-    <Period
-      min={moment.utc("01 Jan 2019 00:00:00").valueOf()}
-      max={moment.utc("01 Jan 2019 23:00:00").valueOf()}
-      start={moment.utc("01 Jan 2019 00:00:00")}
-      end={moment.utc("01 Jan 2019 23:00:00")}
-      onChange={() => {}}
-      isInstant={false}
-      showHeader
-    />
-  )
-);
+export const PeriodMoreThan7Years = {
+  args: periodArgs("01 Jan 2019 00:00:00", "31 Dec 2028 00:00:00", "31 Dec 2028 00:00:00"),
+};
+export const PeriodMoreThan3Years = {
+  args: periodArgs("01 Jan 2019 00:00:00", "01 Jan 2024 00:00:00", "01 Jan 2024 00:00:00"),
+};
+export const PeriodMoreThan7Months = {
+  args: periodArgs("01 Jan 2019 00:00:00", "01 Dec 2019 00:00:00", "01 Dec 2019 00:00:00"),
+};
+export const PeriodMoreThan24h = {
+  args: periodArgs("01 Jan 2019 00:00:00", "07 Jun 2019 00:00:00", "07 Jun 2019 00:00:00"),
+};
+export const PeriodLessThan24h = {
+  args: periodArgs("01 Jan 2019 00:00:00", "01 Jan 2019 23:00:00", "01 Jan 2019 23:00:00"),
+};

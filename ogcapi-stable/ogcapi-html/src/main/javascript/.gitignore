@@ -113,3 +113,6 @@ dist
 # Vite build directory
 build
 dist
+
+# Storybook build output
+storybook-static
