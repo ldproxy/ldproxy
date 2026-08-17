@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, relative, dirname, join, sep } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -43,12 +43,23 @@ const stripBaseCount = (dir) => relative(root, dir).split(sep).length;
 const apps = readdirSync(resolve(root, 'src/apps'));
 const styles = readdirSync(resolve(root, 'src/styles'));
 
+// Phase F (TypeScript conversion) moves entries from .jsx/.js to .tsx/.ts one at a time, so
+// both extensions have to resolve during the transition - picking whichever actually exists
+// on disk avoids hardcoding a single extension that breaks as soon as a file is renamed.
+const resolveEntry = (dir, extensions) => {
+  const match = extensions.find((ext) => existsSync(resolve(root, `${dir}/index.${ext}`)));
+  if (!match) {
+    throw new Error(`No index.(${extensions.join('|')}) found in ${dir}`);
+  }
+  return resolve(root, `${dir}/index.${match}`);
+};
+
 const input = {};
 apps.forEach((app) => {
-  input[app] = resolve(root, `src/apps/${app}/index.jsx`);
+  input[app] = resolveEntry(`src/apps/${app}`, ['tsx', 'jsx']);
 });
 styles.forEach((style) => {
-  input[`style-${style}`] = resolve(root, `src/styles/${style}/index.js`);
+  input[`style-${style}`] = resolveEntry(`src/styles/${style}`, ['ts', 'js']);
 });
 
 export default defineConfig({
