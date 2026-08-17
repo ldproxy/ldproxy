@@ -1972,11 +1972,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // errors keep the stack trace so genuine bugs stay debuggable.
   // A constraint violation reported by the database (a CHECK or foreign-key constraint, a unique
   // index, or a trigger raising one) is caused by the data the client sent, just like a malformed
-  // payload — it is reported in the response, so the stack trace adds nothing.
+  // payload — it is reported in the response, so the stack trace adds nothing. The same holds for a
+  // configured transaction hook that rejects the data it was given.
   private static boolean isUserError(Throwable error) {
     for (Throwable t = error; t != null; t = t.getCause()) {
       if (t instanceof IllegalArgumentException
-          || t instanceof FeatureMutationConstraintException) {
+          || t instanceof FeatureMutationConstraintException
+          || t instanceof FeatureMutationHookException) {
         return true;
       }
     }
