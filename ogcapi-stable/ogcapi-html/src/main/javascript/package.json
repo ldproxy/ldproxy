@@ -14,11 +14,12 @@
     "build-storybook": "build-storybook --docs"
   },
   "dependencies": {
-    "@cesium/engine": "^2.3.0",
-    "@cesium/widgets": "^2.2.0",
+    "@cesium/engine": "^26.2.0",
+    "@cesium/widgets": "^16.1.1",
     "@mapbox/geojson-extent": "^1.0.1",
     "@vis.gl/react-maplibre": "^8.1.2",
     "@xtramaps/layer-control-maplibre-react": "file:../../../../../../xtramaps/packages/react/layer-control-maplibre",
+    "@xtramaps/web-map-cesium-react": "file:../../../../../../xtramaps/packages/react/web-map-cesium",
     "@xtramaps/web-map-maplibre-react": "file:../../../../../../xtramaps/packages/react/web-map-maplibre",
     "@xtramaps/web-map-openlayers-react": "file:../../../../../../xtramaps/packages/react/web-map-openlayers",
     "bootstrap": "^4.6.0",
@@ -62,7 +63,8 @@
     "@xtramaps/layer-control-maplibre": "file:../../../../../../xtramaps/packages/core/layer-control-maplibre",
     "@xtramaps/legend-symbols-maplibre": "file:../../../../../../xtramaps/packages/core/legend-symbols-maplibre",
     "@xtramaps/legend-symbols-maplibre-react": "file:../../../../../../xtramaps/packages/react/legend-symbols-maplibre",
-    "@xtramaps/web-map-openlayers": "file:../../../../../../xtramaps/packages/core/web-map-openlayers"
+    "@xtramaps/web-map-openlayers": "file:../../../../../../xtramaps/packages/core/web-map-openlayers",
+    "@xtramaps/web-map-cesium": "file:../../../../../../xtramaps/packages/core/web-map-cesium"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

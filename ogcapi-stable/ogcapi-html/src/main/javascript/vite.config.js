@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, relative, dirname, join, sep } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
@@ -25,6 +25,14 @@ const cesiumPath = `cesium/${cesiumVersion}`;
 // raster layers (loaded directly on the main thread) still render, but vector layers never do,
 // with no console error to point at it.
 const maplibreGlDir = dirname(resolve(root, 'node_modules/maplibre-gl/package.json'));
+
+// rename.stripBase needs the exact number of path segments to strip so only the subtree
+// *below* `dir` survives under `dest` (a plain `stripBase: true` strips everything down to
+// the bare filename, losing subdirectories Cesium's runtime depends on, e.g.
+// Assets/IAU2006_XYS/IAU2006_XYS_18.json or Widgets/Images/NavigationHelp/*.svg). Computed
+// from `root` instead of hardcoded so it stays correct regardless of the exact node_modules
+// layout (hoisting, nested installs, etc.).
+const stripBaseCount = (dir) => relative(root, dir).split(sep).length;
 
 // NOTE: src/apps/common looks like a non-rendering leftover (just imports react/react-dom,
 // no render call — it used to seed Neutrino/Webpack's splitChunks vendor chunk), but its
@@ -54,8 +62,10 @@ export default defineConfig({
     // 'useState')"); dedupe forces every resolution to our single copy. `ol` carries its own
     // global registry state (projections, EPSG codes, `setupProjections()`) that would silently
     // split across two copies the same way; `rlayers` gets deduped alongside it for consistency
-    // since it wraps `ol` + React context providers of its own.
-    dedupe: ['react', 'react-dom', 'ol', 'rlayers'],
+    // since it wraps `ol` + React context providers of its own. `@cesium/engine`/`@cesium/widgets`
+    // get the same treatment - `Ion.defaultAccessToken`/`Camera.DEFAULT_VIEW_RECTANGLE` are
+    // global statics on the Cesium API itself, not per-viewer state.
+    dedupe: ['react', 'react-dom', 'ol', 'rlayers', '@cesium/engine', '@cesium/widgets'],
   },
   plugins: [
     // classic, not automatic (the @vitejs/plugin-react default): the automatic JSX runtime's
@@ -68,18 +78,45 @@ export default defineConfig({
     react({ jsxRuntime: 'classic' }),
     ogcapiHtmlMustachePlugin({ apps, styles }),
     viteStaticCopy({
+      // Two independent fixes needed on every target below, both invisible until Cesium was
+      // actually exercised deeply (terrain, 3D Tiles, NavigationHelp/InfoBox overlays):
+      // 1. A trailing `/*` only matches files, not directories - fast-glob doesn't recurse into
+      //    matched subdirectories on its own, so nested assets (Textures/SkyBox/*.jpg,
+      //    IAU2006_XYS/*.json, Widgets/Images/NavigationHelp/*.svg, Widgets/InfoBox/*.css) were
+      //    never even matched, let alone copied. Changed to `/**/*` (recursive) for that.
+      // 2. rename.stripBase: vite-plugin-static-copy only flattens a glob match into `dest` when
+      //    it sits at a path segment boundary it can strip automatically - for src paths reaching
+      //    into node_modules like these, it instead nests the entire matched path (e.g.
+      //    `Assets/node_modules/@cesium/engine/Source/Assets/...`) under dest, leaving the real
+      //    destination empty.
+      // Symptom without both fixes: a wall of 404s for the affected files and Cesium's own
+      // "An error occurred while rendering. Rendering has stopped." - not a partial degradation.
       targets: [
-        { src: `${cesiumEngineDir}/Build/Workers/*`, dest: `assets/${cesiumPath}/Workers` },
-        { src: `${cesiumEngineDir}/Source/Assets/*`, dest: `assets/${cesiumPath}/Assets` },
         {
-          src: `${cesiumEngineDir}/Source/ThirdParty/*`,
+          src: `${cesiumEngineDir}/Build/Workers/**/*`,
+          dest: `assets/${cesiumPath}/Workers`,
+          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Build/Workers`) },
+        },
+        {
+          src: `${cesiumEngineDir}/Source/Assets/**/*`,
+          dest: `assets/${cesiumPath}/Assets`,
+          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/Assets`) },
+        },
+        {
+          src: `${cesiumEngineDir}/Source/ThirdParty/**/*`,
           dest: `assets/${cesiumPath}/ThirdParty`,
+          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/ThirdParty`) },
         },
         {
-          src: `${cesiumEngineDir}/Source/Widget/*`,
+          src: `${cesiumEngineDir}/Source/Widget/**/*`,
           dest: `assets/${cesiumPath}/Widgets/CesiumWidget`,
+          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/Widget`) },
         },
-        { src: `${cesiumWidgetsDir}/Source/*`, dest: `assets/${cesiumPath}/Widgets` },
+        {
+          src: `${cesiumWidgetsDir}/Source/**/*`,
+          dest: `assets/${cesiumPath}/Widgets`,
+          rename: { stripBase: stripBaseCount(`${cesiumWidgetsDir}/Source`) },
+        },
         {
           // The worker script itself imports `./maplibre-gl-shared.mjs` (code shared between
           // main thread and worker) as a plain relative specifier, so it has to sit right next
