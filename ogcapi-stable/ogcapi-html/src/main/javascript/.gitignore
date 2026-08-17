@@ -68,6 +68,9 @@ web_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Yarn Berry cache/state (project uses npm since Phase A; ignore any leftover local artifacts)
+.yarn/
+
 # dotenv environment variables file
 .env
 .env.test

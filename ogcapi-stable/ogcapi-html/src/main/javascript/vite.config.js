@@ -18,6 +18,14 @@ const cesiumVersion = JSON.parse(
 ).version;
 const cesiumPath = `cesium/${cesiumVersion}`;
 
+// maplibre-gl needs its worker script (all vector tile fetching/parsing runs off the main
+// thread) at a URL it computes itself at runtime from `import.meta.url` of wherever its own
+// bundled code ends up — not via a statically analyzable `new Worker(new URL(...))` call Vite's
+// bundler could detect and emit automatically. Without this copy, that request 404s silently:
+// raster layers (loaded directly on the main thread) still render, but vector layers never do,
+// with no console error to point at it.
+const maplibreGlDir = dirname(resolve(root, 'node_modules/maplibre-gl/package.json'));
+
 // NOTE: src/apps/common looks like a non-rendering leftover (just imports react/react-dom,
 // no render call — it used to seed Neutrino/Webpack's splitChunks vendor chunk), but its
 // generated app-common.mustache IS a real Mustache partial, included via `{{> app-common}}`
@@ -38,6 +46,14 @@ styles.forEach((style) => {
 export default defineConfig({
   root,
   base: '/ogcapi-html/',
+  resolve: {
+    // The @xtramaps/* packages are file:-linked from a sibling repo (its own separate npm
+    // project, own node_modules) — Node resolves their own `react`/`react-dom` from xtramaps'
+    // node_modules, not ours, even though it's the same version. Two physically different
+    // copies of React loaded at once breaks hooks ("Cannot read properties of null (reading
+    // 'useState')"); dedupe forces every resolution to our single copy.
+    dedupe: ['react', 'react-dom'],
+  },
   plugins: [
     // classic, not automatic (the @vitejs/plugin-react default): the automatic JSX runtime's
     // jsx()/jsxs() helpers never resolve `Component.defaultProps` for function components —
@@ -61,6 +77,14 @@ export default defineConfig({
           dest: `assets/${cesiumPath}/Widgets/CesiumWidget`,
         },
         { src: `${cesiumWidgetsDir}/Source/*`, dest: `assets/${cesiumPath}/Widgets` },
+        {
+          // The worker script itself imports `./maplibre-gl-shared.mjs` (code shared between
+          // main thread and worker) as a plain relative specifier, so it has to sit right next
+          // to it — same reasoning as the worker file itself, just one hop further.
+          src: `${maplibreGlDir}/dist/maplibre-gl-{worker,shared}.mjs`,
+          dest: `assets`,
+          rename: { stripBase: true },
+        },
       ],
     }),
   ],

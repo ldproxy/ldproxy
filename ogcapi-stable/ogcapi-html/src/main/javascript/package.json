@@ -6,7 +6,6 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "postinstall": "patch-package",
     "start": "vite",
     "build": "vite build",
     "test": "mocha",
@@ -18,16 +17,16 @@
     "@cesium/engine": "^2.3.0",
     "@cesium/widgets": "^2.2.0",
     "@mapbox/geojson-extent": "^1.0.1",
-    "@mapbox/mapbox-gl-draw": "^1.3.0",
-    "@maplibre/maplibre-gl-style-spec": "^19.2.2",
-    "@turf/combine": "^6.5.0",
+    "@vis.gl/react-maplibre": "^8.1.2",
+    "@xtramaps/layer-control-maplibre-react": "file:../../../../../../xtramaps/packages/react/layer-control-maplibre",
+    "@xtramaps/web-map-maplibre-react": "file:../../../../../../xtramaps/packages/react/web-map-maplibre",
     "bootstrap": "^4.6.0",
     "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
     "date-fns": "2.16.1",
     "i18next": "^25.0.0",
     "jquery": "^3",
-    "maplibre-gl": "3.2.1",
+    "maplibre-gl": "^6.3.0",
     "moment": "^2.29.1",
     "ol": "^6.9.0",
     "ol-mapbox-style": "8.2.1",
@@ -40,7 +39,6 @@
     "react-datetime": "^3.3.1",
     "react-dom": "^19",
     "react-i18next": "^16.0.0",
-    "react-maplibre-ui": "2.0.0",
     "reactstrap": "^9.2.3",
     "rlayers": "^1.1.1"
   },
@@ -56,15 +54,15 @@
     "eslint": "^7",
     "eslint-plugin-babel": "*",
     "mocha": "^8",
-    "patch-package": "^8.0.1",
     "vite": "^8.0.0",
     "vite-plugin-static-copy": "^4.1.1",
     "webpack": "^4"
   },
   "overrides": {
-    "react-maplibre-ui": {
-      "maplibre-gl": "3.2.1"
-    }
+    "@xtramaps/web-map-maplibre": "file:../../../../../../xtramaps/packages/core/web-map-maplibre",
+    "@xtramaps/layer-control-maplibre": "file:../../../../../../xtramaps/packages/core/layer-control-maplibre",
+    "@xtramaps/legend-symbols-maplibre": "file:../../../../../../xtramaps/packages/core/legend-symbols-maplibre",
+    "@xtramaps/legend-symbols-maplibre-react": "file:../../../../../../xtramaps/packages/react/legend-symbols-maplibre"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

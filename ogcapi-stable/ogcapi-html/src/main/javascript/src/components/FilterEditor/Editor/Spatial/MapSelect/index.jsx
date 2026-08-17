@@ -2,7 +2,8 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import MapLibre, { CanvasPlugin } from "../../../../MapLibre";
+import MapLibre, { CanvasPlugin } from "@xtramaps/web-map-maplibre-react";
+import "@xtramaps/web-map-maplibre-react/dist/index.css";
 import Resizer from "./Resizer";
 import "./style.css";
 
