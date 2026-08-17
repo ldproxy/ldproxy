@@ -1789,7 +1789,7 @@
     },
     "GmlConfiguration": {
       "title": "GmlConfiguration",
-      "description": "By default, every GML property element will receive the property name from the feature    schema. The element is placed in the namespace of its containing object type (declared via    `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element    stays in the default namespace. A different name or an explicit namespace can be set using    the `rename` transformation, which takes precedence over the inherited namespace.      When the CRUD building block is enabled, the options that shape GML output are honoured    symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,    `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,    `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,    `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,    `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD    references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `appendTemporalSuffixToGmlId`,    `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder    formatting decisions with no input counterpart, or because the decoder is permissive of any    equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do    attributes and injected empty elements in `xmlPaths` chains - on input, an empty element    inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.",
+      "description": "By default, every GML property element will receive the property name from the feature    schema. The element is placed in the namespace of its containing object type (declared via    `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element    stays in the default namespace. A different name or an explicit namespace can be set using    the `rename` transformation, which takes precedence over the inherited namespace.      When the CRUD building block is enabled, the options that shape GML output are honoured    symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,    `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,    `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,    `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,    `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD    references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`,    `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder    formatting decisions with no input counterpart, or because the decoder is permissive of any    equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do    attributes and injected empty elements in `xmlPaths` chains - on input, an empty element    inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -2183,22 +2183,6 @@
           "description": "If set, a `gml:identifier` child element is emitted as the first child of every feature    with the configured `codeSpace` attribute. The element\u0027s text value is the raw feature id    from the provider, optionally substituted into `valueTemplate` (where `{{value}}` is    replaced with the raw id). Useful for application schemas that mandate `gml:identifier`    (e.g. AdV NAS).",
           "type": "object",
           "$ref": "#/$defs/GmlIdentifier"
-        },
-        "appendTemporalSuffixToGmlId": {
-          "title": "appendTemporalSuffixToGmlId",
-          "description": "If `true` and the request\u0027s `datetime` parameter is an interval (contains `/`), the    `gml:id` of every feature is suffixed with the feature\u0027s primary temporal property value    formatted as `yyyyMMddTHHmmssX`. The source property is the one with role    `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application schemas    that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series queries).    Does not affect `gml:identifier`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
         },
         "codelistUriTemplate": {
           "title": "codelistUriTemplate",
