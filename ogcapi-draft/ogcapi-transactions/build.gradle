@@ -10,6 +10,7 @@ descriptionDe = 'Atomare und gestapelte Transaktionen über mehrere Objektarten.
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-entities'
     provided 'de.interactive_instruments:xtraplatform-base'
     provided 'de.interactive_instruments:xtraplatform-cql'
@@ -21,6 +22,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-features-json'
     provided 'de.interactive_instruments:xtraplatform-geometries'
     provided 'de.interactive_instruments:xtraplatform-jsonschema'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
     provided 'de.interactive_instruments:ogcapi-collections'
     provided 'de.interactive_instruments:ogcapi-collections-schema'
     provided 'de.interactive_instruments:ogcapi-crs'
