@@ -26,14 +26,19 @@ import java.time.Duration
  * http-builder dependency references {@code groovy.util.slurpersupport.GPathResult}, which
  * Groovy 4 removed.
  *
- * <p>{@code SUT_PATH} and {@code SUT_STYLE} default to the demo API this spec was written against.
+ * <p>{@code SUT_PATH} defaults to the demo API this spec was written against; {@code SUT_MAP_STYLE}
+ * has no default, since a deployment without map representations has no style to name.
  */
-@Requires({env['SUT_URL'] != null})
+// Also gated on SUT_MAP_STYLE, because the resource under test exists only where the MAPS
+// building block is enabled: a style can be present in /styles while /maps/{styleId} is 404,
+// which is the case in both deployments this was run against. Set SUT_MAP_STYLE to the id of a
+// style that has a map representation.
+@Requires({env['SUT_URL'] != null && env['SUT_MAP_STYLE'] != null})
 class StylesRepresentationRESTApiSpec extends Specification {
 
     static final String SUT_URL = System.getenv('SUT_URL')
     static final String SUT_PATH = System.getenv('SUT_PATH') ?: '/daraa'
-    static final String SUT_STYLE = System.getenv('SUT_STYLE') ?: 'topographic'
+    static final String SUT_STYLE = System.getenv('SUT_MAP_STYLE')
 
     @Shared
     HttpClient httpClient = HttpClient.newBuilder()

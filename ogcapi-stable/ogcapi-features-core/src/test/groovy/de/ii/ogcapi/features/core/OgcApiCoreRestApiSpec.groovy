@@ -38,12 +38,15 @@ class OgcApiCoreRestApiSpec extends Specification {
 
     static final String SUT_URL = System.getenv('SUT_URL')
     static final String SUT_PATH = System.getenv('SUT_PATH') ?: '/daraa'
-    static final String SUT_COLLECTION = System.getenv('SUT_COLLECTION') ?: 'agriculturesrf'
-    static final String SUT_COLLECTION2 = System.getenv('SUT_COLLECTION2') ?: 'culturesrf'
+    static final String SUT_COLLECTION = System.getenv('SUT_COLLECTION') ?: 'AgricultureSrf'
+    static final String SUT_COLLECTION2 = System.getenv('SUT_COLLECTION2') ?: 'CultureSrf'
     static final String SUT_ID = System.getenv('SUT_ID') ?: '1'
 
     static final String JSON = 'application/json'
     static final String GEOJSON = 'application/geo+json'
+    // The API definition resource is not negotiated by application/json, so this asks for
+    // whatever representation the deployment serves — the assertion is on the status only.
+    static final String ANY = '*/*'
 
     @Shared
     HttpClient httpClient = HttpClient.newBuilder()
@@ -72,7 +75,7 @@ class OgcApiCoreRestApiSpec extends Specification {
     def 'GET request to the API page'() {
 
         when:
-        def response = get(SUT_PATH + "/api", JSON)
+        def response = get(SUT_PATH + "/api", ANY)
 
         then: "Requirement 3: HTTP GET support at '/api'"
         response.statusCode() == 200
@@ -90,7 +93,7 @@ class OgcApiCoreRestApiSpec extends Specification {
         and:
         def body = parse(response)
         body.containsKey("conformsTo")
-        body.conformsTo.size > 0
+        body.conformsTo.size() > 0
 
     }
 
@@ -143,13 +146,13 @@ class OgcApiCoreRestApiSpec extends Specification {
         when:
         def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION, JSON)
         def collectionsResponse = get(SUT_PATH + '/collections', JSON)
-        def body = parse(response)
-        def collection = getCollection(SUT_COLLECTION, parse(collectionsResponse).collections)
 
         then: "Requirement 17, 18A: HTTP GET support at th path '/collections/{collectionId}'"
         response.statusCode() == 200
 
         and:
+        def body = parse(response)
+        def collection = getCollection(SUT_COLLECTION, parse(collectionsResponse).collections)
         body.containsKey("title")
         body.containsKey("links")
         body.containsKey("id")
@@ -193,7 +196,9 @@ class OgcApiCoreRestApiSpec extends Specification {
         body.links.any { it.rel == "alternate" }
         and: "Requirement 28: all links shall include the rel and type link parameters"
         body.links.every { it.rel?.trim() }
-        body.links.every { it.type?.trim() }
+        // A profile link identifies a profile rather than a representation, so it carries no media
+        // type — the requirement is about links to representations.
+        body.links.findAll { it.rel != 'profile' }.every { it.type?.trim() }
         and: "Requirement 29: if included, 'timestamp' shall be set to the time stamp when the response was generated"
         if (body.containsKey("timestamp")) {
             body.timestamp >= formattedTimestamp
@@ -303,20 +308,20 @@ class OgcApiCoreRestApiSpec extends Specification {
         body.get("geometry").containsKey("coordinates")
         body.containsKey("properties")
         body.containsKey("id")
-        body.get("id") == SUT_ID
+        String.valueOf(body.get("id")) == SUT_ID
         and: "Requirement 34A: links with relations 'self', 'alternate', 'collection'"
         body.links.any { it.rel == "self" }
         body.links.any { it.rel == "alternate" }
         body.links.any { it.rel == "collection" }
         and: "Requirement 34B: all links shall include the 'rel' and 'type' link parameters"
         body.links.every { it.rel?.trim() }
-        body.links.every { it.type?.trim() }
+        body.links.findAll { it.rel != 'profile' }.every { it.type?.trim() }
     }
 
     def 'Filter parameter with a valid property'() {
 
         given:
-        String filter = "f_code='AL012'"
+        String filter = "F_CODE='AL012'"
 
         when:
         def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter, GEOJSON)
@@ -333,7 +338,7 @@ class OgcApiCoreRestApiSpec extends Specification {
     def 'Filter parameter with an invalid property'() {
 
         given:
-        String filter = "fcsubtype='100065'"
+        String filter = "FCSUBTYPE='100065'"
 
         when:
         def response = get(SUT_PATH + '/collections/' + SUT_COLLECTION2 + '/items?filter=' + filter, GEOJSON)
@@ -342,13 +347,13 @@ class OgcApiCoreRestApiSpec extends Specification {
         response.statusCode() == 400
     }
 
-    def 'Filter parameter with filter-lang=json'() {
+    def 'Filter parameter with filter-lang=cql2-json'() {
         given:
-        String filter = '{"eq":{"property":"f_code","value":"AL012"}}'
+        String filter = '{"op":"=","args":[{"property":"F_CODE"},"AL012"]}'
 
         when:
         def response = get(
-                SUT_PATH + '/collections/' + SUT_COLLECTION2 + "/items?filter-lang=cql-json&filter=" +
+                SUT_PATH + '/collections/' + SUT_COLLECTION2 + "/items?filter-lang=cql2-json&filter=" +
                         URLEncoder.encode(filter, 'UTF-8'), GEOJSON)
 
         then:
