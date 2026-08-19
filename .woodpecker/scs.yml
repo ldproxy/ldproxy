@@ -4,7 +4,7 @@ when:
 
 steps:
   dtrack:
-    image: eclipse-temurin:17@sha256:f9b295135b39ed8c650c713c6116600dd4c39ac5f3883f566d96fdec917ce3b2
+    image: eclipse-temurin:17@sha256:a68b8c55daf93ea59bfc6f3eba8b5763faa0856ee5f1e748da22c4f2ecaf08b7
     commands:
       - ./gradlew publishSbom -PdtrackApiUrl=https://dtrack.ldproxy.net/api/v1/bom -PdtrackApiKey=$DTRACK_API_KEY
     secrets: [ dtrack_api_key ]
