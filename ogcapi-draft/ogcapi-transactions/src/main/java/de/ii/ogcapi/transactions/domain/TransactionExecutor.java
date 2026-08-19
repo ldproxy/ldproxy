@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.JobHook;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -36,11 +37,38 @@ public interface TransactionExecutor extends Volatile2 {
    *     body-side primary-interval-start value
    * @return summary of what happened, in request order
    */
+  default ExecutionResult execute(
+      Transaction transaction,
+      OgcApi api,
+      ApiRequestContext requestContext,
+      EpsgCrs requestCrs,
+      HeaderPrefer.Handling handling,
+      Optional<Instant> ogcMutationDatetime) {
+    return execute(
+        transaction,
+        api,
+        requestContext,
+        requestCrs,
+        handling,
+        ogcMutationDatetime,
+        Optional.empty());
+  }
+
+  /**
+   * TODO: canceling a job is not yet supported — the job queue has no cancel operation so far; the
+   * checks below are in place and tested, but nothing requests cancellation yet.
+   *
+   * @param jobHook progress/cancellation hook for the request; empty leaves execution unchanged.
+   *     Cancellation is observed cooperatively: before each action and between insert batches.
+   *     Atomic: a cancelled transaction is rolled back as a whole. Batch: actions committed before
+   *     the cancellation stay committed, the rest are not executed.
+   */
   ExecutionResult execute(
       Transaction transaction,
       OgcApi api,
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime);
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook);
 }
