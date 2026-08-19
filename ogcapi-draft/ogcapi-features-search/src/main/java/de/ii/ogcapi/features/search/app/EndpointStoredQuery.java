@@ -22,6 +22,7 @@ import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.domain.SearchJob;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
@@ -34,6 +35,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -42,13 +44,16 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
@@ -81,6 +86,8 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   private final SearchQueriesHandler queryHandler;
   private final SchemaValidator schemaValidator;
   private final Cql cql;
+  private final Jobs jobs;
+  private final ResourceStore resultStore;
 
   @Inject
   public EndpointStoredQuery(
@@ -89,13 +96,17 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       StoredQueryRepository repository,
       SearchQueriesHandler queryHandler,
       SchemaValidator schemaValidator,
-      Cql cql) {
+      Cql cql,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.providers = providers;
     this.repository = repository;
     this.queryHandler = queryHandler;
     this.schemaValidator = schemaValidator;
     this.cql = cql;
+    this.jobs = jobs;
+    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
   }
 
   @Override
@@ -219,6 +230,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @GET
   public Response getStoredQuery(
       @PathParam("queryId") String queryId,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
@@ -240,6 +252,14 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
 
     QueryExpression executableQuery =
         new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
+
+    if (HeaderPrefer.containsToken(prefer, "respond-async")
+        && apiData
+            .getExtension(SearchConfiguration.class)
+            .map(SearchConfiguration::isAsync)
+            .orElse(false)) {
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, executableQuery, true);
+    }
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

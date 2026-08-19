@@ -71,6 +71,8 @@ import de.ii.xtraplatform.features.domain.FeatureTransactions.MutationResult;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.Session;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate;
+import de.ii.xtraplatform.features.domain.JobCancelledException;
+import de.ii.xtraplatform.features.domain.JobHook;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.geometries.domain.Axes;
@@ -144,13 +146,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     try (transaction) {
       return transaction.getSemantic() == TxSemantic.ATOMIC
           ? executeAtomic(
-              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime, jobHook)
           : executeBatch(
-              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime);
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime, jobHook);
     }
   }
 
@@ -214,7 +217,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
     TransactionsConfiguration cfg = transactionsConfig(api);
@@ -242,11 +246,15 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     // and always stops execution; a failed action only stops it when errors are not collected.
     Throwable fatalError = null;
     boolean anyFailed = false;
+    boolean cancelled = false;
 
     Iterator<TxAction> actions = transaction.actions();
     while (actions.hasNext()) {
       TxAction action = actions.next();
-      if (fatalError != null || (anyFailed && !collectErrors)) {
+      if (!cancelled && jobHook.map(JobHook::isCancelRequested).orElse(false)) {
+        cancelled = true;
+      }
+      if (fatalError != null || cancelled || (anyFailed && !collectErrors)) {
         // execution has stopped — skip remaining actions but still drain insert items so the
         // parser stays in a consistent state
         drainQuietly(action);
@@ -288,9 +296,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 ogcMutationDatetime,
                 validate,
                 false,
-                transaction.isWfs());
+                transaction.isWfs(),
+                jobHook);
         result = withActionWarnings(result, session);
-        if (result.getStatus() == ActionStatus.FAILED) {
+        if (result.getStatus() == ActionStatus.CANCELLED) {
+          // the whole transaction is rolled back below; no savepoint handling needed
+          cancelled = true;
+        } else if (result.getStatus() == ActionStatus.FAILED) {
           anyFailed = true;
           if (savepointActive) {
             // undo just this action's writes; the transaction stays usable for the rest
@@ -321,7 +333,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     boolean commitSucceeded = false;
     Optional<String> transactionError = Optional.empty();
-    if (!anyFailed) {
+    if (!anyFailed && !cancelled) {
       try {
         // Pre-commit hooks run on the still-open transaction; a raised error aborts the
         // whole transaction, a warning lets it commit and is surfaced in the response.
@@ -360,6 +372,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .actionResults(results)
         .warnings(warnings)
         .transactionError(transactionError)
+        .isCancelled(cancelled)
         .build();
   }
 
@@ -371,7 +384,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
     TransactionsConfiguration cfg = transactionsConfig(api);
@@ -382,9 +396,15 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     // Reused across actions in a batch even though each action commits independently — keeps the
     // MutationStrategy lookup to one walk per (transaction, collectionId).
     Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
+    boolean cancelled = false;
 
     Iterator<TxAction> actions = transaction.actions();
     while (actions.hasNext()) {
+      // batch semantics: actions committed so far stay committed, the rest are not executed
+      if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
+        cancelled = true;
+        break;
+      }
       TxAction action = actions.next();
       Session session = null;
       try {
@@ -407,8 +427,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 ogcMutationDatetime,
                 validate,
                 true,
-                transaction.isWfs());
+                transaction.isWfs(),
+                jobHook);
         r = withActionWarnings(r, session);
+        if (r.getStatus() == ActionStatus.CANCELLED) {
+          cancelled = true;
+        }
         if (r.getStatus() == ActionStatus.SUCCESS) {
           // Pre-commit hooks run per action under batch semantics; a raised error fails just
           // this action (caught below), a warning lets it commit and is surfaced.
@@ -448,6 +472,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.BATCH)
         .actionResults(results)
         .warnings(warnings)
+        .isCancelled(cancelled)
         .build();
   }
 
@@ -467,7 +492,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       Optional<Instant> ogcMutationDatetime,
       boolean validate,
       boolean skipInvalid,
-      boolean fromWfs) {
+      boolean fromWfs,
+      Optional<JobHook> jobHook) {
     // Pass the canonical collection id (e.g. lowercase `ap_pto`) into the strategy lookup —
     // raw action ids straight off the wire are often the mixed-case GML element name (`AP_PTO`)
     // and would cause `ApiExtension.isEnabledForApi` to miss the collection entirely.
@@ -499,7 +525,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 validate,
                 skipInvalid,
                 strategy,
-                mutationTimestamp);
+                mutationTimestamp,
+                jobHook);
         case REPLACE ->
             runReplace(
                 (TxReplace) action,
@@ -533,6 +560,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 mutationTimestamp);
         default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
       };
+    } catch (JobCancelledException e) {
+      // a cooperative checkpoint fired mid-action; the action's writes are rolled back by the
+      // caller (atomic: whole transaction, batch: this action)
+      return cancelled(canonicalCollectionId(api, action.getCollectionId()), action);
     } catch (RuntimeException e) {
       return failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
     }
@@ -548,7 +579,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       boolean validate,
       boolean skipInvalid,
       MutationStrategy strategy,
-      Instant mutationTimestamp) {
+      Instant mutationTimestamp,
+      Optional<JobHook> jobHook) {
     Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
@@ -717,6 +749,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 extents,
                 roleOverrides);
         if (failed != null) return failed;
+        // cooperative cancellation between insert batches; the exception is turned into a
+        // CANCELLED result in runAction
+        jobHook.ifPresent(JobHook::checkpoint);
       }
     }
     if (!batch.isEmpty()) {
@@ -1884,6 +1919,15 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .collectionId(collectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SKIPPED)
+        .build();
+  }
+
+  private static ActionResult cancelled(String collectionId, TxAction action) {
+    return new ImmutableActionResult.Builder()
+        .type(action.getType())
+        .collectionId(collectionId)
+        .actionId(action.getActionId())
+        .status(ActionStatus.CANCELLED)
         .build();
   }
 

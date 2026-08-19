@@ -762,6 +762,13 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
+    // attach after the profile transformations so no rebuild can drop the hook; the provider
+    // reports progress and observes cancellation through it
+    if (queryInput.getJobHook().isPresent()) {
+      query =
+          ImmutableMultiFeatureQuery.builder().from(query).jobHook(queryInput.getJobHook()).build();
+    }
+
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<ApiMediaType> alternateMediaTypes =
         htmlSupported
@@ -1337,6 +1344,21 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         featureStream
             .runWith(featureSink, propertyTransformations, onCollectionMetadata)
             .toCompletableFuture();
+
+    // a stream that fails or is cancelled before the meta phase never reaches the transformer
+    // that completes onCollectionMetadata — propagate the outcome so the join below cannot hang
+    stream.whenComplete(
+        (result, throwable) -> {
+          if (!onCollectionMetadata.isDone()) {
+            onCollectionMetadata.completeExceptionally(
+                throwable != null
+                    ? throwable
+                    : result != null && result.getError().isPresent()
+                        ? result.getError().get()
+                        : new IllegalStateException(
+                            "The feature stream finished without providing metadata"));
+          }
+        });
 
     // wait for collection metadata
     CollectionMetadata collectionMetadata = onCollectionMetadata.join();

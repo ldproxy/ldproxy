@@ -21,6 +21,7 @@ import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.domain.SearchJob;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
@@ -36,6 +37,7 @@ import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -45,14 +47,17 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
@@ -91,18 +96,24 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   private final FeaturesCoreProviders providers;
   private final Schema<?> schema;
   private final Map<String, Schema<?>> referencedSchemas;
+  private final Jobs jobs;
+  private final ResourceStore resultStore;
 
   @Inject
   public EndpointAdHocQuery(
       ExtensionRegistry extensionRegistry,
       SearchQueriesHandler queryHandler,
       FeaturesCoreProviders providers,
-      ClassSchemaCache classSchemaCache) {
+      ClassSchemaCache classSchemaCache,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
     this.providers = providers;
     this.schema = classSchemaCache.getSchema(QueryExpression.class);
     this.referencedSchemas = classSchemaCache.getReferencedSchemas(QueryExpression.class);
+    this.jobs = jobs;
+    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
   }
 
   @Override
@@ -253,6 +264,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Path("/")
   public Response getAdhocQuery(
       @Auth Optional<User> optionalUser,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
@@ -277,6 +289,14 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
               + "through. Use a stored query for paging, or set \"supportPaging\" to false.");
     }
     query = new ImmutableQueryExpression.Builder().from(query).supportPaging(false).build();
+
+    if (HeaderPrefer.containsToken(prefer, "respond-async")
+        && apiData
+            .getExtension(SearchConfiguration.class)
+            .map(SearchConfiguration::isAsync)
+            .orElse(false)) {
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, query, false);
+    }
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

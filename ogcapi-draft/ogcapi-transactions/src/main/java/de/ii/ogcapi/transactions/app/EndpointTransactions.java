@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.CountingInputStream;
 import dagger.Lazy;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.crs.domain.HeaderContentCrs;
@@ -42,11 +43,17 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.transactions.domain.TransactionJob;
 import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
+import de.ii.xtralink.jobs.Identifiers;
+import de.ii.xtralink.jobs.Job;
+import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ObjectSchema;
@@ -66,6 +73,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Iterator;
@@ -75,6 +84,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,6 +128,8 @@ public class EndpointTransactions extends Endpoint
   private final CommandHandlerTransactions commandHandler;
   private final CrsSupport crsSupport;
   private final FeaturesCoreProviders providers;
+  private final Jobs jobs;
+  private final ResourceStore documentStore;
 
   @Inject
   public EndpointTransactions(
@@ -122,12 +137,16 @@ public class EndpointTransactions extends Endpoint
       Lazy<Set<TransactionParser>> parsers,
       CommandHandlerTransactions commandHandler,
       CrsSupport crsSupport,
-      FeaturesCoreProviders providers) {
+      FeaturesCoreProviders providers,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.parsers = parsers;
     this.commandHandler = commandHandler;
     this.crsSupport = crsSupport;
     this.providers = providers;
+    this.jobs = jobs;
+    this.documentStore = resourceStore.with(Jobs.RESOURCE_TYPE, TransactionJob.KIND);
   }
 
   @Override
@@ -327,6 +346,9 @@ public class EndpointTransactions extends Endpoint
     if (cfg.map(c -> !Objects.equals(c.getBatch(), false)).orElse(true)) {
       builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/batch-transactions");
     }
+    if (cfg.map(c -> Objects.equals(c.getAsync(), true)).orElse(false)) {
+      builder.add("http://www.opengis.net/spec/ogcapi-features-11/0.0/conf/async-transactions");
+    }
     return builder.build();
   }
 
@@ -405,29 +427,256 @@ public class EndpointTransactions extends Endpoint
       @Context HttpServletRequest request,
       InputStream requestBody) {
 
-    if (HeaderPrefer.containsToken(prefer, "respond-async")) {
+    boolean async = HeaderPrefer.containsToken(prefer, "respond-async");
+    if (async
+        && !api.getData()
+            .getExtension(TransactionsConfiguration.class)
+            .map(TransactionsConfiguration::getAsync)
+            .map(Boolean.TRUE::equals)
+            .orElse(false)) {
       return Response.status(Response.Status.NOT_IMPLEMENTED)
           .type(MediaType.TEXT_PLAIN_TYPE)
           .entity("Asynchronous transactions are not supported by this API.")
           .build();
     }
 
-    HeaderPrefer.Handling handling =
-        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);
+    // parsed without fallback first, so responses can echo exactly the preferences the client sent
+    HeaderPrefer.Handling sentHandling =
+        HeaderPrefer.parseParameterised(
+            prefer, "handling", HeaderPrefer.Handling::fromHeader, null);
+    HeaderPrefer.Return sentReturn =
+        HeaderPrefer.parseParameterised(prefer, "return", HeaderPrefer.Return::fromHeader, null);
 
-    HeaderPrefer.Return ret = HeaderPrefer.parseReturn(prefer, HeaderPrefer.Return.REPRESENTATION);
+    HeaderPrefer.Handling handling =
+        sentHandling != null ? sentHandling : HeaderPrefer.Handling.LENIENT;
+    HeaderPrefer.Return ret = sentReturn != null ? sentReturn : HeaderPrefer.Return.REPRESENTATION;
+
+    if (async) {
+      // validates the headers (content type, parser, CRS, mutation datetime) before anything is
+      // spooled; the returned input is not used, the body stream is not consumed
+      createQueryInput(
+          api,
+          request.getContentType(),
+          contentCrsHeader,
+          mutationDatetimeHeader,
+          handling,
+          ret,
+          requestBody);
+
+      return submitAsync(
+          requestContext,
+          request.getContentType(),
+          contentCrsHeader,
+          mutationDatetimeHeader,
+          handling,
+          ret,
+          sentHandling,
+          sentReturn,
+          HeaderPrefer.parseWait(prefer).filter(seconds -> seconds > 0),
+          requestBody);
+    }
 
     CommandHandlerTransactions.QueryInputTransaction queryInput =
-        createQueryInput(
-            api,
-            request.getContentType(),
+        ImmutableQueryInputTransaction.builder()
+            .from(
+                createQueryInput(
+                    api,
+                    request.getContentType(),
+                    contentCrsHeader,
+                    mutationDatetimeHeader,
+                    handling,
+                    ret,
+                    requestBody))
+            .requestedHandling(Optional.ofNullable(sentHandling))
+            .requestedReturn(Optional.ofNullable(sentReturn))
+            .build();
+
+    return commandHandler.processTransaction(queryInput, requestContext);
+  }
+
+  /**
+   * Spools the request body to the resources store, pushes a job that executes the transaction in
+   * the background, and returns 202 with the job id. Depending on the {@code return} preference the
+   * result document lands in the job outputs (as a map) or in the resources store (full
+   * representations can be large).
+   */
+  private Response submitAsync(
+      ApiRequestContext requestContext,
+      String contentTypeHeader,
+      @Nullable String contentCrsHeader,
+      @Nullable String mutationDatetimeHeader,
+      HeaderPrefer.Handling handling,
+      HeaderPrefer.Return ret,
+      @Nullable HeaderPrefer.Handling sentHandling,
+      @Nullable HeaderPrefer.Return sentReturn,
+      Optional<Integer> sentWait,
+      InputStream requestBody) {
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+    java.nio.file.Path documentPath =
+        java.nio.file.Path.of(apiData.getId(), "document_" + UUID.randomUUID());
+    long totalBytes;
+    try {
+      CountingInputStream countingBody = new CountingInputStream(requestBody);
+      documentStore.put(documentPath, countingBody);
+      totalBytes = countingBody.getCount();
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not store the transaction document", e);
+    }
+
+    JobConfiguration jobConfiguration =
+        TransactionJob.of(
+            apiData.getId(),
+            documentPath,
+            contentTypeHeader,
             contentCrsHeader,
             mutationDatetimeHeader,
             handling,
             ret,
-            requestBody);
+            ret == HeaderPrefer.Return.REPRESENTATION);
 
-    return commandHandler.processTransaction(queryInput, requestContext);
+    Job job;
+    try {
+      job = jobs.push(jobConfiguration);
+    } catch (RuntimeException e) {
+      // do not leave an orphaned document behind when the job never made it into the queue
+      try {
+        documentStore.delete(documentPath);
+      } catch (IOException cleanupError) {
+        LOGGER.warn("Could not delete the orphaned transaction document {}", documentPath);
+      }
+      throw e;
+    }
+
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Accepted asynchronous transaction as job {} ({} bytes)", job.id(), totalBytes);
+    }
+
+    String sentPreferences =
+        (sentReturn != null ? ", return=" + sentReturn.headerValue() : "")
+            + (sentHandling != null ? ", handling=" + sentHandling.headerValue() : "");
+
+    // honor the wait preference: defer the response for up to min(wait, maxWait) seconds and
+    // answer synchronously when the job finishes in time
+    if (sentWait.isPresent()) {
+      int maxWait =
+          Optional.ofNullable(
+                  apiData
+                      .getExtension(TransactionsConfiguration.class)
+                      .map(TransactionsConfiguration::getMaxWait)
+                      .orElse(null))
+              .orElse(60);
+      int waitSeconds = Math.min(sentWait.get(), maxWait);
+      boolean waitCapped = waitSeconds < sentWait.get();
+      try {
+        Job finished = jobs.waitFor(job.id()).get(waitSeconds, TimeUnit.SECONDS);
+        Optional<Response> syncResponse =
+            syncResponse(finished, sentHandling, sentReturn, sentWait.get());
+        if (syncResponse.isPresent()) {
+          return syncResponse.get();
+        }
+      } catch (TimeoutException e) {
+        // the job keeps running, fall through to 202
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (ExecutionException e) {
+        LOGGER.warn("Waiting for transaction job {} failed", job.id(), e);
+      }
+      if (waitCapped) {
+        // the client's wait was not fully honored, do not claim it
+        sentWait = Optional.empty();
+      }
+    }
+
+    String preferenceApplied =
+        "respond-async" + sentPreferences + sentWait.map(seconds -> ", wait=" + seconds).orElse("");
+
+    // TODO: the jobs API is not yet available; the Location target ({apiUri}/jobs/{jobId})
+    // returns 404 until it lands
+    URI location =
+        URI.create(
+            requestContext.getApiUriCustomizer().appendPathSegments("jobs", job.id()).toString());
+
+    return Response.accepted()
+        .location(location)
+        .header("Preference-Applied", preferenceApplied)
+        .type(MediaType.APPLICATION_JSON_TYPE)
+        .entity(Map.of("jobId", job.id()))
+        .build();
+  }
+
+  /**
+   * The regular synchronous response, reconstructed from a finished job: the result document from
+   * the resources store (deleted once read) or the job outputs, 204 when there is neither. Empty
+   * when the job failed — the client then gets the 202 and can inspect the job.
+   */
+  private Optional<Response> syncResponse(
+      Job finished,
+      @Nullable HeaderPrefer.Handling sentHandling,
+      @Nullable HeaderPrefer.Return sentReturn,
+      int sentWait) {
+    if (finished.status() != Identifiers.Status.SUCCESSFUL) {
+      return Optional.empty();
+    }
+
+    try {
+      Object resultPath = finished.outputs().get("resultPath");
+      if (resultPath != null) {
+        java.nio.file.Path path = java.nio.file.Path.of(resultPath.toString());
+        Optional<InputStream> result = documentStore.content(path);
+        if (result.isEmpty()) {
+          return Optional.empty();
+        }
+        String document;
+        try (InputStream in = result.get()) {
+          document = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        // the response is delivered synchronously, the stored copy is no longer needed
+        documentStore.delete(path);
+        return Optional.of(
+            Response.ok(document)
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .header(
+                    "Preference-Applied",
+                    waitPreferenceApplied(sentHandling, sentReturn, sentWait, true))
+                .build());
+      }
+
+      if (!finished.outputs().isEmpty()) {
+        // a document was produced although return=none was requested (failures/warnings override
+        // it), so a requested return=none was not applied
+        boolean returnApplied = sentReturn != HeaderPrefer.Return.NONE;
+        return Optional.of(
+            Response.ok(Jobs.DEFAULT_MAPPER.writeValueAsString(finished.outputs()))
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .header(
+                    "Preference-Applied",
+                    waitPreferenceApplied(sentHandling, sentReturn, sentWait, returnApplied))
+                .build());
+      }
+
+      // Prefer: return=none on a successful transaction has no response document
+      return Optional.of(
+          Response.noContent()
+              .header(
+                  "Preference-Applied",
+                  waitPreferenceApplied(sentHandling, sentReturn, sentWait, true))
+              .build());
+    } catch (IOException e) {
+      LOGGER.warn("Could not read the result of transaction job {}", finished.id(), e);
+      return Optional.empty();
+    }
+  }
+
+  /** Unlike the 202 variant there is no leading token; wait is always present and last. */
+  private static String waitPreferenceApplied(
+      @Nullable HeaderPrefer.Handling sentHandling,
+      @Nullable HeaderPrefer.Return sentReturn,
+      int sentWait,
+      boolean returnApplied) {
+    return (sentReturn != null && returnApplied ? "return=" + sentReturn.headerValue() + ", " : "")
+        + (sentHandling != null ? "handling=" + sentHandling.headerValue() + ", " : "")
+        + "wait="
+        + sentWait;
   }
 
   public CommandHandlerTransactions.QueryInputTransaction createQueryInput(

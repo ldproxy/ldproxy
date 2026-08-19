@@ -5124,6 +5124,38 @@
             }
           ]
         },
+        "async": {
+          "title": "async",
+          "description": "Enables asynchronous execution. A request with `Prefer: respond-async` is accepted    with status 202 and executed as a background job; progress and outcome are tracked by the    job. When disabled, requests with `respond-async` are rejected with status 501.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxWait": {
+          "title": "maxWait",
+          "description": "Only relevant when `async` is enabled. Upper bound in seconds for the `wait`    preference: a request with `Prefer: respond-async, wait\u003dn` is executed as a background job,    but the response is deferred for up to `min(n, maxWait)` seconds - if the job finishes in    time, the regular synchronous response is returned and the stored result is deleted,    otherwise the request is answered with status 202 and the job continues.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "defaultSemantic": {
           "title": "defaultSemantic",
           "description": "Semantic applied to requests that do not specify one. The default matches the OGC API    Features Part 11 specification default.",
@@ -5392,6 +5424,38 @@
             },
             {
               "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "async": {
+          "title": "async",
+          "description": "Enables asynchronous execution. A request with `Prefer: respond-async` is accepted    with status 202 and executed as a background job; progress and outcome are tracked by the    job. When disabled, requests with `respond-async` are executed synchronously.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxWait": {
+          "title": "maxWait",
+          "description": "Only relevant when `async` is enabled. Upper bound in seconds for the `wait`    preference: a request with `Prefer: respond-async, wait\u003dn` is executed as a background job,    but the response is deferred for up to `min(n, maxWait)` seconds - if the job finishes in    time, the regular synchronous response is returned and the stored result is deleted,    otherwise the request is answered with status 202 and the job continues.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
               "type": "string"
             },
             {

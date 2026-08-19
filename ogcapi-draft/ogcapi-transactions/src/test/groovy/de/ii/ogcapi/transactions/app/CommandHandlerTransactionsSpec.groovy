@@ -28,6 +28,7 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.features.domain.JobHook
 import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.core.MediaType
 import spock.lang.Specification
@@ -370,6 +371,18 @@ class CommandHandlerTransactionsSpec extends Specification {
         @Override
         Runnable onStateChange(VolatileRegistry.ChangeHandler handler, boolean initialCall) {
             return {} as Runnable
+        }
+
+        @Override
+        ExecutionResult execute(
+                Transaction transaction,
+                OgcApi api,
+                ApiRequestContext requestContext,
+                EpsgCrs requestCrs,
+                HeaderPrefer.Handling handling,
+                Optional<Instant> ogcMutationDatetime,
+                Optional<JobHook> jobHook) {
+            return execute(transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
         }
 
         @Override

@@ -9,7 +9,11 @@ descriptionDe = 'Unterstützung für den Abruf von Features aus mehreren Collect
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-entities'
+    // nativ-loader is needed by the xtralink integration spec, which loads the native library
+    provided 'de.interactive_instruments:xtraplatform-nativ-loader'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
     provided 'de.interactive_instruments:xtraplatform-streams'
     provided 'de.interactive_instruments:xtraplatform-values'
     provided 'de.interactive_instruments:xtraplatform-web'

@@ -34,168 +34,124 @@ import spock.lang.Specification
 import java.time.Instant
 
 /**
- * Unit-level guard for the atomic execution loop: stop-at-first-error vs. collectErrors
- * semantics, the per-action savepoint lifecycle, the SUCCESS-to-ROLLED_BACK flip on failed
- * transactions, and the fatal-error path that skips the remaining actions.
+ * Unit-level guard for cooperative cancellation in the execution loops: atomic transactions are
+ * rolled back as a whole, batch transactions keep committed actions and stop, and a CANCELLED
+ * action result (a checkpoint that fired mid-action) stops execution the same way.
  *
  * <p>Per-action outcomes are scripted through the package-private {@code runAction} seam and
  * sessions are recording fakes, following the pattern documented in
- * {@link TransactionExecutorChangesSpec} (the full OgcApi / FeatureProvider graph cannot be
- * stubbed on this test classpath).
+ * {@link TransactionExecutorAtomicSpec}.
  */
-class TransactionExecutorAtomicSpec extends Specification {
+class TransactionExecutorCancellationSpec extends Specification {
 
-    def 'stop-at-first-error: remaining actions are skipped, successes are rolled back, one error is reported'() {
+    def 'atomic: a cancellation between actions rolls back the whole transaction'() {
         given:
         RecordingSession session = new RecordingSession()
-        TransactionExecutorImpl executor = newExecutor(config(false), session, [
-                a1: { success('a1', ['f1']) },
-                a2: { failure('a2', 'boom') },
+        FlagJobHook jobHook = new FlagJobHook()
+        TransactionExecutorImpl executor = newExecutor(config(), session, [
+                a1: { jobHook.cancelRequested = true; success('a1', ['f1']) },
+                a2: { success('a2', ['f2']) },
                 a3: { success('a3', ['f3']) },
         ])
 
         when:
         ExecutionResult result = executor.execute(
-                transaction('a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
+                transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.of(jobHook))
 
-        then:
-        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.FAILED, ActionStatus.SKIPPED]
+        then: 'the first action ran but is rolled back, the remaining actions are skipped'
+        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.SKIPPED, ActionStatus.SKIPPED]
+        result.isCancelled()
         !result.isSuccess()
-        result.transactionError.isEmpty()
 
-        and: 'no savepoints are used and the session is rolled back, not committed'
-        session.calls.findAll { it.startsWith('savepoint') }.isEmpty()
+        and: 'the session is rolled back, never committed'
         session.calls.contains('rollback')
         !session.calls.contains('commit')
     }
 
-    def 'collectErrors: every action runs, all errors are reported, everything is still rolled back'() {
+    def 'atomic: a CANCELLED action result rolls back the whole transaction'() {
         given:
         RecordingSession session = new RecordingSession()
-        TransactionExecutorImpl executor = newExecutor(config(true), session, [
+        TransactionExecutorImpl executor = newExecutor(config(), session, [
                 a1: { success('a1', ['f1']) },
-                a2: { failure('a2', 'first error') },
-                a3: { failure('a3', 'second error') },
-                a4: { success('a4', ['f4']) },
+                a2: { cancelledResult('a2') },
+                a3: { success('a3', ['f3']) },
         ])
 
         when:
         ExecutionResult result = executor.execute(
-                transaction('a1', 'a2', 'a3', 'a4'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
+                transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.empty())
 
-        then: 'both errors surface, the successes flip to ROLLED_BACK'
-        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.FAILED, ActionStatus.FAILED, ActionStatus.ROLLED_BACK]
-        result.actionResults[1].error.get() == 'first error'
-        result.actionResults[2].error.get() == 'second error'
+        then:
+        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.CANCELLED, ActionStatus.SKIPPED]
+        result.isCancelled()
         !result.isSuccess()
-
-        and: 'each action ran inside a savepoint: released on success, rolled back on failure'
-        session.calls == ['execute',
-                          'savepoint', 'release',
-                          'savepoint', 'rollbackTo',
-                          'savepoint', 'rollbackTo',
-                          'savepoint', 'release',
-                          'rollback', 'close']
+        session.calls.contains('rollback')
+        !session.calls.contains('commit')
     }
 
-    def 'collectErrors with an all-success transaction commits and keeps SUCCESS statuses'() {
+    def 'batch: a cancellation between actions keeps committed actions and stops'() {
         given:
         RecordingSession session = new RecordingSession()
-        TransactionExecutorImpl executor = newExecutor(config(true), session, [
+        FlagJobHook jobHook = new FlagJobHook()
+        TransactionExecutorImpl executor = newExecutor(config(), session, [
+                a1: { jobHook.cancelRequested = true; success('a1', ['f1']) },
+                a2: { success('a2', ['f2']) },
+        ])
+
+        when:
+        ExecutionResult result = executor.execute(
+                transaction(TxSemantic.BATCH, 'a1', 'a2'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.of(jobHook))
+
+        then: 'the first action stays committed, the second was never executed'
+        statuses(result) == [ActionStatus.SUCCESS]
+        result.isCancelled()
+        !result.isSuccess()
+        session.calls.count { it == 'commit' } == 1
+        !session.calls.contains('rollback')
+    }
+
+    def 'batch: a CANCELLED action result rolls back that action and stops'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        TransactionExecutorImpl executor = newExecutor(config(), session, [
+                a1: { success('a1', ['f1']) },
+                a2: { cancelledResult('a2') },
+                a3: { success('a3', ['f3']) },
+        ])
+
+        when:
+        ExecutionResult result = executor.execute(
+                transaction(TxSemantic.BATCH, 'a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.empty())
+
+        then: 'the first action stays committed, the cancelled action is rolled back, the third never runs'
+        statuses(result) == [ActionStatus.SUCCESS, ActionStatus.CANCELLED]
+        result.isCancelled()
+        session.calls.count { it == 'commit' } == 1
+        session.calls.count { it == 'rollback' } == 1
+    }
+
+    def 'an absent hook leaves an all-success transaction unchanged'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        TransactionExecutorImpl executor = newExecutor(config(), session, [
                 a1: { success('a1', ['f1']) },
                 a2: { success('a2', ['f2']) },
         ])
 
         when:
         ExecutionResult result = executor.execute(
-                transaction('a1', 'a2'), null, null, OgcCrs.CRS84,
+                transaction(TxSemantic.ATOMIC, 'a1', 'a2'), null, null, OgcCrs.CRS84,
                 HeaderPrefer.Handling.LENIENT, Optional.empty())
 
         then:
         statuses(result) == [ActionStatus.SUCCESS, ActionStatus.SUCCESS]
+        !result.isCancelled()
         result.isSuccess()
-        session.calls == ['execute',
-                          'savepoint', 'release',
-                          'savepoint', 'release',
-                          'execute', 'commit', 'close']
-    }
-
-    def 'a failed rollback-to-savepoint is fatal: the remaining actions are skipped'() {
-        given:
-        RecordingSession session = new RecordingSession(
-                throwOnRollbackToSavepoint: new IllegalStateException('connection lost'))
-        TransactionExecutorImpl executor = newExecutor(config(true), session, [
-                a1: { failure('a1', 'boom') },
-                a2: { success('a2', ['f2']) },
-        ])
-
-        when:
-        ExecutionResult result = executor.execute(
-                transaction('a1', 'a2'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
-
-        then: 'the failing action keeps its own error, the rest is skipped'
-        statuses(result) == [ActionStatus.FAILED, ActionStatus.SKIPPED]
-        result.actionResults[0].error.get() == 'boom'
-        !result.isSuccess()
-        !session.calls.contains('commit')
-    }
-
-    def 'collectErrors falls back to stop-at-first-error when the session does not support savepoints'() {
-        given:
-        RecordingSession session = new RecordingSession(savepoints: false)
-        TransactionExecutorImpl executor = newExecutor(config(true), session, [
-                a1: { failure('a1', 'boom') },
-                a2: { success('a2', ['f2']) },
-        ])
-
-        when:
-        ExecutionResult result = executor.execute(
-                transaction('a1', 'a2'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
-
-        then:
-        statuses(result) == [ActionStatus.FAILED, ActionStatus.SKIPPED]
-        session.calls.findAll { it.startsWith('savepoint') }.isEmpty()
-    }
-
-    def 'per-action SQL warnings are drained from the session and attached to the action result'() {
-        given:
-        RecordingSession session = new RecordingSession()
-        TransactionExecutorImpl executor = newExecutor(config(false), session, [
-                a1: { session.nextWarnings = ['trigger touched a protected row']; success('a1', ['f1']) },
-                a2: { success('a2', ['f2']) },
-        ])
-
-        when:
-        ExecutionResult result = executor.execute(
-                transaction('a1', 'a2'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
-
-        then:
-        result.actionResults[0].warnings == ['trigger touched a protected row']
-        result.actionResults[1].warnings.isEmpty()
-    }
-
-    def 'a failed commit rolls back all successes and reports a transaction-level error'() {
-        given:
-        RecordingSession session = new RecordingSession(throwOnCommit: new IllegalStateException('deferred constraint'))
-        TransactionExecutorImpl executor = newExecutor(config(false), session, [
-                a1: { success('a1', ['f1']) },
-        ])
-
-        when:
-        ExecutionResult result = executor.execute(
-                transaction('a1'), null, null, OgcCrs.CRS84,
-                HeaderPrefer.Handling.LENIENT, Optional.empty())
-
-        then:
-        statuses(result) == [ActionStatus.ROLLED_BACK]
-        !result.isSuccess()
-        result.transactionError.get().contains('deferred constraint')
-        session.calls.contains('rollback')
+        session.calls.contains('commit')
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -206,10 +162,10 @@ class TransactionExecutorAtomicSpec extends Specification {
         return result.actionResults.collect { it.status }
     }
 
-    private static TransactionsConfiguration config(boolean collectErrors) {
+    private static TransactionsConfiguration config() {
         return new ImmutableTransactionsConfiguration.Builder()
                 .atomic(true)
-                .collectErrors(collectErrors)
+                .batch(true)
                 .build()
     }
 
@@ -223,28 +179,22 @@ class TransactionExecutorAtomicSpec extends Specification {
                 .build()
     }
 
-    private static ActionResult failure(String actionId, String error) {
+    private static ActionResult cancelledResult(String actionId) {
         return new ImmutableActionResult.Builder()
                 .type(TxActionType.DELETE)
                 .collectionId('c')
                 .actionId(actionId)
-                .status(ActionStatus.FAILED)
-                .error(error)
+                .status(ActionStatus.CANCELLED)
                 .build()
     }
 
-    private static Transaction transaction(String... actionIds) {
+    private static Transaction transaction(TxSemantic semantic, String... actionIds) {
         List<TxAction> actions = actionIds.collect {
             new ImmutableTxDelete.Builder().collectionId('c').actionId(it).addTargetIds('f').build() as TxAction
         }
-        return new FixedTransaction(actions)
+        return new FixedTransaction(semantic, actions)
     }
 
-    /**
-     * Scripted executor: per-action outcomes come from {@code outcomes} (keyed by actionId), the
-     * session and provider resolution are fixed. Follows the subclass-with-override pattern from
-     * {@link TransactionExecutorChangesSpec}.
-     */
     private TransactionExecutorImpl newExecutor(
             TransactionsConfiguration cfg,
             RecordingSession session,
@@ -291,16 +241,27 @@ class TransactionExecutorAtomicSpec extends Specification {
         }
     }
 
+    private static class FlagJobHook implements JobHook {
+        boolean cancelRequested = false
+
+        @Override
+        boolean isCancelRequested() {
+            return cancelRequested
+        }
+    }
+
     private static class FixedTransaction implements Transaction {
+        private final TxSemantic semantic
         private final List<TxAction> actions
 
-        FixedTransaction(List<TxAction> actions) {
+        FixedTransaction(TxSemantic semantic, List<TxAction> actions) {
+            this.semantic = semantic
             this.actions = actions
         }
 
         @Override
         TxSemantic getSemantic() {
-            return TxSemantic.ATOMIC
+            return semantic
         }
 
         @Override
@@ -316,9 +277,6 @@ class TransactionExecutorAtomicSpec extends Specification {
     private static class RecordingSession implements FeatureTransactions.Session {
         List<String> calls = []
         List<String> nextWarnings = []
-        boolean savepoints = true
-        RuntimeException throwOnRollbackToSavepoint
-        RuntimeException throwOnCommit
 
         @Override
         List<String> drainWarnings() {
@@ -352,7 +310,7 @@ class TransactionExecutorAtomicSpec extends Specification {
 
         @Override
         boolean supportsSavepoints() {
-            return savepoints
+            return true
         }
 
         @Override
@@ -368,17 +326,11 @@ class TransactionExecutorAtomicSpec extends Specification {
         @Override
         void rollbackToSavepoint() {
             calls << 'rollbackTo'
-            if (throwOnRollbackToSavepoint != null) {
-                throw throwOnRollbackToSavepoint
-            }
         }
 
         @Override
         void commit() {
             calls << 'commit'
-            if (throwOnCommit != null) {
-                throw throwOnCommit
-            }
         }
 
         @Override
