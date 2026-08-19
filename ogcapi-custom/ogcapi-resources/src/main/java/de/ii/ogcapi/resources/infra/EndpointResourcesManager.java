@@ -215,8 +215,10 @@ public class EndpointResourcesManager extends Endpoint implements ApiExtensionHe
             .ifMatch(Optional.ofNullable(ifMatch))
             .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince));
 
-    return queriesHandlerResources.handle(
-        QueriesHandlerResources.Query.CREATE_REPLACE, builder.build(), requestContext);
+    return HeaderPrefer.withAppliedHandling(
+        queriesHandlerResources.handle(
+            QueriesHandlerResources.Query.CREATE_REPLACE, builder.build(), requestContext),
+        prefer);
   }
 
   /**

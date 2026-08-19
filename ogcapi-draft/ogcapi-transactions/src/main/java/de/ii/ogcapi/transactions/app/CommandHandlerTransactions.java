@@ -42,6 +42,18 @@ public interface CommandHandlerTransactions extends Volatile2 {
     HeaderPrefer.Return getReturnPreference();
 
     /**
+     * The {@code handling} preference as submitted by the client; empty when it was not sent.
+     * {@link #getHandling()} is the effective value including the default.
+     */
+    Optional<HeaderPrefer.Handling> getRequestedHandling();
+
+    /**
+     * The {@code return} preference as submitted by the client; empty when it was not sent. {@link
+     * #getReturnPreference()} is the effective value including the default.
+     */
+    Optional<HeaderPrefer.Return> getRequestedReturn();
+
+    /**
      * Parsed {@code OGC-Mutation-Datetime} request header; empty when the client did not send it.
      */
     Optional<Instant> getMutationDatetime();

@@ -256,8 +256,10 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
       }
     }
 
-    return queryHandler.handle(
-        SearchQueriesHandler.Query.CREATE_REPLACE, builder.build(), requestContext);
+    return HeaderPrefer.withAppliedHandling(
+        queryHandler.handle(
+            SearchQueriesHandler.Query.CREATE_REPLACE, builder.build(), requestContext),
+        Collections.list(request.getHeaders("Prefer")));
   }
 
   /**
