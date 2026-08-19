@@ -12320,6 +12320,14 @@
       },
       {
         "parameterTypes": [],
+        "name": "getAsync"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getMaxWait"
+      },
+      {
+        "parameterTypes": [],
         "name": "getAllLinksAreLocal"
       }
     ]
@@ -12373,6 +12381,18 @@
           "java.lang.Boolean"
         ],
         "name": "validationEnabled"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "async"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Integer"
+        ],
+        "name": "maxWait"
       },
       {
         "parameterTypes": [

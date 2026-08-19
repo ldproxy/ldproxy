@@ -242,8 +242,28 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
               .build();
 
       try (Response response = commandHandler.processTransaction(queryInput, requestContext)) {
-        Object entity = response.getEntity();
-        return new Applied(response.getStatus(), entity == null ? null : entity.toString());
+        String resultDocument = response.hasEntity() ? response.readEntity(String.class) : null;
+        if (response.getStatus() >= 400) {
+          return jobs.failure(
+              String.format(
+                  "Transaction failed with status %d: %s",
+                  response.getStatus(), resultDocument));
+        }
+
+        if (resultDocument == null) {
+          // e.g. Prefer: return=none yields 204 without a body
+          jobs.outputs(job.id(), Map.of());
+        } else if (inputs.getResultAsFile()) {
+          String resultPath = String.format("%s/result_%s.json", api.getId(), job.id());
+          documentStore.put(
+              Path.of(resultPath),
+              new ByteArrayInputStream(resultDocument.getBytes(StandardCharsets.UTF_8)));
+          jobs.outputs(job.id(), Map.of("resultPath", resultPath));
+        } else {
+          jobs.outputs(job.id(), Jobs.DEFAULT_MAPPER.readValue(resultDocument, Jobs.MAP_TYPE));
+        }
+
+        return new Applied(response.getStatus(), resultDocument);
       }
     }
   }
@@ -315,6 +335,13 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
   @Override
   public JobResult cleanup(
       PartialJob partialJob, Job job, TransactionJob inputs, JobProcessing jobs) {
+    try {
+      documentStore.delete(Path.of(inputs.getDocumentPath()));
+    } catch (IOException e) {
+      if (LOGGER.isDebugEnabled()) {
+        LogContext.errorAsDebug(LOGGER, e, "Error deleting transaction document");
+      }
+    }
     return jobs.success();
   }
 
