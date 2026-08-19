@@ -22,20 +22,25 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
 
+/**
+ * The {@code Prefer} header on {@code POST /transactions} when asynchronous execution is enabled;
+ * {@link HeaderPreferTransaction} documents the header when it is not.
+ */
 @Singleton
 @AutoBind
-public class HeaderPreferTransaction extends HeaderPrefer {
+public class HeaderPreferTransactionAsync extends HeaderPrefer {
 
-  private final Schema<?> schema = new StringSchema().example("return=minimal, handling=strict");
+  private final Schema<?> schema =
+      new StringSchema().example("respond-async, wait=10, return=minimal");
 
   @Inject
-  HeaderPreferTransaction(SchemaValidator schemaValidator) {
+  HeaderPreferTransactionAsync(SchemaValidator schemaValidator) {
     super(schemaValidator);
   }
 
   @Override
   public String getId() {
-    return "PreferTransaction";
+    return "PreferTransactionAsync";
   }
 
   @Override
@@ -49,8 +54,12 @@ public class HeaderPreferTransaction extends HeaderPrefer {
         + "reported). Malformed transaction envelopes are rejected while parsing. "
         + "'handling=strict' validates each feature payload against its schema before any provider "
         + "write. 'handling=lenient' (the default) skips feature schema validation and only fails "
-        + "on malformed requests or errors raised by the provider. 'respond-async' is not "
-        + "supported and results in 501 Not Implemented.";
+        + "on malformed requests or errors raised by the provider. 'respond-async' executes the "
+        + "transaction asynchronously as a job; the response is 202 Accepted with a Location "
+        + "header that points to the job resource. 'wait' (a non-negative integer, in seconds), "
+        + "in combination with 'respond-async', delays the response for up to the requested "
+        + "number of seconds (the server may lower the effective wait period); if the job "
+        + "completes in time, the regular synchronous response is returned instead of 202.";
   }
 
   @Override
@@ -64,17 +73,9 @@ public class HeaderPreferTransaction extends HeaderPrefer {
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
-                && !isAsyncEnabled(apiData)
+                && HeaderPreferTransaction.isAsyncEnabled(apiData)
                 && method == HttpMethods.POST
                 && "/transactions".equals(definitionPath));
-  }
-
-  static boolean isAsyncEnabled(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(TransactionsConfiguration.class)
-        .map(TransactionsConfiguration::getAsync)
-        .map(Boolean.TRUE::equals)
-        .orElse(false);
   }
 
   @Override

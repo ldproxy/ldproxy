@@ -30,12 +30,14 @@ import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
+import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
+import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -193,6 +195,8 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                                       ((QueryParameterTemplateParameter) param).getQueryId(),
                                       queryId))
                       .toList();
+              List<ApiHeader> headers =
+                  getHeaders(extensionRegistry, apiData, definitionPath, HttpMethods.GET);
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
               Optional<String> operationDescription = query.getDescription();
@@ -203,7 +207,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       path,
                       false,
                       queryParameters,
-                      ImmutableList.of(),
+                      headers,
                       getResponseContent(apiData),
                       operationSummary,
                       operationDescription,
