@@ -447,7 +447,8 @@ public class EndpointCrud extends EndpointSubCollection
             .linkHeaders(links)
             .build();
 
-    return commandHandler.postItemsResponse(queryInput, apiRequestContext);
+    return HeaderPrefer.withAppliedHandling(
+        commandHandler.postItemsResponse(queryInput, apiRequestContext), prefer);
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -537,7 +538,8 @@ public class EndpointCrud extends EndpointSubCollection
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
 
-    return commandHandler.putItemResponse(queryInput, apiRequestContext);
+    return HeaderPrefer.withAppliedHandling(
+        commandHandler.putItemResponse(queryInput, apiRequestContext), prefer);
   }
 
   @Path("/{collectionId}/items/{featureId}")
