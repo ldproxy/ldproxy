@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.xtraplatform.jobs.domain.JobV2;
+import de.ii.xtralink.jobs.Identifiers;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
@@ -54,7 +54,7 @@ public interface OgcStatusInfo {
 
   Optional<OgcExecute> getRequest();
 
-  JobV2.Status getStatus();
+  Identifiers.Status getStatus();
 
   Optional<String> getMessage();
 
