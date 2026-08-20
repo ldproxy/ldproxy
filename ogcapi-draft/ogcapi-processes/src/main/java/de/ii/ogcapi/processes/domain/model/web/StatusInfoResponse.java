@@ -12,9 +12,10 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
+import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
-import de.ii.xtraplatform.jobs.domain.JobV2;
+import de.ii.xtralink.jobs.Job;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import org.immutables.value.Value;
@@ -69,30 +70,30 @@ public abstract class StatusInfoResponse extends PageRepresentation implements O
     return new ImmutableStatusInfoResponse.Builder().from(statusInfo).build();
   }
 
-  public static StatusInfoResponse of(JobV2 job) {
+  public static StatusInfoResponse of(Job job) {
     ImmutableStatusInfoResponse.Builder builder =
         new ImmutableStatusInfoResponse.Builder()
-            .id(job.getId())
-            .processId(job.getType())
-            .status(job.getStatus())
-            .created(Instant.ofEpochSecond(job.getCreatedAt()));
+            .id(job.id())
+            .processId(OapJob.processId(job.kind()))
+            .status(job.status())
+            .created(Instant.ofEpochMilli(job.createdAt()));
 
-    long startedAt = job.getStartedAt();
+    long startedAt = job.startedAt();
     if (startedAt != -1) {
-      builder.started(Instant.ofEpochSecond(startedAt));
+      builder.started(Instant.ofEpochMilli(startedAt));
     }
 
-    long updatedAt = job.getUpdatedAt();
+    long updatedAt = job.updatedAt();
     if (updatedAt != -1) {
-      builder.updated(Instant.ofEpochSecond(updatedAt));
+      builder.updated(Instant.ofEpochMilli(updatedAt));
     }
 
-    long finishedAt = job.getFinishedAt();
+    long finishedAt = job.finishedAt();
     if (finishedAt != -1) {
-      builder.finished(Instant.ofEpochSecond(finishedAt));
+      builder.finished(Instant.ofEpochMilli(finishedAt));
     }
 
-    int progress = job.getProgress();
+    int progress = job.progress().percent();
     if (progress != 0) {
       builder.progress(progress);
     }

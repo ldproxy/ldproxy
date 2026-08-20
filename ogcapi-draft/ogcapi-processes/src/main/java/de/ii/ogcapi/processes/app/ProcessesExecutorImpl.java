@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcBbox;
 import de.ii.ogcapi.processes.domain.model.OgcBbox.CRS;
@@ -27,15 +28,16 @@ import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
 import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
+import de.ii.xtralink.jobs.Identifiers.Status;
+import de.ii.xtralink.jobs.Job;
+import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
-import de.ii.xtraplatform.jobs.domain.JobQueueV2;
-import de.ii.xtraplatform.jobs.domain.JobV2;
-import de.ii.xtraplatform.jobs.domain.JobV2.Status;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
@@ -58,24 +60,24 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessesExecutorImpl.class);
 
   private final ObjectMapper mapper;
-  private final JobQueueV2 jobQueue;
+  private final Jobs jobs;
   private final SchemaValidator schemaValidator;
   private final Map<String, Map<String, CompiledJsonSchema>> inputsSchemaCache;
 
   private final HttpClient httpClient;
 
   @Inject
-  ProcessesExecutorImpl(
-      Http http, Jackson jackson, JobQueueV2 jobQueue, SchemaValidator schemaValidator) {
+  ProcessesExecutorImpl(Http http, Jackson jackson, Jobs jobs, SchemaValidator schemaValidator) {
     this.httpClient = http.getDefaultClient();
     this.mapper = jackson.getDefaultObjectMapper();
-    this.jobQueue = jobQueue;
+    this.jobs = jobs;
     this.schemaValidator = schemaValidator;
     inputsSchemaCache = new ConcurrentHashMap<>();
   }
 
   @Override
-  public Map<String, Object> executeSync(OgcProcess process, OgcExecute executeRequest) {
+  public Map<String, Object> executeSync(
+      String apiId, OgcProcess process, OgcExecute executeRequest) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -91,19 +93,21 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobV2 job = jobQueue.createJob(process.getId(), inputs);
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest);
 
     // Push it and wait for its results
-    Map<String, Object> jobResults = jobQueue.push(job).join().getOutputs();
-    validateResults(jobResults, outputSelections);
+    Job job = jobs.push(oapJob);
+    LOGGER.debug("Created job for process '{}', job: {}", process.getId(), job);
+    Job finalJob = jobs.waitFor(job.id()).join();
+    validateResults(finalJob.outputs(), outputSelections);
 
     // Return only selected results
-    return selectOutputs(jobResults, outputSelections);
+    return selectOutputs(finalJob.outputs(), outputSelections);
   }
 
   @Override
   public OgcStatusInfo executeAsync(
-      OgcProcess process, OgcExecute executeRequest, int callbackRetries) {
+      String apiId, OgcProcess process, OgcExecute executeRequest, int callbackRetries) {
 
     Map<String, Object> inputs = new LinkedHashMap<>(executeRequest.getInputs());
     validateAndUpdateInputs(process, inputs);
@@ -118,42 +122,42 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    Map<String, Object> jobDetails = new LinkedHashMap<>();
+    /*Map<String, Object> jobDetails = new LinkedHashMap<>();
     jobDetails.put("process", process);
     jobDetails.put("callbackRetries", callbackRetries);
     jobDetails.put("subscriber", executeRequest.getSubscriber());
     jobDetails.put("outputSelections", outputSelections);
-    JobV2 job = jobQueue.createJob(process.getId(), inputs, jobDetails);
+    JobV2 job = jobs.createJob(process.getId(), inputs, jobDetails);*/
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest);
 
     // Put job with callBack in queue
-    jobQueue.push(job, this::callBack);
+    Job job = jobs.push(oapJob, this::callBack);
 
     return StatusInfoResponse.of(job);
   }
 
   @Override
   public Optional<OgcStatusInfo> getStatusInfo(String jobId) {
-    JobV2 job = jobQueue.get(jobId);
-    if (job == null) {
-      return Optional.empty();
-    }
-    return Optional.of(StatusInfoResponse.of(job));
+    Optional<Job> job = jobs.get(jobId);
+
+    return job.map(StatusInfoResponse::of);
   }
 
   @Override
   public Map<String, Object> getResults(String jobId) {
-    JobV2 job = jobQueue.get(jobId);
-    if (job == null) {
+    Optional<Job> job = jobs.get(jobId);
+    if (job.isEmpty()) {
       throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
 
-    if (job.getStatus() != JobV2.Status.SUCCESSFUL) {
+    if (job.get().status() != Status.SUCCESSFUL) {
       throw new IllegalStateException("Status of job '" + jobId + "' is not SUCCESSFUL");
     }
 
+    // TODO
     Optional<Map<String, OgcFormat>> outputsSelections =
-        (Optional<Map<String, OgcFormat>>) job.getDetails().get("outputSelections");
-    Map<String, Object> jobResults = job.getOutputs();
+        (Optional<Map<String, OgcFormat>>) job.get().context().get("outputSelections");
+    Map<String, Object> jobResults = job.get().outputs();
     validateResults(jobResults, outputsSelections);
     return selectOutputs(jobResults, outputsSelections);
   }
@@ -206,12 +210,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Optional<OgcStatusInfo> dismissJob(String jobId) {
-    JobV2.Status currentStatus = getStatusInfoDirect(jobId).getStatus();
+    Status currentStatus = getStatusInfoDirect(jobId).getStatus();
 
     // Only cancel job if it's accepted or running. Successful, dismissed and failed jobs keep their
     // status. Note: this behavior is intentionally different from Requirement 114!
     if (Status.ACCEPTED.equals(currentStatus) || Status.RUNNING.equals(currentStatus)) {
-      jobQueue.cancel(jobId);
+      // TODO: not implemented yet
+      // jobs.cancel(jobId);
     }
 
     return getStatusInfo(jobId);
@@ -544,16 +549,16 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     return selectedOutput;
   }
 
-  private void callBack(JobV2 job) {
-    Optional<OgcSubscriber> subscriber =
-        (Optional<OgcSubscriber>) job.getDetails().get("subscriber");
+  // TODO
+  private void callBack(Job job) {
+    Optional<OgcSubscriber> subscriber = (Optional<OgcSubscriber>) job.context().get("subscriber");
     if (subscriber.isEmpty()) {
       return;
     }
 
-    String jobId = job.getId();
-    JobV2.Status status = job.getStatus();
-    int callbackRetries = (Integer) (job.getDetails().get("callbackRetries"));
+    String jobId = job.id();
+    Status status = job.status();
+    int callbackRetries = (Integer) (job.context().get("callbackRetries"));
     switch (status) {
       case SUCCESSFUL -> callBackOnSuccess(jobId, subscriber.get(), callbackRetries);
       case FAILED -> callBackOnFailure(jobId, subscriber.get(), callbackRetries);
@@ -692,10 +697,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   private OgcProcess getProcessDirect(String jobId) {
-    JobV2 job = jobQueue.get(jobId);
-    if (job == null) {
+    Optional<Job> job = jobs.get(jobId);
+    if (job.isEmpty()) {
       throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
-    return (OgcProcess) (job.getDetails().get("process"));
+    // TODO
+    return (OgcProcess) (job.get().context().get("process"));
   }
 }

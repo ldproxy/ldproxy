@@ -15,9 +15,10 @@ import java.util.Optional;
 
 public interface ProcessesExecutor {
 
-  Map<String, Object> executeSync(OgcProcess process, OgcExecute executeRequest);
+  Map<String, Object> executeSync(String apiId, OgcProcess process, OgcExecute executeRequest);
 
-  OgcStatusInfo executeAsync(OgcProcess process, OgcExecute executeRequest, int callbackRetries);
+  OgcStatusInfo executeAsync(
+      String apiId, OgcProcess process, OgcExecute executeRequest, int callbackRetries);
 
   Optional<OgcStatusInfo> getStatusInfo(String jobId);
 
