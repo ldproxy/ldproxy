@@ -179,7 +179,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    Map<String, Object> processResults = processesExecutor.executeSync(process, executeRequest);
+    Map<String, Object> processResults =
+        processesExecutor.executeSync(api.getId(), process, executeRequest);
 
     if (!processResults.isEmpty()) {
       ResultsResponse resultsResponse =
@@ -227,7 +228,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             requestContext.getMediaType())));
 
     OgcStatusInfo statusInfo =
-        processesExecutor.executeAsync(process, executeRequest, queryInput.getCallbackRetries());
+        processesExecutor.executeAsync(
+            api.getId(), process, executeRequest, queryInput.getCallbackRetries());
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
