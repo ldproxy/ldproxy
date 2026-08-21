@@ -124,6 +124,8 @@ public class OptionsEndpoint implements EndpointExtension {
                 "If-Modified-Since",
                 "If-Unmodified-Since"));
     return Response.ok(methods)
+        // the response content is not a representation of the resource and not negotiated
+        .type(MediaType.TEXT_PLAIN_TYPE)
         .allow(supportedMethods)
         // add variants
         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*") // NOTE: * not allowed with credentials

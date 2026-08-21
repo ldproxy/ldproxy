@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
+import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -30,6 +31,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileExtension;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
@@ -63,6 +65,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -83,6 +86,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   private final FeaturesCoreProviders providers;
   private final ExtensionRegistry extensionRegistry;
   private final CrsInfo crsInfo;
+  private final CrsSupport crsSupport;
   private List<? extends FormatExtension> formats;
 
   @Inject
@@ -90,6 +94,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       FeaturesCoreQueriesHandler queriesHandler,
       FeaturesCoreProviders providers,
       CrsInfo crsInfo,
+      CrsSupport crsSupport,
       ExtensionRegistry extensionRegistry,
       VolatileRegistry volatileRegistry) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
@@ -97,6 +102,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     this.providers = providers;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
+    this.crsSupport = crsSupport;
 
     onVolatileStart();
 
@@ -176,7 +182,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         ids,
         Optional.empty(),
         result.getSpatialExtent(),
@@ -209,7 +215,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
           Optional.ofNullable(queryInput.getFeatureId()));
     }
 
-    Date lastModified = previousFeature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, previousFeature);
 
     Response.ResponseBuilder response =
         queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
@@ -218,13 +224,14 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       return response.build();
     }
 
-    return updateFeature(queryInput, featureTokenSource, previousFeature);
+    return updateFeature(queryInput, featureTokenSource, previousFeature, requestContext);
   }
 
   private Response updateFeature(
       QueryInputFeatureReplace queryInput,
       FeatureTokenSource featureTokenSource,
-      Response previousFeature) {
+      Response previousFeature,
+      ApiRequestContext requestContext) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
@@ -244,7 +251,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -252,7 +259,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return Response.noContent().build();
+    return noContent(queryInput, requestContext).build();
   }
 
   @Override
@@ -263,7 +270,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
-    Date lastModified = feature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
         queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
@@ -273,9 +280,18 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     final ObjectMapper mapper = new ObjectMapper();
     InputStream merged;
 
+    JsonNode patchDocument;
     try {
-      final JsonMergePatch patch =
-          mapper.readValue(queryInput.getRequestBody(), JsonMergePatch.class);
+      patchDocument = mapper.readTree(queryInput.getRequestBody());
+    } catch (Throwable e) {
+      throw new IllegalArgumentException(
+          "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
+    }
+
+    checkFeatureId(patchDocument, queryInput.getFeatureId());
+
+    try {
+      final JsonMergePatch patch = mapper.treeToValue(patchDocument, JsonMergePatch.class);
       JsonNode orig = mapper.readTree(prev);
       JsonNode mergedNode = patch.apply(orig);
       merged = new ByteArrayInputStream(mapper.writeValueAsBytes(mergedNode));
@@ -301,7 +317,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -309,7 +325,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return Response.noContent().build();
+    return noContent(queryInput, requestContext).build();
   }
 
   @Override
@@ -318,7 +334,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     Response feature = getCurrentFeature(queryInput, requestContext);
 
-    Date lastModified = feature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
         queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
@@ -331,7 +347,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .getFeatureProvider()
             .mutations()
             .get()
-            .deleteFeature(queryInput.getCollectionId(), queryInput.getFeatureId());
+            .deleteFeature(queryInput.getFeatureType(), queryInput.getFeatureId());
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
@@ -340,7 +356,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -351,16 +367,94 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     return Response.noContent().build();
   }
 
+  /**
+   * The feature is identified by the URI of the resource, so its identifier cannot be changed. A
+   * JSON Merge Patch document that would change it is rejected; an 'id' member with the identifier
+   * of the feature is accepted, it does not change anything.
+   */
+  private static void checkFeatureId(JsonNode patchDocument, String featureId) {
+    if (patchDocument.isObject() && patchDocument.has("id")) {
+      JsonNode id = patchDocument.get("id");
+
+      if (!id.isValueNode() || !Objects.equals(id.asText(), featureId)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The request body must not change the identifier of the feature: the 'id' member is '%s', the identifier of the feature is '%s'.",
+                id.isValueNode()
+                    ? id.asText()
+                    : id.getNodeType().toString().toLowerCase(Locale.ROOT),
+                featureId));
+      }
+    }
+  }
+
   private @NotNull Response getCurrentFeature(
       QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    // internal request, suppress audit logging of feature properties
+    return getFeature(
+        new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build(),
+        queryInput.getQueryParameterSet(),
+        requestContext);
+  }
+
+  /**
+   * The last modification time of the feature, {@code null} if it is unknown. It is often not part
+   * of the representation that is used in mutation requests (a server-managed timestamp is not a
+   * receivable property), in which case it is determined from the returnable representation.
+   */
+  private Date getLastModified(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext, Response currentFeature) {
+    Date lastModified = currentFeature.getLastModified();
+
+    return Objects.nonNull(lastModified)
+        ? lastModified
+        : fetchLastModified(queryInput, requestContext);
+  }
+
+  private Date fetchLastModified(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    if (queryInput.getLastModifiedQuery().isEmpty()) {
+      return null;
+    }
+
+    try {
+      return getFeature(
+              new ImmutableQueryInputFeature.Builder()
+                  .from(queryInput)
+                  .query(queryInput.getLastModifiedQuery().get())
+                  .profiles(List.of())
+                  .defaultProfilesResource(List.of())
+                  .shouldAuditLog(false)
+                  .build(),
+              queryInput.getQueryParameterSet(),
+              requestContext)
+          .getLastModified();
+    } catch (NotFoundException e) {
+      return null;
+    }
+  }
+
+  /** A successful mutation reports the new last modification time, if it is known. */
+  private Response.ResponseBuilder noContent(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    Response.ResponseBuilder response = Response.noContent();
+    Date lastModified = fetchLastModified(queryInput, requestContext);
+
+    if (Objects.nonNull(lastModified)) {
+      response.lastModified(lastModified);
+    }
+
+    return response;
+  }
+
+  private @NotNull Response getFeature(
+      QueryInputFeature queryInputFeature,
+      QueryParameterSet queryParameterSet,
+      ApiRequestContext requestContext) {
     try {
       if (formats == null) {
         formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
       }
-
-      // internal request, suppress audit logging of feature properties
-      QueryInputFeature queryInputFeature =
-          new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build();
 
       ApiRequestContext requestContextGeoJson =
           new ImmutableStaticRequestContext.Builder()
@@ -371,7 +465,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                       .clearParameters()
                       // query parameters have been evaluated and are not necessary here
                       .build())
-              .queryParameterSet(queryInput.getQueryParameterSet())
+              .queryParameterSet(queryParameterSet)
               .mediaType(
                   new ImmutableApiMediaType.Builder()
                       .type(new MediaType("application", "geo+json"))
@@ -383,7 +477,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                       .filter(
                           f ->
                               f.isEnabledForApi(
-                                  requestContext.getApi().getData(), queryInput.getCollectionId()))
+                                  requestContext.getApi().getData(),
+                                  queryInputFeature.getCollectionId()))
                       .map(FormatExtension::getMediaType)
                       .filter(
                           mediaType -> !"geo+json".equalsIgnoreCase(mediaType.type().getSubtype()))
@@ -402,7 +497,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
   private void handleChange(
       FeatureProvider featureProvider,
-      String collectionId,
+      String featureType,
       List<String> ids,
       Optional<BoundingBox> oldBbox,
       Optional<BoundingBox> newBbox,
@@ -412,7 +507,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     FeatureChange change =
         ImmutableFeatureChange.builder()
             .action(action)
-            .featureType(collectionId)
+            // the change is reported for the type in the feature provider, not for the collection
+            .featureType(featureType)
             .featureIds(ids)
             .oldBoundingBox(oldBbox)
             .newBoundingBox(newBbox)
@@ -508,6 +604,9 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                     new IllegalStateException(
                         "No feature schema for collection '" + collectionId + "'"));
 
+    List<EpsgCrs> supportedCrs =
+        crsSupport.getSupportedCrsList(apiData, apiData.getCollections().get(collectionId));
+
     DecoderContext ctx =
         new ImmutableDecoderContext.Builder()
             .apiData(apiData)
@@ -516,6 +615,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .crs(crs)
             .axes(axes)
             .mediaType(contentType)
+            .supportedCrs(supportedCrs)
             .build();
 
     return Source.inputStream(requestBody).via(format.getFeatureDecoder(ctx).get());

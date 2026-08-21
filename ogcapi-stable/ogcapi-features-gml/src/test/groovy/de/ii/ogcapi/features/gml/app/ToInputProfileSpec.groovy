@@ -73,7 +73,7 @@ class ToInputProfileSpec extends Specification {
         ]
 
         when:
-        def profile = FeaturesFormatGml.toInputProfile(config, alternativeCrss)
+        def profile = FeaturesFormatGml.toInputProfile(config, alternativeCrss, [])
 
         then:
         profile.useAlias
@@ -129,7 +129,7 @@ class ToInputProfileSpec extends Specification {
                 .build()
 
         when:
-        def profile = FeaturesFormatGml.toInputProfile(config, [])
+        def profile = FeaturesFormatGml.toInputProfile(config, [], [])
 
         then:
         profile.gmlIdPrefix == ''

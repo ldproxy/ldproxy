@@ -14,7 +14,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
-import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
+import de.ii.ogcapi.crs.domain.CrsSupport;
+import de.ii.ogcapi.crs.domain.HeaderContentCrs;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureCreate;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureDelete;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureReplace;
@@ -60,6 +61,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.HeaderParam;
@@ -72,6 +74,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,10 +100,17 @@ public class EndpointCrud extends EndpointSubCollection
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointCrud.class);
   private static final List<String> TAGS = ImmutableList.of("Mutate data");
   private static final MediaType GML_MEDIA_TYPE = new MediaType("application", "gml+xml");
+  // "Precondition Required" (RFC 6585, 3), there is no constant for the status code in JAX-RS
+  private static final int STATUS_PRECONDITION_REQUIRED = 428;
+  // The draft is co-branded, the conformance classes that are not specific to features are
+  // identified by the URIs of OGC API - Common - Part 5.
+  private static final String CONF_CLASS_PREFIX =
+      "http://www.opengis.net/spec/ogcapi-common-5/1.0/conf/";
 
   private final FeaturesCoreProviders providers;
   private final CommandHandlerCrud commandHandler;
   private final CrsInfo crsInfo;
+  private final CrsSupport crsSupport;
   private final FeaturesQuery queryParser;
   private List<Profile> crudProfiles;
 
@@ -110,11 +120,13 @@ public class EndpointCrud extends EndpointSubCollection
       FeaturesCoreProviders providers,
       CommandHandlerCrud commandHandler,
       CrsInfo crsInfo,
+      CrsSupport crsSupport,
       FeaturesQuery queryParser) {
     super(extensionRegistry);
     this.providers = providers;
     this.commandHandler = commandHandler;
     this.crsInfo = crsInfo;
+    this.crsSupport = crsSupport;
     this.queryParser = queryParser;
   }
 
@@ -155,9 +167,10 @@ public class EndpointCrud extends EndpointSubCollection
     ImmutableList.Builder<String> builder =
         new ImmutableList.Builder<String>()
             .add(
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/create-replace-delete",
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/update",
-                "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/features");
+                CONF_CLASS_PREFIX + "create-replace-delete",
+                CONF_CLASS_PREFIX + "update",
+                // the conformance class "Features" is specific to OGC API - Features
+                "http://www.opengis.net/spec/ogcapi-features-4/1.0/conf/features");
 
     if (apiData.getCollections().values().stream()
         .anyMatch(
@@ -165,11 +178,40 @@ public class EndpointCrud extends EndpointSubCollection
                 cd.getExtension(CrudConfiguration.class)
                     .map(CrudConfiguration::supportsLastModified)
                     .orElse(false))) {
-      builder.add(
-          "http://www.opengis.net/spec/ogcapi-features-4/0.0/conf/optimistic-locking-timestamps");
+      builder.add(CONF_CLASS_PREFIX + "optimistic-locking-timestamps");
+    }
+
+    if (apiData.getCollections().keySet().stream()
+        .anyMatch(collectionId -> canValidate(apiData, collectionId))) {
+      builder.add(CONF_CLASS_PREFIX + "handling");
     }
 
     return builder.build();
+  }
+
+  // The request body of a mutation request is validated for "Prefer: handling=strict", if any of
+  // the formats that are supported in mutation requests can validate a request body.
+  private boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
+    return isEnabledForApi(apiData, collectionId)
+        && transactionFormats().stream().anyMatch(f -> f.canValidate(apiData, collectionId));
+  }
+
+  private boolean canValidate(OgcApiDataV2 apiData, String collectionId, MediaType contentType) {
+    return transactionFormat(contentType)
+        .filter(format -> format.canValidate(apiData, collectionId))
+        .isPresent();
+  }
+
+  private List<FeatureFormatExtension> transactionFormats() {
+    return extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+        .filter(FeatureFormatExtension::canSupportTransactions)
+        .collect(Collectors.toList());
+  }
+
+  private Optional<FeatureFormatExtension> transactionFormat(MediaType contentType) {
+    return transactionFormats().stream()
+        .filter(format -> format.getMediaType().type().isCompatible(contentType))
+        .findFirst();
   }
 
   @Override
@@ -419,21 +461,14 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    // rejects a CRS that is not supported for the collection (the geometries in the body are
+    // checked separately, they may declare a CRS of their own)
     EpsgCrs contentCrs =
-        Optional.ofNullable(crs)
-            .map(s -> s.substring(1, s.length() - 1))
-            .map(EpsgCrs::fromString)
-            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+        HeaderContentCrs.parse(crs, api.getData(), Optional.of(collectionData), crsSupport);
 
-    MediaType contentType = mediaTypeFromString(request.getContentType());
+    MediaType contentType = requiredContentType(request);
 
-    final boolean validate =
-        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
-                == HeaderPrefer.Handling.STRICT
-            && collectionData
-                .getExtension(SchemaConfiguration.class)
-                .filter(ExtensionConfiguration::isEnabled)
-                .isPresent();
+    final boolean validate = validateRequestBody(api.getData(), collectionId, contentType, prefer);
 
     QueryInputFeatureCreate queryInput =
         ImmutableQueryInputFeatureCreate.builder()
@@ -447,8 +482,12 @@ public class EndpointCrud extends EndpointSubCollection
             .linkHeaders(links)
             .build();
 
-    return HeaderPrefer.withAppliedHandling(
-        commandHandler.postItemsResponse(queryInput, apiRequestContext), prefer);
+    try {
+      return HeaderPrefer.withAppliedHandling(
+          commandHandler.postItemsResponse(queryInput, apiRequestContext), prefer);
+    } catch (IllegalArgumentException e) {
+      throw validate ? rejectedRequestBody(e, prefer) : e;
+    }
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -473,7 +512,7 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkHeader(crudConfiguration, ifMatch, ifUnmodifiedSince);
+    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(api.getData(), collectionData);
@@ -490,15 +529,14 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    // rejects a CRS that is not supported for the collection (the geometries in the body are
+    // checked separately, they may declare a CRS of their own)
     EpsgCrs contentCrs =
-        Optional.ofNullable(crs)
-            .map(s -> s.substring(1, s.length() - 1))
-            .map(EpsgCrs::fromString)
-            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+        HeaderContentCrs.parse(crs, api.getData(), Optional.of(collectionData), crsSupport);
 
-    MediaType contentType = mediaTypeFromString(request.getContentType());
+    MediaType contentType = requiredContentType(request);
 
-    QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
+    QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, contentCrs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
             api.getData(),
@@ -511,13 +549,7 @@ public class EndpointCrud extends EndpointSubCollection
             SchemaBase.Scope.RECEIVABLE,
             false);
 
-    final boolean validate =
-        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
-                == HeaderPrefer.Handling.STRICT
-            && collectionData
-                .getExtension(SchemaConfiguration.class)
-                .filter(ExtensionConfiguration::isEnabled)
-                .isPresent();
+    final boolean validate = validateRequestBody(api.getData(), collectionId, contentType, prefer);
 
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
@@ -528,6 +560,14 @@ public class EndpointCrud extends EndpointSubCollection
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .featureId(featureId)
             .query(query)
+            .lastModifiedQuery(
+                lastModifiedQuery(
+                    api,
+                    collectionData,
+                    coreConfiguration,
+                    queryParameterSet,
+                    featureId,
+                    crudConfiguration))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .requestBody(requestBody)
@@ -538,8 +578,12 @@ public class EndpointCrud extends EndpointSubCollection
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
 
-    return HeaderPrefer.withAppliedHandling(
-        commandHandler.putItemResponse(queryInput, apiRequestContext), prefer);
+    try {
+      return HeaderPrefer.withAppliedHandling(
+          commandHandler.putItemResponse(queryInput, apiRequestContext), prefer);
+    } catch (IllegalArgumentException e) {
+      throw validate ? rejectedRequestBody(e, prefer) : e;
+    }
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -563,7 +607,7 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkHeader(crudConfiguration, ifMatch, ifUnmodifiedSince);
+    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(api.getData(), collectionData);
@@ -580,13 +624,12 @@ public class EndpointCrud extends EndpointSubCollection
 
     String featureType = coreConfiguration.getFeatureType().orElse(collectionId);
 
+    // rejects a CRS that is not supported for the collection (the geometries in the body are
+    // checked separately, they may declare a CRS of their own)
     EpsgCrs contentCrs =
-        Optional.ofNullable(crs)
-            .map(s -> s.substring(1, s.length() - 1))
-            .map(EpsgCrs::fromString)
-            .orElseGet(coreConfiguration::getDefaultEpsgCrs);
+        HeaderContentCrs.parse(crs, api.getData(), Optional.of(collectionData), crsSupport);
 
-    QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, crs);
+    QueryParameterSet queryParameterSet = getQueryParameterSet(api, collectionData, contentCrs);
     FeatureQuery query =
         queryParser.requestToFeatureQuery(
             api.getData(),
@@ -599,7 +642,7 @@ public class EndpointCrud extends EndpointSubCollection
             SchemaBase.Scope.RECEIVABLE,
             false);
 
-    MediaType contentType = mediaTypeFromString(request.getContentType());
+    MediaType contentType = requiredContentType(request);
 
     QueryInputFeatureReplace queryInput =
         ImmutableQueryInputFeatureReplace.builder()
@@ -610,6 +653,14 @@ public class EndpointCrud extends EndpointSubCollection
             .crs(contentCrs)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .query(query)
+            .lastModifiedQuery(
+                lastModifiedQuery(
+                    api,
+                    collectionData,
+                    coreConfiguration,
+                    queryParameterSet,
+                    featureId,
+                    crudConfiguration))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .requestBody(requestBody)
@@ -639,7 +690,7 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkHeader(crudConfiguration, ifMatch, ifUnmodifiedSince);
+    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(
@@ -672,9 +723,18 @@ public class EndpointCrud extends EndpointSubCollection
         ImmutableQueryInputFeatureDelete.builder()
             .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
+            .featureType(coreConfiguration.getFeatureType().orElse(collectionId))
             .featureId(featureId)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .query(query)
+            .lastModifiedQuery(
+                lastModifiedQuery(
+                    api,
+                    collectionData,
+                    coreConfiguration,
+                    queryParameterSet,
+                    featureId,
+                    crudConfiguration))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .profiles(crudProfiles)
@@ -684,7 +744,7 @@ public class EndpointCrud extends EndpointSubCollection
   }
 
   private QueryParameterSet getQueryParameterSet(
-      OgcApi api, FeatureTypeConfigurationOgcApi collectionData, String crs) {
+      OgcApi api, FeatureTypeConfigurationOgcApi collectionData, EpsgCrs crs) {
     List<OgcApiQueryParameter> parameterDefinitions =
         getQueryParameters(
             extensionRegistry,
@@ -694,19 +754,88 @@ public class EndpointCrud extends EndpointSubCollection
             HttpMethods.GET);
     Map<String, String> values =
         Objects.nonNull(crs)
-            ? ImmutableMap.of("schema", "receivables", "crs", crs.substring(1, crs.length() - 1))
+            ? ImmutableMap.of("schema", "receivables", "crs", crs.toUriString())
             : ImmutableMap.of("schema", "receivables");
     return QueryParameterSet.of(parameterDefinitions, values)
         .evaluate(api, Optional.of(collectionData));
   }
 
-  private static void checkHeader(
+  // Evaluates the preconditions that can be evaluated from the headers alone, in the order of
+  // RFC 9110, 13.2.2.
+  private static void checkPreconditionHeaders(
       Optional<CrudConfiguration> crudConfiguration, String ifMatch, String ifUnmodifiedSince) {
+    // No entity tag is known for a feature in a request that changes it, so no entity tag in an
+    // 'If-Match' header can match and the precondition cannot be met (RFC 9110, 13.1.1). "*" is
+    // met, if the feature exists, which is checked while processing the request.
+    if (Objects.nonNull(ifMatch) && !"*".equals(ifMatch.trim())) {
+      throw new ClientErrorException(
+          "The precondition in the 'If-Match' header cannot be met, entity tags are not supported in requests that change a feature. Use an 'If-Unmodified-Since' header.",
+          Status.PRECONDITION_FAILED);
+    }
+
     if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
         && Objects.isNull(ifUnmodifiedSince)) {
-      throw new BadRequestException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.");
+      throw new ClientErrorException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.",
+          Response.status(STATUS_PRECONDITION_REQUIRED, "Precondition Required").build());
     }
+  }
+
+  private static MediaType requiredContentType(HttpServletRequest request) {
+    String contentType = request.getContentType();
+    if (Objects.isNull(contentType) || contentType.isBlank()) {
+      throw new BadRequestException(
+          "Requests with a request body must include a 'Content-Type' header.");
+    }
+    return mediaTypeFromString(contentType);
+  }
+
+  private boolean validateRequestBody(
+      OgcApiDataV2 apiData, String collectionId, MediaType contentType, List<String> prefer) {
+    return HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
+            == HeaderPrefer.Handling.STRICT
+        && canValidate(apiData, collectionId, contentType);
+  }
+
+  // The strict handling preference has been applied, so the rejection of the request body reports
+  // the preference, too (RFC 7240, 3).
+  private static RuntimeException rejectedRequestBody(
+      IllegalArgumentException e, List<String> prefer) {
+    String message =
+        Objects.nonNull(e.getCause()) && Objects.nonNull(e.getCause().getMessage())
+            ? String.format("%s: %s", e.getMessage(), e.getCause().getMessage())
+            : e.getMessage();
+    return new ClientErrorException(
+        message,
+        HeaderPrefer.withAppliedHandling(Response.status(Status.BAD_REQUEST).build(), prefer));
+  }
+
+  // The last modification time of a feature is often not part of the representation that is used in
+  // mutation requests (a server-managed timestamp is not a receivable property), so the internal
+  // request for the current feature cannot always determine it. This query requests the returnable
+  // representation, which includes the property.
+  private Optional<FeatureQuery> lastModifiedQuery(
+      OgcApi api,
+      FeatureTypeConfigurationOgcApi collectionData,
+      FeaturesCoreConfiguration coreConfiguration,
+      QueryParameterSet queryParameterSet,
+      String featureId,
+      Optional<CrudConfiguration> crudConfiguration) {
+    if (!crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        queryParser.requestToFeatureQuery(
+            api.getData(),
+            collectionData,
+            coreConfiguration.getDefaultEpsgCrs(),
+            coreConfiguration.getCoordinatePrecision(),
+            queryParameterSet,
+            featureId,
+            Optional.empty(),
+            SchemaBase.Scope.RETURNABLE,
+            false));
   }
 
   private ImmutableFeatureQuery.Builder processCoordinatePrecision(
