@@ -28,6 +28,7 @@ public class CORSFilter implements ContainerResponseFilter {
   public static final String CORS = "cors";
   public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
   public static final String POST = "POST";
+  public static final String PUT = "PUT";
   public static final String PATCH = "PATCH";
   public static final String ACCESS_CONTROL_EXPOSE_HEADERS = "Access-Control-Expose-Headers";
 
@@ -69,9 +70,12 @@ public class CORSFilter implements ContainerResponseFilter {
         "Content-Bounding-Box",
         "Content-Temporal-Extent",
         "OATiles-hint",
-        "Prefer",
+        // the response reports the preferences that were applied, "Prefer" is the request header
+        "Preference-Applied",
         "ETag");
-    if (POST.equalsIgnoreCase(requestContext.getMethod())) {
+    if (POST.equalsIgnoreCase(requestContext.getMethod())
+        // a PUT reports the URI of the feature that it created
+        || PUT.equalsIgnoreCase(requestContext.getMethod())) {
       headers.add("Location");
     }
     if (PATCH.equalsIgnoreCase(requestContext.getMethod())) {
