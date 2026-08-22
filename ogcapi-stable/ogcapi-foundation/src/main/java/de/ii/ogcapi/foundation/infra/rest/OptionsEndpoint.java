@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
@@ -44,6 +45,9 @@ public class OptionsEndpoint implements EndpointExtension {
   public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
   public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
   public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
+  // W3C Linked Data Platform 1.0, 4.5.2; and RFC 5789, 3.1
+  public static final String ACCEPT_POST = "Accept-Post";
+  public static final String ACCEPT_PATCH = "Accept-Patch";
   private final ExtensionRegistry extensionRegistry;
 
   @Inject
@@ -123,16 +127,52 @@ public class OptionsEndpoint implements EndpointExtension {
                 "If-None-Match",
                 "If-Modified-Since",
                 "If-Unmodified-Since"));
-    return Response.ok(methods)
-        // the response content is not a representation of the resource and not negotiated
-        .type(MediaType.TEXT_PLAIN_TYPE)
-        .allow(supportedMethods)
-        // add variants
-        .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*") // NOTE: * not allowed with credentials
-        .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
-        .header(ACCESS_CONTROL_ALLOW_METHODS, methods)
-        .header(ACCESS_CONTROL_ALLOW_HEADERS, headers)
-        .build();
+    Response.ResponseBuilder response =
+        Response.ok(methods)
+            // the response content is not a representation of the resource and not negotiated
+            .type(MediaType.TEXT_PLAIN_TYPE)
+            .allow(supportedMethods)
+            // add variants
+            .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*") // NOTE: * not allowed with credentials
+            .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+            .header(ACCESS_CONTROL_ALLOW_METHODS, methods)
+            .header(ACCESS_CONTROL_ALLOW_HEADERS, headers);
+
+    // the media types that a request body may use, for the methods that have one
+    acceptedMediaTypes(apiData, entrypoint, subPath, HttpMethods.POST.name())
+        .ifPresent(value -> response.header(ACCEPT_POST, value));
+    acceptedMediaTypes(apiData, entrypoint, subPath, HttpMethods.PATCH.name())
+        .ifPresent(value -> response.header(ACCEPT_PATCH, value));
+
+    return response.build();
+  }
+
+  private Optional<String> acceptedMediaTypes(
+      OgcApiDataV2 apiData, String entrypoint, String subPath, String method) {
+    String path = "/" + entrypoint + subPath;
+
+    return acceptedMediaTypes(
+        findEndpoint(apiData, entrypoint, subPath, method)
+            .flatMap(endpoint -> endpoint.getDefinition(apiData).getOperation(path, method)));
+  }
+
+  /**
+   * The media types of the request body of an operation, as the value of an {@code Accept-Post} or
+   * {@code Accept-Patch} header. Empty, if the method is not supported or has no request body.
+   *
+   * <p>Sorted, because the request formats of an endpoint are collected into a map without a
+   * defined order and neither header assigns a meaning to the order of its values.
+   */
+  static Optional<String> acceptedMediaTypes(Optional<ApiOperation> operation) {
+    return operation
+        .flatMap(ApiOperation::getRequestBody)
+        .map(
+            requestBody ->
+                requestBody.getContent().keySet().stream()
+                    .map(MediaType::toString)
+                    .sorted()
+                    .collect(Collectors.joining(", ")))
+        .filter(value -> !value.isEmpty());
   }
 
   private Optional<EndpointExtension> findEndpoint(
