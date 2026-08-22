@@ -42,7 +42,6 @@ public class OptionsEndpoint implements EndpointExtension {
 
   public static final String OPTIONS = "OPTIONS";
   public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
-  public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
   public static final String ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
   public static final String ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
   // W3C Linked Data Platform 1.0, 4.5.2; and RFC 5789, 3.1
@@ -132,9 +131,11 @@ public class OptionsEndpoint implements EndpointExtension {
             // the response content is not a representation of the resource and not negotiated
             .type(MediaType.TEXT_PLAIN_TYPE)
             .allow(supportedMethods)
-            // add variants
-            .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*") // NOTE: * not allowed with credentials
-            .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+            // No Access-Control-Allow-Credentials: a browser rejects a credentialed cross-origin
+            // request whose preflight allows any origin, so the pair grants nothing that works.
+            // A cross-origin client that has to authenticate with a cookie needs an allow-listed
+            // origin (echoed, with Vary: Origin), never credentials combined with "*".
+            .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .header(ACCESS_CONTROL_ALLOW_METHODS, methods)
             .header(ACCESS_CONTROL_ALLOW_HEADERS, headers);
 
