@@ -39,6 +39,7 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -102,6 +103,7 @@ public class EndpointCrud extends EndpointSubCollection
   private static final MediaType GML_MEDIA_TYPE = new MediaType("application", "gml+xml");
   // "Precondition Required" (RFC 6585, 3), there is no constant for the status code in JAX-RS
   private static final int STATUS_PRECONDITION_REQUIRED = 428;
+  private static final int STATUS_PRECONDITION_FAILED = 412;
   // The draft is co-branded, the conformance classes that are not specific to features are
   // identified by the URIs of OGC API - Common - Part 5.
   private static final String CONF_CLASS_PREFIX =
@@ -323,8 +325,7 @@ public class EndpointCrud extends EndpointSubCollection
       boolean hasGeneratedId = hasGeneratedId(apiData, collectionId);
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
-      List<ApiHeader> headers =
-          getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PUT);
+      List<ApiHeader> headers = headersForCollection(apiData, path, collectionId, HttpMethods.PUT);
       String operationSummary =
           "%supdate a feature in the feature collection '%s'"
               .formatted(hasGeneratedId ? "" : "add or ", collectionId);
@@ -354,11 +355,12 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.MATURITY,
               CrudBuildingBlock.SPEC,
               !hasGeneratedId)
+          .map(operation -> withPreconditionResponses(apiData, collectionId, operation))
           .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
 
       queryParameters =
           getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
-      headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.PATCH);
+      headers = headersForCollection(apiData, path, collectionId, HttpMethods.PATCH);
       operationSummary = "update a feature in the feature collection '" + collectionId + "'";
       operationDescription =
           Optional.of(
@@ -390,12 +392,13 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.MATURITY,
               CrudBuildingBlock.SPEC,
               false)
+          .map(operation -> withPreconditionResponses(apiData, collectionId, operation))
           .ifPresent(
               operation -> resourceBuilder.putOperations(HttpMethods.PATCH.name(), operation));
 
       queryParameters =
           getQueryParameters(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
-      headers = getHeaders(extensionRegistry, apiData, path, collectionId, HttpMethods.DELETE);
+      headers = headersForCollection(apiData, path, collectionId, HttpMethods.DELETE);
       operationSummary = "delete a feature in the feature collection '" + collectionId + "'";
       operationDescription = Optional.of("The feature with id `{featureId}` will be deleted.");
 
@@ -414,11 +417,44 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.MATURITY,
               CrudBuildingBlock.SPEC,
               false)
+          .map(operation -> withPreconditionResponses(apiData, collectionId, operation))
           .ifPresent(
               operation -> resourceBuilder.putOperations(HttpMethods.DELETE.name(), operation));
 
       builder.putResources(resourcePath, resourceBuilder.build());
     }
+  }
+
+  private boolean requiresLastModified(OgcApiDataV2 apiData, String collectionId) {
+    return Optional.ofNullable(apiData.getCollections().get(collectionId))
+        .flatMap(cd -> cd.getExtension(CrudConfiguration.class))
+        .map(CrudConfiguration::supportsLastModified)
+        .orElse(false);
+  }
+
+  // The headers of the endpoint are determined for the API; drop the ones that the configuration
+  // of this collection disables, since every collection has its own operations in the definition.
+  private List<ApiHeader> headersForCollection(
+      OgcApiDataV2 apiData, String path, String collectionId, HttpMethods method) {
+    return getHeaders(extensionRegistry, apiData, path, collectionId, method).stream()
+        .filter(header -> header.isEnabledForApi(apiData, collectionId))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  // A request that changes a feature evaluates preconditions, so it can be answered with 412; and
+  // with 428, if the collection requires an 'If-Unmodified-Since' header.
+  private ApiOperation withPreconditionResponses(
+      OgcApiDataV2 apiData, String collectionId, ApiOperation operation) {
+    ImmutableApiOperation.Builder builder =
+        new ImmutableApiOperation.Builder()
+            .from(operation)
+            .addErrorStatusCodes(STATUS_PRECONDITION_FAILED);
+
+    if (requiresLastModified(apiData, collectionId)) {
+      builder.addErrorStatusCodes(STATUS_PRECONDITION_REQUIRED);
+    }
+
+    return builder.build();
   }
 
   private boolean hasGeneratedId(OgcApiDataV2 apiData, String collectionId) {
