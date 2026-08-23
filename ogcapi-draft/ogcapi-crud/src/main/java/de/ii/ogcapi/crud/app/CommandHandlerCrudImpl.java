@@ -52,9 +52,11 @@ import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,6 +83,8 @@ import org.threeten.extra.Interval;
 public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements CommandHandlerCrud {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandlerCrudImpl.class);
+
+  private static final int STATUS_PRECONDITION_REQUIRED = 428;
 
   private final FeaturesCoreQueriesHandler queriesHandler;
   private final FeaturesCoreProviders providers;
@@ -208,6 +212,13 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     }
 
     if (Objects.isNull(previousFeature) && queryInput.isAllowCreate()) {
+      // There is no current representation of the feature, so an 'If-Match' precondition cannot be
+      // met (RFC 9110, 13.1.1), while 'If-Unmodified-Since' has nothing to protect and no
+      // modification date to be evaluated against (RFC 9110, 13.1.4).
+      if (queryInput.getIfMatch().isPresent()) {
+        throw noCurrentRepresentation();
+      }
+
       return createFeature(
           queryInput,
           featureTokenSource,
@@ -218,7 +229,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Date lastModified = getLastModified(queryInput, requestContext, previousFeature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
 
     if (Objects.nonNull(response)) {
       return response.build();
@@ -273,7 +284,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
@@ -337,7 +348,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
     if (Objects.nonNull(response)) {
       return response.build();
     }
@@ -395,6 +406,60 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build(),
         queryInput.getQueryParameterSet(),
         requestContext);
+  }
+
+  /**
+   * The preconditions of a request that changes an existing feature. Evaluated once the target
+   * feature is known, because a response that does not depend on the preconditions takes precedence
+   * over them (RFC 9110, 13.2.1): a request for a feature that does not exist is answered with
+   * {@code 404}, not with a precondition status code.
+   *
+   * @return the response to return instead of performing the change, {@code null} if the
+   *     preconditions are met
+   */
+  private Response.ResponseBuilder evaluatePreconditions(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext, Date lastModified) {
+    checkPreconditionHeaders(
+        queryInput.isPreconditionRequired(),
+        queryInput.getIfMatch(),
+        queryInput.getIfUnmodifiedSince(),
+        lastModified);
+
+    return queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+  }
+
+  /**
+   * The preconditions of a request that changes a feature that exists, in the order of RFC 9110,
+   * 13.2.2. Throws, if a precondition is not met or a required one is missing.
+   *
+   * @param lastModified the last modification time of the feature, {@code null} if it is unknown
+   */
+  static void checkPreconditionHeaders(
+      boolean preconditionRequired,
+      Optional<String> ifMatch,
+      Optional<String> ifUnmodifiedSince,
+      Date lastModified) {
+    // No entity tag is known for a feature in a request that changes it, so no entity tag in an
+    // 'If-Match' header can match and the precondition cannot be met (RFC 9110, 13.1.1). "*" is
+    // met, because the feature exists.
+    if (ifMatch.isPresent() && !"*".equals(ifMatch.get().trim())) {
+      throw noCurrentRepresentation();
+    }
+
+    // A collection can require conditional requests, but only where the precondition can be
+    // evaluated: a feature without a modification date has nothing to compare against, and RFC
+    // 9110, 13.1.4, requires 'If-Unmodified-Since' to be ignored in that case.
+    if (preconditionRequired && Objects.nonNull(lastModified) && ifUnmodifiedSince.isEmpty()) {
+      throw new ClientErrorException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.",
+          Response.status(STATUS_PRECONDITION_REQUIRED, "Precondition Required").build());
+    }
+  }
+
+  static ClientErrorException noCurrentRepresentation() {
+    return new ClientErrorException(
+        "The precondition in the 'If-Match' header cannot be met, entity tags are not supported in requests that change a feature. Use an 'If-Unmodified-Since' header.",
+        Status.PRECONDITION_FAILED);
   }
 
   /**

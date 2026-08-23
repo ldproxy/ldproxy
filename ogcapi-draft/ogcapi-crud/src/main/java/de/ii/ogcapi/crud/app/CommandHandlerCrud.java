@@ -65,6 +65,18 @@ public interface CommandHandlerCrud extends Volatile2 {
      * used in mutation requests.
      */
     Optional<FeatureQuery> getLastModifiedQuery();
+
+    /**
+     * Whether a request that changes an existing feature of the collection has to state a
+     * precondition.
+     */
+    boolean isPreconditionRequired();
+
+    /** The 'If-Match' header of the request. */
+    Optional<String> getIfMatch();
+
+    /** The 'If-Unmodified-Since' header of the request. */
+    Optional<String> getIfUnmodifiedSince();
   }
 
   @Value.Immutable

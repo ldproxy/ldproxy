@@ -548,7 +548,6 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(api.getData(), collectionData);
@@ -604,6 +603,11 @@ public class EndpointCrud extends EndpointSubCollection
                     queryParameterSet,
                     featureId,
                     crudConfiguration))
+            // the preconditions are evaluated once the target feature is known, so that a
+            // response that does not depend on them takes precedence (RFC 9110, 13.2.1)
+            .isPreconditionRequired(requiresLastModified(api.getData(), collectionId))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .requestBody(requestBody)
@@ -643,7 +647,6 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(api.getData(), collectionData);
@@ -697,6 +700,11 @@ public class EndpointCrud extends EndpointSubCollection
                     queryParameterSet,
                     featureId,
                     crudConfiguration))
+            // the preconditions are evaluated once the target feature is known, so that a
+            // response that does not depend on them takes precedence (RFC 9110, 13.2.1)
+            .isPreconditionRequired(requiresLastModified(api.getData(), collectionId))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .requestBody(requestBody)
@@ -726,7 +734,6 @@ public class EndpointCrud extends EndpointSubCollection
 
     Optional<CrudConfiguration> crudConfiguration =
         collectionData.getExtension(CrudConfiguration.class);
-    checkPreconditionHeaders(crudConfiguration, ifMatch, ifUnmodifiedSince);
 
     FeatureProvider featureProvider =
         providers.getFeatureProviderOrThrow(
@@ -771,6 +778,11 @@ public class EndpointCrud extends EndpointSubCollection
                     queryParameterSet,
                     featureId,
                     crudConfiguration))
+            // the preconditions are evaluated once the target feature is known, so that a
+            // response that does not depend on them takes precedence (RFC 9110, 13.2.1)
+            .isPreconditionRequired(requiresLastModified(api.getData(), collectionId))
+            .ifMatch(Optional.ofNullable(ifMatch))
+            .ifUnmodifiedSince(Optional.ofNullable(ifUnmodifiedSince))
             .queryParameterSet(queryParameterSet)
             .featureProvider(featureProvider)
             .profiles(crudProfiles)
@@ -794,27 +806,6 @@ public class EndpointCrud extends EndpointSubCollection
             : ImmutableMap.of("schema", "receivables");
     return QueryParameterSet.of(parameterDefinitions, values)
         .evaluate(api, Optional.of(collectionData));
-  }
-
-  // Evaluates the preconditions that can be evaluated from the headers alone, in the order of
-  // RFC 9110, 13.2.2.
-  private static void checkPreconditionHeaders(
-      Optional<CrudConfiguration> crudConfiguration, String ifMatch, String ifUnmodifiedSince) {
-    // No entity tag is known for a feature in a request that changes it, so no entity tag in an
-    // 'If-Match' header can match and the precondition cannot be met (RFC 9110, 13.1.1). "*" is
-    // met, if the feature exists, which is checked while processing the request.
-    if (Objects.nonNull(ifMatch) && !"*".equals(ifMatch.trim())) {
-      throw new ClientErrorException(
-          "The precondition in the 'If-Match' header cannot be met, entity tags are not supported in requests that change a feature. Use an 'If-Unmodified-Since' header.",
-          Status.PRECONDITION_FAILED);
-    }
-
-    if (crudConfiguration.map(CrudConfiguration::supportsLastModified).orElse(false)
-        && Objects.isNull(ifUnmodifiedSince)) {
-      throw new ClientErrorException(
-          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.",
-          Response.status(STATUS_PRECONDITION_REQUIRED, "Precondition Required").build());
-    }
   }
 
   private static MediaType requiredContentType(HttpServletRequest request) {
