@@ -15,6 +15,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -94,22 +95,27 @@ public interface ApiResponse {
             (key, value) -> content.addMediaType(key.toString(), newMediaType(openAPI, value)));
     response.content(content);
 
+    // an operation can have more than one response, so add to the responses instead of
+    // replacing them
+    ApiResponses responses = op.getResponses();
+    if (Objects.isNull(responses)) {
+      responses = new ApiResponses();
+      op.responses(responses);
+    }
+    ApiResponses target = responses;
+
     getId()
         .ifPresentOrElse(
             id -> {
               if (!openAPI.getComponents().getResponses().containsKey(id)) {
                 openAPI.getComponents().getResponses().put(id, response);
               }
-              op.responses(
-                  new ApiResponses()
-                      .addApiResponse(
-                          getStatusCode(),
-                          new io.swagger.v3.oas.models.responses.ApiResponse()
-                              .$ref("#/components/responses/" + id)));
+              target.addApiResponse(
+                  getStatusCode(),
+                  new io.swagger.v3.oas.models.responses.ApiResponse()
+                      .$ref("#/components/responses/" + id));
             },
-            () -> {
-              op.responses(new ApiResponses().addApiResponse(getStatusCode(), response));
-            });
+            () -> target.addApiResponse(getStatusCode(), response));
   }
 
   private io.swagger.v3.oas.models.media.MediaType newMediaType(

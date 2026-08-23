@@ -81,6 +81,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @title GeoJSON
@@ -89,6 +91,14 @@ import java.util.concurrent.ConcurrentMap;
 @AutoBind
 public class FeaturesFormatGeoJson extends FeatureFormatExtension
     implements ItemTypeSpecificConformanceClass {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FeaturesFormatGeoJson.class);
+
+  // The ids of the profiles that provide the JSON Schemas for validating request bodies (defined in
+  // the SCHEMA_VALIDATION building block, referenced by their literal values - stable modules must
+  // not depend on the profile module).
+  private static final List<String> PROFILES_VALIDATION_RECEIVABLES =
+      ImmutableList.of("validation-receivables-geojson", "validation-receivables-jsonfg");
 
   // The id of the crs-original profile (defined in the PROFILE_CRS building block, referenced by
   // its literal value — stable modules must not depend on the profile module).
@@ -412,7 +422,17 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
       getFeatureDecoder(DecoderContext decoderContext) {
     return Optional.of(
         new FeatureTokenDecoderGeoJson(
-            Optional.empty(), decoderContext.getCrs(), decoderContext.getAxes()));
+            Optional.empty(),
+            decoderContext.getCrs(),
+            decoderContext.getAxes(),
+            decoderContext.getSupportedCrs()));
+  }
+
+  @Override
+  public boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(profile -> PROFILES_VALIDATION_RECEIVABLES.contains(profile.getId()))
+        .anyMatch(profile -> profile.isEnabledForApi(apiData, collectionId));
   }
 
   @Override
@@ -420,7 +440,20 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     boolean jsonFg =
         ctx.getDeclaredProfiles().stream().anyMatch(profile -> "jsonfg".equals(profile.getId()));
 
-    CompiledJsonSchema compiledSchema = getOrCompileSchema(ctx, jsonFg);
+    Optional<Profile> validationProfile = validationProfile(ctx, jsonFg);
+    if (validationProfile.isEmpty()) {
+      // without the SCHEMA_VALIDATION building block there is no schema for validating the request
+      // body; the logical schema of the collection describes the feature properties, not the
+      // encoding of a feature in this format
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "No schema available for validating JSON input for collection '{}', skipping validation.",
+            ctx.getCollectionId());
+      }
+      return;
+    }
+
+    CompiledJsonSchema compiledSchema = getOrCompileSchema(ctx, jsonFg, validationProfile.get());
 
     Optional<String> validationResult;
     try {
@@ -435,7 +468,19 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     }
   }
 
-  private CompiledJsonSchema getOrCompileSchema(ValidatorContext ctx, boolean jsonFg) {
+  private Optional<Profile> validationProfile(ValidatorContext ctx, boolean jsonFg) {
+    String profileId =
+        ctx.getType() == ValidatorContext.Type.RETURNABLES
+            ? (jsonFg ? "validation-returnables-jsonfg" : "validation-returnables-geojson")
+            : (jsonFg ? "validation-receivables-jsonfg" : "validation-receivables-geojson");
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(profile -> profileId.equals(profile.getId()))
+        .filter(profile -> profile.isEnabledForApi(ctx.getApiData(), ctx.getCollectionId()))
+        .findFirst();
+  }
+
+  private CompiledJsonSchema getOrCompileSchema(
+      ValidatorContext ctx, boolean jsonFg, Profile validationProfile) {
     int apiHashCode = ctx.getApiData().hashCode();
     String cacheKey = ctx.getCollectionId() + "\0" + ctx.getType() + "\0" + jsonFg;
     ConcurrentMap<String, CompiledJsonSchema> perKey =
@@ -444,29 +489,16 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     if (cached != null) {
       return cached;
     }
-    CompiledJsonSchema compiled = compileSchema(ctx, jsonFg);
+    CompiledJsonSchema compiled = compileSchema(ctx, validationProfile);
     perKey.put(cacheKey, compiled);
     return compiled;
   }
 
-  private CompiledJsonSchema compileSchema(ValidatorContext ctx, boolean jsonFg) {
-    Optional<Profile> requestedProfile =
-        extensionRegistry.getExtensionsForType(Profile.class).stream()
-            .filter(
-                profile ->
-                    ctx.getType() == ValidatorContext.Type.RETURNABLES
-                        ? (jsonFg
-                            ? "validation-returnables-jsonfg".equals(profile.getId())
-                            : "validation-returnables-geojson".equals(profile.getId()))
-                        : (jsonFg
-                            ? "validation-receivables-jsonfg".equals(profile.getId())
-                            : "validation-receivables-geojson".equals(profile.getId())))
-            .findFirst();
-
+  private CompiledJsonSchema compileSchema(ValidatorContext ctx, Profile validationProfile) {
     QueryInputSchema queryInputSchema =
         new ImmutableQueryInputSchema.Builder()
             .collectionId(ctx.getCollectionId())
-            .profiles(requestedProfile.stream().toList())
+            .profiles(List.of(validationProfile))
             .defaultProfilesResource(ctx.getDefaultProfiles())
             .type(SchemaType.RETURNABLES_AND_RECEIVABLES)
             .schemaCache(

@@ -357,11 +357,20 @@ public class ForValidation implements JsonSchemaTransformer {
                 });
       }
 
+      // the feature properties are nested in the "properties" member, so the required properties of
+      // the logical schema are required in that object; properties that are represented outside of
+      // the "properties" member (the id, the primary geometry) or that are not part of this
+      // representation at all (e.g. read-only properties in the receivables schema) are dropped
+      Map<String, JsonSchema> featureProperties = processProperties(document.getProperties());
       builder
           .putProperties(
               "properties",
               new ImmutableJsonSchemaObject.Builder()
-                  .properties(processProperties(document.getProperties()))
+                  .properties(featureProperties)
+                  .required(
+                      document.getRequired().stream()
+                          .filter(featureProperties::containsKey)
+                          .toList())
                   .patternProperties(processSchemaMap(document.getPatternProperties()))
                   .additionalProperties(ImmutableJsonSchemaFalse.builder().build())
                   .build())
