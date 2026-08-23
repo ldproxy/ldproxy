@@ -425,7 +425,8 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
             Optional.empty(),
             decoderContext.getCrs(),
             decoderContext.getAxes(),
-            decoderContext.getSupportedCrs()));
+            decoderContext.getSupportedCrs(),
+            decoderContext.getReadOnlyProperties()));
   }
 
   @Override

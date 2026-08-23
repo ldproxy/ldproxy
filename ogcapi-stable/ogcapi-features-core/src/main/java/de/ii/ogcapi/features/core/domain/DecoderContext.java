@@ -13,6 +13,7 @@ import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import jakarta.ws.rs.core.MediaType;
 import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 
 /**
@@ -48,5 +49,16 @@ public interface DecoderContext {
   @Value.Default
   default List<EpsgCrs> getSupportedCrs() {
     return List.of();
+  }
+
+  /**
+   * The properties that the published schema specifies as read-only, see {@link
+   * ReadOnlyProperties}. A request body that sets one of them is rejected. An empty set does not
+   * restrict the properties, which is what a body that was merged with the current feature needs:
+   * it carries the read-only properties of that feature whether or not the client sent them.
+   */
+  @Value.Default
+  default Set<String> getReadOnlyProperties() {
+    return Set.of();
   }
 }

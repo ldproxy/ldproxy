@@ -22,6 +22,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.QueryInputFe
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
+import de.ii.ogcapi.features.core.domain.ReadOnlyProperties;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -46,6 +47,7 @@ import de.ii.xtraplatform.features.domain.FeatureTokenSource;
 import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.Tuple;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerReadOnly;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
@@ -66,11 +68,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -300,6 +305,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     }
 
     checkFeatureId(patchDocument, queryInput.getFeatureId());
+    checkReadOnly(
+        patchDocument,
+        ReadOnlyProperties.of(
+            featureSchema(requestContext.getApi().getData(), queryInput.getCollectionId())));
 
     try {
       final JsonMergePatch patch = mapper.treeToValue(patchDocument, JsonMergePatch.class);
@@ -661,13 +670,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     FeatureFormatExtension format = resolveFormat(contentType);
 
-    FeatureSchema featureSchema =
-        providers
-            .getFeatureSchema(apiData, apiData.getCollections().get(collectionId))
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "No feature schema for collection '" + collectionId + "'"));
+    FeatureSchema featureSchema = featureSchema(apiData, collectionId);
 
     List<EpsgCrs> supportedCrs =
         crsSupport.getSupportedCrsList(apiData, apiData.getCollections().get(collectionId));
@@ -681,9 +684,57 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .axes(axes)
             .mediaType(contentType)
             .supportedCrs(supportedCrs)
+            // a body that sets a read-only property is rejected, not silently stripped of the value
+            .readOnlyProperties(ReadOnlyProperties.of(featureSchema))
             .build();
 
     return Source.inputStream(requestBody).via(format.getFeatureDecoder(ctx).get());
+  }
+
+  private FeatureSchema featureSchema(OgcApiDataV2 apiData, String collectionId) {
+    return providers
+        .getFeatureSchema(apiData, apiData.getCollections().get(collectionId))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No feature schema for collection '" + collectionId + "'"));
+  }
+
+  /**
+   * A JSON Merge Patch that sets a read-only property is rejected. The check is on the patch
+   * document rather than on the merged feature, because the merged feature carries the read-only
+   * properties of the current feature whether or not the client sent them.
+   */
+  private static void checkReadOnly(JsonNode patchDocument, Set<String> readOnly) {
+    if (readOnly.isEmpty() || !patchDocument.isObject()) {
+      return;
+    }
+
+    JsonNode properties = patchDocument.get("properties");
+
+    if (Objects.nonNull(properties) && properties.isObject()) {
+      checkReadOnly(properties, "", readOnly);
+    }
+  }
+
+  private static void checkReadOnly(JsonNode object, String parentPath, Set<String> readOnly) {
+    Iterator<Entry<String, JsonNode>> members = object.fields();
+
+    while (members.hasNext()) {
+      Entry<String, JsonNode> member = members.next();
+      String path = parentPath.isEmpty() ? member.getKey() : parentPath + "." + member.getKey();
+
+      if (FeatureEventHandlerReadOnly.isReadOnly(readOnly, path)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The property '%s' is read-only, a request that changes a feature must not set it.",
+                path));
+      }
+
+      if (member.getValue().isObject()) {
+        checkReadOnly(member.getValue(), path, readOnly);
+      }
+    }
   }
 
   private static FeatureTokenSource getMergePatchSource(
