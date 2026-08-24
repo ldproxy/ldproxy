@@ -13,10 +13,12 @@ import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureQuery;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 public interface CommandHandlerCrud extends Volatile2 {
@@ -55,6 +57,26 @@ public interface CommandHandlerCrud extends Volatile2 {
   interface QueryInputFeatureCrud extends QueryInputFeature {
 
     QueryParameterSet getQueryParameterSet();
+
+    /**
+     * Query for the returnable representation of the feature, present if the collection supports
+     * conditional processing based on the last modification time. It is used to determine the last
+     * modification time of the feature, if the property is not part of the representation that is
+     * used in mutation requests.
+     */
+    Optional<FeatureQuery> getLastModifiedQuery();
+
+    /**
+     * Whether a request that changes an existing feature of the collection has to state a
+     * precondition.
+     */
+    boolean isPreconditionRequired();
+
+    /** The 'If-Match' header of the request. */
+    Optional<String> getIfMatch();
+
+    /** The 'If-Unmodified-Since' header of the request. */
+    Optional<String> getIfUnmodifiedSince();
   }
 
   @Value.Immutable
@@ -64,5 +86,8 @@ public interface CommandHandlerCrud extends Volatile2 {
   }
 
   @Value.Immutable
-  interface QueryInputFeatureDelete extends QueryInputFeatureCrud {}
+  interface QueryInputFeatureDelete extends QueryInputFeatureCrud {
+
+    String getFeatureType();
+  }
 }
