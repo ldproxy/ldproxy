@@ -10144,6 +10144,10 @@
       },
       {
         "parameterTypes": [],
+        "name": "getXmlComments"
+      },
+      {
+        "parameterTypes": [],
         "name": "getGmlIdPrefix"
       },
       {
@@ -10335,6 +10339,12 @@
           "java.lang.Iterable"
         ],
         "name": "xmlAttributes"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "xmlComments"
       },
       {
         "parameterTypes": [

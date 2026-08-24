@@ -1789,7 +1789,7 @@
     },
     "GmlConfiguration": {
       "title": "GmlConfiguration",
-      "description": "By default, every GML property element will receive the property name from the feature    schema. The element is placed in the namespace of its containing object type (declared via    `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element    stays in the default namespace. A different name or an explicit namespace can be set using    the `rename` transformation, which takes precedence over the inherited namespace.      When the CRUD building block is enabled, the options that shape GML output are honoured    symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,    `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,    `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,    `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,    `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD    references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`,    `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - either because they govern encoder    formatting decisions with no input counterpart, or because the decoder is permissive of any    equivalent input form. `codeListUriTemplateIso19139` likewise affects output only, as do    attributes and injected empty elements in `xmlPaths` chains - on input, an empty element    inside a chain is skipped and an `xsi:type` attribute on a value element is dropped.",
+      "description": "By default, every GML property element will receive the property name from the feature    schema. The element is placed in the namespace of its containing object type (declared via    `objectTypeNamespaces`); if the parent object type has no namespace mapping, the element    stays in the default namespace. A different name or an explicit namespace can be set using    the `rename` transformation, which takes precedence over the inherited namespace.      When the CRUD building block is enabled, the options that shape GML output are honoured    symmetrically when decoding GML POST/PUT request bodies: `applicationNamespaces`,    `defaultNamespace`, `objectTypeNamespaces`, `useAlias`, `gmlIdPrefix`, `uomMappings`,    `codelistProperties`, `codelistUriTemplate`, `featureRefTemplate`, `xmlPaths`,    `xmlAttributes`, `variableObjectElementNames`, `featureCollectionElementName`,    `featureMemberElementName`. The remaining options affect output only - `schemaLocations` (XSD    references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `gmlSfLevel`, `useSurfaceAndCurve`,    `defaultProfiles` - either because they govern encoder formatting decisions with no input    counterpart, or because the decoder is permissive of any equivalent input form.    `codeListUriTemplateIso19139` and `xmlComments` likewise affect output only - a value encoded    as an XML comment is not read back - as do attributes and injected empty elements in    `xmlPaths` chains - on input, an empty element inside a chain is skipped and an `xsi:type`    attribute on a value element is dropped.",
       "type": "object",
       "properties": {
         "buildingBlock": {
@@ -2011,6 +2011,40 @@
         "xmlAttributes": {
           "title": "xmlAttributes",
           "description": "Properties are by default represented as the XML child element (GML property element)    of the XML element representing the object (GML object element). Alternatively, the    property can be represented as an XML attribute of the parent GML object element. This is    only possible for properties of type STRING, FLOAT, INTEGER, or BOOLEAN.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "xmlComments": {
+          "title": "xmlComments",
+          "description": "Properties listed here are encoded as an XML comment instead of an XML element, at the    position where the property element would have been written. The comment text is the    property name and the value, separated by a colon (`name: value`). Use this for values that    are not part of the GML application schema, but that should still be conveyed in the    response - an XML comment is allowed anywhere in element content, so the response remains    valid against the application schema, which it would not be if the value were encoded as an    element or as an XML attribute. This is only possible for properties with a single value,    not for objects or arrays of objects.      A comment is not part of the XML information a GML request body is decoded from, so such    a property is written on output only. Only properties that are excluded from the    `RECEIVABLE` scope in the provider schema may therefore be listed: a property a client may    send must not be reduced to a comment. Listing a receivable property, or a property the    feature type does not have, is reported as a configuration error on startup.      A property listed in both `xmlAttributes` and `xmlComments` is encoded as an XML    attribute.",
           "allOf": [
             {
               "if": {

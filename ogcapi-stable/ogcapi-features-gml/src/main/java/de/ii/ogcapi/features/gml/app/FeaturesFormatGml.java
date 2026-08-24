@@ -571,6 +571,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .config(config)
         .alternativeCrss(alternativeCrss)
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
+        .xmlComments(remapList(config.getXmlComments(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
         .xmlPaths(parseXmlPaths(remapKeys(config.getXmlPaths(), aliasRewrites)))
         .positionVariants(derivePositionVariants(featureSchema, aliasRewrites))
