@@ -87,33 +87,26 @@ public class QueryParameterCollections extends OgcApiQueryParameterBase
   private final Map<Integer, List<String>> collectionsMap = new ConcurrentHashMap<>();
 
   private List<String> getCollectionIds(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!collectionsMap.containsKey(apiHashCode)) {
-      collectionsMap.put(
-          apiHashCode,
-          apiData.getCollections().values().stream()
-              .filter(collection -> apiData.isCollectionEnabled(collection.getId()))
-              .filter(
-                  collection ->
-                      collection
-                          .getExtension(TilesConfiguration.class)
-                          .filter(ExtensionConfiguration::isEnabled)
-                          .isPresent())
-              .map(FeatureTypeConfiguration::getId)
-              .collect(Collectors.toList()));
-    }
-    return collectionsMap.get(apiHashCode);
+    return collectionsMap.computeIfAbsent(
+        apiData.hashCode(),
+        ignore ->
+            apiData.getCollections().values().stream()
+                .filter(collection -> apiData.isCollectionEnabled(collection.getId()))
+                .filter(
+                    collection ->
+                        collection
+                            .getExtension(TilesConfiguration.class)
+                            .filter(ExtensionConfiguration::isEnabled)
+                            .isPresent())
+                .map(FeatureTypeConfiguration::getId)
+                .collect(Collectors.toList()));
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) {
-      schemaMap.put(
-          apiHashCode,
-          new ArraySchema().items(new StringSchema()._enum(getCollectionIds(apiData))));
-    }
-    return schemaMap.get(apiHashCode);
+    return schemaMap.computeIfAbsent(
+        apiData.hashCode(),
+        ignore -> new ArraySchema().items(new StringSchema()._enum(getCollectionIds(apiData))));
   }
 
   @Override

@@ -99,6 +99,13 @@ public interface ParameterExtension extends ApiExtension {
       OgcApiDataV2 apiData, Optional<String> collectionId, List<String> values) {
     try {
       Schema<?> schema = getSchema(apiData, collectionId);
+      if (Objects.isNull(schema)) {
+        // a parameter without a schema cannot be schema-validated; validateOther() still runs
+        LOGGER.warn(
+            "Parameter '{}': no schema available for validation, skipping schema validation.",
+            getName());
+        return Optional.empty();
+      }
       String type = schema.getType();
       String schemaContent = Json.mapper().writeValueAsString(schema);
       String valueContent = getJsonContent(values.get(0), schema);
