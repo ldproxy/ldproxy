@@ -62,6 +62,7 @@ import de.ii.xtraplatform.crs.domain.CrsInfo;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureChanges;
+import de.ii.xtraplatform.features.domain.FeatureMutationConstraintException;
 import de.ii.xtraplatform.features.domain.FeatureMutationHookException;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
@@ -1969,8 +1970,19 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // unsupported feature kind, etc.) should appear in the log as a one-line WARN without the
   // stack trace; the message itself is the actionable diagnostic. System / infrastructure
   // errors keep the stack trace so genuine bugs stay debuggable.
+  // A constraint violation reported by the database (a CHECK or foreign-key constraint, a unique
+  // index, or a trigger raising one) is caused by the data the client sent, just like a malformed
+  // payload — it is reported in the response, so the stack trace adds nothing. The same holds for a
+  // configured transaction hook that rejects the data it was given.
   private static boolean isUserError(Throwable error) {
-    return error instanceof IllegalArgumentException;
+    for (Throwable t = error; t != null; t = t.getCause()) {
+      if (t instanceof IllegalArgumentException
+          || t instanceof FeatureMutationConstraintException
+          || t instanceof FeatureMutationHookException) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static String actionLabel(TxAction action) {
