@@ -10,14 +10,17 @@ package de.ii.ogcapi.filter
 import de.ii.ogcapi.common.domain.OgcApiDatasetView
 import de.ii.xtraplatform.cql.app.CqlImpl
 import de.ii.xtraplatform.cql.domain.Cql
-import groovyx.net.http.ContentType
-import groovyx.net.http.Method
-import groovyx.net.http.RESTClient
+import groovy.json.JsonSlurper
 import spock.lang.IgnoreIf
 import spock.lang.Requires
 import spock.lang.Shared
 import spock.lang.Specification
 
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.net.http.HttpResponse.BodyHandlers
+import java.time.Duration
 import java.util.stream.Collectors
 import java.util.stream.IntStream
 
@@ -27,26 +30,47 @@ import java.util.stream.IntStream
  *     <li>geoinfodok (same data and configuration as https://demo.ldproxy.net/geoinfodok)
  *     <li>cshapes (same data and configuration as https://demo.ldproxy.net/cshapes)
  * </ul>
+ *
+ * <p>Uses {@link java.net.http.HttpClient} so the spec works on Groovy 4 — the former
+ * http-builder dependency references {@code groovy.util.slurpersupport.GPathResult}, which
+ * Groovy 4 removed. {@link #getRequest} returns a small adapter exposing {@code status},
+ * {@code responseData} and {@code getContentType()}, so the assertions read exactly as before.
+ * Note one deliberate difference: http-builder raised on a non-2xx status, whereas the adapter
+ * returns the response, so an unexpected error status now fails on the {@code assertSuccess}
+ * assertion instead of surfacing as a thrown exception.
  */
 @Requires({env['SUT_URL'] != null})
 class FilterParameterSpecification extends Specification {
 
     static final String SUT_URL = System.getenv('SUT_URL')
-    static final String API_PATH_DARAA = "/daraa"
+    static final String API_PATH_DARAA = System.getenv('SUT_PATH_DARAA') ?: "/daraa"
     static final String CULTURE_PNT = "CulturePnt"
     static final String AERONAUTIC_CRV = "AeronauticCrv"
     static final String CULTURE_PNT_PATH = API_PATH_DARAA + "/collections/" + CULTURE_PNT + "/items"
     static final String AERONAUTIC_CRV_PATH = API_PATH_DARAA + "/collections/" + AERONAUTIC_CRV + "/items"
-    static final String API_PATH_GEOINFODOK = "/geoinfodok"
-    static final String AX_GEBAEUDEFUNKTION = "ax_gebaeudefunktion"
-    static final String AX_GEBAEUDEFUNKTION_PATH = API_PATH_GEOINFODOK + "/collections/" + AX_GEBAEUDEFUNKTION + "/items"
-    static final String API_PATH_CSHAPES = "/cshapes"
+    // No default: the API this was written against no longer exists, so the features that need a
+    // dataset with array-valued and diacritic-bearing properties are skipped until SUT_PATH_GEOINFODOK
+    // points at a replacement.
+    static final String API_PATH_GEOINFODOK = System.getenv('SUT_PATH_GEOINFODOK')
+    static final String AX_GEBAEUDEFUNKTION = System.getenv('SUT_COLLECTION_ARRAYS') ?: "ax_gebaeudefunktion"
+    static final String AX_GEBAEUDEFUNKTION_PATH =
+            API_PATH_GEOINFODOK == null
+                    ? null
+                    : API_PATH_GEOINFODOK + "/collections/" + AX_GEBAEUDEFUNKTION + "/items"
+    static final String API_PATH_CSHAPES = System.getenv('SUT_PATH_CSHAPES') ?: "/cshapes"
     static final String BOUNDARY = "boundary"
     static final String BOUNDARY_PATH = API_PATH_CSHAPES + "/collections/" + BOUNDARY + "/items"
     static final String GEO_JSON = "application/geo+json";
     static final String JSON = "application/json";
     static final String PROBLEM_JSON = "application/problem+json";
     static final boolean json = true // set to true to test CQL JSON, to false to test CQL Text
+    // Which AeronauticCrv feature the geometry literals are derived from. Two cases constrain the
+    // choice in opposite directions: S_TOUCHES asserts that the curve's start point touches the
+    // curve itself *and* the curves connected at that node, so the feature must start at a shared
+    // node; S_WITHIN asserts the curve lies inside a small box around that same start point, so it
+    // must also be short enough to fit. In the dataset this spec reads, the first feature satisfies
+    // both — the one originally hard-coded here starts at a node no other curve reaches.
+    static final int CRV_INDEX = (System.getenv('SUT_CRV_INDEX') ?: '0') as int
 
     static boolean testNestedFilters() {
         return !json;
@@ -57,7 +81,9 @@ class FilterParameterSpecification extends Specification {
     @Shared
     int limit = 250
     @Shared
-    RESTClient restClient = new RESTClient(SUT_URL)
+    HttpClient restClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build()
     @Shared
     def allCulturePntFeatures = getRequest(restClient, CULTURE_PNT_PATH, null)
     @Shared
@@ -69,15 +95,15 @@ class FilterParameterSpecification extends Specification {
     @Shared
     def idPnt = allCulturePntFeatures.responseData.features[0].id
     @Shared
-    def lonPnt = allCulturePntFeatures.responseData.features[0].geometry.coordinates[0] as double
+    def lonPnt = firstPosition(allCulturePntFeatures.responseData.features[0])[0] as double
     @Shared
-    def latPnt = allCulturePntFeatures.responseData.features[0].geometry.coordinates[1] as double
+    def latPnt = firstPosition(allCulturePntFeatures.responseData.features[0])[1] as double
     @Shared
-    def idCrv = allAeronauticCrvFeatures.responseData.features[7].id
+    def idCrv = allAeronauticCrvFeatures.responseData.features[CRV_INDEX].id
     @Shared
-    def lonCrv = allAeronauticCrvFeatures.responseData.features[7].geometry.coordinates[0][0][0] as double
+    def lonCrv = allAeronauticCrvFeatures.responseData.features[CRV_INDEX].geometry.coordinates[0][0][0] as double
     @Shared
-    def latCrv = allAeronauticCrvFeatures.responseData.features[7].geometry.coordinates[0][0][1] as double
+    def latCrv = allAeronauticCrvFeatures.responseData.features[CRV_INDEX].geometry.coordinates[0][0][1] as double
     @Shared
     def delta = 0.02
     @Shared
@@ -108,8 +134,13 @@ class FilterParameterSpecification extends Specification {
     def pointCrv4326 = "POINT(" + String.valueOf(latCrv) + " " + String.valueOf(lonCrv) + ")"
     @Shared
     def pointPnt4326 = "POINT(" + String.valueOf(latPnt) + " " + String.valueOf(lonPnt) + ")"
+    // Left null when no replacement for the retired API is configured; the features that need it
+    // are skipped, and the rest of the spec must still initialise.
     @Shared
-    def allAxGebaeudefunktion = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, [limit:limit])
+    def allAxGebaeudefunktion =
+            AX_GEBAEUDEFUNKTION_PATH == null
+                    ? null
+                    : getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, [limit: limit])
     @Shared
     def allBoundaries = getRequest(restClient, BOUNDARY_PATH, [limit:limit])
 
@@ -124,6 +155,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(collection)
     }
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Preconditions GeoInfoDok"() {
         given: "AX_Gebaeudefunktion records"
 
@@ -176,7 +208,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE='AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE='AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.F_CODE=='AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('F_CODE')=='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -205,7 +237,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL=11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL=11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI037_REL==11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI037_REL')==11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -257,7 +289,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "8. Data is selected using a filter ZI001_SDV=TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV=TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV=='2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')=='2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -285,7 +317,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE<>'AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE<>'AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE!='AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')!='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -300,7 +332,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL<>11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<>11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL!=11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')!=11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -315,7 +347,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL<>10"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<>10"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL!=10 ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')!=10 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -353,7 +385,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter ZI001_SDV<>TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV<>TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV!='2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')!='2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -381,7 +413,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE<'AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE<'AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE<'AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')<'AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -396,7 +428,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL<11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL<11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')<11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -411,7 +443,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL<12"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<12"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL<12 ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')<12 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -426,7 +458,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter 'AL030'<F_CODE"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("'AL030'<F_CODE"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE>'AL030' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')>'AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -450,7 +482,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter ZI001_SDV<TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV<TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV<'2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')<'2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -478,7 +510,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE>'AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE>'AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE>'AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')>'AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -493,7 +525,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL>11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL>11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -508,7 +540,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL>0"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL>0"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>0 ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>0 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -523,7 +555,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter 'AL030'>F_CODE"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("'AL030'>F_CODE"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE<'AL030' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')<'AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -547,7 +579,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter ZI001_SDV>TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV>TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV>'2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')>'2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -575,7 +607,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE<='AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE<='AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE<='AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')<='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -590,7 +622,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL<=11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<=11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL<=11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')<=11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -605,7 +637,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL<=10"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL<=10"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL<=10 ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')<=10 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -620,7 +652,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter 'AL030'<=F_CODE"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("'AL030'<=F_CODE"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE>='AL030' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')>='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -644,7 +676,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter ZI001_SDV<=TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV<=TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV<='2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')<='2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -672,7 +704,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE<='AL030'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE>='AL030'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE>='AL030' ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')>='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -687,7 +719,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL>=11"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL>=11"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>=11 ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>=11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -702,7 +734,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL>=12"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL>=12"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>=12 ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>=12 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -717,7 +749,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter 'AL030'>=F_CODE"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("'AL030'>=F_CODE"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE<='AL030' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE')<='AL030' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -741,7 +773,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter ZI001_SDV>=TIMESTAMP('2011-12-26T20:55:27Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV>=TIMESTAMP('2011-12-26T20:55:27Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV>='2011-12-26T20:55:27Z' ).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')>='2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -771,7 +803,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE LiKe 'AL0%'"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE LiKe 'AL0%'"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE.startsWith('AL0') ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE').startsWith('AL0') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -828,7 +860,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "6. Data is selected using a filter CASEI(F_CODE) LiKe casei('al0%')"
         def propertyAndLiteralString5 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("CASEI(F_CODE) LiKe casei('al0__')"))
-        def propertyAndLiteralString5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE.toLowerCase().startsWith('al0') ).toList()
+        def propertyAndLiteralString5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE').toLowerCase().startsWith('al0') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString5)
@@ -843,7 +875,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter F_CODE LiKe 'al0%'"
         def propertyAndLiteralString6 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE LiKe 'al0%'"))
-        def propertyAndLiteralString6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE.startsWith('al0') ).toList()
+        def propertyAndLiteralString6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE').startsWith('al0') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString6)
@@ -858,7 +890,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "8. Data is selected using a filter F_CODE LiKe '%''%'"
         def propertyAndLiteralString7 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE LiKe '%''%'"))
-        def propertyAndLiteralString7Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE.contains('\'') ).toList()
+        def propertyAndLiteralString7Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE').contains('\'') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString7)
@@ -872,13 +904,14 @@ class FilterParameterSpecification extends Specification {
         }
     }
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Case-insensistive comparisons"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter casei(title) LIKE CaSeI('%GEBÄUDE%')"
         def casei = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("casei(title) LIKE CaSeI('%GEBÄUDE%')"))
         def caseiCheck = allAxGebaeudefunktion.responseData.features.stream()
-                .filter(f -> f.properties.title.toLowerCase().contains('gebäude'))
+                .filter(f -> f.get('properties').get('title').toLowerCase().contains('gebäude'))
                 .toList()
 
         then: "Success and returns GeoJSON"
@@ -894,13 +927,14 @@ class FilterParameterSpecification extends Specification {
     }
 
     // TODO set up DB with PostgreSQL 12+ and accent-insensitve collation
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Accent-insensitive comparisons"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter accenti(title) LIKE aCcEnTi('%gebäude%')"
         def accenti = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("accenti(title) LIKE aCcEnTi('%gebäude%')"))
         def accentiCheck = allAxGebaeudefunktion.responseData.features.stream()
-                .filter(f -> f.properties.title.contains('gebäude') || f.properties.title.contains('gebaude'))
+                .filter(f -> f.get('properties').get('title').contains('gebäude') || f.get('properties').get('title').contains('gebaude'))
                 .toList()
         then:
         thrown Exception
@@ -922,7 +956,7 @@ class FilterParameterSpecification extends Specification {
         when: "3. Data is selected using a filter casei(accenti(title)) LIKE cAsEi(aCcEnTi('%GEBäUDE%'))"
         def caseiaccenti = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("casei(accenti(title)) LIKE cAsEi(aCcEnTi('%GEBäUDE%'))"))
         def caseiaccentiCheck = allAxGebaeudefunktion.responseData.features.stream()
-                .filter(f -> f.properties.title.toLowerCase().contains('gebaude') || f.properties.title.toLowerCase().contains('gebäude'))
+                .filter(f -> f.get('properties').get('title').toLowerCase().contains('gebaude') || f.get('properties').get('title').toLowerCase().contains('gebäude'))
                 .toList()
 
         then:
@@ -947,7 +981,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter ZI037_REL BeTweeN ZI037_REL AnD ZI037_REL"
         def twoProperties = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL BeTweeN ZI037_REL AnD ZI037_REL"))
-        def twoPropertiesCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) ).toList()
+        def twoPropertiesCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(twoProperties)
@@ -971,7 +1005,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL BeTweeN 0 AnD 10"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL BeTweeN 0 AnD 10"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>=0 && f.properties.ZI037_REL<=10 ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>=0 && f.get('properties').get('ZI037_REL')<=10 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -986,7 +1020,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL BeTweeN 0 AnD 11"
         def propertyAndLiteral2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL BeTweeN 0 AnD 11"))
-        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>=0 && f.properties.ZI037_REL<=11 ).toList()
+        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>=0 && f.get('properties').get('ZI037_REL')<=11 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral2)
@@ -1001,7 +1035,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter ZI037_REL NoT BeTweeN 0 AnD 10"
         def propertyAndLiteral3 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL NoT BeTweeN 0 AnD 10"))
-        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && !(f.properties.ZI037_REL>=0 && f.properties.ZI037_REL<=10) ).toList()
+        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && !(f.get('properties').get('ZI037_REL')>=0 && f.get('properties').get('ZI037_REL')<=10) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral3)
@@ -1016,7 +1050,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "6. Data is selected using a filter ZI037_REL NoT BeTweeN 0 AnD 11"
         def propertyAndLiteral4 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL NoT BeTweeN 0 AnD 11"))
-        def propertyAndLiteral4Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && !(f.properties.ZI037_REL>=0 && f.properties.ZI037_REL<=11) ).toList()
+        def propertyAndLiteral4Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && !(f.get('properties').get('ZI037_REL')>=0 && f.get('properties').get('ZI037_REL')<=11) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral4)
@@ -1031,7 +1065,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "7. Data is selected using a filter 6 BeTweeN 0 AnD ZI037_REL"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("6 BeTweeN 0 AnD ZI037_REL"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && f.properties.ZI037_REL>=6 ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && f.get('properties').get('ZI037_REL')>=6 ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -1047,7 +1081,7 @@ class FilterParameterSpecification extends Specification {
         /* disabled since BETWEEN only supports numbers in CQL2
         when: "7. Data is selected using a filter ZI001_SDV BETWEEN TIMESTAMP('2011-01-01T00:00:00Z') AND TIMESTAMP('2012-01-01T00:00:00Z')"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV BETWEEN TIMESTAMP('2011-01-01T00:00:00Z') AND TIMESTAMP('2012-01-01T00:00:00Z')"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV.startsWith('2011')).toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV').startsWith('2011')).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -1069,7 +1103,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter CASEI(F_CODE) iN (CASEI('AL030'), cAsEi('AL012'))"
         def propertyAndLiteralString = getRequest(restClient, CULTURE_PNT_PATH, getQuery("CASEI(F_CODE) iN (CASEI('AL030'), cAsEi('AL012'))"))
-        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.F_CODE.equals('AL012') || f.properties.F_CODE.equals('AL030') ).toList()
+        def propertyAndLiteralStringCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('F_CODE').equals('AL012') || f.get('properties').get('F_CODE').equals('AL030') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString)
@@ -1084,7 +1118,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE NoT iN ('AL030', 'AL012')"
         def propertyAndLiteralString2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("F_CODE NoT iN ('AL030', 'AL012')"))
-        def propertyAndLiteralString2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> !f.properties.F_CODE.equals('AL012') && !f.properties.F_CODE.equals('AL030') ).toList()
+        def propertyAndLiteralString2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> !f.get('properties').get('F_CODE').equals('AL012') && !f.get('properties').get('F_CODE').equals('AL030') ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralString2)
@@ -1099,7 +1133,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter ZI037_REL iN (11, 12)"
         def propertyAndLiteralNumeric = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL in (11, 12)"))
-        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && (f.properties.ZI037_REL==11 || f.properties.ZI037_REL==12) ).toList()
+        def propertyAndLiteralNumericCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && (f.get('properties').get('ZI037_REL')==11 || f.get('properties').get('ZI037_REL')==12) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric)
@@ -1114,7 +1148,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "4. Data is selected using a filter ZI037_REL NoT iN (11, 12)"
         def propertyAndLiteralNumeric2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL NoT iN (11, 12)"))
-        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) && !(f.properties.ZI037_REL==11 || f.properties.ZI037_REL==12) ).toList()
+        def propertyAndLiteralNumeric2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) && !(f.get('properties').get('ZI037_REL')==11 || f.get('properties').get('ZI037_REL')==12) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteralNumeric2)
@@ -1128,7 +1162,7 @@ class FilterParameterSpecification extends Specification {
         }
         when: "7. Data is selected using a filter ZI001_SDV IN (TIMESTAMP('2011-12-26T20:55:27Z'),TIMESTAMP('2021-10-10T10:10:10Z'),TIMESTAMP('2011-12-27T18:39:59Z'))"
         def temporalProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI001_SDV  IN (TIMESTAMP('2011-12-26T20:55:27Z'),TIMESTAMP('2021-10-10T10:10:10Z'),TIMESTAMP('2011-12-27T18:39:59Z'))"))
-        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.ZI001_SDV=='2011-12-26T20:55:27Z' ||  f.properties.ZI001_SDV=='2021-10-10T10:10:10Z' || f.properties.ZI001_SDV=='2011-12-27T18:39:59Z').toList()
+        def temporalPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('ZI001_SDV')=='2011-12-26T20:55:27Z' ||  f.get('properties').get('ZI001_SDV')=='2021-10-10T10:10:10Z' || f.get('properties').get('ZI001_SDV')=='2011-12-27T18:39:59Z').toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(temporalProperty)
@@ -1148,7 +1182,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter ZI037_REL iS NulL"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL iS NulL"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.isNull(f.properties.ZI037_REL) ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.isNull(f.get('properties').get('ZI037_REL')) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -1163,7 +1197,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter ZI037_REL iS NoT NulL"
         def propertyAndLiteral2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("ZI037_REL iS NoT NulL"))
-        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.properties.ZI037_REL) ).toList()
+        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> Objects.nonNull(f.get('properties').get('ZI037_REL')) ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral2)
@@ -1216,7 +1250,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral2)
 
         and: "Returns the feature"
-        propertyAndLiteral2.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
+        propertyAndLiteral2.responseData.features.stream().anyMatch(f -> f.get('id') == idCrv)
 
         when: "5. Data is selected using a filter s_InterSectS(<bbox around first feature>,geometry)"
         def propertyAndLiteral2a = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery( "s_InterSectS(" + envelopeCrv + ",geometry)"))
@@ -1225,7 +1259,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral2a)
 
         and: "Returns the feature"
-        propertyAndLiteral2a.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
+        propertyAndLiteral2a.responseData.features.stream().anyMatch(f -> f.get('id') == idCrv)
 
         when: "6. The same request using EPSG:4326"
         def propertyAndLiteral2b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326( "s_InterSectS(geometry," + envelopeCrv4326 + ")"))
@@ -1243,7 +1277,7 @@ class FilterParameterSpecification extends Specification {
         assertSuccess(propertyAndLiteral3)
 
         and: "Returns the feature"
-        propertyAndLiteral3.responseData.features.stream().anyMatch(f -> f.getName == idCrv)
+        propertyAndLiteral3.responseData.features.stream().anyMatch(f -> f.get('id') == idCrv)
 
         when: "8. The same request using EPSG:4326"
         def propertyAndLiteral3b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326( "s_InterSectS(geometry," + polygonCrv4326 + ")"))
@@ -1288,7 +1322,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral5.responseData.numberReturned == allAeronauticCrvFeatures.responseData.numberReturned - propertyAndLiteral4Check.responseData.numberReturned
-        propertyAndLiteral5.responseData.features.stream().noneMatch( f -> f.getName == idCrv )
+        propertyAndLiteral5.responseData.features.stream().noneMatch( f -> f.get('id') == idCrv )
 
         when: "4. The same request using EPSG:4326"
         def propertyAndLiteral5b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("s_DisJoinT(geometry," + polygonCrv4326 + ")"))
@@ -1352,7 +1386,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral8.responseData.numberReturned > 0
-        propertyAndLiteral8.responseData.features.stream().anyMatch( f -> f.getName == idCrv )
+        propertyAndLiteral8.responseData.features.stream().anyMatch( f -> f.get('id') == idCrv )
 
         when: "2. The same request using EPSG:4326"
         def propertyAndLiteral8b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("s_WithiN(geometry, " + polygonCrv4326 + ")"))
@@ -1371,7 +1405,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns everything but the feature"
         propertyAndLiteral9.responseData.numberReturned == allAeronauticCrvFeatures.responseData.numberReturned - propertyAndLiteral8.responseData.numberReturned
-        propertyAndLiteral9.responseData.features.stream().noneMatch( f -> f.getName == idCrv )
+        propertyAndLiteral9.responseData.features.stream().noneMatch( f -> f.get('id') == idCrv )
 
         when: "4. The same request using EPSG:4326"
         def propertyAndLiteral9b = getRequest(restClient, AERONAUTIC_CRV_PATH, getQuery4326("NoT s_WithiN(geometry, " + polygonCrv4326 + ")"))
@@ -1430,7 +1464,7 @@ class FilterParameterSpecification extends Specification {
 
         and: "Returns the feature"
         propertyAndLiteral12.responseData.numberReturned > 0
-        propertyAndLiteral12.responseData.features.stream().anyMatch( f -> f.getName == idCrv )
+        propertyAndLiteral12.responseData.features.stream().anyMatch( f -> f.get('id') == idCrv )
 
         and: "Returns also connected features"
         propertyAndLiteral12.responseData.numberReturned > 1
@@ -1543,7 +1577,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter t_IntErSectS(ZI001_SDV, INTERVAL('2011-12-01T00:00:00Z','2011-12-31T23:59:59Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_IntErSectS(ZI001_SDV, INTERVAL('2011-12-01T00:00:00Z','2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2011-12' && f.properties.ZI001_SDV < '2012' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2011-12' && f.get('properties').get('ZI001_SDV') < '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -1558,7 +1592,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter t_IntErSectS(ZI001_SDV, INTERVAL('..','2011-12-31T23:59:59Z'))"
         def propertyAndLiteral2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_IntErSectS(ZI001_SDV, INTERVAL('..','2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2012' ).toList()
+        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral2)
@@ -1573,7 +1607,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter t_IntErSectS(ZI001_SDV, INTERVAL('2012-01-01T00:00:00Z','..'))"
         def propertyAndLiteral3 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_IntErSectS(ZI001_SDV, INTERVAL('2012-01-01T00:00:00Z','..'))"))
-        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2012' ).toList()
+        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral3)
@@ -1597,7 +1631,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter t_IntErSectS(ZI001_SDV,InterVaL('2011-12-27T00:00:00Z','2011-12-27T23:59:59Z'))"
         def propertyAndLiteral5 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_IntErSectS(ZI001_SDV,InterVaL('2011-12-27T00:00:00Z','2011-12-27T23:59:59Z'))"))
-        def propertyAndLiteral5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2011-12-27' && f.properties.ZI001_SDV < '2011-12-28' ).toList()
+        def propertyAndLiteral5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2011-12-27' && f.get('properties').get('ZI001_SDV') < '2011-12-28' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral5)
@@ -1612,7 +1646,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "6. Data is selected using a filter t_IntErSectS(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"
         def propertyAndLiteral6 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_IntErSectS(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"))
-        def propertyAndLiteral6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV == '2011-12-26T20:55:27Z' ).toList()
+        def propertyAndLiteral6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') == '2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral6)
@@ -1706,9 +1740,9 @@ class FilterParameterSpecification extends Specification {
         and: "Returns no features"
         propertyAndLiteral15.responseData.numberReturned == 0
 
-        when: "15. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_INTERSECTS(INTERVAL(cowbegin,cowend),INTERVAL('1955-01-01','1990-10-02'))"
-        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_INTERSECTS(INTERVAL(cowbegin,cowend),INTERVAL('1955-01-01','1990-10-02'))"))
-        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.properties.name.toLowerCase().startsWith("germany") && !(f.properties.cowend < '1955-01-01' || f.properties.cowbegin >= '1990-10-03')).toList()
+        when: "15. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_INTERSECTS(INTERVAL(gwsdate,gwedate),INTERVAL('1955-01-01','1990-10-02'))"
+        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_INTERSECTS(INTERVAL(gwsdate,gwedate),INTERVAL('1955-01-01','1990-10-02'))"))
+        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.get('properties').get('name').toLowerCase().startsWith("germany") && !(f.get('properties').get('gwedate') < '1955-01-01' || f.get('properties').get('gwsdate') >= '1990-10-03')).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(boundary)
@@ -1721,8 +1755,8 @@ class FilterParameterSpecification extends Specification {
             assertFeature(boundary.responseData.features[i], boundaryCheck.get(i))
         }
 
-        when: "16. Data is selected using a filter T_INTERSECTS(INTERVAL(cowbegin,'..'),INTERVAL('..',cowend))"
-        def boundary2 = getRequest(restClient, BOUNDARY_PATH, getQuery("T_INTERSECTS(INTERVAL(cowbegin,'..'),INTERVAL('..',cowend))"))
+        when: "16. Data is selected using a filter T_INTERSECTS(INTERVAL(gwsdate,'..'),INTERVAL('..',gwedate))"
+        def boundary2 = getRequest(restClient, BOUNDARY_PATH, getQuery("T_INTERSECTS(INTERVAL(gwsdate,'..'),INTERVAL('..',gwedate))"))
 
         then: "Success and returns GeoJSON"
         assertSuccess(boundary2)
@@ -1736,7 +1770,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter t_DiSjOiNt(ZI001_SDV, INTERVAL('2011-12-01T00:00:00Z','2011-12-31T23:59:59Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DiSjOiNt(ZI001_SDV, INTERVAL('2011-12-01T00:00:00Z','2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2011-12' || f.properties.ZI001_SDV > '2012' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2011-12' || f.get('properties').get('ZI001_SDV') > '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -1751,7 +1785,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter t_DiSjOiNt(ZI001_SDV, INTERVAL('..','2011-12-31T23:59:59Z'))"
         def propertyAndLiteral2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DiSjOiNt(ZI001_SDV, INTERVAL('..','2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2012' ).toList()
+        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral2)
@@ -1766,7 +1800,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "3. Data is selected using a filter t_DiSjOiNt(ZI001_SDV, INTERVAL('2012-01-01T00:00:00Z','..'))"
         def propertyAndLiteral3 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DiSjOiNt(ZI001_SDV, INTERVAL('2012-01-01T00:00:00Z','..'))"))
-        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2012' ).toList()
+        def propertyAndLiteral3Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2012' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral3)
@@ -1790,7 +1824,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "5. Data is selected using a filter t_DiSjOiNt(ZI001_SDV, InterVaL('2011-12-27T00:00:00Z','2011-12-27T23:59:59Z'))"
         def propertyAndLiteral5 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DiSjOiNt(ZI001_SDV, InterVaL('2011-12-27T00:00:00Z','2011-12-27T23:59:59Z'))"))
-        def propertyAndLiteral5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2011-12-27' || f.properties.ZI001_SDV >= '2011-12-28' ).toList()
+        def propertyAndLiteral5Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2011-12-27' || f.get('properties').get('ZI001_SDV') >= '2011-12-28' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral5)
@@ -1805,7 +1839,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "6. Data is selected using a filter t_DiSjOiNt(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"
         def propertyAndLiteral6 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DiSjOiNt(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"))
-        def propertyAndLiteral6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV != '2011-12-26T20:55:27Z' ).toList()
+        def propertyAndLiteral6Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') != '2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral6)
@@ -1899,9 +1933,9 @@ class FilterParameterSpecification extends Specification {
         and: "Returns all features"
         assertSameResult(propertyAndLiteral15, allCulturePntFeatures)
 
-        when: "15. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_DISJOINT(INTERVAL(cowbegin,cowend),INTERVAL('1955-01-01','1990-10-02'))"
-        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_DISJOINT(INTERVAL(cowbegin,cowend),INTERVAL('1955-01-01','1990-10-02'))"))
-        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.properties.name.toLowerCase().startsWith("germany") && (f.properties.cowend < '1955-01-01' || f.properties.cowbegin >= '1990-10-03')).toList()
+        when: "15. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_DISJOINT(INTERVAL(gwsdate,gwedate),INTERVAL('1955-01-01','1990-10-02'))"
+        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_DISJOINT(INTERVAL(gwsdate,gwedate),INTERVAL('1955-01-01','1990-10-02'))"))
+        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.get('properties').get('name').toLowerCase().startsWith("germany") && (f.get('properties').get('gwedate') < '1955-01-01' || f.get('properties').get('gwsdate') >= '1990-10-03')).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(boundary)
@@ -1929,7 +1963,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter T_EqualS(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("T_EqualS(ZI001_SDV, TIMESTAMP('2011-12-26T20:55:27Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV == '2011-12-26T20:55:27Z' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') == '2011-12-26T20:55:27Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -1971,7 +2005,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter T_AFTER(ZI001_SDV, TIMESTAMP('2011-12-31T23:59:59Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("T_AFTER(ZI001_SDV, TIMESTAMP('2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2011-12-31T23:59:59Z' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2011-12-31T23:59:59Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -1986,7 +2020,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter T_AFTER(TIMESTAMP('2011-12-31T23:59:59Z'), ZI001_SDV)"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("T_AFTER(TIMESTAMP('2011-12-31T23:59:59Z'), ZI001_SDV)"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2011-12-31T23:59:59Z' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2011-12-31T23:59:59Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -2022,9 +2056,9 @@ class FilterParameterSpecification extends Specification {
             assertFeature(propertyAndLiteralInterval.responseData.features[i], propertyAndLiteralCheck.get(i))
         }
 
-        when: "5. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_AFTER(INTERVAL(cowbegin,cowend),INTERVAL('1955-05-05','1990-10-02'))"
-        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_AFTER(INTERVAL(cowbegin,cowend),INTERVAL('1955-05-05','1990-10-02'))"))
-        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.properties.name.toLowerCase().startsWith("germany") && f.properties.cowbegin > '1990-10-02').toList()
+        when: "5. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_AFTER(INTERVAL(gwsdate,gwedate),INTERVAL('1955-05-05','1990-10-02'))"
+        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_AFTER(INTERVAL(gwsdate,gwedate),INTERVAL('1955-05-05','1990-10-02'))"))
+        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.get('properties').get('name').toLowerCase().startsWith("germany") && f.get('properties').get('gwsdate') > '1990-10-02').toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(boundary)
@@ -2043,7 +2077,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter T_BeForE(ZI001_SDV, TIMESTAMP('2012-01-01T00:00:00Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("T_BeForE(ZI001_SDV, TIMESTAMP('2012-01-01T00:00:00Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV < '2012-01-01T00:00:00Z' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') < '2012-01-01T00:00:00Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -2058,7 +2092,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter T_BeForE(TIMESTAMP('2011-12-31T23:59:59Z'), ZI001_SDV)"
         def literalAndProperty = getRequest(restClient, CULTURE_PNT_PATH, getQuery("T_BeForE(TIMESTAMP('2011-12-31T23:59:59Z'), ZI001_SDV)"))
-        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV > '2011-12-31T23:59:59Z' ).toList()
+        def literalAndPropertyCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') > '2011-12-31T23:59:59Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(literalAndProperty)
@@ -2094,9 +2128,9 @@ class FilterParameterSpecification extends Specification {
             assertFeature(propertyAndLiteralInterval.responseData.features[i], propertyAndLiteralCheck.get(i))
         }
 
-        when: "5. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_BEFORE(INTERVAL(cowbegin,cowend),INTERVAL('1990-10-03','2020-12-31'))"
-        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_BEFORE(INTERVAL(cowbegin,cowend),INTERVAL('1990-10-03','2020-12-31'))"))
-        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.properties.name.toLowerCase().startsWith("germany") && f.properties.cowend < '1990-10-03').toList()
+        when: "5. Data is selected using a filter CASEI(name) LIKE CASEI('%Germany%') AND T_BEFORE(INTERVAL(gwsdate,gwedate),INTERVAL('1990-10-03','2020-12-31'))"
+        def boundary = getRequest(restClient, BOUNDARY_PATH, getQuery("CASEI(name) LIKE CASEI('%Germany%') AND T_BEFORE(INTERVAL(gwsdate,gwedate),INTERVAL('1990-10-03','2020-12-31'))"))
+        def boundaryCheck = allBoundaries.responseData.features.stream().filter( f -> f.get('properties').get('name').toLowerCase().startsWith("germany") && f.get('properties').get('gwedate') < '1990-10-03').toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(boundary)
@@ -2115,7 +2149,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "1. Data is selected using a filter t_DuRinG(INTERVAL(ZI001_SDV,ZI001_SDV), INTERVAL('..','2011-12-31T23:59:59Z'))"
         def propertyAndLiteral = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DuRinG(INTERVAL(ZI001_SDV,ZI001_SDV), INTERVAL('..','2011-12-31T23:59:59Z'))"))
-        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV <= '2011-12-31T23:59:59Z' ).toList()
+        def propertyAndLiteralCheck = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') <= '2011-12-31T23:59:59Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral)
@@ -2131,7 +2165,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter t_DuRinG(INTERVAL(ZI001_SDV,ZI001_SDV), INTERVAL('2012-01-01T00:00:00Z','..'))"
         def propertyAndLiteral2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery("t_DuRinG(INTERVAL(ZI001_SDV,ZI001_SDV), INTERVAL('2012-01-01T00:00:00Z','..'))"))
-        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.properties.ZI001_SDV >= '2012-01-01T00:00:00Z' ).toList()
+        def propertyAndLiteral2Check = allCulturePntFeatures.responseData.features.stream().filter( f -> f.get('properties').get('ZI001_SDV') >= '2012-01-01T00:00:00Z' ).toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(propertyAndLiteral2)
@@ -2147,12 +2181,13 @@ class FilterParameterSpecification extends Specification {
 
     // Array predicates
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_CONTAINS"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter A_ContainS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteral = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
-        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.properties.theme.stream()
+        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.get('properties').get('theme').stream()
                 .map(theme -> theme.concept)
                 .flatMap(List::stream)
                 .filter(concept -> concept.equals('DLKM') || concept.equals('Basis-DLM') || concept.equals('DLM50'))
@@ -2173,7 +2208,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter A_ContainS(['DLKM', 'Basis-DLM', 'DLM50'], theme.concept)"
         def propertyAndLiteral2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(['DLKM', 'Basis-DLM', 'DLM50'], theme.concept)"))
-        def propertyAndLiteralCheck2 = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.properties.theme.stream()
+        def propertyAndLiteralCheck2 = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.get('properties').get('theme').stream()
                 .map(theme -> theme.concept)
                 .flatMap(List::stream)
                 .noneMatch(concept -> !concept.equals('DLKM') && !concept.equals('Basis-DLM') && !concept.equals('DLM50'))).toList()
@@ -2220,13 +2255,14 @@ class FilterParameterSpecification extends Specification {
     }
 
     @IgnoreIf({ !FilterParameterSpecification.testNestedFilters() })
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_CONTAINS with nested filters"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1a. Data is selected using a nested filter A_ContainS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2253,7 +2289,7 @@ class FilterParameterSpecification extends Specification {
         when: "1b. Data is selected using a nested filter A_ContainS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNested2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> !theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2280,7 +2316,7 @@ class FilterParameterSpecification extends Specification {
         when: "1c. Data is selected using a nested filter A_ContainS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPositionCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             if (themes.size()==0)
                 return false
             return themes.get(0)
@@ -2305,7 +2341,7 @@ class FilterParameterSpecification extends Specification {
         when: "1d. Data is selected using a nested filter A_ContainS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_ContainS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPosition2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             def selectedThemes = IntStream.range(0, themes.size())
                     .filter(i -> i>0)
                     .mapToObj(i-> themes.get(i))
@@ -2332,13 +2368,14 @@ class FilterParameterSpecification extends Specification {
         }
     }
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_EQUALS"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter A_EqualS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteral = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_EqualS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def concepts = f.properties.theme.stream()
+            def concepts = f.get('properties').get('theme').stream()
                     .map(theme -> theme.concept)
                     .flatMap(List::stream)
                     .distinct()
@@ -2402,13 +2439,14 @@ class FilterParameterSpecification extends Specification {
     }
 
     @IgnoreIf({ !testNestedFilters() })
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_EQUALS with nested filters"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1a. Data is selected using a nested filter A_EqualS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_EqualS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2435,7 +2473,7 @@ class FilterParameterSpecification extends Specification {
         when: "1b. Data is selected using a nested filter A_EqualS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_EqualS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNested2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> !theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2463,7 +2501,7 @@ class FilterParameterSpecification extends Specification {
         when: "1c. Data is selected using a nested filter A_EqualS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_EqualS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPositionCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             if (themes.size()==0)
                 return false
             def concepts = themes.get(0)
@@ -2488,7 +2526,7 @@ class FilterParameterSpecification extends Specification {
         when: "1d. Data is selected using a nested filter A_EqualS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_EqualS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPosition2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             def selectedThemes = IntStream.range(0, themes.size())
                     .filter(i -> i>0)
                     .mapToObj(i-> themes.get(i))
@@ -2516,12 +2554,13 @@ class FilterParameterSpecification extends Specification {
          */
     }
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_OVERLAPS"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter theme.concept A_OverlapS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteral = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_OverlapS(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
-        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.properties.theme.stream()
+        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.get('properties').get('theme').stream()
                 .map(theme -> theme.concept)
                 .flatMap(List::stream)
                 .anyMatch(concept -> concept.equals('DLKM') || concept.equals('Basis-DLM') || concept.equals('DLM50'))).toList()
@@ -2582,13 +2621,14 @@ class FilterParameterSpecification extends Specification {
     }
 
     @IgnoreIf({ !testNestedFilters() })
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_OVERLAPS with nested filters"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1a. Data is selected using a nested filter A_OverlapS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_OverlapS(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2613,7 +2653,7 @@ class FilterParameterSpecification extends Specification {
         when: "1b. Data is selected using a nested filter A_OverlapS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_OverlapS(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNested2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> !theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2639,7 +2679,7 @@ class FilterParameterSpecification extends Specification {
         when: "1c. Data is selected using a nested filter A_OverlapS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_OverlapS(theme[position()=1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPositionCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             if (themes.size()==0)
                 return false
             return themes.get(0)
@@ -2662,7 +2702,7 @@ class FilterParameterSpecification extends Specification {
         when: "1d. Data is selected using a nested filter A_OverlapS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("A_OverlapS(theme[position()>1].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPosition2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             def selectedThemes = IntStream.range(0, themes.size())
                     .filter(i -> i>0)
                     .mapToObj(i-> themes.get(i))
@@ -2688,12 +2728,13 @@ class FilterParameterSpecification extends Specification {
          */
     }
 
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_CONTAINEDBY"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1. Data is selected using a filter a_CONtainEDBY(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteral = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(theme.concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
-        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.properties.theme.stream()
+        def propertyAndLiteralCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.get('properties').get('theme').stream()
                 .map(theme -> theme.concept)
                 .flatMap(List::stream)
                 .noneMatch(concept -> !concept.equals('DLKM') && !concept.equals('Basis-DLM') && !concept.equals('DLM50'))).toList()
@@ -2712,7 +2753,7 @@ class FilterParameterSpecification extends Specification {
         when: "1a. Data is selected using a nested filter a_CONtainEDBY(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(theme[scheme='profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2736,7 +2777,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter a_CONtainEDBY(['DLKM', 'Basis-DLM', 'DLM50'], theme.concept)"
         def propertyAndLiteral2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(['DLKM', 'Basis-DLM', 'DLM50'], theme.concept)"))
-        def propertyAndLiteralCheck2 = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.properties.theme.stream()
+        def propertyAndLiteralCheck2 = allAxGebaeudefunktion.responseData.features.stream().filter(f -> f.get('properties').get('theme').stream()
                 .map(theme -> theme.concept)
                 .flatMap(List::stream)
                 .filter(concept -> concept.equals('DLKM') || concept.equals('Basis-DLM') || concept.equals('DLM50'))
@@ -2785,13 +2826,14 @@ class FilterParameterSpecification extends Specification {
     }
 
     @IgnoreIf({ !testNestedFilters() })
+    @IgnoreIf({ env['SUT_PATH_GEOINFODOK'] == null })  // needs a dataset with array-valued properties
     def "Operator A_CONTAINEDBY with nested filters"() {
         given: "Records in the AX_Gebaeudefunktion codelist"
 
         when: "1b. Data is selected using a nested filter a_CONtainEDBY(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNested2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(theme[scheme<>'profile'].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNested2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = f.properties.theme.stream()
+            def themes = f.get('properties').get('theme').stream()
                     .filter(theme -> !theme.scheme.equals('profile'))
                     .toList()
             if (themes.size()==0)
@@ -2817,7 +2859,7 @@ class FilterParameterSpecification extends Specification {
         when: "1c. Data is selected using a nested filter a_CONtainEDBY(theme[position() IN (1)].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(theme[position() IN (1)].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPositionCheck = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             if (themes.size()==0)
                 return false
             return  themes.get(0)
@@ -2840,7 +2882,7 @@ class FilterParameterSpecification extends Specification {
         when: "1d. Data is selected using a nested filter a_CONtainEDBY(theme[position() between 2 and 3].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"
         def propertyAndLiteralNestedPosition2 = getRequest(restClient, AX_GEBAEUDEFUNKTION_PATH, getQuery("a_CONtainEDBY(theme[position() between 2 and 3].concept, ['DLKM', 'Basis-DLM', 'DLM50'])"))
         def propertyAndLiteralNestedPosition2Check = allAxGebaeudefunktion.responseData.features.stream().filter(f -> {
-            def themes = (List) f.properties.theme
+            def themes = (List) f.get('properties').get('theme')
             def selectedThemes = IntStream.range(0, themes.size())
                     .filter(i -> i>0 && i<3)
                     .mapToObj(i-> themes.get(i))
@@ -2874,7 +2916,7 @@ class FilterParameterSpecification extends Specification {
         when: "1. Data is selected using a filter F_CODE=F_CODE AnD NoT (F_CODE='AL030' oR (T_AFTER(ZI001_SDV, TIMESTAMP('2011-12-31T23:59:59Z')) aNd ZI037_REL iS nULL)))"
         def logical = getRequest(restClient, CULTURE_PNT_PATH, getQuery( "F_CODE=F_CODE AnD NoT (F_CODE='AL030' oR ((T_AFTER(ZI001_SDV, TIMESTAMP('2011-12-31T23:59:59Z')) aNd ZI037_REL iS nULL)))"))
         def logicalCheck = allCulturePntFeatures.responseData.features.stream()
-                .filter(f -> !(f.properties.F_CODE == 'AL030' || (f.properties.ZI001_SDV > '2011-12-31T23:59:59Z' && Objects.isNull(f.properties.ZI037_REL))))
+                .filter(f -> !(f.get('properties').get('F_CODE') == 'AL030' || (f.get('properties').get('ZI001_SDV') > '2011-12-31T23:59:59Z' && Objects.isNull(f.get('properties').get('ZI037_REL')))))
                 .toList()
 
         then: "Success and returns GeoJSON"
@@ -2888,7 +2930,7 @@ class FilterParameterSpecification extends Specification {
 
         when: "2. Data is selected using a filter F_CODE='AL030' or F_CODE='AL012'"
         def logical2 = getRequest(restClient, CULTURE_PNT_PATH, getQuery( "F_CODE='AL030' or F_CODE='AL012'"))
-        def logical2Check = allCulturePntFeatures.responseData.features.stream().filter(f -> f.properties.F_CODE == 'AL030' || f.properties.F_CODE == 'AL012').toList()
+        def logical2Check = allCulturePntFeatures.responseData.features.stream().filter(f -> f.get('properties').get('F_CODE') == 'AL030' || f.get('properties').get('F_CODE') == 'AL012').toList()
 
         then: "Success and returns GeoJSON"
         assertSuccess(logical2)
@@ -2915,14 +2957,16 @@ class FilterParameterSpecification extends Specification {
     }
 
     static void assertSuccess(Object response) {
-        assert response.status == 200
+        // Carry the request and the response body into the message: a filter the deployment rejects
+        // is otherwise reported only as a status, which says nothing about which expression failed.
+        assert response.status == 200: "GET ${response.requestUri}\n  -> ${response.status} ${response.bodyText}"
         assert response.getContentType() == "application/geo+json" || response.getContentType() == "application/json"
     }
 
     static void assertFeature(Object feature1, Object feature2) {
         assert feature1.id == feature2.id
         assert feature1.type == feature2.type
-        assert feature1.properties == feature2.properties
+        assert feature1.get('properties') == feature2.get('properties')
         assert feature1.geometry == feature2.geometry
     }
 
@@ -2933,11 +2977,80 @@ class FilterParameterSpecification extends Specification {
         }
     }
 
+    /**
+     * The first position of a feature's geometry, whether that geometry is a Point — whose
+     * coordinates are the position itself — or a MultiPoint, whose coordinates are a list of
+     * positions. The dataset this spec reads serves MultiPoint.
+     */
+    static List firstPosition(feature) {
+        def coordinates = feature.geometry.coordinates
+        return coordinates[0] instanceof List ? coordinates[0] : coordinates
+    }
+
     static Object getRequest(restClient, path, query) {
-        return restClient.request(SUT_URL+path, Method.GET,  ContentType.JSON, { req ->
-            // uri.path = path
-            uri.query = query
-            headers.Accept = (path.contains("/items") ? GEO_JSON : JSON) + ", " + PROBLEM_JSON + "; q=0.8"
-        })
+        String uri = SUT_URL + path + queryString(query)
+        HttpResponse<String> response = restClient.send(
+                HttpRequest.newBuilder(URI.create(uri))
+                        .header('Accept',
+                                (path.contains("/items") ? GEO_JSON : JSON) + ", " + PROBLEM_JSON + "; q=0.8")
+                        .GET()
+                        .build(),
+                BodyHandlers.ofString())
+        return new ApiResponse(response)
+    }
+
+    /** Renders the parameter map the tests pass as an encoded query string; null means no query. */
+    static String queryString(query) {
+        if (query == null || query.isEmpty()) {
+            return ""
+        }
+        return "?" + query.collect { key, value ->
+            URLEncoder.encode(String.valueOf(key), "UTF-8") + "=" +
+                    URLEncoder.encode(String.valueOf(value), "UTF-8")
+        }.join("&")
+    }
+
+    /**
+     * Adapts a {@link java.net.http.HttpResponse} to the shape the assertions in this spec use:
+     * {@code status}, {@code responseData} (the parsed body) and {@code getContentType()}. The body
+     * is parsed lazily so responses without a JSON body do not fail here but where they are used.
+     */
+    static class ApiResponse {
+        private final HttpResponse<String> response
+        private Object parsed
+        private boolean parsedOnce
+
+        ApiResponse(HttpResponse<String> response) {
+            this.response = response
+        }
+
+        int getStatus() {
+            response.statusCode()
+        }
+
+        String getRequestUri() {
+            response.uri().toString()
+        }
+
+        /** The raw body, truncated — enough to identify a rejection without flooding the report. */
+        String getBodyText() {
+            String body = response.body()
+            body == null ? "" : (body.length() > 400 ? body.substring(0, 400) + "…" : body)
+        }
+
+        String getContentType() {
+            // The media type without parameters, so comparisons against a bare type still hold when
+            // the server appends e.g. a charset.
+            response.headers().firstValue("content-type").orElse("").split(";")[0].trim()
+        }
+
+        Object getResponseData() {
+            if (!parsedOnce) {
+                parsedOnce = true
+                String body = response.body()
+                parsed = (body == null || body.isEmpty()) ? null : new JsonSlurper().parseText(body)
+            }
+            return parsed
+        }
     }
 }

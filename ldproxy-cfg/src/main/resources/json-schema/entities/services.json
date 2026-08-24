@@ -2218,22 +2218,6 @@
           "type": "object",
           "$ref": "#/$defs/GmlIdentifier"
         },
-        "appendTemporalSuffixToGmlId": {
-          "title": "appendTemporalSuffixToGmlId",
-          "description": "If `true` and the request\u0027s `datetime` parameter is an interval (contains `/`), the    `gml:id` of every feature is suffixed with the feature\u0027s primary temporal property value    formatted as `yyyyMMddTHHmmssX`. The source property is the one with role    `PRIMARY_INSTANT`, falling back to `PRIMARY_INTERVAL_START`. Useful for application schemas    that require `gml:id` to be unique per feature version (e.g. AdV NAS time-series queries).    Does not affect `gml:identifier`.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "codelistUriTemplate": {
           "title": "codelistUriTemplate",
           "description": "URI template used to construct the `xlink:href` for properties that carry a codelist    value. The template may contain the placeholders `{{codelistId}}` (replaced with the    codelist id from `codelistProperties`) and `{{value}}` (replaced with the raw property    value). When set together with `codelistProperties`, the matching property is encoded as an    empty element `\u003cprop xlink:href\u003d\"...\" xlink:title\u003d\"...\"/\u003e` where `xlink:title` is the    codelist label looked up from the resolved codelist (falling back to the raw value if no    label is found).",

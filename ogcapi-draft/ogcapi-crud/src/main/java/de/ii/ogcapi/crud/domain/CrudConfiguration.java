@@ -34,19 +34,27 @@ public interface CrudConfiguration extends ExtensionConfiguration {
   /**
    * @langEn Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,
    *     based on the time when the feature was last updated. Such requests must include an
-   *     `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be
-   *     changed, if the feature was not changed since the timestamp in the header (or if no last
-   *     modification time is known for the feature). The last modification time of a feature is
-   *     determined from a feature property with type `DATETIME` for which `isLastModified` is set
-   *     to true in the schema in the feature provider.
+   *     `If-Unmodified-Since` header, otherwise they will be rejected with HTTP 428 ("Precondition
+   *     Required"). A feature will only be changed, if the feature was not changed since the
+   *     timestamp in the header (or if no last modification time is known for the feature),
+   *     otherwise the response is HTTP 412 ("Precondition Failed"). The response to a successful
+   *     PUT or PATCH request includes the new last modification time in a `Last-Modified` header,
+   *     so that it can be used in the next conditional request. The last modification time of a
+   *     feature is determined from a feature property with type `DATETIME` for which
+   *     `isLastModified` is set to true in the schema in the feature provider; the property may be
+   *     excluded from the scope `RECEIVABLE`.
    * @langDe Option zur Aktivierung der Unterstützung für die bedingte Verarbeitung von PUT-, PATCH-
    *     und DELETE-Anfragen, basierend auf der Zeit, zu der das Feature zuletzt aktualisiert wurde.
    *     Solche Anfragen müssen einen `If-Unmodified-Since`-Header enthalten, andernfalls werden sie
-   *     zurückgewiesen. Ein Feature wird nur dann geändert, wenn das Feature seit dem Zeitstempel
-   *     im Header nicht geändert wurde (oder wenn kein letzter Änderungszeitpunkt für das Feature
-   *     bekannt ist). Der Zeitpunkt der letzten Änderung eines Features wird anhand einer
-   *     Objekteigenschaft mit Datentyp `DATETIME` ermittelt, für die `isLastModified` im Schema des
-   *     Feature Providers auf `true` gesetzt ist.
+   *     mit HTTP 428 ("Precondition Required") zurückgewiesen. Ein Feature wird nur dann geändert,
+   *     wenn das Feature seit dem Zeitstempel im Header nicht geändert wurde (oder wenn kein
+   *     letzter Änderungszeitpunkt für das Feature bekannt ist), andernfalls ist die Antwort HTTP
+   *     412 ("Precondition Failed"). Die Antwort auf eine erfolgreiche PUT- oder PATCH-Anfrage
+   *     enthält den neuen Änderungszeitpunkt in einem `Last-Modified`-Header, damit er in der
+   *     nächsten bedingten Anfrage verwendet werden kann. Der Zeitpunkt der letzten Änderung eines
+   *     Features wird anhand einer Objekteigenschaft mit Datentyp `DATETIME` ermittelt, für die
+   *     `isLastModified` im Schema des Feature Providers auf `true` gesetzt ist; die Eigenschaft
+   *     kann vom Geltungsbereich `RECEIVABLE` ausgenommen werden.
    * @default false
    * @since v3.5
    */
