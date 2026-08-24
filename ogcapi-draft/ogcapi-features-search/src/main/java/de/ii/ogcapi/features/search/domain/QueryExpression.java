@@ -66,6 +66,8 @@ public interface QueryExpression {
 
   List<String> getProperties();
 
+  List<String> getExcludeProperties();
+
   Optional<String> getCrs();
 
   Optional<String> getVerticalCrs();

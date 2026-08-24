@@ -11,9 +11,11 @@ import de.ii.xtraplatform.base.domain.AppConfiguration;
 import de.ii.xtraplatform.base.domain.AuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.AuthConfiguration;
 import de.ii.xtraplatform.base.domain.BackgroundTasksConfiguration;
+import de.ii.xtraplatform.base.domain.EncryptionConfiguration;
 import de.ii.xtraplatform.base.domain.HttpClientConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuthConfiguration;
+import de.ii.xtraplatform.base.domain.ImmutableEncryptionConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableModulesConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableStoreConfiguration;
 import de.ii.xtraplatform.base.domain.JobsConfiguration;
@@ -86,5 +88,10 @@ public class AppConfigurationTest extends AppConfiguration {
   @Override
   public JobsConfiguration getJobs() {
     return null;
+  }
+
+  @Override
+  public EncryptionConfiguration getEncryption() {
+    return new ImmutableEncryptionConfiguration.Builder().build();
   }
 }

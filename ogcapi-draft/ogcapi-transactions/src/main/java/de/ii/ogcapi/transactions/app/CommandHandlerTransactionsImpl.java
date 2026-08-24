@@ -36,6 +36,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 @AutoBind
@@ -93,8 +96,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
       }
 
-      return buildResponse(
-          result, queryInput.getReturnPreference(), queryInput.getHandling(), requestContext);
+      return buildResponse(result, queryInput, requestContext);
     } finally {
       if (transaction != null) {
         transaction.close();
@@ -187,33 +189,44 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
   }
 
   private Response buildResponse(
-      ExecutionResult result,
-      HeaderPrefer.Return ret,
-      HeaderPrefer.Handling handling,
-      ApiRequestContext requestContext) {
+      ExecutionResult result, QueryInputTransaction queryInput, ApiRequestContext requestContext) {
+    HeaderPrefer.Return ret = queryInput.getReturnPreference();
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
     boolean failed = !result.isSuccess();
     int status = (atomic && failed) ? 422 : 200;
-    String preferenceApplied = preferenceApplied(ret, handling);
+    boolean noContent =
+        ret == HeaderPrefer.Return.NONE && !failed && collectWarnings(result).isEmpty();
+    // a requested return=none is only applied when the response actually has no content; failures
+    // and warnings override it with a response document
+    boolean returnApplied = ret != HeaderPrefer.Return.NONE || noContent;
+    Optional<String> preferenceApplied = preferenceApplied(queryInput, returnApplied);
 
-    if (ret == HeaderPrefer.Return.NONE && !failed && collectWarnings(result).isEmpty()) {
-      return Response.noContent().header("Preference-Applied", preferenceApplied).build();
+    if (noContent) {
+      Response.ResponseBuilder response = Response.noContent();
+      preferenceApplied.ifPresent(p -> response.header("Preference-Applied", p));
+      return response.build();
     }
 
     ObjectNode body = renderBody(result, ret, requestContext);
-    return Response.status(status)
-        .type(APPLICATION_JSON)
-        .header("Preference-Applied", preferenceApplied)
-        .entity(toJson(body))
-        .build();
+    Response.ResponseBuilder response =
+        Response.status(status).type(APPLICATION_JSON).entity(toJson(body));
+    preferenceApplied.ifPresent(p -> response.header("Preference-Applied", p));
+    return response.build();
   }
 
-  private static String preferenceApplied(HeaderPrefer.Return ret, HeaderPrefer.Handling handling) {
-    String value = "return=" + ret.headerValue();
-    if (handling == HeaderPrefer.Handling.STRICT) {
-      value += ", handling=strict";
-    }
-    return value;
+  // exactly the preferences that were submitted and accepted; no header when none were sent
+  private static Optional<String> preferenceApplied(
+      QueryInputTransaction queryInput, boolean returnApplied) {
+    String value =
+        Stream.of(
+                queryInput
+                    .getRequestedReturn()
+                    .filter(r -> returnApplied)
+                    .map(r -> "return=" + r.headerValue()),
+                queryInput.getRequestedHandling().map(h -> "handling=" + h.headerValue()))
+            .flatMap(Optional::stream)
+            .collect(Collectors.joining(", "));
+    return value.isEmpty() ? Optional.empty() : Optional.of(value);
   }
 
   private static ObjectNode renderBody(
@@ -236,7 +249,11 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     ArrayNode deleteResults = body.putArray("deleteResults");
     ArrayNode exceptions = MAPPER.createArrayNode();
 
-    boolean wantDetails = ret != HeaderPrefer.Return.MINIMAL;
+    // Only `return=representation` asks for the per-feature URIs. `return=none` reaches this
+    // point when the response cannot be empty after all — the transaction failed, or it
+    // succeeded with warnings — and a client that asked for nothing should then get the
+    // smallest body that still carries the outcome, not the largest one.
+    boolean wantDetails = ret == HeaderPrefer.Return.REPRESENTATION;
 
     for (ActionResult r : result.getActionResults()) {
       addExceptionsFor(r, exceptions);
@@ -250,7 +267,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
       }
     }
 
-    if (ret == HeaderPrefer.Return.MINIMAL) {
+    if (!wantDetails) {
       body.remove("insertResults");
       body.remove("replaceResults");
       body.remove("updateResults");
