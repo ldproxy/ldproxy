@@ -82,6 +82,9 @@ class MockResourceStore implements ResourceStore, BlobWriterReader {
   public void put(Path path, InputStream content) throws IOException {}
 
   @Override
+  public void append(Path path, InputStream content) throws IOException {}
+
+  @Override
   public void delete(Path path) throws IOException {}
 
   @Override
@@ -135,4 +138,17 @@ class MockResourceStore implements ResourceStore, BlobWriterReader {
       throws IOException {
     return null;
   }
+
+  @Override
+  public Optional<InputStream> contentEncrypted(Path path) throws IOException {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<Blob> getEncrypted(Path path) throws IOException {
+    return Optional.empty();
+  }
+
+  @Override
+  public void putEncrypted(Path path, InputStream content) throws IOException {}
 }

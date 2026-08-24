@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.gravity9.jsonpatch.mergepatch.JsonMergePatch;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
+import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -21,6 +22,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.QueryInputFe
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
+import de.ii.ogcapi.features.core.domain.ReadOnlyProperties;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -30,6 +32,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileExtension;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
@@ -44,15 +47,18 @@ import de.ii.xtraplatform.features.domain.FeatureTokenSource;
 import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.Tuple;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerReadOnly;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,10 +68,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -79,10 +89,13 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandlerCrudImpl.class);
 
+  private static final int STATUS_PRECONDITION_REQUIRED = 428;
+
   private final FeaturesCoreQueriesHandler queriesHandler;
   private final FeaturesCoreProviders providers;
   private final ExtensionRegistry extensionRegistry;
   private final CrsInfo crsInfo;
+  private final CrsSupport crsSupport;
   private List<? extends FormatExtension> formats;
 
   @Inject
@@ -90,6 +103,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       FeaturesCoreQueriesHandler queriesHandler,
       FeaturesCoreProviders providers,
       CrsInfo crsInfo,
+      CrsSupport crsSupport,
       ExtensionRegistry extensionRegistry,
       VolatileRegistry volatileRegistry) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
@@ -97,6 +111,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     this.providers = providers;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
+    this.crsSupport = crsSupport;
 
     onVolatileStart();
 
@@ -176,7 +191,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         ids,
         Optional.empty(),
         result.getSpatialExtent(),
@@ -202,6 +217,13 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     }
 
     if (Objects.isNull(previousFeature) && queryInput.isAllowCreate()) {
+      // There is no current representation of the feature, so an 'If-Match' precondition cannot be
+      // met (RFC 9110, 13.1.1), while 'If-Unmodified-Since' has nothing to protect and no
+      // modification date to be evaluated against (RFC 9110, 13.1.4).
+      if (queryInput.getIfMatch().isPresent()) {
+        throw noCurrentRepresentation();
+      }
+
       return createFeature(
           queryInput,
           featureTokenSource,
@@ -209,22 +231,23 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
           Optional.ofNullable(queryInput.getFeatureId()));
     }
 
-    Date lastModified = previousFeature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, previousFeature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
 
     if (Objects.nonNull(response)) {
       return response.build();
     }
 
-    return updateFeature(queryInput, featureTokenSource, previousFeature);
+    return updateFeature(queryInput, featureTokenSource, previousFeature, requestContext);
   }
 
   private Response updateFeature(
       QueryInputFeatureReplace queryInput,
       FeatureTokenSource featureTokenSource,
-      Response previousFeature) {
+      Response previousFeature,
+      ApiRequestContext requestContext) {
     FeatureTransactions.MutationResult result =
         queryInput
             .getFeatureProvider()
@@ -244,7 +267,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -252,7 +275,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return Response.noContent().build();
+    return noContent(queryInput, requestContext).build();
   }
 
   @Override
@@ -263,19 +286,32 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     Axes axes = crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
 
     Response feature = getCurrentFeature(queryInput, requestContext);
-    Date lastModified = feature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
     if (Objects.nonNull(response)) return response.build();
 
     byte[] prev = (byte[]) feature.getEntity();
     final ObjectMapper mapper = new ObjectMapper();
     InputStream merged;
 
+    JsonNode patchDocument;
     try {
-      final JsonMergePatch patch =
-          mapper.readValue(queryInput.getRequestBody(), JsonMergePatch.class);
+      patchDocument = mapper.readTree(queryInput.getRequestBody());
+    } catch (Throwable e) {
+      throw new IllegalArgumentException(
+          "Could not parse request body as JSON Merge Patch: " + e.getMessage(), e);
+    }
+
+    checkFeatureId(patchDocument, queryInput.getFeatureId());
+    checkReadOnly(
+        patchDocument,
+        ReadOnlyProperties.of(
+            featureSchema(requestContext.getApi().getData(), queryInput.getCollectionId())));
+
+    try {
+      final JsonMergePatch patch = mapper.treeToValue(patchDocument, JsonMergePatch.class);
       JsonNode orig = mapper.readTree(prev);
       JsonNode mergedNode = patch.apply(orig);
       merged = new ByteArrayInputStream(mapper.writeValueAsBytes(mergedNode));
@@ -301,7 +337,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -309,7 +345,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return Response.noContent().build();
+    return noContent(queryInput, requestContext).build();
   }
 
   @Override
@@ -318,10 +354,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     Response feature = getCurrentFeature(queryInput, requestContext);
 
-    Date lastModified = feature.getLastModified();
+    Date lastModified = getLastModified(queryInput, requestContext, feature);
 
     Response.ResponseBuilder response =
-        queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+        evaluatePreconditions(queryInput, requestContext, lastModified);
     if (Objects.nonNull(response)) {
       return response.build();
     }
@@ -331,7 +367,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .getFeatureProvider()
             .mutations()
             .get()
-            .deleteFeature(queryInput.getCollectionId(), queryInput.getFeatureId());
+            .deleteFeature(queryInput.getFeatureType(), queryInput.getFeatureId());
 
     result.getError().ifPresent(FeatureStream::processStreamError);
 
@@ -340,7 +376,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     handleChange(
         queryInput.getFeatureProvider(),
-        queryInput.getCollectionId(),
+        queryInput.getFeatureType(),
         result.getIds(),
         currentBbox,
         result.getSpatialExtent(),
@@ -351,16 +387,148 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     return Response.noContent().build();
   }
 
+  /**
+   * The feature is identified by the URI of the resource, so its identifier cannot be changed. A
+   * JSON Merge Patch document that would change it is rejected; an 'id' member with the identifier
+   * of the feature is accepted, it does not change anything.
+   */
+  private static void checkFeatureId(JsonNode patchDocument, String featureId) {
+    if (patchDocument.isObject() && patchDocument.has("id")) {
+      JsonNode id = patchDocument.get("id");
+
+      if (!id.isValueNode() || !Objects.equals(id.asText(), featureId)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The request body must not change the identifier of the feature: the 'id' member is '%s', the identifier of the feature is '%s'.",
+                id.isValueNode()
+                    ? id.asText()
+                    : id.getNodeType().toString().toLowerCase(Locale.ROOT),
+                featureId));
+      }
+    }
+  }
+
   private @NotNull Response getCurrentFeature(
       QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    // internal request, suppress audit logging of feature properties
+    return getFeature(
+        new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build(),
+        queryInput.getQueryParameterSet(),
+        requestContext);
+  }
+
+  /**
+   * The preconditions of a request that changes an existing feature. Evaluated once the target
+   * feature is known, because a response that does not depend on the preconditions takes precedence
+   * over them (RFC 9110, 13.2.1): a request for a feature that does not exist is answered with
+   * {@code 404}, not with a precondition status code.
+   *
+   * @return the response to return instead of performing the change, {@code null} if the
+   *     preconditions are met
+   */
+  private Response.ResponseBuilder evaluatePreconditions(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext, Date lastModified) {
+    checkPreconditionHeaders(
+        queryInput.isPreconditionRequired(),
+        queryInput.getIfMatch(),
+        queryInput.getIfUnmodifiedSince(),
+        lastModified);
+
+    return queriesHandler.evaluatePreconditions(requestContext, lastModified, null);
+  }
+
+  /**
+   * The preconditions of a request that changes a feature that exists, in the order of RFC 9110,
+   * 13.2.2. Throws, if a precondition is not met or a required one is missing.
+   *
+   * @param lastModified the last modification time of the feature, {@code null} if it is unknown
+   */
+  static void checkPreconditionHeaders(
+      boolean preconditionRequired,
+      Optional<String> ifMatch,
+      Optional<String> ifUnmodifiedSince,
+      Date lastModified) {
+    // No entity tag is known for a feature in a request that changes it, so no entity tag in an
+    // 'If-Match' header can match and the precondition cannot be met (RFC 9110, 13.1.1). "*" is
+    // met, because the feature exists.
+    if (ifMatch.isPresent() && !"*".equals(ifMatch.get().trim())) {
+      throw noCurrentRepresentation();
+    }
+
+    // A collection can require conditional requests, but only where the precondition can be
+    // evaluated: a feature without a modification date has nothing to compare against, and RFC
+    // 9110, 13.1.4, requires 'If-Unmodified-Since' to be ignored in that case.
+    if (preconditionRequired && Objects.nonNull(lastModified) && ifUnmodifiedSince.isEmpty()) {
+      throw new ClientErrorException(
+          "Requests to change a feature for this collection must include an 'If-Unmodified-Since' header.",
+          Response.status(STATUS_PRECONDITION_REQUIRED, "Precondition Required").build());
+    }
+  }
+
+  static ClientErrorException noCurrentRepresentation() {
+    return new ClientErrorException(
+        "The precondition in the 'If-Match' header cannot be met, entity tags are not supported in requests that change a feature. Use an 'If-Unmodified-Since' header.",
+        Status.PRECONDITION_FAILED);
+  }
+
+  /**
+   * The last modification time of the feature, {@code null} if it is unknown. It is often not part
+   * of the representation that is used in mutation requests (a server-managed timestamp is not a
+   * receivable property), in which case it is determined from the returnable representation.
+   */
+  private Date getLastModified(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext, Response currentFeature) {
+    Date lastModified = currentFeature.getLastModified();
+
+    return Objects.nonNull(lastModified)
+        ? lastModified
+        : fetchLastModified(queryInput, requestContext);
+  }
+
+  private Date fetchLastModified(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    if (queryInput.getLastModifiedQuery().isEmpty()) {
+      return null;
+    }
+
+    try {
+      return getFeature(
+              new ImmutableQueryInputFeature.Builder()
+                  .from(queryInput)
+                  .query(queryInput.getLastModifiedQuery().get())
+                  .profiles(List.of())
+                  .defaultProfilesResource(List.of())
+                  .shouldAuditLog(false)
+                  .build(),
+              queryInput.getQueryParameterSet(),
+              requestContext)
+          .getLastModified();
+    } catch (NotFoundException e) {
+      return null;
+    }
+  }
+
+  /** A successful mutation reports the new last modification time, if it is known. */
+  private Response.ResponseBuilder noContent(
+      QueryInputFeatureCrud queryInput, ApiRequestContext requestContext) {
+    Response.ResponseBuilder response = Response.noContent();
+    Date lastModified = fetchLastModified(queryInput, requestContext);
+
+    if (Objects.nonNull(lastModified)) {
+      response.lastModified(lastModified);
+    }
+
+    return response;
+  }
+
+  private @NotNull Response getFeature(
+      QueryInputFeature queryInputFeature,
+      QueryParameterSet queryParameterSet,
+      ApiRequestContext requestContext) {
     try {
       if (formats == null) {
         formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
       }
-
-      // internal request, suppress audit logging of feature properties
-      QueryInputFeature queryInputFeature =
-          new ImmutableQueryInputFeature.Builder().from(queryInput).shouldAuditLog(false).build();
 
       ApiRequestContext requestContextGeoJson =
           new ImmutableStaticRequestContext.Builder()
@@ -371,7 +539,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                       .clearParameters()
                       // query parameters have been evaluated and are not necessary here
                       .build())
-              .queryParameterSet(queryInput.getQueryParameterSet())
+              .queryParameterSet(queryParameterSet)
               .mediaType(
                   new ImmutableApiMediaType.Builder()
                       .type(new MediaType("application", "geo+json"))
@@ -383,7 +551,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
                       .filter(
                           f ->
                               f.isEnabledForApi(
-                                  requestContext.getApi().getData(), queryInput.getCollectionId()))
+                                  requestContext.getApi().getData(),
+                                  queryInputFeature.getCollectionId()))
                       .map(FormatExtension::getMediaType)
                       .filter(
                           mediaType -> !"geo+json".equalsIgnoreCase(mediaType.type().getSubtype()))
@@ -402,7 +571,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
   private void handleChange(
       FeatureProvider featureProvider,
-      String collectionId,
+      String featureType,
       List<String> ids,
       Optional<BoundingBox> oldBbox,
       Optional<BoundingBox> newBbox,
@@ -412,7 +581,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     FeatureChange change =
         ImmutableFeatureChange.builder()
             .action(action)
-            .featureType(collectionId)
+            // the change is reported for the type in the feature provider, not for the collection
+            .featureType(featureType)
             .featureIds(ids)
             .oldBoundingBox(oldBbox)
             .newBoundingBox(newBbox)
@@ -500,13 +670,10 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
 
     FeatureFormatExtension format = resolveFormat(contentType);
 
-    FeatureSchema featureSchema =
-        providers
-            .getFeatureSchema(apiData, apiData.getCollections().get(collectionId))
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "No feature schema for collection '" + collectionId + "'"));
+    FeatureSchema featureSchema = featureSchema(apiData, collectionId);
+
+    List<EpsgCrs> supportedCrs =
+        crsSupport.getSupportedCrsList(apiData, apiData.getCollections().get(collectionId));
 
     DecoderContext ctx =
         new ImmutableDecoderContext.Builder()
@@ -516,9 +683,58 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .crs(crs)
             .axes(axes)
             .mediaType(contentType)
+            .supportedCrs(supportedCrs)
+            // a body that sets a read-only property is rejected, not silently stripped of the value
+            .readOnlyProperties(ReadOnlyProperties.of(featureSchema))
             .build();
 
     return Source.inputStream(requestBody).via(format.getFeatureDecoder(ctx).get());
+  }
+
+  private FeatureSchema featureSchema(OgcApiDataV2 apiData, String collectionId) {
+    return providers
+        .getFeatureSchema(apiData, apiData.getCollections().get(collectionId))
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No feature schema for collection '" + collectionId + "'"));
+  }
+
+  /**
+   * A JSON Merge Patch that sets a read-only property is rejected. The check is on the patch
+   * document rather than on the merged feature, because the merged feature carries the read-only
+   * properties of the current feature whether or not the client sent them.
+   */
+  private static void checkReadOnly(JsonNode patchDocument, Set<String> readOnly) {
+    if (readOnly.isEmpty() || !patchDocument.isObject()) {
+      return;
+    }
+
+    JsonNode properties = patchDocument.get("properties");
+
+    if (Objects.nonNull(properties) && properties.isObject()) {
+      checkReadOnly(properties, "", readOnly);
+    }
+  }
+
+  private static void checkReadOnly(JsonNode object, String parentPath, Set<String> readOnly) {
+    Iterator<Entry<String, JsonNode>> members = object.fields();
+
+    while (members.hasNext()) {
+      Entry<String, JsonNode> member = members.next();
+      String path = parentPath.isEmpty() ? member.getKey() : parentPath + "." + member.getKey();
+
+      if (FeatureEventHandlerReadOnly.isReadOnly(readOnly, path)) {
+        throw new IllegalArgumentException(
+            String.format(
+                "The property '%s' is read-only, a request that changes a feature must not set it.",
+                path));
+      }
+
+      if (member.getValue().isObject()) {
+        checkReadOnly(member.getValue(), path, readOnly);
+      }
+    }
   }
 
   private static FeatureTokenSource getMergePatchSource(
