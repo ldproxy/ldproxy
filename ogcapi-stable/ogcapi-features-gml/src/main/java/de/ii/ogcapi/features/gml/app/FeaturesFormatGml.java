@@ -734,7 +734,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   @Override
   public boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
-    return Objects.nonNull(schemaLocationsFingerprint(apiData, collectionId));
+    // The schema is built from the schemaLocations of the collection's GML configuration, so
+    // without a single one there is nothing to validate against.
+    return apiData
+        .getCollectionData(collectionId)
+        .flatMap(c -> c.getExtension(GmlConfiguration.class))
+        .filter(cfg -> !cfg.getSchemaLocations().isEmpty())
+        .isPresent();
   }
 
   @Override
