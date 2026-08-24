@@ -20,8 +20,8 @@ import spock.lang.Specification
  * Harness for specs that assert the bytes a real {@code FeatureTransformationContextGml} writes,
  * rather than the calls a mocked one receives. Anything that depends on how {@code XMLStreamWriter}
  * output and the encoder's own output buffer interleave — placeholders, comments — is only visible
- * in the emitted bytes, and only against the StAX implementation the runtime resolves (declared as
- * a test dependency of this module).
+ * in the emitted bytes, and only against the StAX implementation the runtime resolves: Woodstox,
+ * which the platform's XML stack puts on the test classpath as well.
  */
 abstract class AbstractGmlOutputSpec extends Specification {
 
