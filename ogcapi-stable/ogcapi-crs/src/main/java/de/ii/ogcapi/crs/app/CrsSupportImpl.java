@@ -52,16 +52,21 @@ public class CrsSupportImpl implements CrsSupport, ApiExtensionHealth {
 
   @Override
   public List<EpsgCrs> getSupportedCrsList(OgcApiDataV2 apiData) {
-    if (!isEnabled(apiData)) return ImmutableList.of();
-
     return getSupportedCrsList(apiData, null);
   }
 
   @Override
   public List<EpsgCrs> getSupportedCrsList(
       OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi featureTypeConfiguration) {
-    EpsgCrs nativeCrs = getStorageCrs(apiData, Optional.ofNullable(featureTypeConfiguration));
     EpsgCrs defaultCrs = getDefaultCrs(apiData, Optional.ofNullable(featureTypeConfiguration));
+
+    // without the building block the API does not declare "Coordinate Reference Systems by
+    // Reference", so the default CRS is the only one that a request may declare
+    if (!isEnabled(apiData)) {
+      return ImmutableList.of(defaultCrs);
+    }
+
+    EpsgCrs nativeCrs = getStorageCrs(apiData, Optional.ofNullable(featureTypeConfiguration));
     Set<EpsgCrs> additionalCrs =
         getAdditionalCrs(apiData, Optional.ofNullable(featureTypeConfiguration));
 

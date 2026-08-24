@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
+import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -19,6 +20,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
+import de.ii.ogcapi.features.core.domain.ReadOnlyProperties;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
 import de.ii.ogcapi.features.geojson.domain.GeoJsonConfiguration;
 import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
@@ -116,6 +118,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   private final FeaturesCoreProviders providers;
   private final ExtensionRegistry extensionRegistry;
   private final CrsInfo crsInfo;
+  private final CrsSupport crsSupport;
   private final FeaturesCoreQueriesHandler queriesHandler;
 
   @Inject
@@ -123,12 +126,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       FeaturesCoreProviders providers,
       ExtensionRegistry extensionRegistry,
       CrsInfo crsInfo,
+      CrsSupport crsSupport,
       FeaturesCoreQueriesHandler queriesHandler,
       VolatileRegistry volatileRegistry) {
     super(TransactionExecutor.class.getSimpleName(), volatileRegistry, true);
     this.providers = providers;
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
+    this.crsSupport = crsSupport;
     this.queriesHandler = queriesHandler;
 
     onVolatileStart();
@@ -753,6 +758,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.INSERT)
+        .featureType(featureType)
         .collectionId(canonicalCollectionId(apiData, action.getCollectionId()))
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
@@ -974,6 +980,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.REPLACE)
+        .featureType(featureType)
         .collectionId(canonicalCollectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
@@ -1097,6 +1104,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.UPDATE)
+        .featureType(featureType)
         .collectionId(canonicalCollectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
@@ -1408,6 +1416,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     return new ImmutableActionResult.Builder()
         .type(TxActionType.DELETE)
+        .featureType(featureType)
         .collectionId(canonicalCollectionId(api.getData(), action.getCollectionId()))
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
@@ -1439,7 +1448,11 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         ChangeKey key = new ChangeKey(r.getCollectionId(), mapped);
         aggregates
             .computeIfAbsent(key, k -> new ChangeAggregate())
-            .add(r.getFeatureIds(), r.getNewBoundingBox(), r.getNewInterval());
+            .add(
+                r.getFeatureType().orElseGet(r::getCollectionId),
+                r.getFeatureIds(),
+                r.getNewBoundingBox(),
+                r.getNewInterval());
       }
       for (Map.Entry<ChangeKey, ChangeAggregate> e : aggregates.entrySet()) {
         ChangeKey key = e.getKey();
@@ -1457,7 +1470,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         FeatureChange change =
             ImmutableFeatureChange.builder()
                 .action(key.action)
-                .featureType(key.collectionId)
+                // the change is reported for the type in the feature provider, not for the
+                // collection
+                .featureType(agg.featureType)
                 .featureIds(List.copyOf(agg.ids))
                 .newBoundingBox(agg.bbox)
                 .newInterval(agg.interval)
@@ -1552,11 +1567,17 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
   private static final class ChangeAggregate {
     final LinkedHashSet<String> ids = new LinkedHashSet<>();
+    // the same for every action of the group, all actions target the same collection
+    String featureType;
     Optional<BoundingBox> bbox = Optional.empty();
     Optional<Interval> interval = Optional.empty();
 
     void add(
-        List<String> nextIds, Optional<BoundingBox> nextBbox, Optional<Interval> nextInterval) {
+        String nextFeatureType,
+        List<String> nextIds,
+        Optional<BoundingBox> nextBbox,
+        Optional<Interval> nextInterval) {
+      featureType = nextFeatureType;
       ids.addAll(nextIds);
       if (nextBbox.isPresent()) {
         bbox =
@@ -1741,6 +1762,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 () ->
                     new IllegalStateException(
                         "No feature schema for collection '" + collectionId + "'"));
+    List<EpsgCrs> supportedCrs = crsSupport.getSupportedCrsList(apiData, collectionCfg);
+
     DecoderContext dctx =
         new ImmutableDecoderContext.Builder()
             .apiData(apiData)
@@ -1748,6 +1771,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             .featureSchema(featureSchema)
             .crs(crs)
             .axes(axes)
+            .supportedCrs(supportedCrs)
+            // a body that sets a read-only property is rejected, not silently stripped of the value
+            .readOnlyProperties(ReadOnlyProperties.of(featureSchema))
             .mediaType(contentType)
             .build();
     return Source.inputStream(body).via(format.getFeatureDecoder(dctx).get());

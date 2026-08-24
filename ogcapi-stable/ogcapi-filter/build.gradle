@@ -22,7 +22,9 @@ dependencies {
     provided project(":ogcapi-tiles")
 
     testProvided project(':ogcapi-common')
-    testProvided 'org.codehaus.groovy.modules.http-builder:http-builder:0.7'
+    // CqlImpl parses the CQL text the spec converts to CQL2 JSON, and the parser needs the
+    // geometry types at runtime
+    testProvided 'de.interactive_instruments:xtraplatform-geometries'
 }
 
 test {
