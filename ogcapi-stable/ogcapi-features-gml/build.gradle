@@ -17,10 +17,6 @@ dependencies {
     provided project(":ogcapi-crs")
     provided project(":ogcapi-features-core")
 
-    // The runtime resolves javax.xml.stream.XMLOutputFactory to Woodstox, whose writer buffers
-    // internally. The encoder interleaves writer calls with raw appends to its own output buffer,
-    // so the specs have to run against the same implementation to cover that ordering.
-    testProvided libCatalog.woodstox
     // Building a FeatureTransformationContextGml in a spec needs the types the stubbed OgcApi and
     // ApiRequestContext reference: Cache, User, and URICustomizer (read by the eagerly derived
     // serviceUrl).

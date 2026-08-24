@@ -5,7 +5,6 @@ flatbuffers = '25.2.10'
 flatgeobuf = '3.29.0'
 json-patch = '2.0.2'
 spdx = '2.0.4'
-woodstox = '7.1.1'
 
 [libraries]
 # foundation
@@ -21,8 +20,5 @@ flatgeobuf = { module = "org.wololo:flatgeobuf", version.ref = "flatgeobuf" }
 
 # crud
 json-patch = { module = "com.gravity9:json-patch-path", version.ref = "json-patch" }
-
-# gml (test only: the StAX implementation the runtime provides, see ogcapi-features-gml)
-woodstox = { module = "com.fasterxml.woodstox:woodstox-core", version.ref = "woodstox" }
 
 [bundles]
