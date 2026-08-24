@@ -725,7 +725,16 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
             decoderContext.getCrs(),
             Optional.empty(),
             Optional.empty(),
-            toInputProfile(config, alternativeCrss(collectionData))));
+            toInputProfile(
+                config,
+                alternativeCrss(collectionData),
+                decoderContext.getSupportedCrs(),
+                decoderContext.getReadOnlyProperties())));
+  }
+
+  @Override
+  public boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
+    return Objects.nonNull(schemaLocationsFingerprint(apiData, collectionId));
   }
 
   @Override
@@ -927,7 +936,15 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   // Package-private for unit testing of the GmlConfiguration → decoder-input-profile mapping.
   static FeatureTokenDecoderGmlInputProfile toInputProfile(
-      GmlConfiguration config, List<EpsgCrs> alternativeCrss) {
+      GmlConfiguration config, List<EpsgCrs> alternativeCrss, List<EpsgCrs> supportedCrs) {
+    return toInputProfile(config, alternativeCrss, supportedCrs, Set.of());
+  }
+
+  static FeatureTokenDecoderGmlInputProfile toInputProfile(
+      GmlConfiguration config,
+      List<EpsgCrs> alternativeCrss,
+      List<EpsgCrs> supportedCrs,
+      Set<String> readOnlyProperties) {
     Map<String, EpsgCrs> srsNameMappings =
         alternativeCrss.stream()
             .filter(crs -> crs.getAlternativeUri().isPresent())
@@ -949,6 +966,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
     return ImmutableFeatureTokenDecoderGmlInputProfile.builder()
         .srsNameMappings(srsNameMappings)
+        .supportedCrs(supportedCrs)
+        .readOnlyProperties(readOnlyProperties)
         .gmlIdPrefix(Objects.requireNonNullElse(config.getGmlIdPrefix(), ""))
         .codelistProperties(config.getCodelistProperties())
         .featureRefTemplate(Objects.requireNonNullElse(config.getFeatureRefTemplate(), ""))

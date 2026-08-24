@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 interactive instruments GmbH
+ * Copyright 2026 interactive instruments GmbH
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
-import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
@@ -23,44 +22,44 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
-import java.util.Set;
 
+/**
+ * The {@code If-Unmodified-Since} header of a request that changes a feature. Only applicable to
+ * collections with {@code optimisticLockingLastModified}, where the header is required.
+ */
 @Singleton
 @AutoBind
-public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
+public class HeaderIfUnmodifiedSince extends ApiExtensionCache implements ApiHeader {
 
-  private final Schema<?> schema = new StringSchema().format("uri");
+  private final Schema<?> schema = new StringSchema().format("date-time");
   private final SchemaValidator schemaValidator;
 
   @Inject
-  HeaderLocationCrud(SchemaValidator schemaValidator) {
+  HeaderIfUnmodifiedSince(SchemaValidator schemaValidator) {
     this.schemaValidator = schemaValidator;
   }
 
   @Override
   public String getId() {
-    return "LocationCrudFeature";
+    return "IfUnmodifiedSinceCrudFeature";
   }
 
   @Override
   public String getName() {
-    return "Location";
+    return "If-Unmodified-Since";
   }
 
   @Override
   public String getDescription() {
-    return "The URI of the feature that has been created.";
+    return "The last modification time of the feature that is known to the client, as reported in "
+        + "the header `Last-Modified` of a previous response. The request is only executed, if the "
+        + "feature has not been changed since; otherwise the response is `412`. This header is "
+        + "required for this collection, a request without it is answered with `428`.";
   }
 
   @Override
-  public boolean isResponseHeader() {
+  public boolean isRequestHeader() {
     return true;
-  }
-
-  // Only the response that reports a created feature, not the 204 of a replaced one.
-  @Override
-  public Set<String> getResponseStatusCodes() {
-    return Set.of(ApiOperation.STATUS_201);
   }
 
   @Override
@@ -69,10 +68,10 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
-                && ((method == HttpMethods.POST && definitionPath.endsWith("/items"))
-                    // a PUT creates the feature, if the collection has client-assigned ids
-                    || (method == HttpMethods.PUT
-                        && definitionPath.endsWith("/items/{featureId}"))));
+                && (method == HttpMethods.PUT
+                    || method == HttpMethods.PATCH
+                    || method == HttpMethods.DELETE)
+                && definitionPath.endsWith("/items/{featureId}"));
   }
 
   @Override
@@ -87,7 +86,17 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return isExtensionEnabled(apiData, CrudConfiguration.class);
+    return isExtensionEnabled(
+        apiData, CrudConfiguration.class, CrudConfiguration::supportsLastModified);
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData, String collectionId) {
+    return apiData.isCollectionEnabled(collectionId)
+        && isExtensionEnabled(
+            apiData.getCollections().get(collectionId),
+            CrudConfiguration.class,
+            CrudConfiguration::supportsLastModified);
   }
 
   @Override
