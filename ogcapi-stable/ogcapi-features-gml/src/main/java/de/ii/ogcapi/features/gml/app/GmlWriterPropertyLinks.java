@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.gml.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.gml.domain.EncodingAwareContextGml;
+import de.ii.ogcapi.features.gml.domain.FeatureTransformationContextGml;
 import de.ii.ogcapi.features.gml.domain.GmlWriter;
 import de.ii.xtraplatform.features.domain.PropertyLink;
 import jakarta.inject.Inject;
@@ -77,12 +78,10 @@ public class GmlWriterPropertyLinks implements GmlWriter {
         sb.append(" --><!-- ");
       }
       first = false;
-      sb.append(link.getRel()).append(": ").append(escapeCommentText(link.getValue()));
+      sb.append(link.getRel())
+          .append(": ")
+          .append(FeatureTransformationContextGml.escapeCommentText(link.getValue()));
     }
     context.encoding().setPropertyLinksContent(placeholder, sb.toString());
-  }
-
-  private static String escapeCommentText(String value) {
-    return value.replace("--", "-‐");
   }
 }

@@ -159,6 +159,9 @@ public class EndpointQueryables extends EndpointSubCollection
       final List<String> collectionIds =
           explode ? collectionIdParam.getValues(apiData) : ImmutableList.of("{collectionId}");
       for (String collectionId : collectionIds) {
+        if (explode && !isEnabledForApi(apiData, collectionId)) {
+          continue;
+        }
         final List<OgcApiQueryParameter> queryParameters =
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         final String operationSummary =

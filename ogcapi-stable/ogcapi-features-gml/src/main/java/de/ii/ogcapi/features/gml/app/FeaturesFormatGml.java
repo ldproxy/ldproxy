@@ -204,8 +204,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   private final FeaturesCoreValidation featuresCoreValidator;
   private final GmlWriterRegistry gmlWriterRegistry;
   private final ResourceStore xsdCatalogStore;
-  private final ConcurrentMap<Integer, ConcurrentMap<String, Schema>> schemaCache =
-      new ConcurrentHashMap<>();
+  // Compiled XSD schemas, keyed by what the schema is actually derived from — the schemaLocations
+  // and the catalog that resolves their imports — rather than by the API's data. Keying on the API
+  // meant a service reload produced a different key, so every reload parsed all transitive XSDs
+  // again and kept the previous grammar pool reachable for the lifetime of the process. Keyed by
+  // the configuration instead, an unchanged GML configuration reuses its schema across reloads and
+  // across APIs, and the cache is bounded by the number of distinct GML configurations.
+  private final ConcurrentMap<String, Schema> schemaCache = new ConcurrentHashMap<>();
   // Per-thread Validator instances keyed by their Schema (identity). Each `validate()` call
   // would otherwise pay Xerces' full Validator instantiation cost (XML11Configuration init,
   // XSDHandler.reset, addRecognizedParamsAndSetDefaults) — which is ~1 ms each and dominates
@@ -321,6 +326,18 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return GmlConfiguration.class;
+  }
+
+  @Override
+  public void onShutdown(OgcApi api) {
+    // Both caches are keyed by the API's data, so their entries are unreachable once this API goes
+    // away — including on a reload, which shuts the previous instance down and starts a new one
+    // under a different key. Without this they would accumulate one generation per reload for the
+    // lifetime of the process. The compiled schemas are deliberately not dropped here: they are
+    // keyed by configuration, so the next generation reuses them instead of re-parsing every XSD.
+    int apiHashCode = api.getData().hashCode();
+    schemaMappingCache.remove(apiHashCode);
+    namespacesCache.remove(apiHashCode);
   }
 
   @Override
@@ -554,6 +571,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .config(config)
         .alternativeCrss(alternativeCrss)
         .xmlAttributes(remapList(config.getXmlAttributes(), aliasRewrites))
+        .xmlComments(remapList(config.getXmlComments(), aliasRewrites))
         .codelistProperties(remapKeys(config.getCodelistProperties(), aliasRewrites))
         .xmlPaths(parseXmlPaths(remapKeys(config.getXmlPaths(), aliasRewrites)))
         .positionVariants(derivePositionVariants(featureSchema, aliasRewrites))
@@ -717,7 +735,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   @Override
   public boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
-    return Objects.nonNull(schemaLocationsFingerprint(apiData, collectionId));
+    // The schema is built from the schemaLocations of the collection's GML configuration, so
+    // without a single one there is nothing to validate against.
+    return apiData
+        .getCollectionData(collectionId)
+        .flatMap(c -> c.getExtension(GmlConfiguration.class))
+        .filter(cfg -> !cfg.getSchemaLocations().isEmpty())
+        .isPresent();
   }
 
   @Override
@@ -761,58 +785,46 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   }
 
   private Schema getOrBuildSchema(ValidatorContext ctx) {
-    int apiHashCode = ctx.getApiData().hashCode();
-    String collectionId = ctx.getCollectionId();
-    ConcurrentMap<String, Schema> perApi =
-        schemaCache.computeIfAbsent(apiHashCode, k -> new ConcurrentHashMap<>());
-    // Two-level lookup so an api-wide Schema is built at most once per distinct
-    // schemaLocations set: (1) the per-collection slot caches the Schema reference for
-    // O(1) subsequent calls; (2) the canonical-fingerprint slot deduplicates across all
-    // collections that share the same schemaLocations (the common case — the GML building
-    // block is api-level and inherits down). Without (2), an api with N collections would
-    // pay N × full-Schema-build on the first transaction touching each collection (the
-    // build cost dominates strict-mode validation overhead because it re-parses every
-    // transitive XSD in the catalog, including Xerces' internal exception-driven property
-    // probing).
-    Schema cached = perApi.get(collectionId);
+    // A schema is built at most once per distinct configuration, however many collections, APIs or
+    // reloads share it — building one re-parses every transitive XSD of the catalog, which is the
+    // dominant cost of strict-mode validation.
+    String key =
+        ctx.getApiData()
+            .getCollectionData(ctx.getCollectionId())
+            .flatMap(c -> c.getExtension(GmlConfiguration.class))
+            .map(FeaturesFormatGml::schemaCacheKey)
+            .orElse(null);
+    if (key == null) {
+      // No GML configuration for this collection: there is nothing to build a schema from, and
+      // nothing worth keying a cache entry on.
+      return buildSchema(ctx).orElse(null);
+    }
+    Schema cached = schemaCache.get(key);
     if (cached != null) {
       return cached;
     }
-    String fingerprint = schemaLocationsFingerprint(ctx.getApiData(), collectionId);
-    if (fingerprint != null) {
-      Schema sharedByFingerprint = perApi.get(fingerprint);
-      if (sharedByFingerprint != null) {
-        perApi.put(collectionId, sharedByFingerprint);
-        return sharedByFingerprint;
-      }
-    }
+    // Deliberately built outside the map: newSchema() is far too slow to run while holding a bin
+    // lock, so two concurrent first-time requests may both build and one result is discarded.
     Schema built = buildSchema(ctx).orElse(null);
-    if (built != null) {
-      perApi.put(collectionId, built);
-      if (fingerprint != null) {
-        perApi.put(fingerprint, built);
-      }
+    if (built == null) {
+      return null;
     }
-    return built;
+    Schema raced = schemaCache.putIfAbsent(key, built);
+    return raced != null ? raced : built;
   }
 
-  // Stable identifier for a collection's schemaLocations set — sorted, comma-joined, prefixed
-  // with a sentinel that can't appear in a collection id so the fingerprint slot can't collide
-  // with a collection-id slot in the same map. Returns null when the GML extension is absent
-  // or has no schemaLocations entries (the caller skips the fingerprint dedup).
-  private static String schemaLocationsFingerprint(OgcApiDataV2 apiData, String collectionId) {
-    return apiData
-        .getCollectionData(collectionId)
-        .flatMap(c -> c.getExtension(GmlConfiguration.class))
-        .map(GmlConfiguration::getSchemaLocations)
-        .filter(m -> !m.isEmpty())
-        .map(
-            m ->
-                m.values().stream()
-                    .filter(Objects::nonNull)
-                    .sorted()
-                    .collect(Collectors.joining(",", "@xsd:", "")))
-        .orElse(null);
+  /**
+   * Identifies a compiled schema by everything it is derived from: the schemaLocations, sorted so
+   * their order in the configuration does not matter, and the catalog that resolves their imports,
+   * as a hash because it holds one entry per mirrored XSD. Two configurations that agree on both
+   * yield the same schema, so they may share one — across collections, across APIs and across
+   * reloads.
+   */
+  static String schemaCacheKey(GmlConfiguration cfg) {
+    return cfg.getSchemaLocations().values().stream()
+        .filter(Objects::nonNull)
+        .sorted()
+        .collect(Collectors.joining(",", "@xsd:", "@catalog:" + cfg.getXsdCatalog().hashCode()));
   }
 
   private Optional<Schema> buildSchema(ValidatorContext ctx) {

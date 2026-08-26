@@ -63,39 +63,40 @@ public class SchemaGeneratorFeatureOpenApi implements SchemaGeneratorOpenApi {
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaCache.containsKey(apiHashCode))
-      schemaCache.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaCache.get(apiHashCode).containsKey(collectionId)) {
-      FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
-      String featureTypeId =
-          apiData
-              .getCollections()
-              .get(collectionId)
-              .getExtension(FeaturesCoreConfiguration.class)
-              .filter(ExtensionConfiguration::isEnabled)
-              .filter(
-                  cfg ->
-                      cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
-                          != FeaturesCoreConfiguration.ItemType.unknown)
-              .map(cfg -> cfg.getFeatureType().orElse(collectionId))
-              .orElse(collectionId);
-      FeatureSchema featureType =
-          providers
-              .getFeatureProvider(apiData, collectionData)
-              .flatMap(provider -> provider.info().getSchema(featureTypeId))
-              .orElse(null);
-      if (Objects.isNull(featureType))
-        // Use an empty object schema as fallback, if we cannot get one from the provider
-        featureType =
-            new ImmutableFeatureSchema.Builder()
-                .name(featureTypeId)
-                .type(SchemaBase.Type.OBJECT)
-                .build();
+    return schemaCache
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              FeatureTypeConfigurationOgcApi collectionData =
+                  apiData.getCollections().get(collectionId);
+              String featureTypeId =
+                  apiData
+                      .getCollections()
+                      .get(collectionId)
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .filter(ExtensionConfiguration::isEnabled)
+                      .filter(
+                          cfg ->
+                              cfg.getItemType().orElse(FeaturesCoreConfiguration.ItemType.feature)
+                                  != FeaturesCoreConfiguration.ItemType.unknown)
+                      .map(cfg -> cfg.getFeatureType().orElse(collectionId))
+                      .orElse(collectionId);
+              FeatureSchema featureType =
+                  providers
+                      .getFeatureProvider(apiData, collectionData)
+                      .flatMap(provider -> provider.info().getSchema(featureTypeId))
+                      .orElse(null);
+              if (Objects.isNull(featureType))
+                // Use an empty object schema as fallback, if we cannot get one from the provider
+                featureType =
+                    new ImmutableFeatureSchema.Builder()
+                        .name(featureTypeId)
+                        .type(SchemaBase.Type.OBJECT)
+                        .build();
 
-      schemaCache.get(apiHashCode).put(collectionId, getSchema(featureType, collectionData));
-    }
-    return schemaCache.get(apiHashCode).get(collectionId);
+              return getSchema(featureType, collectionData);
+            });
   }
 
   @Override
