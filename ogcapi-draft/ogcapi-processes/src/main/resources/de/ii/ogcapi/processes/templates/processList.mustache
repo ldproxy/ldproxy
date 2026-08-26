@@ -15,7 +15,7 @@
           <li>
             <a href="processes/{{id}}">{{id}}</a>
             <br/>
-            Title:
+            {{titleTitle}}:
             {{#title}}
               {{.}}
             {{/title}}
@@ -23,7 +23,7 @@
               {{none}}
             {{/title}}
             <br/>
-            Description:
+            {{descriptionTitle}}:
             {{#description}}
               {{.}}
             {{/description}}
@@ -33,7 +33,7 @@
             <br/>
             Version: {{version}}
             <br/>
-            Job Control Options:
+            {{jobControlOptionsTitle}}:
             <ul>
               {{#jobControlOptions}}
                 <li>{{.}}</li>
@@ -42,7 +42,7 @@
                 <li>{{none}}</li>
               {{/jobControlOptions}}
             </ul>
-            Keywords:
+            {{keywordsTitle}}:
             <ul>
               {{#keywords}}
                 <li>{{.}}</li>

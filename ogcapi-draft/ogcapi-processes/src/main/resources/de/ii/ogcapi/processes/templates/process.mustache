@@ -5,7 +5,7 @@
 
   {{#process}}
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Id</div>
+      <div class="col-md-2 font-weight-bold">{{idTitle}}</div>
       <div class="col-md-10">{{id}}</div>
     </div>
 
@@ -15,41 +15,41 @@
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Job Control Options</div>
+      <div class="col-md-2 font-weight-bold">{{jobControlOptionsTitle}}</div>
       <div class="col-md-10">
         {{#jobControlOptions}}
           {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
         {{/jobControlOptions}}
-        {{^jobControlOptions}}None{{/jobControlOptions}}
+        {{^jobControlOptions}}{{none}}{{/jobControlOptions}}
       </div>
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Title</div>
+      <div class="col-md-2 font-weight-bold">{{titleTitle}}</div>
       <div class="col-md-10">
-        {{#title}}{{.}}{{/title}}{{^title}}None{{/title}}
+        {{#title}}{{.}}{{/title}}{{^title}}{{none}}{{/title}}
       </div>
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Description</div>
+      <div class="col-md-2 font-weight-bold">{{descriptionTitle}}</div>
       <div class="col-md-10">
-        {{#description}}{{{.}}}{{/description}}{{^description}}None{{/description}}
+        {{#description}}{{{.}}}{{/description}}{{^description}}{{none}}{{/description}}
       </div>
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Keywords</div>
+      <div class="col-md-2 font-weight-bold">{{keywordsTitle}}</div>
       <div class="col-md-10">
         {{#keywords}}
           {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
         {{/keywords}}
-        {{^keywords}}None{{/keywords}}
+        {{^keywords}}{{none}}{{/keywords}}
       </div>
     </div>
 
     <div class="row my-3">
-      <div class="col-md-2 font-weight-bold">Metadata</div>
+      <div class="col-md-2 font-weight-bold">{{metadataTitle}}</div>
       <div class="col-md-10">
         {{#metadata}}
           {{#.}}
@@ -65,7 +65,7 @@
             <hr>
           {{/.}}
         {{/metadata}}
-        {{^metadata}}None{{/metadata}}
+        {{^metadata}}{{none}}{{/metadata}}
       </div>
     </div>
 

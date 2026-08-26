@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-// ToDo: Add german translation of keywords using Value.Derived
 @Value.Immutable
 public abstract class StatusInfoView extends OgcApiView {
   public StatusInfoView() {
@@ -26,4 +25,46 @@ public abstract class StatusInfoView extends OgcApiView {
   public abstract I18n i18n();
 
   public abstract Optional<Locale> language();
+
+  // keywords
+
+  @Value.Derived
+  public String jobIdTitle() {
+    return i18n().get("jobIdTitle", language());
+  }
+
+  @Value.Derived
+  public String processIdTitle() {
+    return i18n().get("processIdTitle", language());
+  }
+
+  @Value.Derived
+  public String messageTitle() {
+    return i18n().get("messageTitle", language());
+  }
+
+  @Value.Derived
+  public String createdTitle() {
+    return i18n().get("createdTitle", language());
+  }
+
+  @Value.Derived
+  public String startedTitle() {
+    return i18n().get("startedTitle", language());
+  }
+
+  @Value.Derived
+  public String finishedTitle() {
+    return i18n().get("finishedTitle", language());
+  }
+
+  @Value.Derived
+  public String updatedTitle() {
+    return i18n().get("updatedTitle", language());
+  }
+
+  @Value.Derived
+  public String progressTitle() {
+    return i18n().get("progressTitle", language());
+  }
 }
