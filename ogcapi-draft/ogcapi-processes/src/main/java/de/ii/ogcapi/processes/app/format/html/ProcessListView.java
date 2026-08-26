@@ -25,7 +25,6 @@ import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.net.URIBuilder;
 import org.immutables.value.Value;
 
-// ToDo: Add german translation of keywords using Value.Derived
 @Value.Immutable
 public abstract class ProcessListView extends OgcApiView {
   public ProcessListView() {
@@ -85,4 +84,26 @@ public abstract class ProcessListView extends OgcApiView {
   public abstract I18n i18n();
 
   public abstract Optional<Locale> language();
+
+  // keywords
+
+  @Value.Derived
+  public String jobControlOptionsTitle() {
+    return i18n().get("jobControlOptionsTitle", language());
+  }
+
+  @Value.Derived
+  public String titleTitle() {
+    return i18n().get("titleTitle", language());
+  }
+
+  @Value.Derived
+  public String descriptionTitle() {
+    return i18n().get("descriptionTitle", language());
+  }
+
+  @Value.Derived
+  public String keywordsTitle() {
+    return i18n().get("keywordsTitle", language());
+  }
 }

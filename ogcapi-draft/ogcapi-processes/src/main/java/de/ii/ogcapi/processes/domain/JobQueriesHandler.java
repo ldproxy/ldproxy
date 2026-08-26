@@ -21,7 +21,7 @@ public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Quer
 
   String GROUP_JOBS = "jobs";
   PermissionGroup GROUP_JOBS_READ = PermissionGroup.of(Base.READ, GROUP_JOBS, "access jobs");
-  // ToDo: Change permission to WRITE (READ is easier during development)
+  // TODO: Change permission to WRITE (READ is easier during development)
   PermissionGroup GROUP_JOBS_DISMISS = PermissionGroup.of(Base.READ, GROUP_JOBS, "dismiss jobs");
 
   @Override
