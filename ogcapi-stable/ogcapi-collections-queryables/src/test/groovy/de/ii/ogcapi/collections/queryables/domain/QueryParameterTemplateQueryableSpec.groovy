@@ -8,23 +8,42 @@
 package de.ii.ogcapi.collections.queryables.domain
 
 import de.ii.ogcapi.foundation.domain.SchemaValidator
+import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.xtraplatform.cql.domain.Eq
 import de.ii.xtraplatform.features.domain.SchemaBase
+import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.IntegerSchema
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Specification
 
 class QueryParameterTemplateQueryableSpec extends Specification {
 
-    def queryable(SchemaBase.Type type) {
-        return new ImmutableQueryParameterTemplateQueryable.Builder()
+    static final String ID_PATTERN = '^DEXX[A-Za-z0-9]{12}$'
+
+
+    static final SchemaValidator ACCEPT_ALL = { schema, value -> Optional.empty() } as SchemaValidator
+
+    def queryable(SchemaBase.Type type,
+                  Schema<?> schema = new StringSchema(),
+                  SchemaBase.Type valueType = null,
+                  SchemaValidator validator = ACCEPT_ALL) {
+        def builder = new ImmutableQueryParameterTemplateQueryable.Builder()
                 .apiId("api")
                 .collectionId("collection")
                 .name("lzi.end")
                 .description("a queryable")
-                .schema(new StringSchema())
-                .schemaValidator({ schema, value -> Optional.empty() } as SchemaValidator)
+                .schema(schema)
+                .schemaValidator(validator)
                 .type(type)
-                .build()
+        if (valueType != null) {
+            builder.valueType(valueType)
+        }
+        return builder.build()
+    }
+
+    def idQueryable(SchemaValidator validator = ACCEPT_ALL) {
+        return queryable(SchemaBase.Type.STRING, new StringSchema().pattern(ID_PATTERN), null, validator)
     }
 
     def 'invalid temporal value raises a client error, not a CQL parse error'() {
@@ -60,5 +79,79 @@ class QueryParameterTemplateQueryableSpec extends Specification {
 
         then:
         thrown(IllegalArgumentException)
+    }
+
+    def 'a value without a wildcard is validated against the schema of the property'() {
+        given:
+        def parameter = idQueryable()
+
+        when:
+        def schema = parameter.getSchemaForValidation(null, Optional.empty(), ["DEXX123456789012"])
+
+        then:
+        schema.pattern == ID_PATTERN
+    }
+
+    def 'a value with a wildcard is validated without the constraints of the property'() {
+        given:
+        def parameter = idQueryable()
+
+        when:
+        def schema = parameter.getSchemaForValidation(null, Optional.empty(), ["DEXX1*"])
+
+        then:
+        schema.type == "string"
+        schema.pattern == null
+    }
+
+    def 'the constraints are kept for queryables that do not support wildcards'() {
+        given:
+        def parameter = queryable(SchemaBase.Type.INTEGER, new IntegerSchema().maximum(100g))
+
+        when:
+        def schema = parameter.getSchemaForValidation(null, Optional.empty(), ["1*"])
+
+        then:
+        schema.maximum == 100g
+    }
+
+    def 'a value with a wildcard for an array queryable is validated as a single pattern'() {
+        given:
+        def schema = new ArraySchema().items(new StringSchema().pattern(ID_PATTERN))
+        def parameter = queryable(SchemaBase.Type.VALUE_ARRAY, schema, SchemaBase.Type.STRING)
+
+        when:
+        // the value is one ALIKE pattern, not a list of values, so it must not be split on the comma
+        def validationSchema = parameter.getSchemaForValidation(null, Optional.empty(), ["DEXX1*,DEXX2"])
+
+        then:
+        validationSchema.type == "string"
+    }
+
+    def 'the constraints are kept for arrays that do not have string values'() {
+        given:
+        def schema = new ArraySchema().items(new IntegerSchema())
+        def parameter = queryable(SchemaBase.Type.VALUE_ARRAY, schema, SchemaBase.Type.INTEGER)
+
+        when:
+        def validationSchema = parameter.getSchemaForValidation(null, Optional.empty(), ["1*"])
+
+        then:
+        validationSchema.type == "array"
+    }
+
+    def 'a value with a wildcard is accepted, a value that violates the constraints is rejected'() {
+        given:
+        def parameter = idQueryable(new SchemaValidatorImpl())
+
+        expect:
+        parameter.validate(null, Optional.empty(), [value]).isPresent() == invalid
+
+        where:
+        value              || invalid
+        "DEXX123456789012" || false
+        "DEXX1*"           || false
+        "*"                || false
+        "DEXX1"            || true
     }
 }
