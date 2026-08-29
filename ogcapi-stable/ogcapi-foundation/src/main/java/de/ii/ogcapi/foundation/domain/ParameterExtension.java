@@ -74,6 +74,16 @@ public interface ParameterExtension extends ApiExtension {
     return false;
   }
 
+  /**
+   * The schema that is used to validate the parameter values. By default this is the schema that is
+   * also published in the API definition. Parameters that accept additional value forms, for
+   * example wildcards, can relax the schema depending on the values that were submitted.
+   */
+  default Schema<?> getSchemaForValidation(
+      OgcApiDataV2 apiData, Optional<String> collectionId, List<String> values) {
+    return getSchema(apiData, collectionId);
+  }
+
   default Optional<String> validate(
       OgcApiDataV2 apiData, Optional<String> collectionId, List<String> values) {
     // first validate against the schema
@@ -98,7 +108,7 @@ public interface ParameterExtension extends ApiExtension {
   default Optional<String> validateSchema(
       OgcApiDataV2 apiData, Optional<String> collectionId, List<String> values) {
     try {
-      Schema<?> schema = getSchema(apiData, collectionId);
+      Schema<?> schema = getSchemaForValidation(apiData, collectionId, values);
       if (Objects.isNull(schema)) {
         // a parameter without a schema cannot be schema-validated; validateOther() still runs
         LOGGER.warn(

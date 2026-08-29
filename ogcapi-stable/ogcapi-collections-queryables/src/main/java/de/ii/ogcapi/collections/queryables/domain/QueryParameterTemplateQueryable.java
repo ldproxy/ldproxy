@@ -33,6 +33,8 @@ import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -84,6 +86,35 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     return getSchema();
+  }
+
+  /**
+   * Whether a value of this parameter may contain a wildcard, that is, whether {@link #parse} maps
+   * a value with a wildcard to a LIKE/ALIKE predicate. This is the case for string-valued
+   * queryables, including arrays of strings.
+   */
+  public static boolean supportsWildcard(Type type, Optional<Type> valueType) {
+    if (type == Type.VALUE_ARRAY) {
+      return valueType.orElse(Type.STRING) == Type.STRING;
+    }
+    return valueType.orElse(type) == Type.STRING;
+  }
+
+  @Override
+  public Schema<?> getSchemaForValidation(
+      OgcApiDataV2 apiData, Optional<String> collectionId, List<String> values) {
+    if (!supportsWildcard(getType(), getValueType())
+        || values.stream().noneMatch(v -> Objects.nonNull(v) && v.contains("*"))) {
+      return getSchema();
+    }
+
+    // a value with a wildcard is a pattern, not a value of the property, so the constraints of the
+    // property (pattern, enum, format, length, ...) cannot be applied to it; for arrays the pattern
+    // is matched against the array members, so the value is a single string, not a list of values
+    StringSchema schema = new StringSchema();
+    schema.setTitle(getSchema().getTitle());
+    schema.setDescription(getSchema().getDescription());
+    return schema;
   }
 
   @Override
