@@ -1208,8 +1208,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     if (!invalidProperties.isEmpty()) {
       throw new BadRequestException(
           String.format(
-              "The filter is invalid. Unknown or forbidden properties used: %s.",
-              String.join(", ", invalidProperties)));
+              "A filter for collection '%s' is invalid. Unknown or forbidden properties used: %s.",
+              collectionId, String.join(", ", invalidProperties)));
     }
 
     Optional<FeatureProvider> provider =
