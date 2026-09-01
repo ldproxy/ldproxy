@@ -41,6 +41,12 @@ import org.slf4j.LoggerFactory;
  *     feature-type schema before any provider write (this only takes effect when the collection has
  *     schema validation configured: JSON Schema for GeoJSON payloads, XSD for GML payloads).
  *     `respond-async` is rejected with `501`.
+ *     <p>The option `rejectEmptyValues` adds a second check to `handling=strict`: an action is
+ *     rejected, if a value it writes is an empty string or consists only of whitespace. It covers
+ *     `insert` and `replace` payloads as well as the values set by an `update` action. A payload is
+ *     checked while it is decoded, so the check needs no schema and also takes effect where the
+ *     payload cannot be validated against one; an empty value therefore fails the whole action
+ *     rather than skipping the item that carries it.
  *     <p>The `Content-Crs` request header declares the CRS of coordinates in the request body. When
  *     omitted, the API's default CRS (CRS84 unless overridden) is assumed; values that are
  *     syntactically invalid or name a CRS not in the API's supported list are rejected with a `4xx`
@@ -63,6 +69,13 @@ import org.slf4j.LoggerFactory;
  *     Schema der Objektart (greift nur, wenn die Objektart eine Schema-Validierung konfiguriert
  *     hat: JSON Schema für GeoJSON-Payloads, XSD für GML-Payloads). `respond-async` wird mit `501`
  *     abgelehnt.
+ *     <p>Die Option `rejectEmptyValues` ergänzt `handling=strict` um eine zweite Prüfung: Eine
+ *     Aktion wird zurückgewiesen, wenn ein von ihr geschriebener Wert eine leere Zeichenkette ist
+ *     oder nur aus Leerraum besteht. Sie erfasst `insert`- und `replace`-Payloads ebenso wie die
+ *     von einer `update`-Aktion gesetzten Werte. Ein Payload wird beim Dekodieren geprüft; die
+ *     Prüfung benötigt daher kein Schema und greift auch dann, wenn der Payload nicht gegen ein
+ *     Schema validiert werden kann. Ein leerer Wert lässt daher die gesamte Aktion scheitern, statt
+ *     nur das betroffene Element zu überspringen.
  *     <p>Der Anfrage-Header `Content-Crs` gibt das CRS der Koordinaten im Anfragetext an. Fehlt der
  *     Header, wird das Standard-CRS der API angenommen (CRS84, sofern nicht überschrieben);
  *     syntaktisch ungültige Werte oder ein nicht von der API unterstütztes CRS werden mit einem

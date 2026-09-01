@@ -184,24 +184,33 @@ public class EndpointCrud extends EndpointSubCollection
     }
 
     if (apiData.getCollections().keySet().stream()
-        .anyMatch(collectionId -> canValidate(apiData, collectionId))) {
+        .anyMatch(collectionId -> appliesStrictHandling(apiData, collectionId))) {
       builder.add(CONF_CLASS_PREFIX + "handling");
     }
 
     return builder.build();
   }
 
-  // The request body of a mutation request is validated for "Prefer: handling=strict", if any of
-  // the formats that are supported in mutation requests can validate a request body.
-  private boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
+  // "Prefer: handling=strict" has an effect on a mutation request, if any of the formats that are
+  // supported in mutation requests can validate a request body against a schema, or if empty values
+  // are rejected (that check needs no schema).
+  private boolean appliesStrictHandling(OgcApiDataV2 apiData, String collectionId) {
     return isEnabledForApi(apiData, collectionId)
-        && transactionFormats().stream().anyMatch(f -> f.canValidate(apiData, collectionId));
+        && (rejectsEmptyValues(apiData, collectionId)
+            || transactionFormats().stream().anyMatch(f -> f.canValidate(apiData, collectionId)));
   }
 
   private boolean canValidate(OgcApiDataV2 apiData, String collectionId, MediaType contentType) {
     return transactionFormat(contentType)
         .filter(format -> format.canValidate(apiData, collectionId))
         .isPresent();
+  }
+
+  private static boolean rejectsEmptyValues(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getExtension(CrudConfiguration.class, collectionId)
+        .map(CrudConfiguration::rejectsEmptyValues)
+        .orElse(false);
   }
 
   private List<FeatureFormatExtension> transactionFormats() {
@@ -515,6 +524,7 @@ public class EndpointCrud extends EndpointSubCollection
             .requestBody(requestBody)
             .contentType(contentType)
             .validate(validate)
+            .rejectEmptyValues(rejectEmptyValues(api.getData(), collectionId, prefer))
             .linkHeaders(links)
             .build();
 
@@ -613,6 +623,7 @@ public class EndpointCrud extends EndpointSubCollection
             .requestBody(requestBody)
             .contentType(contentType)
             .validate(validate)
+            .rejectEmptyValues(rejectEmptyValues(api.getData(), collectionId, prefer))
             .linkHeaders(links)
             .profiles(crudProfiles)
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
@@ -819,9 +830,19 @@ public class EndpointCrud extends EndpointSubCollection
 
   private boolean validateRequestBody(
       OgcApiDataV2 apiData, String collectionId, MediaType contentType, List<String> prefer) {
+    return isStrict(prefer) && canValidate(apiData, collectionId, contentType);
+  }
+
+  // The empty-value check is applied while the request body is decoded, so unlike schema validation
+  // it does not depend on a schema being available for the collection.
+  private static boolean rejectEmptyValues(
+      OgcApiDataV2 apiData, String collectionId, List<String> prefer) {
+    return isStrict(prefer) && rejectsEmptyValues(apiData, collectionId);
+  }
+
+  private static boolean isStrict(List<String> prefer) {
     return HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT)
-            == HeaderPrefer.Handling.STRICT
-        && canValidate(apiData, collectionId, contentType);
+        == HeaderPrefer.Handling.STRICT;
   }
 
   // The strict handling preference has been applied, so the rejection of the request body reports

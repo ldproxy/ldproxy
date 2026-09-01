@@ -12119,6 +12119,10 @@
       {
         "parameterTypes": [],
         "name": "getOptimisticLockingLastModified"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getRejectEmptyValues"
       }
     ]
   },
@@ -12147,6 +12151,12 @@
           "java.lang.Boolean"
         ],
         "name": "optimisticLockingLastModified"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "rejectEmptyValues"
       },
       {
         "parameterTypes": [],

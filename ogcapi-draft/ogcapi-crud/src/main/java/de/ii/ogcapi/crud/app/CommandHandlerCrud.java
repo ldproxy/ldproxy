@@ -48,6 +48,15 @@ public interface CommandHandlerCrud extends Volatile2 {
 
     boolean getValidate();
 
+    /**
+     * Whether an empty value in the request body makes it invalid. Only ever true together with
+     * {@link #getValidate()}, i.e. for a request with {@code Prefer: handling=strict}.
+     */
+    @Value.Default
+    default boolean getRejectEmptyValues() {
+      return false;
+    }
+
     @Value.Default
     default List<String> getLinkHeaders() {
       return List.of();

@@ -156,7 +156,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         requestContext.getApi().getData(),
         queryInput.getCollectionId(),
         crs,
-        axes);
+        axes,
+        queryInput.getRejectEmptyValues());
   }
 
   private Response createFeature(
@@ -666,7 +667,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       OgcApiDataV2 apiData,
       String collectionId,
       EpsgCrs crs,
-      Axes axes) {
+      Axes axes,
+      boolean rejectEmptyValues) {
 
     FeatureFormatExtension format = resolveFormat(contentType);
 
@@ -686,6 +688,8 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
             .supportedCrs(supportedCrs)
             // a body that sets a read-only property is rejected, not silently stripped of the value
             .readOnlyProperties(ReadOnlyProperties.of(featureSchema))
+            // an empty value is rejected while the body is decoded, so it costs no second parse
+            .rejectEmptyValues(rejectEmptyValues)
             .build();
 
     return Source.inputStream(requestBody).via(format.getFeatureDecoder(ctx).get());

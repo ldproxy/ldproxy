@@ -58,7 +58,8 @@ public class HeaderPreferTransaction extends HeaderPrefer {
         + "Response is still returned when the transaction failed, so that exceptions can be "
         + "reported). Malformed transaction envelopes are rejected while parsing. "
         + "'handling=strict' validates each feature payload against its schema before any provider "
-        + "write. 'handling=lenient' (the default) skips feature schema validation and only fails "
+        + "write and, if the 'rejectEmptyValues' option is enabled, rejects an action that would "
+        + "write an empty value. 'handling=lenient' (the default) skips these checks and only fails "
         + "on malformed requests or errors raised by the provider. 'respond-async' is not "
         + "supported and results in 501 Not Implemented.";
   }

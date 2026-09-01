@@ -22,6 +22,7 @@ import org.immutables.value.Value;
  * ```yaml
  * - buildingBlock: CRUD
  *   enabled: true
+ *   rejectEmptyValues: true
  * ```
  * </code>
  */
@@ -66,6 +67,39 @@ public interface CrudConfiguration extends ExtensionConfiguration {
   @Value.Auxiliary
   default boolean supportsLastModified() {
     return Objects.equals(getOptimisticLockingLastModified(), true);
+  }
+
+  /**
+   * @langEn Option to reject empty values in the request body of a POST or PUT request. A value is
+   *     empty, if it is a string without characters or with only whitespace. The check is only
+   *     applied to requests with a `Prefer` header with the value "handling=strict"; such a request
+   *     is rejected with HTTP 400 ("Bad Request") and the response states the first empty value.
+   *     Values of other types cannot be empty, so where schema validation is also active an empty
+   *     value can only occur in a string. The check is applied while the request body is decoded,
+   *     so it needs no schema and is also applied, if no schema is available for validating the
+   *     request body. A property that the request body omits, or states as null, is left without a
+   *     value and is not affected.
+   * @langDe Option zur Zurückweisung leerer Werte im Request-Body einer POST- oder PUT-Anfrage. Ein
+   *     Wert ist leer, wenn es eine Zeichenkette ohne Zeichen oder nur mit Leerraum ist. Die
+   *     Prüfung wird nur auf Anfragen mit einem `Prefer`-Header mit dem Wert "handling=strict"
+   *     angewendet; eine solche Anfrage wird mit HTTP 400 ("Bad Request") zurückgewiesen und die
+   *     Antwort benennt den ersten leeren Wert. Werte anderer Datentypen können nicht leer sein,
+   *     d.h. wenn zusätzlich die Schemavalidierung aktiv ist, kann ein leerer Wert nur in einer
+   *     Zeichenkette auftreten. Die Prüfung erfolgt beim Dekodieren des Request-Body, benötigt
+   *     daher kein Schema und wird auch angewendet, wenn kein Schema für die Validierung des
+   *     Request-Body verfügbar ist. Eine Eigenschaft, die im Request-Body fehlt oder als null
+   *     angegeben ist, bleibt ohne Wert und ist nicht betroffen.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getRejectEmptyValues();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean rejectsEmptyValues() {
+    return Objects.equals(getRejectEmptyValues(), true);
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}

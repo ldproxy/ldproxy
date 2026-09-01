@@ -730,7 +730,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                 config,
                 alternativeCrss(collectionData),
                 decoderContext.getSupportedCrs(),
-                decoderContext.getReadOnlyProperties())));
+                decoderContext.getReadOnlyProperties(),
+                decoderContext.getRejectEmptyValues())));
   }
 
   @Override
@@ -944,14 +945,15 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   // Package-private for unit testing of the GmlConfiguration → decoder-input-profile mapping.
   static FeatureTokenDecoderGmlInputProfile toInputProfile(
       GmlConfiguration config, List<EpsgCrs> alternativeCrss, List<EpsgCrs> supportedCrs) {
-    return toInputProfile(config, alternativeCrss, supportedCrs, Set.of());
+    return toInputProfile(config, alternativeCrss, supportedCrs, Set.of(), false);
   }
 
   static FeatureTokenDecoderGmlInputProfile toInputProfile(
       GmlConfiguration config,
       List<EpsgCrs> alternativeCrss,
       List<EpsgCrs> supportedCrs,
-      Set<String> readOnlyProperties) {
+      Set<String> readOnlyProperties,
+      boolean rejectEmptyValues) {
     Map<String, EpsgCrs> srsNameMappings =
         alternativeCrss.stream()
             .filter(crs -> crs.getAlternativeUri().isPresent())
@@ -975,6 +977,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
         .srsNameMappings(srsNameMappings)
         .supportedCrs(supportedCrs)
         .readOnlyProperties(readOnlyProperties)
+        .rejectEmptyValues(rejectEmptyValues)
         .gmlIdPrefix(Objects.requireNonNullElse(config.getGmlIdPrefix(), ""))
         .codelistProperties(config.getCodelistProperties())
         .featureRefTemplate(Objects.requireNonNullElse(config.getFeatureRefTemplate(), ""))

@@ -5200,6 +5200,22 @@
             }
           ]
         },
+        "rejectEmptyValues": {
+          "title": "rejectEmptyValues",
+          "description": "Option to reject empty values in a transaction. A value is empty, if it is a string    without characters or with only whitespace. The check is only applied to requests with a    `Prefer` header with the value \"handling\u003dstrict\"; it covers the feature payload of every    `insert` and `replace` action as well as every value set by an `update` action, and the    response states the first empty value of the rejected action. Values of other types cannot    be empty, so where schema validation is also active an empty value can only occur in a    string. The payload is checked while it is decoded, so the check needs no schema and is    also applied where none is available; a property the payload omits, or states as null, is    left without a value and is not affected. Because the check rides the decoding rather than    running before the write, an empty value fails the whole action, also under batch    semantics, instead of skipping just the item that carries it.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "updatableProperties": {
           "title": "updatableProperties",
           "description": "Whitelist of feature properties that may be the target of a partial update (the    `wfs:Update` action of a `wfs:Transaction`, or the JSON-transaction `update` action). Each    entry is a property path written as the schema property identifiers joined by `.`, e.g.    `lifetime.end` for a nested property or `name` for a top-level scalar. Path segments are    always the canonical schema identifiers, independent of the input format\u0027s alias setting. A    partial update whose property path is not in this list is rejected with a 4xx error.      Entries set at the API level apply to every collection; entries set on a specific    collection are merged with the API-level list (duplicates de-duplicated). When the    effective list for a collection is empty, partial updates are disabled for that collection.",
@@ -5506,6 +5522,22 @@
         "optimisticLockingLastModified": {
           "title": "optimisticLockingLastModified",
           "description": "Option to enable support for conditional processing of PUT, PATCH, and DELETE requests,    based on the time when the feature was last updated. Such requests must include an    `If-Unmodified-Since` header, otherwise they will be rejected. A feature will only be    changed, if the feature was not changed since the timestamp in the header (or if no last    modification time is known for the feature). The last modification time of a feature is    determined from a feature property with type `DATETIME` for which `isLastModified` is set    to true in the schema in the feature provider.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejectEmptyValues": {
+          "title": "rejectEmptyValues",
+          "description": "Option to reject empty values in the request body of a POST or PUT request. A value is    empty, if it is a string without characters or with only whitespace. The check is only    applied to requests with a `Prefer` header with the value \"handling\u003dstrict\"; such a request    is rejected with HTTP 400 (\"Bad Request\") and the response states the first empty value.    Values of other types cannot be empty, so where schema validation is also active an empty    value can only occur in a string. The check is applied while the request body is decoded,    so it needs no schema and is also applied, if no schema is available for validating the    request body. A property that the request body omits, or states as null, is left without a    value and is not affected.",
           "oneOf": [
             {
               "type": "boolean"

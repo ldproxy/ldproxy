@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
+import de.ii.ogcapi.features.core.domain.EmptyValues;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -76,6 +77,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
+import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerEmptyValues;
 import de.ii.xtraplatform.geometries.domain.Axes;
 import de.ii.xtraplatform.streams.domain.Reactive.Source;
 import jakarta.inject.Inject;
@@ -527,6 +529,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 requestCrs,
                 touchedIdsByCollection,
                 fromWfs,
+                validate,
                 strategy,
                 mutationTimestamp);
         case DELETE ->
@@ -571,6 +574,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     List<String> skippedPayloads = new ArrayList<>();
     List<String> skippedErrors = new ArrayList<>();
 
+    // `validate` is the request's strict-handling preference, so the empty-value check is gated on
+    // it too; unlike schema validation it rides the decoding and needs no schema.
+    boolean rejectEmptyValues = validate && rejectsEmptyValues(apiData, canonicalCollectionId);
     FeatureFormatExtension format = validate ? resolveFormat(action.getMediaType()) : null;
     ValidatorContext vctx =
         validate
@@ -662,7 +668,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 apiData,
                 action.getCollectionId(),
                 requestCrs,
-                axes);
+                axes,
+                rejectEmptyValues);
         if (needsIdOverride) {
           // Composite gml:id was carrying a uniqueness suffix; flush the current batch and write
           // this item on its own with an extra ID role override forcing the canonical id into
@@ -901,7 +908,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
               apiData,
               action.getCollectionId(),
               requestCrs,
-              axes);
+              axes,
+              validate && rejectsEmptyValues(apiData, canonicalCollectionId));
       if (strategy.retiresOnReplace()) {
         // Versioned Replace: retire the open version (`PRIMARY_INTERVAL_END = ts WHERE
         // PRIMARY_INTERVAL_END IS NULL AND startCol < ts [AND startCol = <expectedStart>]`),
@@ -998,6 +1006,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       EpsgCrs requestCrs,
       Map<String, Set<String>> touchedIdsByCollection,
       boolean fromWfs,
+      boolean validate,
       MutationStrategy strategy,
       Instant mutationTimestamp) {
     EpsgCrs crs = requestCrs;
@@ -1040,6 +1049,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     List<FeatureTransactions.PropertyUpdate> updates;
     try {
       updates = buildPropertyUpdates(action, apiData, canonicalCollectionId, fromWfs, crs);
+      if (validate && rejectsEmptyValues(apiData, canonicalCollectionId)) {
+        rejectEmptyValues(updates);
+      }
     } catch (RuntimeException e) {
       // Action-level failure (bad payload, non-whitelisted property, unknown path, etc.) —
       // attribute it to every target id so the log line and the result both name the
@@ -1250,6 +1262,23 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     return ImmutablePropertyUpdate.builder().path(canonicalPath).value(Optional.of(value)).build();
   }
 
+  // A partial update carries the new values themselves rather than a feature payload, so the
+  // empty-value check runs on the resolved values instead of going through the input format. An
+  // explicit delete (`value` absent) sets the property to null, which is not an empty value.
+  // Package-private so a spec can exercise the check on its own (see runAction above).
+  static void rejectEmptyValues(List<FeatureTransactions.PropertyUpdate> updates) {
+    for (FeatureTransactions.PropertyUpdate update : updates) {
+      if (update.getValue().isEmpty()) {
+        continue;
+      }
+      Optional<String> emptyValue = EmptyValues.firstEmptyValue(update.getValue().get());
+      if (emptyValue.isPresent()) {
+        throw FeatureEventHandlerEmptyValues.rejected(
+            EmptyValues.join(String.join(".", update.getPath()), emptyValue.get()));
+      }
+    }
+  }
+
   private static List<String> resolveAndCheck(
       FeatureSchema root,
       List<String> inputPath,
@@ -1271,6 +1300,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
               + "'. Configure the TRANSACTIONS building block's `updatableProperties` to opt in.");
     }
     return canonicalPath;
+  }
+
+  private static boolean rejectsEmptyValues(OgcApiDataV2 apiData, String canonicalCollectionId) {
+    return resolveCollection(apiData, canonicalCollectionId)
+        .getExtension(TransactionsConfiguration.class)
+        .map(TransactionsConfiguration::rejectsEmptyValues)
+        .orElse(false);
   }
 
   private static List<List<String>> updatablePaths(
@@ -1752,7 +1788,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       OgcApiDataV2 apiData,
       String collectionId,
       EpsgCrs crs,
-      Axes axes) {
+      Axes axes,
+      boolean rejectEmptyValues) {
     FeatureFormatExtension format = resolveFormat(contentType);
     FeatureTypeConfigurationOgcApi collectionCfg = resolveCollection(apiData, collectionId);
     FeatureSchema featureSchema =
@@ -1774,6 +1811,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             .supportedCrs(supportedCrs)
             // a body that sets a read-only property is rejected, not silently stripped of the value
             .readOnlyProperties(ReadOnlyProperties.of(featureSchema))
+            // an empty value is rejected while the payload is decoded, so it costs no second parse
+            .rejectEmptyValues(rejectEmptyValues)
             .mediaType(contentType)
             .build();
     return Source.inputStream(body).via(format.getFeatureDecoder(dctx).get());
