@@ -61,4 +61,15 @@ public interface DecoderContext {
   default Set<String> getReadOnlyProperties() {
     return Set.of();
   }
+
+  /**
+   * Whether a value that is a string with no characters or with only whitespace makes the request
+   * body invalid. Set from the {@code rejectEmptyValues} option of the building block that handles
+   * the request, and only ever for {@code Prefer: handling=strict}. The check rides the decoding of
+   * the body, so it costs no second parse of the content.
+   */
+  @Value.Default
+  default boolean getRejectEmptyValues() {
+    return false;
+  }
 }

@@ -37,7 +37,8 @@ public class HeaderPreferFeature extends HeaderPrefer {
   @Override
   public String getDescription() {
     return "'handling=strict' creates or replaces the feature after successful validation. Status 400 is returned, "
-        + "if validation fails. 'handling=lenient' (the default) creates or replaces the feature without validation.";
+        + "if validation fails. Where the 'rejectEmptyValues' option is enabled, a request body with an empty value "
+        + "fails validation, too. 'handling=lenient' (the default) creates or replaces the feature without validation.";
   }
 
   @Override

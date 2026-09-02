@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.transactions.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -26,6 +27,7 @@ import org.immutables.value.Value;
  *   wfsTransaction: false
  *   defaultSemantic: ATOMIC
  *   collectErrors: true
+ *   rejectEmptyValues: true
  * ```
  *
  * Per-collection partial-update whitelist (allows `wfs:Update` / JSON-transaction `update`
@@ -167,6 +169,43 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   Boolean getCollectErrors();
+
+  /**
+   * @langEn Option to reject empty values in a transaction. A value is empty, if it is a string
+   *     without characters or with only whitespace. The check is only applied to requests with a
+   *     `Prefer` header with the value "handling=strict"; it covers the feature payload of every
+   *     `insert` and `replace` action as well as every value set by an `update` action, and the
+   *     response states the first empty value of the rejected action. Values of other types cannot
+   *     be empty, so where schema validation is also active an empty value can only occur in a
+   *     string. The payload is checked while it is decoded, so the check needs no schema and is
+   *     also applied where none is available; a property the payload omits, or states as null, is
+   *     left without a value and is not affected. Because the check rides the decoding rather than
+   *     running before the write, an empty value fails the whole action, also under batch
+   *     semantics, instead of skipping just the item that carries it.
+   * @langDe Option zur Zurückweisung leerer Werte in einer Transaktion. Ein Wert ist leer, wenn es
+   *     eine Zeichenkette ohne Zeichen oder nur mit Leerraum ist. Die Prüfung wird nur auf Anfragen
+   *     mit einem `Prefer`-Header mit dem Wert "handling=strict" angewendet; sie erfasst den
+   *     Feature-Payload jeder `insert`- und `replace`-Aktion sowie jeden von einer `update`-Aktion
+   *     gesetzten Wert, und die Antwort benennt den ersten leeren Wert der zurückgewiesenen Aktion.
+   *     Werte anderer Datentypen können nicht leer sein, d.h. wenn zusätzlich die Schemavalidierung
+   *     aktiv ist, kann ein leerer Wert nur in einer Zeichenkette auftreten. Der Payload wird beim
+   *     Dekodieren geprüft; die Prüfung benötigt daher kein Schema und wird auch angewendet, wenn
+   *     keines verfügbar ist. Eine Eigenschaft, die im Payload fehlt oder als null angegeben ist,
+   *     bleibt ohne Wert und ist nicht betroffen. Da die Prüfung beim Dekodieren und nicht vor dem
+   *     Schreiben erfolgt, scheitert bei einem leeren Wert die gesamte Aktion – auch bei
+   *     Batch-Semantik – statt nur das betroffene Element zu überspringen.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getRejectEmptyValues();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean rejectsEmptyValues() {
+    return Boolean.TRUE.equals(getRejectEmptyValues());
+  }
 
   /**
    * @langEn Whitelist of feature properties that may be the target of a partial update (the

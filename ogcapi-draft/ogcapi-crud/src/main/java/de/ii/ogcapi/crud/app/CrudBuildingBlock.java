@@ -85,6 +85,10 @@ import org.slf4j.LoggerFactory;
  *     header. The validation requires a schema: the building block SCHEMA_VALIDATION for GeoJSON
  *     and JSON-FG, the option "schemaLocations" of the GML building block for GML. Without it, the
  *     request body is not validated and the preference is ignored.
+ *     <p>The option `rejectEmptyValues` adds a second check to "handling=strict": the request is
+ *     rejected, if any value in the request body is an empty string or consists only of whitespace.
+ *     The check is applied while the request body is decoded, so it needs no schema and is also
+ *     applied where the request body cannot be validated against one.
  *     <p>A PUT, PATCH or DELETE request cannot be made conditional on an entity tag: no entity tag
  *     is known for the feature in a request that changes it, so an "If-Match" header cannot be met
  *     and the request is rejected with HTTP 412 ("Precondition Failed"). Use an
@@ -152,6 +156,11 @@ import org.slf4j.LoggerFactory;
  *     Validierung wird ein Schema benötigt: der Baustein SCHEMA_VALIDATION bei GeoJSON und JSON-FG,
  *     die Option "schemaLocations" des GML-Bausteins bei GML. Ohne ein Schema wird der Payload
  *     nicht validiert und die Präferenz ignoriert.
+ *     <p>Die Option `rejectEmptyValues` ergänzt "handling=strict" um eine zweite Prüfung: Die
+ *     Anfrage wird zurückgewiesen, wenn ein Wert im Payload eine leere Zeichenkette ist oder nur
+ *     aus Leerraum besteht. Die Prüfung erfolgt beim Dekodieren des Payloads, benötigt daher kein
+ *     Schema und wird auch angewendet, wenn der Payload nicht gegen ein Schema validiert werden
+ *     kann.
  *     <p>Eine PUT-, PATCH- oder DELETE-Anfrage kann nicht von einem Entity-Tag abhängig gemacht
  *     werden: In einer Anfrage, die ein Feature ändert, ist kein Entity-Tag des Features bekannt,
  *     daher kann ein "If-Match"-Header nicht erfüllt werden und die Anfrage wird mit HTTP 412
