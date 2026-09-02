@@ -164,6 +164,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         io.modelcontextprotocol.server.McpServer.sync(transport)
             .serverInfo(appContext.getName(), appContext.getVersion())
             .capabilities(ServerCapabilities.builder().tools(true).build())
+            .jsonSchemaValidator(new McpJsonSchemaValidator(objectMapper))
             .build();
 
     for (McpTool tool : mcpSchema.getTools()) {
