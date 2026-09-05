@@ -17,6 +17,7 @@ public class OgcApiErrorView extends View {
   public Integer status;
   public String detail;
   public String instance;
+  public String type;
 
   protected OgcApiErrorView(ApiErrorMessage errorMessage) {
     super("/templates/exception.mustache", Charsets.UTF_8);
@@ -24,5 +25,6 @@ public class OgcApiErrorView extends View {
     this.title = errorMessage.getMessage();
     this.detail = errorMessage.getDetails();
     this.instance = errorMessage.getInstance();
+    this.type = errorMessage.getType();
   }
 }

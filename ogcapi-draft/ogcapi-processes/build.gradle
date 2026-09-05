@@ -1,0 +1,13 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = 'ToDo'
+descriptionDe = 'ToDo'
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
+    provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-html'
+}
