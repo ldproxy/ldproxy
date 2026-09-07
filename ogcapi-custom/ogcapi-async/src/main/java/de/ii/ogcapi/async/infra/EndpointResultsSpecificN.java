@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Results (index)
  * @path jobs/{jobId}/results/{outputId}/{N}
- * @langEn Retrieve the Nth value of a specific multivalued processing result
+ * @langEn Retrieve the Nth value of a specific multivalued job result
  * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
  * @ref:formats {@link de.ii.ogcapi.async.domain.format.ValuesFormatExtension}
  */

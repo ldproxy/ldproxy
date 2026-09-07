@@ -18,15 +18,18 @@ import jakarta.inject.Singleton;
 
 /**
  * @title Async
- * @langEn ...
- * @langDe ...
+ * @langEn This helper building block enables async operations to other building blocks. It cannot
+ *     be configured and is automatically enabled when needed.
+ * @langDe Dieser Hilfsbaustein stellt anderen Bausteinen asynchrone Operationen bereit. Er kann
+ *     nicht konfiguriert werden und wird bei Bedarf automatisch aktiviert.
  * @ref:endpoints {@link de.ii.ogcapi.async.infra.EndpointJob}, {@link
  *     de.ii.ogcapi.async.infra.EndpointDismiss}, {@link de.ii.ogcapi.async.infra.EndpointResults},
  *     {@link de.ii.ogcapi.async.infra.EndpointResultsSpecific}, {@link
  *     de.ii.ogcapi.async.infra.EndpointResultsSpecificN}
- * @ref:pathParameters {@link * de.ii.ogcapi.async.app.parameter.PathParameterJobId}, {@link *
- *     de.ii.ogcapi.async.app.parameter.PathParameterOutputId}, {@link *
+ * @ref:pathParameters {@link de.ii.ogcapi.async.app.parameter.PathParameterJobId}, {@link
+ *     de.ii.ogcapi.async.app.parameter.PathParameterOutputId}, {@link
  *     de.ii.ogcapi.async.app.parameter.PathParameterN}
+ * @ref:queryParameters {@link de.ii.ogcapi.processes.domain.parameter.QueryParameterFStatusInfo}
  */
 @Singleton
 @AutoBind
@@ -37,6 +40,7 @@ public class AsyncBuildingBlock implements ApiBuildingBlock {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    // Automatically enable when processes is enabled
     return apiData
         .getExtension(ProcessesCoreConfiguration.class)
         .filter(ProcessesCoreConfiguration::isEnabled)

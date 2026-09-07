@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.parameter.QueryParameterFStatusInfo;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -50,6 +51,12 @@ import java.util.Optional;
  *     Globale Prozessbeschreibungen werden in `values/processes` abgelegt. API-spezifische
  *     Prozessbeschreibungen müssen in `values/processes/{API}` gespeichert werden, wobei `{API}`
  *     mit dem Namen der API ersetzt werden muss.
+ * @asyncEn The async operations are enabled through the helper building block `Async`, which is
+ *     activated automatically. Its documentation, including its endpoints, can be found
+ *     [here](https://docs.ldproxy.net/services/building-blocks/async.html).
+ * @asyncDe Die asynchronen Operationen werden durch den Hilfsbaustein `Async` bereitgestellt, der
+ *     automatisch aktiviert wird. Dessen Dokumentation, einschließlich der Endpunkte, finden Sie
+ *     [hier](https://docs.ldproxy.net/de/services/building-blocks/async.html).
  * @limitationsEn This implementation does not cover all details and has some limitations:
  *     <p><code>
  *  - All inputs must be provided inline. References are not supported.
@@ -62,6 +69,7 @@ import java.util.Optional;
  *  - [Requirement 50](https://docs.ogc.org/DRAFTS/18-062r3.html#_53418543-8dc0-41f2-28df-366acda4d923) ("0-th" result) is not supported.
  *  - Input descriptions do not support [Data classes](https://docs.ogc.org/DRAFTS/18-062r3.html#sc_data_classes), [Data access APIs](https://docs.ogc.org/DRAFTS/18-062r3.html#sc_data_access_APIs) or [Execution unit requirements](https://docs.ogc.org/DRAFTS/18-062r3.html#sc-execution-unit-requirements).
  *  - Output descriptions do not support [Data classes](https://docs.ogc.org/DRAFTS/18-062r3.html#_e1f23667-1a0e-bd37-a05b-c9724b59cb48) or [Data access APIs](https://docs.ogc.org/DRAFTS/18-062r3.html#_e6b07e9e-1559-78f6-c59c-7d7ca363fafb).
+ *  - For technical reasons the async endpoints are found in the [Async](https://docs.ldproxy.net/services/building-blocks/async.html) helper building block, which is automatically enabled for processes.
  *  - The behavior of the `dismiss` endpoint intentionally differs from the draft: instead of removing the job when its state is `successful`, `failed` or `dismissed`, nothing is changed.
  *       </code>
  *     <p>As this API has not been thoroughly tested yet, there is a chance that it may include
@@ -78,6 +86,7 @@ import java.util.Optional;
  *  - [Anforderung 50](https://docs.ogc.org/DRAFTS/18-062r3.html#_53418543-8dc0-41f2-28df-366acda4d923) ("0-th" result) wird nicht unterstützt.
  *  - Eingabebeschreibungen unterstützen keine [Data classes](https://docs.ogc.org/DRAFTS/18-062r3.html#sc_data_classes), [Data access APIs](https://docs.ogc.org/DRAFTS/18-062r3.html#sc_data_access_APIs) oder [Execution unit requirements](https://docs.ogc.org/DRAFTS/18-062r3.html#sc-execution-unit-requirements).
  *  - Ausgabebeschreibungen unterstützen keine [Data classes](https://docs.ogc.org/DRAFTS/18-062r3.html#_e1f23667-1a0e-bd37-a05b-c9724b59cb48) oder [Data access APIs](https://docs.ogc.org/DRAFTS/18-062r3.html#_e6b07e9e-1559-78f6-c59c-7d7ca363fafb).
+ *  - Aus technischen Gründen befinden sich die asynchronen Operationen im Hilfsbaustein [Async](https://docs.ldproxy.net/de/services/building-blocks/async.html), der für Processes automatisch aktiviert wird.
  *  - Das Verhalten des `dismiss`-Endpunkts weicht absichtlich vom Entwurf ab: Anstatt den Job zu entfernen, wenn sein Status `successful`, `failed` oder `dismissed` ist, wird nichts geändert.
  *       </code>
  *     <p>Da diese API noch nicht gründlich getestet wurde, können weitere Einschränkungen und/oder
@@ -96,14 +105,13 @@ import java.util.Optional;
  * @ref:cfgProperties {@link de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.processes.infra.EndpointProcessList}, {@link
  *     de.ii.ogcapi.processes.infra.EndpointProcess}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointExecute} // TODO: add missing endpoints
- * @ref:pathParameters {@link de.ii.ogcapi.processes.app.parameter.PathParameterProcessId} // TODO:
- *     add missing path parameters
+ *     de.ii.ogcapi.processes.infra.EndpointExecute}
+ * @ref:pathParameters {@link de.ii.ogcapi.processes.app.parameter.PathParameterProcessId}
  * @ref:queryParameters {@link de.ii.ogcapi.processes.app.parameter.QueryParameterLimitProcessList},
  *     {@link de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList}, {@link
  *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcess}, {@link
  *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcessList}, {@link
- *     de.ii.ogcapi.processes.app.parameter.QueryParameterFStatusInfo}
+ *     QueryParameterFStatusInfo}
  */
 @Singleton
 @AutoBind
