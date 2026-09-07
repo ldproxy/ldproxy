@@ -40,6 +40,7 @@ import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
@@ -151,7 +152,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     if (job.get().status() != Status.SUCCESSFUL) {
-      throw new IllegalStateException("Status of job '" + jobId + "' is not SUCCESSFUL");
+      throw new BadRequestException("Status of job '" + jobId + "' is not SUCCESSFUL");
     }
 
     // TODO
@@ -190,7 +191,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     Object value = getResultsSpecific(jobId, outputId);
 
     if (!(value instanceof List list)) {
-      throw new IllegalStateException(
+      throw new BadRequestException(
           "The output '" + outputId + "' of job '" + jobId + "' is not an Array");
     } else {
       int size = list.size();
