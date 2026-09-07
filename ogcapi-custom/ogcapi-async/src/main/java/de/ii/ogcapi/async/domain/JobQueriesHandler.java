@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain;
+package de.ii.ogcapi.async.domain;
 
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;

@@ -5,12 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.infra;
+package de.ii.ogcapi.async.infra;
 
-import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
+import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecific;
+import de.ii.ogcapi.async.domain.JobQueriesHandler;
+import de.ii.ogcapi.async.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -26,10 +29,6 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecificN;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -48,23 +47,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title Results (index)
- * @path jobs/{jobId}/results/{outputId}/{N}
- * @langEn Retrieve the Nth value of a specific multivalued processing result
- * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
+ * @title Results (specific)
+ * @path jobs/{jobId}/results/{outputId}
+ * @langEn Retrieve a specific result from the requested processing results
+ * @langDe Ein bestimmtes der angeforderten Job-Ergebnisse abrufen
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
  */
 @Singleton
 @AutoBind
-public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHealth {
+public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecificN.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecific.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
 
   private final JobQueriesHandler queryHandler;
 
   @Inject
-  public EndpointResultsSpecificN(
+  public EndpointResultsSpecific(
       ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
@@ -78,14 +77,14 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
             .apiEntrypoint("jobs")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
 
-    computeDefinitionResultsSpecificN(apiData, definitionBuilder);
+    computeDefinitionResultsSpecific(apiData, definitionBuilder);
 
     return definitionBuilder.build();
   }
 
-  private void computeDefinitionResultsSpecificN(
+  private void computeDefinitionResultsSpecific(
       OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
-    String path = "/jobs/{jobId}/results/{outputId}/{N}";
+    String path = "/jobs/{jobId}/results/{outputId}";
     HttpMethods method = HttpMethods.GET;
 
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
@@ -98,12 +97,11 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Retrieve the Nth value of a specific processing result";
+      String operationSummary = "Retrieve a specific result from the requested processing results";
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Returns the Nth value of a specific processing result identified by `outputId` and `N`. \
-                    The response depends on the negotiated response type and the type of the specific value.
+                    Retrieve a specific result from the requested processing results identified by `outputId`.
                     """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
@@ -119,22 +117,21 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
               operationSummary,
               operationDescription,
               Optional.empty(),
-              getOperationId("getJobResultsSpecificN"),
+              getOperationId("getJobResultsSpecific"),
               GROUP_JOBS_READ,
               TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
+              Optional.empty(),
+              Optional.empty())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
   }
 
   @GET
-  @Path("/{jobId}/results/{outputId}/{N}")
-  public Response getJobResultsSpecificN(
+  @Path("/{jobId}/results/{outputId}")
+  public Response getJobResultsSpecific(
       @PathParam("jobId") String jobId,
       @PathParam("outputId") String outputId,
-      @PathParam("N") int indexN,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
@@ -143,15 +140,14 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
 
     checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputResultsSpecificN queryInput =
-        new ImmutableQueryInputResultsSpecificN.Builder()
+    JobQueriesHandler.QueryInputResultsSpecific queryInput =
+        new ImmutableQueryInputResultsSpecific.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
             .outputId(outputId)
-            .indexN(indexN)
             .build();
 
-    return queryHandler.handle(Query.RESULTS_SPECIFIC_N, queryInput, requestContext);
+    return queryHandler.handle(Query.RESULTS_SPECIFIC, queryInput, requestContext);
   }
 
   @Override
