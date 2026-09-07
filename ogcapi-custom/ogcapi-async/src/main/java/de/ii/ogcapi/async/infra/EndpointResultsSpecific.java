@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecific;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobQueriesHandler.Query;
+import de.ii.ogcapi.async.domain.format.ValuesFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -30,7 +31,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * @path jobs/{jobId}/results/{outputId}
  * @langEn Retrieve a specific result from the requested processing results
  * @langDe Ein bestimmtes der angeforderten Job-Ergebnisse abrufen
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.async.domain.format.ValuesFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -120,6 +120,7 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
               getOperationId("getJobResultsSpecific"),
               GROUP_JOBS_READ,
               TAGS,
+              // TODO
               Optional.empty(),
               Optional.empty())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));

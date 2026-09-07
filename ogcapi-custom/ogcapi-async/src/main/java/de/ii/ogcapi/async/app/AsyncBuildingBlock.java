@@ -24,6 +24,9 @@ import jakarta.inject.Singleton;
  *     de.ii.ogcapi.async.infra.EndpointDismiss}, {@link de.ii.ogcapi.async.infra.EndpointResults},
  *     {@link de.ii.ogcapi.async.infra.EndpointResultsSpecific}, {@link
  *     de.ii.ogcapi.async.infra.EndpointResultsSpecificN}
+ * @ref:pathParameters {@link * de.ii.ogcapi.async.app.parameter.PathParameterJobId}, {@link *
+ *     de.ii.ogcapi.async.app.parameter.PathParameterOutputId}, {@link *
+ *     de.ii.ogcapi.async.app.parameter.PathParameterN}
  */
 @Singleton
 @AutoBind
