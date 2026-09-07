@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.parameter;
+package de.ii.ogcapi.async.app.parameter;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
@@ -15,7 +15,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -92,13 +91,15 @@ public class PathParameterN implements OgcApiPathParameter {
     return ProcessesCoreConfiguration.class;
   }
 
+  // TODO
   @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return ProcessesCoreBuildingBlock.MATURITY;
+    return Optional.empty();
   }
 
+  // TODO
   @Override
   public Optional<ExternalDocumentation> getSpecificationRef() {
-    return ProcessesCoreBuildingBlock.SPEC;
+    return Optional.empty();
   }
 }

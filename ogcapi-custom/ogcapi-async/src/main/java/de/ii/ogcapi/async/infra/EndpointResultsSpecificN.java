@@ -9,11 +9,11 @@ package de.ii.ogcapi.async.infra;
 
 import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
-import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecificN;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobQueriesHandler.Query;
+import de.ii.ogcapi.async.domain.format.ValuesFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -30,7 +30,6 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -51,10 +50,9 @@ import org.slf4j.LoggerFactory;
  * @path jobs/{jobId}/results/{outputId}/{N}
  * @langEn Retrieve the Nth value of a specific multivalued processing result
  * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.async.domain.format.ValuesFormatExtension}
  */
 @Singleton
-@AutoBind
 public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecificN.class);
@@ -121,6 +119,7 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
               getOperationId("getJobResultsSpecificN"),
               GROUP_JOBS_READ,
               TAGS,
+              // TODO
               Optional.empty(),
               Optional.empty())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
