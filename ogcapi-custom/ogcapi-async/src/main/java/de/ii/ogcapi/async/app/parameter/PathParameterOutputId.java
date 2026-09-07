@@ -26,10 +26,10 @@ import java.util.Optional;
 /**
  * @title outputId
  * @endpoints jobs/{jobId}/results/{outputId}, jobs/{jobId}/results/{outputId}/{N}
- * @langEn The identifier of a specific result of a job as described in the `outputs` section of the
- *     executed process description.
- * @langDe Der Bezeichner eines bestimmten Ergebnisses eines Jobs, wie im Abschnitt `outputs` der
- *     Beschreibung des ausgeführten Prozesses angegeben.
+ * @langEn The identifier of a specific result of a job. For processes these are described in the
+ *     `outputs` section of the executed process description.
+ * @langDe Der Bezeichner eines bestimmten Ergebnisses eines Jobs. Für Prozesse lassen sich diese im
+ *     Abschnitt `outputs` der Beschreibung des ausgeführten Prozesses entnehmen.
  */
 @Singleton
 @AutoBind

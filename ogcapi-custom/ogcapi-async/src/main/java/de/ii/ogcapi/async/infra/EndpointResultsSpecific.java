@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Results (specific)
  * @path jobs/{jobId}/results/{outputId}
- * @langEn Retrieve a specific result from the requested processing results
+ * @langEn Retrieve a specific result from the requested job results
  * @langDe Ein bestimmtes der angeforderten Job-Ergebnisse abrufen
  * @ref:formats {@link de.ii.ogcapi.async.domain.format.ValuesFormatExtension}
  */

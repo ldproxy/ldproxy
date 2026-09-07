@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Results (full)
  * @path jobs/{jobId}/results
- * @langEn Retrieve all requested processing results
+ * @langEn Retrieve all requested job results
  * @langDe Alle angeforderten Job-Ergebnisse abrufen
  * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
