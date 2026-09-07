@@ -1,0 +1,8 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = '...'
+descriptionDe = '...'
+
+dependencies {
+    provided 'de.interactive_instruments:ogcapi-processes'
+}
