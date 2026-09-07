@@ -15,24 +15,30 @@ import de.ii.ogcapi.collections.schema.domain.SchemaConfiguration;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.features.core.domain.DecoderContext;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.Query;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.QueryInputFeature;
+import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.features.core.domain.ImmutableDecoderContext;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableValidatorContext;
 import de.ii.ogcapi.features.core.domain.ReadOnlyProperties;
 import de.ii.ogcapi.features.core.domain.ValidatorContext;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileExtension;
+import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
@@ -41,11 +47,13 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureChange;
 import de.ii.xtraplatform.features.domain.FeatureChange.Action;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureTokenSource;
 import de.ii.xtraplatform.features.domain.FeatureTransactions;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
+import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerReadOnly;
 import de.ii.xtraplatform.features.json.domain.FeatureTokenDecoderGeoJson;
@@ -96,6 +104,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
   private final ExtensionRegistry extensionRegistry;
   private final CrsInfo crsInfo;
   private final CrsSupport crsSupport;
+  private final FeaturesQuery queryParser;
   private List<? extends FormatExtension> formats;
 
   @Inject
@@ -105,6 +114,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       CrsInfo crsInfo,
       CrsSupport crsSupport,
       ExtensionRegistry extensionRegistry,
+      FeaturesQuery queryParser,
       VolatileRegistry volatileRegistry) {
     super(CommandHandlerCrud.class.getSimpleName(), volatileRegistry, true);
     this.queriesHandler = queriesHandler;
@@ -112,6 +122,7 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     this.extensionRegistry = extensionRegistry;
     this.crsInfo = crsInfo;
     this.crsSupport = crsSupport;
+    this.queryParser = queryParser;
 
     onVolatileStart();
 
@@ -181,14 +192,29 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       throw new IllegalArgumentException("No features found in input");
     }
 
-    URI location = null;
+    URI uri = null;
     try {
-      location = requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
+      uri = requestContext.getUriCustomizer().copy().ensureLastPathSegment(ids.get(0)).build();
     } catch (URISyntaxException e) {
       // ignore
     }
+    final URI location = uri;
 
-    Response response = Response.created(location).build();
+    Response response =
+        queryInput
+            .getRepresentation()
+            .map(
+                representation ->
+                    representationResponse(
+                        representation,
+                        queryInput,
+                        queryInput.getCollectionId(),
+                        ids.get(0),
+                        queryInput.getFeatureProvider(),
+                        Status.CREATED,
+                        location,
+                        requestContext))
+            .orElseGet(() -> Response.created(location).build());
 
     handleChange(
         queryInput.getFeatureProvider(),
@@ -276,7 +302,20 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return noContent(queryInput, requestContext).build();
+    return queryInput
+        .getRepresentation()
+        .map(
+            representation ->
+                representationResponse(
+                    representation,
+                    queryInput,
+                    queryInput.getCollectionId(),
+                    queryInput.getFeatureId(),
+                    queryInput.getFeatureProvider(),
+                    Status.OK,
+                    null,
+                    requestContext))
+        .orElseGet(() -> noContent(queryInput, requestContext).build());
   }
 
   @Override
@@ -346,7 +385,20 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
         convertTemporalExtentMillisecond(result.getTemporalExtent()),
         Action.UPDATE);
 
-    return noContent(queryInput, requestContext).build();
+    return queryInput
+        .getRepresentation()
+        .map(
+            representation ->
+                representationResponse(
+                    representation,
+                    queryInput,
+                    queryInput.getCollectionId(),
+                    queryInput.getFeatureId(),
+                    queryInput.getFeatureProvider(),
+                    Status.OK,
+                    null,
+                    requestContext))
+        .orElseGet(() -> noContent(queryInput, requestContext).build());
   }
 
   @Override
@@ -526,41 +578,14 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
       QueryInputFeature queryInputFeature,
       QueryParameterSet queryParameterSet,
       ApiRequestContext requestContext) {
+    if (formats == null) {
+      formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
+    }
+
+    URI requestUri;
     try {
-      if (formats == null) {
-        formats = extensionRegistry.getExtensionsForType(FeatureFormatExtension.class);
-      }
-
-      ApiRequestContext requestContextGeoJson =
-          new ImmutableStaticRequestContext.Builder()
-              .from(requestContext)
-              .requestUri(
-                  requestContext
-                      .getUriCustomizer()
-                      .clearParameters()
-                      // query parameters have been evaluated and are not necessary here
-                      .build())
-              .queryParameterSet(queryParameterSet)
-              .mediaType(
-                  new ImmutableApiMediaType.Builder()
-                      .type(new MediaType("application", "geo+json"))
-                      .label("GeoJSON")
-                      .parameter("json")
-                      .build())
-              .alternateMediaTypes(
-                  formats.stream()
-                      .filter(
-                          f ->
-                              f.isEnabledForApi(
-                                  requestContext.getApi().getData(),
-                                  queryInputFeature.getCollectionId()))
-                      .map(FormatExtension::getMediaType)
-                      .filter(
-                          mediaType -> !"geo+json".equalsIgnoreCase(mediaType.type().getSubtype()))
-                      .collect(Collectors.toUnmodifiableSet()))
-              .build();
-
-      return queriesHandler.handle(Query.FEATURE, queryInputFeature, requestContextGeoJson);
+      // query parameters have been evaluated and are not necessary here
+      requestUri = requestContext.getUriCustomizer().clearParameters().build();
     } catch (URISyntaxException e) {
       throw new IllegalStateException(
           String.format(
@@ -568,6 +593,164 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
               e.getMessage()),
           e);
     }
+
+    // the current feature is the target of a JSON Merge Patch document and is used to evaluate the
+    // preconditions of the request, so it is always requested as GeoJSON
+    return getFeature(
+        queryInputFeature,
+        queryParameterSet,
+        new ImmutableApiMediaType.Builder()
+            .type(new MediaType("application", "geo+json"))
+            .label("GeoJSON")
+            .parameter("json")
+            .build(),
+        formats.stream()
+            .filter(
+                f ->
+                    f.isEnabledForApi(
+                        requestContext.getApi().getData(), queryInputFeature.getCollectionId()))
+            .map(FormatExtension::getMediaType)
+            .filter(mediaType -> !"geo+json".equalsIgnoreCase(mediaType.type().getSubtype()))
+            .collect(Collectors.toUnmodifiableSet()),
+        requestUri,
+        requestContext);
+  }
+
+  private @NotNull Response getFeature(
+      QueryInputFeature queryInputFeature,
+      QueryParameterSet queryParameterSet,
+      ApiMediaType mediaType,
+      Set<ApiMediaType> alternateMediaTypes,
+      URI requestUri,
+      ApiRequestContext requestContext) {
+    ApiRequestContext featureRequestContext =
+        new ImmutableStaticRequestContext.Builder()
+            .from(requestContext)
+            .requestUri(requestUri)
+            .queryParameterSet(queryParameterSet)
+            .mediaType(mediaType)
+            .alternateMediaTypes(alternateMediaTypes)
+            .build();
+
+    return queriesHandler.handle(Query.FEATURE, queryInputFeature, featureRequestContext);
+  }
+
+  /**
+   * The response to a request that created or changed a feature, where the client prefers a
+   * representation of the feature in the response body (RFC 7240, 4.2). The representation is the
+   * one that a GET request for the feature returns, so it also includes the values that the server
+   * has assigned.
+   *
+   * @param genericQueryInput the query input of the request, for the generic output options of the
+   *     API; its query options are deliberately not inherited, see the builder below
+   * @param location the URI of the feature for the {@code Location} header, {@code null} if the
+   *     response does not report a new feature
+   * @return the response, {@code null} if the feature is not part of the collection after the
+   *     change - the preference cannot be applied then and the caller answers without a body
+   */
+  private Response representationResponse(
+      Representation representation,
+      QueryInput genericQueryInput,
+      String collectionId,
+      String featureId,
+      FeatureProvider featureProvider,
+      Status status,
+      URI location,
+      ApiRequestContext requestContext) {
+    OgcApiDataV2 apiData = requestContext.getApi().getData();
+    FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+    FeaturesCoreConfiguration coreConfiguration =
+        collectionData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        String.format(
+                            "Features are not supported for collection '%s'.", collectionId)));
+
+    FeatureQuery query =
+        queryParser.requestToFeatureQuery(
+            apiData,
+            collectionData,
+            coreConfiguration.getDefaultEpsgCrs(),
+            coreConfiguration.getCoordinatePrecision(),
+            representation.getQueryParameterSet(),
+            featureId,
+            Optional.of(ETag.Type.STRONG),
+            SchemaBase.Scope.RETURNABLE,
+            representation.getMediaType().matches(MediaType.TEXT_HTML_TYPE));
+
+    Response feature;
+    try {
+      feature =
+          getFeature(
+              new ImmutableQueryInputFeature.Builder()
+                  // the generic output options of the API, but none of the query options of the
+                  // request that changed the feature: the representation is the returnable one,
+                  // not the receivables representation that the request body uses
+                  .includeLinkHeader(genericQueryInput.getIncludeLinkHeader())
+                  .lastModified(genericQueryInput.getLastModified())
+                  .expires(genericQueryInput.getExpires())
+                  .cacheControl(genericQueryInput.getCacheControl())
+                  .collectionId(collectionId)
+                  .featureId(featureId)
+                  .query(query)
+                  .featureProvider(featureProvider)
+                  .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
+                  .profiles(List.of())
+                  .defaultProfilesResource(resolveDefaultProfilesFeaturesCore(coreConfiguration))
+                  .build(),
+              representation.getQueryParameterSet(),
+              representation.getMediaType(),
+              representation.getAlternateMediaTypes(),
+              featureUri(requestContext, featureId),
+              requestContext);
+    } catch (NotFoundException e) {
+      // the change was applied, but the feature is not part of the collection, for example because
+      // a filter of the collection excludes it; a preference is advisory (RFC 7240, 2), so the
+      // request is not answered with an error, but without a representation
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "The feature '{}' of collection '{}' cannot be returned in the response to a request that changed it.",
+            featureId,
+            collectionId);
+      }
+      return null;
+    }
+
+    Response.ResponseBuilder response = Response.fromResponse(feature).status(status);
+
+    if (Objects.nonNull(location)) {
+      response.location(location);
+    }
+
+    return response.build();
+  }
+
+  private static URI featureUri(ApiRequestContext requestContext, String featureId) {
+    try {
+      return requestContext
+          .getUriCustomizer()
+          .copy()
+          .clearParameters()
+          .ensureLastPathSegment(featureId)
+          .build();
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(
+          String.format("Could not construct the URI of the feature. Reason: %s", e.getMessage()),
+          e);
+    }
+  }
+
+  private List<Profile> resolveDefaultProfilesFeaturesCore(
+      FeaturesCoreConfiguration coreConfiguration) {
+    Map<String, String> defaults = coreConfiguration.getDefaultProfiles();
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(
+            p ->
+                defaults.containsKey(p.getProfileSet())
+                    && p.getId().equals(defaults.get(p.getProfileSet())))
+        .toList();
   }
 
   private void handleChange(

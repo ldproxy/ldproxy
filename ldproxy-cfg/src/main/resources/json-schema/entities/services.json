@@ -5550,6 +5550,22 @@
               "type": "null"
             }
           ]
+        },
+        "returnRepresentation": {
+          "title": "returnRepresentation",
+          "description": "Option to enable support for the `return` preference in POST, PUT and PATCH requests. A    request with a `Prefer` header with the value \"return\u003drepresentation\" is answered with a    representation of the created or changed feature in the response body; the status code is    201 (\"Created\") for a new feature, with the URI of the feature in a `Location` header, and    200 (\"OK\") for a changed feature. The representation is the one that a GET request for the    feature returns, in the coordinate reference system of the `Content-Crs` header of the    request, or in the default coordinate reference system of the collection, if the request    does not include the header. The media type of the representation is negotiated with the    `Accept` header of the request among the feature encodings of the collection; a request    without an `Accept` header, or one that accepts any media type, is answered in the media    type of the request body, if the collection supports it. The response reports the applied    preference in a `Preference-Applied` header. Without the option, or in a request with a    `Prefer` header with the value \"return\u003dminimal\", the response has no body: 201 with a    `Location` header for a new feature, 204 (\"No Content\") for a changed feature.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
