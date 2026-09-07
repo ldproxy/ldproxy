@@ -96,12 +96,7 @@ import java.util.Optional;
  * @ref:cfgProperties {@link de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.processes.infra.EndpointProcessList}, {@link
  *     de.ii.ogcapi.processes.infra.EndpointProcess}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointExecute}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointJob}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointDismiss}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointResults}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointResultsSpecific}, {@link
- *     de.ii.ogcapi.processes.infra.EndpointResultsSpecificN}
+ *     de.ii.ogcapi.processes.infra.EndpointExecute}
  * @ref:pathParameters {@link de.ii.ogcapi.processes.app.parameter.PathParameterProcessId}, {@link
  *     de.ii.ogcapi.processes.app.parameter.PathParameterJobId}, {@link
  *     de.ii.ogcapi.processes.app.parameter.PathParameterOutputId}, {@link

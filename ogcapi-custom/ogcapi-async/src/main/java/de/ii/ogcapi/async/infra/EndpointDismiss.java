@@ -5,16 +5,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.infra;
+package de.ii.ogcapi.async.infra;
 
-import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
+import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_DISMISS;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.async.domain.ImmutableQueryInputDismiss;
+import de.ii.ogcapi.async.domain.JobQueriesHandler;
+import de.ii.ogcapi.async.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -26,15 +31,14 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResults;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
+import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
+import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.GET;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -47,25 +51,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title Results (full)
- * @path jobs/{jobId}/results
- * @langEn Retrieve all requested processing results
- * @langDe Alle angeforderten Job-Ergebnisse abrufen
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
+ * @title Dismiss Job
+ * @path jobs/{jobId}
+ * @langEn Dismiss a job. If the job is currently in the accepted or running state, its status is
+ *     set to dismissed. Otherwise, nothing is changed.
+ * @langDe Einen Job abbrechen. Wenn sich der Job aktuell im Zustand "accepted" oder "running"
+ *     befindet, wird sein Status auf "dismissed" gesetzt. Andernfalls wird nichts geändert.
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}
  */
 @Singleton
 @AutoBind
-public class EndpointResults extends Endpoint implements ApiExtensionHealth {
+public class EndpointDismiss extends Endpoint implements ApiExtensionHealth, ConformanceClass {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResults.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointDismiss.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
 
   private final JobQueriesHandler queryHandler;
 
   @Inject
-  public EndpointResults(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
+  public EndpointDismiss(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+  }
+
+  @Override
+  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
+    if (isEnabledForApi(apiData)) {
+      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/dismiss");
+    }
+
+    return ImmutableList.of();
   }
 
   @Override
@@ -74,77 +89,72 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =
         new ImmutableApiEndpointDefinition.Builder()
             .apiEntrypoint("jobs")
-            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_DISMISS);
 
-    computeDefinitionResults(apiData, definitionBuilder);
-
-    return definitionBuilder.build();
-  }
-
-  private void computeDefinitionResults(
-      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
-    String path = "/jobs/{jobId}/results";
-    HttpMethods method = HttpMethods.GET;
+    String path = "/jobs/{jobId}";
+    HttpMethods method = HttpMethods.DELETE;
 
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
 
     if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
       LOGGER.error(
-          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
+          "Path parameter 'jobId' missing for resource at path '{}'. The DELETE method will not be available.",
           path);
     } else {
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Retrieve all requested processing results";
+      String operationSummary = "Dismiss a job";
       Optional<String> operationDescription =
           Optional.of(
-              """
-                    Returns the results for the job specified by `jobId`.
-                    """);
+              "If the job is currently in the accepted or running state, its status is set to dismissed. Otherwise, nothing is changed.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
-      ApiOperation.getResource(
-              apiData,
+      ApiOperation.of(
               path,
-              false,
+              HttpMethods.DELETE,
+              ImmutableMap.of(),
               queryParameters,
               ImmutableList.of(),
-              getResponseContent(apiData),
               operationSummary,
               operationDescription,
               Optional.empty(),
-              getOperationId("getJobResults"),
-              GROUP_JOBS_READ,
+              getOperationId("dismissJob"),
+              GROUP_JOBS_DISMISS,
               TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
+              Optional.empty(),
+              Optional.empty(),
+              false)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
+
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
+
+    return definitionBuilder.build();
   }
 
-  @GET
-  @Path("/{jobId}/results")
-  public Response getJobResults(
+  @DELETE
+  @Path("/{jobId}")
+  public Response dismissJob(
       @PathParam("jobId") String jobId,
+      @Auth Optional<User> optionalUser,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
     if (!isEnabledForApi(api.getData()))
       throw new NotFoundException("Processes are not available in this API.");
 
-    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
+    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputResults queryInput =
-        new ImmutableQueryInputResults.Builder()
+    JobQueriesHandler.QueryInputDismiss queryInput =
+        new ImmutableQueryInputDismiss.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
             .build();
 
-    return queryHandler.handle(JobQueriesHandler.Query.RESULTS, queryInput, requestContext);
+    return queryHandler.handle(Query.DISMISS, queryInput, requestContext);
   }
 
   @Override
@@ -155,7 +165,7 @@ public class EndpointResults extends Endpoint implements ApiExtensionHealth {
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class);
     return formats;
   }
 

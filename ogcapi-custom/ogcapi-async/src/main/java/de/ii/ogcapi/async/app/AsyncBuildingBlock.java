@@ -20,6 +20,10 @@ import jakarta.inject.Singleton;
  * @title Async
  * @langEn ...
  * @langDe ...
+ * @ref:endpoints {@link de.ii.ogcapi.async.infra.EndpointJob}, {@link
+ *     de.ii.ogcapi.async.infra.EndpointDismiss}, {@link de.ii.ogcapi.async.infra.EndpointResults},
+ *     {@link de.ii.ogcapi.async.infra.EndpointResultsSpecific}, {@link
+ *     de.ii.ogcapi.async.infra.EndpointResultsSpecificN}
  */
 @Singleton
 @AutoBind
