@@ -5,12 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.infra;
+package de.ii.ogcapi.async.infra;
 
-import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
+import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.domain.ImmutableQueryInputResults;
+import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -26,12 +28,8 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputResultsSpecific;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler.Query;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.ValuesFormatExtension;
+import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -48,24 +46,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @title Results (specific)
- * @path jobs/{jobId}/results/{outputId}
- * @langEn Retrieve a specific result from the requested processing results
- * @langDe Ein bestimmtes der angeforderten Job-Ergebnisse abrufen
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ValuesFormatExtension}
+ * @title Results (full)
+ * @path jobs/{jobId}/results
+ * @langEn Retrieve all requested processing results
+ * @langDe Alle angeforderten Job-Ergebnisse abrufen
+ * @ref:formats {@link de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
  */
 @Singleton
 @AutoBind
-public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHealth {
+public class EndpointResults extends Endpoint implements ApiExtensionHealth {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecific.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResults.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
 
   private final JobQueriesHandler queryHandler;
 
   @Inject
-  public EndpointResultsSpecific(
-      ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
+  public EndpointResults(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
   }
@@ -78,14 +75,14 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
             .apiEntrypoint("jobs")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
 
-    computeDefinitionResultsSpecific(apiData, definitionBuilder);
+    computeDefinitionResults(apiData, definitionBuilder);
 
     return definitionBuilder.build();
   }
 
-  private void computeDefinitionResultsSpecific(
+  private void computeDefinitionResults(
       OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
-    String path = "/jobs/{jobId}/results/{outputId}";
+    String path = "/jobs/{jobId}/results";
     HttpMethods method = HttpMethods.GET;
 
     List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
@@ -98,11 +95,11 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
       List<OgcApiQueryParameter> queryParameters =
           getQueryParameters(extensionRegistry, apiData, path);
 
-      String operationSummary = "Retrieve a specific result from the requested processing results";
+      String operationSummary = "Retrieve all requested processing results";
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Retrieve a specific result from the requested processing results identified by `outputId`.
+                    Returns the results for the job specified by `jobId`.
                     """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
@@ -118,21 +115,20 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
               operationSummary,
               operationDescription,
               Optional.empty(),
-              getOperationId("getJobResultsSpecific"),
+              getOperationId("getJobResults"),
               GROUP_JOBS_READ,
               TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
+              Optional.empty(),
+              Optional.empty())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
   }
 
   @GET
-  @Path("/{jobId}/results/{outputId}")
-  public Response getJobResultsSpecific(
+  @Path("/{jobId}/results")
+  public Response getJobResults(
       @PathParam("jobId") String jobId,
-      @PathParam("outputId") String outputId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
 
@@ -141,14 +137,13 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
 
     checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
 
-    JobQueriesHandler.QueryInputResultsSpecific queryInput =
-        new ImmutableQueryInputResultsSpecific.Builder()
+    JobQueriesHandler.QueryInputResults queryInput =
+        new ImmutableQueryInputResults.Builder()
             .from(getGenericQueryInput(api.getData()))
             .jobId(jobId)
-            .outputId(outputId)
             .build();
 
-    return queryHandler.handle(Query.RESULTS_SPECIFIC, queryInput, requestContext);
+    return queryHandler.handle(JobQueriesHandler.Query.RESULTS, queryInput, requestContext);
   }
 
   @Override
@@ -159,7 +154,7 @@ public class EndpointResultsSpecific extends Endpoint implements ApiExtensionHea
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
     if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ValuesFormatExtension.class);
+      formats = extensionRegistry.getExtensionsForType(ResultsFormatExtension.class);
     return formats;
   }
 

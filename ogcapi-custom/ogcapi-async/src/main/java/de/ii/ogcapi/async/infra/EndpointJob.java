@@ -5,12 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.infra;
+package de.ii.ogcapi.async.infra;
 
-import static de.ii.ogcapi.processes.domain.JobQueriesHandler.GROUP_JOBS_READ;
+import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.domain.ImmutableQueryInputJob;
+import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
@@ -26,9 +28,6 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
-import de.ii.ogcapi.processes.domain.ImmutableQueryInputJob;
-import de.ii.ogcapi.processes.domain.JobQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
@@ -109,8 +108,8 @@ public class EndpointJob extends Endpoint implements ApiExtensionHealth {
               getOperationId("getJob"),
               GROUP_JOBS_READ,
               TAGS,
-              ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC)
+              Optional.empty(),
+              Optional.empty())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }
