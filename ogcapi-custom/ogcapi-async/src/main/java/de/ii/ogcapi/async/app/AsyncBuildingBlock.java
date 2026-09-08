@@ -29,7 +29,7 @@ import jakarta.inject.Singleton;
  * @ref:pathParameters {@link de.ii.ogcapi.async.app.parameter.PathParameterJobId}, {@link
  *     de.ii.ogcapi.async.app.parameter.PathParameterOutputId}, {@link
  *     de.ii.ogcapi.async.app.parameter.PathParameterN}
- * @ref:queryParameters {@link de.ii.ogcapi.processes.domain.parameter.QueryParameterFStatusInfo}
+ * @ref:queryParameters {@link de.ii.ogcapi.async.app.parameter.QueryParameterFStatusInfoAsync}
  */
 @Singleton
 @AutoBind
