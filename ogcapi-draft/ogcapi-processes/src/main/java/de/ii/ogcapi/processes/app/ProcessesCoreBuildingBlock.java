@@ -33,9 +33,9 @@ import java.util.Optional;
  *     <p>This building block supports both synchronous and asynchronous execution of processes.
  *     Using the [configuration](#configuration), it is possible to limit support to only
  *     synchronous or asynchronous execution, or to support both modes.
- *     <p>For technical reasons the async operations are enabled through the helper building block
- *     `Async`, which is activated automatically. Its documentation, including its endpoints, can be
- *     found [here](https://docs.ldproxy.net/services/building-blocks/async.html).
+ *     <p><b>Important</b>: The async endpoints (`/jobs/...`) are enabled through the helper
+ *     building block [Async](.../async.html), which is activated automatically. Read its
+ *     documentation for further information about the asynchronous endpoints.
  *     <p>Some limitations apply; see the [Limitations](#limitations) section.
  * @scopeDe *Processes* ermöglicht die Beschreibung, den Abruf und die Ausführung von Prozessen.
  *     <p>Prozessbeschreibungen werden mithilfe der Anforderungsklasse [OGC PROCESS
@@ -44,10 +44,9 @@ import java.util.Optional;
  *     <p>Dieser Baustein unterstützt sowohl synchrone als auch asynchrone Ausführung von Prozessen.
  *     Über die [Konfiguration](#konfiguration) kann die Unterstützung auf nur synchrone oder
  *     asynchrone Ausführung beschränkt oder beide Modi aktiviert werden.
- *     <p>Als technisches Gründen werden die asynchronen Operationen durch den Hilfsbaustein `Async`
- *     bereitgestellt, der automatisch aktiviert wird. Dessen Dokumentation, einschließlich der
- *     Endpunkte, finden Sie
- *     [hier](https://docs.ldproxy.net/de/services/building-blocks/async.html).
+ *     <p><b>Wichtig</b>: Die asynchronen Operationen (`/jobs/...`) werden über den Hilfsbaustein
+ *     [Async](.../async.html) aktiviert, der automatisch aktiviert wird. Lesen Sie dessen
+ *     Dokumentation für weitere Informationen zu den asynchronen Endpunkten.
  *     <p>Es gelten einige Einschränkungen; siehe den Abschnitt [Einschränkungen](#limitierungen).
  * @storageEn Process descriptions are stored locally as `values` using the
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html). Global
