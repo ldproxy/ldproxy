@@ -16,7 +16,6 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.parameter.QueryParameterFStatusInfo;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -109,7 +108,7 @@ import java.util.Optional;
  *     {@link de.ii.ogcapi.processes.app.parameter.QueryParameterOffsetProcessList}, {@link
  *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcess}, {@link
  *     de.ii.ogcapi.processes.app.parameter.QueryParameterFProcessList}, {@link
- *     QueryParameterFStatusInfo}
+ *     de.ii.ogcapi.processes.app.parameter.QueryParameterFStatusInfo}
  */
 @Singleton
 @AutoBind
