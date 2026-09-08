@@ -20,6 +20,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
@@ -35,17 +36,22 @@ import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
 import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
 import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
+import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.core.EntityTag;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -239,10 +245,23 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     StatusInfoResponse statusInfoResponse =
         new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
 
+    Date lastModified = getLastModified(queryInput);
+    EntityTag etag =
+        !MediaType.TEXT_HTML_TYPE.equals(outputFormat.getMediaType().type())
+                || api.getData()
+                    .getExtension(HtmlConfiguration.class)
+                    .map(HtmlConfiguration::getSendEtags)
+                    .orElse(false)
+            ? ETag.from(
+                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
+            : null;
+    Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
+    if (Objects.nonNull(response)) return response.build();
+
     return prepareSuccessResponse(
             requestContext,
             queryInput.getIncludeLinkHeader() ? links : null,
-            HeaderCaching.of(null, null, queryInput),
+            HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
                 String.format(
