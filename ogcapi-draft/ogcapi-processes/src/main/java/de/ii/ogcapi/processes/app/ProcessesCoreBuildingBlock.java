@@ -44,8 +44,8 @@ import java.util.Optional;
  *     Über die [Konfiguration](#konfiguration) kann die Unterstützung auf nur synchrone oder
  *     asynchrone Ausführung beschränkt oder beide Modi aktiviert werden.
  *     <p><b>Wichtig</b>: Die asynchronen Operationen (`/jobs/...`) werden über den Hilfsbaustein
- *     [Async](./async.html) aktiviert, der automatisch aktiviert wird. Lesen Sie dessen
- *     Dokumentation für weitere Informationen zu den asynchronen Endpunkten.
+ *     [Async](./async.html) zur Verfügung gestellt, der automatisch aktiviert wird. Lesen Sie
+ *     dessen Dokumentation für weitere Informationen zu den asynchronen Operationen.
  *     <p>Es gelten einige Einschränkungen; siehe den Abschnitt [Einschränkungen](#limitierungen).
  * @storageEn Process descriptions are stored locally as `values` using the
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html). Global
