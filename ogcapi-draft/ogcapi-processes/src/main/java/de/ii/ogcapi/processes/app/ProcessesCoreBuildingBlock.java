@@ -33,7 +33,7 @@ import java.util.Optional;
  *     Using the [configuration](#configuration), it is possible to limit support to only
  *     synchronous or asynchronous execution, or to support both modes.
  *     <p><b>Important</b>: The async endpoints (`/jobs/...`) are enabled through the helper
- *     building block [Async](../async.html), which is activated automatically. Read its
+ *     building block [Async](./async.html), which is activated automatically. Read its
  *     documentation for further information about the asynchronous endpoints.
  *     <p>Some limitations apply; see the [Limitations](#limitations) section.
  * @scopeDe *Processes* ermöglicht die Beschreibung, den Abruf und die Ausführung von Prozessen.
@@ -44,7 +44,7 @@ import java.util.Optional;
  *     Über die [Konfiguration](#konfiguration) kann die Unterstützung auf nur synchrone oder
  *     asynchrone Ausführung beschränkt oder beide Modi aktiviert werden.
  *     <p><b>Wichtig</b>: Die asynchronen Operationen (`/jobs/...`) werden über den Hilfsbaustein
- *     [Async](../async.html) aktiviert, der automatisch aktiviert wird. Lesen Sie dessen
+ *     [Async](./async.html) aktiviert, der automatisch aktiviert wird. Lesen Sie dessen
  *     Dokumentation für weitere Informationen zu den asynchronen Endpunkten.
  *     <p>Es gelten einige Einschränkungen; siehe den Abschnitt [Einschränkungen](#limitierungen).
  * @storageEn Process descriptions are stored locally as `values` using the
