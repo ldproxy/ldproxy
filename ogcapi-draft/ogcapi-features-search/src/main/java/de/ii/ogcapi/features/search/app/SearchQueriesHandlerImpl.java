@@ -1037,7 +1037,10 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                 resultSets.put(
                     name,
                     new ResultSetResolver.ResolvedResultSet(
-                        subQuery.getType(), resolvedFilter, definition.getValues()));
+                        subQuery.getType(),
+                        resolvedFilter,
+                        definition.getValues(),
+                        definition.getKey()));
               });
     }
 

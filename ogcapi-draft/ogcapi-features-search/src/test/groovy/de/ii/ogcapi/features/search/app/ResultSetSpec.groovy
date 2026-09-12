@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.search.app
 import de.ii.ogcapi.features.search.domain.QueryExpression
 import de.ii.xtraplatform.cql.domain.Eq
 import de.ii.xtraplatform.cql.domain.InResultSet
+import de.ii.xtraplatform.cql.domain.InResultSetByKey
 import de.ii.xtraplatform.cql.domain.Property
 import de.ii.xtraplatform.cql.domain.ScalarLiteral
 import jakarta.ws.rs.BadRequestException
@@ -116,7 +117,7 @@ class ResultSetSpec extends Specification {
         given:
         def producerFilter = Eq.of(Property.of("flstkennz"), ScalarLiteral.of("01234001600099______"))
         def resultSets = [
-                "flst": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.of(producerFilter), Optional.empty())
+                "flst": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.of(producerFilter), Optional.empty(), [:])
         ]
         def filter = InResultSet.of("dientZurDarstellungVon", "flst")
 
@@ -140,6 +141,125 @@ class ResultSetSpec extends Specification {
         then:
         def e = thrown BadRequestException
         e.message.contains("unknown")
+    }
+
+    def 'a query expression can define a composite-key result set'() {
+        given:
+        String json = """
+        {
+            "title": "Gemeinden der ausgewählten Flurstücke",
+            "queries": [
+                {
+                    "collections": [ "ax_flurstueck" ],
+                    "resultSets": {
+                        "fs_gemeinde": { "key": { "land": "gmd_lan", "kreis": "gmd_krs" } }
+                    }
+                },
+                {
+                    "collections": [ "ax_gemeinde" ],
+                    "filter": {
+                        "op": "inResultSetByKey",
+                        "args": [ { "land": { "property": "gkz_lan" }, "kreis": { "property": "gkz_krs" } }, "fs_gemeinde" ]
+                    }
+                }
+            ]
+        }
+        """
+
+        when:
+        QueryExpression query = QueryExpression.of(new ByteArrayInputStream(json.getBytes("UTF-8")))
+
+        then:
+        query.getQueries().get(0).getAllResultSets().get("fs_gemeinde").getKey() == [land: "gmd_lan", kreis: "gmd_krs"]
+        query.getQueries().get(0).getAllResultSets().get("fs_gemeinde").getValues().isEmpty()
+        query.getQueries().get(1).getFilter().get() instanceof InResultSetByKey
+    }
+
+    def 'the resolver attaches the producer key'() {
+        given:
+        def resultSets = [
+                "fs_gemeinde": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.empty(),
+                        Optional.empty(), [land: "gmd_lan", kreis: "gmd_krs"])
+        ]
+        def filter = InResultSetByKey.of([land: Property.of("gkz_lan"), kreis: Property.of("gkz_krs")], "fs_gemeinde")
+
+        when:
+        def resolved = (InResultSetByKey) filter.accept(new ResultSetResolver(resultSets))
+
+        then:
+        resolved.getProducerType() == Optional.of("ax_flurstueck")
+        resolved.getProducerKey() == [land: "gmd_lan", kreis: "gmd_krs"]
+        resolved.getKeyNames() == ["kreis", "land"]
+        resolved.getArgs() == filter.getArgs()
+    }
+
+    def 'key parts that the result set does not define are rejected'() {
+        given:
+        def resultSets = [
+                "fs_gemeinde": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.empty(),
+                        Optional.empty(), [land: "gmd_lan", kreis: "gmd_krs"])
+        ]
+        def filter = InResultSetByKey.of([land: Property.of("gkz_lan"), gemeinde: Property.of("gkz_gem")], "fs_gemeinde")
+
+        when:
+        filter.accept(new ResultSetResolver(resultSets))
+
+        then:
+        def e = thrown BadRequestException
+        e.message.contains("gemeinde")
+        e.message.contains("kreis")
+    }
+
+    def 'a value set cannot be consumed as a key set'() {
+        given:
+        def resultSets = [
+                "flst": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.empty(), Optional.empty(), [:])
+        ]
+        def filter = InResultSetByKey.of([land: Property.of("gkz_lan")], "flst")
+
+        when:
+        filter.accept(new ResultSetResolver(resultSets))
+
+        then:
+        def e = thrown BadRequestException
+        e.message.contains("set of single values")
+    }
+
+    def 'a key set cannot be consumed as a value set'() {
+        given:
+        def resultSets = [
+                "fs_gemeinde": new ResultSetResolver.ResolvedResultSet("ax_flurstueck", Optional.empty(),
+                        Optional.empty(), [land: "gmd_lan"])
+        ]
+        def filter = InResultSet.of("gkz_lan", "fs_gemeinde")
+
+        when:
+        filter.accept(new ResultSetResolver(resultSets))
+
+        then:
+        def e = thrown BadRequestException
+        e.message.contains("set of composite keys")
+    }
+
+    def 'a result set is either values or a key, not both'() {
+        given:
+        String json = """
+        {
+            "queries": [
+                {
+                    "collections": [ "ax_flurstueck" ],
+                    "resultSets": { "x": { "values": "istGebucht", "key": { "land": "gmd_lan" } } }
+                },
+                { "collections": [ "ax_gemeinde" ] }
+            ]
+        }
+        """
+
+        when:
+        QueryExpression.of(new ByteArrayInputStream(json.getBytes("UTF-8")))
+
+        then:
+        thrown Exception
     }
 
     def 'other filters pass through the resolver unchanged'() {
