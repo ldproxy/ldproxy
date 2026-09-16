@@ -4,7 +4,7 @@ when:
 steps:
 
   code:
-    image: eclipse-temurin:17@sha256:a27c79d44326d5f689668df5fedfee487652066d2a91e172747056cc7fbee6fc
+    image: eclipse-temurin:17@sha256:ae2c9bba3a33443eb9e0a6afd8bd67e7c3d4999eb3d838f629178e633bf12a8f
     environment:
       - DOCS_VERSION=next
     commands:
