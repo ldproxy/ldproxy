@@ -53,12 +53,20 @@ import java.util.Optional;
  *     object: if it is empty, the result set consists of the ids of the features selected by the
  *     query; with a member "values" naming a property, it consists of the ids referenced by that
  *     property of the selected features. "resultSet" with a name is a shorthand for a single
- *     result set of the selected ids.
+ *     result set of the selected ids. With a member "key" instead, the result set consists of
+ *     composite keys: one member per key part, mapping the name of the part to the property of the
+ *     queried collection that holds it. A result set has either "values" or "key", not both.
  * - A later query can select features that are related to a result set with the CQL2 predicate
  *     `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in its "filter". The
  *     predicate behaves like an IN expression (single values) or an A_OVERLAPS expression (arrays)
  *     against the object ids in the result set. A result set can only be referenced by queries
  *     that follow the declaring query.
+ * - A composite-key result set is consumed with the CQL2 predicate `{"op": "inResultSetByKey",
+ *     "args": [ { "<part>": { "property": "..." }, ... }, "name" ]}`. The key names the same parts
+ *     as the declaring query and maps each to the property of this collection that holds it, so
+ *     the parts are matched by name and their order does not matter. Every part of the key must be
+ *     a property on the main table of the feature type, on both sides. The predicate has no
+ *     CQL2-Text encoding and can only be used in a query expression.
  * - With "resultSetOnly": true, a query only declares its result sets; it contributes no
  *     features to the response and is excluded from "numberMatched" and "numberReturned".
  *     </code>
@@ -158,8 +166,9 @@ import java.util.Optional;
  * - Der Wert von "properties" ist ein Array mit den Namen der Eigenschaften, die in die Antwort aufgenommen werden sollen. Siehe den [Projections-Baustein](projections.md).
  * - Der Wert von "excludeProperties" ist ein Array mit den Namen der Eigenschaften, die aus der Antwort ausgeschlossen werden sollen. Die von "properties" ausgewählten Eigenschaften (alle Eigenschaften, wenn es fehlt) werden ohne sie zurückgegeben. Der Ausschluss einer Eigenschaft, die die abgefragte Collection nicht hat, bleibt ohne Wirkung.
  * - Der Wert von "sortby" wird zum Sortieren der Merkmale in der Antwort verwendet. Siehe den [Sorting-Baustein](sorting.md).
- * - Der Wert von "resultSets" ist ein Objekt, das benannte Result-Sets deklariert. Jeder Wert ist ein Objekt: Ist es leer, besteht das Result-Set aus den IDs der von der Abfrage selektierten Features; mit einem Member "values", das eine Eigenschaft benennt, besteht es aus den IDs, die von dieser Eigenschaft der selektierten Features referenziert werden. "resultSet" mit einem Namen ist eine Kurzform für ein einzelnes Result-Set der selektierten IDs.
+ * - Der Wert von "resultSets" ist ein Objekt, das benannte Result-Sets deklariert. Jeder Wert ist ein Objekt: Ist es leer, besteht das Result-Set aus den IDs der von der Abfrage selektierten Features; mit einem Member "values", das eine Eigenschaft benennt, besteht es aus den IDs, die von dieser Eigenschaft der selektierten Features referenziert werden. "resultSet" mit einem Namen ist eine Kurzform für ein einzelnes Result-Set der selektierten IDs. Mit einem Member "key" statt dessen besteht das Result-Set aus zusammengesetzten Schlüsseln: je Schlüsselteil ein Member, das den Namen des Teils auf die Eigenschaft der abgefragten Collection abbildet, die ihn enthält. Ein Result-Set hat entweder "values" oder "key", nicht beides.
  * - Eine spätere Abfrage kann Features selektieren, die mit einem Result-Set in Beziehung stehen, und zwar mit dem CQL2-Prädikat `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in ihrem "filter". Das Prädikat verhält sich wie ein IN-Ausdruck (einzelne Werte) bzw. wie ein A_OVERLAPS-Ausdruck (Arrays) gegen die Objekt-IDs im Result-Set. Ein Result-Set kann nur von Abfragen referenziert werden, die auf die deklarierende Abfrage folgen.
+ * - Ein Result-Set mit zusammengesetztem Schlüssel wird mit dem CQL2-Prädikat `{"op": "inResultSetByKey", "args": [ { "<teil>": { "property": "..." }, ... }, "name" ]}` konsumiert. Der Schlüssel benennt dieselben Teile wie die deklarierende Abfrage und bildet jeden auf die Eigenschaft dieser Collection ab, die ihn enthält; die Teile werden also über den Namen zugeordnet, ihre Reihenfolge spielt keine Rolle. Jeder Schlüsselteil muss auf beiden Seiten eine Eigenschaft der Haupttabelle der Objektart sein. Das Prädikat hat keine CQL2-Text-Kodierung und ist nur in einer Query Expression verwendbar.
  * - Mit "resultSetOnly": true deklariert eine Abfrage nur ihre Result-Sets; sie trägt keine Features zur Antwort bei und wird in "numberMatched" und "numberReturned" nicht berücksichtigt.
  *     </code>
  *     <p>Für mehrere Abfragen:
