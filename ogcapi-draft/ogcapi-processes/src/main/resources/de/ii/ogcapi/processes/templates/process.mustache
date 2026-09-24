@@ -1,0 +1,76 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+
+  {{#process}}
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{idTitle}}</div>
+      <div class="col-md-10">{{id}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">Version</div>
+      <div class="col-md-10">{{version}}</div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{jobControlOptionsTitle}}</div>
+      <div class="col-md-10">
+        {{#jobControlOptions}}
+          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
+        {{/jobControlOptions}}
+        {{^jobControlOptions}}{{none}}{{/jobControlOptions}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{titleTitle}}</div>
+      <div class="col-md-10">
+        {{#title}}{{.}}{{/title}}{{^title}}{{none}}{{/title}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{descriptionTitle}}</div>
+      <div class="col-md-10">
+        {{#description}}{{{.}}}{{/description}}{{^description}}{{none}}{{/description}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{keywordsTitle}}</div>
+      <div class="col-md-10">
+        {{#keywords}}
+          {{#.}}{{.}}{{^-last}}, {{/-last}}{{/.}}
+        {{/keywords}}
+        {{^keywords}}{{none}}{{/keywords}}
+      </div>
+    </div>
+
+    <div class="row my-3">
+      <div class="col-md-2 font-weight-bold">{{metadataTitle}}</div>
+      <div class="col-md-10">
+        {{#metadata}}
+          {{#.}}
+            <div class="row">
+              <div class="col-md-10">{{#role}}Role: {{.}}{{/role}}</div>
+            </div>
+            <div class="row">
+              <div class="col-md-10">{{#title}}Title: {{.}}{{/title}}</div>
+            </div>
+            <div class="row">
+              <div class="col-md-10">{{#lang}}Lang: {{.}}{{/lang}}</div>
+            </div>
+            <hr>
+          {{/.}}
+        {{/metadata}}
+        {{^metadata}}{{none}}{{/metadata}}
+      </div>
+    </div>
+
+  {{/process}}
+</div>
+
+
+{{> footer}}
