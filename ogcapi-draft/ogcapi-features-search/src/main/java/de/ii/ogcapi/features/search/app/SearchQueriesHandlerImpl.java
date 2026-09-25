@@ -94,6 +94,7 @@ import de.ii.xtraplatform.features.domain.SortKey.Direction;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.TypeQuery;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
+import de.ii.xtraplatform.geometries.domain.GeometryType;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaAny;
 import de.ii.xtraplatform.streams.domain.OutputStreamToByteConsumer;
@@ -762,6 +763,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       }
     }
 
+    query =
+        forceSimpleFeatureGeometryIfRequired(
+            query,
+            outputFormat.isRestrictedToSimpleFeaturesGeometries(profiles),
+            featureProvider.info().getGeometryTypes());
+
     EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
     List<ApiMediaType> alternateMediaTypes =
         htmlSupported
@@ -872,6 +879,31 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                     .filter(Objects::nonNull))
         .distinct()
         .toList();
+  }
+
+  // A format restricted to Simple Features geometries cannot encode curves, so the provider has to
+  // linearize them in every sub-query, as for the features resources.
+  static MultiFeatureQuery forceSimpleFeatureGeometryIfRequired(
+      MultiFeatureQuery query,
+      boolean restrictedToSimpleFeaturesGeometries,
+      Set<GeometryType> geometryTypes) {
+    if (!restrictedToSimpleFeaturesGeometries
+        || GeometryType.onlySimpleFeatureGeometries(geometryTypes)) {
+      return query;
+    }
+    return ImmutableMultiFeatureQuery.builder()
+        .from(query)
+        .queries(
+            query.getQueries().stream()
+                .map(
+                    subQuery ->
+                        (SubQuery)
+                            ImmutableSubQuery.builder()
+                                .from(subQuery)
+                                .forceSimpleFeatureGeometry(true)
+                                .build())
+                .toList())
+        .build();
   }
 
   private static Optional<EpsgCrs> crsFromProfile(
