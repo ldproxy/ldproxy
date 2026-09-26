@@ -4088,7 +4088,7 @@
         },
         "geometryProperties": {
           "title": "geometryProperties",
-          "description": "This option works only for CesiumJS as map client. By default, the geometry identified    in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option    allows multiple geometry properties to be specified in a list. The first geometry property    set for a feature will be used.",
+          "description": "*Deprecated* This option has no effect anymore. The geometry with the role    `PRIMARY_GEOMETRY` in the provider schema is used for the representation on the map.",
           "deprecated": true,
           "allOf": [
             {

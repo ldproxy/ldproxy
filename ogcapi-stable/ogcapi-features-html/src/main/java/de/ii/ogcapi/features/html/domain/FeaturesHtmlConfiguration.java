@@ -62,18 +62,6 @@ import org.immutables.value.Value;
  *       codelist: loc
  * ```
  *     </code>
- *     <p>Example of using CesiumJS for building data that is partially composed of building
- *     components. The floor slab is used as a fallback:
- *     <p><code>
- * ```yaml
- * - buildingBlock: FEATURES_HTML
- *   mapClientType: CESIUM
- *   geometryProperties:
- *   - consistsOfBuildingPart.lod1Solid
- *   - lod1Solid
- *   - lod1GroundSurface
- * ```
- *     </code>
  * @examplesDe Beispiel für die Angaben in der Konfigurationsdatei für die gesamte API (aus der API
  *     für [Topographische Daten in Daraa, Syrien](https://demo.ldproxy.net/daraa)):
  *     <p><code>
@@ -107,18 +95,6 @@ import org.immutables.value.Value;
  *       codelist: rle
  *     LOC:
  *       codelist: loc
- * ```
- *     </code>
- *     <p>Beispiel für die Verwendung von CesiumJS für Gebäudedaten, die teilweise aus Bauteilen
- *     zusammengesetzt sind. Als Fallback wird die Bodenplatte verwendet:
- *     <p><code>
- * ```yaml
- * - buildingBlock: FEATURES_HTML
- *   mapClientType: CESIUM
- *   geometryProperties:
- *   - consistsOfBuildingPart.lod1Solid
- *   - lod1Solid
- *   - lod1GroundSurface
  * ```
  *     </code>
  */
@@ -219,15 +195,10 @@ public interface FeaturesHtmlConfiguration
   Boolean getRemoveZoomLevelConstraints();
 
   /**
-   * @langEn This option works only for CesiumJS as map client. By default, the geometry identified
-   *     in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option
-   *     allows multiple geometry properties to be specified in a list. The first geometry property
-   *     set for a feature will be used.
-   * @langDe Diese Option wirkt nur für CesiumJS als Map-Client. Als Standard wird die im Provider
-   *     als PRIMARY_GEOMETRY identifizierte Geometrie für die Darstellung in der Karte verwendet.
-   *     Diese Option ermöglicht es, mehrere Geometrieeigenschaften anzugeben in einer Liste
-   *     anzugeben. Die erste Geometrieeigenschaft, die für ein Feature gesetzt ist, wird dabei
-   *     verwendet.
+   * @langEn *Deprecated* This option has no effect anymore. The geometry with the role
+   *     `PRIMARY_GEOMETRY` in the provider schema is used for the representation on the map.
+   * @langDe *Deprecated* Diese Option hat keine Auswirkung mehr. Für die Darstellung in der Karte
+   *     wird die Geometrie mit der Rolle `PRIMARY_GEOMETRY` im Provider-Schema verwendet.
    * @default []
    */
   @Deprecated(forRemoval = true, since = "4.2")

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.jsonfg.domain
 
 import de.ii.ogcapi.foundation.domain.AbstractExtensionConfigurationSpec
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration
 import de.ii.ogcapi.foundation.domain.MergeBase
 import de.ii.ogcapi.foundation.domain.MergeMap
 import de.ii.ogcapi.foundation.domain.MergeMinimal
@@ -79,5 +80,61 @@ class JsonFgConfigurationSpec extends AbstractExtensionConfigurationSpec impleme
                 .featureTypeV1("foo")
                 .supportPlusProfile(false)
                 .build()
+    }
+
+    def "the deprecated geojsonCompatibility derives supportPlusProfile and is kept for the upgrade"() {
+        when:
+        JsonFgConfiguration cfg = new ImmutableJsonFgConfiguration.Builder()
+                .geojsonCompatibility(false)
+                .build()
+
+        then:
+        cfg.getSupportPlusProfile() == false
+        cfg.getGeojsonCompatibility() == false
+    }
+
+    def "an explicit supportPlusProfile wins over the deprecated geojsonCompatibility"() {
+        when:
+        JsonFgConfiguration cfg = new ImmutableJsonFgConfiguration.Builder()
+                .geojsonCompatibility(false)
+                .supportPlusProfile(true)
+                .build()
+
+        then:
+        cfg.getSupportPlusProfile() == true
+    }
+
+    def "the deprecated featureType derives featureTypeV1 from its first value and is kept for the upgrade"() {
+        when:
+        JsonFgConfiguration cfg = new ImmutableJsonFgConfiguration.Builder()
+                .addFeatureType("a", "b")
+                .build()
+
+        then:
+        cfg.getFeatureTypeV1() == "a"
+        cfg.getFeatureType() == ["a", "b"]
+    }
+
+    def "an explicit featureTypeV1 wins over the deprecated featureType"() {
+        when:
+        JsonFgConfiguration cfg = new ImmutableJsonFgConfiguration.Builder()
+                .featureTypeV1("x")
+                .addFeatureType("a")
+                .build()
+
+        then:
+        cfg.getFeatureTypeV1() == "x"
+    }
+
+    def "a deprecated featureType on the collection level wins over featureTypeV1 on the API level"() {
+        given:
+        JsonFgConfiguration api = new ImmutableJsonFgConfiguration.Builder().featureTypeV1("api").build()
+        JsonFgConfiguration collection = new ImmutableJsonFgConfiguration.Builder().addFeatureType("collection").build()
+
+        when:
+        JsonFgConfiguration merged = collection.mergeInto((ExtensionConfiguration) api) as JsonFgConfiguration
+
+        then:
+        merged.getFeatureTypeV1() == "collection"
     }
 }
