@@ -68,11 +68,7 @@ public class HeaderContentBoundingBox extends ApiExtensionCache implements ApiHe
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) {
-      schemaMap.put(apiHashCode, SCHEMA);
-    }
-    return schemaMap.get(apiHashCode);
+    return schemaMap.computeIfAbsent(apiData.hashCode(), ignore -> SCHEMA);
   }
 
   @Override

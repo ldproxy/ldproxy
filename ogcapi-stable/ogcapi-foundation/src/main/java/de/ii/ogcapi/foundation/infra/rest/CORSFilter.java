@@ -27,8 +27,8 @@ public class CORSFilter implements ContainerResponseFilter {
   public static final String ADMIN = "admin";
   public static final String CORS = "cors";
   public static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
-  public static final String ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials";
   public static final String POST = "POST";
+  public static final String PUT = "PUT";
   public static final String PATCH = "PATCH";
   public static final String ACCESS_CONTROL_EXPOSE_HEADERS = "Access-Control-Expose-Headers";
 
@@ -52,8 +52,15 @@ public class CORSFilter implements ContainerResponseFilter {
       return;
     }
 
+    // No Access-Control-Allow-Credentials: a browser rejects a credentialed cross-origin response
+    // whose Access-Control-Allow-Origin is "*", so the pair grants nothing that works. It matters
+    // here because this API accepts a cookie as a credential: were the wildcard ever replaced by a
+    // reflected origin, any site a victim visits could call the API with the victim's session and
+    // read the answers. A bearer token that a client sets itself is an ordinary request header and
+    // needs nothing from this flag. If a cross-origin client ever has to authenticate with a
+    // cookie, the correct change is to allow-list its origin (echoing only known origins, with
+    // Vary: Origin) and to set Allow-Credentials for those - never to combine credentials with "*".
     responseContext.getHeaders().add(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-    responseContext.getHeaders().add(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
 
     // add additional ldproxy headers here
     ImmutableList.Builder<String> headers = new ImmutableList.Builder<>();
@@ -63,9 +70,12 @@ public class CORSFilter implements ContainerResponseFilter {
         "Content-Bounding-Box",
         "Content-Temporal-Extent",
         "OATiles-hint",
-        "Prefer",
+        // the response reports the preferences that were applied, "Prefer" is the request header
+        "Preference-Applied",
         "ETag");
-    if (POST.equalsIgnoreCase(requestContext.getMethod())) {
+    if (POST.equalsIgnoreCase(requestContext.getMethod())
+        // a PUT reports the URI of the feature that it created
+        || PUT.equalsIgnoreCase(requestContext.getMethod())) {
       headers.add("Location");
     }
     if (PATCH.equalsIgnoreCase(requestContext.getMethod())) {

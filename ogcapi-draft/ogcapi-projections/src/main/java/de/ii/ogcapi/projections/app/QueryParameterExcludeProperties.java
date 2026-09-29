@@ -93,30 +93,23 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      schemaMap.get(apiHashCode).put("*", new ArraySchema().items(new StringSchema()).minItems(1));
-    }
-    return schemaMap.get(apiHashCode).get("*");
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent("*", ignore -> new ArraySchema().items(new StringSchema()).minItems(1));
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      schemaMap
-          .get(apiHashCode)
-          .put(
-              collectionId,
-              new ArraySchema()
-                  .items(
-                      new StringSchema()
-                          ._enum(schemaInfo.getPropertyNames(apiData, collectionId, true, false)))
-                  .minItems(1));
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore ->
+                new ArraySchema()
+                    .items(
+                        new StringSchema()
+                            ._enum(schemaInfo.getPropertyNames(apiData, collectionId, true, false)))
+                    .minItems(1));
   }
 
   @Override

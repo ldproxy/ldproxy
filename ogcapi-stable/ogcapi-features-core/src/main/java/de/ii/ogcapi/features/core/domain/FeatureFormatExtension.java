@@ -142,6 +142,15 @@ public abstract class FeatureFormatExtension implements FormatExtension {
 
   public void validate(String content, ValidatorContext ctx) {}
 
+  /**
+   * Whether request bodies in this format can be validated against a schema for the collection.
+   * Drives the validation requested with {@code Prefer: handling=strict} and the declaration of the
+   * conformance class "Handling Preference".
+   */
+  public boolean canValidate(OgcApiDataV2 apiData, String collectionId) {
+    return false;
+  }
+
   public Optional<PropertyTransformations> getPropertyTransformations(
       FeatureTypeConfigurationOgcApi collectionData) {
 

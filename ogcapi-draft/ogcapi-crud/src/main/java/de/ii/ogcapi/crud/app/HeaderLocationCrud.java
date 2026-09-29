@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
@@ -22,6 +23,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 @AutoBind
@@ -55,14 +57,22 @@ public class HeaderLocationCrud extends ApiExtensionCache implements ApiHeader {
     return true;
   }
 
+  // Only the response that reports a created feature, not the 204 of a replaced one.
+  @Override
+  public Set<String> getResponseStatusCodes() {
+    return Set.of(ApiOperation.STATUS_201);
+  }
+
   @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, HttpMethods method) {
     return computeIfAbsent(
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
-                && method == HttpMethods.POST
-                && definitionPath.endsWith("/items"));
+                && ((method == HttpMethods.POST && definitionPath.endsWith("/items"))
+                    // a PUT creates the feature, if the collection has client-assigned ids
+                    || (method == HttpMethods.PUT
+                        && definitionPath.endsWith("/items/{featureId}"))));
   }
 
   @Override

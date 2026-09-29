@@ -32,6 +32,8 @@ public interface SingleQuery {
 
   List<String> getProperties(); // String or Parameter
 
+  List<String> getExcludeProperties(); // String or Parameter
+
   Map<String, ResultSetDefinition> getResultSets();
 
   // shorthand for a single result set with the ids of the selected features

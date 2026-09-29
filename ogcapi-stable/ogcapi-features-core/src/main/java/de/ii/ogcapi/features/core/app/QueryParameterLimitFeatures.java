@@ -137,63 +137,66 @@ public class QueryParameterLimitFeatures extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
     String collectionId = "*";
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      Schema<?> schema = new IntegerSchema();
-      Optional<Integer> minimumPageSize =
-          apiData
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getMinimumPageSize);
-      minimumPageSize.ifPresent(integer -> schema.minimum(BigDecimal.valueOf(integer)));
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              Schema<?> schema = new IntegerSchema();
+              Optional<Integer> minimumPageSize =
+                  apiData
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getMinimumPageSize);
+              minimumPageSize.ifPresent(integer -> schema.minimum(BigDecimal.valueOf(integer)));
 
-      Optional<Integer> maxPageSize =
-          apiData
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getMaximumPageSize);
-      maxPageSize.ifPresent(integer -> schema.maximum(BigDecimal.valueOf(integer)));
+              Optional<Integer> maxPageSize =
+                  apiData
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getMaximumPageSize);
+              maxPageSize.ifPresent(integer -> schema.maximum(BigDecimal.valueOf(integer)));
 
-      Optional<Integer> defaultPageSize =
-          apiData
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getDefaultPageSize);
-      defaultPageSize.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
+              Optional<Integer> defaultPageSize =
+                  apiData
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getDefaultPageSize);
+              defaultPageSize.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
 
-      schemaMap.get(apiHashCode).put(collectionId, schema);
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+              return schema;
+            });
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      Schema<?> schema = new IntegerSchema();
-      FeatureTypeConfigurationOgcApi featureType = apiData.getCollections().get(collectionId);
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              Schema<?> schema = new IntegerSchema();
+              FeatureTypeConfigurationOgcApi featureType =
+                  apiData.getCollections().get(collectionId);
 
-      Optional<Integer> minimumPageSize =
-          featureType
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getMinimumPageSize);
-      minimumPageSize.ifPresent(integer -> schema.minimum(BigDecimal.valueOf(integer)));
+              Optional<Integer> minimumPageSize =
+                  featureType
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getMinimumPageSize);
+              minimumPageSize.ifPresent(integer -> schema.minimum(BigDecimal.valueOf(integer)));
 
-      Optional<Integer> maxPageSize =
-          featureType
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getMaximumPageSize);
-      maxPageSize.ifPresent(integer -> schema.maximum(BigDecimal.valueOf(integer)));
+              Optional<Integer> maxPageSize =
+                  featureType
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getMaximumPageSize);
+              maxPageSize.ifPresent(integer -> schema.maximum(BigDecimal.valueOf(integer)));
 
-      Optional<Integer> defaultPageSize =
-          featureType
-              .getExtension(FeaturesCoreConfiguration.class)
-              .map(FeaturesCoreConfiguration::getDefaultPageSize);
-      defaultPageSize.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
+              Optional<Integer> defaultPageSize =
+                  featureType
+                      .getExtension(FeaturesCoreConfiguration.class)
+                      .map(FeaturesCoreConfiguration::getDefaultPageSize);
+              defaultPageSize.ifPresent(integer -> schema.setDefault(BigDecimal.valueOf(integer)));
 
-      schemaMap.get(apiHashCode).put(collectionId, schema);
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+              return schema;
+            });
   }
 
   @Override

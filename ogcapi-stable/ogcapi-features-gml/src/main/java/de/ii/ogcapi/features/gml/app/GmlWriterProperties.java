@@ -193,6 +193,12 @@ public class GmlWriterProperties implements GmlWriter {
             // a placeholder in the object element's start tag, so wrappers kept open for xmlPaths
             // merging are unaffected and remain open
             context.encoding().writeAsXmlAtt(schema.getName(), value);
+          } else if (context.encoding().getXmlComments().contains(schema.getFullPathAsString())) {
+            // encode as an annotation comment where the property element would have gone, so the
+            // value keeps its position relative to its siblings and stays inside its parent object.
+            // Like an XML attribute, an annotation is not schema content, so wrappers kept open for
+            // xmlPaths merging are left alone
+            context.encoding().writeAnnotationComment(schema.getName(), value);
           } else {
             List<XmlPathElement> chain =
                 context.encoding().getXmlPaths().get(schema.getFullPathAsString());

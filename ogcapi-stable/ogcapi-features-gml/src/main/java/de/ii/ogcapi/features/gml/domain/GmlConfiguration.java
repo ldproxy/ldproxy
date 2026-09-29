@@ -44,9 +44,10 @@ import org.immutables.value.Value;
  *     references), `srsNameStyle`, `uomStyle`, `gmlIdentifier`, `gmlSfLevel`, `useSurfaceAndCurve`,
  *     `defaultProfiles` - either because they govern encoder formatting decisions with no input
  *     counterpart, or because the decoder is permissive of any equivalent input form.
- *     `codeListUriTemplateIso19139` likewise affects output only, as do attributes and injected
- *     empty elements in `xmlPaths` chains - on input, an empty element inside a chain is skipped
- *     and an `xsi:type` attribute on a value element is dropped.
+ *     `codeListUriTemplateIso19139` and `xmlComments` likewise affect output only - a value encoded
+ *     as an XML comment is not read back - as do attributes and injected empty elements in
+ *     `xmlPaths` chains - on input, an empty element inside a chain is skipped and an `xsi:type`
+ *     attribute on a value element is dropped.
  * @langDe Standardmäßig erhält jedes GML-Eigenschaftselement den Eigenschaftsnamen aus dem
  *     Feature-Schema. Das Element liegt im Namensraum seines übergeordneten Objekttyps (deklariert
  *     über `objectTypeNamespaces`); ist für den übergeordneten Objekttyp kein Namensraum-Mapping
@@ -62,8 +63,9 @@ import org.immutables.value.Value;
  *     ausschließlich auf die Ausgabe aus - `schemaLocations` (XSD-Referenzen), `srsNameStyle`,
  *     `uomStyle`, `gmlIdentifier`, `gmlSfLevel`, `useSurfaceAndCurve`, `defaultProfiles` - entweder
  *     weil sie Formatierungsentscheidungen des Encoders ohne Eingabe-Pendant steuern oder weil der
- *     Decoder bei jeder äquivalenten Eingabeform permissiv ist. `codeListUriTemplateIso19139` wirkt
- *     sich ebenfalls nur auf die Ausgabe aus, ebenso Attribute und eingefügte leere Elemente in
+ *     Decoder bei jeder äquivalenten Eingabeform permissiv ist. `codeListUriTemplateIso19139` und
+ *     `xmlComments` wirken sich ebenfalls nur auf die Ausgabe aus - ein als XML-Kommentar kodierter
+ *     Wert wird nicht zurückgelesen -, ebenso Attribute und eingefügte leere Elemente in
  *     `xmlPaths`-Ketten - beim Einlesen wird ein leeres Element innerhalb einer Kette übersprungen
  *     und ein `xsi:type`-Attribut auf einem Wert-Element verworfen.
  * @examplesEn The following example shows a basic declaration of namespaces and their schema
@@ -243,6 +245,8 @@ import org.immutables.value.Value;
  *     LI_Lineage: gmd
  *     LI_ProcessStep: gmd
  *     LI_Source: gmd
+ *   xmlComments:
+ *     - _updated
  *   xmlPaths:
  *     daq.dpl.prs.des:
  *       - gmd:description
@@ -683,6 +687,54 @@ public interface GmlConfiguration
    * @since v3.3
    */
   List<String> getXmlAttributes();
+
+  /**
+   * @langEn Properties listed here are encoded as an XML comment instead of an XML element, at the
+   *     position where the property element would have been written. The comment text is the
+   *     property name and the value, separated by a colon (`name: value`). Use this for values that
+   *     are not part of the GML application schema, but that should still be conveyed in the
+   *     response - an XML comment is allowed anywhere in element content, so the response remains
+   *     valid against the application schema, which it would not be if the value were encoded as an
+   *     element or as an XML attribute. This is only possible for properties with a single value,
+   *     not for objects or arrays of objects.
+   *     <p>A comment is not part of the XML information a GML request body is decoded from, so such
+   *     a property is written on output only. Only properties that are excluded from the
+   *     `RECEIVABLE` scope in the provider schema may therefore be listed: a property a client may
+   *     send must not be reduced to a comment. Listing a receivable property, or a property the
+   *     feature type does not have, is reported as a configuration error on startup.
+   *     <p>A property listed in both `xmlAttributes` and `xmlComments` is encoded as an XML
+   *     attribute.
+   * @langDe Hier aufgeführte Eigenschaften werden anstelle eines XML-Elements als XML-Kommentar
+   *     kodiert, an der Stelle, an der das Eigenschaftselement geschrieben worden wäre. Der
+   *     Kommentartext besteht aus dem Eigenschaftsnamen und dem Wert, getrennt durch einen
+   *     Doppelpunkt (`name: wert`). Dies ist für Werte gedacht, die nicht Teil des
+   *     GML-Anwendungsschemas sind, die aber dennoch in der Antwort übermittelt werden sollen - ein
+   *     XML-Kommentar ist an jeder Stelle im Elementinhalt erlaubt, sodass die Antwort gültig
+   *     gegenüber dem Anwendungsschema bleibt, was bei einer Kodierung als Element oder als
+   *     XML-Attribut nicht der Fall wäre. Dies ist nur für Eigenschaften mit einem einzelnen Wert
+   *     möglich, nicht für Objekte oder Arrays von Objekten.
+   *     <p>Ein Kommentar gehört nicht zu den XML-Informationen, aus denen ein GML-Anfrage-Body
+   *     dekodiert wird; eine solche Eigenschaft wird daher nur in der Ausgabe geschrieben. Es
+   *     dürfen deshalb nur Eigenschaften aufgeführt werden, die im Provider-Schema vom
+   *     `RECEIVABLE`-Scope ausgeschlossen sind: Eine Eigenschaft, die ein Client senden darf, darf
+   *     nicht auf einen Kommentar reduziert werden. Eine aufgeführte empfangbare Eigenschaft oder
+   *     eine Eigenschaft, die der Objektart nicht bekannt ist, wird beim Start als
+   *     Konfigurationsfehler gemeldet.
+   *     <p>Eine Eigenschaft, die sowohl in `xmlAttributes` als auch in `xmlComments` aufgeführt
+   *     ist, wird als XML-Attribut kodiert.
+   * @default []
+   * @examplesAll <code>
+   * ```yaml
+   * - buildingBlock: GML
+   *   enabled: true
+   *   xmlComments:
+   *     - myAnnotationProperty
+   *     - someProperty.myOtherAnnotationProperty
+   * ```
+   * </code>
+   * @since v4.9
+   */
+  List<String> getXmlComments();
 
   /**
    * @langEn The feature property with role `ID` in the provider schema is mapped to the `gml:id`
@@ -1234,6 +1286,7 @@ public interface GmlConfiguration
         .codelistProperties(mergeMaps(src.getCodelistProperties(), getCodelistProperties()))
         .xmlPaths(mergeMaps(src.getXmlPaths(), getXmlPaths()))
         .xmlAttributes(mergeLists(src.getXmlAttributes(), getXmlAttributes()))
+        .xmlComments(mergeLists(src.getXmlComments(), getXmlComments()))
         .objectTypeSuffixedProperties(
             mergeLists(src.getObjectTypeSuffixedProperties(), getObjectTypeSuffixedProperties()))
         .uomMappings(mergeLists(src.getUomMappings(), getUomMappings()))

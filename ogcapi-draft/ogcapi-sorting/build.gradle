@@ -15,4 +15,8 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-collections-queryables'
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-features-core'
+
+    testProvided 'de.interactive_instruments:xtraplatform-cql'
+    testProvided 'de.interactive_instruments:xtraplatform-crs'
+    testProvided 'de.interactive_instruments:xtraplatform-geometries'
 }

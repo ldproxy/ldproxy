@@ -29,11 +29,11 @@ import org.immutables.value.Value;
  * pre-computed here at encoder-build time:
  *
  * <ul>
- *   <li>{@link #getXmlAttributes()}, {@link #getCodelistProperties()}, {@link #getXmlPaths()},
- *       {@link #getObjectTypeSuffixedProperties()} — their path keys are alias-rewritten (id →
- *       alias) when {@code useAlias} is on, to match the alias-form paths {@code
- *       GmlWriterProperties} sees at runtime; the {@code xmlPaths} chain segments are additionally
- *       parsed into {@link XmlPathElement}s;
+ *   <li>{@link #getXmlAttributes()}, {@link #getXmlComments()}, {@link #getCodelistProperties()},
+ *       {@link #getXmlPaths()}, {@link #getObjectTypeSuffixedProperties()} — their path keys are
+ *       alias-rewritten (id → alias) when {@code useAlias} is on, to match the alias-form paths
+ *       {@code GmlWriterProperties} sees at runtime; the {@code xmlPaths} chain segments are
+ *       additionally parsed into {@link XmlPathElement}s;
  *   <li>{@link #getCodelists()} — the codelist ids are resolved to {@code Codelist} instances via
  *       the codelist store.
  * </ul>
@@ -49,6 +49,11 @@ public interface CollectionEncodingGml {
 
   @Value.Default
   default List<String> getXmlAttributes() {
+    return ImmutableList.of();
+  }
+
+  @Value.Default
+  default List<String> getXmlComments() {
     return ImmutableList.of();
   }
 

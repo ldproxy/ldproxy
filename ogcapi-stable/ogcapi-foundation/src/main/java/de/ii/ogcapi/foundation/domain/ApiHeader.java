@@ -19,6 +19,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,15 @@ public interface ApiHeader extends ApiExtension {
 
   default boolean isResponseHeader() {
     return false;
+  }
+
+  /**
+   * The status codes of the responses that include this response header. An empty set, the default,
+   * means every response of the operation; {@code Location}, for example, is only part of the
+   * response that reports a created resource.
+   */
+  default Set<String> getResponseStatusCodes() {
+    return Set.of();
   }
 
   default Schema<?> getSchema(OgcApiDataV2 apiData) {

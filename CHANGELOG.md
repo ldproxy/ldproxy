@@ -1,5 +1,31 @@
 # Changelog
 
+## v4.8.1 (01/09/2026)
+#### Improvements
+
+-  GeoPackage: spatial queries slow on large tables [#1758](https://github.com/ldproxy/ldproxy/issues/1758)
+-  GML: Improve XML Schema cache [#1749](https://github.com/ldproxy/ldproxy/issues/1749)
+-  SQL: fix requests hanging forever when a streamed read stops delivering rows [#1748](https://github.com/ldproxy/ldproxy/issues/1748)
+
+#### Fixed bugs
+
+-  Queryables as query parameter validation too strict [#1764](https://github.com/ldproxy/ldproxy/issues/1764)
+-  CQL2: LIKE matches case-insensitively on GeoPackage [#1747](https://github.com/ldproxy/ldproxy/issues/1747)
+-  CORS: drop Access-Control-Allow-Credentials [#1746](https://github.com/ldproxy/ldproxy/issues/1746)
+-  Filter cannot be deleted in HTML filter editor — old value stays applied and blocks selecting a different one [#1737](https://github.com/ldproxy/ldproxy/issues/1737)
+-  intermittent 500 responses for the first requests after startup [#1735](https://github.com/ldproxy/ldproxy/issues/1735)
+-  Projections: properties/exclude-properties does not consider useAlias [#1732](https://github.com/ldproxy/ldproxy/issues/1732)
+-  GML: XML attributes emitted before the GML feature element [#1726](https://github.com/ldproxy/ldproxy/issues/1726)
+-  Source tilesets are not seeded when they have no collection [#1722](https://github.com/ldproxy/ldproxy/issues/1722)
+
+#### Dependency updates
+
+* Update swagger to v2.2.54 (maintenance-7.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/473
+* Update dependency io.github.classgraph:classgraph to v4.8.194 (maintenance-7.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/488
+* Update dependency org.xerial:sqlite-jdbc to v3.53.4.0 (maintenance-8.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/623
+* Update dependency com.networknt:json-schema-validator to v2.0.7 (maintenance-4.8) by @renovate[bot] in https://github.com/ldproxy/ldproxy/pull/1754
+
+---
 ## v4.8.0 (05/08/2026)
 #### Implemented enhancements
 

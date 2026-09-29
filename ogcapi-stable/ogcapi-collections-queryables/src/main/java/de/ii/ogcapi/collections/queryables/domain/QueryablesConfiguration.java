@@ -132,9 +132,15 @@ public interface QueryablesConfiguration
 
   /**
    * @langEn If `true`, all queryables with a simple value (string, number or boolean) will be
-   *     provided query parameters to filter features.
+   *     provided query parameters to filter features. For queryables with a string value, the value
+   *     of the query parameter may contain `*` as a wildcard for any sequence of characters. Such a
+   *     value is a pattern, so the schema constraints of the property, for example `pattern` or
+   *     `enum`, are not applied to it.
    * @langDe Bei `true` werden alle Queryables mit einem einfachen Wert (String, Zahl oder Boolean)
-   *     als Query-Parameter zum Filtern der Features bereitgestellt.
+   *     als Query-Parameter zum Filtern der Features bereitgestellt. Bei Queryables mit einem
+   *     Zeichenkettenwert kann der Wert des Query-Parameters `*` als Platzhalter für eine beliebige
+   *     Zeichenfolge enthalten. Ein solcher Wert ist ein Suchmuster, die Schema-Constraints der
+   *     Eigenschaft, zum Beispiel `pattern` oder `enum`, werden daher nicht auf ihn angewendet.
    * @default true
    * @since v3.4
    */

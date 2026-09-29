@@ -338,8 +338,10 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
 
     applyParameters(requestContext.getQueryParameterSet(), builder);
 
-    return queryHandler.handle(
-        QueriesHandlerStylesManager.Query.CREATE_STYLE, builder.build(), requestContext);
+    return HeaderPrefer.withAppliedHandling(
+        queryHandler.handle(
+            QueriesHandlerStylesManager.Query.CREATE_STYLE, builder.build(), requestContext),
+        Collections.list(request.getHeaders("Prefer")));
   }
 
   /**
@@ -394,8 +396,10 @@ public class EndpointStylesManagerCollection extends EndpointSubCollection
 
     applyParameters(requestContext.getQueryParameterSet(), builder);
 
-    return queryHandler.handle(
-        QueriesHandlerStylesManager.Query.REPLACE_STYLE, builder.build(), requestContext);
+    return HeaderPrefer.withAppliedHandling(
+        queryHandler.handle(
+            QueriesHandlerStylesManager.Query.REPLACE_STYLE, builder.build(), requestContext),
+        Collections.list(request.getHeaders("Prefer")));
   }
 
   /**

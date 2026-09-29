@@ -148,32 +148,35 @@ public abstract class QueryParameterProfile extends OgcApiQueryParameterBase
       new ConcurrentHashMap<>();
 
   protected Schema<?> getSchema(OgcApiDataV2 apiData, ResourceType resourceType) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*_" + resourceType.name())) {
-      StringSchema schema =
-          new StringSchema()
-              ._enum(getProfiles(apiData, resourceType).stream().map(Profile::getId).toList());
-      schemaMap.get(apiHashCode).put("*_" + resourceType.name(), schema);
-    }
-    return schemaMap.get(apiHashCode).get("*_" + resourceType.name());
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            "*_" + resourceType.name(),
+            ignore -> {
+              StringSchema schema =
+                  new StringSchema()
+                      ._enum(
+                          getProfiles(apiData, resourceType).stream().map(Profile::getId).toList());
+              return schema;
+            });
   }
 
   protected Schema<?> getSchema(
       OgcApiDataV2 apiData, String collectionId, ResourceType resourceType) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId + "_" + resourceType.name())) {
-      ArraySchema schema =
-          new ArraySchema()
-              .items(
-                  new StringSchema()
-                      ._enum(
-                          getProfiles(apiData, collectionId, resourceType).stream()
-                              .map(Profile::getId)
-                              .toList()));
-      schemaMap.get(apiHashCode).put(collectionId + "_" + resourceType.name(), schema);
-    }
-    return schemaMap.get(apiHashCode).get(collectionId + "_" + resourceType.name());
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId + "_" + resourceType.name(),
+            ignore -> {
+              ArraySchema schema =
+                  new ArraySchema()
+                      .items(
+                          new StringSchema()
+                              ._enum(
+                                  getProfiles(apiData, collectionId, resourceType).stream()
+                                      .map(Profile::getId)
+                                      .toList()));
+              return schema;
+            });
   }
 }

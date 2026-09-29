@@ -32,6 +32,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Handling;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Return;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -73,6 +75,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +90,8 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @AutoBind
 @Path("/transactions")
-public class EndpointTransactions extends Endpoint implements ConformanceClass, ApiExtensionHealth {
+public class EndpointTransactions extends Endpoint
+    implements TransactionInputs, ConformanceClass, ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointTransactions.class);
 
@@ -408,6 +412,33 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
           .build();
     }
 
+    HeaderPrefer.Handling handling =
+        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);
+
+    HeaderPrefer.Return ret = HeaderPrefer.parseReturn(prefer, HeaderPrefer.Return.REPRESENTATION);
+
+    CommandHandlerTransactions.QueryInputTransaction queryInput =
+        createQueryInput(
+            api,
+            request.getContentType(),
+            contentCrsHeader,
+            mutationDatetimeHeader,
+            handling,
+            ret,
+            requestBody);
+
+    return commandHandler.processTransaction(queryInput, requestContext);
+  }
+
+  public CommandHandlerTransactions.QueryInputTransaction createQueryInput(
+      OgcApi api,
+      String contentTypeHeader,
+      @Nullable String contentCrsHeader,
+      @Nullable String mutationDatetimeHeader,
+      Handling handling,
+      Return ret,
+      InputStream transactionDocument) {
+
     OgcApiDataV2 apiData = api.getData();
     TransactionsConfiguration config =
         apiData
@@ -417,7 +448,7 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
                     new IllegalStateException(
                         "Transactions building block is not configured for this API"));
 
-    MediaType contentType = parseContentType(request.getContentType());
+    MediaType contentType = parseContentType(contentTypeHeader);
     TransactionParser parser =
         parsers.get().stream()
             .filter(p -> p.canParse(contentType))
@@ -436,24 +467,16 @@ public class EndpointTransactions extends Endpoint implements ConformanceClass, 
 
     Optional<Instant> mutationDatetime = parseMutationDatetime(mutationDatetimeHeader);
 
-    HeaderPrefer.Handling handling =
-        HeaderPrefer.parseHandling(prefer, HeaderPrefer.Handling.LENIENT);
-
-    HeaderPrefer.Return ret = HeaderPrefer.parseReturn(prefer, HeaderPrefer.Return.REPRESENTATION);
-
-    CommandHandlerTransactions.QueryInputTransaction queryInput =
-        ImmutableQueryInputTransaction.builder()
-            .parser(parser)
-            .requestBody(requestBody)
-            .contentType(contentType)
-            .config(config)
-            .requestCrs(requestCrs)
-            .mutationDatetime(mutationDatetime)
-            .handling(handling)
-            .returnPreference(ret)
-            .build();
-
-    return commandHandler.processTransaction(queryInput, requestContext);
+    return ImmutableQueryInputTransaction.builder()
+        .parser(parser)
+        .requestBody(transactionDocument)
+        .contentType(contentType)
+        .config(config)
+        .requestCrs(requestCrs)
+        .mutationDatetime(mutationDatetime)
+        .handling(handling)
+        .returnPreference(ret)
+        .build();
   }
 
   // --- helpers --------------------------------------------------------------

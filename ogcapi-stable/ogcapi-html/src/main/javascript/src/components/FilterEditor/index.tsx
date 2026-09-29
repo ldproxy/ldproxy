@@ -127,7 +127,8 @@ const FilterEditor = ({
     (event.target as HTMLButtonElement).blur();
 
     const newFilters = Object.keys(filters).reduce((reduced, key) => {
-      if (filters[key].add || !filters[key].remove) {
+      if (!filters[key].remove) {
+        // eslint-disable-next-line no-param-reassign
         reduced[key] = {
           ...filters[key],
           add: false,
@@ -169,9 +170,15 @@ const FilterEditor = ({
 
   const deleteFilters = (field: string) => () => {
     setFilters((current) => {
-      const copy = { ...current };
-      copy[field].remove = true;
-      return copy;
+      if (query[field] === undefined) {
+        // eslint-disable-next-line no-unused-vars
+        const { [field]: discarded, ...rest } = current;
+        return rest;
+      }
+      return {
+        ...current,
+        [field]: { ...current[field], add: false, remove: true },
+      };
     });
   };
 

@@ -124,25 +124,25 @@ public class QueryParameterCrsRoutes extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) {
-      List<String> crsList =
-          crsSupport.getSupportedCrsList(apiData).stream()
-              .flatMap(crs -> crs.allUris().stream())
-              .collect(ImmutableList.toImmutableList());
-      String defaultCrs =
-          apiData
-              .getExtension(RoutingConfiguration.class)
-              .map(RoutingConfiguration::getDefaultCrs)
-              .map(
-                  crs ->
-                      FeaturesCoreConfiguration.DefaultCrs.CRS84.equals(crs)
-                          ? OgcCrs.CRS84_URI
-                          : OgcCrs.CRS84h_URI)
-              .orElse(OgcCrs.CRS84_URI);
-      schemaMap.put(apiHashCode, new StringSchema()._enum(crsList)._default(defaultCrs));
-    }
-    return schemaMap.get(apiHashCode);
+    return schemaMap.computeIfAbsent(
+        apiData.hashCode(),
+        ignore -> {
+          List<String> crsList =
+              crsSupport.getSupportedCrsList(apiData).stream()
+                  .flatMap(crs -> crs.allUris().stream())
+                  .collect(ImmutableList.toImmutableList());
+          String defaultCrs =
+              apiData
+                  .getExtension(RoutingConfiguration.class)
+                  .map(RoutingConfiguration::getDefaultCrs)
+                  .map(
+                      crs ->
+                          FeaturesCoreConfiguration.DefaultCrs.CRS84.equals(crs)
+                              ? OgcCrs.CRS84_URI
+                              : OgcCrs.CRS84h_URI)
+                  .orElse(OgcCrs.CRS84_URI);
+          return new StringSchema()._enum(crsList)._default(defaultCrs);
+        });
   }
 
   @Override

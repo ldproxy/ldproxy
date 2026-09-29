@@ -57,22 +57,10 @@ public class Metadata3dSchemaCacheImpl implements Metadata3dSchemaCache {
       OgcApiDataV2 apiData,
       String collectionId,
       Map<String, Codelist> codelists) {
-    int apiHashCode = apiData.hashCode();
-
-    if (!cache.containsKey(apiHashCode) || !cache.get(apiHashCode).containsKey(collectionId)) {
-      synchronized (this) {
-        if (!cache.containsKey(apiHashCode)) {
-          cache.put(apiHashCode, new ConcurrentHashMap<>());
-        }
-        if (!cache.get(apiHashCode).containsKey(collectionId)) {
-          cache
-              .get(apiHashCode)
-              .put(collectionId, deriveSchema(featureSchema, apiData, collectionId, codelists));
-        }
-      }
-    }
-
-    return cache.get(apiHashCode).get(collectionId);
+    return cache
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId, ignore -> deriveSchema(featureSchema, apiData, collectionId, codelists));
   }
 
   protected GltfSchema deriveSchema(

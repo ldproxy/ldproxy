@@ -55,32 +55,28 @@ public abstract class JsonSchemaCache {
       Optional<String> schemaUri,
       List<JsonSchemaExtension> jsonSchemaExtensions,
       VERSION version) {
-    int apiHashCode = apiData.hashCode();
-    if (!cache.containsKey(apiHashCode)) {
-      cache.put(apiHashCode, new ConcurrentHashMap<>());
-    }
-    if (!cache.get(apiHashCode).containsKey(collectionData.getId())) {
-      cache.get(apiHashCode).put(collectionData.getId(), new ConcurrentHashMap<>());
-    }
     String profileKey =
         profiles.stream().map(Profile::getId).sorted().collect(Collectors.joining("#"));
-    if (!cache.get(apiHashCode).get(collectionData.getId()).containsKey(profileKey)) {
-      cache.get(apiHashCode).get(collectionData.getId()).put(profileKey, new ConcurrentHashMap<>());
-    }
-    if (!cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).containsKey(version)) {
-      JsonSchemaDocument schema =
-          deriveSchema(featureSchema, apiData, collectionData, profiles, schemaUri, version);
+    return cache
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(collectionData.getId(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(profileKey, ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            version,
+            ignore -> {
+              JsonSchemaDocument schema =
+                  deriveSchema(
+                      featureSchema, apiData, collectionData, profiles, schemaUri, version);
 
-      for (JsonSchemaExtension extension : jsonSchemaExtensions) {
-        schema =
-            (JsonSchemaDocument)
-                extension.process(schema, featureSchema, apiData, collectionData.getId(), profiles);
-      }
+              for (JsonSchemaExtension extension : jsonSchemaExtensions) {
+                schema =
+                    (JsonSchemaDocument)
+                        extension.process(
+                            schema, featureSchema, apiData, collectionData.getId(), profiles);
+              }
 
-      cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).put(version, schema);
-    }
-
-    return cache.get(apiHashCode).get(collectionData.getId()).get(profileKey).get(version);
+              return schema;
+            });
   }
 
   protected abstract JsonSchemaDocument deriveSchema(

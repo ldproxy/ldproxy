@@ -51,6 +51,9 @@ public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, J
 
     storedQuery.getProfiles().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
     storedQuery.getProperties().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
+    storedQuery
+        .getExcludeProperties()
+        .ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
     storedQuery.getSortby().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
 
     if (storedQuery.getFilter().isPresent()) {
@@ -85,6 +88,7 @@ public class ParametersInStoredQuery implements StoredQueryVisitor<Map<String, J
     Map<String, JsonSchema> parameters = new HashMap<>();
     query.getCollections().forEach(v -> v.accept(this).forEach(parameters::putIfAbsent));
     query.getProperties().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
+    query.getExcludeProperties().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
     query.getSortby().ifPresent(v -> v.accept(this).forEach(parameters::putIfAbsent));
     query
         .getFilter()

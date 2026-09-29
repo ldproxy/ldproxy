@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiExtensionCache;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -18,6 +19,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -82,8 +84,25 @@ public abstract class HeaderContentCrs extends ApiExtensionCache implements ApiH
    *     that the API does not advertise
    */
   public static EpsgCrs parse(String header, OgcApiDataV2 apiData, CrsSupport crsSupport) {
+    return parse(header, apiData, Optional.empty(), crsSupport);
+  }
+
+  /**
+   * Parse the {@code Content-Crs} request header of a request to a collection resource into an
+   * {@link EpsgCrs}, falling back to the default CRS of the collection when the header is absent.
+   * Rejects values that are syntactically invalid or not in the supported CRS list of the
+   * collection.
+   *
+   * @throws IllegalArgumentException if the header is present but cannot be parsed or names a CRS
+   *     that the collection does not advertise
+   */
+  public static EpsgCrs parse(
+      String header,
+      OgcApiDataV2 apiData,
+      Optional<FeatureTypeConfigurationOgcApi> collectionData,
+      CrsSupport crsSupport) {
     if (header == null || header.isBlank()) {
-      return defaultCrs(apiData);
+      return defaultCrs(apiData, collectionData);
     }
     String value = header.trim();
     if (value.startsWith("<") && value.endsWith(">")) {
@@ -95,16 +114,24 @@ public abstract class HeaderContentCrs extends ApiExtensionCache implements ApiH
     } catch (RuntimeException e) {
       throw new IllegalArgumentException("Invalid Content-Crs header: " + header);
     }
-    if (!crsSupport.isSupported(apiData, crs)) {
+    if (!crsSupport.isSupported(apiData, collectionData.orElse(null), crs)) {
       throw new IllegalArgumentException(
-          "Content-Crs '" + header + "' is not a supported CRS for this API");
+          collectionData
+              .map(
+                  cd ->
+                      String.format(
+                          "Content-Crs '%s' is not a supported CRS for collection '%s'",
+                          header, cd.getId()))
+              .orElse(
+                  String.format("Content-Crs '%s' is not a supported CRS for this API", header)));
     }
     return crs;
   }
 
-  private static EpsgCrs defaultCrs(OgcApiDataV2 apiData) {
-    return apiData.getCollections().values().stream()
-        .findFirst()
+  private static EpsgCrs defaultCrs(
+      OgcApiDataV2 apiData, Optional<FeatureTypeConfigurationOgcApi> collectionData) {
+    return collectionData
+        .or(() -> apiData.getCollections().values().stream().findFirst())
         .flatMap(cd -> cd.getExtension(FeaturesCoreConfiguration.class))
         .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
         .orElse(OgcCrs.CRS84);

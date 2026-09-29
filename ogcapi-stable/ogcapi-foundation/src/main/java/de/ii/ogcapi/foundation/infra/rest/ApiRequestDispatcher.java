@@ -70,6 +70,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
   private static final Set<String> NOCONTENT_METHODS =
       ImmutableSet.of("POST", "PUT", "DELETE", "PATCH");
+  private static final String OPTIONS = "OPTIONS";
   private static final ApiMediaType DEFAULT_MEDIA_TYPE = ApiMediaType.JSON_MEDIA_TYPE;
 
   private final AppContext appContext;
@@ -301,7 +302,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       @SuppressWarnings("unused") String entrypoint,
       String subPath,
       String method) {
-    if ("OPTIONS".equals(method)) {
+    if (OPTIONS.equals(method)) {
       return;
     }
     if (ogcApiEndpoint.shouldIgnoreParameters(apiData, subPath, method)) {
@@ -399,6 +400,13 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       return DEFAULT_MEDIA_TYPE;
     }
 
+    // The response to an OPTIONS request is about the communication options for the resource, the
+    // response content is not a representation of the resource (RFC 9110, 9.3.7), so it is not
+    // negotiated and an 'Accept' header of the request is ignored.
+    if (OPTIONS.equals(method)) {
+      return supportedMediaTypes.stream().findFirst().orElse(DEFAULT_MEDIA_TYPE);
+    }
+
     return contentNegotiationMediaType
         .negotiateMediaType(requestContext, supportedMediaTypes)
         .orElseThrow(
@@ -424,7 +432,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       @PathParam("entrypoint") String entrypoint,
       String subPath,
       String method) {
-    if ("OPTIONS".equals(method)) {
+    if (OPTIONS.equals(method)) {
       // special treatment for OPTIONS
       // check that the resource exists and in that case use the general endpoint for all OPTIONS
       // requests

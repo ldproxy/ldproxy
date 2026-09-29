@@ -249,7 +249,7 @@ class TransactionExecutorAtomicSpec extends Specification {
             RecordingSession session,
             Map<String, Closure<ActionResult>> outcomes) {
         return new TransactionExecutorImpl(
-                null, null, null, Stub(FeaturesCoreQueriesHandler), Stub(VolatileRegistry)) {
+                null, null, null, null, Stub(FeaturesCoreQueriesHandler), Stub(VolatileRegistry)) {
             @Override
             TransactionsConfiguration transactionsConfig(OgcApi api) {
                 return cfg

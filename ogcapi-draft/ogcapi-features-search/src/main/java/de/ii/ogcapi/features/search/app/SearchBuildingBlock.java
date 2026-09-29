@@ -38,26 +38,35 @@ import java.util.Optional;
  *     </code>
  *     <p>A query expression is expressed as a JSON object.
  *     <p>The query expression object can describe a single query (the properties "collections",
- *     "filter", "filterCrs", "properties" and "sortby" are members of the query expression object)
- *     or multiple queries (a "queries" member with an array of query objects is present) in a
- *     single request.
+ *     "filter", "filterCrs", "properties", "excludeProperties" and "sortby" are members of the
+ *     query expression object) or multiple queries (a "queries" member with an array of query
+ *     objects is present) in a single request.
  *     <p>For each query:
  *     <p><code>
  * - The value of "collection" is an array with one item, the identifier of the collection to query.
  * - The value of "filter" is a CQL2 JSON filter expression. See the [Filter building block](filter.md).
  * - The value of "filterCrs" is the URI of the coordinate reference system of coordinates in a "filter". The default is "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, longitude/latitude).
  * - The value of "properties" is an array with the names of properties to include in the response. See the [Projections building block](projections.md).
+ * - The value of "excludeProperties" is an array with the names of properties to exclude from the response. The properties that are selected by "properties" (all properties, if it is absent) are returned without them. Excluding a property that the queried collection does not have has no effect.
  * - The value of "sortby" is used to sort the features in the response. See the [Sorting building block](sorting.md).
  * - The value of "resultSets" is an object that declares named result sets. Each value is an
  *     object: if it is empty, the result set consists of the ids of the features selected by the
  *     query; with a member "values" naming a property, it consists of the ids referenced by that
  *     property of the selected features. "resultSet" with a name is a shorthand for a single
- *     result set of the selected ids.
+ *     result set of the selected ids. With a member "key" instead, the result set consists of
+ *     composite keys: one member per key part, mapping the name of the part to the property of the
+ *     queried collection that holds it. A result set has either "values" or "key", not both.
  * - A later query can select features that are related to a result set with the CQL2 predicate
  *     `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in its "filter". The
  *     predicate behaves like an IN expression (single values) or an A_OVERLAPS expression (arrays)
  *     against the object ids in the result set. A result set can only be referenced by queries
  *     that follow the declaring query.
+ * - A composite-key result set is consumed with the CQL2 predicate `{"op": "inResultSetByKey",
+ *     "args": [ { "<part>": { "property": "..." }, ... }, "name" ]}`. The key names the same parts
+ *     as the declaring query and maps each to the property of this collection that holds it, so
+ *     the parts are matched by name and their order does not matter. Every part of the key must be
+ *     a property on the main table of the feature type, on both sides. The predicate has no
+ *     CQL2-Text encoding and can only be used in a query expression.
  * - With "resultSetOnly": true, a query only declares its result sets; it contributes no
  *     features to the response and is excluded from "numberMatched" and "numberReturned".
  *     </code>
@@ -69,14 +78,18 @@ import java.util.Optional;
  *     to be combined with the collection identifier. A concatenation with "." as the joining
  *     character is used (e.g., "apronelement.123456"). If the feature provider declares that its
  *     feature ids are globally unique, the ids are not rewritten.
- * - The direct members "filter" and "properties" represent "global" constraints that must be
- *     combined with the corresponding member in each query. The global and local property selection
- *     list are concatenated and then the global and local filters are combined using the logical
+ * - The direct members "filter", "properties" and "excludeProperties" represent "global" constraints
+ *     that must be combined with the corresponding member in each query. The global and local property
+ *     selection list are concatenated, the global and local exclusion list are unioned and then
+ *     subtracted from the selection, and the global and local filters are combined using the logical
  *     operator specified by the "filterOperator" member.
  *   - The global member "filter" must only reference queryables that are common to all
  *     collections being queried.
  *   - The global member "properties" must only reference presentables that are common to all
  *     collections being queried.
+ *   - The global member "excludeProperties" may reference a presentable that only some of the
+ *     collections being queried have; for the others it has no effect. A name that none of them has
+ *     is an error.
  * - A feature that is selected by more than one query appears once per selecting query. With
  *     "deduplicate": true, such a feature is only included in the response once. Note that
  *     "numberMatched" and "numberReturned" are computed before duplicates are dropped, so both
@@ -142,25 +155,29 @@ import java.util.Optional;
  *     </code>
  *     <p>Eine Query Expression wird als JSON-Objekt ausgedrückt.
  *     <p>Das Query-Expression-Objekt kann eine einzelne Abfrage (Key-Value-Paare "collections",
- *     "filter", "properties" und "sortby") oder mehrere Abfragen (Key-Value-Paar "queries" mit
- *     einem Array von Abfrageobjekten) in einer einzigen Anfrage beschreiben.
+ *     "filter", "properties", "excludeProperties" und "sortby") oder mehrere Abfragen
+ *     (Key-Value-Paar "queries" mit einem Array von Abfrageobjekten) in einer einzigen Anfrage
+ *     beschreiben.
  *     <p>Für jede Abfrage:
  *     <p><code>
  * - Der Wert von "collection" ist ein Array mit einem Element, dem Identifikator der abzufragenden Feature Collection.
  * - Der Wert von "filter" ist ein CQL2 JSON-Filterausdruck. Siehe den [Filter-Baustein](filter.md).
  * - Der Wert von "filterCrs" ist die URI des Koordinatenreferenzsystems der Koordinaten in einem "filter". Der Standardwert ist "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, Longitude/Latitude).
  * - Der Wert von "properties" ist ein Array mit den Namen der Eigenschaften, die in die Antwort aufgenommen werden sollen. Siehe den [Projections-Baustein](projections.md).
+ * - Der Wert von "excludeProperties" ist ein Array mit den Namen der Eigenschaften, die aus der Antwort ausgeschlossen werden sollen. Die von "properties" ausgewählten Eigenschaften (alle Eigenschaften, wenn es fehlt) werden ohne sie zurückgegeben. Der Ausschluss einer Eigenschaft, die die abgefragte Collection nicht hat, bleibt ohne Wirkung.
  * - Der Wert von "sortby" wird zum Sortieren der Merkmale in der Antwort verwendet. Siehe den [Sorting-Baustein](sorting.md).
- * - Der Wert von "resultSets" ist ein Objekt, das benannte Result-Sets deklariert. Jeder Wert ist ein Objekt: Ist es leer, besteht das Result-Set aus den IDs der von der Abfrage selektierten Features; mit einem Member "values", das eine Eigenschaft benennt, besteht es aus den IDs, die von dieser Eigenschaft der selektierten Features referenziert werden. "resultSet" mit einem Namen ist eine Kurzform für ein einzelnes Result-Set der selektierten IDs.
+ * - Der Wert von "resultSets" ist ein Objekt, das benannte Result-Sets deklariert. Jeder Wert ist ein Objekt: Ist es leer, besteht das Result-Set aus den IDs der von der Abfrage selektierten Features; mit einem Member "values", das eine Eigenschaft benennt, besteht es aus den IDs, die von dieser Eigenschaft der selektierten Features referenziert werden. "resultSet" mit einem Namen ist eine Kurzform für ein einzelnes Result-Set der selektierten IDs. Mit einem Member "key" statt dessen besteht das Result-Set aus zusammengesetzten Schlüsseln: je Schlüsselteil ein Member, das den Namen des Teils auf die Eigenschaft der abgefragten Collection abbildet, die ihn enthält. Ein Result-Set hat entweder "values" oder "key", nicht beides.
  * - Eine spätere Abfrage kann Features selektieren, die mit einem Result-Set in Beziehung stehen, und zwar mit dem CQL2-Prädikat `{"op": "inResultSet", "args": [ { "property": "..." }, "name" ]}` in ihrem "filter". Das Prädikat verhält sich wie ein IN-Ausdruck (einzelne Werte) bzw. wie ein A_OVERLAPS-Ausdruck (Arrays) gegen die Objekt-IDs im Result-Set. Ein Result-Set kann nur von Abfragen referenziert werden, die auf die deklarierende Abfrage folgen.
+ * - Ein Result-Set mit zusammengesetztem Schlüssel wird mit dem CQL2-Prädikat `{"op": "inResultSetByKey", "args": [ { "<teil>": { "property": "..." }, ... }, "name" ]}` konsumiert. Der Schlüssel benennt dieselben Teile wie die deklarierende Abfrage und bildet jeden auf die Eigenschaft dieser Collection ab, die ihn enthält; die Teile werden also über den Namen zugeordnet, ihre Reihenfolge spielt keine Rolle. Jeder Schlüsselteil muss auf beiden Seiten eine Eigenschaft der Haupttabelle der Objektart sein. Das Prädikat hat keine CQL2-Text-Kodierung und ist nur in einer Query Expression verwendbar.
  * - Mit "resultSetOnly": true deklariert eine Abfrage nur ihre Result-Sets; sie trägt keine Features zur Antwort bei und wird in "numberMatched" und "numberReturned" nicht berücksichtigt.
  *     </code>
  *     <p>Für mehrere Abfragen:
  *     <p><code>
  * - Wenn mehrere Abfragen angegeben werden, werden die Ergebnisse zusammengeführt. Die Antwort ist eine einzelne Feature Collection. Die Feature-IDs in der Antwort auf eine Abfrage mit mehreren Feature Collections müssen eindeutig sein. Da der Bezeichner eines Features nur pro Feature Collection eindeutig sein muss, müssen sie mit der Feature-Collection-ID kombiniert werden. Es wird eine Verkettung mit "." als Verbindungszeichen verwendet (z. B. "apronelement.123456"). Deklariert der Feature-Provider, dass seine Feature-IDs global eindeutig sind, werden die IDs nicht umgeschrieben.
- * - Die direkten Key-Value-Paare "filter" und "properties" stellen 'globale' Bedingungen dar, die in jeder Abfrage mit dem entsprechenden Key-Value-Paar kombiniert werden müssen. Die globale und die lokale Eigenschaftsauswahlliste werden verkettet. Die globalen und lokalen Filter werden mit dem logischen Operator kombiniert, der durch das Mitglied "filterOperator" angegeben wird.
+ * - Die direkten Key-Value-Paare "filter", "properties" und "excludeProperties" stellen 'globale' Bedingungen dar, die in jeder Abfrage mit dem entsprechenden Key-Value-Paar kombiniert werden müssen. Die globale und die lokale Eigenschaftsauswahlliste werden verkettet, die globale und die lokale Ausschlussliste werden vereinigt und anschließend von der Auswahl abgezogen. Die globalen und lokalen Filter werden mit dem logischen Operator kombiniert, der durch das Mitglied "filterOperator" angegeben wird.
  *   - Das globale Mitglied "filter" darf nur auf Queryables verweisen, die allen abgefragten Collections gemeinsam sind.
  *   - Das globale Mitglied "properties" darf nur auf Presentables verweisen, die allen abgefragten Collections gemeinsam sind.
+ *   - Das globale Mitglied "excludeProperties" darf auf ein Presentable verweisen, das nur einige der abgefragten Collections haben; für die übrigen bleibt es ohne Wirkung. Ein Name, den keine von ihnen hat, ist ein Fehler.
  * - Ein Feature, das von mehr als einer Abfrage selektiert wird, erscheint einmal pro selektierender Abfrage. Mit "deduplicate": true wird ein solches Feature nur einmal in die Antwort aufgenommen. Hinweis: "numberMatched" und "numberReturned" werden berechnet, bevor Duplikate entfernt werden, beide können also zu hoch sein, wenn die Deduplizierung aktiviert ist.
  *     </code>
  *     <p>Allgemeines:

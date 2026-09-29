@@ -77,6 +77,9 @@ public class ParameterResolver implements ParameterResolverBase {
     storedQuery
         .getProperties()
         .ifPresent(v -> builder.properties(resolveParameters(v, parameters)));
+    storedQuery
+        .getExcludeProperties()
+        .ifPresent(v -> builder.excludeProperties(resolveParameters(v, parameters)));
     storedQuery.getSortby().ifPresent(v -> builder.sortby(resolveParameters(v, parameters)));
 
     ParameterResolverCql cqlParameterResolver =
@@ -111,6 +114,9 @@ public class ParameterResolver implements ParameterResolverBase {
               query
                   .getProperties()
                   .ifPresent(v -> builder2.properties(resolveParameters(v, parameters)));
+              query
+                  .getExcludeProperties()
+                  .ifPresent(v -> builder2.excludeProperties(resolveParameters(v, parameters)));
               query.getSortby().ifPresent(v -> builder2.sortby(resolveParameters(v, parameters)));
               query
                   .getFilter()

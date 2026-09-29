@@ -27,6 +27,17 @@ public interface LdproxyCfgWriter {
   }
 
   /**
+   * Create a new writer for the given FS store.
+   *
+   * @param store the root directory of an FS store
+   * @param enforceWindowsLineEndings whether to enforce Windows line endings in written files
+   * @return the new {@link LdproxyCfgWriter}
+   */
+  static LdproxyCfgWriter create(Path store, boolean enforceWindowsLineEndings) {
+    return new LdproxyCfgImpl(store, true, enforceWindowsLineEndings);
+  }
+
+  /**
    * Create builders for entity data and related objects.
    *
    * @return chained interfaces to select a builder

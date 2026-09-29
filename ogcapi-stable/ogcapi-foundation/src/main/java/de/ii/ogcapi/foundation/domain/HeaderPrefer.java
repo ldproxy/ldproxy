@@ -10,6 +10,7 @@ package de.ii.ogcapi.foundation.domain;
 import com.google.common.collect.ImmutableList;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import jakarta.ws.rs.core.Response;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -171,5 +172,39 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
       }
     }
     return found.size() == 1 ? found.iterator().next() : fallback;
+  }
+
+  /**
+   * Parses the numeric {@code wait=…} preference (RFC 7240 §4.3) from a list of {@code Prefer}
+   * header values; empty when not sent, not a non-negative integer, or ambiguous.
+   */
+  public static Optional<Integer> parseWait(List<String> preferHeaders) {
+    return Optional.ofNullable(
+        parseParameterised(preferHeaders, "wait", HeaderPrefer::nonNegativeSeconds, null));
+  }
+
+  private static Optional<Integer> nonNegativeSeconds(String value) {
+    try {
+      int seconds = Integer.parseInt(value.trim());
+      return seconds >= 0 ? Optional.of(seconds) : Optional.empty();
+    } catch (NumberFormatException e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Adds a {@code Preference-Applied} header echoing the {@code handling=…} preference when the
+   * client submitted one (both values, including {@code handling=lenient}); returns the response
+   * unchanged when none was sent. For endpoints whose only supported preference is {@code
+   * handling}.
+   */
+  public static Response withAppliedHandling(Response response, List<String> preferHeaders) {
+    Handling handling = parseParameterised(preferHeaders, "handling", Handling::fromHeader, null);
+    if (handling == null) {
+      return response;
+    }
+    return Response.fromResponse(response)
+        .header("Preference-Applied", "handling=" + handling.headerValue())
+        .build();
   }
 }

@@ -24,6 +24,13 @@ public interface ActionResult {
   /** Target collection (always present, even on FAILED actions). */
   String getCollectionId();
 
+  /**
+   * The type in the feature provider that the collection maps to, when known. Executor-internal:
+   * used to report the change to the feature provider; not part of the JSON response.
+   */
+  @JsonIgnore
+  Optional<String> getFeatureType();
+
   /** {@code actionId} from the request, used to correlate the response with the request. */
   Optional<String> getActionId();
 

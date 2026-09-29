@@ -118,28 +118,27 @@ public class QueryParameterBboxCrsFeatures extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      // TODO: include 2D (variants) of the CRSs
-      // default is currently always CRS84
-      String defaultCrs = CRS84 /* TODO support 4 or 6 numbers
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              // TODO: include 2D (variants) of the CRSs
+              // default is currently always CRS84
+              String defaultCrs = CRS84 /* TODO support 4 or 6 numbers
             apiData.getExtension(FeaturesCoreConfiguration.class, collectionId)
                 .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
                 .map(EpsgCrs::toUriString)
                 .orElse(CRS84) */;
-      List<String> crsList =
-          crsSupport
-              .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
-              .stream()
-              .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
-              .flatMap(crs -> crs.allUris().stream())
-              .collect(ImmutableList.toImmutableList());
-      schemaMap
-          .get(apiHashCode)
-          .put(collectionId, new StringSchema()._enum(crsList)._default(defaultCrs));
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+              List<String> crsList =
+                  crsSupport
+                      .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
+                      .stream()
+                      .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
+                      .flatMap(crs -> crs.allUris().stream())
+                      .collect(ImmutableList.toImmutableList());
+              return new StringSchema()._enum(crsList)._default(defaultCrs);
+            });
   }
 
   @Override

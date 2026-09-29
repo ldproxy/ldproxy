@@ -102,16 +102,25 @@ class LdproxyCfgImpl implements LdproxyCfg {
   private final List<Identifier> defaultIdentifiers;
   private final List<Identifier> overrideIdentifiers;
   private final EventSubscriptionsSync eventSubscriptions;
+  private final boolean enforceWindowsLineEndings;
 
   public LdproxyCfgImpl(Path dataDirectory) {
     this(dataDirectory, false);
   }
 
   public LdproxyCfgImpl(Path dataDirectory, boolean noDefaults) {
-    this(dataDirectory, detectStore(dataDirectory), noDefaults);
+    this(dataDirectory, detectStore(dataDirectory), noDefaults, false);
   }
 
-  public LdproxyCfgImpl(Path dataDirectory, StoreConfiguration sc, boolean noDefaults) {
+  public LdproxyCfgImpl(Path dataDirectory, boolean noDefaults, boolean enforceWindowsLineEndings) {
+    this(dataDirectory, detectStore(dataDirectory), noDefaults, enforceWindowsLineEndings);
+  }
+
+  public LdproxyCfgImpl(
+      Path dataDirectory,
+      StoreConfiguration sc,
+      boolean noDefaults,
+      boolean enforceWindowsLineEndings) {
     this.dataDirectory = dataDirectory;
     this.storeConfiguration = sc;
     this.requiredIncludes = new RequiredIncludes();
@@ -183,6 +192,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
     this.migrations = Migrations.create(entityDataStore);
     Set<ValueFactory> vFactories = ValueFactories.factories(entityDataStore);
     this.valueFactories = new ValueFactoriesImpl(() -> vFactories);
+    this.enforceWindowsLineEndings = enforceWindowsLineEndings;
   }
 
   private static StoreConfiguration detectStore(Path dataDirectory) {
@@ -348,7 +358,14 @@ class LdproxyCfgImpl implements LdproxyCfg {
         getEntityDataDefaultsStore().subtractDefaults(identifier, data.getEntitySubType(), asMap);
 
     path.getParent().toFile().mkdirs();
-    objectMapper.writeValue(path.toFile(), withoutDefaults);
+
+    if (enforceWindowsLineEndings) {
+      String yamlString = objectMapper.writeValueAsString(withoutDefaults);
+      String windowsYamlString = yamlString.replace("\n", "\r\n");
+      Files.writeString(path, windowsYamlString, StandardCharsets.UTF_8);
+    } else {
+      objectMapper.writeValue(path.toFile(), withoutDefaults);
+    }
   }
 
   @Override
@@ -367,7 +384,15 @@ class LdproxyCfgImpl implements LdproxyCfg {
     FORMAT format = getFormat(data);
     Path valuePath = getValuePath(data, format, name, path);
     valuePath.getParent().toFile().mkdirs();
-    valueEncoding.getMapper(format).writeValue(valuePath.toFile(), data);
+
+    if (enforceWindowsLineEndings
+        && (format == FORMAT.YML || format == FORMAT.YAML || format == FORMAT.JSON)) {
+      String valueString = valueEncoding.getMapper(format).writeValueAsString(data);
+      String windowsValueString = valueString.replace("\n", "\r\n");
+      Files.writeString(valuePath, windowsValueString, StandardCharsets.UTF_8);
+    } else {
+      valueEncoding.getMapper(format).writeValue(valuePath.toFile(), data);
+    }
   }
 
   @Override

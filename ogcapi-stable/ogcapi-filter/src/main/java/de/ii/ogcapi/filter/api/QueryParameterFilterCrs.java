@@ -134,51 +134,51 @@ public class QueryParameterFilterCrs extends OgcApiQueryParameterBase
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey("*")) {
-      // TODO: only include 2D (variants) of the CRSs
-      String defaultCrs = CRS84 /* TODO support 4 or 6 numbers
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            "*",
+            ignore -> {
+              // TODO: only include 2D (variants) of the CRSs
+              String defaultCrs = CRS84 /* TODO support 4 or 6 numbers
             apiData.getExtension(FeaturesCoreConfiguration.class, collectionId)
                 .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
                 .map(ImmutableEpsgCrs::toUriString)
                 .orElse(CRS84) */;
-      List<String> crsList =
-          crsSupport.getSupportedCrsList(apiData).stream()
-              .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
-              .map(EpsgCrs::toUriString)
-              .collect(ImmutableList.toImmutableList());
-      schemaMap.get(apiHashCode).put("*", new StringSchema()._enum(crsList)._default(defaultCrs));
-    }
-    return schemaMap.get(apiHashCode).get("*");
+              List<String> crsList =
+                  crsSupport.getSupportedCrsList(apiData).stream()
+                      .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
+                      .map(EpsgCrs::toUriString)
+                      .collect(ImmutableList.toImmutableList());
+              return new StringSchema()._enum(crsList)._default(defaultCrs);
+            });
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
-    int apiHashCode = apiData.hashCode();
-    if (!schemaMap.containsKey(apiHashCode)) schemaMap.put(apiHashCode, new ConcurrentHashMap<>());
-    if (!schemaMap.get(apiHashCode).containsKey(collectionId)) {
-      // always support both default CRSs
-      String defaultCrs =
-          apiData
-              .getExtension(FeaturesCoreConfiguration.class, collectionId)
-              .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
-              .map(EpsgCrs::toUriString)
-              .orElse(CRS84);
-      ImmutableList.Builder<String> crsListBuilder = new ImmutableList.Builder<>();
-      List<String> crsList =
-          crsSupport
-              .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
-              .stream()
-              .flatMap(crs -> crs.allUris().stream())
-              .collect(ImmutableList.toImmutableList());
-      crsListBuilder.addAll(crsList);
-      if (!crsList.contains(CRS84)) crsListBuilder.add(CRS84);
-      schemaMap
-          .get(apiHashCode)
-          .put(collectionId, new StringSchema()._enum(crsListBuilder.build())._default(defaultCrs));
-    }
-    return schemaMap.get(apiHashCode).get(collectionId);
+    return schemaMap
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionId,
+            ignore -> {
+              // always support both default CRSs
+              String defaultCrs =
+                  apiData
+                      .getExtension(FeaturesCoreConfiguration.class, collectionId)
+                      .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
+                      .map(EpsgCrs::toUriString)
+                      .orElse(CRS84);
+              ImmutableList.Builder<String> crsListBuilder = new ImmutableList.Builder<>();
+              List<String> crsList =
+                  crsSupport
+                      .getSupportedCrsList(apiData, apiData.getCollections().get(collectionId))
+                      .stream()
+                      .flatMap(crs -> crs.allUris().stream())
+                      .collect(ImmutableList.toImmutableList());
+              crsListBuilder.addAll(crsList);
+              if (!crsList.contains(CRS84)) crsListBuilder.add(CRS84);
+              return new StringSchema()._enum(crsListBuilder.build())._default(defaultCrs);
+            });
   }
 
   @Override

@@ -189,13 +189,16 @@ public abstract class Endpoint implements EndpointExtension {
   }
 
   /**
-   * create MediaType from text string; if the input string has problems, the value defaults to
-   * wildcards
+   * create MediaType from text string; if the input string is missing or has problems, the value
+   * defaults to wildcards
    *
-   * @param mediaTypeString the media type as a string
+   * @param mediaTypeString the media type as a string, may be {@code null}
    * @return the processed media type
    */
   public static MediaType mediaTypeFromString(String mediaTypeString) {
+    if (Objects.isNull(mediaTypeString)) {
+      return MediaType.WILDCARD_TYPE;
+    }
     String[] typeAndSubtype = mediaTypeString.split("/", 2);
     if (typeAndSubtype[0].matches(
         "application|audio|font|example|image|message|model|multipart|text|video")) {

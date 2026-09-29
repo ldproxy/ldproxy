@@ -11,9 +11,11 @@ import de.ii.xtraplatform.base.domain.AppConfiguration;
 import de.ii.xtraplatform.base.domain.AuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.AuthConfiguration;
 import de.ii.xtraplatform.base.domain.BackgroundTasksConfiguration;
+import de.ii.xtraplatform.base.domain.EncryptionConfiguration;
 import de.ii.xtraplatform.base.domain.HttpClientConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuditLogConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableAuthConfiguration;
+import de.ii.xtraplatform.base.domain.ImmutableEncryptionConfiguration;
 import de.ii.xtraplatform.base.domain.ImmutableModulesConfiguration;
 import de.ii.xtraplatform.base.domain.JobsConfiguration;
 import de.ii.xtraplatform.base.domain.LoggingConfiguration;
@@ -92,5 +94,10 @@ class AppConfigurationCfg extends AppConfiguration {
   @Override
   public AuditLogConfiguration getAuditLog() {
     return new ImmutableAuditLogConfiguration.Builder().build();
+  }
+
+  @Override
+  public EncryptionConfiguration getEncryption() {
+    return new ImmutableEncryptionConfiguration.Builder().build();
   }
 }

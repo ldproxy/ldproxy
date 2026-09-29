@@ -18,6 +18,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiBackgroundTask;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
+import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -27,7 +28,6 @@ import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.jobs.domain.JobQueue;
-import de.ii.xtraplatform.jobs.domain.JobSet;
 import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
@@ -35,9 +35,10 @@ import de.ii.xtraplatform.tiles.domain.TileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetLimits;
 import de.ii.xtraplatform.tiles.domain.TileProvider;
 import de.ii.xtraplatform.tiles.domain.TileProviderFeaturesData;
-import de.ii.xtraplatform.tiles.domain.TileSeedingJobSet;
+import de.ii.xtraplatform.tiles.domain.TileSeedingJob;
 import de.ii.xtraplatform.tiles.domain.TilesetFeatures;
 import de.ii.xtraplatform.tiles.domain.TilesetMetadata;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -70,17 +71,20 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
   private final TilesProviders tilesProviders;
   private final VolatileRegistry volatileRegistry;
   private final JobQueue jobQueue;
+  private final Jobs jobs;
 
   @Inject
   public TileSeedingBackgroundTask(
       FeaturesCoreProviders providers,
       TilesProviders tilesProviders,
       VolatileRegistry volatileRegistry,
-      JobQueue jobQueue) {
+      JobQueue jobQueue,
+      Jobs jobs) {
     this.providers = providers;
     this.tilesProviders = tilesProviders;
     this.volatileRegistry = volatileRegistry;
     this.jobQueue = jobQueue;
+    this.jobs = jobs;
   }
 
   @Override
@@ -236,7 +240,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
         jobQueue.getSets().stream()
             .anyMatch(
                 jobSet ->
-                    Objects.equals(jobSet.getType(), TileSeedingJobSet.TYPE)
+                    Objects.equals(jobSet.getType(), TileSeedingJob.TYPE)
                         && !jobSet.isDone()
                         && jobSet
                             .getEntity()
@@ -245,13 +249,13 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
 
     if (inProgress) {
       if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("{} is already in progress, skipping new task", TileSeedingJobSet.LABEL);
+        LOGGER.debug("{} is already in progress, skipping new task", TileSeedingJob.LABEL);
       }
 
       return;
     }
 
-    Optional<JobSet> jobSet = getJobSet(api, tileProvider, reseed);
+    Optional<JobConfiguration> jobSet = getJobSet(api, tileProvider, reseed);
 
     if (jobSet.isEmpty()) {
       if (LOGGER.isDebugEnabled()) {
@@ -263,18 +267,15 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       return;
     }
 
-    jobQueue.push(jobSet.get());
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Added seeding job set to the queue ({})", jobSet.get().getId());
-    }
+    jobs.push(jobSet.get());
   }
 
-  private Optional<JobSet> getJobSet(OgcApi api, TileProvider tileProvider, boolean reseed) {
+  private Optional<JobConfiguration> getJobSet(
+      OgcApi api, TileProvider tileProvider, boolean reseed) {
     return getJobSet(api, tileProvider, reseed, Optional.empty(), Optional.empty());
   }
 
-  private Optional<JobSet> getJobSet(
+  private Optional<JobConfiguration> getJobSet(
       OgcApi api,
       TileProvider tileProvider,
       boolean reseed,
@@ -377,7 +378,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
 
     int priority = tileProvider.seeding().get().getOptions().getEffectivePriority();
 
-    JobSet jobSet = TileSeedingJobSet.of(tileProvider.getId(), tilesets, reseed, priority);
+    JobConfiguration job = TileSeedingJob.of(tileProvider.getId(), tilesets, reseed, priority);
 
     Map<String, TileGenerationParameters> rasterTilesets =
         tilesets.entrySet().stream()
@@ -387,13 +388,14 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
                         .map(rts -> Map.entry(rts, ts.getValue())))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     if (!rasterTilesets.isEmpty()) {
-      jobSet =
-          jobSet.with(TileSeedingJobSet.of(tileProvider.getId(), rasterTilesets, reseed, priority));
+      job =
+          Jobs.addFollowUps(
+              job, TileSeedingJob.of(tileProvider.getId(), rasterTilesets, reseed, priority));
     }
 
     if (!combinedTilesets.isEmpty()) {
-      JobSet combinedJobSet =
-          TileSeedingJobSet.of(tileProvider.getId(), combinedTilesets, reseed, priority);
+      JobConfiguration combinedJob =
+          TileSeedingJob.of(tileProvider.getId(), combinedTilesets, reseed, priority);
 
       Map<String, TileGenerationParameters> rasterCombinedTilesets =
           combinedTilesets.entrySet().stream()
@@ -403,15 +405,15 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
                           .map(rts -> Map.entry(rts, ts.getValue())))
               .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
       if (!rasterCombinedTilesets.isEmpty()) {
-        combinedJobSet =
-            combinedJobSet.with(
-                TileSeedingJobSet.of(
-                    tileProvider.getId(), rasterCombinedTilesets, reseed, priority));
+        combinedJob =
+            Jobs.addFollowUps(
+                combinedJob,
+                TileSeedingJob.of(tileProvider.getId(), rasterCombinedTilesets, reseed, priority));
       }
 
-      jobSet = jobSet.with(combinedJobSet);
+      job = Jobs.addFollowUps(job, combinedJob);
     }
-    return Optional.of(jobSet);
+    return Optional.of(job);
   }
 
   /**
@@ -587,7 +589,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
 
       for (BoundingBox bbox : bboxes) {
         getJobSet(api, tileProvider, true, Optional.of(collectionId), Optional.of(bbox))
-            .ifPresent(jobQueue::push);
+            .ifPresent(jobs::push);
       }
     };
   }

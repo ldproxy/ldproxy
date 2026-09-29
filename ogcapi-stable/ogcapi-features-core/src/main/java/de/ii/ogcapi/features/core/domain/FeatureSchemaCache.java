@@ -29,19 +29,13 @@ public abstract class FeatureSchemaCache {
       FeatureTypeConfigurationOgcApi collectionData,
       ExtensionConfiguration configuration,
       PropertyTransformations transformations) {
-    int apiHashCode = apiData.hashCode();
-    if (!cache.containsKey(apiHashCode)) {
-      cache.put(apiHashCode, new ConcurrentHashMap<>());
-    }
-    if (!cache.get(apiHashCode).containsKey(collectionData.getId())) {
-      cache
-          .get(apiHashCode)
-          .put(
-              collectionData.getId(),
-              deriveSchema(featureSchema, apiData, collectionData, configuration, transformations));
-    }
-
-    return cache.get(apiHashCode).get(collectionData.getId());
+    return cache
+        .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
+        .computeIfAbsent(
+            collectionData.getId(),
+            ignore ->
+                deriveSchema(
+                    featureSchema, apiData, collectionData, configuration, transformations));
   }
 
   protected abstract FeatureSchema deriveSchema(

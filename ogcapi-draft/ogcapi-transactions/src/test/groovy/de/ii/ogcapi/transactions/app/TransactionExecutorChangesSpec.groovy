@@ -229,7 +229,7 @@ class TransactionExecutorChangesSpec extends Specification {
      */
     private TransactionExecutorImpl newExecutor(Map<String, FeatureChanges> changesByCollection) {
         return new TransactionExecutorImpl(
-                null, null, null, Stub(FeaturesCoreQueriesHandler), Stub(VolatileRegistry)) {
+                null, null, null, null, Stub(FeaturesCoreQueriesHandler), Stub(VolatileRegistry)) {
             @Override
             FeatureChanges resolveChanges(de.ii.ogcapi.foundation.domain.OgcApi api, String collectionId) {
                 FeatureChanges c = changesByCollection.get(collectionId)

@@ -8,14 +8,24 @@
 package de.ii.ogcapi.features.gml.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
+import de.ii.ogcapi.features.gml.domain.GmlConfiguration;
 import de.ii.ogcapi.features.gml.domain.ImmutableGmlConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
+import de.ii.xtraplatform.entities.domain.ValidationResult;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.text.MessageFormat;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -86,6 +96,11 @@ import java.util.Optional;
  *   inside one instance of the shared wrapper elements. This is useful for application
  *   schemas that nest atomic values inside wrapper types, and to encode flat properties as
  *   nested structures.
+ * - Properties listed in `xmlComments` are encoded as an XML comment
+ *   `<!-- name: value -->` in the position of the property element instead of as an element,
+ *   so that values without a place in the application schema can be conveyed without making
+ *   the response invalid against it. The same form is used for the property links of a
+ *   feature, which GML elements cannot carry as RFC 8288 web links.
  *     </code>
  * @scopeDe Bei einem WFS-Feature-Provider werden die Features als GML vom WFS abgerufen und in die
  *     Antwort umgeschrieben. Im Falle von *Features* ist das Wurzelelement `sf:FeatureCollection`.
@@ -156,6 +171,11 @@ import java.util.Optional;
  *   Wrapper-Elemente kodiert. Dies ist nützlich für Anwendungsschemata, die atomare Werte in
  *   Wrappertypen einbetten, sowie um flache Eigenschaften als geschachtelte Strukturen zu
  *   kodieren.
+ * - Eigenschaften, die in `xmlComments` aufgeführt sind, werden anstelle eines Elements als
+ *   XML-Kommentar `<!-- name: wert -->` an der Position des Eigenschaftselements kodiert,
+ *   damit Werte ohne Platz im Anwendungsschema übermittelt werden können, ohne die Antwort
+ *   gegenüber dem Schema ungültig zu machen. Dieselbe Form wird für die Property-Links eines
+ *   Features verwendet, die GML-Elemente nicht als Web-Links nach RFC 8288 tragen können.
  *     </code>
  * @conformanceEn In general, *Features GML* implements all requirements of conformance class
  *     *Geography Markup Language (GML), Simple Features Profile, Level 0* and *Geography Markup
@@ -192,8 +212,77 @@ public class GmlBuildingBlock implements ApiBuildingBlock {
               "https://docs.ogc.org/is/17-069r4/17-069r4.html",
               "OGC API - Features - Part 1: Core"));
 
+  private final FeaturesCoreProviders providers;
+
   @Inject
-  public GmlBuildingBlock() {}
+  public GmlBuildingBlock(FeaturesCoreProviders providers) {
+    this.providers = providers;
+  }
+
+  /**
+   * A property encoded as an annotation comment is written on output only — a comment is not part
+   * of the XML information a GML request body is decoded from, so the value could not be sent back.
+   * Restricting {@code xmlComments} to properties that are excluded from the {@code RECEIVABLE}
+   * scope keeps the encoding and the decoding of a collection symmetric by construction: a property
+   * a client may send is never reduced to a comment.
+   */
+  @Override
+  public ValidationResult onStartup(OgcApi api, ValidationResult.MODE apiValidation) {
+    ImmutableValidationResult.Builder builder =
+        ImmutableValidationResult.builder().mode(apiValidation);
+
+    for (Map.Entry<String, FeatureTypeConfigurationOgcApi> entry :
+        api.getData().getCollections().entrySet()) {
+      FeatureTypeConfigurationOgcApi collectionData = entry.getValue();
+      List<String> xmlComments =
+          collectionData
+              .getExtension(GmlConfiguration.class)
+              .filter(GmlConfiguration::isEnabled)
+              .map(GmlConfiguration::getXmlComments)
+              .orElse(List.of());
+      if (xmlComments.isEmpty()) {
+        continue;
+      }
+      Optional<FeatureSchema> schema = providers.getFeatureSchema(api.getData(), collectionData);
+      if (schema.isEmpty()) {
+        builder.addErrors(
+            MessageFormat.format(
+                "The GML option ''xmlComments'' is configured for collection ''{0}'', but no provider has been configured.",
+                entry.getKey()));
+        continue;
+      }
+      for (String property : xmlComments) {
+        checkPropertyIsNotReceivable(builder, entry.getKey(), schema.get(), property);
+      }
+    }
+
+    return builder.build();
+  }
+
+  private static void checkPropertyIsNotReceivable(
+      ImmutableValidationResult.Builder builder,
+      String collectionId,
+      FeatureSchema schema,
+      String property) {
+    FeatureSchema propertySchema =
+        schema.getAllNestedProperties().stream()
+            .filter(p -> Objects.equals(p.getFullPathAsString(), property))
+            .findFirst()
+            .orElse(null);
+    if (Objects.isNull(propertySchema)) {
+      builder.addErrors(
+          MessageFormat.format(
+              "The GML option ''xmlComments'' of collection ''{0}'' lists ''{1}'', but the feature type has no such property.",
+              collectionId, property));
+      return;
+    }
+    if (propertySchema.receivable()) {
+      builder.addErrors(
+          MessageFormat.format(
+              "The GML option ''xmlComments'' of collection ''{0}'' lists ''{1}'', but that property is receivable. A property encoded as an XML comment cannot be decoded from a GML request body, so it must be excluded from the ''RECEIVABLE'' scope in the provider schema.",
+              collectionId, property));
+    }
+  }
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {

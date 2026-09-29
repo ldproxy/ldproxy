@@ -29,7 +29,7 @@ import de.ii.xtraplatform.jobs.domain.JobQueue;
 import de.ii.xtraplatform.jobs.domain.JobSet;
 import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
-import de.ii.xtraplatform.tiles.domain.TileSeedingJobSet;
+import de.ii.xtraplatform.tiles.domain.TileSeedingJob;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
@@ -222,7 +222,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
         jobQueue.getSets().stream()
             .anyMatch(
                 jobSet ->
-                    Objects.equals(jobSet.getType(), TileSeedingJobSet.TYPE)
+                    Objects.equals(jobSet.getType(), TileSeedingJob.TYPE)
                         && !jobSet.isDone()
                         && jobSet
                             .getEntity()
@@ -231,7 +231,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
 
     if (inProgress) {
       if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("{} is already in progress, skipping new task", TileSeedingJobSet.LABEL);
+        LOGGER.debug("{} is already in progress, skipping new task", TileSeedingJob.LABEL);
       }
 
       return;

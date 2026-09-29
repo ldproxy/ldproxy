@@ -21,12 +21,14 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.ws.rs.core.MediaType;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +78,18 @@ public interface ApiOperation {
   List<ApiHeader> getHeaders();
 
   Optional<ApiResponse> getSuccess();
+
+  /**
+   * Responses other than {@link #getSuccess()} that are not plain error responses, such as the
+   * {@code 201} of a PUT request that creates the resource.
+   */
+  List<ApiResponse> getAdditionalResponses();
+
+  /**
+   * Error status codes that this operation can return in addition to the ones derived from its
+   * parameters, request body and headers, such as the {@code 412} of a conditional request.
+   */
+  Set<Integer> getErrorStatusCodes();
 
   @Value.Default
   default boolean ignoreUnknownQueryParameters() {
@@ -180,10 +194,7 @@ public interface ApiOperation {
                 new ImmutableApiResponse.Builder()
                     .statusCode(SUCCESS_STATUS_RESOURCE.get(HttpMethods.GET))
                     .description("The operation was executed successfully.")
-                    .headers(
-                        headers.stream()
-                            .filter(ApiHeader::isResponseHeader)
-                            .collect(Collectors.toUnmodifiableList()))
+                    .headers(responseHeaders(headers, SUCCESS_STATUS_RESOURCE.get(HttpMethods.GET)))
                     .content(responseContent)
                     .build())
             .requestBody(Optional.ofNullable(body))
@@ -236,11 +247,17 @@ public interface ApiOperation {
                 new ImmutableApiResponse.Builder()
                     .statusCode(SUCCESS_STATUS_RESOURCE.get(method))
                     .description("The operation was executed successfully.")
-                    .headers(
-                        headers.stream()
-                            .filter(ApiHeader::isResponseHeader)
-                            .collect(Collectors.toUnmodifiableList()))
+                    .headers(responseHeaders(headers, SUCCESS_STATUS_RESOURCE.get(method)))
                     .build());
+    if (method == HttpMethods.PUT && putAllowsCreate) {
+      operationBuilder.addAdditionalResponses(
+          new ImmutableApiResponse.Builder()
+              .statusCode(STATUS_201)
+              .description(
+                  "A new resource was created. Its URI is returned in the header `Location`.")
+              .headers(responseHeaders(headers, STATUS_201))
+              .build());
+    }
     if (!requestContent.isEmpty()) {
       operationBuilder.requestBody(
           new ImmutableApiRequestBody.Builder()
@@ -274,10 +291,7 @@ public interface ApiOperation {
         new ImmutableApiResponse.Builder()
             .statusCode(SUCCESS_STATUS_PROCESSING.get(HttpMethods.POST))
             .description("The operation was executed successfully.")
-            .headers(
-                headers.stream()
-                    .filter(ApiHeader::isResponseHeader)
-                    .collect(Collectors.toUnmodifiableList()));
+            .headers(responseHeaders(headers, SUCCESS_STATUS_PROCESSING.get(HttpMethods.POST)));
     if (Objects.nonNull(responseContent) && !responseContent.isEmpty()) {
       responseBuilder.content(responseContent).description("The process result.");
     }
@@ -305,6 +319,16 @@ public interface ApiOperation {
               .build());
     }
     return Optional.of(operationBuilder.build());
+  }
+
+  private static List<ApiHeader> responseHeaders(List<ApiHeader> headers, String statusCode) {
+    return headers.stream()
+        .filter(ApiHeader::isResponseHeader)
+        .filter(
+            header ->
+                header.getResponseStatusCodes().isEmpty()
+                    || header.getResponseStatusCodes().contains(statusCode))
+        .collect(Collectors.toUnmodifiableList());
   }
 
   default void updateOpenApiDefinition(
@@ -355,8 +379,11 @@ public interface ApiOperation {
               errorCodes.add(400);
             });
 
-    getSuccess().ifPresent(success -> success.updateOpenApiDefinition(apiData, openAPI, op));
+    Stream.concat(getSuccess().stream(), getAdditionalResponses().stream())
+        .sorted(Comparator.comparing(ApiResponse::getStatusCode))
+        .forEach(response -> response.updateOpenApiDefinition(apiData, openAPI, op));
 
+    errorCodes.addAll(getErrorStatusCodes());
     addErrorResponses(op, errorCodes);
 
     if (apiData.getAccessControl().isPresent()) {
@@ -505,30 +532,29 @@ public interface ApiOperation {
   }
 
   private void addErrorResponses(Operation op, Set<Integer> errorCodes) {
-    ApiResponses responses = op.getResponses();
-    if (Objects.isNull(responses)) {
-      responses = new ApiResponses();
-      op.responses(responses);
-    }
+    // in ascending order of the status code
+    Map<Integer, String> reasonPhrases =
+        ImmutableMap.<Integer, String>builder()
+            .put(400, "Bad Request")
+            .put(404, "Not Found")
+            .put(405, "Method Not Allowed")
+            .put(406, "Not Acceptable")
+            .put(412, "Precondition Failed")
+            .put(415, "Unsupported Media Type")
+            .put(422, "Unprocessable Entity")
+            .put(428, "Precondition Required")
+            .build();
 
-    if (errorCodes.contains(400)) {
-      responses.addApiResponse("400", newErrorResponse("Bad Request"));
-    }
-    if (errorCodes.contains(404)) {
-      responses.addApiResponse("404", newErrorResponse("Not Found"));
-    }
-    if (errorCodes.contains(405)) {
-      responses.addApiResponse("405", newErrorResponse("Method Not Allowed"));
-    }
-    if (errorCodes.contains(406)) {
-      responses.addApiResponse("406", newErrorResponse("Not Acceptable"));
-    }
-    if (errorCodes.contains(415)) {
-      responses.addApiResponse("415", newErrorResponse("Unsupported Media Type"));
-    }
-    if (errorCodes.contains(422)) {
-      responses.addApiResponse("422", newErrorResponse("Unprocessable Entity"));
-    }
+    ApiResponses responses = Objects.requireNonNullElseGet(op.getResponses(), ApiResponses::new);
+    op.responses(responses);
+
+    reasonPhrases.entrySet().stream()
+        .filter(entry -> errorCodes.contains(entry.getKey()))
+        .forEach(
+            entry ->
+                responses.addApiResponse(
+                    String.valueOf(entry.getKey()), newErrorResponse(entry.getValue())));
+
     responses.addApiResponse("500", newErrorResponse("Server Error"));
   }
 
