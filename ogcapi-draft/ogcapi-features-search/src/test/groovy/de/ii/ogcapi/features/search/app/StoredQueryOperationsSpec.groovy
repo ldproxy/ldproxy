@@ -19,13 +19,16 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
+import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.ObjectSchema
 import jakarta.ws.rs.core.MediaType
 import spock.lang.Specification
 
-// A stored query can be executed with the parameters URL-encoded in a POST body, but only without
-// paging: the next link of a paged response would require a URI that includes the parameters.
-class StoredQueryPostSpec extends Specification {
+// The operations of a stored query depend on paging: without paging, the parameters may also be
+// URL-encoded in a POST body (the next link of a paged response would require a URI that includes
+// the parameters), and there is no offset (all features are returned, an offset would be ignored).
+class StoredQueryOperationsSpec extends Specification {
 
     static final MediaType GEO_JSON = new MediaType('application', 'geo+json')
 
@@ -67,6 +70,47 @@ class StoredQueryPostSpec extends Specification {
         post.getOperationId() != get.getOperationId()
     }
 
+    def 'offset is a parameter of stored queries with paging only'() {
+        given: 'a stored query with paging and one without'
+        StoredQueryRepository repository = Stub()
+        repository.getAll(_) >> [query('paged', true), query('single-shot', false), query('default', null)]
+        EndpointStoredQuery endpoint = new EndpointStoredQuery(
+                registry([parameter(QueryParameterOffsetStoredQuery, 'offset'),
+                          parameter(OgcApiQueryParameter, 'pretty')]),
+                null, repository, null, null, null)
+
+        when:
+        ApiEndpointDefinition definition = endpoint.computeDefinition(Stub(OgcApiDataV2))
+
+        then:
+        parameterNames(definition, 'paged', 'GET') == ['offset', 'pretty']
+        parameterNames(definition, 'single-shot', 'GET') == ['pretty']
+        parameterNames(definition, 'default', 'GET') == ['pretty']
+
+        and: 'the form of the POST request has the same parameters as the GET request'
+        formParameterNames(definition, 'single-shot') == ['pretty'] as Set
+    }
+
+    private static List<String> parameterNames(ApiEndpointDefinition definition, String queryId, String method) {
+        return operations(definition, queryId).get(method).getQueryParameters().collect { it.getName() }
+    }
+
+    private static Set<String> formParameterNames(ApiEndpointDefinition definition, String queryId) {
+        return operations(definition, queryId).get('POST').getRequestBody().orElseThrow()
+                .getContent().get(MediaType.APPLICATION_FORM_URLENCODED_TYPE).getSchema()
+                .getProperties().keySet()
+    }
+
+    private <T extends OgcApiQueryParameter> T parameter(Class<T> type, String name) {
+        T parameter = Stub(type)
+        parameter.getName() >> name
+        parameter.getDescription() >> name
+        parameter.isApplicable(_, _, _) >> true
+        parameter.getSchema(_, _) >> new IntegerSchema()
+        parameter.getRequired(_, _) >> false
+        return parameter
+    }
+
     private static Map<String, ApiOperation> operations(ApiEndpointDefinition definition, String queryId) {
         return definition.getResources().get('/search/' + queryId).getOperations()
     }
@@ -81,11 +125,12 @@ class StoredQueryPostSpec extends Specification {
         return builder.build()
     }
 
-    private ExtensionRegistry registry() {
+    private ExtensionRegistry registry(List<OgcApiQueryParameter> parameters = []) {
         FeatureFormatExtension geoJson = format(GEO_JSON, 'json')
         FeatureFormatExtension html = format(MediaType.TEXT_HTML_TYPE, 'html')
         ExtensionRegistry registry = Stub()
         registry.getExtensionsForType(FeatureFormatExtension) >> [geoJson, html]
+        registry.getExtensionsForType(OgcApiQueryParameter) >> parameters
         registry.getExtensionsForType(_) >> []
         return registry
     }

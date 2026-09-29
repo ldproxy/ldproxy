@@ -196,6 +196,11 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                                   || Objects.equals(
                                       ((QueryParameterTemplateParameter) param).getQueryId(),
                                       queryId))
+                      // a query without paging returns all features, an offset would be ignored
+                      .filter(
+                          param ->
+                              !(param instanceof QueryParameterOffsetStoredQuery)
+                                  || query.getSupportPaging().orElse(false))
                       .toList();
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
