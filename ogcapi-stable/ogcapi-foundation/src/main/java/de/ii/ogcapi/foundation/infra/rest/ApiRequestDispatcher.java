@@ -308,11 +308,14 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     if (ogcApiEndpoint.shouldIgnoreParameters(apiData, subPath, method)) {
       return;
     }
+    // internal parameters must not be set by clients
+    List<OgcApiQueryParameter> publicParameters =
+        knownParameters.stream().filter(param -> !param.isInternal()).toList();
     Set<String> unknownParameters =
         parameters.stream()
             .filter(
                 parameter ->
-                    knownParameters.stream()
+                    publicParameters.stream()
                         .noneMatch(param -> param.getName().equalsIgnoreCase(parameter)))
             .collect(Collectors.toSet());
     if (!unknownParameters.isEmpty()) {
@@ -320,7 +323,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
           "The following query parameters are rejected: "
               + String.join(", ", unknownParameters)
               + ". Valid parameters for this request are: "
-              + knownParameters.stream()
+              + publicParameters.stream()
                   .map(ParameterExtension::getName)
                   .collect(Collectors.joining(", ")));
     }
