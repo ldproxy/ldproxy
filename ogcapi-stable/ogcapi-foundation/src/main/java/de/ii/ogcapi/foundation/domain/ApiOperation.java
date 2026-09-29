@@ -113,6 +113,19 @@ public interface ApiOperation {
         : getOperationId();
   }
 
+  // a URL-encoded POST carries the query parameters of the associated GET request in the body
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean hasFormRequestBody() {
+    return getRequestBody()
+        .map(
+            body ->
+                body.getContent()
+                    .keySet()
+                    .equals(Set.of(MediaType.APPLICATION_FORM_URLENCODED_TYPE)))
+        .orElse(false);
+  }
+
   // Construct a standard fetch operation (GET, or URL-encoded POST)
   static Optional<ApiOperation> getResource(
       OgcApiDataV2 apiData,
@@ -496,9 +509,7 @@ public interface ApiOperation {
         pathItem.post(op);
         isMutation = true;
         if (getRequestBody().isPresent()) {
-          Set<MediaType> mediaTypes = getRequestBody().get().getContent().keySet();
-          if (mediaTypes.size() == 1
-              && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(mediaTypes.iterator().next())) {
+          if (hasFormRequestBody()) {
             // URL-encoded form
             isMutation = false;
             errorCodes.add(406);
