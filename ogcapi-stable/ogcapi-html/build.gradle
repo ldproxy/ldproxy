@@ -45,8 +45,11 @@ node {
 npmInstall {
     inputs.file("src/main/javascript/package.json")
     inputs.file("src/main/javascript/package-lock.json")
-    outputs.dir("src/main/javascript/node_modules")
-    outputs.cacheIf { true }
+    // node_modules has tens of thousands of files, fingerprinting all of them is expensive,
+    // npm's hidden lockfile is enough to detect whether an install is needed
+    nodeModulesOutputFilter {
+        include '.package-lock.json'
+    }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
