@@ -45,7 +45,6 @@ const getCrsLabel = (crs: string): string => {
 
 const CrsEditor = () => {
   const { t } = useTranslation();
-  // eslint-disable-next-line no-underscore-dangle
   const { language, translations } = globalThis._crs_selector!;
 
   const [crsValues, setCrsValues] = useState<string[]>([]);
@@ -62,7 +61,6 @@ const CrsEditor = () => {
     Object.entries(translations).forEach(([key, value]) => {
       i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, translations]);
 
   useEffect(() => {

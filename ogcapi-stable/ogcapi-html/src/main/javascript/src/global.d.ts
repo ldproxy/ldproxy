@@ -57,21 +57,13 @@ export interface CesiumGlobal {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var _filter: FilterEditorGlobal | undefined;
-  // eslint-disable-next-line no-var
   var _sortingfilter: SortingEditorGlobal | undefined;
-  // eslint-disable-next-line no-var
   var _crs_selector: CrsSelectorGlobal | undefined;
-  // eslint-disable-next-line no-var
   var _limit_selector: LimitSelectorGlobal | undefined;
-  // eslint-disable-next-line no-var
   var _map: MapGlobal | undefined;
-  // eslint-disable-next-line no-var
   var _cesium: CesiumGlobal | undefined;
-  // eslint-disable-next-line no-var
   var CESIUM_BASE_URL: string;
-  // eslint-disable-next-line no-var
   var $: JQueryStatic | undefined;
 
   interface Window {

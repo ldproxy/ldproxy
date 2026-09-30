@@ -10,7 +10,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "mocha",
-    "lint": "eslint --cache --format codeframe --ext mjs,jsx,js src test",
+    "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -19,10 +19,11 @@
     "@cesium/widgets": "^16.1.1",
     "@mapbox/geojson-extent": "^1.0.1",
     "@vis.gl/react-maplibre": "^8.1.2",
-    "@xtramaps/layer-control-maplibre-react": "file:../../../../../../xtramaps/packages/react/layer-control-maplibre",
-    "@xtramaps/web-map-cesium-react": "file:../../../../../../xtramaps/packages/react/web-map-cesium",
-    "@xtramaps/web-map-maplibre-react": "file:../../../../../../xtramaps/packages/react/web-map-maplibre",
-    "@xtramaps/web-map-openlayers-react": "file:../../../../../../xtramaps/packages/react/web-map-openlayers",
+    "@xtramaps/layer-control-maplibre": "^1.1.0",
+    "@xtramaps/layer-control-maplibre-react": "^1.1.0",
+    "@xtramaps/web-map-cesium-react": "^1.1.0",
+    "@xtramaps/web-map-maplibre-react": "^1.1.0",
+    "@xtramaps/web-map-openlayers-react": "^1.1.0",
     "bootstrap": "^4.6.0",
     "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
@@ -44,6 +45,7 @@
     "rlayers": "^3.9.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@storybook/react-vite": "10.5.7",
     "@types/d3-scale": "^4.0.9",
     "@types/node": "^26.2.0",
@@ -51,21 +53,16 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.0",
-    "eslint": "^7",
-    "eslint-plugin-babel": "*",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-storybook": "^10.5.7",
+    "globals": "^17.12.0",
     "mocha": "^8",
     "storybook": "10.5.7",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.0",
     "vite": "^8.0.0",
     "vite-plugin-static-copy": "^4.1.1"
-  },
-  "overrides": {
-    "@xtramaps/web-map-maplibre": "file:../../../../../../xtramaps/packages/core/web-map-maplibre",
-    "@xtramaps/layer-control-maplibre": "file:../../../../../../xtramaps/packages/core/layer-control-maplibre",
-    "@xtramaps/legend-symbols-maplibre": "file:../../../../../../xtramaps/packages/core/legend-symbols-maplibre",
-    "@xtramaps/legend-symbols-maplibre-react": "file:../../../../../../xtramaps/packages/react/legend-symbols-maplibre",
-    "@xtramaps/web-map-openlayers": "file:../../../../../../xtramaps/packages/core/web-map-openlayers",
-    "@xtramaps/web-map-cesium": "file:../../../../../../xtramaps/packages/core/web-map-cesium"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

@@ -28,14 +28,12 @@ const LimitEditor = ({
   defaultLimit = null,
 }: LimitEditorProps) => {
   const { t } = useTranslation();
-  // eslint-disable-next-line no-underscore-dangle
   const { language, translations } = globalThis._limit_selector!;
 
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {
       i18n.addResourceBundle(language, "translation", { [key]: value }, true, true);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, translations]);
 
   const initialQuery = useMemo(
@@ -70,7 +68,6 @@ const LimitEditor = ({
       values.push(initialApplied);
     }
     return values.sort((a, b) => a - b);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasConfiguredSelectOptions, normalizedOptions, normalizedDefault, initialApplied]);
 
   const getSelectValueForLimit = (limit: number | null): string => {

@@ -24,8 +24,8 @@ function collectCss(entryChunk, bundle) {
     const chunk = byFileName.get(fileName);
     if (!chunk || chunk.type !== 'chunk') continue;
 
-    (chunk.viteMetadata?.importedCss ?? []).forEach((file) => css.add(file));
-    (chunk.imports ?? []).forEach((imported) => queue.push(imported));
+    for (const file of chunk.viteMetadata?.importedCss ?? []) css.add(file);
+    for (const imported of chunk.imports ?? []) queue.push(imported);
   }
 
   return [...css];

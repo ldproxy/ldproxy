@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-// eslint-disable-next-line no-underscore-dangle
 const { language } = globalThis._sortingfilter!;
 
 i18n.use(initReactI18next).init({

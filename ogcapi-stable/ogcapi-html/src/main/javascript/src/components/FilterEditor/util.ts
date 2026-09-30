@@ -40,10 +40,8 @@ export const extractFields = (obj: CollectionLike | undefined): ExtractedFields 
   const integerKeys: string[] = [];
   const booleanProperty: string[] = [];
   if (obj && obj.properties) {
-    // eslint-disable-next-line
     for (const key in obj.properties) {
       if (obj.properties[key]["x-ogc-role"] && obj.properties[key]["x-ogc-role"]!.startsWith("primary-")) {
-        // eslint-disable-next-line no-continue
         continue;
       }
       if (obj.properties[key].title) {

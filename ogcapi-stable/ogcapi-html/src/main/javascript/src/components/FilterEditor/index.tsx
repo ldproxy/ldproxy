@@ -67,7 +67,6 @@ const FilterEditor = ({
 
   const { t } = useTranslation();
 
-  // eslint-disable-next-line no-underscore-dangle
   const { language, translations } = globalThis._filter!;
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {
@@ -128,7 +127,6 @@ const FilterEditor = ({
 
     const newFilters = Object.keys(filters).reduce((reduced, key) => {
       if (!filters[key].remove) {
-        // eslint-disable-next-line no-param-reassign
         reduced[key] = {
           ...filters[key],
           add: false,
@@ -171,7 +169,7 @@ const FilterEditor = ({
   const deleteFilters = (field: string) => () => {
     setFilters((current) => {
       if (query[field] === undefined) {
-        // eslint-disable-next-line no-unused-vars
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [field]: discarded, ...rest } = current;
         return rest;
       }

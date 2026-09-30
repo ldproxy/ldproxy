@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars -- React must be in scope for the classic JSX runtime
 import React from 'react';
 
 export const decorators = [

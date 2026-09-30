@@ -82,4 +82,14 @@ task npmStorybook(type: NpmTask) {
     args = ['run', 'storybook']
 }
 
+task npmLint(type: NpmTask) {
+    dependsOn npmInstall
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'lint']
+}
+
+check.dependsOn npmLint
+
 processResources.dependsOn npmBuild

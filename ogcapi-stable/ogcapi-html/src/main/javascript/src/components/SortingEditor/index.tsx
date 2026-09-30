@@ -15,15 +15,7 @@ const query = qs.parse(window.location.search, {
   ignoreQueryPrefix: true,
 });
 
-export interface SortingEditorProps {
-  backgroundUrl?: string;
-  attribution?: string;
-}
-
-const SortingEditor = ({
-  backgroundUrl = "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution = '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-}: SortingEditorProps) => {
+const SortingEditor = () => {
   const initialFilters = useRef<Filters>({});
 
   const [isOpen, setOpen] = useState(false);
@@ -54,7 +46,6 @@ const SortingEditor = ({
 
   const { t } = useTranslation();
 
-  // eslint-disable-next-line no-underscore-dangle
   const { language, translations } = globalThis._sortingfilter!;
   useEffect(() => {
     Object.entries(translations).forEach(([key, value]) => {

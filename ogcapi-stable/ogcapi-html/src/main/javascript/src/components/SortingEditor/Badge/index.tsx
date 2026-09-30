@@ -18,7 +18,6 @@ const FilterBadge = ({ field, value, isAdd, isRemove }: FilterBadgeProps) => {
   return (
     <Button
       key={value}
-      // eslint-disable-next-line no-nested-ternary
       color={isAdd ? "success" : isRemove ? "danger" : "primary"}
       disabled
       size="sm"
