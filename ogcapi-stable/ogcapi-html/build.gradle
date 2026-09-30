@@ -35,6 +35,7 @@ jar {
 
 node {
     version = '22.12.0'
+    nodeProjectDir = file('src/main/javascript')
     download = project.findProperty('downloadNode') != 'false' ?: false
     // do not declare the repository, that is not allowed outside of settings.gradle
     // it is automatically added by the settings plugin
