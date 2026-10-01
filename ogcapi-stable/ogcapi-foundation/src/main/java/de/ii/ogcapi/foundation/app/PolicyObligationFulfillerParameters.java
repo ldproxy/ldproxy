@@ -31,7 +31,7 @@ public class PolicyObligationFulfillerParameters implements PolicyObligationFulf
 
   @Override
   public boolean canFulfill(Map<String, PolicyAttribute> obligations, ApiOperation apiOperation) {
-    return !apiOperation.getQueryParameters().isEmpty()
+    return (!apiOperation.getQueryParameters().isEmpty() || apiOperation.hasFormRequestBody())
         && obligations.values().stream()
             .anyMatch(obligation -> obligation.getParameter().isPresent());
   }
