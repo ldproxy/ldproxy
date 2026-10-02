@@ -34,10 +34,20 @@ import org.immutables.value.Value;
  *     <p><code>
  * - The `id` of a MapLibre layer in the style (string). The layer is displayed in the dialog with the `id` as name. The symbol of the layer is created without specifying attributes or a particular zoom layer.
  * - A layer object. `id` is the `id` of the MapLibre layer in the style (string, mandatory). `label` is the name of the layer in the dialog (string, default: `id`). `zoom` is the zoom level to use when creating symbols (number, default: none). `properties` are attributes (object, default `{}`) to be used during symbol generation.
- * - A group object. `type` is always "group". `id` is an `id` of the group (string, mandatory). `label` is the name of the group in the dialog (string, default: `id`). With `onlyLegend` the possibility to disable layers can be disabled for the group (Boolean, default: `false`). `entries` can contain layers (objects or string), groups or merge groups (array, default: `[]`).
- * - A radio group object. It may only occur on the top level of entries. Only exactly one entry can be selected from the group, e.g. for the selection of a basemap. `type` is always "radio-group". `id`, `label` have the same effect as for normal groups. `entries` can only contain layers (objects or string) (array, default: `[]`).
- * - A merge group object. `type` is always "merge-group". A merge group is a group where `entries` may only contain layers (objects or string) (array, default: `[]`); these entries are not displayed as subentries in the dialog, but a symbol is created from all layers together. Instead of specifying `entries`, `source-layer` (string, default: none) can be specified alternatively; in this case, all layers with this source layer become entries.
+ * - A group object. `type` is always "group". `id` is an `id` of the group (string, mandatory). `label` is the name of the group in the dialog (string, default: `id`). With `onlyLegend` the possibility to disable layers can be disabled for the group (Boolean, default: `false`). With `opened: false` the group is displayed collapsed when the map is loaded (Boolean, default: `true`). `entries` can contain layers (objects or string), groups or merge groups (array, default: `[]`).
+ * - A radio group object. It may only occur on the top level of entries. Only exactly one entry can be selected from the group, e.g. for the selection of a basemap. `type` is always "radio-group". `id`, `label`, `opened` have the same effect as for normal groups. `entries` can only contain layers (objects or string) (array, default: `[]`).
+ * - A merge group object. `type` is always "merge-group". A merge group is a group where `entries` may only contain layers (objects or string) (array, default: `[]`); these entries are not displayed as subentries in the dialog, but a symbol is created from all layers together. Instead of specifying `entries`, `sourceLayer` (string, default: none) can be specified alternatively; in this case, all layers with this source layer become entries.
  *     </code>
+ *     <p>Which layers are active when the map is loaded is determined by the layout property
+ *     `visibility` of the layers in the style: layers with `"visibility": "none"` are initially
+ *     deactivated, all other layers are active. A group is active if all of its entries are active.
+ *     In a radio group, the first entry whose layer is not hidden is selected (the first entry, if
+ *     all of them are hidden).
+ *     <p>A merge group is only switched as a whole and is active as soon as one of its layers is
+ *     visible. Its layers should therefore usually have the same `visibility`; a layer hidden in
+ *     the style becomes visible as soon as the merge group is switched off and on again. If a layer
+ *     should be switched separately, e.g. labels that are initially hidden, configure it as a
+ *     separate entry instead of as part of the merge group.
  *     <p>For an example, see below.
  * @langDe ### Layerauswahl
  *     <p>Der Layerauswahldialog in der Webmap wird über die Option `webmapWithLayerControl`
@@ -53,10 +63,20 @@ import org.immutables.value.Value;
  *     <p><code>
  * - Die `id` eines MapLibre-Layers in dem Style (String). Der Layer wird im Dialog mit der `id` als Namen dargestellt. Das Symbol des Layers wird ohne Angabe von Attributen oder eines bestimmten Zoomlayers erzeugt.
  * - Ein Layer (Objekt). `id` ist die `id` das MapLibre-Layers in dem Style (String, Pflichtangabe). `label` ist der Name des Layers im Dialog (String, Default: `id`). `zoom` ist die bei der Symbolerzeugung zu verwendende Zoomstufe (Nummer, Default: ohne). `properties` sind bei der Symbolerzeugung zu verwendene Attribute (Objekt, Default `{}`).
- * - Eine Gruppe (Objekt). `type` ist immer "group". `id` ist eine `id` der Gruppe (String, Pflichtangabe). `label` ist der Name des Gruppe im Dialog (String, Default: `id`). Mit `onlyLegend` kann für die Gruppe die Möglichkeit deaktiviert werden, Layer zu deaktivieren (Boolean, Default: `false`). `entries` kann Layer (Objekte oder String), Gruppen oder Merge-Gruppen enthalten (Array, Default: `[]`).
- * - Eine Radio-Gruppe (Objekt). Sie darf nur auf der obersten Ebene der Einträge vorkommen. Aus der Gruppe kann nur genau ein Eintrag ausgewählt werden, z.B. für die Auswahl einer Basemap. `type` ist immer "radio-group". `id`, `label` wirken wie bei normalen Gruppen. `entries` kann nur Layer (Objekte oder String) enthalten (Array, Default: `[]`).
- * - Eine Merge-Gruppe (Objekt). `type` ist immer "merge-group". Eine Merge-Gruppe ist eine Gruppe, bei der `entries` nur Layer (Objekte oder String) enthalten darf (Array, Default: `[]`); diese Einträge werden nicht als Untereinträge im Dialog dargestellt, sondern aus allen Layern wird zusammen ein Symbol erzeugt. Statt der Angabe von `entries` kann alternativ auch `source-layer` (String, Default: ohne) angegeben werden; in diesem Fall werden alle Layer mit diesem Source-Layer zu Einträgen.
+ * - Eine Gruppe (Objekt). `type` ist immer "group". `id` ist eine `id` der Gruppe (String, Pflichtangabe). `label` ist der Name des Gruppe im Dialog (String, Default: `id`). Mit `onlyLegend` kann für die Gruppe die Möglichkeit deaktiviert werden, Layer zu deaktivieren (Boolean, Default: `false`). Mit `opened: false` wird die Gruppe beim Laden der Karte zugeklappt dargestellt (Boolean, Default: `true`). `entries` kann Layer (Objekte oder String), Gruppen oder Merge-Gruppen enthalten (Array, Default: `[]`).
+ * - Eine Radio-Gruppe (Objekt). Sie darf nur auf der obersten Ebene der Einträge vorkommen. Aus der Gruppe kann nur genau ein Eintrag ausgewählt werden, z.B. für die Auswahl einer Basemap. `type` ist immer "radio-group". `id`, `label`, `opened` wirken wie bei normalen Gruppen. `entries` kann nur Layer (Objekte oder String) enthalten (Array, Default: `[]`).
+ * - Eine Merge-Gruppe (Objekt). `type` ist immer "merge-group". Eine Merge-Gruppe ist eine Gruppe, bei der `entries` nur Layer (Objekte oder String) enthalten darf (Array, Default: `[]`); diese Einträge werden nicht als Untereinträge im Dialog dargestellt, sondern aus allen Layern wird zusammen ein Symbol erzeugt. Statt der Angabe von `entries` kann alternativ auch `sourceLayer` (String, Default: ohne) angegeben werden; in diesem Fall werden alle Layer mit diesem Source-Layer zu Einträgen.
  *     </code>
+ *     <p>Welche Layer beim Laden der Karte aktiv sind, ergibt sich aus der Layout-Eigenschaft
+ *     `visibility` der Layer im Style: Layer mit `"visibility": "none"` sind zunächst deaktiviert,
+ *     alle anderen Layer sind aktiv. Eine Gruppe ist aktiv, wenn alle ihre Einträge aktiv sind. In
+ *     einer Radio-Gruppe ist der erste Eintrag ausgewählt, dessen Layer nicht ausgeblendet ist (der
+ *     erste Eintrag, wenn alle ausgeblendet sind).
+ *     <p>Eine Merge-Gruppe wird nur als Ganzes geschaltet und ist aktiv, sobald einer ihrer Layer
+ *     sichtbar ist. Ihre Layer sollten daher in der Regel dieselbe `visibility` haben; ein im Style
+ *     ausgeblendeter Layer wird sichtbar, sobald die Merge-Gruppe aus- und wieder eingeschaltet
+ *     wird. Soll ein Layer separat schaltbar sein, z.B. zunächst ausgeblendete Beschriftungen, dann
+ *     sollte er als eigener Eintrag statt als Teil der Merge-Gruppe konfiguriert werden.
  *     <p>Siehe unten für ein Beispiel.
  * @examplesEn Example of the specifications in the configuration file:
  *     <p><code>
