@@ -1,8 +1,0 @@
-.cesium-viewer-bottom {
-  left: 5px !important;
-  bottom: 0 !important;
-}
-
-.cesium-viewer-bottom a:nth-child(2) {
-  display: none !important;
-}

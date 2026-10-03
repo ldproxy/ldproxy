@@ -1,0 +1,167 @@
+import React from "react";
+import { FormGroup, Label, Input } from "reactstrap";
+import { useTranslation } from "react-i18next";
+import type { ChangedValue, Code, Filters } from "../../../types";
+
+export interface FilterValueFieldProps {
+  code: Code;
+  filterKey: string;
+  filters: Filters;
+  changedValue: ChangedValue;
+  setChangedValue: (value: ChangedValue) => void;
+  enumKeys: string[];
+  integerKeys: string[];
+  booleanProperty: string[];
+  overwriteFilters: () => void;
+}
+
+const FilterValueField = ({
+  code,
+  filterKey,
+  filters,
+  changedValue,
+  setChangedValue,
+  enumKeys,
+  integerKeys,
+  booleanProperty,
+  overwriteFilters,
+}: FilterValueFieldProps) => {
+  const { t } = useTranslation();
+
+  switch (true) {
+    case enumKeys.includes(filterKey):
+      return (
+        <Input
+          type="select"
+          bsSize="sm"
+          name="value"
+          className="custom-select custom-select-sm mr-2"
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
+          onChange={(e) =>
+            setChangedValue({
+              ...changedValue,
+              [filterKey]: {
+                filterKey,
+                value: e.target.value,
+              },
+            })
+          }
+        >
+          {Object.keys(code[filterKey]).map((item) => (
+            <option value={code[filterKey][Number(item)]} key={item}>
+              {code[filterKey][Number(item)]}
+            </option>
+          ))}
+        </Input>
+      );
+    case integerKeys.includes(filterKey):
+      return (
+        <Input
+          type="number"
+          bsSize="sm"
+          name="value2"
+          id={`input-${filterKey}`}
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
+          className="mr-2"
+          onChange={(e) =>
+            setChangedValue({
+              ...changedValue,
+              [filterKey]: {
+                filterKey,
+                value: e.target.value,
+              },
+            })
+          }
+          onFocus={(e) => e.target.select()}
+          onKeyPress={(e) => {
+            if (
+              e.key === "Enter" &&
+              changedValue[filterKey] &&
+              changedValue[filterKey].value &&
+              changedValue[filterKey].value !== filters[filterKey].value
+            ) {
+              overwriteFilters();
+            }
+          }}
+        />
+      );
+    case booleanProperty.includes(filterKey):
+      return (
+        <FormGroup tag="fieldset">
+          <FormGroup check inline>
+            <Label check inline>
+              <Input
+                type="radio"
+                name="value"
+                value="true"
+                checked={(changedValue[filterKey]?.value ?? filters[filterKey].value) === "true"}
+                onChange={(e) =>
+                  setChangedValue({
+                    ...changedValue,
+                    [filterKey]: {
+                      filterKey,
+                      value: e.target.value,
+                    },
+                  })
+                }
+              />{" "}
+              {t("true")}
+            </Label>
+          </FormGroup>
+          <FormGroup check inline>
+            <Label check>
+              <Input
+                type="radio"
+                name="value"
+                value="false"
+                checked={(changedValue[filterKey]?.value ?? filters[filterKey].value) === "false"}
+                onChange={(e) =>
+                  setChangedValue({
+                    ...changedValue,
+                    [filterKey]: {
+                      filterKey,
+                      value: e.target.value,
+                    },
+                  })
+                }
+              />{" "}
+              {t("false")}
+            </Label>
+          </FormGroup>
+        </FormGroup>
+      );
+    default:
+      return (
+        <Input
+          type="text"
+          bsSize="sm"
+          name="selectedValue"
+          id={`input-${filterKey}`}
+          className="mr-2"
+          value={changedValue[filterKey]?.value ?? filters[filterKey].value}
+          onChange={(e) =>
+            setChangedValue({
+              ...changedValue,
+              [filterKey]: {
+                filterKey,
+                value: e.target.value,
+              },
+            })
+          }
+          onFocus={(e) => e.target.select()}
+          onKeyPress={(e) => {
+            if (
+              e.key === "Enter" &&
+              changedValue[filterKey] &&
+              changedValue[filterKey].value &&
+              changedValue[filterKey].value !== filters[filterKey].value
+            ) {
+              overwriteFilters();
+            }
+          }}
+        />
+      );
+  }
+};
+
+export default FilterValueField;
