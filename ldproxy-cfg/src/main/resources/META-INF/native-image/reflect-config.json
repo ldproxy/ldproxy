@@ -12123,6 +12123,10 @@
       {
         "parameterTypes": [],
         "name": "getRejectEmptyValues"
+      },
+      {
+        "parameterTypes": [],
+        "name": "getReturnRepresentation"
       }
     ]
   },
@@ -12157,6 +12161,12 @@
           "java.lang.Boolean"
         ],
         "name": "rejectEmptyValues"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "returnRepresentation"
       },
       {
         "parameterTypes": [],

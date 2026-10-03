@@ -17,6 +17,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeader {
 
@@ -199,12 +201,45 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
    * handling}.
    */
   public static Response withAppliedHandling(Response response, List<String> preferHeaders) {
-    Handling handling = parseParameterised(preferHeaders, "handling", Handling::fromHeader, null);
-    if (handling == null) {
+    return withApplied(response, preferHeaders, false, true);
+  }
+
+  /**
+   * Adds a {@code Preference-Applied} header (<a
+   * href="https://www.rfc-editor.org/rfc/rfc7240#section-3">section 3 of RFC 7240</a>) with the
+   * preferences that the client submitted and the server applied. A preference is reported, if the
+   * client submitted it and the response follows it; the header is omitted, if that leaves nothing
+   * to report.
+   *
+   * @param returnApplied whether the response follows the {@code return=…} preference of the
+   *     request
+   * @param handlingApplied whether the response follows the {@code handling=…} preference of the
+   *     request
+   */
+  public static Response withApplied(
+      Response response,
+      List<String> preferHeaders,
+      boolean returnApplied,
+      boolean handlingApplied) {
+    Return ret =
+        returnApplied
+            ? parseParameterised(preferHeaders, "return", Return::fromHeader, null)
+            : null;
+    Handling handling =
+        handlingApplied
+            ? parseParameterised(preferHeaders, "handling", Handling::fromHeader, null)
+            : null;
+    String value =
+        Stream.of(
+                Optional.ofNullable(ret).map(r -> "return=" + r.headerValue()),
+                Optional.ofNullable(handling).map(h -> "handling=" + h.headerValue()))
+            .flatMap(Optional::stream)
+            .collect(Collectors.joining(", "));
+
+    if (value.isEmpty()) {
       return response;
     }
-    return Response.fromResponse(response)
-        .header("Preference-Applied", "handling=" + handling.headerValue())
-        .build();
+
+    return Response.fromResponse(response).header("Preference-Applied", value).build();
   }
 }
