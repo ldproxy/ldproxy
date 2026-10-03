@@ -13,13 +13,12 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
 
-    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '0.15.0') {
+    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '2.0.1') {
         exclude module: 'jackson-annotations'
         exclude module: 'reactive-streams'
         exclude module: 'slf4j-api'
     }
-    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json', version: '0.15.0')
-    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '0.15.0') {
+    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '2.0.1') {
         exclude module: 'jackson-databind'
         exclude module: 'json-schema-validator'
     }
@@ -38,4 +37,55 @@ moduleInfo {
             '!io.micrometer.context*',
             '!reactor.blockhound.integration*',
     ]
+}
+// the MCP SDK jars declare automatic module names containing '-', which javac rejects when
+// the embedded module is compiled; rewrite them to valid names ('.' instead of '-')
+def automaticModuleNameFixed = Attribute.of('automaticModuleNameFixed', Boolean)
+
+subprojects { tpl ->
+    tpl.dependencies {
+        attributesSchema {
+            attribute(automaticModuleNameFixed)
+        }
+        artifactTypes.maybeCreate('jar').attributes.attribute(automaticModuleNameFixed, false)
+        registerTransform(FixAutomaticModuleName) {
+            from.attribute(automaticModuleNameFixed, false).attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, 'jar')
+            to.attribute(automaticModuleNameFixed, true).attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, 'jar')
+        }
+    }
+    tpl.configurations.matching { it.name == 'tplClasspath' }.configureEach {
+        attributes.attribute(automaticModuleNameFixed, true)
+    }
+}
+
+abstract class FixAutomaticModuleName implements TransformAction<org.gradle.api.artifacts.transform.TransformParameters.None> {
+
+    @org.gradle.api.artifacts.transform.InputArtifact
+    abstract Provider<FileSystemLocation> getInputArtifact()
+
+    @Override
+    void transform(org.gradle.api.artifacts.transform.TransformOutputs outputs) {
+        File input = inputArtifact.get().asFile
+        java.util.jar.Manifest manifest = new java.util.jar.JarFile(input).withCloseable { it.manifest }
+        String name = manifest?.mainAttributes?.getValue('Automatic-Module-Name')
+
+        if (name == null || !name.contains('-')) {
+            outputs.file(inputArtifact)
+            return
+        }
+
+        manifest.mainAttributes.putValue('Automatic-Module-Name', name.replace('-', '.'))
+        File output = outputs.file(input.name)
+
+        new java.util.jar.JarInputStream(new FileInputStream(input)).withCloseable { jarIn ->
+            new java.util.jar.JarOutputStream(new FileOutputStream(output), manifest).withCloseable { jarOut ->
+                java.util.jar.JarEntry entry
+                while ((entry = jarIn.nextJarEntry) != null) {
+                    jarOut.putNextEntry(new java.util.jar.JarEntry(entry.name))
+                    jarOut << jarIn
+                    jarOut.closeEntry()
+                }
+            }
+        }
+    }
 }
