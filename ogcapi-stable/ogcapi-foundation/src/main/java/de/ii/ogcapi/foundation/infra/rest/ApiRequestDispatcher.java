@@ -11,6 +11,7 @@ import static de.ii.ogcapi.foundation.domain.ApiEndpointDefinition.SORT_PRIORITY
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -56,6 +57,7 @@ import java.lang.annotation.Annotation;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -150,20 +152,17 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       }
     }
 
+    // a URL-encoded POST request carries the query parameters of a GET request in the body
+    boolean isFormRequest = isFormRequest(method, requestContext.getMediaType(), body);
+
     // determine the allowed query parameters
     List<OgcApiQueryParameter> knownParameters =
         getKnownQueryParameters(
-            apiData,
-            entrypoint,
-            subPath,
-            method,
-            requestContext.getMediaType(),
-            ogcApiEndpoint,
-            body);
+            apiData, entrypoint, subPath, method, isFormRequest, ogcApiEndpoint);
 
     // determine the query parameters of the request
     MultivaluedMap<String, String> actualParameters =
-        getActualQueryParameters(requestContext, body);
+        getActualQueryParameters(requestContext, body, isFormRequest);
 
     // Validate request
     ApiOperation apiOperation =
@@ -173,6 +172,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
             ogcApiEndpoint,
             knownParameters,
             actualParameters,
+            isFormRequest,
             entrypoint,
             subPath,
             method);
@@ -196,7 +196,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     Locale selectedLanguage =
         contentNegotiationLanguage.negotiateLanguage(requestContext).orElse(Locale.ENGLISH);
 
-    ApiRequestContext apiRequestContext =
+    ImmutableRequestContext.Builder requestContextBuilder =
         new ImmutableRequestContext.Builder()
             .webContext(appContext)
             .requestContext(requestContext)
@@ -206,8 +206,17 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
             .language(selectedLanguage)
             .api(api)
             .maxResponseLinkHeaderSize(maxResponseLinkHeaderSize)
-            .user(optionalUser)
-            .build();
+            .user(optionalUser);
+    if (isFormRequest) {
+      // the request URI does not contain the parameters, e.g. for policy attributes
+      requestContextBuilder.parameters(
+          actualParameters.entrySet().stream()
+              .filter(entry -> !entry.getValue().isEmpty())
+              .collect(
+                  ImmutableMap.toImmutableMap(
+                      Map.Entry::getKey, entry -> entry.getValue().get(0))));
+    }
+    ApiRequestContext apiRequestContext = requestContextBuilder.build();
 
     // might return a new ApiRequestContext with policy obligations applied
     apiRequestContext =
@@ -231,28 +240,50 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     return ogcApiEndpoint;
   }
 
-  private static MultivaluedMap<String, String> getActualQueryParameters(
-      ContainerRequestContext requestContext, Optional<byte[]> body) {
+  static boolean isFormRequest(String method, MediaType mediaType, Optional<byte[]> body) {
+    // compare without parameters, clients may add a charset
+    return "POST".equals(method)
+        && Objects.nonNull(mediaType)
+        && new MediaType(mediaType.getType(), mediaType.getSubtype())
+            .equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+        && body.isPresent();
+  }
 
-    if ("POST".equals(requestContext.getMethod())
-        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(requestContext.getMediaType())
-        && body.isPresent()) {
-      // for a form request, get the query parameters from the body
-      try {
-        return new FormProvider()
-            .readFrom(
-                Form.class,
-                Form.class,
-                new Annotation[] {},
-                MediaType.APPLICATION_FORM_URLENCODED_TYPE,
-                new MultivaluedHashMap<>(),
-                new ByteArrayInputStream(body.get()))
-            .asMap();
-      } catch (IOException e) {
-        throw new IllegalStateException("Could not parse request body into a form.", e);
-      }
+  static MultivaluedMap<String, String> getActualQueryParameters(
+      ContainerRequestContext requestContext, Optional<byte[]> body, boolean isFormRequest) {
+    if (!isFormRequest) {
+      return requestContext.getUriInfo().getQueryParameters();
     }
-    return requestContext.getUriInfo().getQueryParameters();
+
+    // for a form request, get the query parameters from the body, and add those from the URI
+    Form form;
+    try {
+      form =
+          new FormProvider()
+              .readFrom(
+                  Form.class,
+                  Form.class,
+                  new Annotation[] {},
+                  requestContext.getMediaType(),
+                  new MultivaluedHashMap<>(),
+                  new ByteArrayInputStream(body.orElseThrow()));
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not parse request body into a form.", e);
+    }
+    MultivaluedMap<String, String> parameters =
+        new MultivaluedHashMap<>(requestContext.getUriInfo().getQueryParameters());
+    form.asMap()
+        .forEach(
+            (name, values) -> {
+              if (parameters.containsKey(name)) {
+                throw new BadRequestException(
+                    String.format(
+                        "The parameter '%s' is provided both in the URI and in the request body.",
+                        name));
+              }
+              parameters.put(name, values);
+            });
+    return parameters;
   }
 
   private List<OgcApiQueryParameter> getKnownQueryParameters(
@@ -260,19 +291,17 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       String entrypoint,
       String subPath,
       String method,
-      MediaType mediaType,
-      EndpointExtension ogcApiEndpoint,
-      Optional<byte[]> body) {
-    if ("POST".equals(method)
-        && MediaType.APPLICATION_FORM_URLENCODED_TYPE.equals(mediaType)
-        && body.isPresent()) {
+      boolean isFormRequest,
+      EndpointExtension ogcApiEndpoint) {
+    if (isFormRequest) {
       // get allowed query parameters from the associated GET request
       return extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
           .filter(endpoint -> endpoint.isEnabledForApi(apiData))
           .map(endpoint -> endpoint.getDefinition(apiData))
+          .filter(Objects::nonNull)
           .map(
               endpointDef ->
-                  endpointDef.getOperation(String.format("/%s%s", entrypoint, subPath), method))
+                  endpointDef.getOperation(String.format("/%s%s", entrypoint, subPath), "GET"))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .map(ApiOperation::getQueryParameters)
@@ -335,6 +364,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       EndpointExtension ogcApiEndpoint,
       List<OgcApiQueryParameter> knownParameters,
       MultivaluedMap<String, String> actualParameters,
+      boolean isFormRequest,
       String entrypoint,
       String subPath,
       String method) {
@@ -366,10 +396,13 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
       Optional<String> collectionId = resource.getCollectionId(apiData);
 
-      // validate query parameters
+      // validate query parameters; the parameters of a form request are not query parameters of
+      // the operation, but of the associated GET request
+      List<OgcApiQueryParameter> parameterDefinitions =
+          isFormRequest ? knownParameters : operation.getQueryParameters();
       actualParameters.forEach(
           (name, values) ->
-              operation.getQueryParameters().stream()
+              parameterDefinitions.stream()
                   .filter(param -> param.getName().equalsIgnoreCase(name))
                   .forEach(
                       param -> {

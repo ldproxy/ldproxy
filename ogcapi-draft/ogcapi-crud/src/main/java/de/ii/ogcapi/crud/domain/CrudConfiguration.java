@@ -23,6 +23,7 @@ import org.immutables.value.Value;
  * - buildingBlock: CRUD
  *   enabled: true
  *   rejectEmptyValues: true
+ *   returnRepresentation: true
  * ```
  * </code>
  */
@@ -100,6 +101,49 @@ public interface CrudConfiguration extends ExtensionConfiguration {
   @Value.Auxiliary
   default boolean rejectsEmptyValues() {
     return Objects.equals(getRejectEmptyValues(), true);
+  }
+
+  /**
+   * @langEn Option to enable support for the `return` preference in POST, PUT and PATCH requests. A
+   *     request with a `Prefer` header with the value "return=representation" is answered with a
+   *     representation of the created or changed feature in the response body; the status code is
+   *     201 ("Created") for a new feature, with the URI of the feature in a `Location` header, and
+   *     200 ("OK") for a changed feature. The representation is the one that a GET request for the
+   *     feature returns, in the coordinate reference system of the `Content-Crs` header of the
+   *     request, or in the default coordinate reference system of the collection, if the request
+   *     does not include the header. The media type of the representation is negotiated with the
+   *     `Accept` header of the request among the feature encodings of the collection; a request
+   *     without an `Accept` header, or one that accepts any media type, is answered in the media
+   *     type of the request body, if the collection supports it. The response reports the applied
+   *     preference in a `Preference-Applied` header. Without the option, or in a request with a
+   *     `Prefer` header with the value "return=minimal", the response has no body: 201 with a
+   *     `Location` header for a new feature, 204 ("No Content") for a changed feature.
+   * @langDe Option zur Aktivierung der Unterstützung für die `return`-Präferenz in POST-, PUT- und
+   *     PATCH-Anfragen. Eine Anfrage mit einem `Prefer`-Header mit dem Wert "return=representation"
+   *     wird mit einer Repräsentation des erzeugten oder geänderten Features im Response-Body
+   *     beantwortet; der Statuscode ist 201 ("Created") bei einem neuen Feature, mit der URI des
+   *     Features in einem `Location`-Header, und 200 ("OK") bei einem geänderten Feature. Die
+   *     Repräsentation ist diejenige, die eine GET-Anfrage auf das Feature zurückgibt, im
+   *     Koordinatenreferenzsystem des `Content-Crs`-Headers der Anfrage bzw. im
+   *     Standard-Koordinatenreferenzsystem der Collection, wenn die Anfrage den Header nicht
+   *     enthält. Der Media-Type der Repräsentation wird über den `Accept`-Header der Anfrage aus
+   *     den Feature-Formaten der Collection ermittelt; eine Anfrage ohne `Accept`-Header oder mit
+   *     einem beliebigen Media-Type wird im Media-Type des Request-Body beantwortet, sofern die
+   *     Collection diesen unterstützt. Die Antwort meldet die angewendete Präferenz in einem
+   *     `Preference-Applied`-Header. Ohne die Option oder bei einer Anfrage mit einem
+   *     `Prefer`-Header mit dem Wert "return=minimal" hat die Antwort keinen Body: 201 mit einem
+   *     `Location`-Header bei einem neuen Feature, 204 ("No Content") bei einem geänderten Feature.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getReturnRepresentation();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean returnsRepresentation() {
+    return Objects.equals(getReturnRepresentation(), true);
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
