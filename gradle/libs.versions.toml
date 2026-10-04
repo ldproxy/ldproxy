@@ -1,10 +1,11 @@
 [versions]
-schema-validator = '2.0.7'
+schema-validator = '2.0.8'
 earcut4j = '3.0.0'
 flatbuffers = '25.2.10'
 flatgeobuf = '3.29.0'
 json-patch = '2.0.2'
-spdx = '2.0.4'
+spdx = '2.0.5'
+mcp = '2.0.1'
 
 [libraries]
 # foundation
@@ -20,5 +21,9 @@ flatgeobuf = { module = "org.wololo:flatgeobuf", version.ref = "flatgeobuf" }
 
 # crud
 json-patch = { module = "com.gravity9:json-patch-path", version.ref = "json-patch" }
+
+# mcp
+mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp" }
+mcp-json-jackson2 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson2", version.ref = "mcp" }
 
 [bundles]
