@@ -11,6 +11,7 @@ import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -29,6 +30,7 @@ import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
+import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -48,12 +50,16 @@ import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -64,8 +70,17 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Stored Query
  * @path search/{queryId}
- * @langEn Execute the stored query. Parameters are submitted as query parameters.
- * @langDe Führt die gespeicherte Abfrage aus. Parameter werden als Abfrageparameter übergeben.
+ * @langEn Execute the stored query. Parameters are submitted as query parameters (GET). For a
+ *     stored query without paging (`supportPaging: false`), the parameters may also be submitted
+ *     URL-encoded in the request body (POST with content type `application/x-www-form-urlencoded`),
+ *     for example for large geometries. Since the URI of a POST request does not include the
+ *     parameters, the response includes no links and HTML is not supported.
+ * @langDe Führt die gespeicherte Abfrage aus. Parameter werden als Abfrageparameter übergeben
+ *     (GET). Bei einer gespeicherten Abfrage ohne Paging (`supportPaging: false`) können die
+ *     Parameter auch URL-kodiert im Request-Body übergeben werden (POST mit dem Content-Type
+ *     `application/x-www-form-urlencoded`), zum Beispiel bei großen Geometrien. Da die URI einer
+ *     POST-Anfrage die Parameter nicht enthält, enthält die Antwort keine Links und HTML wird nicht
+ *     unterstützt.
  * @ref:formats {@link de.ii.ogcapi.features.core.domain.FeatureFormatExtension}
  */
 @Singleton
@@ -181,6 +196,11 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                                   || Objects.equals(
                                       ((QueryParameterTemplateParameter) param).getQueryId(),
                                       queryId))
+                      // a query without paging returns all features, an offset would be ignored
+                      .filter(
+                          param ->
+                              !(param instanceof QueryParameterOffsetStoredQuery)
+                                  || query.getSupportPaging().orElse(false))
                       .toList();
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
@@ -203,6 +223,35 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       SearchBuildingBlock.MATURITY,
                       SearchBuildingBlock.SPEC)
                   .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
+              // the same parameters in the request body, e.g. for geometries that are too large
+              // for a URI; only without paging, since paging links, like all links and HTML,
+              // would require a URI that includes the parameters
+              if (!query.getSupportPaging().orElse(false)) {
+                Map<MediaType, ApiMediaTypeContent> postResponseContent =
+                    getResponseContent(apiData).entrySet().stream()
+                        .filter(entry -> !entry.getKey().isCompatible(MediaType.TEXT_HTML_TYPE))
+                        .collect(
+                            ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+                ApiOperation.getResource(
+                        apiData,
+                        path,
+                        true,
+                        queryParameters,
+                        ImmutableList.of(),
+                        postResponseContent,
+                        operationSummary,
+                        Optional.of(
+                            operationDescription.map(d -> d + "\n\n").orElse("")
+                                + "The parameters are URL-encoded in the request body. The "
+                                + "response includes no links."),
+                        Optional.empty(),
+                        getOperationId("executeStoredQueryPost", queryId),
+                        GROUP_DATA_READ,
+                        TAGS,
+                        SearchBuildingBlock.MATURITY,
+                        SearchBuildingBlock.SPEC)
+                    .ifPresent(operation -> resourceBuilder.putOperations("POST", operation));
+              }
               definitionBuilder.putResources(path, resourceBuilder.build());
             });
 
@@ -221,7 +270,27 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       @PathParam("queryId") String queryId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
+    return executeStoredQuery(queryId, api, requestContext, false);
+  }
 
+  /**
+   * Execute a query by id with the parameters URL-encoded in the request body
+   *
+   * @param queryId the local identifier of the query
+   * @return the query result
+   */
+  @Path("/{queryId}")
+  @POST
+  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+  public Response postStoredQuery(
+      @PathParam("queryId") String queryId,
+      @Context OgcApi api,
+      @Context ApiRequestContext requestContext) {
+    return executeStoredQuery(queryId, api, requestContext, true);
+  }
+
+  private Response executeStoredQuery(
+      String queryId, OgcApi api, ApiRequestContext requestContext, boolean isPost) {
     OgcApiDataV2 apiData = api.getData();
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
@@ -244,7 +313,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
 
-    QueryInputQuery queryInput =
+    ImmutableQueryInputQuery.Builder queryInputBuilder =
         new ImmutableQueryInputQuery.Builder()
             .from(getGenericQueryInput(apiData))
             .query(executableQuery)
@@ -258,8 +327,12 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                     .getExtension(SearchConfiguration.class)
                     .map(SearchConfiguration::getAllLinksAreLocal)
                     .orElse(false))
-            .isStoredQuery(true)
-            .build();
+            .isStoredQuery(true);
+    if (isPost) {
+      // links would be built from the URI, which does not include the parameters
+      queryInputBuilder.includeBodyLinks(false).includeLinkHeader(false);
+    }
+    QueryInputQuery queryInput = queryInputBuilder.build();
 
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
   }
