@@ -8,7 +8,9 @@
 package de.ii.ogcapi.crud.app;
 
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.QueryInputFeature;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
@@ -19,6 +21,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.immutables.value.Value;
 
 public interface CommandHandlerCrud extends Volatile2 {
@@ -31,8 +34,26 @@ public interface CommandHandlerCrud extends Volatile2 {
 
   Response deleteItemResponse(QueryInputFeatureDelete queryInput, ApiRequestContext requestContext);
 
+  /**
+   * The representation of the feature that a response includes, where the client prefers one in a
+   * {@code Prefer} header with the value {@code return=representation} (RFC 7240, 4.2) and the
+   * collection supports the preference.
+   */
   @Value.Immutable
-  interface QueryInputFeatureCreate {
+  interface Representation {
+
+    /** The negotiated media type of the representation. */
+    ApiMediaType getMediaType();
+
+    /** The other media types that the collection supports for a representation of the feature. */
+    Set<ApiMediaType> getAlternateMediaTypes();
+
+    /** The query parameters that determine the representation. */
+    QueryParameterSet getQueryParameterSet();
+  }
+
+  @Value.Immutable
+  interface QueryInputFeatureCreate extends QueryInput {
 
     String getCollectionId();
 
@@ -61,6 +82,12 @@ public interface CommandHandlerCrud extends Volatile2 {
     default List<String> getLinkHeaders() {
       return List.of();
     }
+
+    /**
+     * The representation of the feature to include in the response body, empty if the response has
+     * no body.
+     */
+    Optional<Representation> getRepresentation();
   }
 
   interface QueryInputFeatureCrud extends QueryInputFeature {
