@@ -13,16 +13,12 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
 
-    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-core', version: '2.0.1') {
+    embedded (libCatalog.mcp.core) {
         exclude module: 'jackson-annotations'
         exclude module: 'reactive-streams'
         exclude module: 'slf4j-api'
     }
-    embeddedFlat(group: 'io.modelcontextprotocol.sdk', name: 'mcp-json-jackson2', version: '2.0.1') {
-        exclude module: 'jackson-databind'
-        exclude module: 'json-schema-validator'
-    }
-    embeddedFlat(group: 'io.projectreactor', name: 'reactor-core', version: '3.7.0')
+    embeddedFlat (libCatalog.mcp.json.jackson2)
 
     //use reactive-streams exported from this in mcp-core
     embeddedImport 'de.interactive_instruments:xtraplatform-streams'
@@ -89,3 +85,4 @@ abstract class FixAutomaticModuleName implements TransformAction<org.gradle.api.
         }
     }
 }
+
