@@ -14,6 +14,7 @@ import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.nio.file.Path;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -51,7 +52,8 @@ public interface TransactionJob extends JobInputs {
         String.format(" (Document: %s)", documentPath),
         transactionJob,
         new JobContextEntity(apiId),
-        null);
+        null,
+        Optional.of(3600));
   }
 
   String getApiId();
