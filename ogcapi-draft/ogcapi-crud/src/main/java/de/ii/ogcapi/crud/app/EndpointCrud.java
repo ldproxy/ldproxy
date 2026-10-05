@@ -12,6 +12,7 @@ import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
 import de.ii.ogcapi.crs.domain.CrsSupport;
@@ -19,6 +20,7 @@ import de.ii.ogcapi.crs.domain.HeaderContentCrs;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureCreate;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureDelete;
 import de.ii.ogcapi.crud.app.CommandHandlerCrud.QueryInputFeatureReplace;
+import de.ii.ogcapi.crud.app.CommandHandlerCrud.Representation;
 import de.ii.ogcapi.crud.domain.CrudConfiguration;
 import de.ii.ogcapi.features.core.domain.EndpointFeaturesDefinition;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
@@ -28,9 +30,11 @@ import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ApiResponse;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -40,6 +44,7 @@ import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiResponse;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -66,6 +71,7 @@ import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
@@ -73,10 +79,13 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status.Family;
 import java.io.InputStream;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +117,20 @@ public class EndpointCrud extends EndpointSubCollection
   // identified by the URIs of OGC API - Common - Part 5.
   private static final String CONF_CLASS_PREFIX =
       "http://www.opengis.net/spec/ogcapi-common-5/1.0/conf/";
+  // The compatibility levels of the content negotiation for a representation of the feature, from
+  // the strictest to the most lenient; the level "TYPES" is deliberately not included.
+  private static final List<ApiMediaType.CompatibilityLevel> NEGOTIABLE_LEVELS =
+      List.of(
+          ApiMediaType.CompatibilityLevel.PARAMETERS,
+          ApiMediaType.CompatibilityLevel.STRICT_SUBTYPES,
+          ApiMediaType.CompatibilityLevel.SUBTYPES);
+  private static final String DESCRIPTION_CREATED =
+      "A new feature was created. Its URI is returned in the header `Location`. The response "
+          + "includes a representation of the feature, if the request stated a `Prefer` header with "
+          + "the value \"return=representation\".";
+  private static final String DESCRIPTION_CHANGED =
+      "The feature was changed and the response includes a representation of the feature, because "
+          + "the request stated a `Prefer` header with the value \"return=representation\".";
 
   private final FeaturesCoreProviders providers;
   private final CommandHandlerCrud commandHandler;
@@ -188,7 +211,68 @@ public class EndpointCrud extends EndpointSubCollection
       builder.add(CONF_CLASS_PREFIX + "handling");
     }
 
+    if (apiData.getCollections().keySet().stream()
+        .anyMatch(collectionId -> returnsRepresentation(apiData, collectionId))) {
+      builder.add(CONF_CLASS_PREFIX + "return-resource-representation-in-response");
+    }
+
     return builder.build();
+  }
+
+  // The response body of a request that changes a feature is only included, if the client prefers a
+  // representation of the feature, so the media type of the response is negotiated in the resource
+  // method: a request that does not ask for a representation has no response body at all and must
+  // not be rejected because of an 'Accept' header that no feature encoding matches.
+  @Override
+  public ImmutableSet<ApiMediaType> getMediaTypes(
+      OgcApiDataV2 apiData, String requestSubPath, String method) {
+    return ImmutableSet.of();
+  }
+
+  private boolean returnsRepresentation(OgcApiDataV2 apiData, String collectionId) {
+    return isEnabledForApi(apiData, collectionId)
+        && CrudBuildingBlock.returnsRepresentation(apiData, collectionId);
+  }
+
+  // The operations of a resource are determined per collection, unless the collections are not
+  // listed separately in the API definition; in that case the resource documents the representation
+  // of the feature, if any collection supports the preference.
+  private boolean documentsRepresentation(OgcApiDataV2 apiData, String collectionId) {
+    return collectionId.startsWith("{")
+        ? apiData.getCollections().keySet().stream()
+            .anyMatch(id -> returnsRepresentation(apiData, id))
+        : returnsRepresentation(apiData, collectionId);
+  }
+
+  /**
+   * The feature encodings of the collection that a representation of the feature in a response to a
+   * request that changed the feature can use. The encodings that the endpoint accepts in a request
+   * body come first, so that a request that accepts any media type is answered in one of them.
+   */
+  private List<FeatureFormatExtension> representationFormats(
+      OgcApiDataV2 apiData, Optional<String> collectionId) {
+    return extensionRegistry.getExtensionsForType(FeatureFormatExtension.class).stream()
+        .filter(
+            format ->
+                collectionId
+                    .map(id -> format.isEnabledForApi(apiData, id))
+                    .orElseGet(() -> format.isEnabledForApi(apiData)))
+        // a format without content is an internal one, it is not a representation of the feature
+        .filter(format -> Objects.nonNull(format.getContent()))
+        .sorted(
+            Comparator.comparing((FeatureFormatExtension f) -> !f.canSupportTransactions())
+                .thenComparing(f -> f.getMediaType().type().toString()))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private Map<MediaType, ApiMediaTypeContent> representationContent(
+      OgcApiDataV2 apiData, Optional<String> collectionId) {
+    return representationFormats(apiData, collectionId).stream()
+        .map(format -> format.getFeatureContent(apiData, collectionId, false))
+        .filter(Objects::nonNull)
+        .collect(
+            ImmutableMap.toImmutableMap(
+                c -> c.getOgcApiMediaType().type(), c -> c, (content1, content2) -> content1));
   }
 
   // "Prefer: handling=strict" has an effect on a mutation request, if any of the formats that are
@@ -304,6 +388,10 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.MATURITY,
               CrudBuildingBlock.SPEC,
               false)
+          .map(
+              operation ->
+                  withRepresentationResponses(
+                      apiData, path, collectionId, HttpMethods.POST, operation))
           .ifPresent(
               operation -> resourceBuilder.putOperations(HttpMethods.POST.name(), operation));
       builder.putResources(resourcePath, resourceBuilder.build());
@@ -365,6 +453,10 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.SPEC,
               !hasGeneratedId)
           .map(operation -> withPreconditionResponses(apiData, collectionId, operation))
+          .map(
+              operation ->
+                  withRepresentationResponses(
+                      apiData, path, collectionId, HttpMethods.PUT, operation))
           .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.PUT.name(), operation));
 
       queryParameters =
@@ -402,6 +494,10 @@ public class EndpointCrud extends EndpointSubCollection
               CrudBuildingBlock.SPEC,
               false)
           .map(operation -> withPreconditionResponses(apiData, collectionId, operation))
+          .map(
+              operation ->
+                  withRepresentationResponses(
+                      apiData, path, collectionId, HttpMethods.PATCH, operation))
           .ifPresent(
               operation -> resourceBuilder.putOperations(HttpMethods.PATCH.name(), operation));
 
@@ -466,6 +562,79 @@ public class EndpointCrud extends EndpointSubCollection
     return builder.build();
   }
 
+  // A response to a request that created or changed a feature includes a representation of the
+  // feature, if the client prefers one and the collection supports the preference (RFC 7240, 4.2).
+  // The representation is optional in every response, a client that does not state the preference
+  // gets the response without a body.
+  private ApiOperation withRepresentationResponses(
+      OgcApiDataV2 apiData,
+      String path,
+      String collectionId,
+      HttpMethods method,
+      ApiOperation operation) {
+    if (!documentsRepresentation(apiData, collectionId)) {
+      return operation;
+    }
+
+    Optional<String> collectionIdInContent =
+        collectionId.startsWith("{") ? Optional.empty() : Optional.of(collectionId);
+    Map<MediaType, ApiMediaTypeContent> content =
+        representationContent(apiData, collectionIdInContent);
+
+    if (content.isEmpty()) {
+      return operation;
+    }
+
+    ImmutableApiOperation.Builder builder = new ImmutableApiOperation.Builder().from(operation);
+    List<ApiHeader> headers = getHeaders(extensionRegistry, apiData, path, collectionId, method);
+
+    if (method == HttpMethods.POST) {
+      builder.success(
+          new ImmutableApiResponse.Builder()
+              .from(operation.getSuccess().orElseThrow())
+              .description(DESCRIPTION_CREATED)
+              .content(content)
+              .build());
+
+      return builder.build();
+    }
+
+    // a PUT that creates the feature reports it with 201, and that response can include the
+    // representation, too
+    builder.additionalResponses(
+        operation.getAdditionalResponses().stream()
+            .map(
+                response ->
+                    ApiOperation.STATUS_201.equals(response.getStatusCode())
+                        ? (ApiResponse)
+                            new ImmutableApiResponse.Builder()
+                                .from(response)
+                                .description(DESCRIPTION_CREATED)
+                                .content(content)
+                                .build()
+                        : response)
+            .collect(ImmutableList.toImmutableList()));
+    builder.addAdditionalResponses(
+        new ImmutableApiResponse.Builder()
+            .statusCode(ApiOperation.STATUS_200)
+            .description(DESCRIPTION_CHANGED)
+            .headers(responseHeaders(headers, ApiOperation.STATUS_200))
+            .content(content)
+            .build());
+
+    return builder.build();
+  }
+
+  private static List<ApiHeader> responseHeaders(List<ApiHeader> headers, String statusCode) {
+    return headers.stream()
+        .filter(ApiHeader::isResponseHeader)
+        .filter(
+            header ->
+                header.getResponseStatusCodes().isEmpty()
+                    || header.getResponseStatusCodes().contains(statusCode))
+        .collect(ImmutableList.toImmutableList());
+  }
+
   private boolean hasGeneratedId(OgcApiDataV2 apiData, String collectionId) {
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
     return providers
@@ -486,6 +655,7 @@ public class EndpointCrud extends EndpointSubCollection
       @Context OgcApi api,
       @Context ApiRequestContext apiRequestContext,
       @Context HttpServletRequest request,
+      @Context HttpHeaders httpHeaders,
       InputStream requestBody) {
 
     FeatureTypeConfigurationOgcApi collectionData =
@@ -517,6 +687,7 @@ public class EndpointCrud extends EndpointSubCollection
 
     QueryInputFeatureCreate queryInput =
         ImmutableQueryInputFeatureCreate.builder()
+            .from(getGenericQueryInput(api.getData()))
             .collectionId(collectionId)
             .featureType(featureType)
             .crs(contentCrs)
@@ -526,11 +697,13 @@ public class EndpointCrud extends EndpointSubCollection
             .validate(validate)
             .rejectEmptyValues(rejectEmptyValues(api.getData(), collectionId, prefer))
             .linkHeaders(links)
+            .representation(
+                representation(api, collectionData, contentType, contentCrs, prefer, httpHeaders))
             .build();
 
     try {
-      return HeaderPrefer.withAppliedHandling(
-          commandHandler.postItemsResponse(queryInput, apiRequestContext), prefer);
+      return withAppliedPreferences(
+          commandHandler.postItemsResponse(queryInput, apiRequestContext), prefer, true);
     } catch (IllegalArgumentException e) {
       throw validate ? rejectedRequestBody(e, prefer) : e;
     }
@@ -551,6 +724,7 @@ public class EndpointCrud extends EndpointSubCollection
       @Context OgcApi api,
       @Context ApiRequestContext apiRequestContext,
       @Context HttpServletRequest request,
+      @Context HttpHeaders httpHeaders,
       InputStream requestBody) {
 
     FeatureTypeConfigurationOgcApi collectionData =
@@ -625,13 +799,15 @@ public class EndpointCrud extends EndpointSubCollection
             .validate(validate)
             .rejectEmptyValues(rejectEmptyValues(api.getData(), collectionId, prefer))
             .linkHeaders(links)
+            .representation(
+                representation(api, collectionData, contentType, contentCrs, prefer, httpHeaders))
             .profiles(crudProfiles)
             .isAllowCreate(!hasGeneratedId(api.getData(), collectionId))
             .build();
 
     try {
-      return HeaderPrefer.withAppliedHandling(
-          commandHandler.putItemResponse(queryInput, apiRequestContext), prefer);
+      return withAppliedPreferences(
+          commandHandler.putItemResponse(queryInput, apiRequestContext), prefer, true);
     } catch (IllegalArgumentException e) {
       throw validate ? rejectedRequestBody(e, prefer) : e;
     }
@@ -645,12 +821,14 @@ public class EndpointCrud extends EndpointSubCollection
       @PathParam("collectionId") String collectionId,
       @PathParam("featureId") final String featureId,
       @HeaderParam("Content-Crs") String crs,
+      @HeaderParam("Prefer") List<String> prefer,
       @HeaderParam("Link") List<String> links,
       @HeaderParam("If-Match") String ifMatch,
       @HeaderParam("If-Unmodified-Since") String ifUnmodifiedSince,
       @Context OgcApi api,
       @Context ApiRequestContext apiRequestContext,
       @Context HttpServletRequest request,
+      @Context HttpHeaders httpHeaders,
       InputStream requestBody) {
 
     FeatureTypeConfigurationOgcApi collectionData =
@@ -722,11 +900,14 @@ public class EndpointCrud extends EndpointSubCollection
             .contentType(contentType)
             .validate(false)
             .linkHeaders(links)
+            .representation(
+                representation(api, collectionData, contentType, contentCrs, prefer, httpHeaders))
             .profiles(crudProfiles)
             .isAllowCreate(false)
             .build();
 
-    return commandHandler.patchItemResponse(queryInput, apiRequestContext);
+    return withAppliedPreferences(
+        commandHandler.patchItemResponse(queryInput, apiRequestContext), prefer, false);
   }
 
   @Path("/{collectionId}/items/{featureId}")
@@ -817,6 +998,131 @@ public class EndpointCrud extends EndpointSubCollection
             : ImmutableMap.of("schema", "receivables");
     return QueryParameterSet.of(parameterDefinitions, values)
         .evaluate(api, Optional.of(collectionData));
+  }
+
+  /**
+   * The representation of the feature to include in the response body, empty unless the client
+   * prefers a representation in a {@code Prefer} header with the value {@code
+   * return=representation} and the collection supports the preference.
+   */
+  private Optional<Representation> representation(
+      OgcApi api,
+      FeatureTypeConfigurationOgcApi collectionData,
+      MediaType contentType,
+      EpsgCrs contentCrs,
+      List<String> prefer,
+      HttpHeaders httpHeaders) {
+    if (HeaderPrefer.parseReturn(prefer, null) != HeaderPrefer.Return.REPRESENTATION
+        || !returnsRepresentation(api.getData(), collectionData.getId())) {
+      return Optional.empty();
+    }
+
+    List<FeatureFormatExtension> formats =
+        representationFormats(api.getData(), Optional.of(collectionData.getId()));
+    ApiMediaType mediaType = negotiateRepresentation(formats, contentType, httpHeaders);
+
+    return Optional.of(
+        ImmutableRepresentation.builder()
+            .mediaType(mediaType)
+            .alternateMediaTypes(
+                formats.stream()
+                    .map(FormatExtension::getMediaType)
+                    .filter(candidate -> !Objects.equals(candidate, mediaType))
+                    .collect(ImmutableSet.toImmutableSet()))
+            .queryParameterSet(representationQueryParameterSet(api, collectionData, contentCrs))
+            .build());
+  }
+
+  /**
+   * The media type of the representation, negotiated with the 'Accept' header of the request among
+   * the feature encodings of the collection. The media type of the request body is preferred, if
+   * the request accepts it, so that a request without an 'Accept' header, or one that accepts any
+   * media type, is answered in the encoding that it used for the feature.
+   *
+   * <p>Media type parameters are not part of the comparison: a quality value in the 'Accept' header
+   * and a character set in the 'Content-Type' header do not select another encoding.
+   */
+  static ApiMediaType negotiateRepresentation(
+      List<FeatureFormatExtension> formats, MediaType contentType, HttpHeaders httpHeaders) {
+    List<MediaType> acceptable = httpHeaders.getAcceptableMediaTypes();
+    Optional<ApiMediaType> sameAsRequestBody =
+        formats.stream()
+            .map(FormatExtension::getMediaType)
+            .filter(candidate -> isCompatibleType(contentType, candidate))
+            .filter(candidate -> acceptable.stream().anyMatch(a -> isCompatibleType(a, candidate)))
+            .findFirst();
+
+    if (sameAsRequestBody.isPresent()) {
+      return sameAsRequestBody.get();
+    }
+
+    // The encoding is only negotiated down to the subtype: '*/*' and 'application/json' select an
+    // encoding, but an encoding is never returned for an 'Accept' header that just happens to
+    // share its type, so 'Accept: text/csv' is not answered with HTML.
+    for (ApiMediaType.CompatibilityLevel level : NEGOTIABLE_LEVELS) {
+      for (MediaType accepted : acceptable) {
+        Optional<ApiMediaType> match =
+            formats.stream()
+                .map(FormatExtension::getMediaType)
+                .filter(candidate -> ApiMediaType.isCompatible(accepted, candidate.type(), level))
+                .findFirst();
+
+        if (match.isPresent()) {
+          return match.get();
+        }
+      }
+    }
+
+    throw new NotAcceptableException(
+        String.format(
+            "The 'Accept' header '%s' does not match any of the media types that are supported for a representation of the feature: %s.",
+            httpHeaders.getHeaderString(HttpHeaders.ACCEPT),
+            formats.stream()
+                .map(format -> format.getMediaType().type().toString())
+                .collect(Collectors.joining(", "))));
+  }
+
+  private static boolean isCompatibleType(MediaType mediaType, ApiMediaType candidate) {
+    return ApiMediaType.isCompatible(
+        mediaType, candidate.type(), ApiMediaType.CompatibilityLevel.STRICT_SUBTYPES);
+  }
+
+  // The representation of the feature is its returnable representation in the coordinate reference
+  // system of the request body, that is, what a GET request for the feature with a 'crs' parameter
+  // returns.
+  private QueryParameterSet representationQueryParameterSet(
+      OgcApi api, FeatureTypeConfigurationOgcApi collectionData, EpsgCrs crs) {
+    List<OgcApiQueryParameter> parameterDefinitions =
+        getQueryParameters(
+            extensionRegistry,
+            api.getData(),
+            "/collections/{collectionId}/items/{featureId}",
+            collectionData.getId(),
+            HttpMethods.GET);
+
+    return QueryParameterSet.of(parameterDefinitions, ImmutableMap.of("crs", crs.toUriString()))
+        .evaluate(api, Optional.of(collectionData));
+  }
+
+  private static Response withAppliedPreferences(
+      Response response, List<String> prefer, boolean handlingApplied) {
+    return HeaderPrefer.withApplied(
+        response, prefer, isReturnApplied(prefer, response), handlingApplied);
+  }
+
+  // The 'return' preference is applied, where the response follows it: a representation of the
+  // feature in the response body for 'return=representation', no response body for
+  // 'return=minimal'. A response that does not report success follows neither.
+  static boolean isReturnApplied(List<String> prefer, Response response) {
+    HeaderPrefer.Return preference = HeaderPrefer.parseReturn(prefer, null);
+
+    if (Objects.isNull(preference) || response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      return false;
+    }
+
+    return preference == HeaderPrefer.Return.REPRESENTATION
+        ? response.hasEntity()
+        : preference == HeaderPrefer.Return.MINIMAL && !response.hasEntity();
   }
 
   private static MediaType requiredContentType(HttpServletRequest request) {

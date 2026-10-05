@@ -45,12 +45,16 @@ import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
-import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.McpJsonMapper;
+import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
+import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
+import io.modelcontextprotocol.json.schema.JsonSchemaValidator.ValidationResponse;
+import io.modelcontextprotocol.json.schema.jackson2.DefaultJsonSchemaValidator;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
+import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
-import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
 import io.modelcontextprotocol.spec.McpStatelessServerTransport;
@@ -67,6 +71,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -92,7 +97,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final ExtensionRegistry extensionRegistry;
   private final StoredQueryRepository storedQueryRepository;
   private final ObjectMapper objectMapper;
-  private final Map<String, HttpServletStatelessServerTransportJavaX> servers =
+  private final Map<String, HttpServletStatelessServerTransport> servers =
       new ConcurrentHashMap<>();
   private final FeaturesCoreProviders providers;
   private final FeaturesQuery ogcApiFeaturesQuery;
@@ -136,19 +141,19 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     this.cql = cql;
   }
 
-  // TODO: az, using custom transport for now, regular transport needs upgrade to dropwizard v4
   @Override
   public HttpServlet getServlet(OgcApi api) {
     return servers.computeIfAbsent(
         api.getData().getStableHash(),
         key -> {
-          HttpServletStatelessServerTransportJavaX transport =
-              HttpServletStatelessServerTransportJavaX.builder()
-                  .jsonMapper(new JacksonMcpJsonMapper(objectMapper))
+          McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(objectMapper);
+          HttpServletStatelessServerTransport transport =
+              HttpServletStatelessServerTransport.builder()
+                  .jsonMapper(jsonMapper)
                   .messageEndpoint("/mcp")
                   .build();
           try {
-            McpStatelessSyncServer server = createServer(api, transport);
+            McpStatelessSyncServer server = createServer(api, transport, jsonMapper);
           } catch (IOException e) {
             throw new IllegalStateException(e);
           }
@@ -157,61 +162,101 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         });
   }
 
-  private McpStatelessSyncServer createServer(OgcApi api, McpStatelessServerTransport transport)
+  private McpStatelessSyncServer createServer(
+      OgcApi api, McpStatelessServerTransport transport, McpJsonMapper jsonMapper)
       throws IOException {
     McpSchema mcpSchema = getSchema(api);
-    McpStatelessSyncServer server =
-        io.modelcontextprotocol.server.McpServer.sync(transport)
-            .serverInfo(appContext.getName(), appContext.getVersion())
-            .capabilities(ServerCapabilities.builder().tools(true).build())
-            .jsonSchemaValidator(new McpJsonSchemaValidator(objectMapper))
-            .build();
+    JsonSchemaValidator jsonSchemaValidator = new DefaultJsonSchemaValidator(objectMapper);
+    List<SyncToolSpecification> toolSpecifications = new ArrayList<>();
 
     for (McpTool tool : mcpSchema.getTools()) {
-      server.addTool(
+      Map<String, Object> inputSchema = toMap(tool.getInputSchema());
+      Map<String, Object> outputSchema = toMap(tool.getOutputSchema());
+
+      // the SDK rejects the whole server if a single tool schema is invalid
+      Optional<String> schemaError =
+          Stream.of(inputSchema, outputSchema)
+              .map(jsonSchemaValidator::validateSchema)
+              .filter(response -> !response.valid())
+              .map(ValidationResponse::errorMessage)
+              .findFirst();
+      if (schemaError.isPresent()) {
+        LOGGER.warn(
+            "MCP tool '{}' of API '{}' is not available, its schema is not a valid JSON Schema 2020-12 document: {}",
+            tool.getId(),
+            api.getId(),
+            schemaError.get());
+        continue;
+      }
+
+      toolSpecifications.add(
           new SyncToolSpecification(
-              new Tool(
-                  tool.getId(),
-                  tool.getName(),
-                  tool.getDescription(),
-                  objectMapper.readValue(
-                      Json.pretty(tool.getInputSchema()),
-                      io.modelcontextprotocol.spec.McpSchema.JsonSchema.class),
-                  objectMapper.readValue(Json.pretty(tool.getOutputSchema()), Map.class),
-                  new ToolAnnotations(tool.getName(), true, false, true, false, false),
-                  null),
-              (exchange, arguments) -> {
+              Tool.builder(tool.getId(), inputSchema)
+                  .title(tool.getName())
+                  .description(tool.getDescription())
+                  .outputSchema(outputSchema)
+                  .annotations(new ToolAnnotations(tool.getName(), true, false, true, false, false))
+                  .build(),
+              (context, request) -> {
                 try {
                   if (tool.getId().startsWith(STORED_QUERY_PREFIX)) {
                     String queryId = tool.getId().substring(STORED_QUERY_PREFIX.length());
 
                     String result =
                         handleStoredQuery(
-                            api, queryId, arguments.arguments(), tool.getQueryParameters());
+                            api, queryId, request.arguments(), tool.getQueryParameters());
                     Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
-                    return new CallToolResult(List.of(new TextContent(result)), false, resultAsMap);
+                    return CallToolResult.builder()
+                        .addTextContent(result)
+                        .isError(false)
+                        .structuredContent(resultAsMap)
+                        .build();
 
                   } else if (tool.getId().startsWith(COLLECTION_QUERY_PREFIX)) {
                     String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                     String result =
                         handleCollectionQuery(
-                            api, collectionId, arguments.arguments(), tool.getQueryParameters());
+                            api, collectionId, request.arguments(), tool.getQueryParameters());
 
                     Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
-                    return new CallToolResult(List.of(new TextContent(result)), false, resultAsMap);
+                    return CallToolResult.builder()
+                        .addTextContent(result)
+                        .isError(false)
+                        .structuredContent(resultAsMap)
+                        .build();
                   }
                 } catch (Throwable e) {
                   LogContext.errorAsDebug(LOGGER, e, "Error executing MCP tool '{}'", tool.getId());
 
-                  return new CallToolResult(
-                      "Error executing tool '" + tool.getId() + "': " + e.getMessage(), true);
+                  return CallToolResult.builder()
+                      .addTextContent(
+                          "Error executing tool '" + tool.getId() + "': " + e.getMessage())
+                      .isError(true)
+                      .build();
                 }
 
-                return new CallToolResult("Unknown tool id: " + tool.getId(), true);
+                return CallToolResult.builder()
+                    .addTextContent("Unknown tool id: " + tool.getId())
+                    .isError(true)
+                    .build();
               }));
     }
 
-    return server;
+    return io.modelcontextprotocol.server.McpServer.sync(transport)
+        .serverInfo(appContext.getName(), appContext.getVersion())
+        .capabilities(ServerCapabilities.builder().tools(true).build())
+        .jsonMapper(jsonMapper)
+        .jsonSchemaValidator(jsonSchemaValidator)
+        // tool names are derived from collection and query ids, which are not restricted to the
+        // characters recommended by MCP; warn instead of failing the server
+        .strictToolNameValidation(false)
+        .tools(toolSpecifications)
+        .build();
+  }
+
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> toMap(Schema<?> schema) throws IOException {
+    return objectMapper.readValue(Json.pretty(schema), Map.class);
   }
 
   private String handleCollectionQuery(
@@ -423,7 +468,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   @Override
   public void onStop() {
-    servers.values().forEach(HttpServletStatelessServerTransportJavaX::close);
+    servers.values().forEach(HttpServletStatelessServerTransport::close);
 
     AppLifeCycle.super.onStop();
   }

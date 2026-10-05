@@ -372,6 +372,9 @@ public interface ApiOperation {
     getQueryParameters()
         .forEach(
             param -> {
+              if (param.isInternal()) {
+                return;
+              }
               param.updateOpenApiDefinition(apiData, collectionId, openAPI, op);
               errorCodes.add(400);
             });

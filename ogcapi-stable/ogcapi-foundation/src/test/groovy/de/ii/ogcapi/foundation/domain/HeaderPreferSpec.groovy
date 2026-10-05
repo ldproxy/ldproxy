@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain
 
+import jakarta.ws.rs.core.Response
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -189,5 +190,44 @@ class HeaderPreferSpec extends Specification {
         HeaderPrefer.parseReturn(
                 ["return=minimal, return=none"],
                 HeaderPrefer.Return.REPRESENTATION) == HeaderPrefer.Return.REPRESENTATION
+    }
+
+    @Unroll
+    def "withApplied reports '#expected' for #prefer (return applied: #returnApplied, handling applied: #handlingApplied)"() {
+        when:
+        def response = HeaderPrefer.withApplied(
+                Response.noContent().build(), prefer, returnApplied, handlingApplied)
+
+        then:
+        response.getHeaderString("Preference-Applied") == expected
+
+        where:
+        prefer                                | returnApplied | handlingApplied || expected
+        ["return=representation"]             | true          | true            || "return=representation"
+        ["return=representation"]             | false         | true            || null
+        ["handling=strict"]                   | true          | true            || "handling=strict"
+        ["handling=strict"]                   | true          | false           || null
+        ["return=minimal, handling=lenient"]  | true          | true            || "return=minimal, handling=lenient"
+        ["return=minimal, handling=strict"]   | false         | true            || "handling=strict"
+        ["respond-async"]                     | true          | true            || null
+        []                                    | true          | true            || null
+        null                                  | true          | true            || null
+    }
+
+    def "withApplied leaves the response unchanged when there is nothing to report"() {
+        given:
+        def response = Response.noContent().build()
+
+        expect:
+        HeaderPrefer.withApplied(response, ["return=representation"], false, false).is(response)
+    }
+
+    def "withAppliedHandling only reports the handling preference"() {
+        when:
+        def response = HeaderPrefer.withAppliedHandling(
+                Response.noContent().build(), ["return=representation, handling=strict"])
+
+        then:
+        response.getHeaderString("Preference-Applied") == "handling=strict"
     }
 }
