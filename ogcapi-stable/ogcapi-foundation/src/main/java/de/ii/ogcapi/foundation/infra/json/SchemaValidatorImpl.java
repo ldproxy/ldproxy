@@ -24,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Singleton
@@ -36,7 +37,10 @@ public class SchemaValidatorImpl implements SchemaValidator {
 
   @Inject
   public SchemaValidatorImpl() {
-    SchemaRegistryConfig config = SchemaRegistryConfig.builder().failFast(true).build();
+    // validation messages are part of error responses, which are in English, so they must not
+    // depend on the default locale of the JVM
+    SchemaRegistryConfig config =
+        SchemaRegistryConfig.builder().failFast(true).locale(Locale.ENGLISH).build();
     this.schemaRegistry =
         SchemaRegistry.withDefaultDialect(
             SpecificationVersion.DRAFT_2020_12,
