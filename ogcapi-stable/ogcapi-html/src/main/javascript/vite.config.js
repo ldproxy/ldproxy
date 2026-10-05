@@ -122,6 +122,9 @@ export default defineConfig({
           src: `${maplibreGlDir}/dist/maplibre-gl-{worker,shared}.mjs`,
           dest: `assets`,
           rename: { stripBase: true },
+          // the .map files are not shipped, so drop the reference to keep browsers from
+          // requesting them
+          transform: (content) => content.replace(/^\/\/# sourceMappingURL=.*$/m, ''),
         },
       ],
     }),
