@@ -2677,6 +2677,22 @@
             }
           ]
         },
+        "ids": {
+          "title": "ids",
+          "description": "Enables the query parameter `ids` for the Features resource, which selects features by    their identifiers, and the conformance class *Query by IDs*. Feature identifiers that    contain a comma cannot be selected with the parameter, so the option should be disabled, if    feature identifiers may contain a comma. The conformance class is only declared, if the    option is enabled for all collections.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "itemType": {
           "title": "itemType",
           "description": "",

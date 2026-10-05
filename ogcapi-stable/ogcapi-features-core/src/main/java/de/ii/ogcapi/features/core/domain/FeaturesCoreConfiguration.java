@@ -229,6 +229,31 @@ public interface FeaturesCoreConfiguration
   @Nullable
   Boolean getValidateCoordinatesInQueries();
 
+  /**
+   * @langEn Enables the query parameter `ids` for the Features resource, which selects features by
+   *     their identifiers, and the conformance class *Query by IDs*. Feature identifiers that
+   *     contain a comma cannot be selected with the parameter, so the option should be disabled, if
+   *     feature identifiers may contain a comma. The conformance class is only declared, if the
+   *     option is enabled for all collections.
+   * @langDe Aktiviert den Query-Parameter `ids` für die Ressource "Features", der Features über
+   *     ihre Identifikatoren selektiert, sowie die Konformitätsklasse "Query by IDs".
+   *     Feature-Identifikatoren, die ein Komma enthalten, können mit dem Parameter nicht selektiert
+   *     werden, daher sollte die Option deaktiviert werden, wenn Feature-Identifikatoren ein Komma
+   *     enthalten können. Die Konformitätsklasse wird nur angegeben, wenn die Option für alle
+   *     Collections aktiviert ist.
+   * @default true
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getIds();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean supportsIds() {
+    return !Boolean.FALSE.equals(getIds());
+  }
+
   Optional<ItemType> getItemType();
 
   /**
