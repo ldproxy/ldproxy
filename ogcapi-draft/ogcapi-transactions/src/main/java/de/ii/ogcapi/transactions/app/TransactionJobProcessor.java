@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction;
 import de.ii.ogcapi.transactions.domain.TransactionJob;
+import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobResult;
 import de.ii.xtralink.jobs.PartialJob;
@@ -175,8 +176,22 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       errors.add("API id must not be null or empty");
     }
 
-    if (getOgcApi(inputs.getApiId()).isEmpty()) {
+    Optional<OgcApi> api = getOgcApi(inputs.getApiId());
+
+    if (api.isEmpty()) {
       errors.add(String.format("API with id '%s' not found", inputs.getApiId()));
+    }
+
+    Optional<TransactionsConfiguration> cfg =
+        api.flatMap(
+            a ->
+                a.getData()
+                    .getExtension(TransactionsConfiguration.class)
+                    .filter(TransactionsConfiguration::isEnabled));
+
+    if (cfg.isEmpty()) {
+      errors.add(
+          String.format("Transactions building block is not enabled for API '%s'", inputs.getApiId()));
     }
 
     if (Strings.isNullOrEmpty(inputs.getMediaType())) {
