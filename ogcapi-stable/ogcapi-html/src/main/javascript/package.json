@@ -22,7 +22,7 @@
     "@xtramaps/layer-control-maplibre": "^1.1.0",
     "@xtramaps/layer-control-maplibre-react": "^1.1.0",
     "@xtramaps/web-map-cesium-react": "^1.1.0",
-    "@xtramaps/web-map-maplibre-react": "^1.1.0",
+    "@xtramaps/web-map-maplibre-react": "^1.1.1",
     "@xtramaps/web-map-openlayers-react": "^1.1.0",
     "bootstrap": "^4.6.0",
     "core-js": "^3.32.0",
