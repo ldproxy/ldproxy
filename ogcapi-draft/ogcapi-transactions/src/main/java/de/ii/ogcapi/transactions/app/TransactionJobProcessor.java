@@ -191,7 +191,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
 
     if (cfg.isEmpty()) {
       errors.add(
-          String.format("Transactions building block is not enabled for API '%s'", inputs.getApiId()));
+          String.format(
+              "Transactions building block is not enabled for API '%s'", inputs.getApiId()));
     }
 
     if (Strings.isNullOrEmpty(inputs.getMediaType())) {
