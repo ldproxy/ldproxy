@@ -58,6 +58,12 @@ public interface TransactionJob extends JobInputs {
 
   String getApiId();
 
+  /**
+   * Path of the transaction document in the resource store, relative to {@code
+   * jobs/feature-transaction}. It may also name a folder: then all documents in it are applied in
+   * the order of their names, each as a transaction of its own, and the first rejected document
+   * stops the job. Documents may be compressed with gzip.
+   */
   String getDocumentPath();
 
   String getMediaType();
@@ -72,5 +78,12 @@ public interface TransactionJob extends JobInputs {
 
   HeaderPrefer.Return getReturnPrefer();
 
+  /**
+   * Write the response document to {@code <api>/result_<job>.json} instead of returning it as the
+   * job output; the path is the job output {@code resultPath}. The document is also written if the
+   * transaction is rejected. For a folder, the response documents are always written to the result
+   * folder of the job, named after the documents ({@code 001.xml.gz} → {@code
+   * <api>/result_<job>/001.result.json}), and reported as the job output {@code resultPaths}.
+   */
   boolean getResultAsFile();
 }
