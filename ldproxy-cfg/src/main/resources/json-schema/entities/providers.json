@@ -2759,7 +2759,7 @@
         },
         "storage": {
           "title": "storage",
-          "description": "Either `PLAIN` or `MBTILES`.",
+          "description": "Either `PER_JOB`, `PER_TILE` or `PER_TILESET`. The deprecated values `PLAIN` and    `MBTILES` are converted to `PER_TILE` and `PER_TILESET`.",
           "type": [
             "string",
             "number",
