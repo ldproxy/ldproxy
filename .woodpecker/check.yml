@@ -12,7 +12,7 @@ steps:
     secrets: [ snapshot_user, snapshot_pass]
 
   docs:
-    image: woodpeckerci/plugin-surge-preview:1.4.2@sha256:85e52966e92030f4b45841176302909aefd0d8cf41cda90ae3c7209085f0cdc1
+    image: woodpeckerci/plugin-surge-preview:1.5.0@sha256:125c6f6b71d476e6f6e95879a5c6fe069d38bcf427f8afba0ea55441ffc22347
     settings:
       path: build/markdown/docs/.vuepress/dist/
       surge_token: 
