@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -157,16 +158,19 @@ public interface ParameterExtension extends ApiExtension {
   }
 
   private String getJsonContent(String value, Schema<?> schema) {
-    if (("object".equals(schema.getType()) && value.trim().startsWith("{"))
-        || ("array".equals(schema.getType()) && value.trim().startsWith("["))
-        || "number".equals(schema.getType())
-        || "integer".equals(schema.getType())
-        || "boolean".equals(schema.getType())
-        || "null".equals(schema.getType())) {
+    String type = schema.getType();
+    if (("object".equals(type) && value.trim().startsWith("{"))
+        || ("array".equals(type) && value.trim().startsWith("["))
+        || (("number".equals(type) || "integer".equals(type))
+            && value.matches("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?"))
+        || ("boolean".equals(type) && ("true".equals(value) || "false".equals(value)))
+        || ("null".equals(type) && "null".equals(value))) {
       return value;
     }
 
-    return "\"" + value + "\"";
+    // any other value is a string, so that a value that does not match the type of the schema is
+    // reported by the schema validation, not as a JSON syntax error
+    return "\"" + new String(JsonStringEncoder.getInstance().quoteAsString(value)) + "\"";
   }
 
   default void setOpenApiDescription(OgcApiDataV2 apiData, Parameter param) {
