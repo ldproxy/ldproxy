@@ -9089,6 +9089,10 @@
       },
       {
         "parameterTypes": [],
+        "name": "getIds"
+      },
+      {
+        "parameterTypes": [],
         "name": "getItemType"
       },
       {
@@ -9210,6 +9214,12 @@
           "java.lang.Boolean"
         ],
         "name": "validateCoordinatesInQueries"
+      },
+      {
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ],
+        "name": "ids"
       },
       {
         "parameterTypes": [

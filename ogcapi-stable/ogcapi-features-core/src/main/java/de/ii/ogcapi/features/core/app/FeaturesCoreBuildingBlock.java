@@ -103,6 +103,9 @@ import org.slf4j.LoggerFactory;
  *     especially with larger data sets.
  *     <p>Additional attributes can be filtered based on their values, if they are configured as
  *     queryables.
+ *     <p>Features can also be selected by their identifiers (`ids`). The value is a comma-separated
+ *     list of feature identifiers, that is, the values that are used in the path of the feature
+ *     resource. Feature identifiers that contain a comma are not supported.
  *     <p>All filter predicates must be met to select a feature.
  * @scopeDe *Features* spezifiziert die wichtigsten Fähigkeiten zur Bereitstellung von Features.
  *     <p>Der Umfang beschränkt sich auf das Abrufen von Features, deren Geometrien im
@@ -144,13 +147,23 @@ import org.slf4j.LoggerFactory;
  *     Dies beschleunigt Abfragen mit dem `datetime`-Parameter, besonders bei größeren Datensätzen.
  *     <p>Zusätzliche Attribute können auf der Grundlage ihrer Werte gefiltert werden, wenn sie als
  *     abfragbar konfiguriert sind (Queryables).
+ *     <p>Features können auch über ihre Identifikatoren (`ids`) selektiert werden. Der Wert ist
+ *     eine kommaseparierte Liste von Feature-Identifikatoren, also den Werten, die im Pfad der
+ *     Feature-Ressource verwendet werden. Feature-Identifikatoren, die ein Komma enthalten, werden
+ *     nicht unterstützt.
  *     <p>Alle Filterprädikate müssen erfüllt sein, um ein Feature zu selektieren.
  * @conformanceEn *Features* implements all requirements of conformance class *Core* of [OGC API -
  *     Features - Part 1: Core 1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) for the
- *     two operations resources.
+ *     two operations resources. The parameter `ids` implements the requirements of conformance
+ *     class *Query by IDs* of the [draft of OGC API - Features - Part 1: Core
+ *     1.1](https://docs.ogc.org/DRAFTS/17-069r5.html#rc_ids), except that feature identifiers that
+ *     contain a comma are not supported.
  * @conformanceDe *Features* implementiert alle Vorgaben der Konformitätsklasse "Core" von [OGC API
  *     - Features - Part 1: Core 1.0](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) für
- *     die zwei Operationen.
+ *     die zwei Operationen. Der Parameter `ids` implementiert die Vorgaben der Konformitätsklasse
+ *     "Query by IDs" des [Entwurfs von OGC API - Features - Part 1: Core
+ *     1.1](https://docs.ogc.org/DRAFTS/17-069r5.html#rc_ids), mit der Ausnahme, dass
+ *     Feature-Identifikatoren, die ein Komma enthalten, nicht unterstützt werden.
  * @ref:cfg {@link de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.core.domain.ImmutableFeaturesCoreConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.features.core.app.EndpointFeatures}, {@link
@@ -159,6 +172,7 @@ import org.slf4j.LoggerFactory;
  *     {@link de.ii.ogcapi.features.core.domain.PathParameterFeatureIdFeatures}
  * @ref:queryParameters {@link de.ii.ogcapi.features.core.app.QueryParameterBbox}, {@link
  *     de.ii.ogcapi.features.core.app.QueryParameterDatetime}, {@link
+ *     de.ii.ogcapi.features.core.app.QueryParameterIds}, {@link
  *     de.ii.ogcapi.features.core.app.QueryParameterLimitFeatures}, {@link
  *     de.ii.ogcapi.features.core.app.QueryParameterOffsetFeatures}, {@link
  *     de.ii.ogcapi.features.core.app.QueryParameterFFeatures}, {@link
@@ -204,6 +218,7 @@ public class FeaturesCoreBuildingBlock
         .defaultPageSize(DEFAULT_PAGE_SIZE)
         .maximumPageSize(MAX_PAGE_SIZE)
         .validateCoordinatesInQueries(false)
+        .ids(true)
         .build();
   }
 
