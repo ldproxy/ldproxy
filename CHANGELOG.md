@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.8.2 (07/10/2026)
+#### Fixed bugs
+
+- Mapbox Vector Tiles: deeply nested properties are missing [#1773](https://github.com/ldproxy/ldproxy/issues/1773)
+- MCP Server fails in v4.8 [#1769](https://github.com/ldproxy/ldproxy/issues/1769)
+- fix missing geometries in GeoJSON search responses [#1790](https://github.com/ldproxy/ldproxy/issues/1790)
+
+---
 ## v4.8.1 (01/09/2026)
 #### Improvements
 

@@ -34,29 +34,33 @@ jar {
 }
 
 node {
-    version = '16.15.1'
-    yarnVersion = '1.22.19'
+    version = '22.12.0'
+    nodeProjectDir = file('src/main/javascript')
     download = project.findProperty('downloadNode') != 'false' ?: false
     // do not declare the repository, that is not allowed outside of settings.gradle
     // it is automatically added by the settings plugin
     distBaseUrl = null
 }
 
-yarn_install {
+npmInstall {
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
-    outputs.dir("src/main/javascript/node_modules")
-    outputs.dir("src/main/javascript/.yarn/cache")
-    outputs.cacheIf { true }
+    inputs.file("src/main/javascript/package-lock.json")
+    // node_modules has tens of thousands of files, fingerprinting all of them is expensive,
+    // npm's hidden lockfile is enough to detect whether an install is needed
+    nodeModulesOutputFilter {
+        include '.package-lock.json'
+    }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
 }
 
-task yarn_build(type: YarnTask) {
-    dependsOn yarn_install
+task npmBuild(type: NpmTask) {
+    dependsOn npmInstall
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
+    inputs.file("src/main/javascript/package-lock.json")
+    inputs.file("src/main/javascript/vite.config.js")
+    inputs.dir("src/main/javascript/vite-plugins")
     inputs.dir("src/main/javascript/src")
     outputs.dir(generatedResourcesDir)
     outputs.cacheIf { true }
@@ -66,15 +70,30 @@ task yarn_build(type: YarnTask) {
     args = ['run', 'build']
 }
 
-yarn_start {
+task npmStart(type: NpmTask) {
+    dependsOn npmInstall
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
-}
-yarn_storybook {
-    execOverrides {
-        it.workingDir = 'src/main/javascript'
-    }
+    args = ['run', 'start']
 }
 
-processResources.dependsOn yarn_build
+task npmStorybook(type: NpmTask) {
+    dependsOn npmInstall
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'storybook']
+}
+
+task npmLint(type: NpmTask) {
+    dependsOn npmInstall
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'lint']
+}
+
+check.dependsOn npmLint
+
+processResources.dependsOn npmBuild
