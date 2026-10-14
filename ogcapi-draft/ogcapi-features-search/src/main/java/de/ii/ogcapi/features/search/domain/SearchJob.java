@@ -12,6 +12,7 @@ import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -54,7 +55,8 @@ public interface SearchJob extends JobInputs {
         String.format(" (API: %s)", apiId),
         searchJob,
         new JobContextEntity(apiId),
-        null);
+        null,
+        Optional.empty());
   }
 
   String getApiId();
