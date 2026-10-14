@@ -305,7 +305,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-    return executeStoredQuery(queryId, api, requestContext, false);
+    return executeStoredQuery(queryId, prefer, api, requestContext, false);
   }
 
   /**
@@ -319,13 +319,18 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   public Response postStoredQuery(
       @PathParam("queryId") String queryId,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-    return executeStoredQuery(queryId, api, requestContext, true);
+    return executeStoredQuery(queryId, prefer, api, requestContext, true);
   }
 
   private Response executeStoredQuery(
-      String queryId, OgcApi api, ApiRequestContext requestContext, boolean isPost) {
+      String queryId,
+      List<String> prefer,
+      OgcApi api,
+      ApiRequestContext requestContext,
+      boolean isPost) {
     OgcApiDataV2 apiData = api.getData();
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
