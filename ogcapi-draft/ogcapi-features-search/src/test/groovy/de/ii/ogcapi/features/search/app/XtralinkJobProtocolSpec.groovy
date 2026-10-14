@@ -7,14 +7,7 @@
  */
 package de.ii.ogcapi.features.search.app
 
-import de.ii.xtralink.jobs.Identifiers
-import de.ii.xtralink.jobs.InitProgress
-import de.ii.xtralink.jobs.Job
-import de.ii.xtralink.jobs.JobConfiguration
-import de.ii.xtralink.jobs.JobProgress
-import de.ii.xtralink.jobs.JobResult
-import de.ii.xtralink.jobs.PartialJobConfiguration
-import de.ii.xtralink.jobs.QueueConfiguration
+import de.ii.xtralink.jobs.*
 import de.ii.xtralink.jobs.internal.JobListener
 import de.ii.xtralink.jobs.internal.JobProcessor
 import de.ii.xtralink.jobs.internal.JobQueue
@@ -135,7 +128,7 @@ class XtralinkJobProtocolSpec extends Specification {
 
     private static JobConfiguration jobConfiguration(String kind) {
         return new JobConfiguration(kind, 1, 'Spec job', '', Map.of(), Map.of(),
-                new JobProgress(0, 0, 0, null), true, true, List.of())
+                new JobProgress(0, 0, 0, null), true, true, List.of(), Optional.empty())
     }
 
     private static Job awaitTerminal(String jobId) {
@@ -147,7 +140,7 @@ class XtralinkJobProtocolSpec extends Specification {
                 last = job.get()
                 if (last.finishedAt() > 0
                         && (last.status() == Identifiers.Status.FAILED
-                                || last.status() == Identifiers.Status.SUCCESSFUL)) {
+                        || last.status() == Identifiers.Status.SUCCESSFUL)) {
                     return last
                 }
             }
