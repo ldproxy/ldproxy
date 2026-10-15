@@ -126,14 +126,14 @@ public interface ParameterExtension extends ApiExtension {
           schemaContent = Json.mapper().writeValueAsString(schema.getItems());
         } else {
           if (values.size() == 1) {
+            // an empty value is an empty list, but empty items in a list are validated, too
             valueContent =
-                Splitter.on(",")
-                    .trimResults()
-                    .omitEmptyStrings()
-                    .splitToList(values.get(0))
+                (values.get(0).isBlank()
+                        ? List.<String>of()
+                        : Splitter.on(",").trimResults().splitToList(values.get(0)))
                     .stream()
-                    .map(v -> getJsonContent(v, schema.getItems()))
-                    .collect(Collectors.joining(",", "[", "]"));
+                        .map(v -> getJsonContent(v, schema.getItems()))
+                        .collect(Collectors.joining(",", "[", "]"));
           }
         }
       }
