@@ -17,6 +17,7 @@ import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -47,7 +48,8 @@ public interface OapJob extends JobInputs {
         String.format(" (Process: %s)", process.getTitle()),
         oapJob,
         new OapJobContext(apiId, executeRequest),
-        null);
+        null,
+        Optional.empty());
   }
 
   class OapJobContext extends JobContextEntity {
