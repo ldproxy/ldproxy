@@ -7,7 +7,11 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -53,6 +57,7 @@ import io.modelcontextprotocol.json.schema.jackson2.DefaultJsonSchemaValidator;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
+import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
@@ -146,7 +151,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     return servers.computeIfAbsent(
         api.getData().getStableHash(),
         key -> {
-          McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(objectMapper);
+          McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(withMcpErrorSerializer(objectMapper));
           HttpServletStatelessServerTransport transport =
               HttpServletStatelessServerTransport.builder()
                   .jsonMapper(jsonMapper)
@@ -160,6 +165,31 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
           return transport;
         });
+  }
+
+  // the transport writes an error of a request as an McpError, which is an exception; without a
+  // serializer, the response would contain the stack trace, so only the JSON-RPC error is written
+  static ObjectMapper withMcpErrorSerializer(ObjectMapper objectMapper) {
+    return objectMapper
+        .copy()
+        .registerModule(
+            new SimpleModule()
+                .addSerializer(
+                    McpError.class,
+                    new StdSerializer<>(McpError.class) {
+                      @Override
+                      public void serialize(
+                          McpError error, JsonGenerator gen, SerializerProvider provider)
+                          throws IOException {
+                        gen.writeStartObject();
+                        gen.writeStringField(
+                            "jsonrpc", io.modelcontextprotocol.spec.McpSchema.JSONRPC_VERSION);
+                        gen.writeNullField("id");
+                        gen.writeFieldName("error");
+                        provider.defaultSerializeValue(error.getJsonRpcError(), gen);
+                        gen.writeEndObject();
+                      }
+                    }));
   }
 
   private McpStatelessSyncServer createServer(

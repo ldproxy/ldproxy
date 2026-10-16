@@ -1474,7 +1474,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             .toCompletableFuture();
 
     // wait for collection metadata
-    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+    CollectionMetadata collectionMetadata = awaitMetadata(onCollectionMetadata, stream);
 
     StreamingOutput streamingOutput =
         new JoinableStreamingOutput(
@@ -1532,6 +1532,19 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       return ImmutableList.of("*");
     }
     return Stream.concat(fields1.stream(), fields2.stream()).distinct().toList();
+  }
+
+  // A stream that ends before it started completes the metadata with its error, which is then
+  // processed like any other stream error.
+  @SuppressWarnings("PMD.PreserveStackTrace")
+  private <U extends ResultBase> CollectionMetadata awaitMetadata(
+      CompletableFuture<CollectionMetadata> onCollectionMetadata, CompletableFuture<U> stream) {
+    try {
+      return onCollectionMetadata.join();
+    } catch (CompletionException e) {
+      run(stream::join);
+      throw new IllegalStateException("Feature stream error.", e.getCause());
+    }
   }
 
   @SuppressWarnings("PMD.PreserveStackTrace")

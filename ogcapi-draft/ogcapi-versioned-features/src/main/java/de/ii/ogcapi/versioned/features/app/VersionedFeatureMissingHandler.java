@@ -81,18 +81,8 @@ public class VersionedFeatureMissingHandler implements SingleFeatureMissingHandl
     this.i18n = i18n;
   }
 
-  private static String relToI18nKey(String rel) {
-    String[] parts = rel.split("-");
-    StringBuilder sb = new StringBuilder(parts[0]);
-    for (int i = 1; i < parts.length; i++) {
-      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-    }
-    sb.append("Link");
-    return sb.toString();
-  }
-
   private String linkHeader(String href, String rel, ApiRequestContext requestContext) {
-    String title = i18n.get(relToI18nKey(rel), requestContext.getLanguage());
+    String title = i18n.getLinkTitle(rel, requestContext.getLanguage()).orElse(rel);
     return String.format("<%s>; rel=\"%s\"; title=\"%s\"", href, rel, title);
   }
 

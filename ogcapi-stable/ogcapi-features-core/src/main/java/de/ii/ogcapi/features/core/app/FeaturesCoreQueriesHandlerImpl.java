@@ -23,6 +23,7 @@ import de.ii.ogcapi.features.core.domain.ProfileFeatureQuery;
 import de.ii.ogcapi.features.core.domain.ProfileResponseCrs;
 import de.ii.ogcapi.features.core.domain.PropertyLinkResolver;
 import de.ii.ogcapi.features.core.domain.SingleFeatureMissingHandler;
+import de.ii.ogcapi.features.core.domain.SingleFeatureResponseCustomizer;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -85,8 +86,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -540,8 +539,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     boolean hasNextPage = false;
 
     List<PropertyLink> propertyLinks = List.of();
-    Instant mementoDatetime = null;
-    Instant mementoEnd = null;
+    Optional<Tuple<Instant, Instant>> temporalExtent = Optional.empty();
     if (!sendResponseAsStream) {
       Tuple<ResultReduced<byte[]>, CollectionMetadata> resultAndMetadata =
           reduce(
@@ -556,10 +554,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
           collectionMetadata != null
               && collectionMetadata.getNumberReturned().orElse(0) == query.getLimit();
       propertyLinks = result.getPropertyLinks();
-      mementoDatetime =
-          result.getTemporalExtent().map(Tuple::first).filter(Objects::nonNull).orElse(null);
-      mementoEnd =
-          result.getTemporalExtent().map(Tuple::second).filter(Objects::nonNull).orElse(null);
+      temporalExtent = result.getTemporalExtent();
 
       if (Objects.nonNull(featureId) && !result.hasFeatures()) {
         Optional<Response> overridden =
@@ -674,28 +669,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
       response.header(TEMPORAL_EXTENT_HEADER, temporalExtentHeader);
     }
 
-    if (Objects.nonNull(featureId) && Objects.nonNull(mementoEnd)) {
-      // The returned version is retired (PRIMARY_INTERVAL_END is set) — its representation will
-      // never change. Override any per-collection Cache-Control with the immutable directive.
-      response.header("Cache-Control", null);
-      response.header("Cache-Control", "public, max-age=31536000, immutable");
-    }
-
-    if (Objects.nonNull(featureId) && Objects.nonNull(mementoDatetime)) {
-      response.header(
-          "Memento-Datetime",
-          DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneId.of("GMT")).format(mementoDatetime));
-      String originalHref = requestContext.getUriCustomizer().copy().clearParameters().toString();
-      String timeMapHref =
-          requestContext
-              .getUriCustomizer()
-              .copy()
-              .clearParameters()
-              .ensureLastPathSegment("versions")
-              .toString();
-      addLinkHeader(response, originalHref, "original", requestContext);
-      addLinkHeader(response, timeMapHref, "timemap", requestContext);
-      addLinkHeader(response, timeMapHref, "version-history", requestContext);
+    if (Objects.nonNull(featureId)) {
+      for (SingleFeatureResponseCustomizer customizer :
+          extensionRegistry.getExtensionsForType(SingleFeatureResponseCustomizer.class)) {
+        if (customizer.isEnabledForApi(api.getData(), collectionId)) {
+          customizer.customize(
+              response, api, collectionId, featureId, temporalExtent, requestContext);
+        }
+      }
     }
 
     if (Objects.nonNull(featureId) && !propertyLinks.isEmpty()) {
@@ -724,18 +705,6 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     return response.entity(Objects.nonNull(bytes) ? bytes : streamingOutput).build();
-  }
-
-  private void addLinkHeader(
-      Response.ResponseBuilder response,
-      String href,
-      String rel,
-      ApiRequestContext requestContext) {
-    addLinkHeader(
-        response,
-        href,
-        rel,
-        Optional.of(i18n.get(relToI18nKey(rel), requestContext.getLanguage())));
   }
 
   private void addLinkHeader(
@@ -775,7 +744,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .toCompletableFuture();
 
     // wait for collection metadata
-    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+    CollectionMetadata collectionMetadata =
+        awaitMetadata(onCollectionMetadata, stream, failIfNoFeatures);
 
     StreamingOutput streamingOutput =
         new JoinableStreamingOutput(
@@ -806,9 +776,24 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .toCompletableFuture();
 
     // wait for collection metadata
-    CollectionMetadata collectionMetadata = onCollectionMetadata.join();
+    CollectionMetadata collectionMetadata =
+        awaitMetadata(onCollectionMetadata, stream, failIfNoFeatures);
 
     return Tuple.of(run(stream::join, failIfNoFeatures), collectionMetadata);
+  }
+
+  // A stream that ends before it started completes the metadata with its error, which is then
+  // processed like any other stream error.
+  private <U extends ResultBase> CollectionMetadata awaitMetadata(
+      CompletableFuture<CollectionMetadata> onCollectionMetadata,
+      CompletableFuture<U> stream,
+      boolean failIfNoFeatures) {
+    try {
+      return onCollectionMetadata.join();
+    } catch (CompletionException e) {
+      run(stream::join, failIfNoFeatures);
+      throw new IllegalStateException("Feature stream error.", e.getCause());
+    }
   }
 
   private <U extends ResultBase> U run(Supplier<U> stream, boolean failIfNoFeatures) {
