@@ -56,7 +56,8 @@ public class ExceptionFormatJson extends ErrorEntityWriter<ApiErrorMessage, ApiE
             .addProperties("title", new StringSchema())
             .addProperties("detail", new StringSchema())
             .addProperties("status", new IntegerSchema().minimum(BigDecimal.valueOf(100)))
-            .addProperties("instance", new StringSchema().format("uri"));
+            .addProperties("instance", new StringSchema().format("uri"))
+            .addProperties("type", new StringSchema());
   }
 
   @Override
