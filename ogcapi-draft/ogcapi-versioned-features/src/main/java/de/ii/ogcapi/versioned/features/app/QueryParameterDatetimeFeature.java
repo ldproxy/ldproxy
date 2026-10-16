@@ -71,6 +71,12 @@ public class QueryParameterDatetimeFeature extends AbstractQueryParameterDatetim
     return VersionedFeaturesConfiguration.class;
   }
 
+  // the parameter of the features resource has the same name, but a different schema
+  @Override
+  public String getId() {
+    return "datetimeFeature";
+  }
+
   @Override
   public boolean matchesPath(String definitionPath) {
     return "/collections/{collectionId}/items/{featureId}".equals(definitionPath);

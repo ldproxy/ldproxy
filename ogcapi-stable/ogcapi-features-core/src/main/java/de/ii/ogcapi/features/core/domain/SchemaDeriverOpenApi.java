@@ -30,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public abstract class SchemaDeriverOpenApi extends SchemaDeriver<Schema<?>> {
 
@@ -252,49 +250,66 @@ public abstract class SchemaDeriverOpenApi extends SchemaDeriver<Schema<?>> {
       result = withRequired(result);
     }
 
-    if (!constraints.getEnumValues().isEmpty()) {
-      // if enum is specified in the configuration, it wins over codelist
-      boolean isString =
-          property.isArray()
-              ? property.getValueType().orElse(Type.UNKNOWN) != Type.INTEGER
-              : property.getType() != Type.INTEGER;
-      if (isString) {
-        ((Schema<String>) result).setEnum(constraints.getEnumValues());
-      } else {
-        ((Schema<Integer>) result)
-            .setEnum(
-                constraints.getEnumValues().stream()
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList()));
-      }
-    } else if (constraints.getCodelist().isPresent()) {
-      Optional<Codelist> codelist =
-          Optional.ofNullable(codelists.get(constraints.getCodelist().get()));
-      if (codelist.isPresent() && !codelist.get().getFallback().isPresent()) {
-        boolean isString =
-            property.isArray()
-                ? property.getValueType().orElse(Type.UNKNOWN) != Type.INTEGER
-                : property.getType() != Type.INTEGER;
-        Set<String> values = codelist.get().getEntries().keySet();
-        if (isString) {
-          ((Schema<String>) result).setEnum(new ArrayList<>(values));
-        } else {
-          ((Schema<Integer>) result)
-              .setEnum(values.stream().map(Integer::parseInt).collect(Collectors.toList()));
+    // the constraints of an array apply to its values, not to the array
+    Schema<?> valueSchema =
+        result instanceof ArraySchema && Objects.nonNull(result.getItems())
+            ? result.getItems()
+            : result;
+
+    boolean isString =
+        property.isArray()
+            ? property.getValueType().orElse(Type.UNKNOWN) != Type.INTEGER
+            : property.getType() != Type.INTEGER;
+    Optional<Codelist> codelist =
+        constraints.getCodelist().map(codelists::get).filter(Objects::nonNull);
+    // if enum is specified in the configuration, it wins over codelist
+    List<String> codes =
+        !constraints.getEnumValues().isEmpty()
+            ? constraints.getEnumValues()
+            : codelist.isPresent() && codelist.get().getFallback().isEmpty()
+                ? List.copyOf(codelist.get().getEntries().keySet())
+                : List.of();
+    if (!codes.isEmpty()) {
+      List<Object> values = new ArrayList<>();
+      codes.forEach(code -> values.add(isString ? code : Integer.parseInt(code)));
+      List<String> titles =
+          withCodelistTitles() && codelist.isPresent()
+              ? codes.stream()
+                  .map(code -> codelist.get().getEntries().get(code))
+                  .filter(Objects::nonNull)
+                  .filter(title -> !codes.contains(title))
+                  .distinct()
+                  .toList()
+              : List.of();
+      if (!titles.isEmpty()) {
+        values.addAll(titles);
+        if (!isString) {
+          // a title is a string, so the value is either an integer code or a string title
+          valueSchema.setType(null);
+          valueSchema.setFormat(null);
         }
       }
+      ((Schema<Object>) valueSchema).setEnum(values);
     }
     if (constraints.getRegex().isPresent()) {
-      result.setPattern(constraints.getRegex().get());
+      valueSchema.setPattern(constraints.getRegex().get());
     }
     if (constraints.getMin().isPresent()) {
-      result.setMinimum(BigDecimal.valueOf(constraints.getMin().get()));
+      valueSchema.setMinimum(BigDecimal.valueOf(constraints.getMin().get()));
     }
     if (constraints.getMax().isPresent()) {
-      result.setMaximum(BigDecimal.valueOf(constraints.getMax().get()));
+      valueSchema.setMaximum(BigDecimal.valueOf(constraints.getMax().get()));
     }
 
     return oapiSchema;
+  }
+
+  /**
+   * @return {@code true}, if the value of a property with a codelist may also be the title of the
+   *     code, e.g. in a response with a profile that represents codes by their title
+   */
+  protected boolean withCodelistTitles() {
+    return false;
   }
 
   @Override

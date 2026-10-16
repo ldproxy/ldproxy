@@ -39,7 +39,6 @@ import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryFormat;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.features.search.domain.StoredQueryValidator;
-import de.ii.ogcapi.features.search.domain.StringOrParameter;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -474,74 +473,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         .build();
   }
 
-  // Static counterpart of the HTML check in executeQuery(): HTML is only available for queries
-  // with paging whose positions are in the default CRS. A parameterized CRS or profile may
-  // resolve to a non-default CRS at execution time, so HTML is not offered for such queries.
-  // `crsProfileIds` are the ids of the profiles that select the CRS of the response.
-  static boolean offersHtml(
-      StoredQueryExpression query, EpsgCrs defaultCrs, Set<String> crsProfileIds) {
-    if (!query.getSupportPaging().orElse(false)) {
-      return false;
-    }
-    if (selectsCrs(query, crsProfileIds)) {
-      return false;
-    }
-    if (query.getCrs().isEmpty()) {
-      return true;
-    }
-    if (query.getVerticalCrs().isPresent()) {
-      return false;
-    }
-    return query
-        .getCrs()
-        .flatMap(StringOrParameter::getValue)
-        .map(uri -> EpsgCrs.fromString(uri).equals(defaultCrs))
-        .orElse(false);
-  }
-
-  private static boolean selectsCrs(StoredQueryExpression query, Set<String> crsProfileIds) {
-    if (query.getProfiles().isEmpty() || crsProfileIds.isEmpty()) {
-      return false;
-    }
-    Optional<List<StringOrParameter>> profiles = query.getProfiles().get().getValue();
-    if (profiles.isEmpty()) {
-      // the whole list is a parameter, so its values are only known at execution time
-      return true;
-    }
-    return profiles.get().stream()
-        .anyMatch(
-            profile ->
-                profile
-                    .getValue()
-                    .map(crsProfileIds::contains)
-                    // a parameterized entry may resolve to such a profile
-                    .orElse(true));
-  }
-
-  private Set<String> crsProfileIds() {
-    return extensionRegistry.getExtensionsForType(Profile.class).stream()
-        .filter(ProfileResponseCrs.class::isInstance)
-        .map(Profile::getId)
-        .collect(Collectors.toUnmodifiableSet());
-  }
-
   private Response getStoredQueries(
       QueryInputStoredQueries queryInput, ApiRequestContext requestContext) {
     ImmutableStoredQueries.Builder builder = new ImmutableStoredQueries.Builder();
 
     OgcApiDataV2 apiData = requestContext.getApi().getData();
-    EpsgCrs defaultCrs =
-        apiData
-            .getExtension(FeaturesCoreConfiguration.class)
-            .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
-            .orElse(OgcCrs.CRS84);
-    Set<String> crsProfileIds = crsProfileIds();
+    StoredQueryHtmlSupport htmlSupport = new StoredQueryHtmlSupport(apiData, extensionRegistry);
     repository
         .getAll(apiData)
         .forEach(
             q -> {
               String queryId = q.getId();
-              boolean offersHtml = offersHtml(q, defaultCrs, crsProfileIds);
+              boolean offersHtml = htmlSupport.offersHtml(q);
               builder.addQueries(
                   new ImmutableStoredQuery.Builder()
                       .id(queryId)

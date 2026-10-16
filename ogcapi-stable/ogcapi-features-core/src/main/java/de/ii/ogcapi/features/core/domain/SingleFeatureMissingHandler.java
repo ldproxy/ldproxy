@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import jakarta.ws.rs.core.Response;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Extension hook for resources that affect how a missing single-feature lookup is reported. When
@@ -26,4 +27,13 @@ public interface SingleFeatureMissingHandler extends ApiExtension {
 
   Optional<Response> handleMissing(
       OgcApi api, String collectionId, String featureId, ApiRequestContext requestContext);
+
+  /**
+   * The status codes of the alternative responses that this handler may return, they are added to
+   * the API definition of the single-feature operation, if the handler is enabled for the
+   * collection.
+   */
+  default Set<Integer> getStatusCodes() {
+    return Set.of();
+  }
 }

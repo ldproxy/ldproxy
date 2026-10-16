@@ -26,6 +26,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperationLink;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -116,6 +118,19 @@ public class EndpointParameters extends EndpointRequiresFeatures implements ApiE
               TAGS,
               SearchBuildingBlock.MATURITY,
               SearchBuildingBlock.SPEC)
+          .map(
+              operation ->
+                  new ImmutableApiOperation.Builder()
+                      .from(operation)
+                      .addLinkedFrom(
+                          new ImmutableApiOperationLink.Builder()
+                              .name("parameters")
+                              .operationId(getOperationId("getStoredQueries"))
+                              .putParameters("queryId", "$response.body#/queries/0/id")
+                              .description(
+                                  "Uses the id of the first stored query in the response. A link selects a single value, it does not iterate over the list.")
+                              .build())
+                      .build())
           .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }

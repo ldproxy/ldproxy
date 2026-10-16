@@ -5661,7 +5661,7 @@
         },
         "styleEncodings": {
           "title": "styleEncodings",
-          "description": "List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style (\"Mapbox\"),    OGC SLD 1.0 (\"SLD 1.0\"), OGC SLD 1.1 (\"SLD 1.1\"), QGIS QML (\"QGIS\"), ArcGIS LYR (\"ArcGIS\"),    ArcGIS LYRX (\"ArcGIS Pro\"), 3D Tiles (\"3D Tiles\") and HTML (\"HTML\"). HTML is an output only    encoding for web maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see    conformance classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming    change** Currently there is no way to disable the defaults \"Mapbox\" and \"HTML\". It is    planned to change this in v5, then the defaults need to be repeated, if you want to add    additional encodings.",
+          "description": "List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style (\"Mapbox\"),    OGC SLD 1.0 (\"SLD 1.0\"), OGC SLD 1.1 (\"SLD 1.1\"), QGIS QML (\"QGIS\"), ArcGIS LYR (\"ArcGIS\"),    ArcGIS LYRX (\"ArcGIS Pro\"), 3D Tiles (\"3D Tiles\") and HTML (\"HTML\"). HTML is an output only    encoding for web maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see    conformance classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming    change** Currently there is no way to disable the defaults \"Mapbox\", \"HTML\" and \"3D Tiles\".    It is planned to change this in v5, then the defaults need to be repeated, if you want to    add additional encodings.",
           "allOf": [
             {
               "if": {

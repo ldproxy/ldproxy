@@ -9,7 +9,6 @@ package de.ii.ogcapi.codelists.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.codelists.domain.CodelistFormatExtension;
-import de.ii.ogcapi.codelists.domain.Codelists;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -49,7 +48,11 @@ public class CodelistFormatJson implements CodelistFormatExtension {
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
         .schema(schemaCodelist)
-        .schemaRef(Codelists.SCHEMA_REF)
+        // a single codelist, not the list of codelists
+        .schemaRef(
+            String.format(
+                ClassSchemaCache.SCHEMA_PATH_TEMPLATE,
+                ClassSchemaCache.getSchemaId(Codelist.class)))
         .referencedSchemas(referencedSchemas)
         .ogcApiMediaType(getMediaType())
         .build();

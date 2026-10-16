@@ -23,6 +23,8 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperationLink;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -46,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +57,8 @@ public interface EndpointTileMixin {
 
   Logger LOGGER = LoggerFactory.getLogger(EndpointTileMixin.class);
   String COLLECTION_ID_PLACEHOLDER = "__collectionId__";
+  String OP_ID_GET_TILE = "getTile";
+  String OP_ID_GET_TILE_SET = "getTileSet";
   String OUTSIDE_ZOOM_LEVELS = "The requested tile is outside the zoom levels for this tile set.";
   String OUTSIDE_LIMITS =
       "The requested tile is outside of the limits for this zoom level and tile set.";
@@ -122,6 +127,7 @@ public interface EndpointTileMixin {
                 tags,
                 TilesBuildingBlock.MATURITY,
                 TilesBuildingBlock.SPEC)
+            .map(operation -> withLinkFromTileSet(operation, resourcePath))
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());
@@ -176,6 +182,7 @@ public interface EndpointTileMixin {
             tags,
             TilesBuildingBlock.MATURITY,
             TilesBuildingBlock.SPEC)
+        .map(operation -> withLinkFromTileSet(operation, path))
         .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
@@ -317,6 +324,35 @@ public interface EndpointTileMixin {
         .map(FormatExtension::getContent)
         .filter(Objects::nonNull)
         .collect(Collectors.toMap(c -> c.getOgcApiMediaType().type(), c -> c));
+  }
+
+  /**
+   * @param operation an operation that fetches a tile, the id ends with {@code getTile}
+   * @param path the path of the operation
+   * @return the operation with a link from the tile set, the tile is the first tile within the
+   *     limits of the tile set
+   */
+  static ApiOperation withLinkFromTileSet(ApiOperation operation, String path) {
+    String operationId = operation.getOperationId();
+    if (!operationId.endsWith(OP_ID_GET_TILE)) {
+      return operation;
+    }
+    ImmutableApiOperationLink.Builder link =
+        new ImmutableApiOperationLink.Builder()
+            .name("tile")
+            .operationId(
+                operationId.substring(0, operationId.length() - OP_ID_GET_TILE.length())
+                    + OP_ID_GET_TILE_SET)
+            .putParameters("tileMatrix", "$response.body#/tileMatrixSetLimits/0/tileMatrix")
+            .putParameters("tileRow", "$response.body#/tileMatrixSetLimits/0/minTileRow")
+            .putParameters("tileCol", "$response.body#/tileMatrixSetLimits/0/minTileCol")
+            .description(
+                "Uses the first tile (minimum row and column) of the first tile matrix in the"
+                    + " limits of the tile set. A link selects a single value, it does not iterate over the list.");
+    Stream.of("tileMatrixSetId", "collectionId", "styleId")
+        .filter(name -> path.contains("{" + name + "}"))
+        .forEach(name -> link.putParameters(name, "$request.path." + name));
+    return new ImmutableApiOperation.Builder().from(operation).addLinkedFrom(link.build()).build();
   }
 
   static String getOperationId(

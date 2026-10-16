@@ -95,7 +95,8 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     return schemaMap
         .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
-        .computeIfAbsent("*", ignore -> new ArraySchema().items(new StringSchema()).minItems(1));
+        .computeIfAbsent(
+            "*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)).minItems(1));
   }
 
   @Override

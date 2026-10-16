@@ -26,6 +26,7 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
+import java.util.List;
 import java.util.Map;
 
 @Singleton
@@ -51,12 +52,17 @@ public class ParametersFormatJson implements ParametersFormat {
     // TODO find better solution
     classSchemaCache.registerSchema(
         Parameters.class,
+        // the parameters are represented as a JSON Schema of an object with one property per
+        // parameter
         new ObjectSchema()
             .addProperties("title", new StringSchema())
             .addProperties("description", new StringSchema())
+            .addProperties("type", new StringSchema()._enum(List.of("object")))
+            .addProperties("required", new ArraySchema().items(new StringSchema()))
             .addProperties(
-                "links", new ArraySchema().items(new Schema<>().$ref("#/components/schemas/Link")))
-            .additionalProperties(new ObjectSchema()),
+                "properties", new ObjectSchema().additionalProperties(new ObjectSchema()))
+            .addProperties(
+                "links", new ArraySchema().items(new Schema<>().$ref("#/components/schemas/Link"))),
         ImmutableList.of(Link.class));
     this.schema = classSchemaCache.getSchema(Parameters.class);
     referencedSchemas = classSchemaCache.getReferencedSchemas(Parameters.class);

@@ -29,6 +29,12 @@ public class SchemaDeriverOpenApiFeatures extends SchemaDeriverOpenApi {
     super(label, description, codelists);
   }
 
+  // a response may represent a code by its title, depending on the profile
+  @Override
+  protected boolean withCodelistTitles() {
+    return true;
+  }
+
   @Override
   protected Schema<?> buildRootSchema(
       FeatureSchema schema,
@@ -49,17 +55,17 @@ public class SchemaDeriverOpenApiFeatures extends SchemaDeriverOpenApi {
     findByRole(properties, Role.ID)
         .ifPresent(
             property -> {
-              requiredProperties.remove(property.getName());
               rootSchema.addProperties("id", property);
             });
 
     findByRole(properties, Role.PRIMARY_GEOMETRY)
         .or(() -> findByRole(properties, Role.SECONDARY_GEOMETRY))
         .ifPresentOrElse(
-            property -> {
-              requiredProperties.remove(property.getName());
-              rootSchema.addProperties("geometry", property);
-            },
+            property ->
+                // the geometry is null, if it is skipped in a request or the feature has none;
+                // OpenAPI 3.0 ignores members next to '$ref', so the reference is wrapped
+                rootSchema.addProperties(
+                    "geometry", new Schema<>().nullable(true).allOf(List.of(property))),
             () -> rootSchema.addProperties("geometry", new Schema<>().nullable(true)));
 
     Map<String, Schema<?>> propertiesWithoutRoles = withoutRoles(properties);
@@ -67,12 +73,12 @@ public class SchemaDeriverOpenApiFeatures extends SchemaDeriverOpenApi {
     Map<String, Schema<?>> propertiesWithoutRolesAndBrackets =
         withoutBrackets(propertiesWithoutRoles);
 
+    // the schema describes responses, required properties are not listed, since a request may
+    // select the properties; "properties" is null, if no property is returned
     ObjectSchema propertiesSchema = new ObjectSchema();
+    propertiesSchema.nullable(true);
     propertiesSchema.properties(new LinkedHashMap<>());
     propertiesSchema.getProperties().putAll(propertiesWithoutRolesAndBrackets);
-    if (!requiredProperties.isEmpty()) {
-      propertiesSchema.required(requiredProperties);
-    }
     rootSchema.addProperties("properties", propertiesSchema);
 
     return rootSchema;

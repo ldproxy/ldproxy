@@ -53,7 +53,8 @@ public class QueryParameterDebugPipelineSteps extends OgcApiQueryParameterBase
                       Arrays.stream(PipelineSteps.values())
                           .map(Enum::name)
                           .map(String::toLowerCase)
-                          .collect(Collectors.toList())));
+                          .collect(Collectors.toList())))
+          .minItems(1);
   private final boolean isDevEnv;
   private final SchemaValidator schemaValidator;
 
@@ -81,7 +82,6 @@ public class QueryParameterDebugPipelineSteps extends OgcApiQueryParameterBase
 
     try {
       return Splitter.on(',')
-          .omitEmptyStrings()
           .trimResults()
           .splitToStream(value)
           .map(String::toUpperCase)

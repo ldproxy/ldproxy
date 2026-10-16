@@ -16,11 +16,13 @@ import de.ii.ogcapi.features.core.app.FeaturesCoreBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
+import de.ii.ogcapi.foundation.domain.ApiOperationLink;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -280,8 +283,58 @@ public abstract class EndpointFeaturesDefinition extends EndpointSubCollection {
             TAGS,
             FeaturesCoreBuildingBlock.MATURITY,
             FeaturesCoreBuildingBlock.SPEC)
+        .map(
+            operation ->
+                subSubPath.contains("{featureId}")
+                    ? withLinkFromItems(
+                        withMissingFeatureStatusCodes(apiData, collectionId, operation),
+                        collectionId)
+                    : operation)
         .ifPresent(operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
 
     definitionBuilder.putResources(resourcePath, resourceBuilder.build());
+  }
+
+  private static ApiOperation withLinkFromItems(ApiOperation operation, String collectionId) {
+    return new ImmutableApiOperation.Builder()
+        .from(operation)
+        .addLinkedFrom(linkFromItems("item", collectionId))
+        .build();
+  }
+
+  /**
+   * @param name the name of the link
+   * @param collectionId the id of the collection or {@code {collectionId}}, if the collections are
+   *     not listed in the API definition
+   * @return a link from the features of the collection to an operation on a single feature, the
+   *     feature is the first feature of the response
+   */
+  public static ApiOperationLink linkFromItems(String name, String collectionId) {
+    return getLinkFrom(
+        name,
+        collectionId,
+        OP_ID_GET_ITEMS,
+        Map.of("featureId", "$response.body#/features/0/id"),
+        "Uses the id of the first feature in the response. A link selects a single value, it does not iterate over the list.");
+  }
+
+  // a missing feature may be reported with another status code than 404, e.g. 410 Gone
+  private ApiOperation withMissingFeatureStatusCodes(
+      OgcApiDataV2 apiData, String collectionId, ApiOperation operation) {
+    Set<Integer> statusCodes =
+        extensionRegistry.getExtensionsForType(SingleFeatureMissingHandler.class).stream()
+            .filter(
+                handler ->
+                    collectionId.startsWith("{")
+                        ? handler.isEnabledForApi(apiData)
+                        : handler.isEnabledForApi(apiData, collectionId))
+            .flatMap(handler -> handler.getStatusCodes().stream())
+            .collect(Collectors.toUnmodifiableSet());
+    return statusCodes.isEmpty()
+        ? operation
+        : new ImmutableApiOperation.Builder()
+            .from(operation)
+            .addAllErrorStatusCodes(statusCodes)
+            .build();
   }
 }

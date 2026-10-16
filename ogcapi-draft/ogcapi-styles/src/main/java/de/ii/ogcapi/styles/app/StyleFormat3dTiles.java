@@ -22,9 +22,13 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StylesheetContent;
+import de.ii.ogcapi.styles.domain.Tiles3dConditions;
 import de.ii.ogcapi.styles.domain.Tiles3dStylesheet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
+import io.swagger.v3.oas.models.media.BooleanSchema;
+import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
@@ -59,6 +63,17 @@ public class StyleFormat3dTiles implements StyleFormatExtension {
   @Inject
   public StyleFormat3dTiles(ClassSchemaCache classSchemaCache) {
     this.schemaStyle = classSchemaCache.getSchema(Tiles3dStylesheet.class);
+    // the values of "show" and "color" are typed as Object, the alternatives are set explicitly
+    Schema<?> conditions =
+        classSchemaCache.getSchema(Tiles3dConditions.class, Tiles3dStylesheet.class);
+    schemaStyle.addProperty(
+        "show",
+        new ComposedSchema()
+            .addOneOfItem(conditions)
+            .addOneOfItem(new StringSchema())
+            .addOneOfItem(new BooleanSchema()));
+    schemaStyle.addProperty(
+        "color", new ComposedSchema().addOneOfItem(conditions).addOneOfItem(new StringSchema()));
     referencedSchemas = classSchemaCache.getReferencedSchemas(Tiles3dStylesheet.class);
   }
 

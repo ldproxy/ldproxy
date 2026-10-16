@@ -27,8 +27,10 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.styles.domain.ImmutableMbStyleStylesheet;
+import de.ii.ogcapi.styles.domain.MbStyleExpression;
 import de.ii.ogcapi.styles.domain.MbStyleLayer;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
+import de.ii.ogcapi.styles.domain.MbStyleSprites;
 import de.ii.ogcapi.styles.domain.MbStyleStylesheet;
 import de.ii.ogcapi.styles.domain.StyleFormatExtension;
 import de.ii.ogcapi.styles.domain.StyleLayer;
@@ -37,7 +39,11 @@ import de.ii.ogcapi.styles.domain.StylesheetContent;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.values.domain.Values;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.ComposedSchema;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
@@ -80,6 +86,26 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
   public StyleFormatMbStyle(
       ExtensionRegistry extensionRegistry, ClassSchemaCache classSchemaCache) {
     this.extensionRegistry = extensionRegistry;
+    // a property value or expression is any JSON value, the schema cannot be derived from the class
+    classSchemaCache.registerSchema(
+        MbStyleExpression.class,
+        new Schema<>()
+            .nullable(true)
+            .description("A value or expression of a property of a MapLibre style layer."),
+        ImmutableList.of());
+    // the sprite is a URL or an array of sprite objects
+    classSchemaCache.registerSchema(
+        MbStyleSprites.class,
+        new ComposedSchema()
+            .addOneOfItem(new StringSchema().format("uri-reference"))
+            .addOneOfItem(
+                new ArraySchema()
+                    .items(
+                        new ObjectSchema()
+                            .addProperty("id", new StringSchema())
+                            .addProperty("url", new StringSchema().format("uri-reference"))
+                            .required(List.of("id", "url")))),
+        ImmutableList.of());
     this.schemaStyle = classSchemaCache.getSchema(MbStyleStylesheet.class);
     referencedSchemas = classSchemaCache.getReferencedSchemas(MbStyleStylesheet.class);
   }

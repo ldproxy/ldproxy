@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ApiSecurity.ScopeGranularity;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.links.Link;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponses;
@@ -91,6 +92,12 @@ public interface ApiOperation {
    */
   Set<Integer> getErrorStatusCodes();
 
+  /**
+   * Links in the OpenAPI definition from responses of other operations to this operation, e.g. from
+   * a list of resources to a single resource.
+   */
+  List<ApiOperationLink> getLinkedFrom();
+
   @Value.Default
   default boolean ignoreUnknownQueryParameters() {
     return false;
@@ -157,7 +164,8 @@ public interface ApiOperation {
       // convert the query parameters to a request body
       Optional<String> collectionId =
           path.startsWith("/collections/") ? Optional.of(path.split("/", 4)[2]) : Optional.empty();
-      Schema<Object> formSchema = new ObjectSchema();
+      // like a query parameter, an unknown member of the request body is rejected
+      Schema<Object> formSchema = new ObjectSchema().additionalProperties(false);
       queryParameters.forEach(
           param -> {
             Schema<?> paramSchema =
@@ -344,6 +352,31 @@ public interface ApiOperation {
         .collect(Collectors.toUnmodifiableList());
   }
 
+  /**
+   * Adds the links of {@link #getLinkedFrom()} to the responses of the source operations. Requires
+   * that all operations have been added to the OpenAPI definition.
+   *
+   * @param operations the operations of the OpenAPI definition by id
+   */
+  default void updateOpenApiLinks(Map<String, Operation> operations) {
+    if (!operations.containsKey(getOperationId())) {
+      return;
+    }
+    getLinkedFrom()
+        .forEach(
+            link ->
+                Optional.ofNullable(operations.get(link.getOperationId()))
+                    .map(Operation::getResponses)
+                    .map(responses -> responses.get(link.getStatusCode()))
+                    .ifPresent(
+                        response -> {
+                          Link openApiLink = new Link().operationId(getOperationId());
+                          link.getParameters().forEach(openApiLink::addParameter);
+                          link.getDescription().ifPresent(openApiLink::description);
+                          response.link(link.getName(), openApiLink);
+                        }));
+  }
+
   default void updateOpenApiDefinition(
       OgcApiDataV2 apiData,
       Optional<String> collectionId,
@@ -400,6 +433,12 @@ public interface ApiOperation {
         .forEach(response -> response.updateOpenApiDefinition(apiData, openAPI, op));
 
     errorCodes.addAll(getErrorStatusCodes());
+    // a request without the required permissions is rejected
+    if (apiData.getAccessControl().isPresent()
+        && apiData.getAccessControl().get().isRestricted(getPermissionGroup().setOf())) {
+      errorCodes.add(401);
+      errorCodes.add(403);
+    }
     addErrorResponses(op, errorCodes);
 
     if (apiData.getAccessControl().isPresent()) {
@@ -550,9 +589,12 @@ public interface ApiOperation {
     Map<Integer, String> reasonPhrases =
         ImmutableMap.<Integer, String>builder()
             .put(400, "Bad Request")
+            .put(401, "Unauthorized")
+            .put(403, "Forbidden")
             .put(404, "Not Found")
             .put(405, "Method Not Allowed")
             .put(406, "Not Acceptable")
+            .put(410, "Gone")
             .put(412, "Precondition Failed")
             .put(415, "Unsupported Media Type")
             .put(422, "Unprocessable Entity")

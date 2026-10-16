@@ -195,7 +195,8 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
             .equals(definitionPath);
   }
 
-  private final Schema<String> schema = new StringSchema();
+  // a CQL2 expression, the encoding is selected with `filter-lang`
+  private final Schema<String> schema = new StringSchema().minLength(1).format("cql2");
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {

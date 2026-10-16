@@ -9,10 +9,12 @@ package de.ii.ogcapi.collections.domain;
 
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiHeader;
+import de.ii.ogcapi.foundation.domain.ApiOperationLink;
 import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperationLink;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.ParameterExtension;
@@ -24,6 +26,7 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -117,10 +120,45 @@ public abstract class EndpointSubCollection extends Endpoint {
   @Override
   protected String getOperationId(String name, String... prefixes) {
     // prefixes is never empty and the first prefix is the collectionId or the collectionId template
-    if ("{collectionId}".equals(prefixes[0])) {
-      prefixes[0] = "collection";
-    }
+    prefixes[0] = getOperationIdPrefix(prefixes[0]);
     return super.getOperationId(name, prefixes);
+  }
+
+  /**
+   * @param collectionId the id of the collection or {@code {collectionId}}, if the collections are
+   *     not listed in the API definition
+   * @return the prefix of the ids of the operations of the collection
+   */
+  public static String getOperationIdPrefix(String collectionId) {
+    return "{collectionId}".equals(collectionId) ? "collection" : collectionId;
+  }
+
+  /**
+   * @param name the name of the link
+   * @param collectionId the id of the collection or {@code {collectionId}}, if the collections are
+   *     not listed in the API definition
+   * @param operationName the name of the source operation of the collection, without the prefix
+   * @param parameters the parameters of the linked operation and their runtime expressions
+   * @param description the description of the link
+   * @return a link from the response of an operation of the collection, the collection is taken
+   *     from the request, if the collections are not listed in the API definition
+   */
+  public static ApiOperationLink getLinkFrom(
+      String name,
+      String collectionId,
+      String operationName,
+      Map<String, String> parameters,
+      String description) {
+    ImmutableApiOperationLink.Builder link =
+        new ImmutableApiOperationLink.Builder()
+            .name(name)
+            .operationId(String.format("%s.%s", getOperationIdPrefix(collectionId), operationName))
+            .putAllParameters(parameters)
+            .description(description);
+    if ("{collectionId}".equals(collectionId)) {
+      link.putParameters("collectionId", "$request.path.collectionId");
+    }
+    return link.build();
   }
 
   /* TODO do we need collection-specific path parameters? The API definitions would need to be adapted for this, too

@@ -17,7 +17,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+// empty optional values like the title or description are omitted, too
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 @JsonDeserialize(as = ImmutableResources.class)
 public abstract class Resources extends PageRepresentation {
 

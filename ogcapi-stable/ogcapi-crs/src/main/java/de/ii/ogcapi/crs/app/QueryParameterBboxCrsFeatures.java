@@ -137,7 +137,7 @@ public class QueryParameterBboxCrsFeatures extends OgcApiQueryParameterBase
                       .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
                       .flatMap(crs -> crs.allUris().stream())
                       .collect(ImmutableList.toImmutableList());
-              return new StringSchema()._enum(crsList)._default(defaultCrs);
+              return new StringSchema().format("uri")._enum(crsList)._default(defaultCrs);
             });
   }
 

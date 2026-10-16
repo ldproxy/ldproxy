@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.QueryParameterF;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
+import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -18,8 +19,11 @@ import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -34,10 +38,17 @@ import java.util.Optional;
 @AutoBind
 public class QueryParameterFStoredQuery extends QueryParameterF {
 
+  private static final String HTML = "html";
+
+  private final StoredQueryRepository repository;
+
   @Inject
   public QueryParameterFStoredQuery(
-      ExtensionRegistry extensionRegistry, SchemaValidator schemaValidator) {
+      ExtensionRegistry extensionRegistry,
+      SchemaValidator schemaValidator,
+      StoredQueryRepository repository) {
     super(extensionRegistry, schemaValidator);
+    this.repository = repository;
   }
 
   @Override
@@ -71,6 +82,24 @@ public class QueryParameterFStoredQuery extends QueryParameterF {
   protected boolean includeFormat(FormatExtension format) {
     return format instanceof FeatureFormatExtension
         && ((FeatureFormatExtension) format).supportsHeterogeneousFeatureCollections();
+  }
+
+  // HTML is only offered, if at least one stored query supports it
+  @Override
+  public Schema<?> getSchema(OgcApiDataV2 apiData) {
+    Schema<?> schema = super.getSchema(apiData);
+    if (Objects.isNull(schema.getEnum()) || !schema.getEnum().contains(HTML)) {
+      return schema;
+    }
+
+    if (new StoredQueryHtmlSupport(apiData, extensionRegistry)
+        .anyOffersHtml(repository.getAll(apiData))) {
+      return schema;
+    }
+
+    return new StringSchema()
+        ._enum(
+            schema.getEnum().stream().map(Object::toString).filter(f -> !HTML.equals(f)).toList());
   }
 
   @Override
