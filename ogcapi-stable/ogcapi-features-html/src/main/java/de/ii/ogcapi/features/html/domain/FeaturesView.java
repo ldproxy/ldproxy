@@ -190,6 +190,14 @@ public abstract class FeaturesView extends OgcApiDatasetView {
         && Objects.equals(htmlConfig().getSchemaOrgEnabled(), true));
   }
 
+  // the map shows the features of the page, but it needs the id and the geometry of each feature,
+  // so a selection of the properties to display is not applied to the map data
+  private URICustomizer mapDataUri() {
+    return uriBuilder()
+        .copy()
+        .removeParameters("f", "crs", "properties", "exclude-properties", "skipGeometry");
+  }
+
   @Value.Derived
   public MapClient mapClient() {
     if (MapClient.Type.MAP_LIBRE.equals(mapClientType())) {
@@ -207,14 +215,13 @@ public abstract class FeaturesView extends OgcApiDatasetView {
                               .removeParameters("f")
                               .ensureParameter("f", "json")
                               .toString()
-                          : uriBuilder()
-                              .removeParameters("f", "crs")
-                              .ensureParameter("f", "json")
-                              .toString())
+                          : mapDataUri().ensureParameter("f", "json").toString())
                   .build())
           .popup(Popup.HOVER_ID)
           .featureTitles(
               features().stream()
+                  // without the id, e.g. not selected with 'properties', a title cannot be mapped
+                  .filter(f -> Objects.nonNull(f.getIdValue()) && Objects.nonNull(f.getName()))
                   .map(f -> Map.entry(f.getIdValue(), f.getName()))
                   .collect(Collectors.toSet()))
           .styleUrl(Optional.ofNullable(styleUrl()))
@@ -335,9 +342,7 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   public CesiumDataFeatures cesiumData() {
     return new CesiumDataFeatures(
         features(),
-        uriBuilder()
-            .copy()
-            .removeParameters("f", "crs")
+        mapDataUri()
             .ensureParameter("f", "glb")
             // must be true as long as no terrain is used in the Cesium viewer
             .ensureParameter("clampToEllipsoid", "true")

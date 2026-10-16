@@ -164,6 +164,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     MultivaluedMap<String, String> actualParameters =
         getActualQueryParameters(requestContext, body, isFormRequest);
 
+    rejectNulCharacters(actualParameters);
+
     // Validate request
     ApiOperation apiOperation =
         validateRequest(
@@ -247,6 +249,21 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
         && new MediaType(mediaType.getType(), mediaType.getSubtype())
             .equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
         && body.isPresent();
+  }
+
+  // a NUL character has no meaning in a parameter and a database, e.g. PostgreSQL, rejects a
+  // string that contains it
+  static void rejectNulCharacters(MultivaluedMap<String, String> parameters) {
+    parameters.forEach(
+        (name, values) -> {
+          if (name.indexOf('\u0000') >= 0
+              || values.stream().anyMatch(value -> value.indexOf('\u0000') >= 0)) {
+            throw new BadRequestException(
+                String.format(
+                    "The query parameter '%s' contains the character U+0000, which is not allowed.",
+                    name.replace("\u0000", "\\u0000")));
+          }
+        });
   }
 
   static MultivaluedMap<String, String> getActualQueryParameters(

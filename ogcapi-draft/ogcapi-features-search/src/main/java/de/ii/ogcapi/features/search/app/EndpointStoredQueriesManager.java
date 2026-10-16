@@ -231,8 +231,8 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
               .id(queryId)
               .build();
     } catch (IOException e) {
-      throw new IllegalArgumentException(
-          String.format("The content of the query expression is invalid: %s", e.getMessage()), e);
+      // the message of the cause is added to the response
+      throw new IllegalArgumentException("The content of the query expression is invalid", e);
     }
 
     // TODO recompute API definition of EndpointStoredQuery

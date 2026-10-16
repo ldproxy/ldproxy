@@ -697,10 +697,8 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
               .toString();
       for (PropertyLink link : propertyLinks) {
         String href = PropertyLinkResolver.resolve(link, apiUri, collectionUri, featureUri);
-        String titleI18n = i18n.get(relToI18nKey(link.getRel()), requestContext.getLanguage());
-        Optional<String> title =
-            titleI18n.equals(link.getRel()) ? link.getTitle() : Optional.of(titleI18n);
-        addLinkHeader(response, href, link.getRel(), title);
+        addLinkHeader(
+            response, href, link.getRel(), getLinkTitle(i18n, link, requestContext.getLanguage()));
       }
     }
 
@@ -716,14 +714,9 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
             .orElseGet(() -> String.format("<%s>; rel=\"%s\"", href, rel)));
   }
 
-  static String relToI18nKey(String rel) {
-    String[] parts = rel.split("-");
-    StringBuilder sb = new StringBuilder(parts[0]);
-    for (int i = 1; i < parts.length; i++) {
-      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-    }
-    sb.append("Link");
-    return sb.toString();
+  // the translation of the relation type, otherwise the title of the property link
+  static Optional<String> getLinkTitle(I18n i18n, PropertyLink link, Optional<Locale> language) {
+    return i18n.getLinkTitle(link.getRel(), language).or(link::getTitle);
   }
 
   private Tuple<StreamingOutput, CollectionMetadata> stream(

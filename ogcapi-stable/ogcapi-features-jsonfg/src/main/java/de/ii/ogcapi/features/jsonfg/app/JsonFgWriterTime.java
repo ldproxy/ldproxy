@@ -118,25 +118,26 @@ public class JsonFgWriterTime implements GeoJsonWriter {
   public void onValue(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    final FeatureSchema schema = context.schema().get();
-    final FeatureState featureState = context.encoding().getFeatureState().get();
     if (isEnabled
-        && !featureState.hasTime
-        && (!featureState.instantProperty.isEmpty()
-            || !featureState.intervalStartProperty.isEmpty()
-            || !featureState.intervalEndProperty.isEmpty())
-        && schema.isTemporal()
+        && context.schema().filter(FeatureSchema::isTemporal).isPresent()
         && Objects.nonNull(context.value())) {
-      featureState.setTimeValue(schema, context.value());
-      if (featureState.timeIsComplete()) {
-        context.encoding().pauseBuffering();
-        writeTime(
-            context,
-            featureState.currentInstant,
-            featureState.currentIntervalStart,
-            featureState.currentIntervalEnd);
-        featureState.hasTime = true;
-        context.encoding().continueBuffering();
+      final FeatureSchema schema = context.schema().get();
+      final FeatureState featureState = context.encoding().getFeatureState().get();
+      if (!featureState.hasTime
+          && (!featureState.instantProperty.isEmpty()
+              || !featureState.intervalStartProperty.isEmpty()
+              || !featureState.intervalEndProperty.isEmpty())) {
+        featureState.setTimeValue(schema, context.value());
+        if (featureState.timeIsComplete()) {
+          context.encoding().pauseBuffering();
+          writeTime(
+              context,
+              featureState.currentInstant,
+              featureState.currentIntervalStart,
+              featureState.currentIntervalEnd);
+          featureState.hasTime = true;
+          context.encoding().continueBuffering();
+        }
       }
     }
 

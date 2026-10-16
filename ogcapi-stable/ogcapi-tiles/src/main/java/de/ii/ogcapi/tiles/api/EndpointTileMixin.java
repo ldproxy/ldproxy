@@ -39,7 +39,6 @@ import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.MediaType;
 import java.text.MessageFormat;
 import java.util.List;
@@ -55,6 +54,9 @@ public interface EndpointTileMixin {
 
   Logger LOGGER = LoggerFactory.getLogger(EndpointTileMixin.class);
   String COLLECTION_ID_PLACEHOLDER = "__collectionId__";
+  String OUTSIDE_ZOOM_LEVELS = "The requested tile is outside the zoom levels for this tile set.";
+  String OUTSIDE_LIMITS =
+      "The requested tile is outside of the limits for this zoom level and tile set.";
 
   default ApiEndpointDefinition computeDefinitionSingle(
       ExtensionRegistry extensionRegistry,
@@ -214,17 +216,11 @@ public interface EndpointTileMixin {
     endpoint.checkPathParameter(extensionRegistry, apiData, definitionPath, "tileRow", tileRow);
     endpoint.checkPathParameter(extensionRegistry, apiData, definitionPath, "tileCol", tileCol);
 
-    int row;
-    int col;
-    int level;
-    try {
-      level = Integer.parseInt(tileLevel);
-      row = Integer.parseInt(tileRow);
-      col = Integer.parseInt(tileCol);
-    } catch (NumberFormatException e) {
-      throw new ServerErrorException(
-          "Could not convert tile coordinates that have been validated to integers", 500);
-    }
+    // the path parameters have been validated as digit strings, values that do not fit into an
+    // integer are outside of every tile matrix set
+    int level = parseTileCoordinate(tileLevel, OUTSIDE_ZOOM_LEVELS);
+    int row = parseTileCoordinate(tileRow, OUTSIDE_LIMITS);
+    int col = parseTileCoordinate(tileCol, OUTSIDE_LIMITS);
 
     TileMatrixSet tileMatrixSet =
         tileMatrixSetRepository
@@ -238,8 +234,7 @@ public interface EndpointTileMixin {
             .getLevels()
             .get(tileMatrixSetId);
     if (zoomLevels.getMax() < level || zoomLevels.getMin() > level)
-      throw new NotFoundException(
-          "The requested tile is outside the zoom levels for this tile set.");
+      throw new NotFoundException(OUTSIDE_ZOOM_LEVELS);
 
     TileMatrixSetLimitsOgcApi tileLimits =
         limitsGenerator.getTileMatrixSetLimits(api, tileMatrixSet, level, collectionId);
@@ -250,8 +245,7 @@ public interface EndpointTileMixin {
           || tileLimits.getMaxTileRow() < row
           || tileLimits.getMinTileRow() > row)
         // return 404, if outside the range
-        throw new NotFoundException(
-            "The requested tile is outside of the limits for this zoom level and tile set.");
+        throw new NotFoundException(OUTSIDE_LIMITS);
     }
 
     String path =
@@ -284,6 +278,14 @@ public interface EndpointTileMixin {
         .col(col)
         .parameters(requestContext.getQueryParameterSet())
         .build();
+  }
+
+  private static int parseTileCoordinate(String value, String outsideMessage) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      throw new NotFoundException(outsideMessage);
+    }
   }
 
   private static Map<MediaType, ApiMediaTypeContent> getContent(

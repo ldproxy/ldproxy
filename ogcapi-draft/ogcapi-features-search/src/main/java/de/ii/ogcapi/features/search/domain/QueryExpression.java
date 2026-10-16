@@ -40,7 +40,12 @@ public interface QueryExpression {
   abstract class Builder {}
 
   static QueryExpression of(InputStream requestBody) throws IOException {
-    return MAPPER.readValue(requestBody, QueryExpression.class);
+    QueryExpression query = MAPPER.readValue(requestBody, QueryExpression.class);
+    // the JSON literal null is parsed as a null value
+    if (query == null) {
+      throw new IOException("the request body does not contain a query expression");
+    }
+    return query;
   }
 
   @Value.Default

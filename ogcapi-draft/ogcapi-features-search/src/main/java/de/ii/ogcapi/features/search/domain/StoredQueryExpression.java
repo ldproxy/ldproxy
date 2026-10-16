@@ -45,7 +45,12 @@ public interface StoredQueryExpression extends StoredQueryBase, StoredQueryCompo
   String PARAMETER = "$parameter";
 
   static StoredQueryExpression of(InputStream requestBody) throws IOException {
-    return MAPPER.readValue(requestBody, StoredQueryExpression.class);
+    StoredQueryExpression query = MAPPER.readValue(requestBody, StoredQueryExpression.class);
+    // the JSON literal null is parsed as a null value
+    if (query == null) {
+      throw new IOException("the request body does not contain a query expression");
+    }
+    return query;
   }
 
   static StoredQueryExpression from(StoredQueryValue storedQueryValue, Cql cql) {

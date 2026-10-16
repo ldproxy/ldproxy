@@ -27,6 +27,8 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -151,7 +153,7 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
 
     } else {
       if (schema instanceof StringSchema) {
-        valueAsString.append(String.format("\"%s\"", value.replace("\"", "\\\"")));
+        valueAsString.append(String.format("\"%s\"", inUtc(value, schema).replace("\"", "\\\"")));
       } else {
         valueAsString.append(value);
       }
@@ -164,6 +166,18 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
               "The value '%s' provided for parameter '%s' could not be converted to a value for the parameter.",
               value, getName()),
           e);
+    }
+  }
+
+  // a date-time may have an offset, but a timestamp in CQL2 is in UTC
+  private static String inUtc(String value, Schema<?> schema) {
+    if (!"date-time".equals(schema.getFormat())) {
+      return value;
+    }
+    try {
+      return OffsetDateTime.parse(value).toInstant().toString();
+    } catch (DateTimeParseException e) {
+      return value;
     }
   }
 

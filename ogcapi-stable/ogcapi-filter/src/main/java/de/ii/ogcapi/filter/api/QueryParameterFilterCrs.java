@@ -148,7 +148,8 @@ public class QueryParameterFilterCrs extends OgcApiQueryParameterBase
               List<String> crsList =
                   crsSupport.getSupportedCrsList(apiData).stream()
                       .map(crs -> crs.equals(OgcCrs.CRS84h) ? OgcCrs.CRS84 : crs)
-                      .map(EpsgCrs::toUriString)
+                      .flatMap(crs -> crs.allUris().stream())
+                      .distinct()
                       .collect(ImmutableList.toImmutableList());
               return new StringSchema()._enum(crsList)._default(defaultCrs);
             });

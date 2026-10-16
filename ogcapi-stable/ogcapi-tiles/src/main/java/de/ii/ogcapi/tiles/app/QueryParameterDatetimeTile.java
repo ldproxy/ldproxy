@@ -101,9 +101,12 @@ public class QueryParameterDatetimeTile extends AbstractQueryParameterDatetime
 
     try {
       if (value.contains(DATETIME_INTERVAL_SEPARATOR)) {
-        return TemporalLiteral.of(Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(value));
+        return TemporalLiteral.of(
+            Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(value).stream()
+                .map(AbstractQueryParameterDatetime::inUtc)
+                .toList());
       }
-      return TemporalLiteral.of(value);
+      return TemporalLiteral.of(inUtc(value));
     } catch (Throwable e) {
       throw new IllegalArgumentException(
           "Invalid value for query parameter '" + PARAMETER_DATETIME + "'.", e);
