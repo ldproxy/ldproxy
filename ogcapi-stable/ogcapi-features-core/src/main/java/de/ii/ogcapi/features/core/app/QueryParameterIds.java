@@ -8,13 +8,13 @@
 package de.ii.ogcapi.features.core.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.base.Splitter;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
@@ -58,8 +58,6 @@ public class QueryParameterIds extends OgcApiQueryParameterBase
           ExternalDocumentation.of(
               "https://docs.ogc.org/DRAFTS/17-069r5.html",
               "OGC API - Features - Part 1: Core (DRAFT)"));
-
-  private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
   private final Schema<?> schema;
   private final SchemaValidator schemaValidator;
@@ -112,8 +110,8 @@ public class QueryParameterIds extends OgcApiQueryParameterBase
             .orElse(id -> true);
 
     List<Scalar> ids =
-        ARRAY_SPLITTER
-            .splitToStream(value)
+        ListParameterValues.split(value).stream()
+            .filter(id -> !id.isEmpty())
             .filter(isPossibleId)
             .distinct()
             .map(id -> (Scalar) ScalarLiteral.of(id))

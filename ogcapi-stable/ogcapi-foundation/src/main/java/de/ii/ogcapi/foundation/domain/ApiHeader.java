@@ -48,6 +48,14 @@ public interface ApiHeader extends ApiExtension {
   }
 
   /**
+   * An object value is serialized as comma-separated {@code key=value} pairs ({@code style: simple,
+   * explode: true} in OpenAPI). The default is {@code false}.
+   */
+  default boolean isExploded() {
+    return false;
+  }
+
+  /**
    * The status codes of the responses that include this response header. An empty set, the default,
    * means every response of the operation; {@code Location}, for example, is only part of the
    * response that reports a created resource.
@@ -109,12 +117,18 @@ public interface ApiHeader extends ApiExtension {
             .name(getName())
             .description(getDescription())
             .schema(getSchema(apiData));
+    if (isExploded()) {
+      header.style(Parameter.StyleEnum.SIMPLE).explode(true);
+    }
     setOpenApiDescription(apiData, header);
     return header;
   }
 
   private Header newHeaderResponse(OgcApiDataV2 apiData) {
     Header openApiHeader = new Header().schema(getSchema(apiData));
+    if (isExploded()) {
+      openApiHeader.style(Header.StyleEnum.SIMPLE).explode(true);
+    }
     setOpenApiDescription(apiData, openApiHeader);
     return openApiHeader;
   }

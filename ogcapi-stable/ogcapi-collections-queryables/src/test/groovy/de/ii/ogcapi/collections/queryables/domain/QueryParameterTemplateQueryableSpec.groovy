@@ -19,8 +19,9 @@ import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
-import java.time.Instant
 import spock.lang.Specification
+
+import java.time.Instant
 
 class QueryParameterTemplateQueryableSpec extends Specification {
 
@@ -158,6 +159,18 @@ class QueryParameterTemplateQueryableSpec extends Specification {
         "DEXX1*"           || false
         "*"                || false
         "DEXX1"            || true
+    }
+
+    def 'an empty value of an array queryable is an empty string, not an empty list'() {
+        given:
+        def parameter = queryable(SchemaBase.Type.VALUE_ARRAY, new StringSchema(), SchemaBase.Type.STRING)
+
+        when:
+        def result = parameter.parse("", [:], null, Optional.empty())
+
+        then:
+        result instanceof AContains
+        ((ArrayLiteral) ((AContains) result).getArgs().get(1)).getValue() == [ScalarLiteral.of("")]
     }
 
     def 'a timestamp with an offset is converted to UTC'() {
