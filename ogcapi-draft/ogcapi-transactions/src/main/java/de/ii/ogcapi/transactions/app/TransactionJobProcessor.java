@@ -320,6 +320,13 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
   @Override
   public JobResult cleanup(
       PartialJob partialJob, Job job, TransactionJob inputs, JobProcessing jobs) {
+    try {
+      documentStore.delete(Path.of(inputs.getDocumentPath()));
+    } catch (IOException e) {
+      if (LOGGER.isDebugEnabled()) {
+        LogContext.errorAsDebug(LOGGER, e, "Error deleting transaction document");
+      }
+    }
     return jobs.success();
   }
 

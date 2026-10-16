@@ -28,6 +28,7 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
 import de.ii.xtraplatform.features.domain.FeatureTokenSource
 import de.ii.xtraplatform.features.domain.FeatureTransactions
+import de.ii.xtraplatform.features.domain.JobHook
 import spock.lang.Specification
 
 import java.time.Instant
@@ -283,7 +284,8 @@ class TransactionExecutorAtomicSpec extends Specification {
                     Optional<Instant> ogcMutationDatetime,
                     boolean validate,
                     boolean skipInvalid,
-                    boolean fromWfs) {
+                    boolean fromWfs,
+                    Optional<JobHook> jobHook) {
                 return outcomes[action.actionId.get()].call()
             }
         }

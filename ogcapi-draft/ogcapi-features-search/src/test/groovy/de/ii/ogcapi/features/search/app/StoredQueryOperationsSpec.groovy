@@ -20,6 +20,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
+import de.ii.xtraplatform.blobs.domain.ResourceStore
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.ObjectSchema
 import jakarta.ws.rs.core.MediaType
@@ -36,8 +37,9 @@ class StoredQueryOperationsSpec extends Specification {
         given: 'a stored query with paging and one without'
         StoredQueryRepository repository = Stub()
         repository.getAll(_) >> [query('paged', true), query('single-shot', false), query('default', null)]
+        ResourceStore resourceStore = Stub()
         EndpointStoredQuery endpoint = new EndpointStoredQuery(
-                registry(), null, repository, null, null, null)
+                registry(), null, repository, null, null, null, null, resourceStore)
 
         when:
         ApiEndpointDefinition definition = endpoint.computeDefinition(Stub(OgcApiDataV2))
@@ -55,8 +57,9 @@ class StoredQueryOperationsSpec extends Specification {
         given:
         StoredQueryRepository repository = Stub()
         repository.getAll(_) >> [query('single-shot', false)]
+        ResourceStore resourceStore = Stub()
         EndpointStoredQuery endpoint = new EndpointStoredQuery(
-                registry(), null, repository, null, null, null)
+                registry(), null, repository, null, null, null, null, resourceStore)
 
         when:
         ApiEndpointDefinition definition = endpoint.computeDefinition(Stub(OgcApiDataV2))
@@ -74,10 +77,11 @@ class StoredQueryOperationsSpec extends Specification {
         given: 'a stored query with paging and one without'
         StoredQueryRepository repository = Stub()
         repository.getAll(_) >> [query('paged', true), query('single-shot', false), query('default', null)]
+        ResourceStore resourceStore = Stub()
         EndpointStoredQuery endpoint = new EndpointStoredQuery(
                 registry([parameter(QueryParameterOffsetStoredQuery, 'offset'),
                           parameter(OgcApiQueryParameter, 'pretty')]),
-                null, repository, null, null, null)
+                null, repository, null, null, null, null, resourceStore)
 
         when:
         ApiEndpointDefinition definition = endpoint.computeDefinition(Stub(OgcApiDataV2))
