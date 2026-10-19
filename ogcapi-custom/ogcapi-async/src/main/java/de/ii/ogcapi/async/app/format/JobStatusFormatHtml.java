@@ -5,10 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.format.html;
+package de.ii.ogcapi.async.app.format;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -17,11 +19,10 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.PageRepresentation;
 import de.ii.ogcapi.html.domain.FormatHtml;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.html.domain.NavigationDTO;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,13 +33,12 @@ import java.util.List;
  */
 @Singleton
 @AutoBind
-public class StatusInfoFormatHtml
-    implements StatusInfoFormatExtension, FormatHtml, ConformanceClass {
+public class JobStatusFormatHtml implements JobStatusFormatExtension, FormatHtml, ConformanceClass {
 
   private final I18n i18n;
 
   @Inject
-  public StatusInfoFormatHtml(I18n i18n) {
+  public JobStatusFormatHtml(I18n i18n) {
     this.i18n = i18n;
   }
 
@@ -69,11 +69,10 @@ public class StatusInfoFormatHtml
   }
 
   @Override
-  public Object getEntity(
-      StatusInfoResponse statusInfoResponse, OgcApi api, ApiRequestContext requestContext) {
+  public Object getEntity(OgcApiJobStatus jobStatus, OgcApi api, ApiRequestContext requestContext) {
     String rootTitle = i18n.get("root", requestContext.getLanguage());
     String jobListTitle = i18n.get("jobListTitle", requestContext.getLanguage());
-    String jobId = statusInfoResponse.getId();
+    String jobId = jobStatus.getId();
 
     URICustomizer resourceUri = requestContext.getUriCustomizer().copy().clearParameters();
 
@@ -97,20 +96,24 @@ public class StatusInfoFormatHtml
             .build();
 
     HtmlConfiguration htmlConfig = api.getData().getExtension(HtmlConfiguration.class).orElse(null);
-    return ImmutableStatusInfoView.builder()
-        .basePath(requestContext.getBasePath())
-        .apiPath(requestContext.getApiPath())
-        .noIndex(isNoIndexEnabledForApi(api.getData()))
-        .breadCrumbs(breadCrumbs)
-        .title(jobId)
-        .apiData(api.getData())
-        .user(requestContext.getUser())
-        .language(requestContext.getLanguage())
-        .htmlConfig(htmlConfig)
-        .uriCustomizer(requestContext.getUriCustomizer().copy())
-        .i18n(i18n)
-        .rawLinks(statusInfoResponse.getLinks())
-        .statusInfo(statusInfoResponse)
-        .build();
+    ImmutableJobStatusView.Builder view =
+        ImmutableJobStatusView.builder()
+            .basePath(requestContext.getBasePath())
+            .apiPath(requestContext.getApiPath())
+            .noIndex(isNoIndexEnabledForApi(api.getData()))
+            .breadCrumbs(breadCrumbs)
+            .title(jobId)
+            .apiData(api.getData())
+            .user(requestContext.getUser())
+            .language(requestContext.getLanguage())
+            .htmlConfig(htmlConfig)
+            .uriCustomizer(requestContext.getUriCustomizer().copy())
+            .i18n(i18n)
+            .statusInfo(jobStatus);
+
+    if (jobStatus instanceof PageRepresentation pageRepresentation) {
+      view.rawLinks(pageRepresentation.getLinks());
+    }
+    return view.build();
   }
 }

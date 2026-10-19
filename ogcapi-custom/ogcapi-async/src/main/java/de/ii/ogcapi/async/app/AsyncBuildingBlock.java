@@ -9,12 +9,13 @@ package de.ii.ogcapi.async.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.async.domain.ImmutableAsyncConfiguration;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Objects;
 
 /**
  * @title Async
@@ -35,16 +36,21 @@ import jakarta.inject.Singleton;
 @AutoBind
 public class AsyncBuildingBlock implements ApiBuildingBlock {
 
+  public static boolean isAsyncEnabled(OgcApiDataV2 apiData) {
+    // Automatically enable when any consumer is enabled
+    return apiData.getMergedExtensions().stream()
+        .filter(ExtensionConfiguration::isEnabled)
+        .filter(extension -> extension instanceof AsyncConfiguration)
+        .map(extension -> (AsyncConfiguration) extension)
+        .anyMatch(asyncConfig -> Objects.equals(asyncConfig.getAsync(), Boolean.TRUE));
+  }
+
   @Inject
   public AsyncBuildingBlock() {}
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    // Automatically enable when processes is enabled
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
+    return isAsyncEnabled(apiData);
   }
 
   @Override

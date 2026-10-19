@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import jakarta.validation.constraints.Min;
@@ -25,7 +26,7 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     async: true
  *   ```
  * </code>
  *     <p>Example for the process description of a simple `Echo`-Process:<code>
@@ -68,7 +69,7 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     async: true
  *   ```
  * </code>
  *     <p>Beispiel für die Prozessbeschreibung eines einfachen `Echo`-Prozesses:<code>
@@ -108,7 +109,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "PROCESSES_CORE")
 @JsonDeserialize(builder = ImmutableProcessesCoreConfiguration.Builder.class)
-public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
+public interface ProcessesCoreConfiguration extends ExtensionConfiguration, AsyncConfiguration {
 
   enum ExecutionMode {
     SYNC,
@@ -127,22 +128,6 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   @Nullable
   @Override
   Boolean getEnabled();
-
-  /**
-   * @langEn Sets the supported execution modes. If set to `SYNC`, only synchronous processes will
-   *     be supported and they will all be executed synchronously. Setting it to `ASYNC` has the
-   *     same effect for asynchronous processes and execution. To support both modes, set it to
-   *     `BOTH`.
-   * @langDe Legt die unterstützten Ausführungsmodi fest. Bei `SYNC` werden nur synchrone Prozesse
-   *     unterstützt und alle synchron ausgeführt. Bei `ASYNC` gilt dies entsprechend für asynchrone
-   *     Prozesse und Ausführung. Um beide Modi zu unterstützen, setzen Sie den Wert auf `BOTH`.
-   * @default SYNC
-   * @since 4.9
-   */
-  @Value.Default
-  default ExecutionMode getExecutionMode() {
-    return ExecutionMode.SYNC;
-  }
 
   /**
    * @langEn Sets the default value for parameter `limit`.

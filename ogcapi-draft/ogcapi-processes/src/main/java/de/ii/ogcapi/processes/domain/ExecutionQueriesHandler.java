@@ -15,7 +15,6 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.io.InputStream;
 import java.util.Map;
@@ -42,9 +41,9 @@ public interface ExecutionQueriesHandler
 
     InputStream getRequestBody();
 
-    Boolean getPreferAsync();
+    boolean supportsAsync();
 
-    ExecutionMode getExecutionMode();
+    boolean getPreferAsync();
 
     int getCallbackRetries();
   }

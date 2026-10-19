@@ -10,11 +10,18 @@ package de.ii.ogcapi.async.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
-import de.ii.ogcapi.async.domain.format.ValuesFormatExtension;
-import de.ii.ogcapi.async.domain.model.ImmutableValuesResponse;
-import de.ii.ogcapi.async.domain.model.ValuesResponse;
+import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResultValues;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobResultValues;
+import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
@@ -23,19 +30,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
-import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoLinksGenerator;
-import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
-import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
-import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.base.domain.ETag;
-import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
-import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
@@ -52,24 +47,16 @@ import java.util.Optional;
 
 @Singleton
 @AutoBind
-public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements JobQueriesHandler {
+public class JobQueriesHandlerImpl implements JobQueriesHandler {
 
-  private final ProcessesExecutor processesExecutor;
+  private final AsyncJobs jobAccess;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
-  private final ExtensionRegistry extensionRegistry;
   private final I18n i18n;
 
   @Inject
-  public JobQueriesHandlerImpl(
-      I18n i18n,
-      ExtensionRegistry extensionRegistry,
-      ProcessRepository processRepository,
-      ProcessesExecutor processesExecutor,
-      VolatileRegistry volatileRegistry) {
-    super(JobQueriesHandler.class.getSimpleName(), volatileRegistry, true);
+  public JobQueriesHandlerImpl(I18n i18n, AsyncJobs jobAccess) {
     this.i18n = i18n;
-    this.extensionRegistry = extensionRegistry;
-    this.processesExecutor = processesExecutor;
+    this.jobAccess = jobAccess;
 
     this.queryHandlers =
         ImmutableMap.of(
@@ -84,12 +71,6 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                 QueryInputResultsSpecificN.class, this::getJobResultsResponseSpecificN),
             Query.DISMISS,
             QueryHandler.with(QueryInputDismiss.class, this::dismissJobResponse));
-
-    onVolatileStart();
-
-    addSubcomponent(processRepository);
-
-    onVolatileStarted();
   }
 
   @Override
@@ -101,9 +82,9 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     OgcApi api = requestContext.getApi();
     String jobId = queryInput.getJobId();
 
-    StatusInfoFormatExtension outputFormat =
+    JobStatusFormatExtension outputFormat =
         api.getOutputFormat(
-                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobStatusFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -111,15 +92,15 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    OgcStatusInfo statusInfo = getStatusInfo(jobId);
+    OgcApiJobStatus statusInfo = getStatusInfo(jobId);
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 0);
 
-    StatusInfoResponse statusInfoResponse =
-        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
+    OgcApiJobStatusInfo statusInfoResponse =
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -129,7 +110,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, OgcApiJobStatusInfo.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -150,7 +131,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
       QueryInputResults queryInput, ApiRequestContext requestContext) {
 
     String jobId = queryInput.getJobId();
-    Map<String, Object> jobResults = processesExecutor.getResults(jobId);
+    Map<String, Object> jobResults = jobAccess.getResults(jobId);
 
     // Requirement 34
     if (jobResults.isEmpty()) {
@@ -158,9 +139,9 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     }
 
     OgcApi api = requestContext.getApi();
-    ResultsFormatExtension outputFormat =
+    JobResultsFormatExtension outputFormat =
         api.getOutputFormat(
-                ResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -168,8 +149,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    ResultsResponse resultsResponse =
-        new ImmutableResultsResponse.Builder().additionalProperties(jobResults).build();
+    OgcApiJobResults resultsResponse =
+        new ImmutableOgcApiJobResults.Builder().additionalProperties(jobResults).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -179,7 +160,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                resultsResponse, ResultsResponse.FUNNEL, outputFormat.getMediaType().label())
+                resultsResponse, OgcApiJobResults.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -201,7 +182,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
 
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
-    Object output = processesExecutor.getResultsSpecific(jobId, outputId);
+    Object output = jobAccess.getResultsSpecific(jobId, outputId);
 
     return basicResponse(requestContext, queryInput, jobId, output);
   }
@@ -212,7 +193,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     int indexN = queryInput.getIndexN();
-    Object output = processesExecutor.getResultsSpecificN(jobId, outputId, indexN);
+    Object output = jobAccess.getResultsSpecificN(jobId, outputId, indexN);
 
     return basicResponse(requestContext, queryInput, jobId, output);
   }
@@ -220,9 +201,9 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   private Response dismissJobResponse(
       QueryInputDismiss queryInput, ApiRequestContext requestContext) {
     OgcApi api = requestContext.getApi();
-    StatusInfoFormatExtension outputFormat =
+    JobStatusFormatExtension outputFormat =
         api.getOutputFormat(
-                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobStatusFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -231,8 +212,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
-    OgcStatusInfo statusInfo =
-        processesExecutor
+    OgcApiJobStatus statusInfo =
+        jobAccess
             .dismissJob(jobId)
             .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
 
@@ -241,8 +222,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 1);
 
-    StatusInfoResponse statusInfoResponse =
-        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
+    OgcApiJobStatusInfo statusInfoResponse =
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -252,7 +233,7 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, OgcApiJobStatusInfo.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
@@ -270,8 +251,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   }
 
   /*** Helper methods ***/
-  private OgcStatusInfo getStatusInfo(String jobId) {
-    return processesExecutor
+  private OgcApiJobStatus getStatusInfo(String jobId) {
+    return jobAccess
         .getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
   }
@@ -291,9 +272,11 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
   private Response basicResponse(
       ApiRequestContext requestContext, QueryInput queryInput, String jobId, Object output) {
     OgcApi api = requestContext.getApi();
-    ValuesFormatExtension outputFormat =
+    JobResultValuesFormatExtension outputFormat =
         api.getOutputFormat(
-                ValuesFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobResultValuesFormatExtension.class,
+                requestContext.getMediaType(),
+                Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -301,8 +284,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    ValuesResponse valuesResponse =
-        new ImmutableValuesResponse.Builder().inlineOrRefValues(output).build();
+    OgcApiJobResultValues valuesResponse =
+        new ImmutableOgcApiJobResultValues.Builder().inlineOrRefValues(output).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -311,7 +294,8 @@ public class JobQueriesHandlerImpl extends AbstractVolatileComposed implements J
                     .getExtension(HtmlConfiguration.class)
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
-            ? ETag.from(valuesResponse, ValuesResponse.FUNNEL, outputFormat.getMediaType().label())
+            ? ETag.from(
+                valuesResponse, OgcApiJobResultValues.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();

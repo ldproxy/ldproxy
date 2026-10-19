@@ -7,16 +7,15 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.util.Map;
 import java.util.Optional;
 
 public interface ProcessRepository extends Volatile2 {
 
-  OgcProcess getDirect(OgcApiDataV2 apiData, String processId);
+  OgcProcess getDirect(String apiId, String processId);
 
-  Optional<OgcProcess> get(OgcApiDataV2 apiData, String processId);
+  Optional<OgcProcess> get(String apiId, String processId);
 
-  Map<String, OgcProcess> getAll(OgcApiDataV2 apiData);
+  Map<String, OgcProcess> getAll(String apiId);
 }

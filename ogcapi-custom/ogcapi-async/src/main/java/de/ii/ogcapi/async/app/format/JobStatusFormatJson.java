@@ -5,10 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.app.format.json;
+package de.ii.ogcapi.async.app.format;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -17,8 +20,6 @@ import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,15 +31,15 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ResultsFormatJson implements ResultsFormatExtension, ConformanceClass {
+public class JobStatusFormatJson implements JobStatusFormatExtension, ConformanceClass {
 
-  private final Schema<?> schemaResults;
-  private final Map<String, Schema<?>> referencedSchemasResults;
+  private final Schema<?> schemaStatusInfo;
+  private final Map<String, Schema<?>> referencedSchemasStatusInfo;
 
   @Inject
-  public ResultsFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaResults = classSchemaCache.getSchema(ResultsResponse.class);
-    referencedSchemasResults = classSchemaCache.getReferencedSchemas(ResultsResponse.class);
+  public JobStatusFormatJson(ClassSchemaCache classSchemaCache) {
+    schemaStatusInfo = classSchemaCache.getSchema(OgcApiJobStatusInfo.class);
+    referencedSchemasStatusInfo = classSchemaCache.getReferencedSchemas(OgcApiJobStatusInfo.class);
   }
 
   @Override
@@ -58,15 +59,15 @@ public class ResultsFormatJson implements ResultsFormatExtension, ConformanceCla
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaResults)
-        .schemaRef(ResultsResponse.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasResults)
+        .schema(schemaStatusInfo)
+        .schemaRef(OgcApiJobStatusInfo.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasStatusInfo)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(ResultsResponse results, OgcApi api, ApiRequestContext requestContext) {
-    return results;
+  public Object getEntity(OgcApiJobStatus response, OgcApi api, ApiRequestContext requestContext) {
+    return response;
   }
 }
