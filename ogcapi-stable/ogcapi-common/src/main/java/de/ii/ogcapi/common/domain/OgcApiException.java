@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.model;
+package de.ii.ogcapi.common.domain;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -17,19 +17,19 @@ import org.immutables.value.Value;
 
 /**
  * See the following link for its OpenAPI 3.0 schema
- * https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/openapi/schemas/common-core/exception.yaml
+ * https://github.com/opengeospatial/ogcapi-common/blob/master/discovery/openapi/schemas/common-core/exception.yaml
  */
 @ApiInfo(schemaId = "Exception")
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true, builder = "new")
-@JsonDeserialize(builder = ImmutableOgcException.Builder.class)
+@JsonDeserialize(builder = ImmutableOgcApiException.Builder.class)
 @JsonPropertyOrder({"type", "title", "status", "detail", "instance"})
-public interface OgcException {
+public interface OgcApiException {
 
   String SCHEMA_REF = "#/components/schemas/Exception";
 
   @SuppressWarnings("UnstableApiUsage")
-  Funnel<OgcException> FUNNEL =
+  Funnel<OgcApiException> FUNNEL =
       (from, into) -> {
         into.putString(from.getType(), StandardCharsets.UTF_8);
         from.getTitle().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));

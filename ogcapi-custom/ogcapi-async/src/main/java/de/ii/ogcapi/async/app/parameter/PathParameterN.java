@@ -9,13 +9,14 @@ package de.ii.ogcapi.async.app.parameter;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.app.AsyncBuildingBlock;
+import de.ii.ogcapi.async.domain.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
@@ -67,7 +68,7 @@ public class PathParameterN implements OgcApiPathParameter {
 
   @Override
   public String getId() {
-    return "NProcesses";
+    return "NAsync";
   }
 
   @Override
@@ -81,6 +82,11 @@ public class PathParameterN implements OgcApiPathParameter {
   }
 
   @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return AsyncBuildingBlock.isAsyncEnabled(apiData);
+  }
+
+  @Override
   public boolean isApplicable(OgcApiDataV2 apiData, String definitionPath) {
     return isEnabledForApi(apiData)
         && "/jobs/{jobId}/results/{outputId}/{N}".equals(definitionPath);
@@ -88,7 +94,7 @@ public class PathParameterN implements OgcApiPathParameter {
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return ProcessesCoreConfiguration.class;
+    return AsyncConfiguration.class;
   }
 
   // TODO

@@ -122,7 +122,7 @@ public class ProcessListFormatHtml
     // We just .get() because of the default values
     int offset = optionalOffset.get();
     int limit = optionalLimit.get();
-    int size = repository.getAll(api.getData()).size();
+    int size = repository.getAll(api.getData().getId()).size();
     int page = Math.floorDiv(offset, limit) + 1;
     int pages = (int) Math.ceil((double) size / limit);
 

@@ -5,12 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.async.app.format.json;
+package de.ii.ogcapi.async.app.format;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import de.ii.ogcapi.async.domain.format.ValuesFormatExtension;
-import de.ii.ogcapi.async.domain.model.ValuesResponse;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -30,17 +30,18 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class ValuesFormatJson implements ValuesFormatExtension, ConformanceClass {
+public class JobResultsFormatJson implements JobResultsFormatExtension, ConformanceClass {
 
-  private final Schema<?> schemaValues;
-  private final Map<String, Schema<?>> referencedSchemasValues;
+  private final Schema<?> schemaResults;
+  private final Map<String, Schema<?>> referencedSchemasResults;
 
   @Inject
-  public ValuesFormatJson(ClassSchemaCache classSchemaCache) {
-    schemaValues = classSchemaCache.getSchema(ValuesResponse.class);
-    referencedSchemasValues = classSchemaCache.getReferencedSchemas(ValuesResponse.class);
+  public JobResultsFormatJson(ClassSchemaCache classSchemaCache) {
+    schemaResults = classSchemaCache.getSchema(OgcApiJobResults.class);
+    referencedSchemasResults = classSchemaCache.getReferencedSchemas(OgcApiJobResults.class);
   }
 
+  // TODO
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
     if (isEnabledForApi(apiData)) {
@@ -58,15 +59,15 @@ public class ValuesFormatJson implements ValuesFormatExtension, ConformanceClass
   @Override
   public ApiMediaTypeContent getContent() {
     return new ImmutableApiMediaTypeContent.Builder()
-        .schema(schemaValues)
-        .schemaRef(ValuesResponse.SCHEMA_REF)
-        .referencedSchemas(referencedSchemasValues)
+        .schema(schemaResults)
+        .schemaRef(OgcApiJobResults.SCHEMA_REF)
+        .referencedSchemas(referencedSchemasResults)
         .ogcApiMediaType(getMediaType())
         .build();
   }
 
   @Override
-  public Object getEntity(ValuesResponse values, OgcApi api, ApiRequestContext requestContext) {
-    return values;
+  public Object getEntity(OgcApiJobResults results, OgcApi api, ApiRequestContext requestContext) {
+    return results;
   }
 }

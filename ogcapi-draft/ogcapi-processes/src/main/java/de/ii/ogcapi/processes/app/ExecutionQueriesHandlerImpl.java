@@ -10,6 +10,14 @@ package de.ii.ogcapi.processes.app;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
@@ -22,20 +30,11 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoLinksGenerator;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
-import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
@@ -120,49 +119,17 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
     String processId = queryInput.getProcessId();
-    OgcProcess process = processRepository.getDirect(apiData, processId);
+    OgcProcess process = processRepository.getDirect(apiData.getId(), processId);
     List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
-    ExecutionMode executionMode = queryInput.getExecutionMode();
 
-    boolean async = false;
-    switch (executionMode) {
-      case BOTH -> {
-        /*
-         * Cases:
-         * 1. jobControlOptions is empty: execute synchronously
-         * 2. process can be executed in either mode: execute asynchronously if prefered, synchronously else
-         * 3. process can only be executed asynchronously: execute asynchronously
-         * 4. process can only be executed synchronously: execute synchronously
-         */
-        if (jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)
-            && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          async = queryInput.getPreferAsync();
-        } else if (jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          async = true;
-        }
-      }
+    boolean async =
+        queryInput.supportsAsync()
+            && queryInput.getPreferAsync()
+            && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE);
 
-      case SYNC -> {
-        if (!jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)) {
-          throw new IllegalArgumentException(
-              "This server only supports synchronous execution but the process '"
-                  + processId
-                  + "' cannot be executed synchronously.");
-        }
-      }
-
-      case ASYNC -> {
-        if (!jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          throw new IllegalArgumentException(
-              "This server only supports asynchronous execution but the process '"
-                  + processId
-                  + "' cannot be executed asynchronously.");
-        }
-        async = true;
-      }
+    if (!async) {
+      return executionResponseSync(queryInput, requestContext, process, executeRequest);
     }
-
-    if (!async) return executionResponseSync(queryInput, requestContext, process, executeRequest);
 
     return executionResponseAsync(queryInput, requestContext, process, executeRequest);
   }
@@ -175,9 +142,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcApi api = requestContext.getApi();
 
-    ResultsFormatExtension outputFormat =
+    JobResultsFormatExtension outputFormat =
         api.getOutputFormat(
-                ResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -189,8 +156,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
         processesExecutor.executeSync(api.getId(), process, executeRequest);
 
     if (!processResults.isEmpty()) {
-      ResultsResponse resultsResponse =
-          new ImmutableResultsResponse.Builder().additionalProperties(processResults).build();
+      OgcApiJobResults resultsResponse =
+          new ImmutableOgcApiJobResults.Builder().additionalProperties(processResults).build();
 
       return prepareSuccessResponse(
               requestContext,
@@ -223,9 +190,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcApi api = requestContext.getApi();
 
-    StatusInfoFormatExtension outputFormat =
+    JobStatusFormatExtension outputFormat =
         api.getOutputFormat(
-                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobStatusFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -233,7 +200,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    OgcStatusInfo statusInfo =
+    OgcApiJobStatus statusInfo =
         processesExecutor.executeAsync(
             api.getId(), process, executeRequest, queryInput.getCallbackRetries());
 
@@ -242,8 +209,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
         linkGenerator.generateLinks(
             requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 3);
 
-    StatusInfoResponse statusInfoResponse =
-        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
+    OgcApiJobStatusInfo statusInfoResponse =
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -253,7 +220,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, OgcApiJobStatusInfo.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();

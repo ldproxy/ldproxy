@@ -9,13 +9,15 @@ package de.ii.ogcapi.async.infra;
 
 import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
 
+import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.app.AsyncBuildingBlock;
+import de.ii.ogcapi.async.domain.AsyncConfiguration;
 import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecificN;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobQueriesHandler.Query;
-import de.ii.ogcapi.async.domain.format.ValuesFormatExtension;
+import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Endpoint;
@@ -29,19 +31,15 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +48,11 @@ import org.slf4j.LoggerFactory;
  * @path jobs/{jobId}/results/{outputId}/{N}
  * @langEn Retrieve the Nth value of a specific multivalued job result
  * @langDe Den N-ten Wert eines bestimmten mehrwertigen Job-Ergebnisses abrufen
- * @ref:formats {@link de.ii.ogcapi.async.domain.format.ValuesFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.async.domain.JobResultValuesFormatExtension}
  */
 @Singleton
-public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHealth {
+@AutoBind
+public class EndpointResultsSpecificN extends Endpoint {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResultsSpecificN.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
@@ -135,11 +134,20 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
       @PathParam("N") int indexN,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
-    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
+    checkPathParameter(
+        extensionRegistry, api.getData(), "/jobs/{jobId}/results/{outputId}/{N}", "jobId", jobId);
+    checkPathParameter(
+        extensionRegistry,
+        api.getData(),
+        "/jobs/{jobId}/results/{outputId}/{N}",
+        "outputId",
+        outputId);
+    checkPathParameter(
+        extensionRegistry,
+        api.getData(),
+        "/jobs/{jobId}/results/{outputId}/{N}",
+        "N",
+        String.valueOf(indexN));
 
     JobQueriesHandler.QueryInputResultsSpecificN queryInput =
         new ImmutableQueryInputResultsSpecificN.Builder()
@@ -154,26 +162,19 @@ public class EndpointResultsSpecificN extends Endpoint implements ApiExtensionHe
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return ProcessesCoreConfiguration.class;
+    return AsyncConfiguration.class;
   }
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
-      formats = extensionRegistry.getExtensionsForType(ValuesFormatExtension.class);
+    if (formats == null) {
+      formats = extensionRegistry.getExtensionsForType(JobResultValuesFormatExtension.class);
+    }
     return formats;
   }
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
-  }
-
-  @Override
-  public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
-    return Set.of(queryHandler);
+    return AsyncBuildingBlock.isAsyncEnabled(apiData);
   }
 }

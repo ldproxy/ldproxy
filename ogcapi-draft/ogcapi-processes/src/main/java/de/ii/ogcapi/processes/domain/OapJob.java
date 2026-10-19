@@ -9,11 +9,13 @@ package de.ii.ogcapi.processes.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.xtralink.jobs.JobConfiguration;
-import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.util.Map;
@@ -47,16 +49,35 @@ public interface OapJob extends JobInputs {
         LABEL,
         String.format(" (Process: %s)", process.getTitle()),
         oapJob,
-        new OapJobContext(apiId, executeRequest),
+        new OapJobContext(apiId, executeRequest, process.getId()),
         null,
         Optional.empty());
   }
 
-  class OapJobContext extends JobContextEntity {
+  class OapJobContext extends JobContextAsync {
+    public static boolean is(Map<String, Object> context) {
+      return JobContextAsync.is(context) && context.containsKey("executeRequest");
+    }
+
+    public static Optional<OapJobContext> from(Map<String, Object> context, ObjectMapper mapper) {
+      if (!is(context)) {
+        return Optional.empty();
+      }
+      try {
+        return Optional.ofNullable(mapper.convertValue(context, OapJobContext.class));
+      } catch (Throwable e) {
+        return Optional.empty();
+      }
+    }
+
     private final OgcExecute executeRequest;
 
-    public OapJobContext(String entity, OgcExecute executeRequest) {
-      super(entity);
+    public OapJobContext(String entity, OgcExecute executeRequest, String processId) {
+      super(
+          entity,
+          EntityType.OGC_API_PROCESSES,
+          Optional.ofNullable(processId),
+          executeRequest.getSubscriber());
       this.executeRequest = executeRequest;
     }
 

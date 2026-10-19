@@ -11,6 +11,8 @@ import static de.ii.ogcapi.processes.domain.ExecutionQueriesHandler.GROUP_PROCES
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
@@ -33,8 +35,6 @@ import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -67,8 +67,8 @@ import org.slf4j.LoggerFactory;
  *     Callback-Subscriber werden im Request-Body übermittelt. Wird der Prozess synchron ausgeführt,
  *     werden die Ergebnisse berechnet und direkt zurückgegeben, andernfalls werden die
  *     Statusinformationen des zugehörigen Jobs zurückgegeben.
- * @ref:formats {@link de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension}, {@link
- *     de.ii.ogcapi.processes.domain.format.ResultsFormatExtension}
+ * @ref:formats {@link de.ii.ogcapi.common.domain.async.JobStatusFormatExtension}, {@link
+ *     de.ii.ogcapi.common.domain.async.JobResultsFormatExtension}
  */
 @Singleton
 @AutoBind
@@ -191,8 +191,8 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
             .from(getGenericQueryInput(api.getData()))
             .processId(processId)
             .requestBody(requestBody)
+            .supportsAsync(config.getAsync())
             .preferAsync(preferAsync)
-            .executionMode(config.getExecutionMode())
             .callbackRetries(config.getCallbackRetries())
             .build();
 
@@ -216,8 +216,8 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
     if (resourceFormats == null)
       resourceFormats =
           ImmutableList.<FormatExtension>builder()
-              .addAll(extensionRegistry.getExtensionsForType(ResultsFormatExtension.class))
-              .addAll(extensionRegistry.getExtensionsForType(StatusInfoFormatExtension.class))
+              .addAll(extensionRegistry.getExtensionsForType(JobResultsFormatExtension.class))
+              .addAll(extensionRegistry.getExtensionsForType(JobStatusFormatExtension.class))
               .build();
     return resourceFormats;
   }

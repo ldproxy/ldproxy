@@ -53,7 +53,7 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    return repository.getAll(apiData).keySet().stream().toList();
+    return repository.getAll(apiData.getId()).keySet().stream().toList();
   }
 
   @Override

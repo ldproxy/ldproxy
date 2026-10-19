@@ -5,14 +5,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.processes.domain.format;
+package de.ii.ogcapi.common.domain.async;
 
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.DefaultLinksGenerator;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
-import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
 import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
@@ -25,7 +24,7 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
       URICustomizer uriBuilder,
       I18n i18n,
       Optional<Locale> language,
-      OgcStatusInfo statusInfo,
+      OgcApiJobStatus statusInfo,
       int segmentsToRemove) {
     final ImmutableList.Builder<Link> builder = new ImmutableList.Builder<Link>();
 
