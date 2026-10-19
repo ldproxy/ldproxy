@@ -5,16 +5,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.async.domain.format;
+package de.ii.ogcapi.common.domain.async;
 
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
-import de.ii.ogcapi.async.domain.model.ValuesResponse;
 import de.ii.ogcapi.common.domain.GenericFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 
 @AutoMultiBind
-public interface ValuesFormatExtension extends GenericFormatExtension {
+public interface JobStatusFormatExtension extends GenericFormatExtension {
 
-  Object getEntity(ValuesResponse values, OgcApi api, ApiRequestContext requestContext);
+  Object getEntity(OgcApiJobStatus response, OgcApi api, ApiRequestContext requestContext);
 }

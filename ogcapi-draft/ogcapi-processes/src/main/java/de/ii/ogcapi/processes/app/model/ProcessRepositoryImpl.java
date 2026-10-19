@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
@@ -92,19 +91,19 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public OgcProcess getDirect(OgcApiDataV2 apiData, String processId) {
-    return get(apiData, processId)
+  public OgcProcess getDirect(String apiId, String processId) {
+    return get(apiId, processId)
         .orElseThrow(
             () -> new NotFoundException("No process found with process id '" + processId + "'."));
   }
 
   @Override
-  public Optional<OgcProcess> get(OgcApiDataV2 apiData, String processId) {
+  public Optional<OgcProcess> get(String apiId, String processId) {
     if (globalProcessesCache.containsKey(processId)) {
       return Optional.of(globalProcessesCache.get(processId));
     }
 
-    Map<String, ProcessData> apiProcesses = apiProcessesCache.get(apiData.getId());
+    Map<String, ProcessData> apiProcesses = apiProcessesCache.get(apiId);
     if (apiProcesses != null && apiProcesses.containsKey(processId)) {
       return Optional.of(apiProcesses.get(processId));
     }
@@ -113,9 +112,9 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public Map<String, OgcProcess> getAll(OgcApiDataV2 apiData) {
+  public Map<String, OgcProcess> getAll(String apiId) {
     Map<String, OgcProcess> result = new LinkedHashMap<>(globalProcessesCache);
-    Map<String, ProcessData> apiMap = apiProcessesCache.get(apiData.getId());
+    Map<String, ProcessData> apiMap = apiProcessesCache.get(apiId);
     if (apiMap != null) {
       result.putAll(apiMap);
     }

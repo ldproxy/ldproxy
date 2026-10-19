@@ -5,12 +5,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package de.ii.ogcapi.async.domain.model;
+package de.ii.ogcapi.common.domain.async;
 
-import com.fasterxml.jackson.annotation.JsonValue;
+import de.ii.xtralink.jobs.Job;
+import de.ii.xtralink.jobs.internal.JobListener;
 
-public interface OgcValues {
+@FunctionalInterface
+public interface AsyncCallbacks extends JobListener {
 
-  @JsonValue
-  Object getInlineOrRefValues();
+  @Override
+  void onProgress(Job job);
 }
