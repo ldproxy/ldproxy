@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration;
+import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -133,6 +134,10 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new ImmutableProcessesCoreConfiguration.Builder().enabled(false).build();
+    return new ImmutableProcessesCoreConfiguration.Builder()
+        .enabled(false)
+        .async(false)
+        .jobTtl(Duration.hours(1))
+        .build();
   }
 }

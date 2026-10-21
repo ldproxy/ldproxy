@@ -60,6 +60,9 @@ final class SearchAsync {
       throw new IllegalStateException("Could not serialize the query expression", e);
     }
 
+    SearchConfiguration searchConfiguration =
+        requestContext.getApi().getData().getExtension(SearchConfiguration.class).orElseThrow();
+
     Job job =
         jobs.push(
             SearchJob.of(
@@ -72,7 +75,8 @@ final class SearchAsync {
                 requestContext.getMediaType().type().toString(),
                 requestContext.getMediaType().label(),
                 requestContext.getMediaType().parameter(),
-                requestContext.getLanguage().map(Locale::toLanguageTag).orElse(null)));
+                requestContext.getLanguage().map(Locale::toLanguageTag).orElse(null),
+                searchConfiguration.getTtlSeconds()));
 
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Accepted asynchronous search as job {}", job.id());
@@ -82,15 +86,7 @@ final class SearchAsync {
     // answer synchronously when the job finishes in time
     Optional<Integer> sentWait = HeaderPrefer.parseWait(prefer).filter(seconds -> seconds > 0);
     if (sentWait.isPresent()) {
-      int maxWait =
-          Optional.ofNullable(
-                  requestContext
-                      .getApi()
-                      .getData()
-                      .getExtension(SearchConfiguration.class)
-                      .map(SearchConfiguration::getMaxWait)
-                      .orElse(null))
-              .orElse(60);
+      int maxWait = searchConfiguration.getMaxWaitSeconds();
       int waitSeconds = Math.min(sentWait.get(), maxWait);
       boolean waitCapped = waitSeconds < sentWait.get();
       try {

@@ -523,6 +523,13 @@ public class EndpointTransactions extends Endpoint
       throw new IllegalStateException("Could not store the transaction document", e);
     }
 
+    TransactionsConfiguration transactionsConfiguration =
+        requestContext
+            .getApi()
+            .getData()
+            .getExtension(TransactionsConfiguration.class)
+            .orElseThrow();
+
     JobConfiguration jobConfiguration =
         TransactionJob.of(
             apiData.getId(),
@@ -532,7 +539,8 @@ public class EndpointTransactions extends Endpoint
             mutationDatetimeHeader,
             handling,
             ret,
-            ret == HeaderPrefer.Return.REPRESENTATION);
+            ret == HeaderPrefer.Return.REPRESENTATION,
+            transactionsConfiguration.getTtlSeconds());
 
     Job job;
     try {
@@ -558,13 +566,7 @@ public class EndpointTransactions extends Endpoint
     // honor the wait preference: defer the response for up to min(wait, maxWait) seconds and
     // answer synchronously when the job finishes in time
     if (sentWait.isPresent()) {
-      int maxWait =
-          Optional.ofNullable(
-                  apiData
-                      .getExtension(TransactionsConfiguration.class)
-                      .map(TransactionsConfiguration::getMaxWait)
-                      .orElse(null))
-              .orElse(60);
+      int maxWait = transactionsConfiguration.getMaxWaitSeconds();
       int waitSeconds = Math.min(sentWait.get(), maxWait);
       boolean waitCapped = waitSeconds < sentWait.get();
       try {

@@ -8,7 +8,9 @@
 package de.ii.ogcapi.common.domain.async;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.dropwizard.util.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -52,4 +54,32 @@ public interface AsyncConfiguration {
    */
   @Nullable
   Integer getMaxWait();
+
+  @JsonIgnore
+  @Value.Lazy
+  default int getMaxWaitSeconds() {
+    return Optional.ofNullable(getMaxWait()).orElse(60);
+  }
+
+  /**
+   * @langEn Only relevant when `async` is enabled. Time-to-live for a job: after the job has
+   *     finished, its status and results are kept for up to `jobTtl`, after which they are deleted.
+   *     A job is finished when it was either cancelled/dismissed, failed or completed. This is a
+   *     soft limit, the actual deletion may be delayed.
+   * @langDe Nur relevant, wenn `async` aktiviert ist. Lebensdauer eines Jobs: Nachdem der Job
+   *     abgeschlossen ist, werden dessen Status und Ergebnisse bis zu `jobTtl` aufbewahrt, danach
+   *     werden sie gelöscht. Ein Job ist abgeschlossen, wenn er abgebrochen/verworfen,
+   *     fehlgeschlagen oder erfolgreich abgeschlossen wurde. Dies ist eine weiche Grenze, die
+   *     tatsächliche Löschung kann verzögert erfolgen.
+   * @since v4.9
+   * @default 1h
+   */
+  @Nullable
+  Duration getJobTtl();
+
+  @JsonIgnore
+  @Value.Lazy
+  default long getTtlSeconds() {
+    return Optional.ofNullable(getJobTtl()).orElse(Duration.hours(1)).toSeconds();
+  }
 }

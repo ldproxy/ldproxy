@@ -9,6 +9,8 @@ package de.ii.ogcapi.transactions.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Handling;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Return;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
@@ -31,9 +33,10 @@ public interface TransactionJob extends JobInputs {
       String mediaType,
       @Nullable String crs,
       @Nullable String mutationDatetime,
-      HeaderPrefer.Handling handlingPrefer,
-      HeaderPrefer.Return returnPrefer,
-      boolean resultAsFile) {
+      Handling handlingPrefer,
+      Return returnPrefer,
+      boolean resultAsFile,
+      long ttlSeconds) {
     ImmutableTransactionJob transactionJob =
         new ImmutableTransactionJob.Builder()
             .apiId(apiId)
@@ -53,7 +56,7 @@ public interface TransactionJob extends JobInputs {
         transactionJob,
         new JobContextEntity(apiId),
         null,
-        Optional.of(3600));
+        Optional.of((int) ttlSeconds));
   }
 
   String getApiId();

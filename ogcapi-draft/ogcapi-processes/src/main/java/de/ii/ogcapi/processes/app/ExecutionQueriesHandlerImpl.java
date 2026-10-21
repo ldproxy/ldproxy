@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
+import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
@@ -200,9 +201,16 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
+    ProcessesCoreConfiguration processesCoreConfiguration =
+        api.getData().getExtension(ProcessesCoreConfiguration.class).orElseThrow();
+
     OgcApiJobStatus statusInfo =
         processesExecutor.executeAsync(
-            api.getId(), process, executeRequest, queryInput.getCallbackRetries());
+            api.getId(),
+            process,
+            executeRequest,
+            queryInput.getCallbackRetries(),
+            processesCoreConfiguration.getTtlSeconds());
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
