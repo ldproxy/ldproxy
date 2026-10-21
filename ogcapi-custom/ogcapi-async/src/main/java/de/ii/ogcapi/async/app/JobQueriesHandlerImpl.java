@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
+import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtraplatform.base.domain.ETag;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -93,6 +94,14 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
                             requestContext.getMediaType())));
 
     OgcApiJobStatus statusInfo = getStatusInfo(jobId);
+
+    // Requirement 115 (after
+    // https://github.com/opengeospatial/ogcapi-processes/issues/620#issuecomment-5478959257 is
+    // applied)
+    if (statusInfo.getStatus() == Status.DISMISSED) {
+      throw new NotFoundException(
+          "The job has been dismissed and is no longer available: " + jobId);
+    }
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
