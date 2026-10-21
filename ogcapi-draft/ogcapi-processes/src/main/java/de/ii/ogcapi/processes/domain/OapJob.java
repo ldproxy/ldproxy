@@ -40,7 +40,8 @@ public interface OapJob extends JobInputs {
     return jobKind.substring(KIND.length() + 1);
   }
 
-  static JobConfiguration of(String apiId, OgcProcess process, OgcExecute executeRequest) {
+  static JobConfiguration of(
+      String apiId, OgcProcess process, OgcExecute executeRequest, long ttlSeconds) {
     ImmutableOapJob oapJob =
         new ImmutableOapJob.Builder().inputs(executeRequest.getInputs()).build();
     return Jobs.create(
@@ -51,7 +52,7 @@ public interface OapJob extends JobInputs {
         oapJob,
         new OapJobContext(apiId, executeRequest, process.getId()),
         null,
-        Optional.empty());
+        Optional.of((int) ttlSeconds));
   }
 
   class OapJobContext extends JobContextAsync {

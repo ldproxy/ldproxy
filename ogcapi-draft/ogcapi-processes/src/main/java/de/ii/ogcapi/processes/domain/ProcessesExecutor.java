@@ -17,5 +17,9 @@ public interface ProcessesExecutor {
   Map<String, Object> executeSync(String apiId, OgcProcess process, OgcExecute executeRequest);
 
   OgcApiJobStatus executeAsync(
-      String apiId, OgcProcess process, OgcExecute executeRequest, int callbackRetries);
+      String apiId,
+      OgcProcess process,
+      OgcExecute executeRequest,
+      int callbackRetries,
+      long ttlSeconds);
 }
