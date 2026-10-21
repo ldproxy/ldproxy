@@ -8,7 +8,6 @@
 package de.ii.ogcapi.async.app.format;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResultValues;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -41,14 +40,9 @@ public class JobResultValuesFormatJson implements JobResultValuesFormatExtension
     referencedSchemasValues = classSchemaCache.getReferencedSchemas(OgcApiJobResultValues.class);
   }
 
-  // TODO
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
-    }
-
-    return ImmutableList.of();
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
   }
 
   @Override

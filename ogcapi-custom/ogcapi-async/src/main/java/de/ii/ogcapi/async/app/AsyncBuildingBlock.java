@@ -11,18 +11,23 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.async.domain.ImmutableAsyncConfiguration;
 import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
+import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @title Async
- * @langEn This helper building block enables async operations to other building blocks. It cannot
- *     be configured and is automatically enabled when needed.
- * @langDe Dieser Hilfsbaustein stellt anderen Bausteinen asynchrone Operationen bereit. Er kann
- *     nicht konfiguriert werden und wird bei Bedarf automatisch aktiviert.
+ * @langEn This helper building block provides async job operations to other building blocks. It
+ *     cannot be configured and is automatically enabled when needed.
+ * @langDe Dieser Hilfsbaustein stellt anderen Bausteinen Operationen für asynchrone Jobs bereit. Er
+ *     kann nicht konfiguriert werden und wird bei Bedarf automatisch aktiviert.
  * @ref:endpoints {@link de.ii.ogcapi.async.infra.EndpointJob}, {@link
  *     de.ii.ogcapi.async.infra.EndpointDismiss}, {@link de.ii.ogcapi.async.infra.EndpointResults},
  *     {@link de.ii.ogcapi.async.infra.EndpointResultsSpecific}, {@link
@@ -34,7 +39,14 @@ import java.util.Objects;
  */
 @Singleton
 @AutoBind
-public class AsyncBuildingBlock implements ApiBuildingBlock {
+public class AsyncBuildingBlock implements ApiBuildingBlock, ConformanceClass {
+
+  public static final Optional<SpecificationMaturity> MATURITY =
+      Optional.of(SpecificationMaturity.DRAFT_OGC);
+  public static final Optional<ExternalDocumentation> SPEC =
+      Optional.of(
+          ExternalDocumentation.of(
+              "https://docs.ogc.org/DRAFTS/18-062r3.html", "OGC API - Processes - Part 1: Core"));
 
   public static boolean isAsyncEnabled(OgcApiDataV2 apiData) {
     // Automatically enable when any consumer is enabled
@@ -56,5 +68,10 @@ public class AsyncBuildingBlock implements ApiBuildingBlock {
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
     return new ImmutableAsyncConfiguration.Builder().build();
+  }
+
+  @Override
+  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/callback");
   }
 }

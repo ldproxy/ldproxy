@@ -18,7 +18,6 @@ import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -39,7 +38,6 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -72,7 +70,7 @@ import org.slf4j.LoggerFactory;
  */
 @Singleton
 @AutoBind
-public class EndpointExecute extends Endpoint implements ApiExtensionHealth, ConformanceClass {
+public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointExecute.class);
   private static final List<String> TAGS = ImmutableList.of("Processes");
@@ -86,17 +84,6 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
       ExtensionRegistry extensionRegistry, ExecutionQueriesHandler queryHandler) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
-  }
-
-  @Override
-  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of(
-          "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/callback",
-          "http://www.opengis.net/spec/ogcapi-processes-3/0.0/req/nested-processes");
-    }
-
-    return ImmutableList.of();
   }
 
   @Override
@@ -166,10 +153,6 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
       @Context ApiRequestContext requestContext,
       @Context HttpHeaders headers,
       InputStream requestBody) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
     checkPathParameter(
         extensionRegistry,
         api.getData(),
@@ -206,28 +189,22 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth, Con
 
   @Override
   public List<? extends FormatExtension> getRequestFormats() {
-    if (requestFormats == null)
+    if (requestFormats == null) {
       requestFormats = extensionRegistry.getExtensionsForType(ExecuteFormatExtension.class);
+    }
     return requestFormats;
   }
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (resourceFormats == null)
+    if (resourceFormats == null) {
       resourceFormats =
           ImmutableList.<FormatExtension>builder()
               .addAll(extensionRegistry.getExtensionsForType(JobResultsFormatExtension.class))
               .addAll(extensionRegistry.getExtensionsForType(JobStatusFormatExtension.class))
               .build();
+    }
     return resourceFormats;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
   }
 
   @Override

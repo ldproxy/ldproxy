@@ -105,9 +105,8 @@ public class EndpointJob extends Endpoint {
               getOperationId("getJob"),
               GROUP_JOBS_READ,
               TAGS,
-              // TODO
-              Optional.empty(),
-              Optional.empty())
+              AsyncBuildingBlock.MATURITY,
+              AsyncBuildingBlock.SPEC)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }

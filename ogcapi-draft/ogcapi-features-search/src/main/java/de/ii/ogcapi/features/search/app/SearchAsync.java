@@ -113,8 +113,6 @@ final class SearchAsync {
       }
     }
 
-    // TODO: the jobs API is not yet available; the Location target ({apiUri}/jobs/{jobId})
-    // returns 404 until it lands
     URI location =
         URI.create(
             requestContext.getApiUriCustomizer().appendPathSegments("jobs", job.id()).toString());

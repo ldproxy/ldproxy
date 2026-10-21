@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app.format.json;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
@@ -43,11 +42,7 @@ public class ProcessListFormatJson implements ProcessListFormatExtension, Confor
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
-    }
-
-    return ImmutableList.of();
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
   }
 
   @Override

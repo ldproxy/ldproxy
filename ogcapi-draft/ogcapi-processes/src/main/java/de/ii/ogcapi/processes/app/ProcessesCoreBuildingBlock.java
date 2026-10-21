@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -126,7 +125,7 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of(
+    return List.of(
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description");
