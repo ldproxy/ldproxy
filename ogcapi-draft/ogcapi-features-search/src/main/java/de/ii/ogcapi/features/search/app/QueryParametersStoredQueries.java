@@ -79,16 +79,17 @@ public class QueryParametersStoredQueries implements RuntimeQueryParametersExten
                         entry -> {
                           String name = entry.getKey();
                           Schema<?> schema = entry.getValue();
-                          StringBuilder description = new StringBuilder(name);
-                          if (Objects.nonNull(schema.getTitle()) && !schema.getTitle().isEmpty()) {
-                            description.append(schema.getTitle());
-                            if (Objects.nonNull(schema.getDescription())
-                                && !schema.getDescription().isEmpty()) {
-                              description.append(": ");
-                              description.append(schema.getDescription());
-                            } else {
-                              description.append('.');
-                            }
+                          // the title, or the name, followed by the description
+                          boolean hasTitle =
+                              Objects.nonNull(schema.getTitle()) && !schema.getTitle().isEmpty();
+                          StringBuilder description =
+                              new StringBuilder(hasTitle ? schema.getTitle() : name);
+                          if (Objects.nonNull(schema.getDescription())
+                              && !schema.getDescription().isEmpty()) {
+                            description.append(": ");
+                            description.append(schema.getDescription());
+                          } else {
+                            description.append('.');
                           }
                           return ImmutableQueryParameterTemplateParameter.builder()
                               .apiId(apiData.getId())
