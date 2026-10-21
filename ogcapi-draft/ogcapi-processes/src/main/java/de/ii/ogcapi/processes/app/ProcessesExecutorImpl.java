@@ -85,7 +85,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest);
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, 3600);
 
     // Push it and wait for its results
     Job job = jobs.push(oapJob);
@@ -98,7 +98,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public OgcApiJobStatus executeAsync(
-      String apiId, OgcProcess process, OgcExecute executeRequest, int callbackRetries) {
+      String apiId,
+      OgcProcess process,
+      OgcExecute executeRequest,
+      int callbackRetries,
+      long ttlSeconds) {
 
     Map<String, Object> inputs = parseInputs(process, executeRequest.getInputs());
 
@@ -112,7 +116,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest);
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, ttlSeconds);
 
     // Put job with callbacks in queue
     Job job = jobs.push(oapJob, asyncCallbacks);

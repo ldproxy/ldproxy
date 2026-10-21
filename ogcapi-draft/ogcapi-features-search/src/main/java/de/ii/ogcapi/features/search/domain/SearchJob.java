@@ -36,7 +36,8 @@ public interface SearchJob extends JobInputs {
       String mediaType,
       String mediaTypeLabel,
       String mediaTypeParameter,
-      @Nullable String language) {
+      @Nullable String language,
+      long ttlSeconds) {
     ImmutableSearchJob searchJob =
         new ImmutableSearchJob.Builder()
             .apiId(apiId)
@@ -56,7 +57,7 @@ public interface SearchJob extends JobInputs {
         searchJob,
         new JobContextEntity(apiId),
         null,
-        Optional.empty());
+        Optional.of((int) ttlSeconds));
   }
 
   String getApiId();
