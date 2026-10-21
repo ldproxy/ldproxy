@@ -1,7 +1,7 @@
 maturity = 'PROPOSAL'
-maintenance = 'NONE'
-description = '...'
-descriptionDe = '...'
+maintenance = 'FULL'
+description = 'Support for asynchronous jobs and processes.'
+descriptionDe = 'Unterstützung für asynchrone Jobs und Prozesse.'
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'

@@ -73,11 +73,7 @@ public class EndpointDismiss extends Endpoint implements ConformanceClass {
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/dismiss");
-    }
-
-    return ImmutableList.of();
+    return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/dismiss");
   }
 
   @Override
@@ -121,9 +117,8 @@ public class EndpointDismiss extends Endpoint implements ConformanceClass {
               getOperationId("dismissJob"),
               GROUP_JOBS_DISMISS,
               TAGS,
-              // TODO
-              Optional.empty(),
-              Optional.empty(),
+              AsyncBuildingBlock.MATURITY,
+              AsyncBuildingBlock.SPEC,
               false)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
 

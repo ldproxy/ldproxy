@@ -98,15 +98,13 @@ public class PathParameterJobId implements OgcApiPathParameter {
     return AsyncConfiguration.class;
   }
 
-  // TODO
   @Override
   public Optional<SpecificationMaturity> getSpecificationMaturity() {
-    return Optional.empty();
+    return AsyncBuildingBlock.MATURITY;
   }
 
-  // TODO
   @Override
   public Optional<ExternalDocumentation> getSpecificationRef() {
-    return Optional.empty();
+    return AsyncBuildingBlock.SPEC;
   }
 }

@@ -23,9 +23,8 @@ import org.immutables.value.Value;
 public interface ExecutionQueriesHandler
     extends QueriesHandler<ExecutionQueriesHandler.Query>, Volatile2 {
 
-  // TODO: Change permission to WRITE (READ is easier during development)
   PermissionGroup GROUP_PROCESSES_EXECUTE =
-      PermissionGroup.of(Base.READ, GROUP_PROCESSES, "execute processes");
+      PermissionGroup.of(Base.WRITE, GROUP_PROCESSES, "execute processes");
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();

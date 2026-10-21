@@ -8,7 +8,6 @@
 package de.ii.ogcapi.async.app.format;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
@@ -44,11 +43,7 @@ public class JobStatusFormatJson implements JobStatusFormatExtension, Conformanc
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
-    }
-
-    return ImmutableList.of();
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
   }
 
   @Override

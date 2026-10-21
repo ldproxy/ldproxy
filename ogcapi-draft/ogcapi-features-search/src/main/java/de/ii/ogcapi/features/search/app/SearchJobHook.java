@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.search.app;
 
 import de.ii.xtraplatform.features.domain.JobHook;
+import de.ii.xtraplatform.features.domain.JobHookCancellable;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,9 +19,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * known once the feature pipeline runs ({@code numberReturned} for paged queries, the sub-query
  * count otherwise).
  *
- * <p>TODO: canceling a job is not yet supported — the job queue has no cancel operation so far;
- * once it does, {@link #isCancelRequested()} is the place to surface it (the pipeline already
- * checkpoints per feature).
+ * <p>Cancelling is implemented by {@link JobHookCancellable#isCancelRequested()}, the feature
+ * pipeline checkpoints per feature.
  *
  * <p>The job's progress counters are deliberately not touched: the execute partial carries a total
  * of one unit, and the backend's failure handling tops a partial up by {@code total - current} —
@@ -31,17 +31,14 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>Updates are throttled to roughly one percent steps to keep the per-feature overhead low.
  */
-public class SearchJobHook implements JobHook {
+public class SearchJobHook extends JobHookCancellable {
 
-  private final JobProcessing jobs;
-  private final String jobId;
   private final AtomicInteger total;
   private final AtomicLong current;
   private final AtomicLong lastReported;
 
   public SearchJobHook(JobProcessing jobs, String jobId) {
-    this.jobs = jobs;
-    this.jobId = jobId;
+    super(jobs, jobId);
     this.total = new AtomicInteger(0);
     this.current = new AtomicLong(0);
     this.lastReported = new AtomicLong(0);

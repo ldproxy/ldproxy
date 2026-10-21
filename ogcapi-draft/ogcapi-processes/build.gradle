@@ -1,7 +1,7 @@
 maturity = 'PROPOSAL'
-maintenance = 'NONE'
-description = 'ToDo'
-descriptionDe = 'ToDo'
+maintenance = 'FULL'
+description = 'The core capabilities to publish executable processes.'
+descriptionDe = 'Die Kernfunktionen zur Bereitstellung von ausführbaren Prozessen.'
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
