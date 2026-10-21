@@ -55,9 +55,6 @@ public interface TransactionExecutor extends Volatile2 {
   }
 
   /**
-   * TODO: canceling a job is not yet supported — the job queue has no cancel operation so far; the
-   * checks below are in place and tested, but nothing requests cancellation yet.
-   *
    * @param jobHook progress/cancellation hook for the request; empty leaves execution unchanged.
    *     Cancellation is observed cooperatively: before each action and between insert batches.
    *     Atomic: a cancelled transaction is rolled back as a whole. Batch: actions committed before
