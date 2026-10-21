@@ -12,6 +12,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-streams'
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:xtraplatform-web'
 
     embedded (libCatalog.mcp.core) {
         exclude module: 'jackson-annotations'

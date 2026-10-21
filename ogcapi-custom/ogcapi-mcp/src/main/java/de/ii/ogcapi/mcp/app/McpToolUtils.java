@@ -212,16 +212,17 @@ public class McpToolUtils {
                   new ImmutableMcpTool.Builder()
                       .id(STORED_QUERY_PREFIX + queryId)
                       .name("Stored Query - " + queryId)
+                      // what the tool is for first, clients may only show the beginning
                       .description(
-                          apiData
-                                  .getDescription()
-                                  .map(desc -> desc + System.lineSeparator())
-                                  .orElse("")
-                              + filteredQueries.stream()
+                          filteredQueries.stream()
                                   .filter(q -> q.getId().equals(queryId))
                                   .findFirst()
                                   .flatMap(StoredQueryExpression::getDescription)
-                                  .orElse("Tool for stored query: " + queryId))
+                                  .orElse("Tool for stored query: " + queryId)
+                              + apiData
+                                  .getDescription()
+                                  .map(desc -> System.lineSeparator() + desc)
+                                  .orElse(""))
                       .inputSchema(inputSchema)
                       .outputSchema(outputSchema)
                       .queryParameters(parameters)
@@ -348,14 +349,18 @@ public class McpToolUtils {
                */
               ObjectSchema outputObjectSchema = new ObjectSchema();
 
-              // standard description
+              // standard description, what the tool is for first, clients may only show the
+              // beginning
               String description =
-                  apiData.getDescription().map(desc -> desc + System.lineSeparator()).orElse("")
-                      + apiData
+                  apiData
                           .getCollections()
                           .get(collectionId)
                           .getDescription()
                           .map(s -> s + System.lineSeparator())
+                          .orElse("")
+                      + apiData
+                          .getDescription()
+                          .map(desc -> desc + System.lineSeparator())
                           .orElse("")
                       + mcpConfiguration
                           .getAddMetadataAsText()

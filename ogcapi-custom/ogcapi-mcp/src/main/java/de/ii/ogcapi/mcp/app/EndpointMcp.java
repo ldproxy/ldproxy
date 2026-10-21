@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
+import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -107,9 +108,12 @@ public class EndpointMcp extends Endpoint {
   @POST
   public void executeMcpRequest(
       @Context OgcApi api,
+      @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
       @Context HttpServletResponse response)
       throws ServletException, IOException {
+    // the tools derive the links in their results from the request, like the API
+    request.setAttribute(McpServer.REQUEST_CONTEXT, requestContext);
     mcpServer.getServlet(api).service(request, response);
   }
 }

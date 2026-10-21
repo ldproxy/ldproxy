@@ -25,7 +25,8 @@ public abstract class AbstractStaticRequestContext implements ApiRequestContext 
     return Optional.empty();
   }
 
-  @Value.Derived
+  // can be set to the base path of another request, e.g. with a forwarded prefix
+  @Value.Default
   @Override
   public List<String> getBasePathSegments() {
     return getWebContext().getPathPrefix();

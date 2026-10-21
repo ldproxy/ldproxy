@@ -49,6 +49,8 @@ import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
+import de.ii.xtraplatform.web.domain.URICustomizer;
+import io.modelcontextprotocol.common.McpTransportContext;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
@@ -77,6 +79,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -156,6 +159,13 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
               HttpServletStatelessServerTransport.builder()
                   .jsonMapper(jsonMapper)
                   .messageEndpoint("/mcp")
+                  .contextExtractor(
+                      request ->
+                          request.getAttribute(McpServer.REQUEST_CONTEXT)
+                                  instanceof ApiRequestContext requestContext
+                              ? McpTransportContext.create(
+                                  Map.of(McpServer.REQUEST_CONTEXT, requestContext))
+                              : McpTransportContext.EMPTY)
                   .build();
           try {
             McpStatelessSyncServer server = createServer(api, transport, jsonMapper);
@@ -234,7 +244,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
                     String result =
                         handleStoredQuery(
-                            api, queryId, request.arguments(), tool.getQueryParameters());
+                            api,
+                            mcpRequest(context),
+                            queryId,
+                            request.arguments(),
+                            tool.getQueryParameters());
                     Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
                     return CallToolResult.builder()
                         .addTextContent(result)
@@ -246,7 +260,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                     String collectionId = tool.getId().substring(COLLECTION_QUERY_PREFIX.length());
                     String result =
                         handleCollectionQuery(
-                            api, collectionId, request.arguments(), tool.getQueryParameters());
+                            api,
+                            mcpRequest(context),
+                            collectionId,
+                            request.arguments(),
+                            tool.getQueryParameters());
 
                     Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
                     return CallToolResult.builder()
@@ -274,6 +292,12 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     return io.modelcontextprotocol.server.McpServer.sync(transport)
         .serverInfo(appContext.getName(), appContext.getVersion())
+        // the background shared by all tools, the tool descriptions start with what the tool is for
+        .instructions(
+            api.getData()
+                .getDescription()
+                .map(description -> api.getData().getLabel() + ": " + description)
+                .orElse(api.getData().getLabel()))
         .capabilities(ServerCapabilities.builder().tools(true).build())
         .jsonMapper(jsonMapper)
         .jsonSchemaValidator(jsonSchemaValidator)
@@ -289,8 +313,44 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     return objectMapper.readValue(Json.pretty(schema), Map.class);
   }
 
+  private static Optional<ApiRequestContext> mcpRequest(McpTransportContext context) {
+    return context.get(McpServer.REQUEST_CONTEXT) instanceof ApiRequestContext requestContext
+        ? Optional.of(requestContext)
+        : Optional.empty();
+  }
+
+  // the context of an internal request to a resource of the API; it is derived from the MCP request
+  // like a request to the API (forwarded host and prefix), so the links in the response are the
+  // same as in the API
+  private ImmutableStaticRequestContext.Builder internalRequest(
+      OgcApi api, Optional<ApiRequestContext> mcpRequest, String... path) {
+    List<String> pathSegments =
+        Stream.concat(api.getData().getSubPath().stream(), Arrays.stream(path)).toList();
+    ImmutableStaticRequestContext.Builder builder =
+        new ImmutableStaticRequestContext.Builder().webContext(appContext).api(api);
+
+    mcpRequest.ifPresentOrElse(
+        request ->
+            builder
+                .basePathSegments(request.getBasePathSegments())
+                .requestUri(
+                    URI.create(
+                        request
+                            .getBaseUriCustomizer()
+                            .copy()
+                            .setPathSegments(pathSegments)
+                            .toString())),
+        () ->
+            builder.requestUri(
+                URI.create(
+                    new URICustomizer(api.getUri()).setPathSegments(pathSegments).toString())));
+
+    return builder;
+  }
+
   private String handleCollectionQuery(
       OgcApi api,
+      Optional<ApiRequestContext> mcpRequest,
       String collectionId,
       Map<String, Object> parameters,
       List<OgcApiQueryParameter> queryParameters) {
@@ -358,13 +418,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .sendResponseAsStream(false)
             .build();
 
-    URI uri = URI.create("/collections/" + collectionId + "/items");
-
     ApiRequestContext requestContext =
-        new ImmutableStaticRequestContext.Builder()
-            .webContext(appContext)
-            .api(api)
-            .requestUri(uri)
+        internalRequest(api, mcpRequest, "collections", collectionId, "items")
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("application", "geo+json"))
@@ -388,6 +443,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   private String handleStoredQuery(
       OgcApi api,
+      Optional<ApiRequestContext> mcpRequest,
       String queryId,
       Map<String, Object> parameters,
       List<OgcApiQueryParameter> queryParameters)
@@ -467,10 +523,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .build();
 
     ApiRequestContext requestContext =
-        new ImmutableStaticRequestContext.Builder()
-            .webContext(appContext)
-            .api(api)
-            .requestUri(URI.create("/search/" + queryId))
+        internalRequest(api, mcpRequest, "search", queryId)
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("application", "geo+json"))
@@ -527,6 +580,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
               List.of(
                   "bbox",
                   "datetime",
+                  "ids",
                   "limit",
                   "offset",
                   "sortby",

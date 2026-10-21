@@ -12,6 +12,9 @@ import jakarta.servlet.http.HttpServlet;
 
 public interface McpServer {
 
+  /** The attribute of the MCP HTTP request with the {@code ApiRequestContext} of the request. */
+  String REQUEST_CONTEXT = "ldproxy.mcp.requestContext";
+
   McpSchema getSchema(OgcApi api);
 
   HttpServlet getServlet(OgcApi api);
