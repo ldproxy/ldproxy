@@ -220,26 +220,13 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
             getRequestPath(true),
             exception.getMessage());
       }
-      // ToDo: Harden and improve type handling
-      if (msg.contains("processId")) {
-        return Response.fromResponse(response)
-            .type(exceptionFormat.getMediaType().type())
-            .entity(
-                exceptionFormat.getExceptionEntity(
-                    new ApiErrorMessage(
-                        response.getStatus(),
-                        response.getStatusInfo().getReasonPhrase(),
-                        msg,
-                        null,
-                        "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/no-such-process")))
-            .build();
-      }
+      ApiErrorMessage apiErrorMessage =
+          new ApiErrorMessage(
+              response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg);
+
       return Response.fromResponse(response)
           .type(exceptionFormat.getMediaType().type())
-          .entity(
-              exceptionFormat.getExceptionEntity(
-                  new ApiErrorMessage(
-                      response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg)))
+          .entity(exceptionFormat.getExceptionEntity(apiErrorMessage))
           .build();
     } else if (exception instanceof ServiceUnavailableException) {
       return serviceUnavailable(exceptionFormat, exception.getMessage());
