@@ -644,7 +644,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   "sortby",
                   "properties",
                   "exclude-properties",
-                  "filter"));
+                  "filter",
+                  "zoom-level"));
 
       schemas.put(
           cacheKey,
