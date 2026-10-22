@@ -15,6 +15,7 @@ import de.ii.xtraplatform.cql.domain.Eq
 import de.ii.xtraplatform.cql.domain.ScalarLiteral
 import de.ii.xtraplatform.cql.domain.TemporalLiteral
 import de.ii.xtraplatform.features.domain.SchemaBase
+import io.swagger.v3.core.util.Json
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.Schema
@@ -159,6 +160,54 @@ class QueryParameterTemplateQueryableSpec extends Specification {
         "DEXX1*"           || false
         "*"                || false
         "DEXX1"            || true
+    }
+
+    def 'the published schema of a queryable with constraints accepts a value with a wildcard'() {
+        given:
+        def parameter = idQueryable()
+        def schemaContent = Json.mapper().writeValueAsString(parameter.getSchema(null))
+
+        expect:
+        new SchemaValidatorImpl().validate(schemaContent, '"' + value + '"').isPresent() == invalid
+
+        where:
+        value              || invalid
+        "DEXX123456789012" || false
+        "DEXX1*"           || false
+        "*"                || false
+        "DEXX1"            || true
+    }
+
+    def 'the alternatives of the published schema only have the constraints'() {
+        given:
+        def schema = new StringSchema().pattern(ID_PATTERN)
+        schema.setTitle("identifier")
+        schema.setDescription("The identifier of the object.")
+        def parameter = queryable(SchemaBase.Type.STRING, schema)
+
+        when:
+        def published = parameter.getSchema(null)
+
+        then:
+        published.title == "identifier"
+        published.description == "The identifier of the object."
+        published.anyOf*.pattern == [ID_PATTERN, '\\*']
+        published.anyOf.every { it.title == null && it.description == null }
+        schema.description == "The identifier of the object."
+    }
+
+    def 'the published schema is the schema of the property without constraints or wildcards'() {
+        given:
+        def parameter = queryable(type, schema, valueType)
+
+        expect:
+        parameter.getSchema(null).is(schema)
+
+        where:
+        type                        | schema                                                          | valueType
+        SchemaBase.Type.STRING      | new StringSchema()                                              | null
+        SchemaBase.Type.INTEGER     | new IntegerSchema().minimum(1)                                  | null
+        SchemaBase.Type.VALUE_ARRAY | new ArraySchema().items(new StringSchema().pattern(ID_PATTERN)) | SchemaBase.Type.STRING
     }
 
     def 'an empty value of an array queryable is an empty string, not an empty list'() {

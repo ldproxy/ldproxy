@@ -32,6 +32,7 @@ import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import de.ii.xtraplatform.cql.domain.TemporalLiteral;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
+import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import java.time.LocalDate;
@@ -86,7 +87,49 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    return getSchema();
+    return getPublishedSchema();
+  }
+
+  /**
+   * The schema in the API definition and other descriptions of the parameter. A value with a
+   * wildcard is accepted without the constraints of the property (see {@link
+   * #getSchemaForValidation}), so a string schema with constraints is extended by an alternative
+   * for such values; otherwise clients that validate the values against the schema reject them.
+   */
+  @Value.Lazy
+  public Schema<?> getPublishedSchema() {
+    Schema<?> schema = getSchema();
+    if (!supportsWildcard(getType(), getValueType())
+        || !"string".equals(schema.getType())
+        || !hasValueConstraints(schema)) {
+      return schema;
+    }
+
+    // the alternatives only have the constraints, title and description are those of the parameter
+    StringSchema withConstraints = new StringSchema();
+    withConstraints.setPattern(schema.getPattern());
+    withConstraints.setFormat(schema.getFormat());
+    withConstraints.setMinLength(schema.getMinLength());
+    withConstraints.setMaxLength(schema.getMaxLength());
+    if (Objects.nonNull(schema.getEnum())) {
+      schema.getEnum().forEach(value -> withConstraints.addEnumItemObject(String.valueOf(value)));
+    }
+    StringSchema withWildcard = new StringSchema();
+    withWildcard.setPattern("\\*");
+    ComposedSchema published = new ComposedSchema();
+    published.setTitle(schema.getTitle());
+    published.setDescription(schema.getDescription());
+    published.addAnyOfItem(withConstraints);
+    published.addAnyOfItem(withWildcard);
+    return published;
+  }
+
+  private static boolean hasValueConstraints(Schema<?> schema) {
+    return Objects.nonNull(schema.getPattern())
+        || Objects.nonNull(schema.getEnum()) && !schema.getEnum().isEmpty()
+        || Objects.nonNull(schema.getFormat())
+        || Objects.nonNull(schema.getMinLength())
+        || Objects.nonNull(schema.getMaxLength());
   }
 
   /**
