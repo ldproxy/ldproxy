@@ -8,12 +8,15 @@
 package de.ii.ogcapi.features.search.domain
 
 import de.ii.ogcapi.foundation.domain.SchemaValidator
+import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.IntegerSchema
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Specification
 
 class QueryParameterTemplateParameterSpec extends Specification {
 
-    def parameter(StringSchema schema) {
+    def parameter(Schema<?> schema) {
         return new ImmutableQueryParameterTemplateParameter.Builder()
                 .apiId("api")
                 .queryId("query")
@@ -39,5 +42,18 @@ class QueryParameterTemplateParameterSpec extends Specification {
     def 'a string without the format date-time is not changed'() {
         expect:
         parameter(new StringSchema()).parse("2020-01-01T10:00:00+01:00", [:], null, Optional.empty()) == "2020-01-01T10:00:00+01:00"
+    }
+
+    def 'an empty value of an array parameter is an empty list'() {
+        expect:
+        parameter(new ArraySchema().items(items)).parse(value, [:], null, Optional.empty()) == expected
+
+        where:
+        items                                   | value                     || expected
+        new StringSchema()._enum(["geometrie"]) | ""                        || []
+        new StringSchema()._enum(["geometrie"]) | " "                       || []
+        new IntegerSchema()                     | ""                        || []
+        new StringSchema()                      | "geometrie,documentdatum" || ["geometrie", "documentdatum"]
+        new IntegerSchema()                     | "1,2"                     || [1, 2]
     }
 }

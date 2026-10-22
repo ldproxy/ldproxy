@@ -114,7 +114,10 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
     StringBuilder valueAsString = new StringBuilder();
     if (schema instanceof ArraySchema && !value.trim().startsWith("[")) {
       Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
-      if (itemsSchema instanceof StringSchema) {
+      if (ListParameterValues.split(value).isEmpty()) {
+        // an empty value is an empty list, not a list with an empty string
+        valueAsString.append("[]");
+      } else if (itemsSchema instanceof StringSchema) {
         valueAsString.append(
             String.format(
                 "[\"%s\"]",
