@@ -10,6 +10,7 @@ package de.ii.ogcapi.mcp.app
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import io.modelcontextprotocol.spec.McpError
 import io.modelcontextprotocol.spec.McpSchema
 import spock.lang.Specification
@@ -54,5 +55,16 @@ class McpErrorSerializerSpec extends Specification {
         mcp.writeValueAsString(feature).contains('"geometry":null')
         !shared.writeValueAsString(feature).contains('"geometry"')
         !mcp.writeValueAsString(McpSchema.CallToolResult.builder().addTextContent("x").build()).contains('null')
+    }
+
+    def 'tool results are written without indentation, the shared object mapper keeps it'() {
+        given:
+        ObjectMapper shared = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
+        ObjectMapper mcp = McpServerImpl.mcpObjectMapper(shared)
+        Map<String, Object> feature = [type: "Feature", id: "1"]
+
+        expect:
+        mcp.writeValueAsString(feature) == '{"type":"Feature","id":"1"}'
+        shared.writeValueAsString(feature).contains('\n')
     }
 }

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -195,9 +196,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   // serializer, the response would contain the stack trace, so only the JSON-RPC error is written
   // the mapper for the messages and tool results: the null values in a tool result are kept, for
   // example the geometry of a feature without geometry, which GeoJSON requires; the messages of the
-  // SDK set their own inclusion
+  // SDK set their own inclusion; without indentation, as a tool result is sent twice (as text and
+  // as structured content) and indentation would make large results about a third larger
   static ObjectMapper mcpObjectMapper(ObjectMapper objectMapper) {
     return withMcpErrorSerializer(objectMapper)
+        .disable(SerializationFeature.INDENT_OUTPUT)
         .setDefaultPropertyInclusion(JsonInclude.Value.construct(Include.ALWAYS, Include.ALWAYS));
   }
 
