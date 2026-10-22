@@ -5617,6 +5617,40 @@
               "type": "null"
             }
           ]
+        },
+        "defaultExcludedProperties": {
+          "title": "defaultExcludedProperties",
+          "description": "The properties that are left out of the features by default, that is, if a request    sets neither `properties` nor `exclude-properties`. If no properties are set, the    properties with the role `AUXILIARY` in the feature schema are left out by default. A    request can ask for all properties with an empty value of `exclude-properties`, or for    specific properties with `properties`. Entries at the API level apply to every collection;    entries on a collection are merged with the API-level list (duplicates de-duplicated).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
         }
       },
       "additionalProperties": false

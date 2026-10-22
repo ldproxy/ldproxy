@@ -73,6 +73,16 @@ public interface QueryExpression {
 
   List<String> getExcludeProperties();
 
+  /**
+   * Whether "excludeProperties" is set, also to an empty list: then it replaces the default, which
+   * leaves out the properties with the role {@code AUXILIARY}.
+   */
+  @JsonIgnore
+  @Value.Default
+  default boolean getExcludePropertiesSet() {
+    return !getExcludeProperties().isEmpty();
+  }
+
   Optional<String> getCrs();
 
   Optional<String> getVerticalCrs();

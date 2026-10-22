@@ -34,6 +34,16 @@ public interface SingleQuery {
 
   List<String> getExcludeProperties(); // String or Parameter
 
+  /**
+   * Whether "excludeProperties" is set, also to an empty list: then it replaces the default, which
+   * leaves out the properties with the role {@code AUXILIARY}.
+   */
+  @JsonIgnore
+  @Value.Default
+  default boolean getExcludePropertiesSet() {
+    return !getExcludeProperties().isEmpty();
+  }
+
   Map<String, ResultSetDefinition> getResultSets();
 
   // shorthand for a single result set with the ids of the selected features

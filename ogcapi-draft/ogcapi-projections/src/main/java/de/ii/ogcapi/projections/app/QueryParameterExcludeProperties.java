@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -45,12 +46,19 @@ import java.util.stream.Collectors;
  * @endpoints Features, Feature, Vector Tile
  * @langEn The properties that should be excluded for each feature. The parameter value is a
  *     comma-separated list of property names. By default, all feature properties with a value are
- *     returned. The feature id cannot be excluded. The parameter must not be used together with the
- *     "properties" parameter.
+ *     returned, except the properties with the role `AUXILIARY` in the feature schema or, if set,
+ *     the properties in `defaultExcludedProperties`; this default does not apply to vector tiles.
+ *     An empty value excludes no properties. The feature id cannot be excluded. The parameter must
+ *     not be used together with the "properties" parameter; if "properties" is set, the default
+ *     does not apply.
  * @langDe Die Eigenschaften, die für jedes Feature ausgeschlossen werden sollen. Der Parameterwert
  *     ist eine kommagetrennte Liste von Eigenschaftsnamen. Standardmäßig werden alle
- *     Feature-Eigenschaften mit einem Wert zurückgegeben. Die Feature-Id kann nicht ausgeschlossen
- *     werden. Der Parameter darf nicht zusammen mit dem Parameter "properties" verwendet werden.
+ *     Feature-Eigenschaften mit einem Wert zurückgegeben, außer den Eigenschaften mit der Rolle
+ *     `AUXILIARY` im Feature-Schema oder, falls angegeben, den Eigenschaften in
+ *     `defaultExcludedProperties`; dieser Standard gilt nicht für Vektorkacheln. Ein leerer Wert
+ *     schließt keine Eigenschaften aus. Die Feature-Id kann nicht ausgeschlossen werden. Der
+ *     Parameter darf nicht zusammen mit dem Parameter "properties" verwendet werden; ist
+ *     "properties" angegeben, gilt der Standard nicht.
  */
 @Singleton
 @AutoBind
@@ -83,7 +91,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The properties that should be excluded for each feature. The parameter value is a comma-separated list of property names. By default, all feature properties with a value are returned. The feature id cannot be excluded. The parameter must not be used together with the 'properties' parameter.";
+    return "The properties that should be excluded for each feature. The parameter value is a comma-separated list of property names. By default, the properties in the default value of the parameter are excluded; an empty value excludes no properties. The feature id cannot be excluded. The parameter must not be used together with the 'properties' parameter; if 'properties' is set, the default does not apply.";
   }
 
   @Override
@@ -101,8 +109,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     return schemaMap
         .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
-        .computeIfAbsent(
-            "*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)).minItems(1));
+        .computeIfAbsent("*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)));
   }
 
   // the feature id cannot be excluded
@@ -117,17 +124,59 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
         .toList();
   }
 
+  /**
+   * The properties that are excluded if a request sets neither this parameter nor "properties": the
+   * properties in {@code defaultExcludedProperties} or, if none are set, the properties with the
+   * role {@code AUXILIARY}.
+   */
+  List<String> getDefaultExcludedProperties(OgcApiDataV2 apiData, String collectionId) {
+    List<String> excludable = getExcludablePropertyNames(apiData, collectionId);
+    List<String> configured =
+        apiData
+            .getExtension(ProjectionsConfiguration.class, collectionId)
+            .map(ProjectionsConfiguration::getDefaultExcludedProperties)
+            .orElse(List.of());
+    List<String> auxiliary =
+        configured.isEmpty()
+            ? Optional.ofNullable(apiData.getCollections().get(collectionId))
+                .flatMap(collectionData -> providers.getFeatureSchema(apiData, collectionData))
+                .map(
+                    schema ->
+                        schema.getAllNestedProperties().stream()
+                            .filter(FeatureSchema::isAuxiliary)
+                            .map(FeatureSchema::getFullPathAsString)
+                            .toList())
+                .orElse(List.of())
+            : List.of();
+    return defaultExcludedProperties(excludable, configured, auxiliary);
+  }
+
+  // the configured default or, if none is configured, the auxiliary properties
+  static List<String> defaultExcludedProperties(
+      List<String> excludable, List<String> configured, List<String> auxiliary) {
+    return (configured.isEmpty() ? auxiliary : configured)
+        .stream().filter(excludable::contains).toList();
+  }
+
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
     return schemaMap
         .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
         .computeIfAbsent(
             collectionId,
-            ignore ->
-                new ArraySchema()
-                    .items(
-                        new StringSchema()._enum(getExcludablePropertyNames(apiData, collectionId)))
-                    .minItems(1));
+            ignore -> {
+              // an empty value excludes no properties, also none of the default
+              ArraySchema schema =
+                  new ArraySchema()
+                      .items(
+                          new StringSchema()
+                              ._enum(getExcludablePropertyNames(apiData, collectionId)));
+              List<String> defaultExcluded = getDefaultExcludedProperties(apiData, collectionId);
+              if (!defaultExcluded.isEmpty()) {
+                schema.setDefault(defaultExcluded);
+              }
+              return schema;
+            });
   }
 
   @Override
@@ -165,8 +214,10 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
       QueryParameterSet parameters,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData) {
-    parameters
-        .getValue(this)
+    excludedProperties(
+            parameters.getValue(this),
+            parameters.getTypedValues().containsKey("properties"),
+            () -> getDefaultExcludedProperties(apiData, collectionData.getId()))
         .ifPresent(
             excludeProperties -> {
               schemaInfo.getPropertyNames(apiData, collectionData.getId(), true, false).stream()
@@ -176,7 +227,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
               if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace(
                     "Excluded properties: {}; selected properties: {}",
-                    String.join(", ", parameters.getValue(this).orElse(List.of())),
+                    String.join(", ", excludeProperties),
                     schemaInfo
                         .getPropertyNames(apiData, collectionData.getId(), true, false)
                         .stream()
@@ -186,6 +237,19 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
             });
   }
 
+  // the requested exclusions or, if the request does not select the properties itself, the default
+  static Optional<List<String>> excludedProperties(
+      Optional<List<String>> requested,
+      boolean propertiesRequested,
+      Supplier<List<String>> defaultExcluded) {
+    if (requested.isPresent() || propertiesRequested) {
+      return requested;
+    }
+    List<String> defaults = defaultExcluded.get();
+    return defaults.isEmpty() ? Optional.empty() : Optional.of(defaults);
+  }
+
+  // the default does not apply to tiles: their generation does not evaluate parameter defaults
   @Override
   public void applyTo(
       ImmutableTileGenerationParametersTransient.Builder userParametersBuilder,

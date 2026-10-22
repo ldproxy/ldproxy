@@ -11532,6 +11532,10 @@
     "methods": [
       {
         "parameterTypes": [],
+        "name": "getDefaultExcludedProperties"
+      },
+      {
+        "parameterTypes": [],
         "name": "getBuildingBlock"
       },
       {
@@ -11546,6 +11550,12 @@
     "queryAllDeclaredMethods": true,
     "queryAllDeclaredConstructors": true,
     "methods": [
+      {
+        "parameterTypes": [
+          "java.lang.Iterable"
+        ],
+        "name": "defaultExcludedProperties"
+      },
       {
         "parameterTypes": [],
         "name": "\u003cinit\u003e"

@@ -901,7 +901,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   queryExpression.getProperties(),
                   ImmutableList.of(),
                   queryExpression.getExcludeProperties(),
-                  ImmutableList.of()));
+                  ImmutableList.of(),
+                  queryExpression.getExcludePropertiesSet()));
     } else {
       queries =
           getSubQueriesWithResultSets(api.getData(), queryExpression, topLevelFilter, filterCrs);
@@ -988,7 +989,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               query.getProperties(),
               queryExpression.getProperties(),
               query.getExcludeProperties(),
-              queryExpression.getExcludeProperties());
+              queryExpression.getExcludeProperties(),
+              query.getExcludePropertiesSet() || queryExpression.getExcludePropertiesSet());
 
       if (query.getResultSetOnly()) {
         if (query.getAllResultSets().isEmpty()) {
@@ -1038,7 +1040,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       List<String> properties,
       List<String> globalProperties,
       List<String> excludeProperties,
-      List<String> globalExcludeProperties) {
+      List<String> globalExcludeProperties,
+      boolean excludePropertiesSet) {
     {
       ensureCollectionIdExists(apiData, collectionId);
 
@@ -1072,7 +1075,8 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
                   properties,
                   globalProperties,
                   excludeProperties,
-                  globalExcludeProperties))
+                  globalExcludeProperties,
+                  excludePropertiesSet))
           .build();
     }
   }
@@ -1081,7 +1085,9 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
    * The effective property selection of a sub-query. A local exclusion names a property of this
    * query's own collection, so a name the collection does not have is a typo and is rejected;
    * global exclusions are checked once against all queried collections in {@link
-   * #validateGlobalExcludeProperties}.
+   * #validateGlobalExcludeProperties}. If the query neither selects nor excludes properties, the
+   * properties with the role {@code AUXILIARY} are left out, as for the query parameter
+   * "exclude-properties".
    */
   private List<String> getFields(
       OgcApiDataV2 apiData,
@@ -1089,9 +1095,12 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
       List<String> properties,
       List<String> globalProperties,
       List<String> excludeProperties,
-      List<String> globalExcludeProperties) {
+      List<String> globalExcludeProperties,
+      boolean excludePropertiesSet) {
     List<String> exclusions =
-        PropertySelection.exclusions(globalExcludeProperties, excludeProperties);
+        !excludePropertiesSet && properties.isEmpty() && globalProperties.isEmpty()
+            ? getAuxiliaryPropertyNames(apiData, collectionId)
+            : PropertySelection.exclusions(globalExcludeProperties, excludeProperties);
     if (exclusions.isEmpty()) {
       // nothing is subtracted, so the collection's property names are not needed and the schema
       // pass behind them is skipped
@@ -1140,6 +1149,18 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
               "The query excludes properties that none of the queried collections has: %s.",
               String.join(", ", unknown)));
     }
+  }
+
+  private List<String> getAuxiliaryPropertyNames(OgcApiDataV2 apiData, String collectionId) {
+    return Optional.ofNullable(apiData.getCollections().get(collectionId))
+        .flatMap(collectionData -> providers.getFeatureSchema(apiData, collectionData))
+        .map(
+            schema ->
+                schema.getAllNestedProperties().stream()
+                    .filter(FeatureSchema::isAuxiliary)
+                    .map(FeatureSchema::getFullPathAsString)
+                    .toList())
+        .orElse(List.of());
   }
 
   private List<String> getPropertyNames(OgcApiDataV2 apiData, String collectionId) {
