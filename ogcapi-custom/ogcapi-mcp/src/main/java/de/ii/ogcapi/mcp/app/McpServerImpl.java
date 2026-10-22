@@ -80,6 +80,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -87,6 +88,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -99,6 +101,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private static final Logger LOGGER = LoggerFactory.getLogger(McpServerImpl.class);
   private static final String STORED_QUERY_PREFIX = "query_";
   private static final String COLLECTION_QUERY_PREFIX = "collection_";
+  private static final Set<String> PAGING_RELS = Set.of("next", "prev");
 
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
   private final AppContext appContext;
@@ -151,8 +154,15 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   @Override
   public HttpServlet getServlet(OgcApi api) {
+    String cacheKey = getCacheKey(api.getData());
+    HttpServletStatelessServerTransport current = servers.get(cacheKey);
+    if (Objects.nonNull(current)) {
+      return current;
+    }
+    removeOutdated(servers, api.getId(), cacheKey, HttpServletStatelessServerTransport::close);
+
     return servers.computeIfAbsent(
-        api.getData().getStableHash(),
+        cacheKey,
         key -> {
           McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(withMcpErrorSerializer(objectMapper));
           HttpServletStatelessServerTransport transport =
@@ -249,9 +259,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                             queryId,
                             request.arguments(),
                             tool.getQueryParameters());
-                    Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
+                    Map<String, Object> resultAsMap =
+                        forToolResult(objectMapper.readValue(result, Map.class));
                     return CallToolResult.builder()
-                        .addTextContent(result)
+                        .addTextContent(objectMapper.writeValueAsString(resultAsMap))
                         .isError(false)
                         .structuredContent(resultAsMap)
                         .build();
@@ -266,9 +277,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                             request.arguments(),
                             tool.getQueryParameters());
 
-                    Map<String, Object> resultAsMap = objectMapper.readValue(result, Map.class);
+                    Map<String, Object> resultAsMap =
+                        forToolResult(objectMapper.readValue(result, Map.class));
                     return CallToolResult.builder()
-                        .addTextContent(result)
+                        .addTextContent(objectMapper.writeValueAsString(resultAsMap))
                         .isError(false)
                         .structuredContent(resultAsMap)
                         .build();
@@ -321,31 +333,65 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   // the context of an internal request to a resource of the API; it is derived from the MCP request
   // like a request to the API (forwarded host and prefix), so the links in the response are the
-  // same as in the API
+  // same as in the API; the parameters of the tool call are the query parameters of the request, so
+  // that the link to the next page keeps them
   private ImmutableStaticRequestContext.Builder internalRequest(
-      OgcApi api, Optional<ApiRequestContext> mcpRequest, String... path) {
+      OgcApi api,
+      Optional<ApiRequestContext> mcpRequest,
+      Map<String, String> parameters,
+      String... path) {
     List<String> pathSegments =
         Stream.concat(api.getData().getSubPath().stream(), Arrays.stream(path)).toList();
     ImmutableStaticRequestContext.Builder builder =
         new ImmutableStaticRequestContext.Builder().webContext(appContext).api(api);
 
-    mcpRequest.ifPresentOrElse(
-        request ->
-            builder
-                .basePathSegments(request.getBasePathSegments())
-                .requestUri(
-                    URI.create(
-                        request
-                            .getBaseUriCustomizer()
-                            .copy()
-                            .setPathSegments(pathSegments)
-                            .toString())),
-        () ->
-            builder.requestUri(
-                URI.create(
-                    new URICustomizer(api.getUri()).setPathSegments(pathSegments).toString())));
+    URICustomizer uri =
+        mcpRequest
+            .map(request -> request.getBaseUriCustomizer().copy())
+            .orElseGet(() -> new URICustomizer(api.getUri()))
+            .setPathSegments(pathSegments);
+    parameters.forEach(uri::setParameter);
+    mcpRequest.ifPresent(request -> builder.basePathSegments(request.getBasePathSegments()));
 
-    return builder;
+    return builder.requestUri(URI.create(uri.toString()));
+  }
+
+  // of the links in a response, only those to other pages are useful for a client of a tool; a
+  // client cannot follow a link, so the offset of the next page is stated as nextOffset, at the
+  // start of the result (see McpToolUtils.PAGING_HINT)
+  static Map<String, Object> forToolResult(Map<String, Object> result) {
+    if (!(result.get("links") instanceof List<?> links)) {
+      return result;
+    }
+    List<?> pagingLinks =
+        links.stream()
+            .filter(link -> link instanceof Map<?, ?> map && PAGING_RELS.contains(map.get("rel")))
+            .toList();
+    Optional<Long> nextOffset =
+        pagingLinks.stream()
+            .map(link -> (Map<?, ?>) link)
+            .filter(link -> "next".equals(link.get("rel")) && link.get("href") instanceof String)
+            .flatMap(
+                link ->
+                    new URICustomizer(URI.create((String) link.get("href")))
+                        .getQueryParams().stream()
+                            .filter(param -> "offset".equals(param.getName()))
+                            .map(param -> Long.parseLong(param.getValue())))
+            .findFirst();
+
+    Map<String, Object> forTool = new LinkedHashMap<>();
+    result.forEach(
+        (key, value) -> {
+          if (!"links".equals(key)) {
+            forTool.put(key, value);
+          } else if (!pagingLinks.isEmpty()) {
+            forTool.put(key, pagingLinks);
+          }
+          if ("type".equals(key)) {
+            nextOffset.ifPresent(offset -> forTool.put("nextOffset", offset));
+          }
+        });
+    return forTool;
   }
 
   private String handleCollectionQuery(
@@ -414,12 +460,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .defaultPageSize(Optional.of(defaultPageSize))
-            .includeBodyLinks(false)
             .sendResponseAsStream(false)
             .build();
 
     ApiRequestContext requestContext =
-        internalRequest(api, mcpRequest, "collections", collectionId, "items")
+        internalRequest(api, mcpRequest, stringParams, "collections", collectionId, "items")
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("application", "geo+json"))
@@ -519,11 +564,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .defaultPageSize(Optional.ofNullable(coreConfiguration.getDefaultPageSize()))
             .maximumPageSize(Optional.ofNullable(coreConfiguration.getMaximumPageSize()))
             .isStoredQuery(true)
-            .includeBodyLinks(false)
             .build();
 
     ApiRequestContext requestContext =
-        internalRequest(api, mcpRequest, "search", queryId)
+        internalRequest(api, mcpRequest, stringParams, "search", queryId)
             .mediaType(
                 new ImmutableApiMediaType.Builder()
                     .type(new MediaType("application", "geo+json"))
@@ -559,8 +603,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   @Override
   public McpSchema getSchema(OgcApi api) {
     OgcApiDataV2 apiData = api.getData();
+    String cacheKey = getCacheKey(apiData);
 
-    if (!schemas.containsKey(apiData.getStableHash())) {
+    if (!schemas.containsKey(cacheKey)) {
+      removeOutdated(schemas, apiData.getId(), cacheKey, schema -> {});
       LOGGER.debug("Creating MCP schema for API {}", apiData.getId());
 
       McpConfiguration mcpConfiguration =
@@ -585,16 +631,40 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   "offset",
                   "sortby",
                   "properties",
-                  "exclude-properties"));
+                  "exclude-properties",
+                  "filter"));
 
       schemas.put(
-          apiData.getStableHash(),
+          cacheKey,
           new ImmutableMcpSchema.Builder()
               .addAllTools(
                   Stream.concat(collectionTools.stream(), storedQueryTools.stream())
                       .collect(Collectors.toList()))
               .build());
     }
-    return schemas.get(apiData.getStableHash());
+    return schemas.get(cacheKey);
+  }
+
+  // the tools are derived from the API and its stored queries; the stored queries can change
+  // without a change of the API, for example when they are reloaded
+  private String getCacheKey(OgcApiDataV2 apiData) {
+    return String.format(
+        "%s/%s/%d",
+        apiData.getId(), apiData.getStableHash(), storedQueryRepository.getAll(apiData).hashCode());
+  }
+
+  // the server and the schema for a previous state of the API are no longer used
+  private static <T> void removeOutdated(
+      Map<String, T> cache, String apiId, String cacheKey, Consumer<T> onRemove) {
+    cache
+        .keySet()
+        .removeIf(
+            key -> {
+              if (key.startsWith(apiId + "/") && !key.equals(cacheKey)) {
+                Optional.ofNullable(cache.get(key)).ifPresent(onRemove);
+                return true;
+              }
+              return false;
+            });
   }
 }

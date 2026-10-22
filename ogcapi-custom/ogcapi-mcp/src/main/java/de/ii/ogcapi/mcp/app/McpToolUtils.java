@@ -21,6 +21,7 @@ import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpTool;
+import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.List;
@@ -132,7 +133,8 @@ public class McpToolUtils {
                   param -> {
                     Schema<?> schema = param.getSchema(apiData, Optional.empty());
                     if (schema != null) {
-                      inputSchema.addProperty(param.getName(), schema);
+                      inputSchema.addProperty(
+                          param.getName(), withPagingHint(param, schema, schema.getDescription()));
                     }
                   });
 
@@ -306,7 +308,8 @@ public class McpToolUtils {
                 Schema<?> schema = param.getSchema(apiData, collectionId);
                 if (schema != null) {
                   schema.setDescription(param.getDescription());
-                  inputSchema.addProperty(param.getName(), schema);
+                  inputSchema.addProperty(
+                      param.getName(), withPagingHint(param, schema, param.getDescription()));
                 }
               }
 
@@ -408,4 +411,22 @@ public class McpToolUtils {
             })
         .toList();
   }
+
+  // the result of a tool call states the offset of the next page, if there is one (see
+  // McpServerImpl); the schema of the parameter is copied, so the API definition is not changed
+  static Schema<?> withPagingHint(
+      OgcApiQueryParameter param, Schema<?> schema, String description) {
+    if (!"offset".equals(param.getName())) {
+      return schema;
+    }
+    Schema<?> copy = Json.mapper().convertValue(schema, Schema.class);
+    copy.setDescription(
+        (Objects.nonNull(description) && !description.isBlank() ? description + " " : "")
+            + PAGING_HINT);
+    return copy;
+  }
+
+  static final String PAGING_HINT =
+      "If the result contains 'nextOffset', more results are available: call the tool again with"
+          + " the same arguments and this value as offset.";
 }
