@@ -21,6 +21,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
+import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.ParameterResolver;
@@ -38,6 +39,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpSchema;
@@ -475,6 +477,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             .featureProvider(featureProvider)
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
             .defaultPageSize(Optional.of(defaultPageSize))
+            .profiles(Profile.of(extensionRegistry, ProfileRelAsKeyTitle.ID))
             .sendResponseAsStream(false)
             .build();
 
@@ -569,6 +572,18 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     QueryExpression executableQuery =
         new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
+
+    // references without their URI, unless the stored query selects how references are written
+    boolean referencesSelected =
+        Profile.of(extensionRegistry, executableQuery.getProfiles().toArray(String[]::new)).stream()
+            .anyMatch(profile -> ProfileRelAsKeyTitle.PROFILE_SET.equals(profile.getProfileSet()));
+    if (!referencesSelected) {
+      executableQuery =
+          new ImmutableQueryExpression.Builder()
+              .from(executableQuery)
+              .addProfiles(ProfileRelAsKeyTitle.ID)
+              .build();
+    }
 
     SearchQueriesHandler.QueryInputQuery queryInput =
         new ImmutableQueryInputQuery.Builder()
