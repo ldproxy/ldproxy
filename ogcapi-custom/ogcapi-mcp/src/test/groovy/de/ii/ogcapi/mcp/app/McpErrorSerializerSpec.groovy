@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.mcp.app
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.modelcontextprotocol.spec.McpError
@@ -41,5 +42,17 @@ class McpErrorSerializerSpec extends Specification {
 
         then:
         shared.writeValueAsString(McpError.builder(McpSchema.ErrorCodes.INTERNAL_ERROR).message("x").build()).contains("stackTrace")
+    }
+
+    def 'the null values of a tool result are kept, the messages of the SDK keep their own inclusion'() {
+        given:
+        ObjectMapper shared = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_ABSENT)
+        ObjectMapper mcp = McpServerImpl.mcpObjectMapper(shared)
+        Map<String, Object> feature = [type: "Feature", id: "1", geometry: null, properties: [:]]
+
+        expect:
+        mcp.writeValueAsString(feature).contains('"geometry":null')
+        !shared.writeValueAsString(feature).contains('"geometry"')
+        !mcp.writeValueAsString(McpSchema.CallToolResult.builder().addTextContent("x").build()).contains('null')
     }
 }

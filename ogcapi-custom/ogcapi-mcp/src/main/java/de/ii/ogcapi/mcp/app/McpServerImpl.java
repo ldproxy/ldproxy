@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -108,6 +110,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final ExtensionRegistry extensionRegistry;
   private final StoredQueryRepository storedQueryRepository;
   private final ObjectMapper objectMapper;
+  private final ObjectMapper mcpObjectMapper;
   private final Map<String, HttpServletStatelessServerTransport> servers =
       new ConcurrentHashMap<>();
   private final FeaturesCoreProviders providers;
@@ -145,6 +148,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     this.extensionRegistry = extensionRegistry;
     this.storedQueryRepository = storedQueryRepository;
     this.objectMapper = jackson.getDefaultObjectMapper();
+    this.mcpObjectMapper = mcpObjectMapper(objectMapper);
     this.providers = providers;
     this.ogcApiFeaturesQuery = ogcApiFeaturesQuery;
     this.featuresCoreQueriesHandler = featuresCoreQueriesHandler;
@@ -164,7 +168,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     return servers.computeIfAbsent(
         cacheKey,
         key -> {
-          McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(withMcpErrorSerializer(objectMapper));
+          McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(mcpObjectMapper);
           HttpServletStatelessServerTransport transport =
               HttpServletStatelessServerTransport.builder()
                   .jsonMapper(jsonMapper)
@@ -189,6 +193,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   // the transport writes an error of a request as an McpError, which is an exception; without a
   // serializer, the response would contain the stack trace, so only the JSON-RPC error is written
+  // the mapper for the messages and tool results: the null values in a tool result are kept, for
+  // example the geometry of a feature without geometry, which GeoJSON requires; the messages of the
+  // SDK set their own inclusion
+  static ObjectMapper mcpObjectMapper(ObjectMapper objectMapper) {
+    return withMcpErrorSerializer(objectMapper)
+        .setDefaultPropertyInclusion(JsonInclude.Value.construct(Include.ALWAYS, Include.ALWAYS));
+  }
+
   static ObjectMapper withMcpErrorSerializer(ObjectMapper objectMapper) {
     return objectMapper
         .copy()
@@ -260,9 +272,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                             request.arguments(),
                             tool.getQueryParameters());
                     Map<String, Object> resultAsMap =
-                        forToolResult(objectMapper.readValue(result, Map.class));
+                        forToolResult(mcpObjectMapper.readValue(result, Map.class));
                     return CallToolResult.builder()
-                        .addTextContent(objectMapper.writeValueAsString(resultAsMap))
+                        .addTextContent(mcpObjectMapper.writeValueAsString(resultAsMap))
                         .isError(false)
                         .structuredContent(resultAsMap)
                         .build();
@@ -278,9 +290,9 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                             tool.getQueryParameters());
 
                     Map<String, Object> resultAsMap =
-                        forToolResult(objectMapper.readValue(result, Map.class));
+                        forToolResult(mcpObjectMapper.readValue(result, Map.class));
                     return CallToolResult.builder()
-                        .addTextContent(objectMapper.writeValueAsString(resultAsMap))
+                        .addTextContent(mcpObjectMapper.writeValueAsString(resultAsMap))
                         .isError(false)
                         .structuredContent(resultAsMap)
                         .build();
