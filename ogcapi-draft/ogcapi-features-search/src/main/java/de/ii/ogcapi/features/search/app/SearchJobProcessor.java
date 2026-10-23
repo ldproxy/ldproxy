@@ -33,7 +33,6 @@ import de.ii.xtraplatform.entities.domain.EntityRegistry;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple;
-import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
@@ -64,7 +63,6 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
 
   private final AppContext appContext;
   private final EntityRegistry entityRegistry;
-  private final ResourceStore resultStore;
   private final FeaturesCoreProviders providers;
   private final SearchQueriesHandler queryHandler;
 
@@ -75,16 +73,12 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
       ResourceStore resourceStore,
       FeaturesCoreProviders providers,
       SearchQueriesHandler queryHandler) {
+    super(SearchJob.KIND, resourceStore);
+
     this.appContext = appContext;
     this.entityRegistry = entityRegistry;
-    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
     this.providers = providers;
     this.queryHandler = queryHandler;
-  }
-
-  @Override
-  public String getKind() {
-    return SearchJob.KIND;
   }
 
   @Override
@@ -199,7 +193,7 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
         Files.writeString(tmpFile, body, StandardCharsets.UTF_8);
       }
       try (InputStream in = Files.newInputStream(tmpFile)) {
-        resultStore.put(Path.of(resultPath), in);
+        getStore().put(Path.of(resultPath), in);
       }
     } finally {
       Files.deleteIfExists(tmpFile);
