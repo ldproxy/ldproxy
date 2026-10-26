@@ -9,7 +9,6 @@
     "start": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test": "mocha",
     "lint": "eslint .",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -22,7 +21,6 @@
     "@xtramaps/web-map-maplibre-react": "^1.2.0",
     "@xtramaps/web-map-openlayers-react": "^1.2.0",
     "bootstrap": "^4.6.0",
-    "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
     "date-fns": "2.16.1",
     "i18next": "^25.0.0",
@@ -54,11 +52,16 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-storybook": "10.5.7",
     "globals": "17.12.0",
-    "mocha": "8.4.0",
     "storybook": "10.5.7",
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.0",
     "vite": "8.2.1"
+  },
+  "overrides": {
+    "react-popper": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
