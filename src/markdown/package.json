@@ -5,12 +5,12 @@
     "docs:build": "vuepress build docs"
   },
   "devDependencies": {
-    "@vuepress/plugin-docsearch": "^2.0.0-rc.0",
-    "@vuepress/plugin-theme-data": "^2.0.0-rc.0",
-    "@vuepress/plugin-toc": "^2.0.0-rc",
-    "@vuepress/theme-default": "^2.0.0-rc.0",
-    "vuepress": "^2.0.0-rc.0",
-    "vuepress-plugin-md-enhance": "^2.0.0-rc.4",
+    "@vuepress/plugin-docsearch": "2.0.0-rc.0",
+    "@vuepress/plugin-theme-data": "2.0.0-rc.0",
+    "@vuepress/plugin-toc": "2.0.0-rc.135",
+    "@vuepress/theme-default": "2.0.0-rc.0",
+    "vuepress": "2.0.0-rc.0",
+    "vuepress-plugin-md-enhance": "2.0.0-rc.4",
     "vuepress-plugin-theme-extensions": "azahnen/vuepress-plugin-theme-extensions#1a6e0da4540e2adf5ef8a6f6da0e0e455575beb6"
   },
   "packageManager": "yarn@4.0.2"

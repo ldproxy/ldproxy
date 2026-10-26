@@ -1734,7 +1734,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuepress/plugin-docsearch@npm:^2.0.0-rc.0":
+"@vuepress/plugin-docsearch@npm:2.0.0-rc.0":
   version: 2.0.0-rc.0
   resolution: "@vuepress/plugin-docsearch@npm:2.0.0-rc.0"
   dependencies:
@@ -1825,7 +1825,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuepress/plugin-theme-data@npm:2.0.0-rc.0, @vuepress/plugin-theme-data@npm:^2.0.0-rc.0":
+"@vuepress/plugin-theme-data@npm:2.0.0-rc.0":
   version: 2.0.0-rc.0
   resolution: "@vuepress/plugin-theme-data@npm:2.0.0-rc.0"
   dependencies:
@@ -1852,7 +1852,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuepress/plugin-toc@npm:^2.0.0-rc":
+"@vuepress/plugin-toc@npm:2.0.0-rc.135":
   version: 2.0.0-rc.135
   resolution: "@vuepress/plugin-toc@npm:2.0.0-rc.135"
   dependencies:
@@ -1875,7 +1875,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuepress/theme-default@npm:2.0.0-rc.0, @vuepress/theme-default@npm:^2.0.0-rc.0":
+"@vuepress/theme-default@npm:2.0.0-rc.0":
   version: 2.0.0-rc.0
   resolution: "@vuepress/theme-default@npm:2.0.0-rc.0"
   dependencies:
@@ -4064,12 +4064,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@vuepress/plugin-docsearch": "npm:^2.0.0-rc.0"
-    "@vuepress/plugin-theme-data": "npm:^2.0.0-rc.0"
-    "@vuepress/plugin-toc": "npm:^2.0.0-rc"
-    "@vuepress/theme-default": "npm:^2.0.0-rc.0"
-    vuepress: "npm:^2.0.0-rc.0"
-    vuepress-plugin-md-enhance: "npm:^2.0.0-rc.4"
+    "@vuepress/plugin-docsearch": "npm:2.0.0-rc.0"
+    "@vuepress/plugin-theme-data": "npm:2.0.0-rc.0"
+    "@vuepress/plugin-toc": "npm:2.0.0-rc.135"
+    "@vuepress/theme-default": "npm:2.0.0-rc.0"
+    vuepress: "npm:2.0.0-rc.0"
+    vuepress-plugin-md-enhance: "npm:2.0.0-rc.4"
     vuepress-plugin-theme-extensions: "azahnen/vuepress-plugin-theme-extensions#1a6e0da4540e2adf5ef8a6f6da0e0e455575beb6"
   languageName: unknown
   linkType: soft
@@ -4671,7 +4671,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuepress-plugin-md-enhance@npm:^2.0.0-rc.4":
+"vuepress-plugin-md-enhance@npm:2.0.0-rc.4":
   version: 2.0.0-rc.4
   resolution: "vuepress-plugin-md-enhance@npm:2.0.0-rc.4"
   dependencies:
@@ -4857,7 +4857,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuepress@npm:^2.0.0-rc.0":
+"vuepress@npm:2.0.0-rc.0":
   version: 2.0.0-rc.0
   resolution: "vuepress@npm:2.0.0-rc.0"
   dependencies:
