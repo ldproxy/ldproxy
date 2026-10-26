@@ -18,6 +18,11 @@
     {
       "groupName": "flatgeobuf",
       "matchPackageNames": ["/flatgeobuf/", "/flatbuffers/"]
+    },
+    {
+      "description": "One xtramaps release touches several @xtramaps packages; update them in one PR so they stay on the same release.",
+      "groupName": "xtramaps",
+      "matchPackageNames": ["@xtramaps/**"]
     }
   ]
 }

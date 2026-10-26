@@ -16,14 +16,11 @@
     "sbom": "cyclonedx-npm --omit dev --ignore-npm-errors --no-validate --flatten-components --spec-version 1.6 --output-reproducible --output-format JSON"
   },
   "dependencies": {
-    "@cesium/engine": "^26.2.0",
-    "@cesium/widgets": "^16.1.1",
-    "@vis.gl/react-maplibre": "^8.1.2",
-    "@xtramaps/layer-control-maplibre": "^1.1.0",
-    "@xtramaps/layer-control-maplibre-react": "^1.1.0",
-    "@xtramaps/web-map-cesium-react": "^1.1.0",
-    "@xtramaps/web-map-maplibre-react": "^1.1.1",
-    "@xtramaps/web-map-openlayers-react": "^1.1.0",
+    "@xtramaps/layer-control-maplibre": "^1.2.0",
+    "@xtramaps/layer-control-maplibre-react": "^1.3.0",
+    "@xtramaps/web-map-cesium-react": "^1.2.0",
+    "@xtramaps/web-map-maplibre-react": "^1.2.0",
+    "@xtramaps/web-map-openlayers-react": "^1.2.0",
     "bootstrap": "^4.6.0",
     "core-js": "^3.32.0",
     "d3-scale": "3.2.3",
@@ -32,7 +29,6 @@
     "jquery": "^3",
     "maplibre-gl": "^6.3.0",
     "moment": "^2.29.1",
-    "ol": "10.8.0",
     "popper.js": "^1.16.1",
     "qs": "^6.5.1",
     "rc-slider": "^11.1.9",
@@ -40,8 +36,7 @@
     "react-datetime": "^3.3.1",
     "react-dom": "^19",
     "react-i18next": "^16.0.0",
-    "reactstrap": "^9.2.3",
-    "rlayers": "^3.9.0"
+    "reactstrap": "^9.2.3"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "6.0.1",
@@ -53,6 +48,8 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
+    "@xtramaps/web-map-cesium": "1.2.0",
+    "@xtramaps/web-map-maplibre": "1.2.0",
     "eslint": "10.11.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-storybook": "10.5.7",
