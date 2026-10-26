@@ -18,7 +18,6 @@
   "dependencies": {
     "@cesium/engine": "^26.2.0",
     "@cesium/widgets": "^16.1.1",
-    "@mapbox/geojson-extent": "^1.0.1",
     "@vis.gl/react-maplibre": "^8.1.2",
     "@xtramaps/layer-control-maplibre": "^1.1.0",
     "@xtramaps/layer-control-maplibre-react": "^1.1.0",
@@ -35,7 +34,6 @@
     "moment": "^2.29.1",
     "ol": "10.8.0",
     "popper.js": "^1.16.1",
-    "prop-types": "^15.7.2",
     "qs": "^6.5.1",
     "rc-slider": "^11.1.9",
     "react": "^19",
@@ -63,8 +61,7 @@
     "storybook": "10.5.7",
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.0",
-    "vite": "8.2.1",
-    "vite-plugin-static-copy": "4.1.1"
+    "vite": "8.2.1"
   },
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"

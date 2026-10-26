@@ -1,38 +1,13 @@
 import { fileURLToPath } from 'node:url';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { resolve, relative, dirname, join, sep } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { cesiumAssets, cesiumAssetsPath } from '@xtramaps/web-map-cesium/vite';
+import { maplibreWorker } from '@xtramaps/web-map-maplibre/vite';
 import { ogcapiHtmlMustachePlugin } from './vite-plugins/ogcapi-html-mustache.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
-
-// Replaces the old @neutrinojs/copy step: Cesium loads its Workers/Assets/ThirdParty/Widgets
-// via plain runtime fetch()/Worker() calls under CESIUM_BASE_URL, not via JS imports, so no
-// bundler can pick them up on its own — they have to be copied to the output verbatim.
-const cesiumEngineDir = dirname(resolve(root, 'node_modules/@cesium/engine/package.json'));
-const cesiumWidgetsDir = dirname(resolve(root, 'node_modules/@cesium/widgets/package.json'));
-const cesiumVersion = JSON.parse(
-  readFileSync(join(cesiumWidgetsDir, 'package.json'), 'utf-8')
-).version;
-const cesiumPath = `cesium/${cesiumVersion}`;
-
-// maplibre-gl needs its worker script (all vector tile fetching/parsing runs off the main
-// thread) at a URL it computes itself at runtime from `import.meta.url` of wherever its own
-// bundled code ends up — not via a statically analyzable `new Worker(new URL(...))` call Vite's
-// bundler could detect and emit automatically. Without this copy, that request 404s silently:
-// raster layers (loaded directly on the main thread) still render, but vector layers never do,
-// with no console error to point at it.
-const maplibreGlDir = dirname(resolve(root, 'node_modules/maplibre-gl/package.json'));
-
-// rename.stripBase needs the exact number of path segments to strip so only the subtree
-// *below* `dir` survives under `dest` (a plain `stripBase: true` strips everything down to
-// the bare filename, losing subdirectories Cesium's runtime depends on, e.g.
-// Assets/IAU2006_XYS/IAU2006_XYS_18.json or Widgets/Images/NavigationHelp/*.svg). Computed
-// from `root` instead of hardcoded so it stays correct regardless of the exact node_modules
-// layout (hoisting, nested installs, etc.).
-const stripBaseCount = (dir) => relative(root, dir).split(sep).length;
 
 // NOTE: src/apps/common looks like a non-rendering leftover (just imports react/react-dom,
 // no render call — it used to seed Neutrino/Webpack's splitChunks vendor chunk), but its
@@ -75,63 +50,12 @@ export default defineConfig({
     // is a drop-in fix with no source changes.
     react({ jsxRuntime: 'classic' }),
     ogcapiHtmlMustachePlugin({ apps, styles }),
-    viteStaticCopy({
-      // Two independent fixes needed on every target below, both invisible until Cesium was
-      // actually exercised deeply (terrain, 3D Tiles, NavigationHelp/InfoBox overlays):
-      // 1. A trailing `/*` only matches files, not directories - fast-glob doesn't recurse into
-      //    matched subdirectories on its own, so nested assets (Textures/SkyBox/*.jpg,
-      //    IAU2006_XYS/*.json, Widgets/Images/NavigationHelp/*.svg, Widgets/InfoBox/*.css) were
-      //    never even matched, let alone copied. Changed to `/**/*` (recursive) for that.
-      // 2. rename.stripBase: vite-plugin-static-copy only flattens a glob match into `dest` when
-      //    it sits at a path segment boundary it can strip automatically - for src paths reaching
-      //    into node_modules like these, it instead nests the entire matched path (e.g.
-      //    `Assets/node_modules/@cesium/engine/Source/Assets/...`) under dest, leaving the real
-      //    destination empty.
-      // Symptom without both fixes: a wall of 404s for the affected files and Cesium's own
-      // "An error occurred while rendering. Rendering has stopped." - not a partial degradation.
-      targets: [
-        {
-          src: `${cesiumEngineDir}/Build/Workers/**/*`,
-          dest: `assets/${cesiumPath}/Workers`,
-          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Build/Workers`) },
-        },
-        {
-          src: `${cesiumEngineDir}/Source/Assets/**/*`,
-          dest: `assets/${cesiumPath}/Assets`,
-          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/Assets`) },
-        },
-        {
-          src: `${cesiumEngineDir}/Source/ThirdParty/**/*`,
-          dest: `assets/${cesiumPath}/ThirdParty`,
-          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/ThirdParty`) },
-        },
-        {
-          src: `${cesiumEngineDir}/Source/Widget/**/*`,
-          dest: `assets/${cesiumPath}/Widgets/CesiumWidget`,
-          rename: { stripBase: stripBaseCount(`${cesiumEngineDir}/Source/Widget`) },
-        },
-        {
-          src: `${cesiumWidgetsDir}/Source/**/*`,
-          dest: `assets/${cesiumPath}/Widgets`,
-          rename: { stripBase: stripBaseCount(`${cesiumWidgetsDir}/Source`) },
-        },
-        {
-          // The worker script itself imports `./maplibre-gl-shared.mjs` (code shared between
-          // main thread and worker) as a plain relative specifier, so it has to sit right next
-          // to it — same reasoning as the worker file itself, just one hop further.
-          src: `${maplibreGlDir}/dist/maplibre-gl-{worker,shared}.mjs`,
-          dest: `assets`,
-          rename: { stripBase: true },
-          // the .map files are not shipped, so drop the reference to keep browsers from
-          // requesting them
-          transform: (content) => content.replace(/^\/\/# sourceMappingURL=.*$/m, ''),
-        },
-      ],
-    }),
+    cesiumAssets(),
+    maplibreWorker(),
   ],
   define: {
     'process.env.APP': JSON.stringify(process.env.APP ?? null),
-    'process.env.CESIUM_PATH': JSON.stringify(cesiumPath),
+    'process.env.CESIUM_PATH': JSON.stringify(cesiumAssetsPath),
     // Webpack 4 shimmed the Node `global` to the browser global object by default; several
     // app entries rely on that (`global._map`/`global._filter` alongside `globalThis.*`).
     // Vite/esbuild don't do this, so replicate it rather than touching the affected app files.
