@@ -23,6 +23,12 @@
       "description": "One xtramaps release touches several @xtramaps packages; update them in one PR so they stay on the same release.",
       "groupName": "xtramaps",
       "matchPackageNames": ["@xtramaps/**"]
+    },
+    {
+      "description": "VuePress plugins only work with the vuepress core version they were built against, and the docs are pinned to vuepress 2.0.0-rc.0. Hold all of them until the docs are migrated together.",
+      "matchFileNames": ["src/markdown/package.json"],
+      "matchPackageNames": ["vuepress", "@vuepress/**", "vuepress-plugin-*"],
+      "enabled": false
     }
   ]
 }
