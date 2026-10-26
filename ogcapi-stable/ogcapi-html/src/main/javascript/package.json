@@ -22,7 +22,7 @@
     "@xtramaps/web-map-openlayers-react": "^1.2.0",
     "bootstrap": "^4.6.0",
     "d3-scale": "3.3.0",
-    "date-fns": "2.16.1",
+    "date-fns": "2.30.0",
     "i18next": "^25.0.0",
     "jquery": "^3",
     "maplibre-gl": "^6.3.0",
