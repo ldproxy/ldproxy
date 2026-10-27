@@ -49,6 +49,15 @@ public interface ActionResult {
   Optional<String> getError();
 
   /**
+   * Whether a FAILED outcome was not caused by the request, but by the server or the data source,
+   * e.g. a lost database connection or a full disk. The same request may succeed later.
+   */
+  @Value.Default
+  default boolean isServerError() {
+    return false;
+  }
+
+  /**
    * Non-fatal warnings the data source emitted while executing this action (e.g. PostgreSQL {@code
    * RAISE WARNING} / {@code RAISE NOTICE} from triggers or functions invoked by the action's
    * statements). Present on any outcome — a failed action keeps the warnings emitted before its

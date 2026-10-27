@@ -34,3 +34,9 @@ dependencies {
 
     testProvided 'de.interactive_instruments:xtraplatform-cache'
 }
+
+moduleInfo {
+    requires = [
+            'java.sql',
+    ]
+}

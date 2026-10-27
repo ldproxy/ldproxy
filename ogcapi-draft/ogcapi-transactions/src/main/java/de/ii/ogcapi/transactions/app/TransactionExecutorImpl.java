@@ -87,6 +87,7 @@ import jakarta.ws.rs.core.MediaType;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -332,6 +333,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     boolean commitSucceeded = false;
     Optional<String> transactionError = Optional.empty();
+    boolean transactionServerError = false;
     if (!anyFailed) {
       try {
         // Pre-commit hooks run on the still-open transaction; a raised error aborts the
@@ -354,6 +356,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         }
         rollbackQuietly(sessionsByProvider.values());
         transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
+        transactionServerError = isServerError(e);
         results = flipSuccessesToRolledBack(results);
       }
     } else {
@@ -372,6 +375,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .warnings(warnings)
         .addAllWarnings(lenientWarnings(results))
         .transactionError(transactionError)
+        .isTransactionServerError(transactionServerError)
         .build();
   }
 
@@ -2046,6 +2050,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .actionId(action.getActionId())
         .status(ActionStatus.FAILED)
         .error(errorMessage(error))
+        .isServerError(isServerError(error))
         .failedFeatureIds(failedFeatureIds)
         .failedFeaturePayloads(failedFeaturePayloads)
         .build();
@@ -2096,6 +2101,33 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // index, or a trigger raising one) is caused by the data the client sent, just like a malformed
   // payload — it is reported in the response, so the stack trace adds nothing. The same holds for a
   // configured transaction hook that rejects the data it was given.
+  /**
+   * Whether the failure was not caused by the request: the data source reported that it cannot be
+   * reached or is out of resources (SQLSTATE classes 08 and 53), was shut down (57), failed
+   * internally (58, XX), or aborted the transaction because of a conflict with another one (40), or
+   * reported no SQLSTATE at all (e.g. a timeout of the connection pool). The first SQLSTATE in the
+   * chain decides; other failures, including a database rejecting the data, are caused by the
+   * request.
+   */
+  static boolean isServerError(Throwable error) {
+    Set<Throwable> seen = new HashSet<>();
+    for (Throwable t = error; t != null && seen.add(t); t = t.getCause()) {
+      if (t instanceof SQLException sqlException) {
+        // iterating a SQLException walks its causes and next exceptions, e.g. of a batch
+        for (Throwable s : sqlException) {
+          if (s instanceof SQLException e && e.getSQLState() != null) {
+            return SERVER_ERROR_SQL_STATE_CLASSES.contains(e.getSQLState().substring(0, 2));
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static final Set<String> SERVER_ERROR_SQL_STATE_CLASSES =
+      Set.of("08", "40", "53", "57", "58", "XX");
+
   private static boolean isUserError(Throwable error) {
     for (Throwable t = error; t != null; t = t.getCause()) {
       if (t instanceof IllegalArgumentException
