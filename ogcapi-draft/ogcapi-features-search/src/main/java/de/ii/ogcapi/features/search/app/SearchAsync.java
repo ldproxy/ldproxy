@@ -93,7 +93,7 @@ final class SearchAsync {
       try {
         Job finished = jobs.waitFor(job.id()).get(waitSeconds, TimeUnit.SECONDS);
         Optional<Response> syncResponse =
-            syncResponse(finished, resultStore, requestContext, "wait=" + sentWait.get());
+            syncResponse(finished, resultStore, requestContext, "wait=" + waitSeconds);
         if (syncResponse.isPresent()) {
           return syncResponse.get();
         }

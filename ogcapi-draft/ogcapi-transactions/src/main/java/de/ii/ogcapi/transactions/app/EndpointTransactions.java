@@ -573,7 +573,7 @@ public class EndpointTransactions extends Endpoint
       try {
         Job finished = jobs.waitFor(job.id()).get(waitSeconds, TimeUnit.SECONDS);
         Optional<Response> syncResponse =
-            syncResponse(finished, sentHandling, sentReturn, sentWait.get());
+            syncResponse(finished, sentHandling, sentReturn, waitSeconds);
         if (syncResponse.isPresent()) {
           return syncResponse.get();
         }
