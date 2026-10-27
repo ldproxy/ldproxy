@@ -16,6 +16,7 @@ import de.ii.ogcapi.common.domain.async.AsyncSubscriber;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.common.domain.async.JobResultsSelector;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
@@ -26,6 +27,7 @@ import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
@@ -35,7 +37,10 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,14 +58,20 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
   private final ObjectMapper mapper;
   private final HttpClient httpClient;
   private final Lazy<Set<JobResultsSelector>> resultsSelectors;
+  private final ResourceStore resourceStore;
 
   @Inject
   AsyncJobsImpl(
-      Jobs jobs, Jackson jackson, Http http, Lazy<Set<JobResultsSelector>> resultsSelectors) {
+      Jobs jobs,
+      Jackson jackson,
+      Http http,
+      Lazy<Set<JobResultsSelector>> resultsSelectors,
+      ResourceStore resourceStore) {
     this.jobs = jobs;
     this.mapper = jackson.getDefaultObjectMapper();
     this.httpClient = http.getDefaultClient();
     this.resultsSelectors = resultsSelectors;
+    this.resourceStore = resourceStore;
   }
 
   private Optional<Job> getAsyncJob(String jobId) {
@@ -115,6 +126,41 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
   private OgcApiJobStatus getStatusInfoCheck(String jobId) {
     return getStatusInfo(jobId)
         .orElseThrow(() -> new NotFoundException("No job found with job id '" + jobId + "'."));
+  }
+
+  @Override
+  public Optional<ResultDocument> getResultDocument(String jobId) {
+    Job job = getAsyncJobCheck(jobId);
+    Optional<JobResultFile> resultFile = JobResultFile.from(job.outputs());
+
+    if (resultFile.isEmpty()) {
+      return Optional.empty();
+    }
+
+    ResourceStore jobStore = resourceStore.with(Jobs.RESOURCE_TYPE, job.kind());
+    Path path = resultFile.get().path();
+    if (!hasResultFile(jobStore, path)) {
+      throw new NotFoundException("The result of job '" + jobId + "' is no longer available.");
+    }
+
+    StreamingOutput content =
+        output -> {
+          try (InputStream in = jobStore.content(path).orElseThrow()) {
+            in.transferTo(output);
+          }
+        };
+
+    return Optional.of(
+        ImmutableResultDocument.of(
+            MediaType.valueOf(resultFile.get().getResultMediaType()), content));
+  }
+
+  private static boolean hasResultFile(ResourceStore jobStore, Path path) {
+    try {
+      return jobStore.has(path);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not access the job result " + path, e);
+    }
   }
 
   @Override

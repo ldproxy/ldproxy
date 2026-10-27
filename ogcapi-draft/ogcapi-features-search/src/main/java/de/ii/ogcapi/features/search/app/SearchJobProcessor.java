@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Strings;
+import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
@@ -49,7 +50,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -154,7 +154,7 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
         String resultPath =
             String.format("%s/result_%s.%s", api.getId(), job.id(), inputs.getMediaTypeParameter());
         storeResult(job, response, resultPath);
-        jobs.outputs(job.id(), Map.of("resultPath", resultPath));
+        jobs.outputs(job.id(), JobResultFile.of(resultPath, inputs.getMediaType()));
       }
 
       // book the execute partial's single unit only on success; on failure the backend tops the
