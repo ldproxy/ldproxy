@@ -9,6 +9,7 @@ package de.ii.ogcapi.transactions.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Strings;
+import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
@@ -30,6 +31,7 @@ import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -127,8 +129,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
 
   /**
    * One document. With {@code resultAsFile}, the response document is written to {@code
-   * <api>/result_<job>.json}, also if the transaction is rejected, and its path is reported as the
-   * job output {@code resultPath}.
+   * <api>/result_<job>.json}, also if the transaction is rejected, and reported as the job result
+   * document ({@link JobResultFile}).
    */
   private JobResult executeDocument(
       PartialJob partialJob,
@@ -145,7 +147,7 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       if (applied.body() != null) {
         resultPath = String.format("%s/result_%s.json", api.getId(), job.id());
         saveResultFile(job, Path.of(resultPath), applied.body());
-        jobs.outputs(job.id(), Map.of("resultPath", resultPath));
+        jobs.outputs(job.id(), JobResultFile.of(resultPath, MediaType.APPLICATION_JSON));
       }
     } else if (!applied.rejected() && applied.body() != null) {
       jobs.outputs(job.id(), Jobs.DEFAULT_MAPPER.readValue(applied.body(), Jobs.MAP_TYPE));

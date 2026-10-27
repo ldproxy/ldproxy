@@ -5,6 +5,7 @@ descriptionDe = 'Unterstützung für asynchrone Jobs und Prozesse.'
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-xtralink'

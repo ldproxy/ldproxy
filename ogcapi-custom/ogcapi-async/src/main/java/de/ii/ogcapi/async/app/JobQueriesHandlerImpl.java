@@ -9,6 +9,7 @@ package de.ii.ogcapi.async.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.async.app.AsyncJobs.ResultDocument;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResultValues;
@@ -140,6 +141,11 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
       QueryInputResults queryInput, ApiRequestContext requestContext) {
 
     String jobId = queryInput.getJobId();
+    Optional<ResultDocument> resultDocument = jobAccess.getResultDocument(jobId);
+    if (resultDocument.isPresent()) {
+      return resultDocumentResponse(requestContext, queryInput, jobId, resultDocument.get());
+    }
+
     Map<String, Object> jobResults = jobAccess.getResults(jobId);
 
     // Requirement 34
@@ -260,6 +266,23 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
   }
 
   /*** Helper methods ***/
+  private Response resultDocumentResponse(
+      ApiRequestContext requestContext,
+      QueryInput queryInput,
+      String jobId,
+      ResultDocument resultDocument) {
+    return prepareSuccessResponse(
+            requestContext,
+            null,
+            HeaderCaching.of(null, null, queryInput),
+            null,
+            HeaderContentDisposition.of(jobId),
+            i18n.getLanguages())
+        .type(resultDocument.getMediaType())
+        .entity(resultDocument.getContent())
+        .build();
+  }
+
   private OgcApiJobStatus getStatusInfo(String jobId) {
     return jobAccess
         .getStatusInfo(jobId)

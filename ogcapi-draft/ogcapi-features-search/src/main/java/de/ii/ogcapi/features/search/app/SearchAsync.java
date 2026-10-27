@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.search.app;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchJob;
@@ -136,11 +137,11 @@ final class SearchAsync {
     if (finished.status() != Identifiers.Status.SUCCESSFUL) {
       return Optional.empty();
     }
-    Object resultPath = finished.outputs().get("resultPath");
-    if (resultPath == null) {
+    Optional<JobResultFile> resultFile = JobResultFile.from(finished.outputs());
+    if (resultFile.isEmpty()) {
       return Optional.empty();
     }
-    Path path = Path.of(resultPath.toString());
+    Path path = resultFile.get().path();
 
     StreamingOutput streamingOutput =
         output -> {

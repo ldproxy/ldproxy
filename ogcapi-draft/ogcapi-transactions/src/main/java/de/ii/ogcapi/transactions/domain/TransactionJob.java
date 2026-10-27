@@ -84,9 +84,9 @@ public interface TransactionJob extends JobInputs {
 
   /**
    * Write the response document to {@code <api>/result_<job>.json} instead of returning it as the
-   * job output; the path is the job output {@code resultPath}. The document is also written if the
-   * transaction is rejected. For a folder, the response documents are always written to the result
-   * folder of the job, named after the documents ({@code 001.xml.gz} → {@code
+   * job output; it is the job result document ({@code JobResultFile}). The document is also written
+   * if the transaction is rejected. For a folder, the response documents are always written to the
+   * result folder of the job, named after the documents ({@code 001.xml.gz} → {@code
    * <api>/result_<job>/001.result.json}), and reported as the job output {@code resultPaths}.
    */
   boolean getResultAsFile();
