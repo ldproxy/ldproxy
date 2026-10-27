@@ -8,8 +8,9 @@
 package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.xtralink.jobs.JobConfiguration;
-import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.util.Optional;
@@ -55,7 +56,7 @@ public interface SearchJob extends JobInputs {
         LABEL,
         String.format(" (API: %s)", apiId),
         searchJob,
-        new JobContextEntity(apiId),
+        new JobContextAsync(apiId, EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()),
         null,
         Optional.of((int) ttlSeconds));
   }
