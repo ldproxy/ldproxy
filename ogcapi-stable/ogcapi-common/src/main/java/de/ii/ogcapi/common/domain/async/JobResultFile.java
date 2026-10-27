@@ -21,12 +21,12 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface JobResultFile {
 
-  static JobResultFile of(String resultFile, String resultMediaType) {
-    return ImmutableJobResultFile.of(resultFile, resultMediaType);
+  static JobResultFile of(String resultPath, String resultMediaType) {
+    return ImmutableJobResultFile.of(resultPath, resultMediaType);
   }
 
   static boolean is(Map<String, Object> outputs) {
-    return outputs.get("resultFile") instanceof String
+    return outputs.get("resultPath") instanceof String
         && outputs.get("resultMediaType") instanceof String;
   }
 
@@ -35,17 +35,17 @@ public interface JobResultFile {
       return Optional.empty();
     }
     return Optional.of(
-        of((String) outputs.get("resultFile"), (String) outputs.get("resultMediaType")));
+        of((String) outputs.get("resultPath"), (String) outputs.get("resultMediaType")));
   }
 
   /** The path of the document, relative to the store of the job kind. */
   @Value.Parameter
-  String getResultFile();
+  String getResultPath();
 
   @Value.Parameter
   String getResultMediaType();
 
   default Path path() {
-    return Path.of(getResultFile());
+    return Path.of(getResultPath());
   }
 }
