@@ -35,10 +35,10 @@ class JobResultFileSpec extends Specification {
         where:
         outputs << [
                 [:],
-                [resultFile: "api/result_job-1.json"],
+                [resultPath: "api/result_job-1.json"],
                 [resultMediaType: "application/json"],
-                [resultFile: 1, resultMediaType: "application/json"],
-                [resultFile: "api/result_job-1.json", resultMediaType: null],
+                [resultPath: 1, resultMediaType: "application/json"],
+                [resultPath: "api/result_job-1.json", resultMediaType: null],
                 [resultPaths: ["api/result_job-1/001.result.json"]],
         ]
     }
