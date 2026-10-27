@@ -54,7 +54,7 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
               .href(baseHref.copy().ensureLastPathSegment("results").toString())
               .rel("[ogc-rel:results]")
               .title(i18n.get("jobResultsLink", language).replace("{{jobId}}", jobId))
-              .type("application/json")
+              .type(statusInfo.getResultMediaType().orElse("application/json"))
               .build());
     }
 

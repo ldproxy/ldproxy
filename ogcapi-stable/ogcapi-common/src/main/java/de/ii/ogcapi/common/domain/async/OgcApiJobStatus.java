@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.common.domain.async;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import de.ii.ogcapi.common.domain.OgcApiException;
 import de.ii.xtralink.jobs.Identifiers;
@@ -82,4 +83,8 @@ public interface OgcApiJobStatus {
   @Min(0)
   @Max(100)
   Optional<Integer> getProgress();
+
+  /** The media type of the result document, if the job has one, see {@link JobResultFile}. */
+  @JsonIgnore
+  Optional<String> getResultMediaType();
 }

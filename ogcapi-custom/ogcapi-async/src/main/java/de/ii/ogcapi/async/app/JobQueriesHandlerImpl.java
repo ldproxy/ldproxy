@@ -10,6 +10,7 @@ package de.ii.ogcapi.async.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.async.app.AsyncJobs.ResultDocument;
+import de.ii.ogcapi.async.app.format.JobResultsFormatAny;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResultValues;
@@ -22,6 +23,8 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
+import de.ii.ogcapi.foundation.domain.ApiMediaType.CompatibilityLevel;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
@@ -46,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.glassfish.jersey.server.ContainerRequest;
 
 @Singleton
 @AutoBind
@@ -151,6 +155,11 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
     // Requirement 34
     if (jobResults.isEmpty()) {
       return emptyResponse(requestContext, queryInput, jobId);
+    }
+
+    // only the catch-all format matched, none of the formats for job outputs is acceptable
+    if (JobResultsFormatAny.MEDIA_TYPE.equals(requestContext.getMediaType())) {
+      throw notAcceptable(requestContext, MediaType.APPLICATION_JSON_TYPE);
     }
 
     OgcApi api = requestContext.getApi();
@@ -266,11 +275,37 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
   }
 
   /*** Helper methods ***/
+  private static List<MediaType> acceptableMediaTypes(ApiRequestContext requestContext) {
+    return requestContext
+        .getRequest()
+        .filter(ContainerRequest.class::isInstance)
+        .map(request -> ((ContainerRequest) request).getAcceptableMediaTypes())
+        .orElse(List.of(MediaType.WILDCARD_TYPE));
+  }
+
+  private static NotAcceptableException notAcceptable(
+      ApiRequestContext requestContext, MediaType resultMediaType) {
+    return new NotAcceptableException(
+        MessageFormat.format(
+            "None of the requested media types {0} matches the media type of the job results: {1}.",
+            acceptableMediaTypes(requestContext), resultMediaType));
+  }
+
   private Response resultDocumentResponse(
       ApiRequestContext requestContext,
       QueryInput queryInput,
       String jobId,
       ResultDocument resultDocument) {
+    boolean acceptable =
+        acceptableMediaTypes(requestContext).stream()
+            .anyMatch(
+                accepted ->
+                    ApiMediaType.isCompatible(
+                        accepted, resultDocument.getMediaType(), CompatibilityLevel.SUBTYPES));
+    if (!acceptable) {
+      throw notAcceptable(requestContext, resultDocument.getMediaType());
+    }
+
     return prepareSuccessResponse(
             requestContext,
             null,
