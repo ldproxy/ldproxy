@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -174,6 +175,12 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   @Value.Default
   default Integer getCallbackRetries() {
     return 3;
+  }
+
+  @JsonIgnore
+  @Override
+  default boolean hasNamedOutputs() {
+    return true;
   }
 
   @Override

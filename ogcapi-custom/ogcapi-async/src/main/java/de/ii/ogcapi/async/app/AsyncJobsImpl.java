@@ -19,6 +19,7 @@ import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.JobResultsSelector;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.xtralink.jobs.Identifiers.Status;
@@ -90,6 +91,20 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     return job.get();
   }
 
+  private Job getNamedOutputsJobCheck(String jobId) {
+    boolean hasNamedOutputs =
+        getAsyncJob(jobId)
+            .map(job -> JobContextAsync.entityTypeFrom(job.context()))
+            .filter(entityType -> entityType == EntityType.OGC_API_PROCESSES)
+            .isPresent();
+
+    if (!hasNamedOutputs) {
+      throw new NotFoundException("No job with named outputs found with job id '" + jobId + "'.");
+    }
+
+    return getAsyncJobCheck(jobId);
+  }
+
   @Override
   public Optional<OgcApiJobStatus> getStatusInfo(String jobId) {
     Optional<Job> job = getAsyncJob(jobId);
@@ -119,7 +134,7 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
   @Override
   public Object getResultsSpecific(String jobId, String outputId) {
-    Job job = getAsyncJobCheck(jobId);
+    Job job = getNamedOutputsJobCheck(jobId);
 
     Map<String, Object> outputs = job.outputs();
 
@@ -134,7 +149,7 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
   @Override
   public Object getResultsSpecificN(String jobId, String resultKey, int resultIndex) {
-    Job job = getAsyncJobCheck(jobId);
+    Job job = getNamedOutputsJobCheck(jobId);
 
     Map<String, Object> outputs = job.outputs();
 
