@@ -86,6 +86,18 @@ class SearchAsyncSpec extends Specification {
         0 * resultStore.content(_)
     }
 
+    def "a wait beyond maxWait is reported as capped when the job finishes in time"() {
+        given:
+        finished.complete(job(Status.SUCCESSFUL, resultFile()))
+
+        when:
+        Response response = submit(["respond-async, wait=30"], 10)
+
+        then:
+        response.status == 200
+        response.getHeaderString("Preference-Applied") == "wait=10"
+    }
+
     def "a wait beyond maxWait is not claimed when the job does not finish in time"() {
         when:
         Response response = submit(["respond-async, wait=30"], 1)
