@@ -17,6 +17,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CountingInputStream;
 import dagger.Lazy;
+import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.crs.domain.HeaderContentCrs;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -619,9 +620,9 @@ public class EndpointTransactions extends Endpoint
     }
 
     try {
-      Object resultPath = finished.outputs().get("resultPath");
-      if (resultPath != null) {
-        java.nio.file.Path path = java.nio.file.Path.of(resultPath.toString());
+      Optional<JobResultFile> resultFile = JobResultFile.from(finished.outputs());
+      if (resultFile.isPresent()) {
+        java.nio.file.Path path = resultFile.get().path();
         Optional<InputStream> result = documentStore.content(path);
         if (result.isEmpty()) {
           return Optional.empty();

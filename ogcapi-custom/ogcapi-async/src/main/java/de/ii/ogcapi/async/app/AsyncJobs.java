@@ -8,12 +8,21 @@
 package de.ii.ogcapi.async.app;
 
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.StreamingOutput;
 import java.util.Map;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 public interface AsyncJobs {
 
   Optional<OgcApiJobStatus> getStatusInfo(String jobId);
+
+  /**
+   * The result document of a job that produced a single document instead of named outputs, see
+   * {@link de.ii.ogcapi.common.domain.async.JobResultFile}.
+   */
+  Optional<ResultDocument> getResultDocument(String jobId);
 
   Map<String, Object> getResults(String jobId);
 
@@ -22,4 +31,14 @@ public interface AsyncJobs {
   Object getResultsSpecificN(String jobId, String outputId, int index);
 
   Optional<OgcApiJobStatus> dismissJob(String jobId);
+
+  @Value.Immutable
+  interface ResultDocument {
+
+    @Value.Parameter
+    MediaType getMediaType();
+
+    @Value.Parameter
+    StreamingOutput getContent();
+  }
 }

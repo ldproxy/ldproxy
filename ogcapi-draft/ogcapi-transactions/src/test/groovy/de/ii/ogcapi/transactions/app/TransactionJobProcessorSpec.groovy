@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.transactions.app
 
+import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction
@@ -103,7 +104,7 @@ class TransactionJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.SUCCESS
         applied == [WFS]
         text("api/result_job-1.json") == '{"summary":{"document":1}}'
-        jobs.outputs == [resultPath: "api/result_job-1.json"]
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json")
         jobs.updates == [1]
     }
 
@@ -131,7 +132,7 @@ class TransactionJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.FAILURE
         result.messages() == ["Transaction failed with status 422, see api/result_job-1.json"]
         text("api/result_job-1.json") == '{"summary":{"document":1}}'
-        jobs.outputs == [resultPath: "api/result_job-1.json"]
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json")
         jobs.updates.isEmpty()
     }
 
