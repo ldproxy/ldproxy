@@ -161,6 +161,6 @@ public class EndpointResultsSpecific extends Endpoint {
 
   @Override
   public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return AsyncBuildingBlock.isAsyncEnabled(apiData);
+    return AsyncBuildingBlock.isNamedOutputsEnabled(apiData);
   }
 }

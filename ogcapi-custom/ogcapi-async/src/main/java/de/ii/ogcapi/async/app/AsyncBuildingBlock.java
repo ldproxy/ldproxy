@@ -21,6 +21,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * @title Async
@@ -50,11 +51,19 @@ public class AsyncBuildingBlock implements ApiBuildingBlock, ConformanceClass {
 
   public static boolean isAsyncEnabled(OgcApiDataV2 apiData) {
     // Automatically enable when any consumer is enabled
+    return asyncConsumers(apiData).findAny().isPresent();
+  }
+
+  public static boolean isNamedOutputsEnabled(OgcApiDataV2 apiData) {
+    return asyncConsumers(apiData).anyMatch(AsyncConfiguration::hasNamedOutputs);
+  }
+
+  private static Stream<AsyncConfiguration> asyncConsumers(OgcApiDataV2 apiData) {
     return apiData.getMergedExtensions().stream()
         .filter(ExtensionConfiguration::isEnabled)
         .filter(extension -> extension instanceof AsyncConfiguration)
         .map(extension -> (AsyncConfiguration) extension)
-        .anyMatch(asyncConfig -> Objects.equals(asyncConfig.getAsync(), Boolean.TRUE));
+        .filter(asyncConfig -> Objects.equals(asyncConfig.getAsync(), Boolean.TRUE));
   }
 
   @Inject

@@ -82,4 +82,13 @@ public interface AsyncConfiguration {
   default long getTtlSeconds() {
     return Optional.ofNullable(getJobTtl()).orElse(Duration.hours(1)).toSeconds();
   }
+
+  /**
+   * Whether the jobs of this building block have named outputs that can be retrieved individually
+   * at {@code /jobs/{jobId}/results/{outputId}}.
+   */
+  @JsonIgnore
+  default boolean hasNamedOutputs() {
+    return false;
+  }
 }
