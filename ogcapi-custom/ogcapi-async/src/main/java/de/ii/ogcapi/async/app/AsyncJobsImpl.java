@@ -20,6 +20,7 @@ import de.ii.ogcapi.common.domain.async.JobResultsSelector;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtraplatform.base.domain.Jackson;
@@ -32,6 +33,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +73,17 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
       throw new NotFoundException("No job found with job id '" + jobId + "'.");
     }
 
-    if (job.get().status() != Status.SUCCESSFUL) {
+    Status status = job.get().status();
+    if (status == Status.ACCEPTED || status == Status.RUNNING) {
+      throw new TypedClientErrorException(
+          "The results of job '" + jobId + "' are not ready yet.",
+          Response.Status.NOT_FOUND,
+          JobContextAsync.entityTypeFrom(job.get().context())
+              .exceptionType("result-not-ready")
+              .orElse(null));
+    }
+
+    if (status != Status.SUCCESSFUL) {
       throw new BadRequestException("Status of job '" + jobId + "' is not SUCCESSFUL");
     }
 

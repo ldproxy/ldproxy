@@ -22,15 +22,24 @@ import java.util.Optional;
 public interface OgcApiJobStatus {
 
   enum EntityType {
-    OGC_API_PROCESSES("ogc-api-processes"),
-    OGC_API_FEATURES("ogc-api-features"),
-    UNKNOWN("unknown"),
+    OGC_API_PROCESSES(
+        "ogc-api-processes", "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/"),
+    OGC_API_FEATURES(
+        "ogc-api-features", "http://www.opengis.net/def/exceptions/ogcapi-features-11/1.0/"),
+    UNKNOWN("unknown", null),
     ;
 
     private final String value;
+    private final String exceptionTypePrefix;
 
-    EntityType(String value) {
+    EntityType(String value, String exceptionTypePrefix) {
       this.value = value;
+      this.exceptionTypePrefix = exceptionTypePrefix;
+    }
+
+    /** The exception type URI the specification of this entity type defines for {@code name}. */
+    public Optional<String> exceptionType(String name) {
+      return Optional.ofNullable(exceptionTypePrefix).map(prefix -> prefix + name);
     }
 
     static EntityType fromValue(String value) {
