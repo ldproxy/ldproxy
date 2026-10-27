@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ApiErrorMessage extends io.dropwizard.jersey.errors.ErrorMessage {
 
   private String instance;
+  private String type;
 
   public ApiErrorMessage(String title) {
     super(title);
@@ -28,6 +29,12 @@ public class ApiErrorMessage extends io.dropwizard.jersey.errors.ErrorMessage {
   public ApiErrorMessage(int code, String title, String detail, String instance) {
     super(code, code == 422 && title.isBlank() ? "Unprocessable Entity" : title, detail);
     this.instance = instance;
+  }
+
+  public ApiErrorMessage(int code, String title, String detail, String instance, String type) {
+    super(code, code == 422 && title.isBlank() ? "Unprocessable Entity" : title, detail);
+    this.instance = instance;
+    this.type = type;
   }
 
   @JsonProperty("title")
@@ -51,5 +58,10 @@ public class ApiErrorMessage extends io.dropwizard.jersey.errors.ErrorMessage {
   @JsonProperty
   public String getInstance() {
     return instance;
+  }
+
+  @JsonProperty("type")
+  public String getType() {
+    return type;
   }
 }
