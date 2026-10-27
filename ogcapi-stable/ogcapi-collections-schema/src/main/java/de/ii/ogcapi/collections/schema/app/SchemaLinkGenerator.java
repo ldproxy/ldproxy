@@ -39,7 +39,7 @@ public class SchemaLinkGenerator {
                         .ensureLastPathSegment("schema")
                         .removeParameters("f")
                         .toString())
-                .rel("http://www.opengis.net/def/rel/ogc/0.0/schema")
+                .rel("http://www.opengis.net/def/rel/ogc/1.0/schema")
                 .title(i18n.get("schemaLinkFeature", language).replace("{{collection}}", label))
                 .build())
         .build();

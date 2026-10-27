@@ -189,7 +189,7 @@ class LdproxyCfgImpl implements LdproxyCfg {
             noDefaults);
     this.entitySchemas = new HashMap<>();
     this.rawSchemas = new HashMap<>();
-    this.migrations = Migrations.create(entityDataStore);
+    this.migrations = Migrations.create(entityDataStore, (type, name) -> hasValue(type, name));
     Set<ValueFactory> vFactories = ValueFactories.factories(entityDataStore);
     this.valueFactories = new ValueFactoriesImpl(() -> vFactories);
     this.enforceWindowsLineEndings = enforceWindowsLineEndings;

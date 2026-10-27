@@ -20,8 +20,8 @@ import spock.lang.Specification
 class MbStyleStylesheetGeneratorSpec extends Specification {
 
     @Shared
-    EntityDataStore<EntityData> entityDataStore = Stub(EntityDataStore<EntityData>) {
-        forType(OgcApiDataV2.class) >> Stub(EntityDataStore<OgcApiDataV2>) {
+    EntityDataStore<EntityData> entityDataStore = Stub(EntityDataStore) {
+        forType(OgcApiDataV2.class) >> Stub(EntityDataStore) {
             hasAny(_) >> true
             fullIdentifier(_) >> Identifier.from("api")
             get(_) >> new ImmutableOgcApiDataV2.Builder().id("api")
@@ -85,10 +85,10 @@ class MbStyleStylesheetGeneratorSpec extends Specification {
 
         given:
 
-        EntityDataStore<OgcApiDataV2> entityDataStoreV2 = Stub(EntityDataStore<OgcApiDataV2>) {
+        EntityDataStore<OgcApiDataV2> entityDataStoreV2 = Stub(EntityDataStore) {
             has("api") >> false
         }
-        EntityDataStore<EntityData> entityDataStore = Stub(EntityDataStore<EntityData>) {
+        EntityDataStore<EntityData> entityDataStore = Stub(EntityDataStore) {
             forType(OgcApiDataV2.class) >> entityDataStoreV2
         }
 

@@ -120,6 +120,32 @@ class ApiOperationResponsesSpec extends Specification {
         statusCodes == statusCodes.toSorted()
     }
 
+    def 'the request body of a URL-encoded POST does not accept unknown members'() {
+        given:
+        OgcApiDataV2 apiData = new ImmutableOgcApiDataV2.Builder().id('buildings').build()
+
+        when:
+        ApiOperation operation = ApiOperation.getResource(
+                apiData,
+                PATH,
+                true,
+                ImmutableList.of(),
+                ImmutableList.of(),
+                Map.of(MediaType.APPLICATION_JSON_TYPE, content()),
+                'execute a query',
+                Optional.empty(),
+                Optional.empty(),
+                'executeQuery',
+                PermissionGroup.of(PermissionGroup.Base.READ, 'data', 'read data'),
+                ImmutableList.of('Access data'),
+                Optional.empty(),
+                Optional.empty()).get()
+
+        then:
+        operation.getRequestBody().get().getContent().get(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+                .getSchema().getAdditionalProperties() == false
+    }
+
     private static ApiOperation putOperation(boolean putAllowsCreate) {
         putOperation(putAllowsCreate, ImmutableList.of())
     }

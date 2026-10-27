@@ -23,6 +23,7 @@ import de.ii.xtraplatform.features.domain.FeatureProperty;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureType;
 import de.ii.xtraplatform.features.domain.transform.EncodingContextSfFlat;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Locale;
@@ -195,12 +196,34 @@ public interface FeatureTransformationContext extends EncodingContextSfFlat {
   // to ValueTransformerContext
   @Value.Derived
   default String getServiceUrl() {
-    return getOgcApiRequest()
-        .getUriCustomizer()
-        .copy()
-        .cutPathAfterSegments(getApiData().getSubPath().toArray(new String[0]))
-        .clearParameters()
-        .toString();
+    return getServiceUrl(
+        getOgcApiRequest().getUriCustomizer(),
+        getOgcApiRequest().getBasePathSegments(),
+        getApiData().getSubPath());
+  }
+
+  /**
+   * The request path starts with the base path and the path of the API, the remaining segments may
+   * repeat the last segment of the API path (e.g. a collection with the id of the API), so the path
+   * is cut after the known prefix and not at the last matching segment.
+   */
+  static String getServiceUrl(
+      URICustomizer requestUri, @Nullable List<String> basePathSegments, List<String> apiSubPath) {
+    List<String> apiPathSegments =
+        ImmutableList.<String>builder()
+            .addAll(Objects.requireNonNullElse(basePathSegments, List.of()))
+            .addAll(apiSubPath)
+            .build();
+    URICustomizer uri = requestUri.copy().clearParameters();
+    List<String> pathSegments = uri.getPathSegments();
+
+    if (pathSegments.size() >= apiPathSegments.size()
+        && pathSegments.subList(0, apiPathSegments.size()).equals(apiPathSegments)) {
+      uri.setPathSegments(apiPathSegments);
+      return uri.toString();
+    }
+
+    return uri.cutPathAfterSegments(apiSubPath.toArray(new String[0])).toString();
   }
 
   @Value.Derived

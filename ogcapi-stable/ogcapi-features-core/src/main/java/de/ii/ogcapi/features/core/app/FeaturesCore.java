@@ -41,6 +41,11 @@ public class FeaturesCore implements ItemTypeSpecificConformanceClass {
           "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
           "http://www.opengis.net/spec/ogcapi-records-1/0.0/conf/records-api");
 
+    if ((isItemTypeUsed(apiData, FeaturesCoreConfiguration.ItemType.feature)
+            || isItemTypeUsed(apiData, FeaturesCoreConfiguration.ItemType.record))
+        && supportsIds(apiData))
+      builder.add("http://www.opengis.net/spec/ogcapi-features-1/1.1/conf/ids");
+
     if (apiData
         .getExtension(Oas30Configuration.class)
         .map(ExtensionConfiguration::isEnabled)
@@ -49,5 +54,17 @@ public class FeaturesCore implements ItemTypeSpecificConformanceClass {
     }
 
     return builder.build();
+  }
+
+  private boolean supportsIds(OgcApiDataV2 apiData) {
+    return apiData.getCollections().values().stream()
+        .filter(collection -> collection.getEnabled())
+        .allMatch(
+            collection ->
+                collection
+                    .getExtension(FeaturesCoreConfiguration.class)
+                    .filter(ExtensionConfiguration::isEnabled)
+                    .map(FeaturesCoreConfiguration::supportsIds)
+                    .orElse(true));
   }
 }

@@ -15,13 +15,14 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
-import de.ii.ogcapi.html.domain.StyleReader;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
+import de.ii.ogcapi.tiles.domain.TilesProviders;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,12 +47,12 @@ public class PathParameterStyleId implements OgcApiPathParameter {
 
   private final ConcurrentMap<Integer, Schema<?>> schemaMap = new ConcurrentHashMap<>();
   protected final SchemaValidator schemaValidator;
-  private final StyleReader styleReader;
+  private final TilesProviders tilesProviders;
 
   @Inject
-  PathParameterStyleId(SchemaValidator schemaValidator, StyleReader styleReader) {
+  PathParameterStyleId(SchemaValidator schemaValidator, TilesProviders tilesProviders) {
     this.schemaValidator = schemaValidator;
-    this.styleReader = styleReader;
+    this.tilesProviders = tilesProviders;
   }
 
   @Override
@@ -59,37 +60,48 @@ public class PathParameterStyleId implements OgcApiPathParameter {
     return STYLE_ID_PATTERN;
   }
 
+  // only styles with map tiles in the tile provider, of the dataset or of a collection
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
     return Stream.concat(
-            styleReader
-                .getStyleIds(apiData.getId(), Optional.empty(), StyleReader.StyleFormat.MBS)
-                .stream(),
-            apiData.getCollections().keySet().stream()
+            tilesProviders.getRasterTilesetMetadata(apiData).keySet().stream(),
+            apiData.getCollections().values().stream()
                 .flatMap(
-                    collection ->
-                        styleReader
-                            .getStyleIds(
-                                apiData.getId(),
-                                Optional.of(collection),
-                                StyleReader.StyleFormat.MBS)
+                    collectionData ->
+                        tilesProviders
+                            .getRasterTilesetMetadata(apiData, collectionData)
+                            .keySet()
                             .stream()))
+        .distinct()
+        .sorted()
         .toList();
   }
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
-    if (!schemaMap.containsKey(apiData.hashCode())) {
-      schemaMap.put(
-          apiData.hashCode(), new StringSchema()._enum(ImmutableList.copyOf(getValues(apiData))));
+    Schema<?> schema = schemaMap.get(apiData.hashCode());
+    if (Objects.nonNull(schema)) {
+      return schema;
     }
-
-    return schemaMap.get(apiData.hashCode());
+    List<String> values = getValues(apiData);
+    schema = new StringSchema()._enum(ImmutableList.copyOf(values));
+    // the styles are only known once the tile provider is available
+    if (!values.isEmpty()) {
+      schemaMap.put(apiData.hashCode(), schema);
+    }
+    return schema;
   }
 
   @Override
   public SchemaValidator getSchemaValidator() {
     return schemaValidator;
+  }
+
+  // the values differ from the parameter of the styles, so it is a separate parameter in the API
+  // definition
+  @Override
+  public String getId() {
+    return "styleIdMapTiles";
   }
 
   @Override

@@ -87,7 +87,7 @@ public class QueryParameterLimitTile extends OgcApiQueryParameterBase
         .computeIfAbsent(
             "*",
             ignore -> {
-              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
+              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.ONE);
 
               Optional<Integer> limit =
                   tilesProviders
@@ -113,7 +113,7 @@ public class QueryParameterLimitTile extends OgcApiQueryParameterBase
         .computeIfAbsent(
             collectionId,
             ignore -> {
-              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.valueOf(0));
+              Schema<?> schema = new IntegerSchema().minimum(BigDecimal.ONE);
 
               Optional<Integer> limit =
                   tilesProviders

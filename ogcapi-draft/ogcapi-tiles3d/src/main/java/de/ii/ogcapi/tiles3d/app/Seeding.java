@@ -17,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiBackgroundTask;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
+import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
@@ -25,15 +26,13 @@ import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
-import de.ii.xtraplatform.jobs.domain.JobQueue;
-import de.ii.xtraplatform.jobs.domain.JobSet;
 import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
-import de.ii.xtraplatform.tiles.domain.TileSeedingJob;
 import de.ii.xtraplatform.tiles3d.domain.ImmutableTile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dGenerationParameters;
 import de.ii.xtraplatform.tiles3d.domain.Tile3dProvider;
-import de.ii.xtraplatform.tiles3d.domain.Tile3dSeedingJobSet;
+import de.ii.xtraplatform.tiles3d.domain.Tile3dSeedingJob;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
@@ -60,18 +58,18 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
 
   private final FeaturesCoreProviders providers;
   private final Tile3dProviders tile3dProviders;
-  private final JobQueue jobQueue;
+  private final Jobs jobs;
   private final VolatileRegistry volatileRegistry;
 
   @Inject
   public Seeding(
       FeaturesCoreProviders providers,
       Tile3dProviders tile3dProviders,
-      JobQueue jobQueue,
+      Jobs jobs,
       VolatileRegistry volatileRegistry) {
     this.providers = providers;
     this.tile3dProviders = tile3dProviders;
-    this.jobQueue = jobQueue;
+    this.jobs = jobs;
     this.volatileRegistry = volatileRegistry;
   }
 
@@ -218,35 +216,20 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
       return;
     }
 
-    boolean inProgress =
-        jobQueue.getSets().stream()
-            .anyMatch(
-                jobSet ->
-                    Objects.equals(jobSet.getType(), TileSeedingJob.TYPE)
-                        && !jobSet.isDone()
-                        && jobSet
-                            .getEntity()
-                            .filter(e -> Objects.equals(e, tileProvider.getId()))
-                            .isPresent());
+    boolean inProgress = jobs.isInProgress(Tile3dSeedingJob.TYPE, tileProvider.getId());
 
     if (inProgress) {
       if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("{} is already in progress, skipping new task", TileSeedingJob.LABEL);
+        LOGGER.debug("{} is already in progress, skipping new task", Tile3dSeedingJob.LABEL);
       }
 
       return;
     }
 
-    JobSet jobSet = getJobSet(api, tileProvider, reseed);
-
-    jobQueue.push(jobSet);
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Added seeding job set to the queue ({})", jobSet.getId());
-    }
+    jobs.push(getJobSet(api, tileProvider, reseed));
   }
 
-  private JobSet getJobSet(OgcApi api, Tile3dProvider tileProvider, boolean reseed) {
+  private JobConfiguration getJobSet(OgcApi api, Tile3dProvider tileProvider, boolean reseed) {
     return getJobSet(api, tileProvider, reseed, Optional.empty(), Optional.empty());
   }
 
@@ -257,7 +240,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
         .filter(Tiles3dConfiguration::isEnabled);
   }
 
-  private JobSet getJobSet(
+  private JobConfiguration getJobSet(
       OgcApi api,
       Tile3dProvider tileProvider,
       boolean reseed,
@@ -288,7 +271,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
 
     int priority = tileProvider.seeding().get().getOptions().getEffectivePriority();
 
-    return Tile3dSeedingJobSet.of(tileProvider.getId(), tilesets, reseed, priority);
+    return Tile3dSeedingJob.of(tileProvider.getId(), tilesets, reseed, priority);
   }
 
   @Override
@@ -388,10 +371,7 @@ public class Seeding implements OgcApiBackgroundTask, WithChangeListeners {
       }
 
       for (BoundingBox bbox : bboxes) {
-        JobSet jobSet =
-            getJobSet(api, tileProvider, true, Optional.of(collectionId), Optional.of(bbox));
-
-        jobQueue.push(jobSet);
+        jobs.push(getJobSet(api, tileProvider, true, Optional.of(collectionId), Optional.of(bbox)));
       }
     };
   }

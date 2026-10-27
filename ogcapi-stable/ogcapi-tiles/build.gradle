@@ -6,7 +6,6 @@ descriptionDe = 'Veröffentlichen von Geodaten als Kacheln.'
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
-    provided 'de.interactive_instruments:xtraplatform-jobs'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-codelists'
     provided 'de.interactive_instruments:xtraplatform-cql'

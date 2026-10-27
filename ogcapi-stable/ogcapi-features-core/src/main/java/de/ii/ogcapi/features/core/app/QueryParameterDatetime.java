@@ -149,9 +149,11 @@ public class QueryParameterDatetime extends AbstractQueryParameterDatetime
       if (effectiveValue.contains(DATETIME_INTERVAL_SEPARATOR)) {
         temporalLiteral =
             TemporalLiteral.of(
-                Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(effectiveValue));
+                Splitter.on(DATETIME_INTERVAL_SEPARATOR).splitToList(effectiveValue).stream()
+                    .map(AbstractQueryParameterDatetime::inUtc)
+                    .toList());
       } else {
-        temporalLiteral = TemporalLiteral.of(effectiveValue);
+        temporalLiteral = TemporalLiteral.of(inUtc(effectiveValue));
       }
     } catch (Throwable e) {
       throw new IllegalArgumentException(

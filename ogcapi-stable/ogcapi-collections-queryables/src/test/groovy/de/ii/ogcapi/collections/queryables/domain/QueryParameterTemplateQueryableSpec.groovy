@@ -9,12 +9,17 @@ package de.ii.ogcapi.collections.queryables.domain
 
 import de.ii.ogcapi.foundation.domain.SchemaValidator
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
+import de.ii.xtraplatform.cql.domain.AContains
+import de.ii.xtraplatform.cql.domain.ArrayLiteral
 import de.ii.xtraplatform.cql.domain.Eq
+import de.ii.xtraplatform.cql.domain.ScalarLiteral
+import de.ii.xtraplatform.cql.domain.TemporalLiteral
 import de.ii.xtraplatform.features.domain.SchemaBase
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
+import java.time.Instant
 import spock.lang.Specification
 
 class QueryParameterTemplateQueryableSpec extends Specification {
@@ -153,5 +158,59 @@ class QueryParameterTemplateQueryableSpec extends Specification {
         "DEXX1*"           || false
         "*"                || false
         "DEXX1"            || true
+    }
+
+    def 'a timestamp with an offset is converted to UTC'() {
+        given:
+        def parameter = queryable(SchemaBase.Type.DATETIME)
+
+        when:
+        def result = parameter.parse(value, [:], null, Optional.empty())
+
+        then:
+        result instanceof Eq
+        ((TemporalLiteral) ((Eq) result).getArgs().get(1)).getValue() == Instant.parse(expected)
+
+        where:
+        value                           || expected
+        "2020-01-01T10:00:00+01:00"     || "2020-01-01T09:00:00Z"
+        "2020-01-01T10:00:00.5-08:20"   || "2020-01-01T18:20:00.5Z"
+        "2020-01-01T10:00:00Z"          || "2020-01-01T10:00:00Z"
+    }
+
+    def 'a value of a temporal array queryable must be a valid date or timestamp'() {
+        given:
+        def parameter = queryable(SchemaBase.Type.VALUE_ARRAY, new StringSchema(), valueType)
+
+        when:
+        parameter.parse(value, [:], null, Optional.empty())
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains("is not a valid value")
+
+        where:
+        valueType                  | value
+        SchemaBase.Type.DATE       | ""
+        SchemaBase.Type.DATE       | "abc"
+        SchemaBase.Type.DATE       | "2020-01-01,2020-13-01"
+        SchemaBase.Type.DATETIME   | ""
+        SchemaBase.Type.DATETIME   | "2020-01-01"
+    }
+
+    def 'the values of a temporal array queryable are normalized'() {
+        given:
+        def parameter = queryable(SchemaBase.Type.VALUE_ARRAY, new StringSchema(), valueType)
+
+        when:
+        def result = parameter.parse(value, [:], null, Optional.empty())
+
+        then:
+        ((ArrayLiteral) ((AContains) result).getArgs().get(1)).getValue() == expected.collect { ScalarLiteral.of(it) }
+
+        where:
+        valueType                  | value                                              || expected
+        SchemaBase.Type.DATE       | "2020-01-01,2021-02-28"                            || ["2020-01-01", "2021-02-28"]
+        SchemaBase.Type.DATETIME   | "2020-01-01T10:00:00+01:00,2020-01-01T10:00:00Z"   || ["2020-01-01T09:00:00Z", "2020-01-01T10:00:00Z"]
     }
 }

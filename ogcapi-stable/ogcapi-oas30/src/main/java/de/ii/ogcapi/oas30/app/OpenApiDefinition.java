@@ -16,9 +16,15 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.oas30.domain.Oas30Configuration;
 import de.ii.ogcapi.oas30.domain.OpenApiExtension;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.Paths;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Singleton
 @AutoBind
@@ -45,15 +51,28 @@ public class OpenApiDefinition implements OpenApiExtension {
   public OpenAPI process(OpenAPI openAPI, OgcApiDataV2 apiData) {
     if (apiData != null) {
 
-      extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
-          .filter(endpoint -> endpoint.isEnabledForApi(apiData))
-          .map(endpoint -> endpoint.getDefinition(apiData))
-          .filter(def -> !def.getHidden())
-          .sorted(Comparator.comparing(ApiEndpointDefinition::getSortPriority))
-          .forEachOrdered(
-              ogcApiEndpointDefinition -> {
-                ogcApiEndpointDefinition.updateOpenApiDefinition(apiData, openAPI);
-              });
+      List<ApiEndpointDefinition> definitions =
+          extensionRegistry.getExtensionsForType(EndpointExtension.class).stream()
+              .filter(endpoint -> endpoint.isEnabledForApi(apiData))
+              .map(endpoint -> endpoint.getDefinition(apiData))
+              .filter(def -> !def.getHidden())
+              .sorted(Comparator.comparing(ApiEndpointDefinition::getSortPriority))
+              .toList();
+
+      definitions.forEach(definition -> definition.updateOpenApiDefinition(apiData, openAPI));
+
+      // links between operations need all operations in the definition
+      Map<String, Operation> operations = new HashMap<>();
+      Objects.requireNonNullElseGet(openAPI.getPaths(), Paths::new)
+          .values()
+          .forEach(
+              path ->
+                  path.readOperations().stream()
+                      .filter(operation -> Objects.nonNull(operation.getOperationId()))
+                      .forEach(
+                          operation ->
+                              operations.putIfAbsent(operation.getOperationId(), operation)));
+      definitions.forEach(definition -> definition.updateOpenApiLinks(operations));
     }
 
     return openAPI;

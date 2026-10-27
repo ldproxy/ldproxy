@@ -28,8 +28,7 @@ import org.immutables.value.Value;
  * ```yaml
  * - buildingBlock: JSON_FG
  *   enabled: true
- *   featureType:
- *   - nas:{{type}}
+ *   featureTypeV1: nas:{{type}}
  * ```
  *     </code>
  *     <p>Additional information per feature collection with an attribute `F_CODE` (for which `role:
@@ -37,8 +36,7 @@ import org.immutables.value.Value;
  *     <p><code>
  * ```yaml
  * - buildingBlock: JSON_FG
- *   featureType:
- *   - nas:{{type}}
+ *   featureTypeV1: nas:{{type}}
  * ```
  *     </code>
  *     <p>This outputs the object type as follows for a value of "GB075" in the 'F_CODE' attribut:
@@ -58,8 +56,7 @@ import org.immutables.value.Value;
  * ```yaml
  * - buildingBlock: JSON_FG
  *   enabled: true
- *   featureType:
- *   - nas:{{type}}
+ *   featureTypeV1: nas:{{type}}
  * ```
  *     </code>
  *     <p>Ergänzende Angaben pro Feature Collection mit einem Attribut `F_CODE` (für das in der
@@ -67,8 +64,7 @@ import org.immutables.value.Value;
  *     <p><code>
  * ```yaml
  * - buildingBlock: JSON_FG
- *   featureType:
- *   - nas:{{type}}
+ *   featureTypeV1: nas:{{type}}
  * ```
  *     </code>
  *     <p>Hierdurch wird bei einem Wert von "GB075" im Attribut `F_CODE` die Objektart wie folgt
@@ -201,26 +197,34 @@ public interface JsonFgConfiguration extends ExtensionConfiguration, PropertyTra
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
+  /**
+   * Derives `supportPlusProfile` from the deprecated `geojsonCompatibility`, if only the deprecated
+   * option is set. The deprecated option is kept, so that the configuration file can be upgraded.
+   */
   @Value.Check
   default JsonFgConfiguration migrateGeojsonCompatibility() {
     if (Objects.nonNull(getGeojsonCompatibility()) && Objects.isNull(getSupportPlusProfile())) {
       return new ImmutableJsonFgConfiguration.Builder()
           .from(this)
           .supportPlusProfile(getGeojsonCompatibility())
-          .geojsonCompatibility(null)
           .build();
     }
 
     return this;
   }
 
+  /**
+   * Derives `featureTypeV1` from the deprecated `featureType`, if only the deprecated option is
+   * set. The deprecated option is kept, so that the configuration file can be upgraded.
+   */
   @Value.Check
   default JsonFgConfiguration migrateFeatureType() {
-    if (Objects.nonNull(getFeatureType()) && !getFeatureType().isEmpty()) {
+    if (Objects.nonNull(getFeatureType())
+        && !getFeatureType().isEmpty()
+        && Objects.isNull(getFeatureTypeV1())) {
       return new ImmutableJsonFgConfiguration.Builder()
           .from(this)
           .featureTypeV1(getFeatureType().get(0))
-          .featureType(List.of())
           .build();
     }
 

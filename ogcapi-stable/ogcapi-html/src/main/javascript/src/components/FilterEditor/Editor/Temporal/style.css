@@ -1,0 +1,7 @@
+/* Not part of react-datetime's own stylesheet — the old react-datetime-range-picker wrapper
+   added this rule itself (see its bundled style.css) to highlight the days between the start
+   and end of a selected range across both calendars. Restored here since renderDay in
+   ./index.jsx re-adds the matching "in-selecting-range" class. */
+.rdtDay.in-selecting-range {
+  background-color: rgba(66, 139, 202, 0.4);
+}

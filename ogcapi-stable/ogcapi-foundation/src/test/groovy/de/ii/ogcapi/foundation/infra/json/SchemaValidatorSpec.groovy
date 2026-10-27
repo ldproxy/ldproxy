@@ -63,4 +63,21 @@ class SchemaValidatorSpec extends Specification {
         // invalid schema json, invalid feature json
         new File('src/test/resources/schema2.json').getText() | new File('src/test/resources/feature2.json').getText()  | JsonParseException
     }
+
+    def "Validation messages are in English, independent of the default locale"() {
+        given:
+        Locale defaultLocale = Locale.getDefault()
+        Locale.setDefault(Locale.GERMAN)
+        SchemaValidatorImpl validator = new SchemaValidatorImpl()
+
+        when:
+        Optional<String> result = validator.validate('{"type":"integer"}', '"abc"')
+
+        then:
+        result.isPresent()
+        result.get().contains("string found, integer expected")
+
+        cleanup:
+        Locale.setDefault(defaultLocale)
+    }
 }

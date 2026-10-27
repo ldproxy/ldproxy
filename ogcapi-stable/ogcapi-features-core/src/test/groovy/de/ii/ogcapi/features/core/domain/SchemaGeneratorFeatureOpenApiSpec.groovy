@@ -82,7 +82,9 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
         schema.getDescription() == "bar"
         schema.getProperties().get("id").getType() == "integer"
         ObjectSchema properties = schema.getProperties().get("properties") as ObjectSchema
-        properties.getRequired().toSet() == Set.of("string")
+        // the response schema does not list required properties, a request may select properties
+        properties.getRequired() == null
+        properties.getNullable()
         properties.getProperties().get("string").getType() == "string"
         properties.getProperties().get("string").getTitle() == "foo"
         properties.getProperties().get("string").getDescription() == "bar"
@@ -147,5 +149,6 @@ class SchemaGeneratorFeatureOpenApiSpec extends Specification {
         schema.getProperties().get("type").getType() == "string"
         schema.getProperties().get("links").getType() == "array"
         Objects.nonNull(schema.getProperties().get("geometry"))
+        schema.getProperties().get("geometry").getNullable()
     }
 }

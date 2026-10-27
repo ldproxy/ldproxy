@@ -59,7 +59,9 @@ public class QueryParameterFTile extends QueryParameterF {
 
   @Override
   public boolean matchesPath(String definitionPath) {
-    return definitionPath.endsWith("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}");
+    // the tiles of a collection have their own parameter
+    return definitionPath.endsWith("/tiles/{tileMatrixSetId}/{tileMatrix}/{tileRow}/{tileCol}")
+        && !definitionPath.startsWith("/collections/{collectionId}");
   }
 
   @Override

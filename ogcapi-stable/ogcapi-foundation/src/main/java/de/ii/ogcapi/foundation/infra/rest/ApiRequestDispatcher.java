@@ -164,6 +164,8 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     MultivaluedMap<String, String> actualParameters =
         getActualQueryParameters(requestContext, body, isFormRequest);
 
+    rejectNulCharacters(actualParameters);
+
     // Validate request
     ApiOperation apiOperation =
         validateRequest(
@@ -247,6 +249,21 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
         && new MediaType(mediaType.getType(), mediaType.getSubtype())
             .equals(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
         && body.isPresent();
+  }
+
+  // a NUL character has no meaning in a parameter and a database, e.g. PostgreSQL, rejects a
+  // string that contains it
+  static void rejectNulCharacters(MultivaluedMap<String, String> parameters) {
+    parameters.forEach(
+        (name, values) -> {
+          if (name.indexOf('\u0000') >= 0
+              || values.stream().anyMatch(value -> value.indexOf('\u0000') >= 0)) {
+            throw new BadRequestException(
+                String.format(
+                    "The query parameter '%s' contains the character U+0000, which is not allowed.",
+                    name.replace("\u0000", "\\u0000")));
+          }
+        });
   }
 
   static MultivaluedMap<String, String> getActualQueryParameters(
@@ -337,11 +354,14 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     if (ogcApiEndpoint.shouldIgnoreParameters(apiData, subPath, method)) {
       return;
     }
+    // internal parameters must not be set by clients
+    List<OgcApiQueryParameter> publicParameters =
+        knownParameters.stream().filter(param -> !param.isInternal()).toList();
     Set<String> unknownParameters =
         parameters.stream()
             .filter(
                 parameter ->
-                    knownParameters.stream()
+                    publicParameters.stream()
                         .noneMatch(param -> param.getName().equalsIgnoreCase(parameter)))
             .collect(Collectors.toSet());
     if (!unknownParameters.isEmpty()) {
@@ -349,7 +369,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
           "The following query parameters are rejected: "
               + String.join(", ", unknownParameters)
               + ". Valid parameters for this request are: "
-              + knownParameters.stream()
+              + publicParameters.stream()
                   .map(ParameterExtension::getName)
                   .collect(Collectors.joining(", ")));
     }

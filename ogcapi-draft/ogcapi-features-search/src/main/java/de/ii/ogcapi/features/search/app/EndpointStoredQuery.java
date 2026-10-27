@@ -181,11 +181,17 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
             .apiEntrypoint("search")
             .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_SEARCH_STORED_QUERY);
 
+    StoredQueryHtmlSupport htmlSupport = new StoredQueryHtmlSupport(apiData, extensionRegistry);
+
     repository
         .getAll(apiData)
         .forEach(
             query -> {
               String queryId = query.getId();
+              Map<MediaType, ApiMediaTypeContent> getResponseContent =
+                  htmlSupport.offersHtml(query)
+                      ? getResponseContent(apiData)
+                      : withoutHtml(getResponseContent(apiData));
               String path = "/search/" + queryId;
               String definitionPath = "/search/{queryId}";
               List<OgcApiQueryParameter> queryParameters =
@@ -204,7 +210,16 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       .toList();
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
-              Optional<String> operationDescription = query.getDescription();
+              Optional<String> operationDescription =
+                  query
+                      .getDescription()
+                      .or(
+                          () ->
+                              Optional.of(
+                                  String.format(
+                                      "Executes the stored query '%s' and returns the features "
+                                          + "in the result.",
+                                      queryId)));
               ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
                   new ImmutableOgcApiResourceAuxiliary.Builder().path(path);
               ApiOperation.getResource(
@@ -213,7 +228,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       false,
                       queryParameters,
                       ImmutableList.of(),
-                      getResponseContent(apiData),
+                      getResponseContent,
                       operationSummary,
                       operationDescription,
                       Optional.empty(),
@@ -228,10 +243,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
               // would require a URI that includes the parameters
               if (!query.getSupportPaging().orElse(false)) {
                 Map<MediaType, ApiMediaTypeContent> postResponseContent =
-                    getResponseContent(apiData).entrySet().stream()
-                        .filter(entry -> !entry.getKey().isCompatible(MediaType.TEXT_HTML_TYPE))
-                        .collect(
-                            ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+                    withoutHtml(getResponseContent(apiData));
                 ApiOperation.getResource(
                         apiData,
                         path,
@@ -256,6 +268,13 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
             });
 
     return definitionBuilder.build();
+  }
+
+  private static Map<MediaType, ApiMediaTypeContent> withoutHtml(
+      Map<MediaType, ApiMediaTypeContent> responseContent) {
+    return responseContent.entrySet().stream()
+        .filter(entry -> !entry.getKey().isCompatible(MediaType.TEXT_HTML_TYPE))
+        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   /**

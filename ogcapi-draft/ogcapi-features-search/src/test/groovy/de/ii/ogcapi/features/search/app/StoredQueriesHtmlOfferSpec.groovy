@@ -21,7 +21,7 @@ import spock.lang.Specification
 
 // The stored queries page only offers HTML for queries that can actually be executed as HTML:
 // paging enabled and positions in the default CRS. This locks the static check against the runtime
-// rule in SearchQueriesHandlerImpl.executeQuery (406 for HTML otherwise).
+// rule in SearchQueriesHandlerImpl.executeQuery (406 for HTML otherwise), see StoredQueryHtmlSupport.
 class StoredQueriesHtmlOfferSpec extends Specification {
 
     static final String CRS84_URI = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
@@ -77,7 +77,7 @@ class StoredQueriesHtmlOfferSpec extends Specification {
         StoredQueryExpression query = builder.build()
 
         expect:
-        SearchQueriesHandlerImpl.offersHtml(query, OgcCrs.CRS84, CRS_PROFILES) == expected
+        new StoredQueryHtmlSupport(OgcCrs.CRS84, CRS_PROFILES).offersHtml(query) == expected
 
         where:
         label                        | paging | crs                | verticalCrs         || expected
@@ -107,7 +107,7 @@ class StoredQueriesHtmlOfferSpec extends Specification {
         StoredQueryExpression query = builder.build()
 
         expect:
-        SearchQueriesHandlerImpl.offersHtml(query, OgcCrs.CRS84, CRS_PROFILES) == expected
+        new StoredQueryHtmlSupport(OgcCrs.CRS84, CRS_PROFILES).offersHtml(query) == expected
 
         where:
         label                       | profiles                             | paramName  || expected

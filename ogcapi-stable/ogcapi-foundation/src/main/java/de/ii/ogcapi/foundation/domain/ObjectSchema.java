@@ -7,9 +7,11 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.reflect.TypeToken;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.validation.constraints.NotNull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -38,8 +40,10 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
   private void processMethods(
       Class<?> baseClazz, Class<?> clazz, ClassSchemaCache classSchemaCache) {
     for (Method m : clazz.getDeclaredMethods()) {
+      // methods without a value, e.g. Immutables checks, are not properties
       if (m.getParameterCount() == 0
           && Modifier.isPublic(m.getModifiers())
+          && m.getReturnType() != void.class
           && !hasIgnoreAnnotation(m)) {
         processMethod(baseClazz, m, classSchemaCache);
       }
@@ -69,7 +73,8 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
 
     if (type instanceof ParameterizedType) {
       this.addProperties(
-          name, generateSchema((ParameterizedType) type, baseClazz, classSchemaCache));
+          name,
+          withFormat(m, generateSchema((ParameterizedType) type, baseClazz, classSchemaCache)));
       boolean required = false;
       for (Annotation a : m.getAnnotations()) {
         if (Objects.equals(a.annotationType(), JsonProperty.class)) {
@@ -79,7 +84,7 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
           }
         }
       }
-      if (required) {
+      if (required && !isOmittedWhenEmpty(baseClazz, m)) {
         this.addRequiredItem(name);
       }
     } else {
@@ -107,9 +112,52 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
                         ClassSchemaCache.SCHEMA_PATH_TEMPLATE,
                         ClassSchemaCache.getSchemaId(returnType))));
       } else {
-        this.addProperties(name, classSchemaCache.getSchema(returnType, baseClazz));
+        this.addProperties(name, withFormat(m, classSchemaCache.getSchema(returnType, baseClazz)));
       }
     }
+  }
+
+  // the schemas of basic types are shared, a format is set on a new schema
+  private static Schema<?> withFormat(Method m, Schema<?> schema) {
+    SchemaFormat format = m.getAnnotation(SchemaFormat.class);
+    if (Objects.isNull(format)
+        || Objects.isNull(schema)
+        || Objects.nonNull(schema.get$ref())
+        || !"string".equals(schema.getType())) {
+      return schema;
+    }
+    return new StringSchema().format(format.value());
+  }
+
+  // an empty collection or map is not serialized with Include.NON_EMPTY, so the property cannot be
+  // required, even if it is declared as required in a supertype
+  private static boolean isOmittedWhenEmpty(Class<?> baseClazz, Method m) {
+    JsonInclude include = m.getAnnotation(JsonInclude.class);
+    if (Objects.isNull(include)) {
+      include = findJsonInclude(baseClazz);
+    }
+    return Objects.nonNull(include) && include.value() == JsonInclude.Include.NON_EMPTY;
+  }
+
+  private static JsonInclude findJsonInclude(Class<?> clazz) {
+    if (Objects.isNull(clazz) || clazz == Object.class) {
+      return null;
+    }
+    JsonInclude include = clazz.getDeclaredAnnotation(JsonInclude.class);
+    if (Objects.nonNull(include)) {
+      return include;
+    }
+    include = findJsonInclude(clazz.getSuperclass());
+    if (Objects.nonNull(include)) {
+      return include;
+    }
+    for (Class<?> anInterface : clazz.getInterfaces()) {
+      include = findJsonInclude(anInterface);
+      if (Objects.nonNull(include)) {
+        return include;
+      }
+    }
+    return null;
   }
 
   private String getPropertyName(Method m) {

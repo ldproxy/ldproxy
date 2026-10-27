@@ -265,8 +265,8 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
     try {
       query = QueryExpression.of(requestBody);
     } catch (IOException e) {
-      throw new IllegalArgumentException(
-          String.format("The content of the query expression is invalid: %s", e.getMessage()), e);
+      // the message of the cause is added to the response
+      throw new IllegalArgumentException("The content of the query expression is invalid", e);
     }
 
     // ad-hoc queries are submitted via POST and have no addressable GET resource, so they cannot

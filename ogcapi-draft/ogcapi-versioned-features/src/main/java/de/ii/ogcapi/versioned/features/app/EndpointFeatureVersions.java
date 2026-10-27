@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.domain.EndpointSubCollection;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.features.core.domain.EndpointFeaturesDefinition;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
@@ -24,6 +25,7 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -167,6 +169,13 @@ public class EndpointFeatureVersions extends EndpointSubCollection implements Ap
               TAGS,
               Optional.empty(),
               Optional.empty())
+          .map(
+              op ->
+                  new ImmutableApiOperation.Builder()
+                      .from(op)
+                      .addLinkedFrom(
+                          EndpointFeaturesDefinition.linkFromItems("versions", collectionId))
+                      .build())
           .ifPresent(op -> resourceBuilder.putOperations(HttpMethods.GET.name(), op));
       builder.putResources(resourcePath, resourceBuilder.build());
     }

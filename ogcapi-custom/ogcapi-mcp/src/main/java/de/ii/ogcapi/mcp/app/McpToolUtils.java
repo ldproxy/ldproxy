@@ -286,6 +286,7 @@ public class McpToolUtils {
                     res ->
                         res.getOperations().values().stream()
                             .flatMap(op -> op.getQueryParameters().stream())
+                            .filter(param -> !param.isInternal())
                             .filter(
                                 param ->
                                     allowedNames == null

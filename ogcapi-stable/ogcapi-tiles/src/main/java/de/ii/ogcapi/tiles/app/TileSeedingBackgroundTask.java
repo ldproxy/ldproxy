@@ -27,7 +27,6 @@ import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
-import de.ii.xtraplatform.jobs.domain.JobQueue;
 import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParameters;
 import de.ii.xtraplatform.tiles.domain.SeedingOptions;
@@ -70,7 +69,6 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
   private final FeaturesCoreProviders providers;
   private final TilesProviders tilesProviders;
   private final VolatileRegistry volatileRegistry;
-  private final JobQueue jobQueue;
   private final Jobs jobs;
 
   @Inject
@@ -78,12 +76,10 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       FeaturesCoreProviders providers,
       TilesProviders tilesProviders,
       VolatileRegistry volatileRegistry,
-      JobQueue jobQueue,
       Jobs jobs) {
     this.providers = providers;
     this.tilesProviders = tilesProviders;
     this.volatileRegistry = volatileRegistry;
-    this.jobQueue = jobQueue;
     this.jobs = jobs;
   }
 
@@ -236,16 +232,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       return;
     }
 
-    boolean inProgress =
-        jobQueue.getSets().stream()
-            .anyMatch(
-                jobSet ->
-                    Objects.equals(jobSet.getType(), TileSeedingJob.TYPE)
-                        && !jobSet.isDone()
-                        && jobSet
-                            .getEntity()
-                            .filter(e -> Objects.equals(e, tileProvider.getId()))
-                            .isPresent());
+    boolean inProgress = jobs.isInProgress(TileSeedingJob.TYPE, tileProvider.getId());
 
     if (inProgress) {
       if (LOGGER.isDebugEnabled()) {

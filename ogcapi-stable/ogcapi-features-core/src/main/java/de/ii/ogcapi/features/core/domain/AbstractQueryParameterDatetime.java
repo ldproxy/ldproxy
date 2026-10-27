@@ -13,22 +13,29 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 
 public abstract class AbstractQueryParameterDatetime extends OgcApiQueryParameterBase {
 
   private static final String NOW_REGEX = "(?:[nN][oO][wW])";
   private static final String OPEN_REGEX = "(?:\\.\\.)?";
+  // the day exists in the month, February 29 only in a leap year
   private static final String LOCAL_DATE_REGEX =
-      "(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])";
+      "(?:\\d{4}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1[0-9]|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)"
+          + "|(?:0[13578]|1[02])-31)|(?:\\d{2}(?:0[48]|[2468][048]|[13579][26])"
+          + "|(?:[02468][048]|[13579][26])00)-02-29)";
   private static final String LOCAL_DATE_OR_OPEN_REGEX =
       "(?:" + LOCAL_DATE_REGEX + "|" + OPEN_REGEX + "|" + NOW_REGEX + ")";
   private static final String LOCAL_DATE_OPEN_INTERVAL_REGEX =
       LOCAL_DATE_OR_OPEN_REGEX + "/" + LOCAL_DATE_OR_OPEN_REGEX;
   private static final String LOCAL_DATE_CLOSED_INTERVAL_REGEX =
       LOCAL_DATE_REGEX + "/" + LOCAL_DATE_REGEX;
+  // leap seconds are not supported, the second is in the range 00 to 59 with at most nanoseconds;
+  // the offset is at most 18 hours
   private static final String OFFSET_DATE_TIME_REGEX =
       LOCAL_DATE_REGEX
-          + "T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9]|60)(?:\\.[0-9]+)?(Z|(\\+|-)(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]))";
+          + "T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.[0-9]{1,9})?(Z|(\\+|-)(?:(?:0[0-9]|1[0-7]):[0-5][0-9]|18:00))";
   private static final String OFFSET_DATE_TIME_OR_OPEN_REGEX =
       "(?:" + OFFSET_DATE_TIME_REGEX + "|" + OPEN_REGEX + "|" + NOW_REGEX + ")";
   private static final String OFFSET_DATE_TIME_OPEN_INTERVAL_REGEX =
@@ -114,5 +121,18 @@ public abstract class AbstractQueryParameterDatetime extends OgcApiQueryParamete
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return FeaturesCoreConfiguration.class;
+  }
+
+  /**
+   * @param instant a value of the parameter: a timestamp, a date, ".." or "now"
+   * @return a timestamp with an offset in UTC, as a timestamp in CQL2 is in UTC, otherwise the
+   *     value
+   */
+  protected static String inUtc(String instant) {
+    try {
+      return OffsetDateTime.parse(instant).toInstant().toString();
+    } catch (DateTimeParseException e) {
+      return instant;
+    }
   }
 }

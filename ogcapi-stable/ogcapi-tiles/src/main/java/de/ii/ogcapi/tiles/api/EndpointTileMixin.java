@@ -23,6 +23,8 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperationLink;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -39,7 +41,6 @@ import de.ii.xtraplatform.tiles.domain.TileMatrixSet;
 import de.ii.xtraplatform.tiles.domain.TileMatrixSetRepository;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.MediaType;
 import java.text.MessageFormat;
 import java.util.List;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +57,11 @@ public interface EndpointTileMixin {
 
   Logger LOGGER = LoggerFactory.getLogger(EndpointTileMixin.class);
   String COLLECTION_ID_PLACEHOLDER = "__collectionId__";
+  String OP_ID_GET_TILE = "getTile";
+  String OP_ID_GET_TILE_SET = "getTileSet";
+  String OUTSIDE_ZOOM_LEVELS = "The requested tile is outside the zoom levels for this tile set.";
+  String OUTSIDE_LIMITS =
+      "The requested tile is outside of the limits for this zoom level and tile set.";
 
   default ApiEndpointDefinition computeDefinitionSingle(
       ExtensionRegistry extensionRegistry,
@@ -120,6 +127,7 @@ public interface EndpointTileMixin {
                 tags,
                 TilesBuildingBlock.MATURITY,
                 TilesBuildingBlock.SPEC)
+            .map(operation -> withLinkFromTileSet(operation, resourcePath))
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());
@@ -174,6 +182,7 @@ public interface EndpointTileMixin {
             tags,
             TilesBuildingBlock.MATURITY,
             TilesBuildingBlock.SPEC)
+        .map(operation -> withLinkFromTileSet(operation, path))
         .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
@@ -214,17 +223,11 @@ public interface EndpointTileMixin {
     endpoint.checkPathParameter(extensionRegistry, apiData, definitionPath, "tileRow", tileRow);
     endpoint.checkPathParameter(extensionRegistry, apiData, definitionPath, "tileCol", tileCol);
 
-    int row;
-    int col;
-    int level;
-    try {
-      level = Integer.parseInt(tileLevel);
-      row = Integer.parseInt(tileRow);
-      col = Integer.parseInt(tileCol);
-    } catch (NumberFormatException e) {
-      throw new ServerErrorException(
-          "Could not convert tile coordinates that have been validated to integers", 500);
-    }
+    // the path parameters have been validated as digit strings, values that do not fit into an
+    // integer are outside of every tile matrix set
+    int level = parseTileCoordinate(tileLevel, OUTSIDE_ZOOM_LEVELS);
+    int row = parseTileCoordinate(tileRow, OUTSIDE_LIMITS);
+    int col = parseTileCoordinate(tileCol, OUTSIDE_LIMITS);
 
     TileMatrixSet tileMatrixSet =
         tileMatrixSetRepository
@@ -238,8 +241,7 @@ public interface EndpointTileMixin {
             .getLevels()
             .get(tileMatrixSetId);
     if (zoomLevels.getMax() < level || zoomLevels.getMin() > level)
-      throw new NotFoundException(
-          "The requested tile is outside the zoom levels for this tile set.");
+      throw new NotFoundException(OUTSIDE_ZOOM_LEVELS);
 
     TileMatrixSetLimitsOgcApi tileLimits =
         limitsGenerator.getTileMatrixSetLimits(api, tileMatrixSet, level, collectionId);
@@ -250,8 +252,7 @@ public interface EndpointTileMixin {
           || tileLimits.getMaxTileRow() < row
           || tileLimits.getMinTileRow() > row)
         // return 404, if outside the range
-        throw new NotFoundException(
-            "The requested tile is outside of the limits for this zoom level and tile set.");
+        throw new NotFoundException(OUTSIDE_LIMITS);
     }
 
     String path =
@@ -286,6 +287,14 @@ public interface EndpointTileMixin {
         .build();
   }
 
+  private static int parseTileCoordinate(String value, String outsideMessage) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      throw new NotFoundException(outsideMessage);
+    }
+  }
+
   private static Map<MediaType, ApiMediaTypeContent> getContent(
       Endpoint endpoint, OgcApiDataV2 apiData, Optional<String> optionalCollectionId, String path) {
     return endpoint.getResourceFormats().stream()
@@ -315,6 +324,35 @@ public interface EndpointTileMixin {
         .map(FormatExtension::getContent)
         .filter(Objects::nonNull)
         .collect(Collectors.toMap(c -> c.getOgcApiMediaType().type(), c -> c));
+  }
+
+  /**
+   * @param operation an operation that fetches a tile, the id ends with {@code getTile}
+   * @param path the path of the operation
+   * @return the operation with a link from the tile set, the tile is the first tile within the
+   *     limits of the tile set
+   */
+  static ApiOperation withLinkFromTileSet(ApiOperation operation, String path) {
+    String operationId = operation.getOperationId();
+    if (!operationId.endsWith(OP_ID_GET_TILE)) {
+      return operation;
+    }
+    ImmutableApiOperationLink.Builder link =
+        new ImmutableApiOperationLink.Builder()
+            .name("tile")
+            .operationId(
+                operationId.substring(0, operationId.length() - OP_ID_GET_TILE.length())
+                    + OP_ID_GET_TILE_SET)
+            .putParameters("tileMatrix", "$response.body#/tileMatrixSetLimits/0/tileMatrix")
+            .putParameters("tileRow", "$response.body#/tileMatrixSetLimits/0/minTileRow")
+            .putParameters("tileCol", "$response.body#/tileMatrixSetLimits/0/minTileCol")
+            .description(
+                "Uses the first tile (minimum row and column) of the first tile matrix in the"
+                    + " limits of the tile set. A link selects a single value, it does not iterate over the list.");
+    Stream.of("tileMatrixSetId", "collectionId", "styleId")
+        .filter(name -> path.contains("{" + name + "}"))
+        .forEach(name -> link.putParameters(name, "$request.path." + name));
+    return new ImmutableApiOperation.Builder().from(operation).addLinkedFrom(link.build()).build();
   }
 
   static String getOperationId(

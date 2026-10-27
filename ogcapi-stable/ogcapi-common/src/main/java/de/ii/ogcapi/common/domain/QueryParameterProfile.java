@@ -176,6 +176,7 @@ public abstract class QueryParameterProfile extends OgcApiQueryParameterBase
                                   getProfiles(apiData, collectionId, resourceType).stream()
                                       .map(Profile::getId)
                                       .toList()));
+              schema.minItems(1);
               return schema;
             });
   }

@@ -89,6 +89,12 @@ import org.slf4j.LoggerFactory;
  *     rejected, if any value in the request body is an empty string or consists only of whitespace.
  *     The check is applied while the request body is decoded, so it needs no schema and is also
  *     applied where the request body cannot be validated against one.
+ *     <p>The option `returnRepresentation` enables the `return` preference: a POST, PUT or PATCH
+ *     request with a header `Prefer` with the value "return=representation" is answered with a
+ *     representation of the created or changed feature in the response body, and the response
+ *     reports the applied preference in a "Preference-Applied" header. The media type of the
+ *     representation is negotiated with the "Accept" header of the request. Without the option, or
+ *     with the value "return=minimal", the response has no body.
  *     <p>A PUT, PATCH or DELETE request cannot be made conditional on an entity tag: no entity tag
  *     is known for the feature in a request that changes it, so an "If-Match" header cannot be met
  *     and the request is rejected with HTTP 412 ("Precondition Failed"). Use an
@@ -161,6 +167,12 @@ import org.slf4j.LoggerFactory;
  *     aus Leerraum besteht. Die Prüfung erfolgt beim Dekodieren des Payloads, benötigt daher kein
  *     Schema und wird auch angewendet, wenn der Payload nicht gegen ein Schema validiert werden
  *     kann.
+ *     <p>Die Option `returnRepresentation` aktiviert die `return`-Präferenz: Eine POST-, PUT- oder
+ *     PATCH-Anfrage mit einem Header `Prefer` mit dem Wert "return=representation" wird mit einer
+ *     Repräsentation des erzeugten oder geänderten Features im Response-Body beantwortet, und die
+ *     Antwort meldet die angewendete Präferenz in einem "Preference-Applied"-Header. Der Media-Type
+ *     der Repräsentation wird über den "Accept"-Header der Anfrage ermittelt. Ohne die Option oder
+ *     mit dem Wert "return=minimal" hat die Antwort keinen Body.
  *     <p>Eine PUT-, PATCH- oder DELETE-Anfrage kann nicht von einem Entity-Tag abhängig gemacht
  *     werden: In einer Anfrage, die ein Feature ändert, ist kein Entity-Tag des Features bekannt,
  *     daher kann ein "If-Match"-Header nicht erfüllt werden und die Anfrage wird mit HTTP 412
@@ -179,15 +191,17 @@ import org.slf4j.LoggerFactory;
  *     <p>Die Features dürfen nur eine einzige Geometrieeigenschaft mit dem Geltungsbereich
  *     `RECEIVABLES` haben.
  * @conformanceEn The building block is based on the specifications of the conformance classes
- *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps", "Handling
- *     Preference" and "Features" from the [Draft OGC API - Features - Part 4: Create, Replace,
- *     Update and Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). The implementation will change
- *     as the draft will evolve during the standardization process.
+ *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps", "Return Resource
+ *     Representation in Response", "Handling Preference" and "Features" from the [Draft OGC API -
+ *     Features - Part 4: Create, Replace, Update and
+ *     Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). The implementation will change as the
+ *     draft will evolve during the standardization process.
  * @conformanceDe Der Baustein basiert auf den Vorgaben der Konformitätsklassen
- *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps", "Handling
- *     Preference" und "Features" aus dem [Entwurf von OGC API - Features - Part 4: Create, Replace,
- *     Update and Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). Die Implementierung wird sich
- *     im Zuge der weiteren Standardisierung der Spezifikation noch ändern.
+ *     "Create/Replace/Delete", "Update", "Optimistic Locking using Timestamps", "Return Resource
+ *     Representation in Response", "Handling Preference" und "Features" aus dem [Entwurf von OGC
+ *     API - Features - Part 4: Create, Replace, Update and
+ *     Delete](https://docs.ogc.org/DRAFTS/20-002r1.html). Die Implementierung wird sich im Zuge der
+ *     weiteren Standardisierung der Spezifikation noch ändern.
  * @ref:cfg {@link de.ii.ogcapi.crud.domain.CrudConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.crud.domain.ImmutableCrudConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.crud.app.EndpointCrud}
@@ -255,6 +269,23 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
             });
 
     return ApiBuildingBlock.super.onStartup(api, apiValidation);
+  }
+
+  /**
+   * Whether a response to a request that changes a feature of the collection can include a
+   * representation of the feature, if the client prefers one.
+   */
+  static boolean returnsRepresentation(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getExtension(CrudConfiguration.class, collectionId)
+        .map(CrudConfiguration::returnsRepresentation)
+        .orElse(false);
+  }
+
+  /** Whether any collection of the API supports a representation of the feature in a response. */
+  static boolean returnsRepresentation(OgcApiDataV2 apiData) {
+    return apiData.getCollections().keySet().stream()
+        .anyMatch(collectionId -> returnsRepresentation(apiData, collectionId));
   }
 
   private boolean isProviderSupportsMutations(OgcApiDataV2 apiData) {

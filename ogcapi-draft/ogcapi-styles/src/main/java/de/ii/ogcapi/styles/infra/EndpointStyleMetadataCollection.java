@@ -23,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
@@ -150,6 +151,18 @@ public class EndpointStyleMetadataCollection extends EndpointSubCollection
                 TAGS,
                 StylesBuildingBlock.MATURITY,
                 StylesBuildingBlock.SPEC)
+            .map(
+                operation ->
+                    new ImmutableApiOperation.Builder()
+                        .from(operation)
+                        .addLinkedFrom(
+                            getLinkFrom(
+                                "metadata",
+                                collectionId,
+                                "getStyles",
+                                Map.of("styleId", "$response.body#/styles/0/id"),
+                                "Uses the id of the first style in the response. A link selects a single value, it does not iterate over the list."))
+                        .build())
             .ifPresent(
                 operation -> resourceBuilder.putOperations(HttpMethods.GET.name(), operation));
         definitionBuilder.putResources(resourcePath, resourceBuilder.build());

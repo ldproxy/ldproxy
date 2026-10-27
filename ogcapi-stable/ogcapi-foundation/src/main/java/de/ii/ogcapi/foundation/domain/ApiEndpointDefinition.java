@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
@@ -191,5 +192,21 @@ public abstract class ApiEndpointDefinition {
     getResources().values().stream()
         .sorted(Comparator.comparing(OgcApiResource::getPath))
         .forEachOrdered(resource -> resource.updateOpenApiDefinition(apiData, openAPI));
+  }
+
+  /**
+   * adds the links to the operations of the endpoint to the OpenAPI definition
+   *
+   * @param operations the operations of the OpenAPI definition with all endpoints by id
+   */
+  public void updateOpenApiLinks(Map<String, Operation> operations) {
+    getResources()
+        .values()
+        .forEach(
+            resource ->
+                resource
+                    .getOperations()
+                    .values()
+                    .forEach(operation -> operation.updateOpenApiLinks(operations)));
   }
 }

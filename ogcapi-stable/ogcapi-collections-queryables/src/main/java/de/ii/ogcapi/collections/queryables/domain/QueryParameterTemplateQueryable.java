@@ -34,6 +34,9 @@ import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.SchemaBase.Type;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -178,12 +181,13 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
           }
           return Eq.of(getName(), ScalarLiteral.of(value));
         case DATE:
-        case DATETIME:
           return Eq.of(getName(), TemporalLiteral.of(value));
+        case DATETIME:
+          return Eq.of(getName(), getTemporalLiteral(value));
         default:
           return BooleanValue2.of(false);
       }
-    } catch (CqlParseException | NumberFormatException e) {
+    } catch (CqlParseException | NumberFormatException | DateTimeParseException e) {
       throw new IllegalArgumentException(
           String.format(
               "The parameter '%s' is invalid: '%s' is not a valid value (%s).",
@@ -205,6 +209,15 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
             "https://docs.ogc.org/is/17-069r4/17-069r4.html", "OGC API - Features - Part 1: Core"));
   }
 
+  // the value is a RFC 3339 date-time, which may have an offset, but a timestamp in CQL2 is in UTC
+  private static TemporalLiteral getTemporalLiteral(String value) {
+    try {
+      return TemporalLiteral.of(OffsetDateTime.parse(value).toInstant());
+    } catch (DateTimeParseException e) {
+      return TemporalLiteral.of(value);
+    }
+  }
+
   private ScalarLiteral getScalarLiteral(String value, SchemaBase.Type valueType) {
     switch (valueType) {
       case INTEGER:
@@ -213,6 +226,11 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
         return ScalarLiteral.of(Double.parseDouble(value));
       case BOOLEAN:
         return ScalarLiteral.of(Boolean.parseBoolean(value));
+      case DATE:
+        // a value of an array, it is compared as a string, so it must be a valid date
+        return ScalarLiteral.of(LocalDate.parse(value).toString());
+      case DATETIME:
+        return ScalarLiteral.of(OffsetDateTime.parse(value).toInstant().toString());
       default:
         return ScalarLiteral.of(value);
     }

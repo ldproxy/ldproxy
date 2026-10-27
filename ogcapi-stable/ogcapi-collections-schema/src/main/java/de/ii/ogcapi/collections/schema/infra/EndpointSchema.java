@@ -145,7 +145,12 @@ public class EndpointSchema extends EndpointSubCollection
             getQueryParameters(extensionRegistry, apiData, path, collectionId);
         final String operationSummary =
             "retrieve the schema of features in the feature collection '" + collectionId + "'";
-        Optional<String> operationDescription = Optional.empty(); // TODO
+        Optional<String> operationDescription =
+            Optional.of(
+                "Retrieves a JSON Schema document that describes the features in the feature "
+                    + "collection '"
+                    + collectionId
+                    + "'.");
         String resourcePath = "/collections/" + collectionId + subSubPath;
         ImmutableOgcApiResourceData.Builder resourceBuilder =
             new ImmutableOgcApiResourceData.Builder()

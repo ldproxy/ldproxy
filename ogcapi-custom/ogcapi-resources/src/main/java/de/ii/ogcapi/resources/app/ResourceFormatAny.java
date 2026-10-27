@@ -35,7 +35,8 @@ public class ResourceFormatAny implements ResourceFormatExtension {
 
   public static final ApiMediaType MEDIA_TYPE =
       new ImmutableApiMediaType.Builder().type(MediaType.WILDCARD_TYPE).build();
-  public static final String SCHEMA_REF_RESOURCE = "#/components/schemas/Resource";
+  // "Resource" is the entry in the list of resources, the content is a file
+  public static final String SCHEMA_REF_RESOURCE = "#/components/schemas/ResourceFile";
 
   private final Schema schemaResource;
   private final ResourceStore resourcesStore;

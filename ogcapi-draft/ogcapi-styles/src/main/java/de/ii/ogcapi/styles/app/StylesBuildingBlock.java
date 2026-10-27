@@ -76,7 +76,7 @@ import java.util.stream.Collectors;
  *      `3dtiles-styles` and relative path `{apiId}/{styleId}.{ext}`. The extension `3dtiles`
  *      is still supported, but preferably stylesheets are stored as plain JSON (`json`) or YAML (`yml`) files.
  * - Other stylesheets reside in the [Store](../../application/20-configuration/10-store-new.md) as resources with type
- *      `other-styles` and relative path `{apiId}/{styleId}.{ext}` or `{apiId}/collections/{collectionId}/{styleId}.{ext}`.
+ *      `other-styles` and relative path `{apiId}/{styleId}.{ext}` or `{apiId}/{collectionId}/{styleId}.{ext}`.
  *     Whether the latter path with `collectionId` is used depends on the style scope.
  *     The file extension `{ext}` must have the following value depending on the style encoding:
  *   - OGC SLD 1.0: `sld10`
@@ -99,7 +99,7 @@ import java.util.stream.Collectors;
  *      JSON- oder YAML-Dateien gespeichert (Erweiterung `json` oder `yml`).
  * - Andere Stylesheets liegen im [Store](../../application/20-configuration/10-store-new.md)
  *      als Ressourcen mit Typ `other-styles` und relativem Pfad `{apiId}/{styleId}.{ext}` oder
- *      `{apiId}/collections/{collectionId}/{styleId}.{ext}`.
+ *      `{apiId}/{collectionId}/{styleId}.{ext}`.
  *      Ob der letztgenannte Pfad mit `collectionId` verwendet wird, hängt vom Style-Scope ab.
  *      Die Dateikennung `{ext}` muss den folgenden Wert in Abhängigkeit des Style-Formats haben:
  *   - OGC SLD 1.0: `sld10`

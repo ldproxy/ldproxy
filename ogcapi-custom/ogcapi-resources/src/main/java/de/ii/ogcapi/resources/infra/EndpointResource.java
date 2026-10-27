@@ -20,6 +20,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperationLink;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -130,6 +132,19 @@ public class EndpointResource extends Endpoint implements ApiExtensionHealth {
               TAGS,
               ResourcesBuildingBlock.MATURITY,
               ResourcesBuildingBlock.SPEC)
+          .map(
+              operation ->
+                  new ImmutableApiOperation.Builder()
+                      .from(operation)
+                      .addLinkedFrom(
+                          new ImmutableApiOperationLink.Builder()
+                              .name("resource")
+                              .operationId(getOperationId("getResources"))
+                              .putParameters("resourceId", "$response.body#/resources/0/id")
+                              .description(
+                                  "Uses the id of the first resource in the response. A link selects a single value, it does not iterate over the list.")
+                              .build())
+                      .build())
           .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }

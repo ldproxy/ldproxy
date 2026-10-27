@@ -18,7 +18,10 @@ import de.ii.xtraplatform.geometries.domain.transcode.json.GeometryEncoderJson;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -30,6 +33,11 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
 
   @Inject
   public GeoJsonWriterProperties() {}
+
+  // for each open array or object, the schema with which it was written, if it was written; the
+  // end is written with the same schema, even if the schema of the end token differs, e.g. if the
+  // mapping is skipped
+  private final Deque<Optional<FeatureSchema>> openStructures = new ArrayDeque<>();
 
   @Override
   public GeoJsonWriterProperties create() {
@@ -54,10 +62,12 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
   public void onArrayStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
+    Optional<FeatureSchema> schema = context.schema().filter(FeatureSchema::isArray);
+    if (schema.isPresent()) {
       startIfNecessary(context);
-      context.encoding().getJson().writeArrayFieldStart(context.schema().get().getName());
+      context.encoding().getJson().writeArrayFieldStart(schema.get().getName());
     }
+    openStructures.push(schema);
 
     next.accept(context);
   }
@@ -66,10 +76,12 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
   public void onObjectStart(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
+    Optional<FeatureSchema> schema = context.schema().filter(FeatureSchema::isObject);
+    if (schema.isPresent()) {
       startIfNecessary(context);
-      openObject(context, context.schema().get());
+      openObject(context, schema.get());
     }
+    openStructures.push(schema);
 
     next.accept(context);
   }
@@ -80,9 +92,10 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       throws IOException {
     next.accept(context);
 
-    if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
-      FeatureSchema schema = context.schema().get();
-      closeObject(context, schema);
+    Optional<FeatureSchema> schema =
+        openStructures.isEmpty() ? Optional.empty() : openStructures.pop();
+    if (schema.isPresent()) {
+      closeObject(context, schema.get());
     }
   }
 
@@ -92,7 +105,9 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
       throws IOException {
     next.accept(context);
 
-    if (context.schema().filter(FeatureSchema::isArray).isPresent()) {
+    Optional<FeatureSchema> schema =
+        openStructures.isEmpty() ? Optional.empty() : openStructures.pop();
+    if (schema.isPresent()) {
       context.encoding().getJson().writeEndArray();
     }
   }
@@ -101,7 +116,9 @@ public class GeoJsonWriterProperties implements GeoJsonWriter {
   public void onGeometry(
       EncodingAwareContextGeoJson context, Consumer<EncodingAwareContextGeoJson> next)
       throws IOException {
-    if (!context
+    // a geometry without a schema, e.g. if the mapping is skipped, cannot be written as a property
+    if (context.schema().isPresent()
+        && !context
             .schema()
             .map(
                 p ->

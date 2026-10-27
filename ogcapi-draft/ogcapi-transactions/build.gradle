@@ -31,4 +31,6 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-features-gml'
     provided 'de.interactive_instruments:ogcapi-filter'
     provided 'de.interactive_instruments:xtraplatform-features-gml'
+
+    testProvided 'de.interactive_instruments:xtraplatform-cache'
 }

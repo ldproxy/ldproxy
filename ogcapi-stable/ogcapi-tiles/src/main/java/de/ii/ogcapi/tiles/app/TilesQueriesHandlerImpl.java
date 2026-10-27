@@ -407,6 +407,19 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
 
     TileAccess tileAccess = tileProvider.access().get();
 
+    // a style without map tiles in the tile provider has no tiles
+    if (queryInput.getStyleId().isPresent()) {
+      OgcApiDataV2 apiData = requestContext.getApi().getData();
+      String styleId = queryInput.getStyleId().get();
+      if (!tilesProviders
+          .getRasterTilesetMetadata(
+              apiData, queryInput.getCollectionId().flatMap(apiData::getCollectionData))
+          .containsKey(styleId)) {
+        throw new NotFoundException(
+            String.format("There are no map tiles for the style '%s'.", styleId));
+      }
+    }
+
     TileQuery tileQuery = getTileQuery(queryInput, requestContext, tileProvider);
 
     TileResult result = tileAccess.getTile(tileQuery);

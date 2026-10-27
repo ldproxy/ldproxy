@@ -2677,6 +2677,22 @@
             }
           ]
         },
+        "ids": {
+          "title": "ids",
+          "description": "Enables the query parameter `ids` for the Features resource, which selects features by    their identifiers, and the conformance class *Query by IDs*. Feature identifiers that    contain a comma cannot be selected with the parameter, so the option should be disabled, if    feature identifiers may contain a comma. The conformance class is only declared, if the    option is enabled for all collections.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "itemType": {
           "title": "itemType",
           "description": "",
@@ -4088,7 +4104,7 @@
         },
         "geometryProperties": {
           "title": "geometryProperties",
-          "description": "This option works only for CesiumJS as map client. By default, the geometry identified    in the provider as PRIMARY_GEOMETRY is used for representation on the map. This option    allows multiple geometry properties to be specified in a list. The first geometry property    set for a feature will be used.",
+          "description": "*Deprecated* This option has no effect anymore. The geometry with the role    `PRIMARY_GEOMETRY` in the provider schema is used for the representation on the map.",
           "deprecated": true,
           "allOf": [
             {
@@ -5550,6 +5566,22 @@
               "type": "null"
             }
           ]
+        },
+        "returnRepresentation": {
+          "title": "returnRepresentation",
+          "description": "Option to enable support for the `return` preference in POST, PUT and PATCH requests. A    request with a `Prefer` header with the value \"return\u003drepresentation\" is answered with a    representation of the created or changed feature in the response body; the status code is    201 (\"Created\") for a new feature, with the URI of the feature in a `Location` header, and    200 (\"OK\") for a changed feature. The representation is the one that a GET request for the    feature returns, in the coordinate reference system of the `Content-Crs` header of the    request, or in the default coordinate reference system of the collection, if the request    does not include the header. The media type of the representation is negotiated with the    `Accept` header of the request among the feature encodings of the collection; a request    without an `Accept` header, or one that accepts any media type, is answered in the media    type of the request body, if the collection supports it. The response reports the applied    preference in a `Preference-Applied` header. Without the option, or in a request with a    `Prefer` header with the value \"return\u003dminimal\", the response has no body: 201 with a    `Location` header for a new feature, 204 (\"No Content\") for a changed feature.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
@@ -5629,7 +5661,7 @@
         },
         "styleEncodings": {
           "title": "styleEncodings",
-          "description": "List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style (\"Mapbox\"),    OGC SLD 1.0 (\"SLD 1.0\"), OGC SLD 1.1 (\"SLD 1.1\"), QGIS QML (\"QGIS\"), ArcGIS LYR (\"ArcGIS\"),    ArcGIS LYRX (\"ArcGIS Pro\"), 3D Tiles (\"3D Tiles\") and HTML (\"HTML\"). HTML is an output only    encoding for web maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see    conformance classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming    change** Currently there is no way to disable the defaults \"Mapbox\" and \"HTML\". It is    planned to change this in v5, then the defaults need to be repeated, if you want to add    additional encodings.",
+          "description": "List of enabled stylesheet encodings. Supported are Mapbox/MapLibre Style (\"Mapbox\"),    OGC SLD 1.0 (\"SLD 1.0\"), OGC SLD 1.1 (\"SLD 1.1\"), QGIS QML (\"QGIS\"), ArcGIS LYR (\"ArcGIS\"),    ArcGIS LYRX (\"ArcGIS Pro\"), 3D Tiles (\"3D Tiles\") and HTML (\"HTML\"). HTML is an output only    encoding for web maps that requires a *Mapbox/MapLibre Style* stylesheet. For details see    conformance classes *Mapbox Style*, *OGC SLD 1.0*, *OGC SLD 1.1* und *HTML*. **Upcoming    change** Currently there is no way to disable the defaults \"Mapbox\", \"HTML\" and \"3D Tiles\".    It is planned to change this in v5, then the defaults need to be repeated, if you want to    add additional encodings.",
           "allOf": [
             {
               "if": {

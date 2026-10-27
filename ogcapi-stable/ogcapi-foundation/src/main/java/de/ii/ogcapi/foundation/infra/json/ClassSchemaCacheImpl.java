@@ -50,7 +50,8 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClassSchemaCacheImpl.class);
 
-  private static final Schema<?> OBJECT_SCHEMA = new io.swagger.v3.oas.models.media.ObjectSchema();
+  // a Java Object or JsonNode may be any JSON value, not only an object
+  private static final Schema<?> ANY_SCHEMA = new Schema<>();
   private static final Schema<?> STRING_SCHEMA = new StringSchema();
   private static final Schema<?> NUMBER_SCHEMA = new NumberSchema();
   private static final Schema<?> INTEGER_SCHEMA = new IntegerSchema();
@@ -67,6 +68,12 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
           .addProperties("type", new StringSchema())
           .addProperties("title", new StringSchema())
           .required(List.of("href", "rel"));
+  // an array of instants is an interval, an unbounded start or end is null
+  private static final Schema<?> INTERVAL_SCHEMA =
+      new io.swagger.v3.oas.models.media.ArraySchema()
+          .items(new StringSchema().format("date-time").nullable(true))
+          .minItems(2)
+          .maxItems(2);
 
   private final ConcurrentMap<Class<?>, Schema<?>> namedSchemaMap;
   private final ConcurrentMap<Class<?>, Schema<?>> embeddedSchemaMap;
@@ -97,12 +104,13 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
     this.embeddedSchemaMap.put(Number.class, NUMBER_SCHEMA);
     this.embeddedSchemaMap.put(boolean.class, BOOLEAN_SCHEMA);
     this.embeddedSchemaMap.put(Boolean.class, BOOLEAN_SCHEMA);
-    this.embeddedSchemaMap.put(Object.class, OBJECT_SCHEMA);
-    this.embeddedSchemaMap.put(JsonNode.class, OBJECT_SCHEMA);
+    this.embeddedSchemaMap.put(Object.class, ANY_SCHEMA);
+    this.embeddedSchemaMap.put(JsonNode.class, ANY_SCHEMA);
 
     // initialize schema map with basic data types
     this.namedSchemaMap = new ConcurrentHashMap<>();
     this.namedSchemaMap.put(Link.class, LINK_SCHEMA);
+    this.namedSchemaMap.put(Instant[].class, INTERVAL_SCHEMA);
 
     this.dependencyMap = new ConcurrentHashMap<>();
   }

@@ -94,6 +94,8 @@ ext {
 
 tasks.jar {
     onlyIf { false }
+    // keeps the path consumers of the plain jar (e.g. testFixtures) resolve apart from the shadowJar output
+    archiveClassifier.set("plain")
 }
 
 tasks.shadowJar {

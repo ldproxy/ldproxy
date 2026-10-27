@@ -9,12 +9,14 @@ package de.ii.ogcapi.collections.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.common.domain.OgcApiExtent;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.foundation.domain.PageRepresentation;
 import de.ii.ogcapi.foundation.domain.PageRepresentationWithId;
+import de.ii.ogcapi.foundation.domain.SchemaFormat;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +36,11 @@ public abstract class OgcApiCollection extends PageRepresentationWithId {
 
   public abstract Optional<String> getItemType();
 
+  @JsonProperty(value = "crs", required = true)
   public abstract List<String> getCrs();
 
   // CRS, part 2
+  @SchemaFormat("uri")
   public abstract Optional<String> getStorageCrs();
 
   public abstract Optional<Float> getStorageCrsCoordinateEpoch();

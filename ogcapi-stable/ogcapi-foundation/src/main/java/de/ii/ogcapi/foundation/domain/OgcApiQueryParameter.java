@@ -23,6 +23,14 @@ public interface OgcApiQueryParameter extends ParameterExtension {
     return "form";
   }
 
+  /**
+   * Internal parameters are not part of the API definition and are rejected, if they are set by a
+   * client. They can only be set by ldproxy itself, e.g. from policy obligations.
+   */
+  default boolean isInternal() {
+    return false;
+  }
+
   boolean matchesPath(String definitionPath);
 
   boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, HttpMethods method);

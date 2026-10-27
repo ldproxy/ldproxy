@@ -157,7 +157,7 @@ public class QueryParameterCrsFeatures extends OgcApiQueryParameterBase
                       .map(FeaturesCoreConfiguration::getDefaultEpsgCrs)
                       .map(EpsgCrs::toUriString)
                       .orElse(CRS84);
-              return new StringSchema()._enum(crsList)._default(defaultCrs);
+              return new StringSchema().format("uri")._enum(crsList)._default(defaultCrs);
             });
   }
 

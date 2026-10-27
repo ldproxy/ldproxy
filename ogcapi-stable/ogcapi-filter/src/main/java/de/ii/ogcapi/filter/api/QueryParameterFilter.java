@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.ogcapi.tiles.domain.TileGenerationUserParameter;
+import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.xtraplatform.cql.domain.And;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.cql.domain.Cql.Format;
@@ -194,7 +195,8 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
             .equals(definitionPath);
   }
 
-  private final Schema<String> schema = new StringSchema();
+  // a CQL2 expression, the encoding is selected with `filter-lang`
+  private final Schema<String> schema = new StringSchema().minLength(1).format("cql2");
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
@@ -277,14 +279,6 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
       return null;
     }
 
-    FeatureTypeConfigurationOgcApi collectionData =
-        optionalCollectionData.orElseThrow(
-            () ->
-                new IllegalStateException(
-                    String.format(
-                        "The parameter '%s' could not be processed, no collection provided.",
-                        getName())));
-
     Cql2Expression cql2Expression;
     Cql.Format filterLang =
         Objects.requireNonNullElse((Format) typedValues.get("filter-lang"), Format.TEXT);
@@ -297,6 +291,54 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
           String.format("The parameter '%s' is invalid", getName()), e);
     }
 
+    if (optionalCollectionData.isPresent()) {
+      validate(cql2Expression, filterCrs, api, optionalCollectionData.get(), false);
+    } else {
+      // dataset tiles: the filter is applied to every layer, so it has to be valid for each
+      // collection in the tile
+      for (FeatureTypeConfigurationOgcApi collectionData :
+          getDatasetTileCollections(api.getData(), typedValues)) {
+        if (!isEnabledForApi(api.getData(), collectionData.getId())) {
+          throw new IllegalArgumentException(
+              String.format(
+                  "The parameter '%s' is not supported for collection '%s'. Use the parameter 'collections' to restrict the tile to collections that support filtering.",
+                  getName(), collectionData.getId()));
+        }
+        validate(cql2Expression, filterCrs, api, collectionData, true);
+      }
+    }
+
+    return cql2Expression;
+  }
+
+  private List<FeatureTypeConfigurationOgcApi> getDatasetTileCollections(
+      OgcApiDataV2 apiData, Map<String, Object> typedValues) {
+    List<String> selectedCollections =
+        typedValues.get("collections") instanceof List<?> collections
+            ? collections.stream().map(String::valueOf).toList()
+            : List.of();
+
+    return apiData.getCollections().values().stream()
+        .filter(collectionData -> apiData.isCollectionEnabled(collectionData.getId()))
+        .filter(
+            collectionData ->
+                collectionData
+                    .getExtension(TilesConfiguration.class)
+                    .filter(ExtensionConfiguration::isEnabled)
+                    .isPresent())
+        .filter(
+            collectionData ->
+                selectedCollections.isEmpty()
+                    || selectedCollections.contains(collectionData.getId()))
+        .toList();
+  }
+
+  private void validate(
+      Cql2Expression cql2Expression,
+      EpsgCrs filterCrs,
+      OgcApi api,
+      FeatureTypeConfigurationOgcApi collectionData,
+      boolean includeCollectionInMessage) {
     Map<String, FeatureSchema> queryables =
         collectionData
             .getExtension(QueryablesConfiguration.class)
@@ -311,9 +353,13 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
     List<String> invalidProperties = cql.findInvalidProperties(cql2Expression, queryables.keySet());
     if (!invalidProperties.isEmpty()) {
       throw new IllegalArgumentException(
-          String.format(
-              "The parameter '%s' is invalid. Unknown or forbidden properties used: %s.",
-              getName(), String.join(", ", invalidProperties)));
+          includeCollectionInMessage
+              ? String.format(
+                  "The parameter '%s' is invalid. Unknown or forbidden properties used for collection '%s': %s.",
+                  getName(), collectionData.getId(), String.join(", ", invalidProperties))
+              : String.format(
+                  "The parameter '%s' is invalid. Unknown or forbidden properties used: %s.",
+                  getName(), String.join(", ", invalidProperties)));
     }
 
     // will throw an error, if there is a type mismatch
@@ -340,8 +386,6 @@ public class QueryParameterFilter extends OgcApiQueryParameterBase
               .flatMap(FeatureInfo::getCrs)
               .orElse(null));
     }
-
-    return cql2Expression;
   }
 
   private void checkTypes(

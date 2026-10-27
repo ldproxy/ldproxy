@@ -34,29 +34,33 @@ jar {
 }
 
 node {
-    version = '16.15.1'
-    yarnVersion = '1.22.19'
+    version = '22.12.0'
+    nodeProjectDir = file('src/main/javascript')
     download = project.findProperty('downloadNode') != 'false' ?: false
     // do not declare the repository, that is not allowed outside of settings.gradle
     // it is automatically added by the settings plugin
     distBaseUrl = null
 }
 
-yarn_install {
+npmInstall {
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
-    outputs.dir("src/main/javascript/node_modules")
-    outputs.dir("src/main/javascript/.yarn/cache")
-    outputs.cacheIf { true }
+    inputs.file("src/main/javascript/package-lock.json")
+    // node_modules has tens of thousands of files, fingerprinting all of them is expensive,
+    // npm's hidden lockfile is enough to detect whether an install is needed
+    nodeModulesOutputFilter {
+        include '.package-lock.json'
+    }
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
 }
 
-task yarn_build(type: YarnTask) {
-    dependsOn yarn_install
+task npmBuild(type: NpmTask) {
+    dependsOn npmInstall
     inputs.file("src/main/javascript/package.json")
-    inputs.file("src/main/javascript/yarn.lock")
+    inputs.file("src/main/javascript/package-lock.json")
+    inputs.file("src/main/javascript/vite.config.js")
+    inputs.dir("src/main/javascript/vite-plugins")
     inputs.dir("src/main/javascript/src")
     outputs.dir(generatedResourcesDir)
     outputs.cacheIf { true }
@@ -66,15 +70,60 @@ task yarn_build(type: YarnTask) {
     args = ['run', 'build']
 }
 
-yarn_start {
+task npmStart(type: NpmTask) {
+    dependsOn npmInstall
     execOverrides {
         it.workingDir = 'src/main/javascript'
     }
+    args = ['run', 'start']
 }
-yarn_storybook {
+
+task npmStorybook(type: NpmTask) {
+    dependsOn npmInstall
     execOverrides {
         it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'storybook']
+}
+
+task npmLint(type: NpmTask) {
+    dependsOn npmInstall
+    // mirrors the globalIgnores in eslint.config.mjs
+    inputs.files(fileTree('src/main/javascript') {
+        exclude 'node_modules', 'build', 'dist', 'storybook-static', '.yarn', '.pnp.*'
+    }).withPathSensitivity(PathSensitivity.RELATIVE)
+    // eslint produces nothing, a marker file lets gradle treat a passing lint as up-to-date
+    def marker = new File(project.buildDir, 'npmLint/passed')
+    outputs.file(marker)
+    outputs.cacheIf { true }
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'lint']
+    doLast {
+        marker.text = ''
     }
 }
 
-processResources.dependsOn yarn_build
+check.dependsOn npmLint
+
+processResources.dependsOn npmBuild
+
+// script sbom in package.json:
+// --ignore-npm-errors: npm ls reports react 19 as invalid peer of react-popper (via reactstrap)
+// --no-validate: the validator of cyclonedx-npm needs ajv 8, but resolves ajv 6 from eslint
+task npmSbom(type: NpmTask) {
+    dependsOn npmInstall
+    inputs.file("src/main/javascript/package.json")
+    inputs.file("src/main/javascript/package-lock.json")
+    def output = new File(project.buildDir, 'sbom/ogcapi-html.cdx.json')
+    outputs.file(output)
+    execOverrides {
+        it.workingDir = 'src/main/javascript'
+    }
+    args = ['run', 'sbom', '--', '--output-file', output.absolutePath]
+}
+
+sbom {
+    fragment npmSbom
+}
