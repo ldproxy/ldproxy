@@ -11,4 +11,9 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-xtralink'
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-html'
+
+    testProvided 'de.interactive_instruments:xtraplatform-features'
+    testProvided 'de.interactive_instruments:xtraplatform-streams'
+    testProvided 'de.interactive_instruments:ogcapi-json'
+    testProvided 'de.interactive_instruments:ogcapi-xml'
 }
