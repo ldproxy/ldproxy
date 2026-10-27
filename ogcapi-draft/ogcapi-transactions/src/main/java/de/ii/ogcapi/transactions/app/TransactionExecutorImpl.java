@@ -34,6 +34,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.transactions.domain.ActionResult;
+import de.ii.ogcapi.transactions.domain.ActionResult.Leniency;
 import de.ii.ogcapi.transactions.domain.ActionStatus;
 import de.ii.ogcapi.transactions.domain.CompositeId;
 import de.ii.ogcapi.transactions.domain.ExecutionResult;
@@ -87,6 +88,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -367,6 +370,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.ATOMIC)
         .actionResults(results)
         .warnings(warnings)
+        .addAllWarnings(lenientWarnings(results))
         .transactionError(transactionError)
         .build();
   }
@@ -456,6 +460,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.BATCH)
         .actionResults(results)
         .warnings(warnings)
+        .addAllWarnings(lenientWarnings(results))
         .build();
   }
 
@@ -587,6 +592,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
     ExtentAccumulator extents = new ExtentAccumulator();
     boolean preflight = strategy.requiresInsertPreflight();
+    boolean ignoreExisting =
+        preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
+    List<String> ignoredIds = new ArrayList<>();
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       InsertItem item = items.next();
@@ -633,6 +641,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
+          // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
+          // object the recipient already has); the item is skipped and reported in the summary
+          // warnings of the transaction.
+          if (ignoreExisting) {
+            ignoredIds.add(canonicalIdForItem.get());
+            continue;
+          }
           return failed(
               canonicalCollectionId,
               action,
@@ -770,6 +785,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(ids)
+        .lenientFeatureIds(
+            ignoredIds.isEmpty()
+                ? Map.of()
+                : Map.of(Leniency.EXISTING_FEATURE_INSERT_IGNORED, ignoredIds))
         .failedFeatureIds(skippedIds)
         .failedFeaturePayloads(skippedPayloads)
         .failedFeatureErrors(skippedErrors)
@@ -941,10 +960,34 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                         : geoJsonUseAlias(apiData, canonicalCollectionId))
                 .orElse(mutationTimestamp);
         Optional<String> predecessorStart = session.getOpenVersionStart(featureType, id);
+        // A Replace with the begin of the open version delivers that version again (e.g. an NBA
+        // provider that repeats unchanged versions as context of a change); with the option, it
+        // leaves the feature unchanged instead of failing to retire the version at its own begin.
+        if (strategy.ignoresRepeatedVersion(apiData, canonicalCollectionId)
+            && predecessorStart
+                .flatMap(TransactionExecutorImpl::parseTimestamp)
+                .filter(retireTimestamp::equals)
+                .isPresent()) {
+          return new ImmutableActionResult.Builder()
+              .type(TxActionType.REPLACE)
+              .featureType(featureType)
+              .collectionId(canonicalCollectionId)
+              .actionId(action.getActionId())
+              .status(ActionStatus.SUCCESS)
+              .lenientFeatureIds(Map.of(Leniency.REPEATED_VERSION_IGNORED, List.of(id)))
+              .build();
+        }
         MutationResult retire =
             session.retireFeature(featureType, id, retireTimestamp, composite.expectedStart());
         rejectIfError(retire);
-        if (retire.getIds().isEmpty()) {
+        // With the option, a Replace of a feature without any version inserts it (e.g. an NBA
+        // delivery that replaces an object the recipient never received); a feature whose
+        // versions are all retired is still rejected below.
+        boolean insertUnknown =
+            retire.getIds().isEmpty()
+                && strategy.insertsUnknownFeatureOnReplace(apiData, canonicalCollectionId)
+                && session.assertNoConflictingVersion(featureType, id).getError().isEmpty();
+        if (retire.getIds().isEmpty() && !insertUnknown) {
           if (composite.expectedStart().isPresent()) {
             throw new IllegalArgumentException(
                 "Precondition failed: feature id '"
@@ -978,6 +1021,20 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 ? session.createFeatures(featureType, List.of(source), requestCrs)
                 : session.createFeatures(featureType, List.of(source), requestCrs, roleOverrides);
         rejectIfError(mr);
+        if (insertUnknown) {
+          // reported as what happened: an Insert of a new feature
+          return new ImmutableActionResult.Builder()
+              .type(TxActionType.INSERT)
+              .featureType(featureType)
+              .collectionId(canonicalCollectionId)
+              .actionId(action.getActionId())
+              .status(ActionStatus.SUCCESS)
+              .featureIds(mr.getIds().isEmpty() ? List.of(id) : mr.getIds())
+              .newBoundingBox(mr.getSpatialExtent())
+              .newInterval(toIntervalMillis(mr.getTemporalExtent()))
+              .lenientFeatureIds(Map.of(Leniency.UNKNOWN_FEATURE_REPLACE_INSERTED, List.of(id)))
+              .build();
+        }
       } else {
         mr = session.updateFeature(featureType, id, source, requestCrs, false);
         rejectIfError(mr);
@@ -2055,6 +2112,33 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   }
 
   /**
+   * One warning per collection and kind of lenient handling, with the number of features and a few
+   * of their ids; from the successful actions only, like the counts of the response.
+   */
+  static List<String> lenientWarnings(List<ActionResult> results) {
+    Map<String, Map<Leniency, List<String>>> byCollection = new LinkedHashMap<>();
+    for (ActionResult r : results) {
+      if (r.getStatus() != ActionStatus.SUCCESS) {
+        continue;
+      }
+      r.getLenientFeatureIds()
+          .forEach(
+              (leniency, ids) ->
+                  byCollection
+                      .computeIfAbsent(
+                          r.getCollectionId(), c -> new java.util.EnumMap<>(Leniency.class))
+                      .computeIfAbsent(leniency, l -> new ArrayList<>())
+                      .addAll(ids));
+    }
+    List<String> warnings = new ArrayList<>();
+    byCollection.forEach(
+        (collectionId, byLeniency) ->
+            byLeniency.forEach(
+                (leniency, ids) -> warnings.add(leniency.warning(collectionId, ids))));
+    return warnings;
+  }
+
+  /**
    * Attaches the non-fatal SQL warnings the session collected while this action ran (e.g.
    * PostgreSQL {@code RAISE WARNING} / {@code RAISE NOTICE} from triggers). Draining per action
    * attributes each warning to the action that caused it.
@@ -2064,7 +2148,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     if (actionWarnings.isEmpty()) {
       return result;
     }
-    return new ImmutableActionResult.Builder().from(result).warnings(actionWarnings).build();
+    // appended: the action may carry warnings of its own
+    return new ImmutableActionResult.Builder().from(result).addAllWarnings(actionWarnings).build();
   }
 
   /**
@@ -2117,6 +2202,27 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         } catch (java.io.IOException ignored) {
           // best-effort: parser will surface real errors on the next pull
         }
+      }
+    }
+  }
+
+  /**
+   * A timestamp as the database returns it as text, e.g. {@code 2007-08-13 00:00:00+00} or ISO
+   * 8601; empty if it cannot be read.
+   */
+  static Optional<Instant> parseTimestamp(String value) {
+    String text = value.trim().replace(' ', 'T');
+    // PostgreSQL abbreviates a whole-hour offset ("+00"), which ISO 8601 parsing does not accept
+    if (text.matches(".*[+-]\\d{2}$")) {
+      text += ":00";
+    }
+    try {
+      return Optional.of(OffsetDateTime.parse(text).toInstant());
+    } catch (DateTimeParseException e) {
+      try {
+        return Optional.of(Instant.parse(text));
+      } catch (DateTimeParseException e2) {
+        return Optional.empty();
       }
     }
   }

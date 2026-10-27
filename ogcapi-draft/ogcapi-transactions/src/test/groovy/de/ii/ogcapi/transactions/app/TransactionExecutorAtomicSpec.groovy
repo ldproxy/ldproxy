@@ -178,6 +178,64 @@ class TransactionExecutorAtomicSpec extends Specification {
         result.actionResults[1].warnings.isEmpty()
     }
 
+    def 'drained SQL warnings are appended to the warnings of the action itself'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        TransactionExecutorImpl executor = newExecutor(config(false), session, [
+                a1: {
+                    session.nextWarnings = ['trigger touched a protected row']
+                    new ImmutableActionResult.Builder().from(success('a1', [])).addWarnings('the Insert is ignored').build()
+                },
+        ])
+
+        when:
+        ExecutionResult result = executor.execute(
+                transaction('a1'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty())
+
+        then:
+        result.actionResults[0].warnings == ['the Insert is ignored', 'trigger touched a protected row']
+    }
+
+    def 'leniently handled features are summarized per collection and kind in the transaction warnings'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        TransactionExecutorImpl executor = newExecutor(config(false), session, [
+                a1: { lenient('a1', ActionResult.Leniency.EXISTING_FEATURE_INSERT_IGNORED, ['f1', 'f2']) },
+                a2: { lenient('a2', ActionResult.Leniency.EXISTING_FEATURE_INSERT_IGNORED, ['f3', 'f4']) },
+                a3: { lenient('a3', ActionResult.Leniency.UNKNOWN_FEATURE_REPLACE_INSERTED, ['f5']) },
+        ])
+
+        when:
+        ExecutionResult result = executor.execute(
+                transaction('a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty())
+
+        then: 'one line per kind, with the number of features and the first three ids; no per-action warnings'
+        result.warnings == [
+                'c: 4 Inserts of features that already have a version are ignored; e.g. f1, f2, f3',
+                'c: 1 Replaces of features without a version are executed as Inserts; e.g. f5']
+        result.actionResults.every { it.warnings.isEmpty() }
+    }
+
+    def 'leniently handled features of a rolled-back transaction are not reported'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        TransactionExecutorImpl executor = newExecutor(config(false), session, [
+                a1: { lenient('a1', ActionResult.Leniency.REPEATED_VERSION_IGNORED, ['f1']) },
+                a2: { failure('a2', 'boom') },
+        ])
+
+        when:
+        ExecutionResult result = executor.execute(
+                transaction('a1', 'a2'), null, null, OgcCrs.CRS84,
+                HeaderPrefer.Handling.LENIENT, Optional.empty())
+
+        then:
+        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.FAILED]
+        result.warnings.isEmpty()
+    }
+
     def 'a failed commit rolls back all successes and reports a transaction-level error'() {
         given:
         RecordingSession session = new RecordingSession(throwOnCommit: new IllegalStateException('deferred constraint'))
@@ -219,6 +277,13 @@ class TransactionExecutorAtomicSpec extends Specification {
                 .actionId(actionId)
                 .status(ActionStatus.SUCCESS)
                 .featureIds(ids)
+                .build()
+    }
+
+    private static ActionResult lenient(String actionId, ActionResult.Leniency leniency, List<String> ids) {
+        return new ImmutableActionResult.Builder()
+                .from(success(actionId, []))
+                .lenientFeatureIds([(leniency): ids])
                 .build()
     }
 
