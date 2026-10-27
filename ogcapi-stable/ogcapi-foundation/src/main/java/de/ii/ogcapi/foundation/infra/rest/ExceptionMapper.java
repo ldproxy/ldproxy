@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.ExceptionFormatExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.FormatNotSupportedException;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
 import io.dropwizard.jersey.errors.LoggingExceptionMapper;
@@ -220,26 +221,17 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
             getRequestPath(true),
             exception.getMessage());
       }
-      // ToDo: Harden and improve type handling
-      if (msg.contains("processId")) {
-        return Response.fromResponse(response)
-            .type(exceptionFormat.getMediaType().type())
-            .entity(
-                exceptionFormat.getExceptionEntity(
-                    new ApiErrorMessage(
-                        response.getStatus(),
-                        response.getStatusInfo().getReasonPhrase(),
-                        msg,
-                        null,
-                        "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/no-such-process")))
-            .build();
-      }
+      String type =
+          exception instanceof TypedClientErrorException typedException
+              ? typedException.getType()
+              : null;
+      ApiErrorMessage apiErrorMessage =
+          new ApiErrorMessage(
+              response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg, null, type);
+
       return Response.fromResponse(response)
           .type(exceptionFormat.getMediaType().type())
-          .entity(
-              exceptionFormat.getExceptionEntity(
-                  new ApiErrorMessage(
-                      response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg)))
+          .entity(exceptionFormat.getExceptionEntity(apiErrorMessage))
           .build();
     } else if (exception instanceof ServiceUnavailableException) {
       return serviceUnavailable(exceptionFormat, exception.getMessage());

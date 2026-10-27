@@ -35,7 +35,6 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
@@ -126,10 +125,6 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
       @PathParam("processId") String processId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
     checkPathParameter(
         extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
 
@@ -149,17 +144,10 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
+    if (formats == null) {
       formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
+    }
     return formats;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
   }
 
   @Override

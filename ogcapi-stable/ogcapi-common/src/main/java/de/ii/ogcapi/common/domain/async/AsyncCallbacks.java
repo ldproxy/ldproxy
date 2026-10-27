@@ -1,0 +1,18 @@
+/*
+ * Copyright 2026 interactive instruments GmbH
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package de.ii.ogcapi.common.domain.async;
+
+import de.ii.xtralink.jobs.Job;
+import de.ii.xtralink.jobs.internal.JobListener;
+
+@FunctionalInterface
+public interface AsyncCallbacks extends JobListener {
+
+  @Override
+  void onProgress(Job job);
+}

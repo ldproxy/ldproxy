@@ -13,16 +13,14 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.util.Map;
 import org.immutables.value.Value;
 
-public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Query>, Volatile2 {
+public interface JobQueriesHandler extends QueriesHandler<JobQueriesHandler.Query> {
 
   String GROUP_JOBS = "jobs";
   PermissionGroup GROUP_JOBS_READ = PermissionGroup.of(Base.READ, GROUP_JOBS, "access jobs");
-  // TODO: Change permission to WRITE (READ is easier during development)
-  PermissionGroup GROUP_JOBS_DISMISS = PermissionGroup.of(Base.READ, GROUP_JOBS, "dismiss jobs");
+  PermissionGroup GROUP_JOBS_DISMISS = PermissionGroup.of(Base.WRITE, GROUP_JOBS, "dismiss jobs");
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();

@@ -13,10 +13,12 @@ import de.ii.ogcapi.processes.domain.OapJob.OapJobContext;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobResult;
 import de.ii.xtralink.jobs.PartialJob;
+import de.ii.xtralink.jobs.PartialJobConfiguration;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import de.ii.xtraplatform.xtralink.domain.JobProcessor;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 @AutoBind(interfaces = JobProcessorBase.class)
@@ -50,7 +53,12 @@ public class MockOapJobProcessor implements JobProcessor<OapJob, OapJobContext> 
 
   @Override
   public Set<String> getKinds() {
-    return processes.keySet().stream().map(OapJob::kind).collect(Collectors.toSet());
+    return processes.keySet().stream()
+        .flatMap(
+            proc ->
+                Stream.of(
+                    OapJob.kind(proc), OapJob.kind(proc, "setup"), OapJob.kind(proc, "cleanup")))
+        .collect(Collectors.toSet());
   }
 
   @Override
@@ -60,22 +68,32 @@ public class MockOapJobProcessor implements JobProcessor<OapJob, OapJobContext> 
 
   @Override
   public JobResult process(PartialJob partialJob, Job job, JobProcessing jobs) throws Exception {
-    jobs.init(job.id(), 1, null);
+    if (partialJob.kind().endsWith("setup")) {
+      jobs.init(job.id(), 1, null);
 
-    OapJob oapJob = getInputs(job, jobs);
+      PartialJobConfiguration partial =
+          Jobs.createPartial(job.kind(), job.priority(), job.id(), job.context(), 1, List.of());
+      jobs.push(partial);
+    }
 
-    Map<String, Object> outputs =
-        switch (partialJob.kind()) {
-          case "oap:EchoProcess" -> processes.get("EchoProcess").apply(oapJob.getInputs());
-          case "oap:AnswerProcess" -> processes.get("AnswerProcess").apply(oapJob.getInputs());
-          case "oap:AdditionProcess" -> processes.get("AdditionProcess").apply(oapJob.getInputs());
-          case "oap:CountingProcess" -> processes.get("CountingProcess").apply(oapJob.getInputs());
-          default -> throw new IllegalArgumentException("Unknown job kind: " + partialJob.kind());
-        };
+    if (!partialJob.kind().endsWith("setup") && !partialJob.kind().endsWith("cleanup")) {
+      OapJob oapJob = getInputs(job, jobs);
 
-    jobs.outputs(job.id(), outputs);
+      Map<String, Object> outputs =
+          switch (partialJob.kind()) {
+            case "oap:EchoProcess" -> processes.get("EchoProcess").apply(oapJob.getInputs());
+            case "oap:AnswerProcess" -> processes.get("AnswerProcess").apply(oapJob.getInputs());
+            case "oap:AdditionProcess" ->
+                processes.get("AdditionProcess").apply(oapJob.getInputs());
+            case "oap:CountingProcess" ->
+                processes.get("CountingProcess").apply(oapJob.getInputs());
+            default -> throw new IllegalArgumentException("Unknown job kind: " + partialJob.kind());
+          };
 
-    jobs.update(partialJob.id(), 1);
+      jobs.outputs(job.id(), outputs);
+
+      jobs.update(partialJob.id(), 1);
+    }
 
     return jobs.success();
   }
@@ -107,12 +125,20 @@ public class MockOapJobProcessor implements JobProcessor<OapJob, OapJobContext> 
 
   @SuppressWarnings("PMD.UnusedFormalParameter")
   private Map<String, Object> answerProcess(Map<String, Object> inputs) {
+
+    try {
+      Thread.sleep(10_000); // Simulate a long-running process
+    } catch (InterruptedException e) {
+      // ignore
+    }
+
     return Map.of("answer", 42);
   }
 
   private Map<String, Object> additionProcess(Map<String, Object> inputs) {
     int firstAddend = (Integer) inputs.get("firstAddend");
     int secondAddend = (Integer) inputs.get("secondAddend");
+
     return Map.of("sum", firstAddend + secondAddend);
   }
 }

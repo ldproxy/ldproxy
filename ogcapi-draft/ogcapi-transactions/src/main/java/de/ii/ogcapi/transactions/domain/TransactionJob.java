@@ -8,9 +8,12 @@
 package de.ii.ogcapi.transactions.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Handling;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer.Return;
 import de.ii.xtralink.jobs.JobConfiguration;
-import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.nio.file.Path;
@@ -31,9 +34,10 @@ public interface TransactionJob extends JobInputs {
       String mediaType,
       @Nullable String crs,
       @Nullable String mutationDatetime,
-      HeaderPrefer.Handling handlingPrefer,
-      HeaderPrefer.Return returnPrefer,
-      boolean resultAsFile) {
+      Handling handlingPrefer,
+      Return returnPrefer,
+      boolean resultAsFile,
+      long ttlSeconds) {
     ImmutableTransactionJob transactionJob =
         new ImmutableTransactionJob.Builder()
             .apiId(apiId)
@@ -51,9 +55,9 @@ public interface TransactionJob extends JobInputs {
         LABEL,
         String.format(" (Document: %s)", documentPath),
         transactionJob,
-        new JobContextEntity(apiId),
+        new JobContextAsync(apiId, EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()),
         null,
-        Optional.of(3600));
+        Optional.of((int) ttlSeconds));
   }
 
   String getApiId();
@@ -80,9 +84,9 @@ public interface TransactionJob extends JobInputs {
 
   /**
    * Write the response document to {@code <api>/result_<job>.json} instead of returning it as the
-   * job output; the path is the job output {@code resultPath}. The document is also written if the
-   * transaction is rejected. For a folder, the response documents are always written to the result
-   * folder of the job, named after the documents ({@code 001.xml.gz} → {@code
+   * job output; it is the job result document ({@code JobResultFile}). The document is also written
+   * if the transaction is rejected. For a folder, the response documents are always written to the
+   * result folder of the job, named after the documents ({@code 001.xml.gz} → {@code
    * <api>/result_<job>/001.result.json}), and reported as the job output {@code resultPaths}.
    */
   boolean getResultAsFile();

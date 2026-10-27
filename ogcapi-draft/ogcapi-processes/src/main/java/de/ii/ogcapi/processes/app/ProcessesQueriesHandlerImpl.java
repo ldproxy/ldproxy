@@ -110,7 +110,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
     final int defaultLimit = queryInput.getDefaultLimit();
     OgcApiDataV2 data = api.getData();
     final List<String> processIds =
-        processRepository.getAll(api.getData()).keySet().stream().toList();
+        processRepository.getAll(api.getData().getId()).keySet().stream().toList();
     final int processesSize = processIds.size();
 
     final ProcessListLinksGenerator linkGenerator = new ProcessListLinksGenerator();
@@ -133,7 +133,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
                 processIds.stream()
                     .skip(offset)
                     .limit(limit)
-                    .map(pid -> processRepository.get(api.getData(), pid))
+                    .map(pid -> processRepository.get(api.getData().getId(), pid))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .map(process -> (OgcProcessSummary) process)
@@ -199,7 +199,7 @@ public class ProcessesQueriesHandlerImpl extends AbstractVolatileComposed
 
     OgcProcess process =
         processRepository
-            .get(api.getData(), processId)
+            .get(api.getData().getId(), processId)
             .orElseThrow(() -> new NotFoundException("Unknown process: " + processId));
 
     ProcessResponse processResponse =

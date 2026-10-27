@@ -15,7 +15,6 @@ import de.ii.ogcapi.foundation.domain.QueriesHandler;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryIdentifier;
 import de.ii.ogcapi.foundation.domain.QueryInput;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import java.io.InputStream;
 import java.util.Map;
@@ -24,9 +23,8 @@ import org.immutables.value.Value;
 public interface ExecutionQueriesHandler
     extends QueriesHandler<ExecutionQueriesHandler.Query>, Volatile2 {
 
-  // TODO: Change permission to WRITE (READ is easier during development)
   PermissionGroup GROUP_PROCESSES_EXECUTE =
-      PermissionGroup.of(Base.READ, GROUP_PROCESSES, "execute processes");
+      PermissionGroup.of(Base.WRITE, GROUP_PROCESSES, "execute processes");
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
@@ -42,9 +40,9 @@ public interface ExecutionQueriesHandler
 
     InputStream getRequestBody();
 
-    Boolean getPreferAsync();
+    boolean supportsAsync();
 
-    ExecutionMode getExecutionMode();
+    boolean getPreferAsync();
 
     int getCallbackRetries();
   }

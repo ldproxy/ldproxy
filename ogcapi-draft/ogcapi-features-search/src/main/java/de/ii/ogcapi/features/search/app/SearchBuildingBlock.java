@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
@@ -280,6 +281,9 @@ public class SearchBuildingBlock implements ApiBuildingBlock {
         .managerEnabled(false)
         .validationEnabled(false)
         .allLinksAreLocal(false)
+        .async(false)
+        .maxWait(60)
+        .jobTtl(Duration.hours(1))
         .build();
   }
 
