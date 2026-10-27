@@ -68,7 +68,9 @@ public abstract class OgcApiJobStatusInfo extends PageRepresentation implements 
             .status(job.status())
             .created(Instant.ofEpochMilli(job.createdAt()))
             .processingEntityType(JobContextAsync.entityTypeFrom(job.context()))
-            .processId(JobContextAsync.processIdFrom(job.context()));
+            .processId(JobContextAsync.processIdFrom(job.context()))
+            .resultMediaType(
+                JobResultFile.from(job.outputs()).map(JobResultFile::getResultMediaType));
 
     long startedAt = job.startedAt();
     if (startedAt != -1) {
