@@ -153,7 +153,7 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
 
         String resultPath =
             String.format("%s/result_%s.%s", api.getId(), job.id(), inputs.getMediaTypeParameter());
-        storeResult(response, resultPath);
+        storeResult(job, response, resultPath);
         jobs.outputs(job.id(), Map.of("resultPath", resultPath));
       }
 
@@ -181,7 +181,7 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
    * The response entity is a streaming output; it is written to a local temporary file first and
    * then moved into the resources store.
    */
-  private void storeResult(Response response, String resultPath) throws IOException {
+  private void storeResult(Job job, Response response, String resultPath) throws IOException {
     Path tmpFile = Files.createTempFile(appContext.getTmpDir(), "search-result", ".tmp");
     try {
       if (response.getEntity() instanceof StreamingOutput streamingOutput) {
@@ -193,7 +193,7 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
         Files.writeString(tmpFile, body, StandardCharsets.UTF_8);
       }
       try (InputStream in = Files.newInputStream(tmpFile)) {
-        getStore().put(Path.of(resultPath), in);
+        saveOutputFile(job, Path.of(resultPath), in);
       }
     } finally {
       Files.deleteIfExists(tmpFile);
