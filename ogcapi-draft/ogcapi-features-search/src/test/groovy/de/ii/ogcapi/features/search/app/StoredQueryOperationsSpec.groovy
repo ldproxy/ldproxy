@@ -78,7 +78,7 @@ class StoredQueryOperationsSpec extends Specification {
         StoredQueryRepository repository = Stub()
         repository.getAll(_) >> [query('paged', true), query('single-shot', false)]
         EndpointStoredQuery endpoint = new EndpointStoredQuery(
-                registry(), null, repository, null, null, null)
+                registry(), null, repository, null, null, null, null, Stub(ResourceStore))
 
         when:
         ApiEndpointDefinition definition = endpoint.computeDefinition(Stub(OgcApiDataV2))
