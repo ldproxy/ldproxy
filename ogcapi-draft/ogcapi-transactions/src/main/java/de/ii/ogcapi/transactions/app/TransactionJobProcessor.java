@@ -139,8 +139,9 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
 
   /**
    * One document. With {@code resultAsFile}, the response document is written to {@code
-   * <api>/result_<job>.json}, also if the transaction is rejected, and reported as the job result
-   * document ({@link JobResultFile}).
+   * <api>/result_<job>.json} and reported as the job result document ({@link JobResultFile}). The
+   * response document of a rejected transaction is always written, with its HTTP status, so the
+   * reason is available as the result of the failed job.
    */
   private JobResult executeDocument(
       PartialJob partialJob,
@@ -157,24 +158,24 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       return cancelled(job, jobs, applied);
     }
 
-    String resultPath = null;
-    if (inputs.getResultAsFile()) {
-      if (applied.body() != null) {
-        resultPath = String.format("%s/result_%s.json", api.getId(), job.id());
-        saveResultFile(job, Path.of(resultPath), applied.body());
-        jobs.outputs(job.id(), JobResultFile.of(resultPath, MediaType.APPLICATION_JSON));
-      }
-    } else if (!applied.rejected() && applied.body() != null) {
+    if (applied.body() != null && (inputs.getResultAsFile() || applied.rejected())) {
+      String resultPath = String.format("%s/result_%s.json", api.getId(), job.id());
+      saveResultFile(job, Path.of(resultPath), applied.body());
+      jobs.outputs(
+          job.id(),
+          applied.rejected()
+              ? JobResultFile.of(resultPath, MediaType.APPLICATION_JSON, applied.status())
+              : JobResultFile.of(resultPath, MediaType.APPLICATION_JSON));
+    } else if (applied.body() != null) {
       jobs.outputs(job.id(), Jobs.DEFAULT_MAPPER.readValue(applied.body(), Jobs.MAP_TYPE));
     }
 
     if (applied.rejected()) {
       return jobs.failure(
-          resultPath != null
-              ? String.format(
-                  "Transaction failed with status %d, see %s", applied.status(), resultPath)
-              : String.format(
-                  "Transaction failed with status %d: %s", applied.status(), applied.body()));
+          String.format(
+              "The transaction was rejected with status %d, the results of the job contain the"
+                  + " response document",
+              applied.status()));
     }
 
     jobs.update(partialJob.id(), 1);

@@ -300,12 +300,14 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
       QueryInput queryInput,
       String jobId,
       ResultDocument resultDocument) {
+    // the reason of a failure is returned whatever the client accepts
     boolean acceptable =
-        acceptableMediaTypes(requestContext).stream()
-            .anyMatch(
-                accepted ->
-                    ApiMediaType.isCompatible(
-                        accepted, resultDocument.getMediaType(), CompatibilityLevel.SUBTYPES));
+        resultDocument.getStatus() >= 400
+            || acceptableMediaTypes(requestContext).stream()
+                .anyMatch(
+                    accepted ->
+                        ApiMediaType.isCompatible(
+                            accepted, resultDocument.getMediaType(), CompatibilityLevel.SUBTYPES));
     if (!acceptable) {
       throw notAcceptable(requestContext, resultDocument.getMediaType());
     }
@@ -317,6 +319,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
             null,
             HeaderContentDisposition.of(jobId),
             i18n.getLanguages())
+        .status(resultDocument.getStatus())
         .type(resultDocument.getMediaType())
         .entity(resultDocument.getContent())
         .build();

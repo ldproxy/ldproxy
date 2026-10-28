@@ -132,34 +132,36 @@ class TransactionJobProcessorSpec extends Specification {
         applied == [WFS]
     }
 
-    def "the result of a rejected document is written as well"() {
+    def "the result of a rejected document is written with its status: resultAsFile #resultAsFile"() {
         given:
         files[Path.of("api/d1/001.xml")] = bytes(WFS)
         statuses << 422
 
         when:
-        def result = execute("api/d1/001.xml")
+        def result = execute("api/d1/001.xml", resultAsFile)
 
         then:
         result.status() == Identifiers.Result.FAILURE
-        result.messages() == ["Transaction failed with status 422, see api/result_job-1.json"]
+        result.messages() == ["The transaction was rejected with status 422, the results of the job contain the response document"]
         text("api/result_job-1.json") == '{"summary":{"document":1}}'
-        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json")
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json", 422)
         jobs.updates.isEmpty()
+
+        where:
+        resultAsFile << [true, false]
     }
 
-    def "without result file, a rejection reports the response document in the message"() {
+    def "without result file, the response document is the job outputs"() {
         given:
         files[Path.of("api/d1/001.xml")] = bytes(WFS)
-        statuses << 422
 
         when:
         def result = execute("api/d1/001.xml", false)
 
         then:
-        result.messages() == ['Transaction failed with status 422: {"summary":{"document":1}}']
+        result.status() == Identifiers.Result.SUCCESS
         !files.containsKey(Path.of("api/result_job-1.json"))
-        jobs.outputs == null
+        jobs.outputs == [summary: [document: 1]]
     }
 
     def "the job hook is handed to the transaction and observes the cancellation of the job"() {

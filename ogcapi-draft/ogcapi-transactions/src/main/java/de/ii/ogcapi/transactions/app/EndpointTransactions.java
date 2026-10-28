@@ -607,20 +607,24 @@ public class EndpointTransactions extends Endpoint
 
   /**
    * The regular synchronous response, reconstructed from a finished job: the result document from
-   * the resources store (deleted once read) or the job outputs, 204 when there is neither. Empty
-   * when the job failed — the client then gets the 202 and can inspect the job.
+   * the resources store (deleted once read) or the job outputs, 204 when there is neither. A
+   * rejected transaction has its response document with the status of the rejection. Empty when the
+   * job failed otherwise — the client then gets the 202 and can inspect the job.
    */
   private Optional<Response> syncResponse(
       Job finished,
       @Nullable HeaderPrefer.Handling sentHandling,
       @Nullable HeaderPrefer.Return sentReturn,
       int sentWait) {
-    if (finished.status() != Identifiers.Status.SUCCESSFUL) {
+    Optional<JobResultFile> resultFile = JobResultFile.from(finished.outputs());
+    boolean rejected =
+        finished.status() == Identifiers.Status.FAILED
+            && resultFile.filter(file -> file.getResultStatus() != null).isPresent();
+    if (finished.status() != Identifiers.Status.SUCCESSFUL && !rejected) {
       return Optional.empty();
     }
 
     try {
-      Optional<JobResultFile> resultFile = JobResultFile.from(finished.outputs());
       if (resultFile.isPresent()) {
         java.nio.file.Path path = resultFile.get().path();
         Optional<InputStream> result = documentStore.content(path);
@@ -633,12 +637,15 @@ public class EndpointTransactions extends Endpoint
         }
         // the response is delivered synchronously, the stored copy is no longer needed
         documentStore.delete(path);
+        // a rejection always has a response document, so a requested return=none was not applied
+        boolean returnApplied = !rejected || sentReturn != HeaderPrefer.Return.NONE;
         return Optional.of(
-            Response.ok(document)
+            Response.status(resultFile.get().status())
+                .entity(document)
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .header(
                     "Preference-Applied",
-                    waitPreferenceApplied(sentHandling, sentReturn, sentWait, true))
+                    waitPreferenceApplied(sentHandling, sentReturn, sentWait, returnApplied))
                 .build());
       }
 

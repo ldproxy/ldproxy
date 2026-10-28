@@ -40,5 +40,11 @@ public interface AsyncJobs {
 
     @Value.Parameter
     StreamingOutput getContent();
+
+    /** The HTTP status of the response, e.g. of a rejected transaction. */
+    @Value.Default
+    default int getStatus() {
+      return 200;
+    }
   }
 }
