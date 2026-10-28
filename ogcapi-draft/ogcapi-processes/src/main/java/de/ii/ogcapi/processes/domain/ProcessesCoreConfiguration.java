@@ -12,7 +12,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import io.dropwizard.util.Duration;
 import jakarta.validation.constraints.Min;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -175,6 +177,24 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   @Value.Default
   default Integer getCallbackRetries() {
     return 3;
+  }
+
+  /**
+   * @langEn Maximum duration of a synchronous process execution. If the process has not finished by
+   *     then, the job is cancelled and the request fails with status code 504.
+   * @langDe Maximale Dauer einer synchronen Prozessausführung. Ist der Prozess bis dahin nicht
+   *     abgeschlossen, wird der Job abgebrochen und die Anfrage schlägt mit dem Statuscode 504
+   *     fehl.
+   * @default 5m
+   * @since 4.9
+   */
+  @Nullable
+  Duration getSyncTimeout();
+
+  @JsonIgnore
+  @Value.Lazy
+  default long getSyncTimeoutMillis() {
+    return Optional.ofNullable(getSyncTimeout()).orElse(Duration.minutes(5)).toMilliseconds();
   }
 
   @JsonIgnore

@@ -14,7 +14,8 @@ import java.util.Map;
 
 public interface ProcessesExecutor {
 
-  Map<String, Object> executeSync(String apiId, OgcProcess process, OgcExecute executeRequest);
+  Map<String, Object> executeSync(
+      String apiId, OgcProcess process, OgcExecute executeRequest, long timeoutMillis);
 
   OgcApiJobStatus executeAsync(
       String apiId,

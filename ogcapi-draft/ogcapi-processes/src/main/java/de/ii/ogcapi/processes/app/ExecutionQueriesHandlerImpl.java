@@ -165,8 +165,13 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
+    long timeoutMillis =
+        api.getData()
+            .getExtension(ProcessesCoreConfiguration.class)
+            .orElseThrow()
+            .getSyncTimeoutMillis();
     Map<String, Object> processResults =
-        processesExecutor.executeSync(api.getId(), process, executeRequest);
+        processesExecutor.executeSync(api.getId(), process, executeRequest, timeoutMillis);
 
     if (!processResults.isEmpty()) {
       OgcApiJobResults resultsResponse =
