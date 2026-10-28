@@ -25,12 +25,15 @@ import de.ii.ogcapi.processes.domain.model.OgcInputDescription;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchema;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
+import de.ii.xtraplatform.xtralink.domain.JobProcessing;
+import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple.Phase;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -59,15 +62,21 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   private final ObjectMapper mapper;
   private final Jobs jobs;
+  private final JobProcessing jobProcessing;
   private final SchemaValidator schemaValidator;
   private final AsyncCallbacks asyncCallbacks;
   private final Map<String, Map<String, CompiledJsonSchema>> inputsSchemaCache;
 
   @Inject
   ProcessesExecutorImpl(
-      Jackson jackson, Jobs jobs, SchemaValidator schemaValidator, AsyncCallbacks asyncCallbacks) {
+      Jackson jackson,
+      Jobs jobs,
+      JobProcessing jobProcessing,
+      SchemaValidator schemaValidator,
+      AsyncCallbacks asyncCallbacks) {
     this.mapper = jackson.getDefaultObjectMapper();
     this.jobs = jobs;
+    this.jobProcessing = jobProcessing;
     this.schemaValidator = schemaValidator;
     this.inputsSchemaCache = new ConcurrentHashMap<>();
     this.asyncCallbacks = asyncCallbacks;
@@ -75,7 +84,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Map<String, Object> executeSync(
-      String apiId, OgcProcess process, OgcExecute executeRequest, long timeoutMillis) {
+      String apiId, ProcessData process, OgcExecute executeRequest, long timeoutMillis) {
 
     Map<String, Object> inputs = parseInputs(process, executeRequest.getInputs());
 
@@ -95,6 +104,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     // Push it and wait for its results
     Job job = jobs.push(oapJob);
     LOGGER.debug("Created job for process '{}', job: {}", process.getId(), job);
+    queueExecutionIfNoSetup(process, job);
     Job finalJob = waitFor(job, timeoutMillis);
 
     // Return only selected results
@@ -121,7 +131,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   @Override
   public OgcApiJobStatus executeAsync(
       String apiId,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest,
       int callbackRetries,
       long ttlSeconds) {
@@ -142,8 +152,26 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     // Put job with callbacks in queue
     Job job = jobs.push(oapJob, asyncCallbacks);
+    queueExecutionIfNoSetup(process, job);
 
     return OgcApiJobStatusInfo.of(job);
+  }
+
+  // without a setup step, the execution step is queued here, as JobProcessorSimple does in setup
+  private void queueExecutionIfNoSetup(ProcessData process, Job job) {
+    if (process.getJobSetup()) {
+      return;
+    }
+
+    jobProcessing.init(job.id(), 1, null);
+    jobProcessing.push(
+        Jobs.createPartial(
+            Phase.EXECUTE.getPartialKind(job.kind()),
+            job.priority(),
+            job.id(),
+            job.context(),
+            1,
+            List.of()));
   }
 
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation

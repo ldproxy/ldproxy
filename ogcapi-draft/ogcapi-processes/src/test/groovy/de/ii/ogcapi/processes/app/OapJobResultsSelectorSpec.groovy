@@ -19,7 +19,7 @@ import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcFormat
 import de.ii.ogcapi.processes.domain.model.OgcExecute
 import de.ii.ogcapi.processes.domain.model.OgcFormat
-import de.ii.ogcapi.processes.domain.model.OgcProcess
+import de.ii.ogcapi.processes.domain.model.ProcessData
 import de.ii.ogcapi.processes.domain.model.ProcessRepository
 import de.ii.ogcapi.processes.domain.model.Property.Type
 import de.ii.xtraplatform.base.domain.Jackson
@@ -34,7 +34,7 @@ class OapJobResultsSelectorSpec extends Specification {
 
     static final Map<String, Object> RESULTS = [single: "a", multi: [1, 2, 3]]
 
-    OgcProcess testProcess = process([ASYNC_EXECUTE], [:],
+    ProcessData testProcess = process([ASYNC_EXECUTE], [:],
             [single: output(schema(Type.STRING)), multi: output(schema(Type.INTEGER), 10)])
 
     OapJobResultsSelector selector

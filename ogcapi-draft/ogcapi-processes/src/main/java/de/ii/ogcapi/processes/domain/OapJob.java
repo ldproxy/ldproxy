@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
@@ -41,18 +41,32 @@ public interface OapJob extends JobInputs {
   }
 
   static JobConfiguration of(
-      String apiId, OgcProcess process, OgcExecute executeRequest, long ttlSeconds) {
+      String apiId, ProcessData process, OgcExecute executeRequest, long ttlSeconds) {
     ImmutableOapJob oapJob =
         new ImmutableOapJob.Builder().inputs(executeRequest.getInputs()).build();
-    return Jobs.create(
-        kind(process.getId()),
-        1000,
-        LABEL,
-        String.format(" (Process: %s)", process.getTitle()),
-        oapJob,
-        new OapJobContext(apiId, executeRequest, process.getId()),
-        null,
-        Optional.of((int) ttlSeconds));
+    JobConfiguration job =
+        Jobs.create(
+            kind(process.getId()),
+            1000,
+            LABEL,
+            String.format(" (Process: %s)", process.getTitle()),
+            oapJob,
+            new OapJobContext(apiId, executeRequest, process.getId()),
+            null,
+            Optional.of((int) ttlSeconds));
+
+    return new JobConfiguration(
+        job.kind(),
+        job.priority(),
+        job.label(),
+        job.description(),
+        job.inputs(),
+        job.context(),
+        job.progress(),
+        process.getJobSetup(),
+        process.getJobCleanup(),
+        job.followUps(),
+        job.ttlSeconds());
   }
 
   class OapJobContext extends JobContextAsync {

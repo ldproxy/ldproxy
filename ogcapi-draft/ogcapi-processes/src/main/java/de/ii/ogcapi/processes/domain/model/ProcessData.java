@@ -22,5 +22,30 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableProcessData.Builder.class)
 public interface ProcessData extends StoredValue, OgcProcess {
 
+  /**
+   * @langEn Whether the job of an execution starts with a setup step. The setup step queues the
+   *     step that executes the process. Without it, the execution step is queued directly, e.g. for
+   *     processors outside of ldproxy that only handle the step `oap:{processId}:execute`.
+   * @langDe Ob der Job einer Ausführung mit einem Setup-Schritt beginnt. Der Setup-Schritt reiht
+   *     den Schritt ein, der den Prozess ausführt. Ohne ihn wird der Ausführungsschritt direkt
+   *     eingereiht, z.B. für Prozessoren außerhalb von ldproxy, die nur den Schritt
+   *     `oap:{processId}:execute` verarbeiten.
+   * @default true
+   */
+  @Value.Default
+  default boolean getJobSetup() {
+    return true;
+  }
+
+  /**
+   * @langEn Whether the job of an execution ends with a cleanup step `oap:{processId}:cleanup`.
+   * @langDe Ob der Job einer Ausführung mit einem Cleanup-Schritt `oap:{processId}:cleanup` endet.
+   * @default true
+   */
+  @Value.Default
+  default boolean getJobCleanup() {
+    return true;
+  }
+
   abstract class Builder implements ValueBuilder<ProcessData> {}
 }

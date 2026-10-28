@@ -13,22 +13,24 @@ import de.ii.ogcapi.processes.domain.model.ImmutableOgcSchema
 import de.ii.ogcapi.processes.domain.model.ImmutableProcessData
 import de.ii.ogcapi.processes.domain.model.OgcInputDescription
 import de.ii.ogcapi.processes.domain.model.OgcOutputDescription
-import de.ii.ogcapi.processes.domain.model.OgcProcess
+import de.ii.ogcapi.processes.domain.model.ProcessData
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions
 import de.ii.ogcapi.processes.domain.model.OgcSchema
 import de.ii.ogcapi.processes.domain.model.Property.Type
 
 class ProcessFixtures {
 
-    static OgcProcess process(List<JobControlOptions> jobControlOptions,
-                              Map<String, OgcInputDescription> inputs = [:],
-                              Map<String, OgcOutputDescription> outputs = [:]) {
+    static ProcessData process(List<JobControlOptions> jobControlOptions,
+                               Map<String, OgcInputDescription> inputs = [:],
+                               Map<String, OgcOutputDescription> outputs = [:],
+                               boolean jobSetup = true) {
         new ImmutableProcessData.Builder()
                 .id("TestProcess")
                 .version("1.0.0")
                 .jobControlOptions(jobControlOptions)
                 .inputs(inputs)
                 .outputs(outputs)
+                .jobSetup(jobSetup)
                 .build()
     }
 
