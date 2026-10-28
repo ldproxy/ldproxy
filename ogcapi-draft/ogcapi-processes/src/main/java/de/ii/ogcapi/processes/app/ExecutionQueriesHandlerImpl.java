@@ -156,6 +156,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     JobResultsFormatExtension outputFormat =
         api.getOutputFormat(
                 JobResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            // process outputs are never encoded in an arbitrary media type
+            .filter(format -> !format.getMediaType().type().isWildcardType())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
