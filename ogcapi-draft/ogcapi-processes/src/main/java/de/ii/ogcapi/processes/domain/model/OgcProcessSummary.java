@@ -7,10 +7,13 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.hash.Funnel;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * See the following link for its OpenAPI 3.0 schema
@@ -21,7 +24,18 @@ public interface OgcProcessSummary extends OgcDescriptionType {
   enum JobControlOptions {
     SYNC_EXECUTE,
     ASYNC_EXECUTE,
-    DISMISS
+    DISMISS;
+
+    @JsonValue
+    public String toValue() {
+      return name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    // accepts the spec value as well as the enum name used in process definitions
+    @JsonCreator
+    public static JobControlOptions fromValue(String value) {
+      return valueOf(value.toUpperCase(Locale.ROOT).replace('-', '_'));
+    }
   }
 
   @SuppressWarnings("UnstableApiUsage")
