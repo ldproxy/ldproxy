@@ -5,6 +5,7 @@ descriptionDe = 'Die Kernfunktionen zur Bereitstellung von ausführbaren Prozess
 
 dependencies {
     provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-xtralink'
     provided 'de.interactive_instruments:xtraplatform-crs'
