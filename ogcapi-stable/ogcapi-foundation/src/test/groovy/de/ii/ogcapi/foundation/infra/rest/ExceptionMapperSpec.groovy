@@ -62,4 +62,31 @@ class ExceptionMapperSpec extends Specification {
         response.getStatus() == 404
         message.getType() == null
     }
+
+    def "without a negotiated media type the error is not encoded as HTML"() {
+        given:
+        ExtensionRegistry registry = Stub() {
+            getExtensionsForType(ExceptionFormatExtension) >> [exceptionFormat(MediaType.TEXT_HTML_TYPE), exceptionFormat(MediaType.valueOf("application/problem+json"))]
+        }
+        ContentNegotiationMediaType negotiation = Stub() {
+            negotiateMediaType(*_) >> Optional.empty()
+        }
+
+        when:
+        Response response = new ExceptionMapper(registry, negotiation).toResponse(new NotFoundException("not found"))
+
+        then:
+        response.getMediaType() == MediaType.valueOf("application/problem+json")
+    }
+
+    ExceptionFormatExtension exceptionFormat(MediaType mediaType) {
+        return Stub(ExceptionFormatExtension) {
+            getMediaType() >> new ImmutableApiMediaType.Builder()
+                    .type(mediaType)
+                    .label(mediaType.getSubtype())
+                    .parameter(mediaType.getSubtype())
+                    .build()
+            getExceptionEntity(_) >> { ApiErrorMessage message -> message }
+        }
+    }
 }
