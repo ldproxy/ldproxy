@@ -47,10 +47,13 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,11 +123,11 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
       Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
+      Map<MediaType, ApiMediaTypeContent> responseContent = getExecutionResponseContent(apiData);
 
       ApiOperation.of(
-              path,
-              HttpMethods.POST,
               requestContent,
+              responseContent,
               queryParameters,
               ImmutableList.of(),
               operationSummary,
@@ -134,8 +137,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
               GROUP_PROCESSES_EXECUTE,
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
-              ProcessesCoreBuildingBlock.SPEC,
-              false)
+              ProcessesCoreBuildingBlock.SPEC)
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
 
       definitionBuilder.putResources(path, resourceBuilder.build());
@@ -200,11 +202,29 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
     if (resourceFormats == null) {
       resourceFormats =
           ImmutableList.<FormatExtension>builder()
-              .addAll(extensionRegistry.getExtensionsForType(JobResultsFormatExtension.class))
+              .addAll(
+                  extensionRegistry.getExtensionsForType(JobResultsFormatExtension.class).stream()
+                      // result documents of any media type are only served by the job resources
+                      .filter(format -> !format.getMediaType().type().isWildcardType())
+                      .toList())
               .addAll(extensionRegistry.getExtensionsForType(JobStatusFormatExtension.class))
               .build();
     }
     return resourceFormats;
+  }
+
+  // the results and the status info are both available as JSON, the results take precedence
+  private Map<MediaType, ApiMediaTypeContent> getExecutionResponseContent(OgcApiDataV2 apiData) {
+    return getResourceFormats().stream()
+        .filter(format -> format.isEnabledForApi(apiData))
+        .map(FormatExtension::getContent)
+        .filter(Objects::nonNull)
+        .collect(
+            Collectors.toMap(
+                content -> content.getOgcApiMediaType().type(),
+                content -> content,
+                (results, statusInfo) -> results,
+                LinkedHashMap::new));
   }
 
   @Override
