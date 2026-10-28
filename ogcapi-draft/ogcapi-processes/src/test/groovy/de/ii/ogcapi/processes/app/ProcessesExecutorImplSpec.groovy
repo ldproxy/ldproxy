@@ -93,23 +93,23 @@ class ProcessesExecutorImplSpec extends Specification {
     }
 
     def "a job with a setup step is pushed with it and the execution step is left to the setup"() {
+        given:
+        def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], true)
+
         when:
-        executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)
+        executor.executeAsync("api", process, execute([count: 1]), 0, 3600)
 
         then:
         1 * jobs.push({ JobConfiguration job -> job.kind() == "oap:TestProcess" && job.setup() && job.cleanup() }, _) >> job(Status.ACCEPTED, [:])
         0 * jobProcessing.push(_)
     }
 
-    def "without a setup step the execution step is queued directly"() {
-        given:
-        def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], false)
-
+    def "by default the execution step is queued directly, without setup and cleanup steps"() {
         when:
-        executor.executeAsync("api", process, execute([count: 1]), 0, 3600)
+        executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)
 
         then:
-        1 * jobs.push({ JobConfiguration job -> !job.setup() }, _) >> job(Status.ACCEPTED, [:])
+        1 * jobs.push({ JobConfiguration job -> !job.setup() && !job.cleanup() }, _) >> job(Status.ACCEPTED, [:])
         1 * jobProcessing.init("job-1", 1, null)
         1 * jobProcessing.push({ PartialJobConfiguration partial -> partial.kind() == "oap:TestProcess:execute" })
     }

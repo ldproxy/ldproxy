@@ -23,14 +23,15 @@ class ProcessFixtures {
     static ProcessData process(List<JobControlOptions> jobControlOptions,
                                Map<String, OgcInputDescription> inputs = [:],
                                Map<String, OgcOutputDescription> outputs = [:],
-                               boolean jobSetup = true) {
+                               boolean setupAndCleanup = false) {
         new ImmutableProcessData.Builder()
                 .id("TestProcess")
                 .version("1.0.0")
                 .jobControlOptions(jobControlOptions)
                 .inputs(inputs)
                 .outputs(outputs)
-                .jobSetup(jobSetup)
+                .jobSetup(setupAndCleanup)
+                .jobCleanup(setupAndCleanup)
                 .build()
     }
 
