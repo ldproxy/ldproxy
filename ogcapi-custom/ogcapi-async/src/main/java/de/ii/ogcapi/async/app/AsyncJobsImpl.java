@@ -173,7 +173,8 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     return Optional.of(
         ImmutableResultDocument.of(
                 MediaType.valueOf(resultFile.get().getResultMediaType()), content)
-            .withStatus(resultFile.get().status()));
+            .withStatus(resultFile.get().status())
+            .withFileExtension(fileExtension(path)));
   }
 
   private ResultDocument failure(Job job) {
@@ -188,7 +189,14 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     StreamingOutput content = output -> mapper.writeValue(output, problem);
 
     return ImmutableResultDocument.of(MediaType.valueOf("application/problem+json"), content)
-        .withStatus(500);
+        .withStatus(500)
+        .withFileExtension("json");
+  }
+
+  private static Optional<String> fileExtension(Path path) {
+    String name = path.getFileName().toString();
+    int dot = name.lastIndexOf('.');
+    return dot > 0 ? Optional.of(name.substring(dot + 1)) : Optional.empty();
   }
 
   private static boolean hasResultFile(ResourceStore jobStore, Path path) {

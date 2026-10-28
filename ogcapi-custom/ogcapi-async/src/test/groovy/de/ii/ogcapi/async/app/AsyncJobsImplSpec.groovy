@@ -191,6 +191,7 @@ class AsyncJobsImplSpec extends Specification {
         then:
         document.status == 200
         document.mediaType == new MediaType("application", "geo+json")
+        document.fileExtension == Optional.of("json")
         content(document) == '{"type":"FeatureCollection"}'
         storeScope == [Jobs.RESOURCE_TYPE, "feature-query"]
     }
