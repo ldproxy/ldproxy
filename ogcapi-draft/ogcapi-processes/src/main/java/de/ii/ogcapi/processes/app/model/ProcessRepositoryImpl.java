@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
@@ -91,14 +90,14 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public OgcProcess getDirect(String apiId, String processId) {
+  public ProcessData getDirect(String apiId, String processId) {
     return get(apiId, processId)
         .orElseThrow(
             () -> new NotFoundException("No process found with process id '" + processId + "'."));
   }
 
   @Override
-  public Optional<OgcProcess> get(String apiId, String processId) {
+  public Optional<ProcessData> get(String apiId, String processId) {
     if (globalProcessesCache.containsKey(processId)) {
       return Optional.of(globalProcessesCache.get(processId));
     }
@@ -112,8 +111,8 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   }
 
   @Override
-  public Map<String, OgcProcess> getAll(String apiId) {
-    Map<String, OgcProcess> result = new LinkedHashMap<>(globalProcessesCache);
+  public Map<String, ProcessData> getAll(String apiId) {
+    Map<String, ProcessData> result = new LinkedHashMap<>(globalProcessesCache);
     Map<String, ProcessData> apiMap = apiProcessesCache.get(apiId);
     if (apiMap != null) {
       result.putAll(apiMap);

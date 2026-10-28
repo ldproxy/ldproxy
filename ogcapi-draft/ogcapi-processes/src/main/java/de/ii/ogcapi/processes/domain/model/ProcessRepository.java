@@ -13,9 +13,9 @@ import java.util.Optional;
 
 public interface ProcessRepository extends Volatile2 {
 
-  OgcProcess getDirect(String apiId, String processId);
+  ProcessData getDirect(String apiId, String processId);
 
-  Optional<OgcProcess> get(String apiId, String processId);
+  Optional<ProcessData> get(String apiId, String processId);
 
-  Map<String, OgcProcess> getAll(String apiId);
+  Map<String, ProcessData> getAll(String apiId);
 }

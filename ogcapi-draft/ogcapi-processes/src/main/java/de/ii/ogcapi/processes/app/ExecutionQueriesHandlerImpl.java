@@ -35,6 +35,7 @@ import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.Jackson;
@@ -121,7 +122,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
     String processId = queryInput.getProcessId();
-    OgcProcess process = processRepository.getDirect(apiData.getId(), processId);
+    ProcessData process = processRepository.getDirect(apiData.getId(), processId);
 
     boolean async =
         isExecutedAsync(process, queryInput.supportsAsync(), queryInput.getPreferAsync());
@@ -153,7 +154,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponseSync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
@@ -210,7 +211,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponseAsync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();

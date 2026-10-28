@@ -9,17 +9,17 @@ package de.ii.ogcapi.processes.domain;
 
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import java.util.Map;
 
 public interface ProcessesExecutor {
 
   Map<String, Object> executeSync(
-      String apiId, OgcProcess process, OgcExecute executeRequest, long timeoutMillis);
+      String apiId, ProcessData process, OgcExecute executeRequest, long timeoutMillis);
 
   OgcApiJobStatus executeAsync(
       String apiId,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest,
       int callbackRetries,
       long ttlSeconds);
