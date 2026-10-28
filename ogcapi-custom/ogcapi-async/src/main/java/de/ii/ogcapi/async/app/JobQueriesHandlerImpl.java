@@ -21,6 +21,7 @@ import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResultValues;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -33,6 +34,7 @@ import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtraplatform.base.domain.ETag;
@@ -98,7 +100,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    OgcApiJobStatus statusInfo = getStatusInfo(jobId);
+    OgcApiJobStatus statusInfo = requireJob(jobId, requestContext);
 
     // Requirement 115 (after
     // https://github.com/opengeospatial/ogcapi-processes/issues/620#issuecomment-5478959257 is
@@ -145,6 +147,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
       QueryInputResults queryInput, ApiRequestContext requestContext) {
 
     String jobId = queryInput.getJobId();
+    requireJob(jobId, requestContext);
     Optional<ResultDocument> resultDocument = jobAccess.getResultDocument(jobId);
     if (resultDocument.isPresent()) {
       return resultDocumentResponse(requestContext, queryInput, jobId, resultDocument.get());
@@ -206,6 +209,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
 
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
+    requireJob(jobId, requestContext);
     Object output = jobAccess.getResultsSpecific(jobId, outputId);
 
     return basicResponse(requestContext, queryInput, jobId, output);
@@ -217,6 +221,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     int indexN = queryInput.getIndexN();
+    requireJob(jobId, requestContext);
     Object output = jobAccess.getResultsSpecificN(jobId, outputId, indexN);
 
     return basicResponse(requestContext, queryInput, jobId, output);
@@ -236,10 +241,9 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
                             requestContext.getMediaType())));
 
     String jobId = queryInput.getJobId();
+    requireJob(jobId, requestContext);
     OgcApiJobStatus statusInfo =
-        jobAccess
-            .dismissJob(jobId)
-            .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
+        jobAccess.dismissJob(jobId).orElseThrow(() -> noSuchJob(jobId, requestContext));
 
     final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
@@ -318,10 +322,22 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
         .build();
   }
 
-  private OgcApiJobStatus getStatusInfo(String jobId) {
-    return jobAccess
-        .getStatusInfo(jobId)
-        .orElseThrow(() -> new NotFoundException("Unknown job: " + jobId));
+  private OgcApiJobStatus requireJob(String jobId, ApiRequestContext requestContext) {
+    return jobAccess.getStatusInfo(jobId).orElseThrow(() -> noSuchJob(jobId, requestContext));
+  }
+
+  // jobs of all kinds share the job resources, so the type cannot be derived from a missing job;
+  // jobs with named outputs are processes jobs
+  private static TypedClientErrorException noSuchJob(
+      String jobId, ApiRequestContext requestContext) {
+    EntityType entityType =
+        AsyncBuildingBlock.isNamedOutputsEnabled(requestContext.getApi().getData())
+            ? EntityType.OGC_API_PROCESSES
+            : EntityType.OGC_API_FEATURES;
+    return new TypedClientErrorException(
+        "No job found with job id '%s'.".formatted(jobId),
+        Response.Status.NOT_FOUND,
+        entityType.exceptionType("no-such-job").orElse(null));
   }
 
   private Response emptyResponse(

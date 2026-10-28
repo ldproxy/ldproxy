@@ -10,6 +10,7 @@ package de.ii.ogcapi.async.app
 import de.ii.ogcapi.async.app.format.JobResultsFormatAny
 import de.ii.ogcapi.async.domain.ImmutableQueryInputResults
 import de.ii.ogcapi.async.domain.JobQueriesHandler.Query
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus
 import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.I18n
 import jakarta.ws.rs.NotAcceptableException
@@ -27,6 +28,10 @@ class JobQueriesHandlerImplSpec extends Specification {
 
     AsyncJobs jobs = Stub()
     JobQueriesHandlerImpl handler = new JobQueriesHandlerImpl(Stub(I18n) { getLanguages() >> ([] as Set) }, jobs)
+
+    def setup() {
+        jobs.getStatusInfo("job-1") >> Optional.of(Stub(OgcApiJobStatus))
+    }
 
     def "a result document of type application/geo+json is returned for Accept '#accept'"() {
         given:
