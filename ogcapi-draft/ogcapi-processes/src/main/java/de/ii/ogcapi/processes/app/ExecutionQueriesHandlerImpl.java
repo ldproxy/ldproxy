@@ -47,6 +47,7 @@ import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -253,6 +254,13 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                 String.format(
                     "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
+        .status(Response.Status.CREATED)
+        .location(
+            URI.create(
+                requestContext
+                    .getApiUriCustomizer()
+                    .appendPathSegments("jobs", statusInfo.getId())
+                    .toString()))
         .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
         .build();
   }
