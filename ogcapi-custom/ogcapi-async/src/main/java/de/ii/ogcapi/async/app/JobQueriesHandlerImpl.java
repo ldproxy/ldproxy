@@ -317,7 +317,11 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
             null,
             HeaderCaching.of(null, null, queryInput),
             null,
-            HeaderContentDisposition.of(jobId),
+            HeaderContentDisposition.of(
+                resultDocument
+                    .getFileExtension()
+                    .map(extension -> jobId + "." + extension)
+                    .orElse(jobId)),
             i18n.getLanguages())
         .status(resultDocument.getStatus())
         .type(resultDocument.getMediaType())
