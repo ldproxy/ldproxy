@@ -4,7 +4,7 @@ when:
 steps:
 
   libs:
-    image: eclipse-temurin:25@sha256:e0143c01b14e3bcece2c6cd003d676b9d934dd0adec0712475d87c207e491629
+    image: eclipse-temurin:25@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857
     environment:
       - DOCS_VERSION=next
     commands:
@@ -22,7 +22,7 @@ steps:
       branch: master
 
   dist-arm64:
-    image: eclipse-temurin:25@sha256:e0143c01b14e3bcece2c6cd003d676b9d934dd0adec0712475d87c207e491629
+    image: eclipse-temurin:25@sha256:3ab7fc8d0b4ade8fef96903fb36767c1dbb4fd1535dcfad85b59c17afbbb5857
     commands:
       - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]
