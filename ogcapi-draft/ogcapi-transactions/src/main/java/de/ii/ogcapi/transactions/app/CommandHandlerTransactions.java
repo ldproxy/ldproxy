@@ -13,6 +13,7 @@ import de.ii.ogcapi.transactions.domain.TransactionParser;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
+import de.ii.xtraplatform.features.domain.JobHook;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
@@ -22,7 +23,20 @@ import org.immutables.value.Value;
 
 public interface CommandHandlerTransactions extends Volatile2 {
 
-  Response processTransaction(QueryInputTransaction queryInput, ApiRequestContext requestContext);
+  default Response processTransaction(
+      QueryInputTransaction queryInput, ApiRequestContext requestContext) {
+    return processTransaction(queryInput, requestContext, Optional.empty());
+  }
+
+  /**
+   * @param jobHook the hook of the job that executes the transaction; a cancellation of the job is
+   *     observed before each action and between insert batches, see {@link
+   *     de.ii.ogcapi.transactions.domain.TransactionExecutor}
+   */
+  Response processTransaction(
+      QueryInputTransaction queryInput,
+      ApiRequestContext requestContext,
+      Optional<JobHook> jobHook);
 
   @Value.Immutable
   interface QueryInputTransaction {

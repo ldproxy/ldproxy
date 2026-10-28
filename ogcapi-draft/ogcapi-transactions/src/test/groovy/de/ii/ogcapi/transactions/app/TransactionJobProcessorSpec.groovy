@@ -8,6 +8,7 @@
 package de.ii.ogcapi.transactions.app
 
 import de.ii.ogcapi.common.domain.async.JobResultFile
+import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction
@@ -23,6 +24,7 @@ import de.ii.xtralink.jobs.PartialJobConfiguration
 import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.blobs.domain.ResourceStore
 import de.ii.xtraplatform.entities.domain.EntityRegistry
+import de.ii.xtraplatform.features.domain.JobHook
 import de.ii.xtraplatform.xtralink.domain.JobContext
 import de.ii.xtraplatform.xtralink.domain.JobInputs
 import de.ii.xtraplatform.xtralink.domain.JobProcessing
@@ -49,6 +51,12 @@ class TransactionJobProcessorSpec extends Specification {
 
     /** The status of each subsequent transaction; 200 when the list is exhausted. */
     List<Integer> statuses = []
+
+    /** The job is cancelled while the transaction with this number (from 1) is applied. */
+    int cancelDuring = 0
+
+    /** The job hooks handed to the transaction handler. */
+    List<Optional<JobHook>> hooks = []
 
     RecordingJobs jobs = new RecordingJobs()
     TransactionJobProcessor processor
@@ -85,7 +93,11 @@ class TransactionJobProcessorSpec extends Specification {
         }
 
         CommandHandlerTransactions handler = Stub()
-        handler.processTransaction(_, _) >> {
+        handler.processTransaction(_, _, _) >> { QueryInputTransaction input, ApiRequestContext context, Optional<JobHook> hook ->
+            hooks << hook
+            if (applied.size() == cancelDuring) {
+                jobs.cancelled = true
+            }
             int status = statuses.isEmpty() ? 200 : statuses.remove(0)
             response(status, """{"summary":{"document":${applied.size()}}}""")
         }
@@ -148,6 +160,60 @@ class TransactionJobProcessorSpec extends Specification {
         result.messages() == ['Transaction failed with status 422: {"summary":{"document":1}}']
         !files.containsKey(Path.of("api/result_job-1.json"))
         jobs.outputs == null
+    }
+
+    def "the job hook is handed to the transaction and observes the cancellation of the job"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        hooks.size() == 1
+        hooks[0].isPresent()
+        !hooks[0].get().isCancelRequested()
+
+        when:
+        jobs.cancelled = true
+
+        then:
+        hooks[0].get().isCancelRequested()
+    }
+
+    def "a single document cancelled while it is applied has no result"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        cancelDuring = 1
+
+        when:
+        def result = execute("api/d1/001.xml")
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The job was cancelled"]
+        !files.containsKey(Path.of("api/result_job-1.json"))
+        jobs.outputs == null
+        jobs.updates.isEmpty()
+    }
+
+    def "a folder cancelled while a document is applied keeps its result and stops"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes("<one/>")
+        files[Path.of("api/d1/002.xml")] = bytes("<two/>")
+        files[Path.of("api/d1/003.xml")] = bytes("<three/>")
+        cancelDuring = 2
+
+        when:
+        def result = execute("api/d1")
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The job was cancelled"]
+        applied == ["<one/>", "<two/>"]
+        jobs.outputs == [resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]]
+        text("api/result_job-1/002.result.json") == '{"summary":{"document":2}}'
+        jobs.updates.isEmpty()
     }
 
     def "the documents of a folder are applied in name order and their results are written to the result folder of the job"() {
@@ -310,6 +376,8 @@ class TransactionJobProcessorSpec extends Specification {
 
         def <T extends JobContext> T getContext(BaseJob job, Class<T> contextClass) { null }
 
-        boolean isCancelled(String jobId) { false }
+        boolean cancelled = false
+
+        boolean isCancelled(String jobId) { cancelled }
     }
 }

@@ -59,6 +59,31 @@ class CommandHandlerTransactionsSpec extends Specification {
         executor.validate
     }
 
+    def 'the job hook of an asynchronous transaction reaches the executor'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        CountingExecutor executor = new CountingExecutor()
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+        JobHook hook = new JobHook() {}
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+
+        then:
+        executor.jobHook == Optional.empty()
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext(),
+                Optional.of(hook))
+
+        then:
+        executor.jobHook == Optional.of(hook)
+    }
+
     def 'maxActionsPerRequest aborts lazily when the request has too many actions'() {
         given:
         RecordingParser parser = new RecordingParser(actions: [action(), action()])
@@ -357,6 +382,7 @@ class CommandHandlerTransactionsSpec extends Specification {
     private static class CountingExecutor implements TransactionExecutor {
         int seen
         boolean validate
+        Optional<JobHook> jobHook
 
         @Override
         Volatile2.State getState() {
@@ -382,6 +408,7 @@ class CommandHandlerTransactionsSpec extends Specification {
                 HeaderPrefer.Handling handling,
                 Optional<Instant> ogcMutationDatetime,
                 Optional<JobHook> jobHook) {
+            this.jobHook = jobHook
             return execute(transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
         }
 
