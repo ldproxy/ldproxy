@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(builder = ImmutableOgcApiJobStatusInfo.Builder.class)
 @JsonPropertyOrder({
   "id",
-  "processId",
+  "processID",
   "status",
   "progress",
   "processingEntityType",

@@ -8,12 +8,14 @@
 package de.ii.ogcapi.common.domain.async;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import de.ii.ogcapi.common.domain.OgcApiException;
 import de.ii.xtralink.jobs.Identifiers;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -60,10 +62,18 @@ public interface OgcApiJobStatus {
 
   String getId();
 
+  @JsonIgnore
   Identifiers.Status getStatus();
+
+  /** The status as encoded in the specification, e.g. {@code successful}. */
+  @JsonProperty("status")
+  default String getStatusCode() {
+    return getStatus().name().toLowerCase(Locale.ROOT);
+  }
 
   EntityType getProcessingEntityType();
 
+  @JsonProperty("processID")
   Optional<String> getProcessId();
 
   Optional<Object> getRequest();
