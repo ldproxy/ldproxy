@@ -10,6 +10,7 @@ package de.ii.ogcapi.foundation.domain;
 import static jakarta.ws.rs.core.MediaType.MEDIA_TYPE_WILDCARD;
 
 import jakarta.ws.rs.core.MediaType;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -144,9 +145,12 @@ public interface ApiMediaType {
       LOGGER.debug("acceptable: {}", acceptableMediaTypes);
       LOGGER.debug("provided: {}", providedMediaTypes);
     }
+    // a provided wildcard is compatible with anything, so it must not win over a concrete match
+    List<MediaType> concreteFirst =
+        providedMediaTypes.stream().sorted(Comparator.comparing(ApiMediaType::isWildcard)).toList();
     for (CompatibilityLevel level : CompatibilityLevel.values()) {
       for (MediaType acceptableMediaType : acceptableMediaTypes) {
-        for (MediaType providedMediaType : providedMediaTypes) {
+        for (MediaType providedMediaType : concreteFirst) {
           if (ApiMediaType.isCompatible(acceptableMediaType, providedMediaType, level)) {
             if (LOGGER.isDebugEnabled()) {
               LOGGER.debug("selected: {}", providedMediaType);
@@ -160,5 +164,9 @@ public interface ApiMediaType {
       LOGGER.debug("selected: null");
     }
     return null;
+  }
+
+  private static boolean isWildcard(MediaType mediaType) {
+    return mediaType.isWildcardType() || mediaType.isWildcardSubtype();
   }
 }
