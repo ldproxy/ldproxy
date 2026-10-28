@@ -28,10 +28,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Singleton
 @AutoBind
 public class OapJobResultsSelector implements JobResultsSelector {
+
+  private static final Set<String> OUTPUT_VALUE_KEYS = Set.of("value", "href", "kind");
 
   private final ProcessRepository processRepository;
   private final ObjectMapper mapper;
@@ -118,7 +121,8 @@ public class OapJobResultsSelector implements JobResultsSelector {
 
   // Limitation: MediaType, Encoding and Schema are not used in the selection!
   static Map<String, Object> selectOutputs(
-      Map<String, Object> outputs, Optional<Map<String, OgcFormat>> outputSelections) {
+      Map<String, Object> jobOutputs, Optional<Map<String, OgcFormat>> outputSelections) {
+    Map<String, Object> outputs = outputValues(jobOutputs);
 
     // Requirement 27 and Requirement 33
     if (outputSelections.isEmpty()) {
@@ -144,6 +148,21 @@ public class OapJobResultsSelector implements JobResultsSelector {
             });
 
     return selectedOutput;
+  }
+
+  // outputs set by xtralink workflows are wrapped in an OutputValue, outputs set by the processors
+  // in ldproxy are not
+  private static Map<String, Object> outputValues(Map<String, Object> jobOutputs) {
+    Map<String, Object> outputs = new LinkedHashMap<>();
+    jobOutputs.forEach(
+        (outputId, output) ->
+            outputs.put(
+                outputId, isOutputValue(output) ? ((Map<?, ?>) output).get("value") : output));
+    return outputs;
+  }
+
+  private static boolean isOutputValue(Object output) {
+    return output instanceof Map<?, ?> map && OUTPUT_VALUE_KEYS.equals(map.keySet());
   }
 
   private static void validateOutput(Map<String, Object> outputs, String outputKey) {
