@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException
 import jakarta.ws.rs.NotFoundException
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import spock.lang.Specification
@@ -88,5 +89,15 @@ class ExceptionMapperSpec extends Specification {
                     .build()
             getExceptionEntity(_) >> { ApiErrorMessage message -> message }
         }
+    }
+
+    def "the status of a server error is kept"() {
+        when:
+        Response response = mapper.toResponse(new WebApplicationException("timeout", Response.Status.GATEWAY_TIMEOUT))
+        ApiErrorMessage message = response.getEntity() as ApiErrorMessage
+
+        then:
+        response.getStatus() == 504
+        message.getCode() == 504
     }
 }
