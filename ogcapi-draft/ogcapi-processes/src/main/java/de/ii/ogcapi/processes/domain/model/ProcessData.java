@@ -30,21 +30,21 @@ public interface ProcessData extends StoredValue, OgcProcess {
    *     den Schritt ein, der den Prozess ausführt. Ohne ihn wird der Ausführungsschritt direkt
    *     eingereiht, z.B. für Prozessoren außerhalb von ldproxy, die nur den Schritt
    *     `oap:{processId}:execute` verarbeiten.
-   * @default true
+   * @default false
    */
   @Value.Default
   default boolean getJobSetup() {
-    return true;
+    return false;
   }
 
   /**
    * @langEn Whether the job of an execution ends with a cleanup step `oap:{processId}:cleanup`.
    * @langDe Ob der Job einer Ausführung mit einem Cleanup-Schritt `oap:{processId}:cleanup` endet.
-   * @default true
+   * @default false
    */
   @Value.Default
   default boolean getJobCleanup() {
-    return true;
+    return false;
   }
 
   abstract class Builder implements ValueBuilder<ProcessData> {}
