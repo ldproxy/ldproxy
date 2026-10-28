@@ -52,7 +52,7 @@ class StatusInfoLinksGeneratorSpec extends Specification {
     }
 
     private static Optional<Link> resultsLink(List<Link> links) {
-        Optional.ofNullable(links.find { it.rel == "[ogc-rel:results]" })
+        Optional.ofNullable(links.find { it.rel == "http://www.opengis.net/def/rel/ogc/1.0/results" })
     }
 
     private static OgcApiJobStatus statusInfo(Status status, String resultMediaType) {

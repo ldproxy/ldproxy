@@ -52,7 +52,7 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
       builder.add(
           new ImmutableLink.Builder()
               .href(baseHref.copy().ensureLastPathSegment("results").toString())
-              .rel("[ogc-rel:results]")
+              .rel("http://www.opengis.net/def/rel/ogc/1.0/results")
               .title(i18n.get("jobResultsLink", language).replace("{{jobId}}", jobId))
               .type(statusInfo.getResultMediaType().orElse("application/json"))
               .build());
