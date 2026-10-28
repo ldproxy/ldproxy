@@ -9,6 +9,7 @@ package de.ii.ogcapi.async.app;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import dagger.Lazy;
 import de.ii.ogcapi.common.domain.async.AsyncCallbacks;
@@ -257,53 +258,52 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
       return;
     }
 
-    String jobId = job.id();
     Status status = job.status();
     int callbackRetries = subscriber.get().getMaxRetries().orElse(0);
     switch (status) {
       case SUCCESSFUL ->
-          subscriber
-              .get()
-              .getSuccessUri()
-              .ifPresent(uri -> postResults(jobId, uri, callbackRetries));
+          subscriber.get().getSuccessUri().ifPresent(uri -> postResults(job, uri, callbackRetries));
       case FAILED ->
           subscriber
               .get()
               .getFailedUri()
-              .ifPresent(uri -> postStatusInfo(jobId, uri, callbackRetries, false));
+              .ifPresent(uri -> postStatusInfo(job, uri, callbackRetries, false));
       case RUNNING ->
-          subscriber.get().getInProgressUri().ifPresent(uri -> postStatusInfo(jobId, uri, 0, true));
+          subscriber.get().getInProgressUri().ifPresent(uri -> postStatusInfo(job, uri, 0, true));
     }
   }
 
-  private void postResults(String jobId, String uri, int callbackRetries) {
+  // the payloads are derived from the job of the event, a job fetched later may have moved on
+  private void postResults(Job job, String uri, int callbackRetries) {
     byte[] payload = new byte[0];
 
-    try {
-      Map<String, Object> results = getResults(jobId);
+    Map<String, Object> results = selectResults(job);
+    if (!results.isEmpty()) {
       OgcApiJobResults resultsResponse =
           new ImmutableOgcApiJobResults.Builder().additionalProperties(results).build();
-      payload = mapper.writeValueAsBytes(resultsResponse);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      payload = toJson(resultsResponse);
     }
 
-    postJson(jobId, uri, callbackRetries, false, payload);
+    postJson(job.id(), uri, callbackRetries, false, payload);
   }
 
-  private void postStatusInfo(String jobId, String uri, int callbackRetries, boolean ignoreError) {
-    byte[] payload = new byte[0];
+  private void postStatusInfo(Job job, String uri, int callbackRetries, boolean ignoreError) {
+    OgcApiJobStatusInfo statusInfoResponse =
+        new ImmutableOgcApiJobStatusInfo.Builder().from(OgcApiJobStatusInfo.of(job)).build();
 
+    postJson(job.id(), uri, callbackRetries, ignoreError, toJson(statusInfoResponse));
+  }
+
+  // timestamps are encoded as in the responses of the API
+  private byte[] toJson(Object payload) {
     try {
-      OgcApiJobStatus statusInfo = getStatusInfoCheck(jobId);
-      OgcApiJobStatusInfo statusInfoResponse =
-          new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).build();
-      payload = mapper.writeValueAsBytes(statusInfoResponse);
+      return mapper
+          .writer()
+          .without(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .writeValueAsBytes(payload);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
-
-    postJson(jobId, uri, callbackRetries, ignoreError, payload);
   }
 
   private void postJson(
