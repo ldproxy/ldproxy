@@ -251,7 +251,7 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     // family.equals(Response.Status.Family.SERVER_ERROR)
     long id =
         logException(Objects.nonNull(exception.getCause()) ? exception.getCause() : exception);
-    return Response.serverError()
+    return Response.status(response.getStatus())
         .type(exceptionFormat.getMediaType().type())
         .entity(
             exceptionFormat.getExceptionEntity(
