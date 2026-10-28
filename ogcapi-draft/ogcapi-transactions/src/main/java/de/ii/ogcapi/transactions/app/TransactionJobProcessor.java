@@ -25,6 +25,8 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
+import de.ii.xtraplatform.features.domain.JobHook;
+import de.ii.xtraplatform.features.domain.JobHookCancellable;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple;
@@ -48,6 +50,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +96,10 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
    * {@code .xml.gz} or {@code .json.gz}). An empty folder has nothing to apply.
    *
    * <p>A document compressed with gzip is recognized by its content and decompressed.
+   *
+   * <p>A cancellation of the job is observed before each action and between insert batches: an
+   * atomic transaction is rolled back, in a batch the actions executed before stay committed. A
+   * folder is not continued after a cancellation.
    */
   @Override
   public JobResult execute(
@@ -103,12 +110,14 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       return jobs.failure(validationErrors);
     }
 
+    JobHookCancellable jobHook = new JobHookCancellable(jobs, job.id()) {};
+
     try {
       OgcApi api = getOgcApi(inputs.getApiId()).get();
       Path documentPath = Path.of(inputs.getDocumentPath());
 
       if (getStore().size(documentPath) >= 0) {
-        return executeDocument(partialJob, job, inputs, jobs, api, documentPath);
+        return executeDocument(partialJob, job, inputs, jobs, api, documentPath, jobHook);
       }
 
       Optional<List<Path>> documents = folderDocuments(documentPath, inputs.getMediaType());
@@ -118,7 +127,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
             String.format("Transaction document not found: %s", inputs.getDocumentPath()));
       }
 
-      return executeFolder(partialJob, job, inputs, jobs, api, documentPath, documents.get());
+      return executeFolder(
+          partialJob, job, inputs, jobs, api, documentPath, documents.get(), jobHook);
     } catch (IOException e) {
       if (LOGGER.isDebugEnabled()) {
         LogContext.errorAsDebug(LOGGER, e, "Error checking transaction document");
@@ -138,9 +148,14 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       TransactionJob inputs,
       JobProcessing jobs,
       OgcApi api,
-      Path documentPath)
+      Path documentPath,
+      JobHook jobHook)
       throws IOException {
-    Applied applied = apply(api, inputs, documentPath);
+    Applied applied = apply(api, inputs, documentPath, jobHook);
+
+    if (jobHook.isCancelRequested()) {
+      return cancelled(job, jobs, applied);
+    }
 
     String resultPath = null;
     if (inputs.getResultAsFile()) {
@@ -179,18 +194,30 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       JobProcessing jobs,
       OgcApi api,
       Path folder,
-      List<Path> documents)
+      List<Path> documents,
+      JobHook jobHook)
       throws IOException {
     List<String> resultPaths = new ArrayList<>();
 
     for (Path document : documents) {
       Path documentPath = folder.resolve(document);
-      Applied applied = apply(api, inputs, documentPath);
+      if (jobHook.isCancelRequested()) {
+        jobs.outputs(job.id(), Map.of("resultPaths", resultPaths));
+        return cancelled(job, jobs, null);
+      }
+      Applied applied = apply(api, inputs, documentPath, jobHook);
 
+      // also written after a cancellation: the results of a folder record which documents were
+      // applied
       Path resultPath = resultPath(api, job, document);
       if (applied.body() != null) {
         saveResultFile(job, resultPath, applied.body());
         resultPaths.add(resultPath.toString());
+      }
+
+      if (jobHook.isCancelRequested()) {
+        jobs.outputs(job.id(), Map.of("resultPaths", resultPaths));
+        return cancelled(job, jobs, applied);
       }
 
       if (applied.rejected()) {
@@ -207,6 +234,23 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
     return jobs.success();
   }
 
+  /**
+   * The outcome is logged, since actions may have been committed before the cancellation was
+   * observed. The result of a single document is not written: the job was dismissed, nobody can
+   * request it any more.
+   */
+  private JobResult cancelled(Job job, JobProcessing jobs, @Nullable Applied applied) {
+    if (applied == null) {
+      LOGGER.info("Transaction job {} was cancelled before the next document", job.id());
+    } else {
+      LOGGER.info(
+          "Transaction job {} was cancelled, the transaction ended with status {}",
+          job.id(),
+          applied.status());
+    }
+    return jobs.failure("The job was cancelled");
+  }
+
   /** The outcome of one transaction: the HTTP status and the response document, if any. */
   private record Applied(int status, String body) {
     boolean rejected() {
@@ -214,7 +258,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
     }
   }
 
-  private Applied apply(OgcApi api, TransactionJob inputs, Path documentPath) throws IOException {
+  private Applied apply(OgcApi api, TransactionJob inputs, Path documentPath, JobHook jobHook)
+      throws IOException {
     Optional<InputStream> content = getStore().content(documentPath);
 
     if (content.isEmpty()) {
@@ -243,7 +288,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
               .queryParameterSet(QueryParameterSet.of())
               .build();
 
-      try (Response response = commandHandler.processTransaction(queryInput, requestContext)) {
+      try (Response response =
+          commandHandler.processTransaction(queryInput, requestContext, Optional.of(jobHook))) {
         Object entity = response.getEntity();
         return new Applied(response.getStatus(), entity == null ? null : entity.toString());
       }
