@@ -4776,6 +4776,54 @@
             "boolean",
             "null"
           ]
+        },
+        "ignoreRepeatedVersions": {
+          "title": "ignoreRepeatedVersions",
+          "description": "With `true`, a `Replace` whose new version begins at the begin of the open version    (`PRIMARY_INTERVAL_START`) delivers the open version again and leaves the feature    unchanged; the action succeeds without changes. With `false`, such a `Replace` is rejected,    since a version cannot end at its own begin.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignoreExistingFeaturesOnInsert": {
+          "title": "ignoreExistingFeaturesOnInsert",
+          "description": "With `true`, an `Insert` of a feature that already has a version (open or retired)    leaves the feature unchanged; the item is skipped with a warning. With `false`, such an    `Insert` is rejected, since new versions of a feature are added with `Replace`, `Update` or    `Delete`.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "insertUnknownFeaturesOnReplace": {
+          "title": "insertUnknownFeaturesOnReplace",
+          "description": "With `true`, a `Replace` of a feature that has no version at all inserts the feature,    with a warning. With `false`, such a `Replace` is rejected. A `Replace` of a feature whose    versions are all retired is rejected in either case.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false
