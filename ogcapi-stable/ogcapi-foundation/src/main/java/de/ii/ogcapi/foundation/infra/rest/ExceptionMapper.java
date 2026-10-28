@@ -26,11 +26,14 @@ import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -73,11 +76,21 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     this.contentNegotiationMediaType = contentNegotiationMediaType;
   }
 
+  private static boolean isHtml(ExceptionFormatExtension format) {
+    return format.getMediaType().type().isCompatible(MediaType.TEXT_HTML_TYPE);
+  }
+
   @Override
   public Response toResponse(Throwable exception) {
-    // content negotiation for the error response
-    ImmutableSet<ApiMediaType> supportedMediaTypes =
+    // content negotiation for the error response; the registration order is not stable, so
+    // without an explicit preference for HTML clients deterministically get a machine-readable
+    // error
+    List<ExceptionFormatExtension> exceptionFormats =
         extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).stream()
+            .sorted(Comparator.comparing(ExceptionMapper::isHtml))
+            .toList();
+    ImmutableSet<ApiMediaType> supportedMediaTypes =
+        exceptionFormats.stream()
             .map(FormatExtension::getMediaType)
             .collect(ImmutableSet.toImmutableSet());
     Optional<ApiMediaType> mediaType =
@@ -87,12 +100,10 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
         mediaType
             .flatMap(
                 apiMediaType ->
-                    extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).stream()
+                    exceptionFormats.stream()
                         .filter(format -> apiMediaType == format.getMediaType())
                         .findFirst())
-            .orElseGet(
-                () ->
-                    extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).get(0));
+            .orElseGet(() -> exceptionFormats.get(0));
 
     String msg = getMessage(exception);
     String msgCause = getMessageOfCause(exception);
