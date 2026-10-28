@@ -46,5 +46,8 @@ public interface AsyncJobs {
     default int getStatus() {
       return 200;
     }
+
+    /** The file extension of the document, for the name of a download. */
+    Optional<String> getFileExtension();
   }
 }

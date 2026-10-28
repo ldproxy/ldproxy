@@ -82,6 +82,22 @@ class JobQueriesHandlerImplSpec extends Specification {
         accept << ["application/json", "image/png"]
     }
 
+    def "the file name of a result document has its extension: #extension"() {
+        given:
+        jobs.getResultDocument("job-1") >> Optional.of(ImmutableResultDocument.of(GEO_JSON, Stub(StreamingOutput)).withFileExtension(extension))
+
+        when:
+        Response response = results("application/geo+json")
+
+        then:
+        response.getHeaderString("Content-Disposition") == disposition
+
+        where:
+        extension          || disposition
+        Optional.of("json") || 'inline; filename="job-1.json"'
+        Optional.empty()    || 'inline; filename="job-1"'
+    }
+
     def "named outputs are not acceptable when only the catch-all format matched"() {
         given:
         jobs.getResultDocument("job-1") >> Optional.empty()
