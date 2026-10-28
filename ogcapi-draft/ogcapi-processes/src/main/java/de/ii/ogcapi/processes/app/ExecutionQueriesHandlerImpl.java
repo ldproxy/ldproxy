@@ -123,10 +123,19 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     OgcProcess process = processRepository.getDirect(apiData.getId(), processId);
     List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
 
-    boolean async =
-        queryInput.supportsAsync()
-            && queryInput.getPreferAsync()
-            && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE);
+    boolean canSync =
+        jobControlOptions.isEmpty() || jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE);
+    boolean canAsync =
+        queryInput.supportsAsync() && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE);
+
+    if (!canSync && !canAsync) {
+      throw new IllegalArgumentException(
+          "Process '%s' can only be executed asynchronously, which is not supported by this API."
+              .formatted(processId));
+    }
+
+    // Requirements 19 and 20: the preference only decides if the process supports both modes
+    boolean async = canAsync && (!canSync || queryInput.getPreferAsync());
 
     if (!async) {
       return executionResponseSync(queryInput, requestContext, process, executeRequest);
