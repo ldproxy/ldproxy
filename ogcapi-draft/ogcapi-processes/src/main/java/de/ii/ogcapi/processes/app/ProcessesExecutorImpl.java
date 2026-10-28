@@ -34,6 +34,8 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -43,6 +45,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +75,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Map<String, Object> executeSync(
-      String apiId, OgcProcess process, OgcExecute executeRequest) {
+      String apiId, OgcProcess process, OgcExecute executeRequest, long timeoutMillis) {
 
     Map<String, Object> inputs = parseInputs(process, executeRequest.getInputs());
 
@@ -90,10 +95,27 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     // Push it and wait for its results
     Job job = jobs.push(oapJob);
     LOGGER.debug("Created job for process '{}', job: {}", process.getId(), job);
-    Job finalJob = jobs.waitFor(job.id()).join();
+    Job finalJob = waitFor(job, timeoutMillis);
 
     // Return only selected results
     return OapJobResultsSelector.selectOutputs(finalJob.outputs(), outputSelections);
+  }
+
+  private Job waitFor(Job job, long timeoutMillis) {
+    try {
+      return jobs.waitFor(job.id()).get(timeoutMillis, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException e) {
+      jobs.cancel(job.id());
+      throw new WebApplicationException(
+          "The synchronous execution of the process did not finish within %d ms."
+              .formatted(timeoutMillis),
+          Response.Status.GATEWAY_TIMEOUT);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(e);
+    } catch (ExecutionException e) {
+      throw new IllegalStateException(e.getCause());
+    }
   }
 
   @Override
