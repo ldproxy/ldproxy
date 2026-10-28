@@ -239,15 +239,31 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
   @Override
   public Optional<OgcApiJobStatus> dismissJob(String jobId) {
-    Status currentStatus = getStatusInfoCheck(jobId).getStatus();
+    OgcApiJobStatus statusInfo = getStatusInfoCheck(jobId);
+    Status currentStatus = statusInfo.getStatus();
 
-    // Only cancel job if it's accepted or running. Successful, dismissed and failed jobs keep their
-    // status. Note: this behavior is intentionally different from Requirement 114!
+    // Requirement 115: an accepted or running job is cancelled, then any job is removed
     if (Status.ACCEPTED.equals(currentStatus) || Status.RUNNING.equals(currentStatus)) {
-      jobs.cancel(jobId);
+      cancelQuietly(jobId);
     }
+    jobs.delete(jobId);
 
-    return getStatusInfo(jobId);
+    return Optional.of(
+        new ImmutableOgcApiJobStatusInfo.Builder()
+            .from(statusInfo)
+            .status(Status.DISMISSED)
+            .build());
+  }
+
+  // the job is removed anyway, so a failed cancellation does not fail the dismissal
+  private void cancelQuietly(String jobId) {
+    try {
+      jobs.cancel(jobId);
+    } catch (RuntimeException e) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Could not cancel job '{}' before removing it", jobId, e);
+      }
+    }
   }
 
   @Override

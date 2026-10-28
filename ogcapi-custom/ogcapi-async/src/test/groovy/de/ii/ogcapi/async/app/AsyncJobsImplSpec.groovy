@@ -182,15 +182,17 @@ class AsyncJobsImplSpec extends Specification {
         asyncJobs.getResultDocument("job-1").isEmpty()
     }
 
-    def "dismissing a #status job cancels it: #cancelled"() {
+    def "dismissing a #status job cancels it: #cancelled, and removes it"() {
         given:
         stored["job-1"] = job(status, asyncContext(EntityType.OGC_API_FEATURES), [:])
 
         when:
-        asyncJobs.dismissJob("job-1")
+        def statusInfo = asyncJobs.dismissJob("job-1")
 
         then:
         (cancelled ? 1 : 0) * jobs.cancel("job-1")
+        1 * jobs.delete("job-1")
+        statusInfo.get().getStatus() == Status.DISMISSED
 
         where:
         status            || cancelled
@@ -201,6 +203,19 @@ class AsyncJobsImplSpec extends Specification {
         Status.DISMISSED  || false
     }
 
+    def "a failed cancellation does not prevent the removal"() {
+        given:
+        stored["job-1"] = job(Status.RUNNING, asyncContext(EntityType.OGC_API_FEATURES), [:])
+
+        when:
+        asyncJobs.dismissJob("job-1")
+
+        then:
+        1 * jobs.cancel("job-1") >> { throw new IllegalStateException("cancel failed") }
+        1 * jobs.delete("job-1")
+        noExceptionThrown()
+    }
+
     def "dismissing an unknown job is not found"() {
         when:
         asyncJobs.dismissJob("unknown")
@@ -208,6 +223,7 @@ class AsyncJobsImplSpec extends Specification {
         then:
         thrown(NotFoundException)
         0 * jobs.cancel(_)
+        0 * jobs.delete(_)
     }
 
     // --- fixtures ------------------------------------------------------------------------------
