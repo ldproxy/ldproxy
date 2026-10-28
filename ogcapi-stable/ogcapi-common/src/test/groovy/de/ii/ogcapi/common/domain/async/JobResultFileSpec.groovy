@@ -27,6 +27,21 @@ class JobResultFileSpec extends Specification {
         JobResultFile.from(outputs) == Optional.of(resultFile)
     }
 
+    def "the status of a result file persisted as job outputs is restored: #resultFile.resultStatus"() {
+        when:
+        Map<String, Object> outputs = MAPPER.readValue(MAPPER.writeValueAsBytes(resultFile), Map)
+
+        then:
+        outputs.containsKey("resultStatus") == (resultFile.resultStatus != null)
+        JobResultFile.from(outputs) == Optional.of(resultFile)
+        JobResultFile.from(outputs).get().status() == status
+
+        where:
+        resultFile                                                   || status
+        JobResultFile.of("api/result_job-1.json", "application/json")      || 200
+        JobResultFile.of("api/result_job-1.json", "application/json", 422) || 422
+    }
+
     def "outputs without a result file are not recognized: #outputs"() {
         expect:
         !JobResultFile.is(outputs)

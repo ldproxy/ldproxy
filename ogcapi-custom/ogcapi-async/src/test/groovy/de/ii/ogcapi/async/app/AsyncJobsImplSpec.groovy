@@ -102,7 +102,39 @@ class AsyncJobsImplSpec extends Specification {
         Status.RUNNING  | EntityType.OGC_API_PROCESSES || "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready"
     }
 
-    def "the results of a failed job are a bad request"() {
+    def "the result of a rejected transaction is its response document with the status of the rejection"() {
+        given:
+        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_FEATURES),
+                outputs(JobResultFile.of(RESULT, "application/json", 422)), ["rejected"])
+        files[Path.of(RESULT)] = '{"exceptions":[]}'.getBytes(StandardCharsets.UTF_8)
+
+        when:
+        AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
+
+        then:
+        document.status == 422
+        document.mediaType == MediaType.APPLICATION_JSON_TYPE
+        content(document) == '{"exceptions":[]}'
+    }
+
+    def "the result of a failed job without response document is a problem with the errors of the job: #jobOutputs"() {
+        given:
+        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_FEATURES), jobOutputs, ["Query failed with status 400"])
+
+        when:
+        AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
+
+        then:
+        document.status == 500
+        document.mediaType == new MediaType("application", "problem+json")
+        new ObjectMapper().readValue(content(document), Map) ==
+                [status: 500, title: "Internal Server Error", detail: "Job 'job-1' failed: Query failed with status 400"]
+
+        where:
+        jobOutputs << [[:], outputs(JobResultFile.of(RESULT, "application/json"))]
+    }
+
+    def "the outputs of a failed job are a bad request"() {
         given:
         stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_FEATURES), [:])
 
@@ -157,6 +189,7 @@ class AsyncJobsImplSpec extends Specification {
         AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
 
         then:
+        document.status == 200
         document.mediaType == new MediaType("application", "geo+json")
         content(document) == '{"type":"FeatureCollection"}'
         storeScope == [Jobs.RESOURCE_TYPE, "feature-query"]
@@ -244,8 +277,8 @@ class AsyncJobsImplSpec extends Specification {
         Jobs.DEFAULT_MAPPER.readValue(Jobs.DEFAULT_MAPPER.writeValueAsBytes(value), Jobs.MAP_TYPE)
     }
 
-    private static Job job(Status status, Map<String, Object> context, Map<String, Object> outputs) {
-        new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, [],
+    private static Job job(Status status, Map<String, Object> context, Map<String, Object> outputs, List<String> errors = []) {
+        new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, errors,
                 context, null, null, [:], outputs, Optional.empty(), Optional.empty(), [], Optional.empty(),
                 Optional.empty())
     }

@@ -43,7 +43,20 @@ class StatusInfoLinksGeneratorSpec extends Specification {
         links*.rel == ["self", "delete"]
 
         where:
-        status << [Status.ACCEPTED, Status.RUNNING, Status.FAILED, Status.DISMISSED]
+        status << [Status.ACCEPTED, Status.RUNNING, Status.DISMISSED]
+    }
+
+    def "the results link of a failed job has the type #expectedType for result media type #resultMediaType"() {
+        when:
+        List<Link> links = links(statusInfo(Status.FAILED, resultMediaType))
+
+        then:
+        resultsLink(links).map(Link::getType) == Optional.of(expectedType)
+
+        where:
+        resultMediaType    || expectedType
+        "application/json" || "application/json"
+        null               || "application/problem+json"
     }
 
     private List<Link> links(OgcApiJobStatus statusInfo) {

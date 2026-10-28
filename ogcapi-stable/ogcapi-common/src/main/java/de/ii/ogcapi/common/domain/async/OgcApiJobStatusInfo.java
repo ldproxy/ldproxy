@@ -87,6 +87,10 @@ public abstract class OgcApiJobStatusInfo extends PageRepresentation implements 
       builder.finished(Instant.ofEpochMilli(finishedAt));
     }
 
+    if (!job.errors().isEmpty()) {
+      builder.message(String.join(" ", job.errors()));
+    }
+
     int progress = job.progress().percent();
     if (progress != 0) {
       builder.progress(progress);
