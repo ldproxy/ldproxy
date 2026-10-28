@@ -23,7 +23,6 @@ import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -138,7 +137,7 @@ public class OapJobResultsSelector implements JobResultsSelector {
         .keySet()
         .forEach(
             outputId -> {
-              // Requirement ???
+              // Requirement 59
               validateOutput(outputs, outputId);
 
               selectedOutput.put(outputId, outputs.get(outputId));
@@ -149,7 +148,10 @@ public class OapJobResultsSelector implements JobResultsSelector {
 
   private static void validateOutput(Map<String, Object> outputs, String outputKey) {
     if (!outputs.containsKey(outputKey)) {
-      throw new NotFoundException("The results do not contain an output '" + outputKey + "'.");
+      throw new TypedClientErrorException(
+          "The results do not contain an output '%s'.".formatted(outputKey),
+          Response.Status.NOT_FOUND,
+          EntityType.OGC_API_PROCESSES.exceptionType("result-not-available").orElseThrow());
     }
   }
 

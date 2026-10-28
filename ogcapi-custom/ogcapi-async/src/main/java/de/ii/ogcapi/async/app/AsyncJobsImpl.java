@@ -167,6 +167,21 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
   public Map<String, Object> getResults(String jobId) {
     Job job = getAsyncJobCheck(jobId);
 
+    Map<String, Object> results = selectResults(job);
+
+    // Requirement 59 of OGC API Processes, no outputs were requested
+    if (results.isEmpty()
+        && JobContextAsync.entityTypeFrom(job.context()) == EntityType.OGC_API_PROCESSES) {
+      throw new TypedClientErrorException(
+          "No results are available for job '%s'.".formatted(jobId),
+          Response.Status.NOT_FOUND,
+          EntityType.OGC_API_PROCESSES.exceptionType("result-not-available").orElseThrow());
+    }
+
+    return results;
+  }
+
+  private Map<String, Object> selectResults(Job job) {
     Map<String, Object> outputs = job.outputs();
 
     for (JobResultsSelector selector : resultsSelectors.get()) {
