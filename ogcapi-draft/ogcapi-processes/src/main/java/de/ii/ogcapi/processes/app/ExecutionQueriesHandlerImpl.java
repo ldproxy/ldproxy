@@ -181,13 +181,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
           .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
           .build();
     } else {
+      // Requirement 34
       return prepareSuccessResponse(
               requestContext,
               null,
               HeaderCaching.of(null, null, queryInput),
               null,
-              HeaderContentDisposition.of(String.format(process.getId())),
+              null,
               i18n.getLanguages())
+          .status(Response.Status.NO_CONTENT)
           .build();
     }
   }
