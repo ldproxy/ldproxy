@@ -270,15 +270,29 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
   }
 
+  // Requirements 22 and 23: a value may be wrapped in a qualified value, an object with the member
+  // "value"; the wrapper is only removed if the provided value itself does not match the schema
+  private Object validValue(String processId, String inputId, OgcSchema schema, Object value) {
+    Optional<String> error = validateInputValue(processId, inputId, schema, value);
+    if (error.isEmpty()) {
+      return value;
+    }
+
+    if (value instanceof Map<?, ?> qualifiedValue
+        && qualifiedValue.containsKey("value")
+        && validateInputValue(processId, inputId, schema, qualifiedValue.get("value")).isEmpty()) {
+      return qualifiedValue.get("value");
+    }
+
+    throw new IllegalArgumentException(
+        "Invalid execute request: input '%s' is invalid: %s".formatted(inputId, error.get()));
+  }
+
   // Limitation: Not all standard JSON Schema formats and custom formats from OGC-Processes are
   // supported
-  private Object parseInputValue(String processId, String inputId, OgcSchema schema, Object value) {
-    validateInputValue(processId, inputId, schema, value)
-        .ifPresent(
-            message -> {
-              throw new IllegalArgumentException(
-                  "Invalid execute request: input '%s' is invalid: %s".formatted(inputId, message));
-            });
+  private Object parseInputValue(
+      String processId, String inputId, OgcSchema schema, Object providedValue) {
+    Object value = validValue(processId, inputId, schema, providedValue);
 
     if (schema.getFormat().isEmpty()) {
       return value;
