@@ -10,6 +10,8 @@ package de.ii.ogcapi.processes.app;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.async.JobResultsSelector;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.OapJob.OapJobContext;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
@@ -22,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.Response;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,12 +171,10 @@ public class OapJobResultsSelector implements JobResultsSelector {
   private static void validateOutputSelection(OgcProcess process, String outputId) {
 
     if (!process.getOutputs().containsKey(outputId)) {
-      throw new NotFoundException(
-          "The output of the process '"
-              + process.getId()
-              + "', does not contain an output '"
-              + outputId
-              + "'.");
+      throw new TypedClientErrorException(
+          "The process '%s' does not define an output '%s'.".formatted(process.getId(), outputId),
+          Response.Status.BAD_REQUEST,
+          EntityType.OGC_API_PROCESSES.exceptionType("no-such-output").orElseThrow());
     }
   }
 }
