@@ -67,6 +67,21 @@ class JobQueriesHandlerImplSpec extends Specification {
         accept << ["image/png", "text/html"]
     }
 
+    def "the reason of a failure is returned with its status for Accept '#accept'"() {
+        given:
+        jobs.getResultDocument("job-1") >> Optional.of(ImmutableResultDocument.of(MediaType.APPLICATION_JSON_TYPE, Stub(StreamingOutput)).withStatus(422))
+
+        when:
+        Response response = results(accept)
+
+        then:
+        response.status == 422
+        response.mediaType == MediaType.APPLICATION_JSON_TYPE
+
+        where:
+        accept << ["application/json", "image/png"]
+    }
+
     def "named outputs are not acceptable when only the catch-all format matched"() {
         given:
         jobs.getResultDocument("job-1") >> Optional.empty()

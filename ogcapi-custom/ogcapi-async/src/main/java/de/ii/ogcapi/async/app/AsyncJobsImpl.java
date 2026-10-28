@@ -42,6 +42,7 @@ import jakarta.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +81,13 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
   }
 
   private Job getAsyncJobCheck(String jobId) {
+    return getAsyncJobCheck(jobId, false);
+  }
+
+  /**
+   * @param failedWithResult whether a failed job passes, its result is the reason for the failure
+   */
+  private Job getAsyncJobCheck(String jobId, boolean failedWithResult) {
     Optional<Job> job = getAsyncJob(jobId);
 
     if (job.isEmpty()) {
@@ -94,6 +102,10 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
           JobContextAsync.entityTypeFrom(job.get().context())
               .exceptionType("result-not-ready")
               .orElse(null));
+    }
+
+    if (status == Status.FAILED && failedWithResult) {
+      return job.get();
     }
 
     if (status != Status.SUCCESSFUL) {
@@ -131,8 +143,15 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
   @Override
   public Optional<ResultDocument> getResultDocument(String jobId) {
-    Job job = getAsyncJobCheck(jobId);
+    Job job = getAsyncJobCheck(jobId, true);
     Optional<JobResultFile> resultFile = JobResultFile.from(job.outputs());
+
+    // Requirement job-results-failed: an error status that corresponds to the reason, e.g. the
+    // response document of a rejected transaction; otherwise the errors of the job
+    if (job.status() == Status.FAILED
+        && resultFile.filter(file -> file.getResultStatus() != null).isEmpty()) {
+      return Optional.of(failure(job));
+    }
 
     if (resultFile.isEmpty()) {
       return Optional.empty();
@@ -153,7 +172,23 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
     return Optional.of(
         ImmutableResultDocument.of(
-            MediaType.valueOf(resultFile.get().getResultMediaType()), content));
+                MediaType.valueOf(resultFile.get().getResultMediaType()), content)
+            .withStatus(resultFile.get().status()));
+  }
+
+  private ResultDocument failure(Job job) {
+    Map<String, Object> problem = new LinkedHashMap<>();
+    problem.put("status", 500);
+    problem.put("title", "Internal Server Error");
+    problem.put(
+        "detail",
+        job.errors().isEmpty()
+            ? "Job '%s' failed.".formatted(job.id())
+            : "Job '%s' failed: %s".formatted(job.id(), String.join(" ", job.errors())));
+    StreamingOutput content = output -> mapper.writeValue(output, problem);
+
+    return ImmutableResultDocument.of(MediaType.valueOf("application/problem+json"), content)
+        .withStatus(500);
   }
 
   private static boolean hasResultFile(ResourceStore jobStore, Path path) {

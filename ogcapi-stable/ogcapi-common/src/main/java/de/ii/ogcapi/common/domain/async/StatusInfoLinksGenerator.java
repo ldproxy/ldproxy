@@ -47,14 +47,20 @@ public class StatusInfoLinksGenerator extends DefaultLinksGenerator {
 
     Status currentStatus = statusInfo.getStatus();
 
-    // Results
-    if (Status.SUCCESSFUL.equals(currentStatus)) {
+    // Results; for a failed job they are the reason for the failure
+    if (Status.SUCCESSFUL.equals(currentStatus) || Status.FAILED.equals(currentStatus)) {
       builder.add(
           new ImmutableLink.Builder()
               .href(baseHref.copy().ensureLastPathSegment("results").toString())
               .rel("https://www.opengis.net/def/rel/ogc/1.0/results")
               .title(i18n.get("jobResultsLink", language).replace("{{jobId}}", jobId))
-              .type(statusInfo.getResultMediaType().orElse("application/json"))
+              .type(
+                  statusInfo
+                      .getResultMediaType()
+                      .orElse(
+                          Status.FAILED.equals(currentStatus)
+                              ? "application/problem+json"
+                              : "application/json"))
               .build());
     }
 
