@@ -26,6 +26,7 @@ import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
+import de.ii.xtraplatform.features.domain.JobHook;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
@@ -67,7 +68,9 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
 
   @Override
   public Response processTransaction(
-      QueryInputTransaction queryInput, ApiRequestContext requestContext) {
+      QueryInputTransaction queryInput,
+      ApiRequestContext requestContext,
+      Optional<JobHook> jobHook) {
     Transaction transaction = null;
 
     try {
@@ -90,7 +93,8 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
                 requestContext,
                 queryInput.getRequestCrs(),
                 queryInput.getHandling(),
-                queryInput.getMutationDatetime());
+                queryInput.getMutationDatetime(),
+                jobHook);
         transaction = null;
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
