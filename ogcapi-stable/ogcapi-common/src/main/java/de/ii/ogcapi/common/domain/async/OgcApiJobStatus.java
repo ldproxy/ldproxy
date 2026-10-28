@@ -26,7 +26,7 @@ public interface OgcApiJobStatus {
 
   enum EntityType {
     OGC_API_PROCESSES(
-        "ogc-api-processes", "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/"),
+        "ogc-api-processes", "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/"),
     OGC_API_FEATURES(
         "ogc-api-features", "http://www.opengis.net/def/exceptions/ogcapi-features-11/1.0/"),
     UNKNOWN("unknown", null),

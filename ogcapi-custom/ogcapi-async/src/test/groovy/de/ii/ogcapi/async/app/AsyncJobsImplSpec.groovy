@@ -98,8 +98,8 @@ class AsyncJobsImplSpec extends Specification {
         status          | entityType                   || expectedType
         Status.ACCEPTED | EntityType.OGC_API_FEATURES  || "http://www.opengis.net/def/exceptions/ogcapi-features-11/1.0/result-not-ready"
         Status.RUNNING  | EntityType.OGC_API_FEATURES  || "http://www.opengis.net/def/exceptions/ogcapi-features-11/1.0/result-not-ready"
-        Status.ACCEPTED | EntityType.OGC_API_PROCESSES || "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready"
-        Status.RUNNING  | EntityType.OGC_API_PROCESSES || "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready"
+        Status.ACCEPTED | EntityType.OGC_API_PROCESSES || "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready"
+        Status.RUNNING  | EntityType.OGC_API_PROCESSES || "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-ready"
     }
 
     def "the results of a failed job are a bad request"() {
