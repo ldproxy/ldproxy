@@ -64,6 +64,14 @@ class OapJobResultsSelectorSpec extends Specification {
         OapJobResultsSelector.selectOutputs(RESULTS, selection("multi")) == [multi: [1, 2, 3]]
     }
 
+    def "outputs set by xtralink workflows are unwrapped"() {
+        given:
+        def outputs = [single: [value: "a", href: "", kind: ""], multi: [1, 2, 3], other: [value: "b"]]
+
+        expect:
+        OapJobResultsSelector.selectOutputs(outputs, Optional.empty()) == [single: "a", multi: [1, 2, 3], other: [value: "b"]]
+    }
+
     def "selecting an output that was not produced is not available"() {
         when:
         OapJobResultsSelector.selectOutputs([single: "a"], selection("multi"))
