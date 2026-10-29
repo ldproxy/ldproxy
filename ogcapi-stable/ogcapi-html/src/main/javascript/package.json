@@ -54,7 +54,7 @@
     "globals": "17.12.0",
     "storybook": "10.5.7",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.71.0",
+    "typescript-eslint": "8.72.1",
     "vite": "8.2.1"
   },
   "overrides": {
