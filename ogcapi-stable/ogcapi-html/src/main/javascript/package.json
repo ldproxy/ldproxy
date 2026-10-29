@@ -66,5 +66,5 @@
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
-  "packageManager": "npm@11.11.1"
+  "packageManager": "npm@11.21.1"
 }
