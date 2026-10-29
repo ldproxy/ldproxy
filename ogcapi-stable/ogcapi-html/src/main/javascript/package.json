@@ -20,7 +20,7 @@
     "@xtramaps/web-map-cesium-react": "^1.2.0",
     "@xtramaps/web-map-maplibre-react": "^1.2.0",
     "@xtramaps/web-map-openlayers-react": "^1.2.0",
-    "bootstrap": "^4.6.0",
+    "bootstrap": "^5.0.0",
     "d3-scale": "3.3.0",
     "date-fns": "2.30.0",
     "i18next": "^25.0.0",
