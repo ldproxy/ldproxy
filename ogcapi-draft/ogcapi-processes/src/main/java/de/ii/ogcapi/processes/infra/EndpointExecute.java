@@ -22,6 +22,7 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
@@ -48,7 +49,6 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,11 +168,8 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
       throw PathParameterProcessId.noSuchProcess(processId);
     }
 
-    String prefer = headers.getHeaderString("Prefer");
     boolean preferAsync =
-        prefer != null
-            && Arrays.stream(prefer.split(","))
-                .anyMatch(p -> ("respond-async".equals(p.trim()) || "wait".equals(p.trim())));
+        HeaderPrefer.containsToken(headers.getRequestHeader("Prefer"), "respond-async");
 
     ProcessesCoreConfiguration config =
         api.getData().getExtension(ProcessesCoreConfiguration.class).get();

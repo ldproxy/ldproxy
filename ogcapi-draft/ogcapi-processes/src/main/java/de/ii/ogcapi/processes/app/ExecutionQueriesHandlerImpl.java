@@ -258,23 +258,31 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
 
-    return prepareSuccessResponse(
-            requestContext,
-            queryInput.getIncludeLinkHeader() ? links : null,
-            HeaderCaching.of(lastModified, etag, queryInput),
-            null,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
-            i18n.getLanguages())
-        .status(Response.Status.CREATED)
-        .location(
-            URI.create(
-                requestContext
-                    .getApiUriCustomizer()
-                    .appendPathSegments("jobs", statusInfo.getId())
-                    .toString()))
-        .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
-        .build();
+    Response.ResponseBuilder asyncResponse =
+        prepareSuccessResponse(
+                requestContext,
+                queryInput.getIncludeLinkHeader() ? links : null,
+                HeaderCaching.of(lastModified, etag, queryInput),
+                null,
+                HeaderContentDisposition.of(
+                    String.format(
+                        "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
+                i18n.getLanguages())
+            .status(Response.Status.CREATED)
+            .location(
+                URI.create(
+                    requestContext
+                        .getApiUriCustomizer()
+                        .appendPathSegments("jobs", statusInfo.getId())
+                        .toString()))
+            .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext));
+
+    // the preference is only reported if the client sent it, otherwise the process is
+    // asynchronous only
+    if (queryInput.getPreferAsync()) {
+      asyncResponse.header("Preference-Applied", "respond-async");
+    }
+
+    return asyncResponse.build();
   }
 }
