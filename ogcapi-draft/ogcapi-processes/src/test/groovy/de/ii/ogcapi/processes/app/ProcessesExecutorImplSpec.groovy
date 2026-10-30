@@ -139,6 +139,22 @@ class ProcessesExecutorImplSpec extends Specification {
         [count: 1, bbox: [bbox: [0, 0, 1, 1]]]                     | [count: 1, bbox: [bbox: [0, 0, 1, 1]]]
     }
 
+    def "a synchronous execution whose job #status fails"() {
+        when:
+        executor.executeSync("api", testProcess, execute([count: 1]), 1000)
+
+        then:
+        1 * jobs.push(_) >> job(Status.ACCEPTED, [:])
+        1 * jobs.waitFor("job-1") >> CompletableFuture.completedFuture(job(status, [:], errors))
+        IllegalStateException e = thrown()
+        e.message == message
+
+        where:
+        status           | errors   | message
+        Status.FAILED    | ["boom"] | "The execution of process 'TestProcess' ended with job status FAILED: boom"
+        Status.DISMISSED | []       | "The execution of process 'TestProcess' ended with job status DISMISSED."
+    }
+
     def "a synchronous execution that exceeds the timeout is cancelled"() {
         when:
         executor.executeSync("api", testProcess, execute([count: 1]), 10)
@@ -159,8 +175,8 @@ class ProcessesExecutorImplSpec extends Specification {
         builder.build()
     }
 
-    private static Job job(Status status, Map<String, Object> outputs) {
-        new Job("job-1", "oap:TestProcess", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, [],
+    private static Job job(Status status, Map<String, Object> outputs, List<String> errors = []) {
+        new Job("job-1", "oap:TestProcess", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, errors,
                 [:], null, null, [:], outputs, Optional.empty(), Optional.empty(), [], Optional.empty(),
                 Optional.empty())
     }
