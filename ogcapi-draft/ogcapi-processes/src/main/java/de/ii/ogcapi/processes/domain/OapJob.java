@@ -40,10 +40,14 @@ public interface OapJob extends JobInputs {
     return jobKind.substring(KIND.length() + 1);
   }
 
+  // the inputs are the validated inputs of the execute request, with qualified values unwrapped
   static JobConfiguration of(
-      String apiId, ProcessData process, OgcExecute executeRequest, long ttlSeconds) {
-    ImmutableOapJob oapJob =
-        new ImmutableOapJob.Builder().inputs(executeRequest.getInputs()).build();
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      Map<String, Object> inputs,
+      long ttlSeconds) {
+    ImmutableOapJob oapJob = new ImmutableOapJob.Builder().inputs(inputs).build();
     JobConfiguration job =
         Jobs.create(
             kind(process.getId()),
