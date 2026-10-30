@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
+import de.ii.ogcapi.processes.app.parameter.PathParameterProcessId;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcess;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
@@ -35,6 +36,7 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
@@ -125,8 +127,12 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
       @PathParam("processId") String processId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-    checkPathParameter(
-        extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
+    try {
+      checkPathParameter(
+          extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
+    } catch (NotFoundException e) {
+      throw PathParameterProcessId.noSuchProcess(processId);
+    }
 
     ProcessesQueriesHandler.QueryInputProcess queryInput =
         new ImmutableQueryInputProcess.Builder()
