@@ -34,6 +34,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.transactions.domain.ActionResult;
+import de.ii.ogcapi.transactions.domain.ActionResult.Leniency;
 import de.ii.ogcapi.transactions.domain.ActionStatus;
 import de.ii.ogcapi.transactions.domain.CompositeId;
 import de.ii.ogcapi.transactions.domain.ExecutionResult;
@@ -86,7 +87,10 @@ import jakarta.ws.rs.core.MediaType;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -329,6 +333,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
 
     boolean commitSucceeded = false;
     Optional<String> transactionError = Optional.empty();
+    boolean transactionServerError = false;
     if (!anyFailed) {
       try {
         // Pre-commit hooks run on the still-open transaction; a raised error aborts the
@@ -351,6 +356,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         }
         rollbackQuietly(sessionsByProvider.values());
         transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
+        transactionServerError = isServerError(e);
         results = flipSuccessesToRolledBack(results);
       }
     } else {
@@ -367,7 +373,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.ATOMIC)
         .actionResults(results)
         .warnings(warnings)
+        .addAllWarnings(lenientWarnings(results))
         .transactionError(transactionError)
+        .isTransactionServerError(transactionServerError)
         .build();
   }
 
@@ -456,6 +464,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .semantic(TxSemantic.BATCH)
         .actionResults(results)
         .warnings(warnings)
+        .addAllWarnings(lenientWarnings(results))
         .build();
   }
 
@@ -587,6 +596,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     List<InsertItem> batchItems = new ArrayList<>(INSERT_BATCH_SIZE);
     ExtentAccumulator extents = new ExtentAccumulator();
     boolean preflight = strategy.requiresInsertPreflight();
+    boolean ignoreExisting =
+        preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
+    List<String> ignoredIds = new ArrayList<>();
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       InsertItem item = items.next();
@@ -633,6 +645,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
+          // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
+          // object the recipient already has); the item is skipped and reported in the summary
+          // warnings of the transaction.
+          if (ignoreExisting) {
+            ignoredIds.add(canonicalIdForItem.get());
+            continue;
+          }
           return failed(
               canonicalCollectionId,
               action,
@@ -770,6 +789,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .actionId(action.getActionId())
         .status(ActionStatus.SUCCESS)
         .featureIds(ids)
+        .lenientFeatureIds(
+            ignoredIds.isEmpty()
+                ? Map.of()
+                : Map.of(Leniency.EXISTING_FEATURE_INSERT_IGNORED, ignoredIds))
         .failedFeatureIds(skippedIds)
         .failedFeaturePayloads(skippedPayloads)
         .failedFeatureErrors(skippedErrors)
@@ -941,10 +964,34 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                         : geoJsonUseAlias(apiData, canonicalCollectionId))
                 .orElse(mutationTimestamp);
         Optional<String> predecessorStart = session.getOpenVersionStart(featureType, id);
+        // A Replace with the begin of the open version delivers that version again (e.g. an NBA
+        // provider that repeats unchanged versions as context of a change); with the option, it
+        // leaves the feature unchanged instead of failing to retire the version at its own begin.
+        if (strategy.ignoresRepeatedVersion(apiData, canonicalCollectionId)
+            && predecessorStart
+                .flatMap(TransactionExecutorImpl::parseTimestamp)
+                .filter(retireTimestamp::equals)
+                .isPresent()) {
+          return new ImmutableActionResult.Builder()
+              .type(TxActionType.REPLACE)
+              .featureType(featureType)
+              .collectionId(canonicalCollectionId)
+              .actionId(action.getActionId())
+              .status(ActionStatus.SUCCESS)
+              .lenientFeatureIds(Map.of(Leniency.REPEATED_VERSION_IGNORED, List.of(id)))
+              .build();
+        }
         MutationResult retire =
             session.retireFeature(featureType, id, retireTimestamp, composite.expectedStart());
         rejectIfError(retire);
-        if (retire.getIds().isEmpty()) {
+        // With the option, a Replace of a feature without any version inserts it (e.g. an NBA
+        // delivery that replaces an object the recipient never received); a feature whose
+        // versions are all retired is still rejected below.
+        boolean insertUnknown =
+            retire.getIds().isEmpty()
+                && strategy.insertsUnknownFeatureOnReplace(apiData, canonicalCollectionId)
+                && session.assertNoConflictingVersion(featureType, id).getError().isEmpty();
+        if (retire.getIds().isEmpty() && !insertUnknown) {
           if (composite.expectedStart().isPresent()) {
             throw new IllegalArgumentException(
                 "Precondition failed: feature id '"
@@ -978,6 +1025,20 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 ? session.createFeatures(featureType, List.of(source), requestCrs)
                 : session.createFeatures(featureType, List.of(source), requestCrs, roleOverrides);
         rejectIfError(mr);
+        if (insertUnknown) {
+          // reported as what happened: an Insert of a new feature
+          return new ImmutableActionResult.Builder()
+              .type(TxActionType.INSERT)
+              .featureType(featureType)
+              .collectionId(canonicalCollectionId)
+              .actionId(action.getActionId())
+              .status(ActionStatus.SUCCESS)
+              .featureIds(mr.getIds().isEmpty() ? List.of(id) : mr.getIds())
+              .newBoundingBox(mr.getSpatialExtent())
+              .newInterval(toIntervalMillis(mr.getTemporalExtent()))
+              .lenientFeatureIds(Map.of(Leniency.UNKNOWN_FEATURE_REPLACE_INSERTED, List.of(id)))
+              .build();
+        }
       } else {
         mr = session.updateFeature(featureType, id, source, requestCrs, false);
         rejectIfError(mr);
@@ -1989,6 +2050,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .actionId(action.getActionId())
         .status(ActionStatus.FAILED)
         .error(errorMessage(error))
+        .isServerError(isServerError(error))
         .failedFeatureIds(failedFeatureIds)
         .failedFeaturePayloads(failedFeaturePayloads)
         .build();
@@ -2039,6 +2101,33 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // index, or a trigger raising one) is caused by the data the client sent, just like a malformed
   // payload — it is reported in the response, so the stack trace adds nothing. The same holds for a
   // configured transaction hook that rejects the data it was given.
+  /**
+   * Whether the failure was not caused by the request: the data source reported that it cannot be
+   * reached or is out of resources (SQLSTATE classes 08 and 53), was shut down (57), failed
+   * internally (58, XX), or aborted the transaction because of a conflict with another one (40), or
+   * reported no SQLSTATE at all (e.g. a timeout of the connection pool). The first SQLSTATE in the
+   * chain decides; other failures, including a database rejecting the data, are caused by the
+   * request.
+   */
+  static boolean isServerError(Throwable error) {
+    Set<Throwable> seen = new HashSet<>();
+    for (Throwable t = error; t != null && seen.add(t); t = t.getCause()) {
+      if (t instanceof SQLException sqlException) {
+        // iterating a SQLException walks its causes and next exceptions, e.g. of a batch
+        for (Throwable s : sqlException) {
+          if (s instanceof SQLException e && e.getSQLState() != null) {
+            return SERVER_ERROR_SQL_STATE_CLASSES.contains(e.getSQLState().substring(0, 2));
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static final Set<String> SERVER_ERROR_SQL_STATE_CLASSES =
+      Set.of("08", "40", "53", "57", "58", "XX");
+
   private static boolean isUserError(Throwable error) {
     for (Throwable t = error; t != null; t = t.getCause()) {
       if (t instanceof IllegalArgumentException
@@ -2055,6 +2144,33 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   }
 
   /**
+   * One warning per collection and kind of lenient handling, with the number of features and a few
+   * of their ids; from the successful actions only, like the counts of the response.
+   */
+  static List<String> lenientWarnings(List<ActionResult> results) {
+    Map<String, Map<Leniency, List<String>>> byCollection = new LinkedHashMap<>();
+    for (ActionResult r : results) {
+      if (r.getStatus() != ActionStatus.SUCCESS) {
+        continue;
+      }
+      r.getLenientFeatureIds()
+          .forEach(
+              (leniency, ids) ->
+                  byCollection
+                      .computeIfAbsent(
+                          r.getCollectionId(), c -> new java.util.EnumMap<>(Leniency.class))
+                      .computeIfAbsent(leniency, l -> new ArrayList<>())
+                      .addAll(ids));
+    }
+    List<String> warnings = new ArrayList<>();
+    byCollection.forEach(
+        (collectionId, byLeniency) ->
+            byLeniency.forEach(
+                (leniency, ids) -> warnings.add(leniency.warning(collectionId, ids))));
+    return warnings;
+  }
+
+  /**
    * Attaches the non-fatal SQL warnings the session collected while this action ran (e.g.
    * PostgreSQL {@code RAISE WARNING} / {@code RAISE NOTICE} from triggers). Draining per action
    * attributes each warning to the action that caused it.
@@ -2064,7 +2180,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     if (actionWarnings.isEmpty()) {
       return result;
     }
-    return new ImmutableActionResult.Builder().from(result).warnings(actionWarnings).build();
+    // appended: the action may carry warnings of its own
+    return new ImmutableActionResult.Builder().from(result).addAllWarnings(actionWarnings).build();
   }
 
   /**
@@ -2117,6 +2234,27 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         } catch (java.io.IOException ignored) {
           // best-effort: parser will surface real errors on the next pull
         }
+      }
+    }
+  }
+
+  /**
+   * A timestamp as the database returns it as text, e.g. {@code 2007-08-13 00:00:00+00} or ISO
+   * 8601; empty if it cannot be read.
+   */
+  static Optional<Instant> parseTimestamp(String value) {
+    String text = value.trim().replace(' ', 'T');
+    // PostgreSQL abbreviates a whole-hour offset ("+00"), which ISO 8601 parsing does not accept
+    if (text.matches(".*[+-]\\d{2}$")) {
+      text += ":00";
+    }
+    try {
+      return Optional.of(OffsetDateTime.parse(text).toInstant());
+    } catch (DateTimeParseException e) {
+      try {
+        return Optional.of(Instant.parse(text));
+      } catch (DateTimeParseException e2) {
+        return Optional.empty();
       }
     }
   }

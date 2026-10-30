@@ -74,6 +74,50 @@ class VersionedMutationStrategySpec extends Specification {
         subject.retiresOnReplace()
     }
 
+    def 'a Replace with the begin of the open version is ignored only with ignoreRepeatedVersions: #value'() {
+        given:
+        def builder = new ImmutableVersionedFeaturesConfiguration.Builder()
+                .enabled(true)
+                .timeAxis(VersionedFeaturesConfiguration.TimeAxis.TRANSACTION_TIME)
+        if (value != null) {
+            builder.ignoreRepeatedVersions(value)
+        }
+        OgcApiDataV2 apiData = api([collection('a', [builder.build()])])
+
+        expect:
+        subject.ignoresRepeatedVersion(apiData, 'a') == expected
+
+        where:
+        value || expected
+        null  || false
+        false || false
+        true  || true
+    }
+
+    def 'the NBA recipient options apply only when set: #option = #value'() {
+        given:
+        def builder = new ImmutableVersionedFeaturesConfiguration.Builder()
+                .enabled(true)
+                .timeAxis(VersionedFeaturesConfiguration.TimeAxis.TRANSACTION_TIME)
+        if (value != null) {
+            builder."${option}"(value)
+        }
+        OgcApiDataV2 apiData = api([collection('a', [builder.build()])])
+
+        expect:
+        subject.ignoresExistingFeatureOnInsert(apiData, 'a') == (option == 'ignoreExistingFeaturesOnInsert' && expected)
+        subject.insertsUnknownFeatureOnReplace(apiData, 'a') == (option == 'insertUnknownFeaturesOnReplace' && expected)
+
+        where:
+        option                           | value || expected
+        'ignoreExistingFeaturesOnInsert' | null  || false
+        'ignoreExistingFeaturesOnInsert' | false || false
+        'ignoreExistingFeaturesOnInsert' | true  || true
+        'insertUnknownFeaturesOnReplace' | null  || false
+        'insertUnknownFeaturesOnReplace' | false || false
+        'insertUnknownFeaturesOnReplace' | true  || true
+    }
+
     def 'retires on Delete (so the executor takes the retire-only path)'() {
         expect:
         subject.retiresOnDelete()

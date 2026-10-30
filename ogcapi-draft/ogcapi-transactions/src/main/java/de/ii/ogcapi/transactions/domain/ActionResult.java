@@ -10,6 +10,7 @@ package de.ii.ogcapi.transactions.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 import org.threeten.extra.Interval;
@@ -46,6 +47,15 @@ public interface ActionResult {
    * additional structured metadata via a follow-up extension.
    */
   Optional<String> getError();
+
+  /**
+   * Whether a FAILED outcome was not caused by the request, but by the server or the data source,
+   * e.g. a lost database connection or a full disk. The same request may succeed later.
+   */
+  @Value.Default
+  default boolean isServerError() {
+    return false;
+  }
 
   /**
    * Non-fatal warnings the data source emitted while executing this action (e.g. PostgreSQL {@code
@@ -110,4 +120,43 @@ public interface ActionResult {
    */
   @JsonIgnore
   Optional<Interval> getNewInterval();
+
+  /**
+   * The ids of the features that this action handled leniently instead of rejecting them, by the
+   * kind of handling (see the options of versioned collections). Executor-internal: summarized per
+   * collection into the transaction warnings; not part of the JSON response.
+   */
+  @JsonIgnore
+  @Value.Default
+  default Map<Leniency, List<String>> getLenientFeatureIds() {
+    return Map.of();
+  }
+
+  /** How a feature was handled instead of rejecting the action. */
+  enum Leniency {
+    /** A {@code Replace} delivered the open version again; the feature is unchanged. */
+    REPEATED_VERSION_IGNORED("Replaces deliver the open version again, the features are unchanged"),
+    /** An {@code Insert} of a feature that already has a version was skipped. */
+    EXISTING_FEATURE_INSERT_IGNORED("Inserts of features that already have a version are ignored"),
+    /** A {@code Replace} of a feature without any version inserted the feature. */
+    UNKNOWN_FEATURE_REPLACE_INSERTED(
+        "Replaces of features without a version are executed as Inserts");
+
+    private final String summary;
+
+    Leniency(String summary) {
+      this.summary = summary;
+    }
+
+    /** The warning for the features of a collection, e.g. {@code c: 2 Inserts …; e.g. a, b}. */
+    public String warning(String collectionId, List<String> ids) {
+      return collectionId
+          + ": "
+          + ids.size()
+          + " "
+          + summary
+          + "; e.g. "
+          + String.join(", ", ids.subList(0, Math.min(3, ids.size())));
+    }
+  }
 }

@@ -154,6 +154,56 @@ class CommandHandlerTransactionsSpec extends Specification {
         ((Map) json.get('summary')).get('totalRolledBack') == 1
     }
 
+    def 'a failure not caused by the request is a server error, a rejection of the data stays 422'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        FixedResultExecutor executor = new FixedResultExecutor(result: new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([
+                        actionResult('a1', ActionStatus.FAILED, 'invalid value'),
+                        new ImmutableActionResult.Builder()
+                                .from(actionResult('a2', ActionStatus.FAILED, 'connection lost'))
+                                .isServerError(true)
+                                .build(),
+                ])
+                .build())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 500
+        List exceptions = (List) json.get('exceptions')
+        ((Map) exceptions[0]).get('status') == 422
+        ((Map) exceptions[1]).get('status') == 500
+    }
+
+    def 'a failed commit not caused by the request is a server error'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        FixedResultExecutor executor = new FixedResultExecutor(result: new ImmutableExecutionResult.Builder()
+                .semantic(TxSemantic.ATOMIC)
+                .actionResults([actionResult('a1', ActionStatus.ROLLED_BACK, null)])
+                .transactionError('atomic commit failed: connection lost')
+                .isTransactionServerError(true)
+                .build())
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        def response = handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+        def json = (Map) new JsonSlurper().parseText((String) response.entity)
+
+        then:
+        response.status == 500
+        ((Map) ((List) json.get('exceptions'))[0]).get('status') == 500
+    }
+
     def 'per-action warnings are rendered with the action label, after the hook warnings'() {
         given:
         RecordingParser parser = new RecordingParser(actions: [])
