@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
 import de.ii.ogcapi.processes.domain.model.Property.Type;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +42,15 @@ public interface OgcSchema {
         into.putString(from.getType().name(), StandardCharsets.UTF_8);
         from.getFormat().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getContentMediaType().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
-        from.getMaximum().ifPresent(v -> into.putDouble(v));
-        from.getExclusiveMaximum().ifPresent(v -> into.putDouble(v));
-        from.getMinimum().ifPresent(v -> into.putDouble(v));
-        from.getExclusiveMinimum().ifPresent(v -> into.putDouble(v));
+        from.getMaximum().ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
+        from.getExclusiveMaximum()
+            .ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
+        from.getMinimum().ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
+        from.getExclusiveMinimum()
+            .ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
         from.getPattern().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getMaxItems().ifPresent(v -> into.putInt(v));
-        into.putInt(from.getMinItems());
+        from.getMinItems().ifPresent(v -> into.putInt(v));
         from.getEnum().stream()
             .sorted()
             .forEachOrdered(v -> into.putString(v, StandardCharsets.UTF_8));
@@ -77,22 +80,19 @@ public interface OgcSchema {
 
   Optional<String> getContentMediaType();
 
-  Optional<Double> getMaximum();
+  Optional<BigDecimal> getMaximum();
 
-  Optional<Double> getExclusiveMaximum();
+  Optional<BigDecimal> getExclusiveMaximum();
 
-  Optional<Double> getMinimum();
+  Optional<BigDecimal> getMinimum();
 
-  Optional<Double> getExclusiveMinimum();
+  Optional<BigDecimal> getExclusiveMinimum();
 
   Optional<String> getPattern();
 
   Optional<Integer> getMaxItems();
 
-  @Value.Default
-  default int getMinItems() {
-    return 0;
-  }
+  Optional<Integer> getMinItems();
 
   Optional<Items> getItems();
 
