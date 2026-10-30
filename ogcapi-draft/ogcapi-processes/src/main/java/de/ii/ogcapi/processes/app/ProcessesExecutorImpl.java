@@ -18,7 +18,6 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcBbox;
-import de.ii.ogcapi.processes.domain.model.OgcBbox.CRS;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcFormat;
 import de.ii.ogcapi.processes.domain.model.OgcInputDescription;
@@ -29,9 +28,6 @@ import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.Jackson;
-import de.ii.xtraplatform.crs.domain.BoundingBox;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
-import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple.Phase;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
@@ -45,7 +41,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -99,7 +94,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, 3600);
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, inputs, 3600);
 
     // Push it and wait for its results
     Job job = jobs.push(oapJob);
@@ -148,7 +143,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, ttlSeconds);
+    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, inputs, ttlSeconds);
 
     // Put job with callbacks in queue
     Job job = jobs.push(oapJob, asyncCallbacks);
@@ -339,7 +334,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   }
 
   // Limitation: Not all standard JSON Schema formats and custom formats from OGC-Processes are
-  // supported
+  // supported. The processor receives the value as JSON, the format is only checked here.
   private Object parseInputValue(
       String processId, String inputId, OgcSchema schema, Object providedValue) {
     Object value = validValue(processId, inputId, schema, providedValue);
@@ -362,38 +357,13 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                   .formatted(inputId, e));
         }
 
-        EpsgCrs epsgCrs = Objects.equals(bbox.getCrs(), CRS.CRS84h) ? OgcCrs.CRS84h : OgcCrs.CRS84;
-
-        List<Double> coordinates = bbox.getBbox();
-        int coordinatesCount = coordinates.size();
-
-        BoundingBox boundingBox;
-        if (coordinatesCount == 4) {
-          boundingBox =
-              BoundingBox.of(
-                  coordinates.get(0),
-                  coordinates.get(1),
-                  coordinates.get(2),
-                  coordinates.get(3),
-                  epsgCrs);
-        } else {
-          if (coordinatesCount == 6) {
-            boundingBox =
-                BoundingBox.of(
-                    coordinates.get(0),
-                    coordinates.get(1),
-                    coordinates.get(2),
-                    coordinates.get(3),
-                    coordinates.get(4),
-                    coordinates.get(5),
-                    epsgCrs);
-          } else {
-            throw new IllegalArgumentException(
-                "Invalid execute request: Content of input '%s' cannot be converted to a bbox: Bbox must contain either 4 (2D) or 6 (3D) coordinates"
-                    .formatted(inputId));
-          }
+        int coordinatesCount = bbox.getBbox().size();
+        if (coordinatesCount != 4 && coordinatesCount != 6) {
+          throw new IllegalArgumentException(
+              "Invalid execute request: Content of input '%s' cannot be converted to a bbox: Bbox must contain either 4 (2D) or 6 (3D) coordinates"
+                  .formatted(inputId));
         }
-        return boundingBox;
+        return value;
       case "date-time":
         Instant time;
         try {
@@ -408,7 +378,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
               "Invalid execute request: Content of input '%s' cannot be converted to an internal time representation."
                   .formatted(inputId));
         }
-        return time;
+        return value;
       default:
         return value;
     }

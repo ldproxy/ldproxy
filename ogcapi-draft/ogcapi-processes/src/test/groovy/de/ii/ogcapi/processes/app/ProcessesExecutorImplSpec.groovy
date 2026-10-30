@@ -124,6 +124,21 @@ class ProcessesExecutorImplSpec extends Specification {
         results == [result: 42]
     }
 
+    def "the job receives the validated inputs: #inputs"() {
+        when:
+        executor.executeAsync("api", testProcess, execute(inputs), 0, 3600)
+
+        then:
+        1 * jobs.push({ JobConfiguration job -> Jobs.DEFAULT_MAPPER.convertValue(job.inputs(), Map) == jobInputs }, _) >> job(Status.ACCEPTED, [:])
+
+        where:
+        inputs                                                     | jobInputs
+        [count: 1]                                                 | [count: 1]
+        [count: [value: 1]]                                        | [count: 1]
+        [count: 1, labels: [[value: "a"], "b"]]                    | [count: 1, labels: ["a", "b"]]
+        [count: 1, bbox: [bbox: [0, 0, 1, 1]]]                     | [count: 1, bbox: [bbox: [0, 0, 1, 1]]]
+    }
+
     def "a synchronous execution that exceeds the timeout is cancelled"() {
         when:
         executor.executeSync("api", testProcess, execute([count: 1]), 10)
