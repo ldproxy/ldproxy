@@ -15,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.PageRepresentation;
 import de.ii.xtralink.jobs.Job;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.stream.LongStream;
 import org.immutables.value.Value;
 
 @ApiInfo(schemaId = "JobStatus")
@@ -77,10 +78,12 @@ public abstract class OgcApiJobStatusInfo extends PageRepresentation implements 
       builder.started(Instant.ofEpochMilli(startedAt));
     }
 
-    long updatedAt = job.updatedAt();
-    if (updatedAt != -1) {
-      builder.updated(Instant.ofEpochMilli(updatedAt));
-    }
+    // the queue does not update the timestamp on every change, e.g. not when the job is started
+    long updatedAt =
+        LongStream.of(job.createdAt(), job.startedAt(), job.updatedAt(), job.finishedAt())
+            .max()
+            .getAsLong();
+    builder.updated(Instant.ofEpochMilli(updatedAt));
 
     long finishedAt = job.finishedAt();
     if (finishedAt != -1) {

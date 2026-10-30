@@ -9,6 +9,7 @@ package de.ii.ogcapi.async.app
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import dagger.Lazy
+import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber
 import de.ii.ogcapi.common.domain.async.JobContextAsync
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.common.domain.async.JobResultsSelector
@@ -20,6 +21,7 @@ import de.ii.xtralink.jobs.JobProgress
 import de.ii.xtraplatform.base.domain.Jackson
 import de.ii.xtraplatform.blobs.domain.ResourceStore
 import de.ii.xtraplatform.web.domain.Http
+import de.ii.xtraplatform.web.domain.HttpClient
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity
 import de.ii.xtraplatform.xtralink.domain.Jobs
 import jakarta.ws.rs.BadRequestException
@@ -258,6 +260,35 @@ class AsyncJobsImplSpec extends Specification {
         thrown(NotFoundException)
         0 * jobs.cancel(_)
         0 * jobs.delete(_)
+    }
+
+    def "a running job sends the in-progress callback only while it has no errors: #errors"() {
+        given:
+        HttpClient httpClient = Mock()
+        Http http = Stub() {
+            getDefaultClient() >> httpClient
+        }
+        Jackson jackson = Stub() {
+            getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
+        }
+        def callbacks = new AsyncJobsImpl(jobs, jackson, http, { -> [] as Set } as Lazy, Stub(ResourceStore))
+        def subscriber = new ImmutableAsyncSubscriber.Builder()
+                .inProgressUri("http://localhost/progress")
+                .failedUri("http://localhost/failed")
+                .build()
+        def context = toMap(new JobContextAsync("api", EntityType.OGC_API_PROCESSES, Optional.empty(), Optional.of(subscriber)))
+
+        when:
+        callbacks.onProgress(job(Status.RUNNING, context, [:], errors))
+
+        then:
+        posts * httpClient.postAsInputStream("http://localhost/progress", *_) >> new ByteArrayInputStream(new byte[0])
+        0 * httpClient.postAsInputStream("http://localhost/failed", *_)
+
+        where:
+        errors   || posts
+        []       || 1
+        ["boom"] || 0
     }
 
     // --- fixtures ------------------------------------------------------------------------------
