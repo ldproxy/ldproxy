@@ -30,6 +30,7 @@ import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.foundation.domain.ApiMetadata;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -66,6 +67,7 @@ import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
 import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.Implementation;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
@@ -320,13 +322,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     }
 
     return io.modelcontextprotocol.server.McpServer.sync(transport)
-        .serverInfo(appContext.getName(), appContext.getVersion())
-        // the background shared by all tools, the tool descriptions start with what the tool is for
-        .instructions(
-            api.getData()
-                .getDescription()
-                .map(description -> api.getData().getLabel() + ": " + description)
-                .orElse(api.getData().getLabel()))
+        .serverInfo(serverInfo(api.getData(), api.getUri()))
+        .instructions(instructions(api.getData()))
         .capabilities(ServerCapabilities.builder().tools(true).build())
         .jsonMapper(jsonMapper)
         .jsonSchemaValidator(jsonSchemaValidator)
@@ -335,6 +332,36 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         .strictToolNameValidation(false)
         .tools(toolSpecifications)
         .build();
+  }
+
+  // the server is the API, not the software: a client sees which API it is connected to and which
+  // version of it, the version is the one in the OpenAPI definition, with the same default
+  static Implementation serverInfo(OgcApiDataV2 apiData, URI landingPage) {
+    return new Implementation(
+        apiData.getId(),
+        apiData.getLabel(),
+        apiVersion(apiData).orElse("1.0.0"),
+        null,
+        null,
+        landingPage.toString());
+  }
+
+  // the background shared by all tools, the tool descriptions start with what the tool is for; the
+  // server information does not reach the model, so a configured version is also stated here
+  static String instructions(OgcApiDataV2 apiData) {
+    String instructions =
+        apiData
+            .getDescription()
+            .map(description -> apiData.getLabel() + ": " + description)
+            .orElse(apiData.getLabel());
+
+    return apiVersion(apiData)
+        .map(version -> instructions + "\n\nVersion of the API: " + version)
+        .orElse(instructions);
+  }
+
+  private static Optional<String> apiVersion(OgcApiDataV2 apiData) {
+    return apiData.getMetadata().flatMap(ApiMetadata::getVersion);
   }
 
   @SuppressWarnings("unchecked")

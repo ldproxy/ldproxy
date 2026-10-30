@@ -160,8 +160,9 @@ public interface ApiMetadata {
   List<String> getKeywords();
 
   /**
-   * @langEn Version for this API in the OpenAPI definition.
-   * @langDe Version der API in der OpenAPI-Definition.
+   * @langEn Version for this API in the OpenAPI definition and in the information of the MCP
+   *     server.
+   * @langDe Version der API in der OpenAPI-Definition und in den Angaben des MCP-Servers.
    * @default `1.0.0`
    */
   Optional<String> getVersion();

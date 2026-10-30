@@ -408,7 +408,7 @@
         },
         "version": {
           "title": "version",
-          "description": "Version for this API in the OpenAPI definition.",
+          "description": "Version for this API in the OpenAPI definition and in the information of the MCP server.",
           "type": [
             "string",
             "number",
