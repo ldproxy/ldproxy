@@ -25,6 +25,7 @@ import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchema;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
+import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.base.domain.Jackson;
@@ -101,6 +102,16 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     LOGGER.debug("Created job for process '{}', job: {}", process.getId(), job);
     queueExecutionIfNoSetup(process, job);
     Job finalJob = waitFor(job, timeoutMillis);
+
+    // a job that did not succeed has no outputs, which is not an execution without outputs
+    if (finalJob.status() != Status.SUCCESSFUL) {
+      throw new IllegalStateException(
+          "The execution of process '%s' ended with job status %s%s"
+              .formatted(
+                  process.getId(),
+                  finalJob.status(),
+                  finalJob.errors().isEmpty() ? "." : ": " + String.join(" ", finalJob.errors())));
+    }
 
     // Return only selected results
     return OapJobResultsSelector.selectOutputs(finalJob.outputs(), outputSelections);
