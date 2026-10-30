@@ -327,8 +327,12 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
               .get()
               .getFailedUri()
               .ifPresent(uri -> postStatusInfo(job, uri, callbackRetries, false));
-      case RUNNING ->
+      // a running job with errors is about to fail, the failed callback follows
+      case RUNNING -> {
+        if (job.errors().isEmpty()) {
           subscriber.get().getInProgressUri().ifPresent(uri -> postStatusInfo(job, uri, 0, true));
+        }
+      }
     }
   }
 

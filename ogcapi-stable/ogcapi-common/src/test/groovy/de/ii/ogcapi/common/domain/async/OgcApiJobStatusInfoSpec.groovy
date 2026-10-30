@@ -12,6 +12,7 @@ import de.ii.xtralink.jobs.Identifiers.Status
 import de.ii.xtralink.jobs.Job
 import de.ii.xtralink.jobs.JobProgress
 import de.ii.xtraplatform.xtralink.domain.Jobs
+import java.time.Instant
 import spock.lang.Specification
 
 class OgcApiJobStatusInfoSpec extends Specification {
@@ -30,10 +31,26 @@ class OgcApiJobStatusInfoSpec extends Specification {
         ["First error.", "Second error."]        || Optional.of("First error. Second error.")
     }
 
-    private static Job job(Status status, List<String> errors) {
+    def "the update time is the latest time of the job: #started, #updated, #finished"() {
+        when:
+        OgcApiJobStatus statusInfo = OgcApiJobStatusInfo.of(job(Status.RUNNING, [], 1000L, started, updated, finished))
+
+        then:
+        statusInfo.updated == Optional.of(Instant.ofEpochMilli(latest))
+
+        where:
+        started | updated | finished || latest
+        -1L     | -1L     | -1L      || 1000L
+        -1L     | 1000L   | -1L      || 1000L
+        2000L   | 1000L   | -1L      || 2000L
+        2000L   | 3000L   | -1L      || 3000L
+        2000L   | 3000L   | 4000L    || 4000L
+    }
+
+    private static Job job(Status status, List<String> errors, long created = 0L, long started = -1L, long updated = -1L, long finished = -1L) {
         Map<String, Object> context = Jobs.DEFAULT_MAPPER.convertValue(
                 new JobContextAsync("api", EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()), Jobs.MAP_TYPE)
-        new Job("job-1", "feature-transaction", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, errors,
+        new Job("job-1", "feature-transaction", created, started, updated, finished, 1000, new JobProgress(0, 1, 0, null), status, errors,
                 context, null, null, [:], [:], Optional.empty(), Optional.empty(), [], Optional.empty(),
                 Optional.empty())
     }
