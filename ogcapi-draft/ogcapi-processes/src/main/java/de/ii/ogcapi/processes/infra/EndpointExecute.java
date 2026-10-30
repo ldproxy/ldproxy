@@ -30,6 +30,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
+import de.ii.ogcapi.processes.app.parameter.PathParameterProcessId;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
@@ -38,6 +39,7 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -155,12 +157,16 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
       @Context ApiRequestContext requestContext,
       @Context HttpHeaders headers,
       InputStream requestBody) {
-    checkPathParameter(
-        extensionRegistry,
-        api.getData(),
-        "/processes/{processId}/execution",
-        "processId",
-        processId);
+    try {
+      checkPathParameter(
+          extensionRegistry,
+          api.getData(),
+          "/processes/{processId}/execution",
+          "processId",
+          processId);
+    } catch (NotFoundException e) {
+      throw PathParameterProcessId.noSuchProcess(processId);
+    }
 
     String prefer = headers.getHeaderString("Prefer");
     boolean preferAsync =
