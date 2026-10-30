@@ -53,7 +53,7 @@ public interface OapJob extends JobInputs {
             kind(process.getId()),
             1000,
             LABEL,
-            String.format(" (Process: %s)", process.getTitle()),
+            String.format(" (Process: %s)", process.getTitle().orElse(process.getId())),
             oapJob,
             new OapJobContext(apiId, executeRequest, process.getId()),
             null,
