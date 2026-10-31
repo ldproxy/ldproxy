@@ -9,11 +9,14 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Preconditions;
 import java.text.DateFormat;
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Optional;
@@ -21,6 +24,11 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.threeten.extra.Interval;
 
+/**
+ * Start and end accept the same formats as the extent in the feature provider: a date
+ * (`yyyy-MM-dd`, UTC, the end is inclusive) or a date-time with offset. Epoch milliseconds are
+ * still accepted, since configurations written for earlier versions use them.
+ */
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableTemporalExtent.Builder.class)
 public interface TemporalExtent {
@@ -34,14 +42,9 @@ public interface TemporalExtent {
   }
 
   static TemporalExtent of(Interval interval) {
-    ImmutableTemporalExtent.Builder builder = new ImmutableTemporalExtent.Builder();
-    if (!interval.isUnboundedStart()) {
-      builder.start(DateTimeFormatter.ISO_INSTANT.format(interval.getStart()));
-    }
-    if (!interval.isUnboundedEnd()) {
-      builder.end(DateTimeFormatter.ISO_INSTANT.format(interval.getEnd()));
-    }
-    return builder.build();
+    return of(
+        interval.isUnboundedStart() ? null : interval.getStart(),
+        interval.isUnboundedEnd() ? null : interval.getEnd());
   }
 
   @Nullable
@@ -54,41 +57,31 @@ public interface TemporalExtent {
   @JsonIgnore
   @Nullable
   default Instant getStartInstant() {
-    return getStart() == null
-        ? null
-        : Instant.from(DateTimeFormatter.ISO_INSTANT.parse(getStart()));
+    return getStart() == null ? null : parse(getStart(), LocalTime.MIN);
   }
 
   @Value.Derived
   @JsonIgnore
   @Nullable
   default Instant getEndInstant() {
-    return getEnd() == null ? null : Instant.from(DateTimeFormatter.ISO_INSTANT.parse(getEnd()));
+    return getEnd() == null ? null : parse(getEnd(), LocalTime.of(23, 59, 59));
   }
 
-  @Value.Check
-  default void validateIsoInstant() {
-    if (getStart() != null) {
-      validateIsoInstant(getStart(), "start");
-    }
-    if (getEnd() != null) {
-      validateIsoInstant(getEnd(), "end");
-    }
-  }
-
-  private static void validateIsoInstant(String value, String field) {
-    Preconditions.checkState(
-        !value.matches("^-?\\d+$"),
-        "TemporalExtent: '%s' must be a UTC ISO-8601 instant string, not a numeric timestamp.",
-        field);
+  private static Instant parse(String value, LocalTime timeOfDayForDates) {
     try {
-      DateTimeFormatter.ISO_INSTANT.parse(value);
-    } catch (DateTimeParseException e) {
-      Preconditions.checkState(
-          false,
-          "TemporalExtent: '%s' is not a valid UTC ISO-8601 instant (yyyy-MM-ddTHH:mm:ss.SSSZ): %s",
-          field,
-          value);
+      if (value.matches("-?\\d+")) {
+        return Instant.ofEpochMilli(Long.parseLong(value));
+      }
+      if (!value.contains("T")) {
+        return LocalDate.parse(value).atTime(timeOfDayForDates).toInstant(ZoneOffset.UTC);
+      }
+      return OffsetDateTime.parse(value).toInstant();
+    } catch (DateTimeException | NumberFormatException e) {
+      throw new IllegalStateException(
+          String.format(
+              "TemporalExtent: '%s' is neither a date (yyyy-MM-dd) nor a date-time with offset.",
+              value),
+          e);
     }
   }
 
