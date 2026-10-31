@@ -125,6 +125,8 @@ class HeaderPreferSpec extends Specification {
         ["  respond-async  "]                              | "respond-async"
         ["return=minimal, respond-async, wait=10"]         | "respond-async"
         ["return=minimal", "respond-async"]                | "respond-async"
+        ["respond-async;x=1"]                              | "respond-async"
+        ["return=minimal, respond-async ; x=1, wait=10"]   | "respond-async"
     }
 
     def "containsToken rejects substring or parameterised matches"() {
@@ -132,6 +134,7 @@ class HeaderPreferSpec extends Specification {
         expect:
         !HeaderPrefer.containsToken(["respond-async-xyz"], "respond-async")
         !HeaderPrefer.containsToken(["return=respond-async"], "respond-async")
+        !HeaderPrefer.containsToken(["respond-async-xyz;x=1"], "respond-async")
     }
 
     def "parseReturn returns the fallback when the header list is null or empty"() {
