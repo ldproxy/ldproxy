@@ -595,7 +595,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       MutationStrategy strategy,
       Instant mutationTimestamp,
       Optional<JobHook> jobHook) {
-    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
+    Axes axes = axes(requestCrs);
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
@@ -627,12 +627,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     boolean ignoreExisting =
         preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
     List<String> ignoredIds = new ArrayList<>();
+    // the canonical ids of the items in the batch that is not written yet, see the pre-flight
+    Set<String> batchedIds = new HashSet<>();
     int itemCount = 0;
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
       // cooperative cancellation every INSERT_BATCH_SIZE items, counted independently of the
-      // batch flushes, since a pre-flight check or an id override flushes the batch per item; the
-      // exception is turned into a CANCELLED result in runAction
+      // batch flushes, since an id override flushes the batch per item; the exception is turned
+      // into a CANCELLED result in runAction
       if (++itemCount % INSERT_BATCH_SIZE == 0) {
         jobHook.ifPresent(JobHook::checkpoint);
       }
@@ -659,10 +661,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         // (open or retired). Adding new versions of an existing feature goes through Replace /
         // Update / Delete; Insert is reserved for brand-new ids.
         //
-        // The per-item batch must be flushed first so existing-row checks see writes from earlier
-        // items in this same action (e.g. an Insert/Insert pair for the same id within one
-        // action, second insert would otherwise miss the first).
-        if (!batch.isEmpty()) {
+        // The check does not see the items of the batch that is not written yet. Only an item
+        // with the same id as one of them would be affected (an Insert/Insert pair for the same id
+        // within one action, the second insert would otherwise miss the first), so only then the
+        // batch is written first; otherwise the batch keeps growing.
+        if (batch.isEmpty()) {
+          batchedIds.clear();
+        }
+        if (batchedIds.contains(canonicalIdForItem.get())) {
           ActionResult failedBatch =
               flushInsertBatch(
                   action,
@@ -676,6 +682,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   extents,
                   roleOverrides);
           if (failedBatch != null) return failedBatch;
+          batchedIds.clear();
         }
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
@@ -767,6 +774,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         }
         batch.add(source);
         batchItems.add(item);
+        canonicalIdForItem.ifPresent(batchedIds::add);
       } catch (java.io.IOException e) {
         return failedInsert(action, apiData, batchItems, e);
       }
@@ -906,7 +914,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       MutationStrategy strategy,
       Instant mutationTimestamp,
       boolean fromWfs) {
-    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
+    Axes axes = axes(requestCrs);
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
@@ -1878,7 +1886,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .toList();
   }
 
-  private FeatureTokenSource decodeFeature(
+  // Package-private so specs can replace it, together with decodeFeature (see runAction).
+  Axes axes(EpsgCrs crs) {
+    return crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
+  }
+
+  // Package-private so specs can replace the decoding of a payload (see runAction).
+  FeatureTokenSource decodeFeature(
       MediaType contentType,
       InputStream body,
       OgcApiDataV2 apiData,
