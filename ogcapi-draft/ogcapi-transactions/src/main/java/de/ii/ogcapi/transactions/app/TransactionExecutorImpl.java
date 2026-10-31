@@ -627,8 +627,15 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     boolean ignoreExisting =
         preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
     List<String> ignoredIds = new ArrayList<>();
+    int itemCount = 0;
     Iterator<InsertItem> items = action.items();
     while (items.hasNext()) {
+      // cooperative cancellation every INSERT_BATCH_SIZE items, counted independently of the
+      // batch flushes, since a pre-flight check or an id override flushes the batch per item; the
+      // exception is turned into a CANCELLED result in runAction
+      if (++itemCount % INSERT_BATCH_SIZE == 0) {
+        jobHook.ifPresent(JobHook::checkpoint);
+      }
       InsertItem item = items.next();
       // Composite-id split: the raw gml:id may carry a uniqueness suffix; the
       // canonical id is what we check / write. Items without a featureId pass through unchanged.
@@ -777,9 +784,6 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 extents,
                 roleOverrides);
         if (failed != null) return failed;
-        // cooperative cancellation between insert batches; the exception is turned into a
-        // CANCELLED result in runAction
-        jobHook.ifPresent(JobHook::checkpoint);
       }
     }
     if (!batch.isEmpty()) {

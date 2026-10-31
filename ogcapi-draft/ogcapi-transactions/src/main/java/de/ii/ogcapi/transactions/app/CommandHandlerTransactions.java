@@ -30,7 +30,7 @@ public interface CommandHandlerTransactions extends Volatile2 {
 
   /**
    * @param jobHook the hook of the job that executes the transaction; a cancellation of the job is
-   *     observed before each action and between insert batches, see {@link
+   *     observed before each action and every 100 features of an insert, see {@link
    *     de.ii.ogcapi.transactions.domain.TransactionExecutor}
    */
   Response processTransaction(
