@@ -38,7 +38,8 @@ class ProcessesExecutorImplSpec extends Specification {
             [
                     count : input(schema(Type.INTEGER)),
                     labels: input(schema(Type.STRING), 0, 2),
-                    bbox  : input(new ImmutableOgcSchema.Builder().type(Type.OBJECT).format("ogc-bbox").build(), 0)
+                    bbox  : input(new ImmutableOgcSchema.Builder().type(Type.OBJECT).format("ogc-bbox").build(), 0),
+                    options: input(schema(Type.OBJECT), 0)
             ],
             [result: output(schema(Type.INTEGER))])
 
@@ -137,6 +138,13 @@ class ProcessesExecutorImplSpec extends Specification {
         [count: [value: 1]]                                        | [count: 1]
         [count: 1, labels: [[value: "a"], "b"]]                    | [count: 1, labels: ["a", "b"]]
         [count: 1, bbox: [bbox: [0, 0, 1, 1]]]                     | [count: 1, bbox: [bbox: [0, 0, 1, 1]]]
+        [count: 1, bbox: [value: [bbox: [0, 0, 1, 1]]]]            | [count: 1, bbox: [bbox: [0, 0, 1, 1]]]
+        // an object value is a qualified value (Requirement 22, NOTE 3), also if the wrapper
+        // matches the object schema itself
+        [count: 1, options: [value: [a: 1]]]                       | [count: 1, options: [a: 1]]
+        [count: 1, options: [value: [a: 1], mediaType: 'application/json']] | [count: 1, options: [a: 1]]
+        // tolerated: an object value without the wrapper
+        [count: 1, options: [a: 1]]                                | [count: 1, options: [a: 1]]
     }
 
     def "a synchronous execution whose job #status fails"() {
