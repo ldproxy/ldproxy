@@ -45,8 +45,13 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Results (full)
  * @path jobs/{jobId}/results
- * @langEn Retrieve all requested job results
- * @langDe Alle angeforderten Job-Ergebnisse abrufen
+ * @langEn Retrieve all requested job results. If the result of the job is a single document, e.g.
+ *     the result of a search or of a transaction, it is returned in the media type in which it is
+ *     stored, regardless of the `Accept` header; the parameter `f` is not supported.
+ * @langDe Alle angeforderten Job-Ergebnisse abrufen. Ist das Ergebnis des Jobs ein einzelnes
+ *     Dokument, z. B. das Ergebnis einer Suche oder einer Transaktion, wird es in dem Medientyp
+ *     geliefert, in dem es gespeichert ist, unabhängig vom `Accept`-Header; der Parameter `f` wird
+ *     nicht unterstützt.
  * @ref:formats {@link de.ii.ogcapi.common.domain.async.JobResultsFormatExtension}
  */
 @Singleton
@@ -96,7 +101,10 @@ public class EndpointResults extends Endpoint {
       Optional<String> operationDescription =
           Optional.of(
               """
-                    Returns the results for the job specified by `jobId`.
+                    Returns the results for the job specified by `jobId`. If the result of the job
+                    is a single document, e.g. the result of a search or of a transaction, it is
+                    returned in the media type in which it is stored, regardless of the `Accept`
+                    header; the parameter `f` is not supported.
                     """);
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =

@@ -24,8 +24,6 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
-import de.ii.ogcapi.foundation.domain.ApiMediaType;
-import de.ii.ogcapi.foundation.domain.ApiMediaType.CompatibilityLevel;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
@@ -294,18 +292,8 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
       QueryInput queryInput,
       String jobId,
       ResultDocument resultDocument) {
-    // the reason of a failure is returned whatever the client accepts
-    boolean acceptable =
-        resultDocument.getStatus() >= 400
-            || acceptableMediaTypes(requestContext).stream()
-                .anyMatch(
-                    accepted ->
-                        ApiMediaType.isCompatible(
-                            accepted, resultDocument.getMediaType(), CompatibilityLevel.SUBTYPES));
-    if (!acceptable) {
-      throw notAcceptable(requestContext, resultDocument.getMediaType());
-    }
-
+    // A result document is stored in one media type, its only representation; as a resource at
+    // /resources/{resourceId}, it is returned whatever the client accepts.
     return prepareSuccessResponse(
             requestContext,
             null,
