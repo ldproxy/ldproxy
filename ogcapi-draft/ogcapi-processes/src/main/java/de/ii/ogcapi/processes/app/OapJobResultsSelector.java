@@ -23,6 +23,7 @@ import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -92,31 +93,47 @@ public class OapJobResultsSelector implements JobResultsSelector {
 
     validateOutputSelection(process, resultKey);
 
-    int maxOccurs = process.getOutputs().get(resultKey).getMaxOccurs();
-    if (maxOccurs <= 1) {
-      throw new IllegalArgumentException(
-          "Output '" + resultKey + "' is not multi-valued (MaxOccurs: " + maxOccurs + ")");
-    }
-
-    if (maxOccurs <= resultIndex) {
-      throw new IllegalArgumentException(
-          "Out of bound for '" + resultIndex + "' (MaxOccurs: " + maxOccurs + ")");
-    }
-
     Object value = selectSpecificResult(results, context, kind, resultKey);
+
+    // Requirement 50: the first value is always available, also of a single-valued output
+    if (!isMultiValued(process, resultKey)) {
+      if (resultIndex != 0) {
+        throw noSuchValue(resultKey, resultIndex, 1);
+      }
+      return value;
+    }
 
     if (!(value instanceof List list)) {
       throw new BadRequestException("The output '%s' is not an Array".formatted(resultKey));
     }
 
-    int size = list.size();
-    if (size <= resultIndex) {
-      throw new IllegalArgumentException(
-          "Out of bound for '%d' (MaxOccurs: %d, list size: %d)"
-              .formatted(resultIndex, maxOccurs, size));
+    // Requirement 38 C
+    if (list.size() <= resultIndex) {
+      throw noSuchValue(resultKey, resultIndex, list.size());
     }
 
     return list.get(resultIndex);
+  }
+
+  @Override
+  public boolean isMultiValued(Map<String, Object> context, String kind, String resultKey) {
+    String apiId = JobContextEntity.from(context);
+    String processId = OapJob.processId(kind);
+    OgcProcess process = processRepository.getDirect(apiId, processId);
+
+    validateOutputSelection(process, resultKey);
+
+    return isMultiValued(process, resultKey);
+  }
+
+  private static boolean isMultiValued(OgcProcess process, String outputId) {
+    return process.getOutputs().get(outputId).getMaxOccurs() > 1;
+  }
+
+  private static NotFoundException noSuchValue(String outputId, int index, int count) {
+    return new NotFoundException(
+        "The output '%s' has no value with index %d, the number of values is %d."
+            .formatted(outputId, index, count));
   }
 
   // Limitation: MediaType, Encoding and Schema are not used in the selection!

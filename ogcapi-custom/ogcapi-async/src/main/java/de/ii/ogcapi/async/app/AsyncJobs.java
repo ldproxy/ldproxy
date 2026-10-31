@@ -30,6 +30,9 @@ public interface AsyncJobs {
 
   Object getResultsSpecificN(String jobId, String outputId, int index);
 
+  /** Whether the output can have more than one value. */
+  boolean isMultiValued(String jobId, String outputId);
+
   Optional<OgcApiJobStatus> dismissJob(String jobId);
 
   @Value.Immutable

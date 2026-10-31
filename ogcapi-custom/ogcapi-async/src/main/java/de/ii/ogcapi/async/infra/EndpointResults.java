@@ -25,6 +25,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -60,6 +61,7 @@ public class EndpointResults extends Endpoint {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResults.class);
   private static final List<String> TAGS = ImmutableList.of("Jobs");
+  private static final int STATUS_UNPROCESSABLE_ENTITY = 422;
 
   private final JobQueriesHandler queryHandler;
 
@@ -125,6 +127,13 @@ public class EndpointResults extends Endpoint {
               TAGS,
               AsyncBuildingBlock.MATURITY,
               AsyncBuildingBlock.SPEC)
+          // the results of a failed job have the status of the reason, typically 422
+          .map(
+              operation ->
+                  new ImmutableApiOperation.Builder()
+                      .from(operation)
+                      .addErrorStatusCodes(STATUS_UNPROCESSABLE_ENTITY)
+                      .build())
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
       definitionBuilder.putResources(path, resourceBuilder.build());
     }

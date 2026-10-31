@@ -9,10 +9,15 @@ package de.ii.ogcapi.async.app
 
 import de.ii.ogcapi.async.app.format.JobResultsFormatAny
 import de.ii.ogcapi.async.domain.ImmutableQueryInputResults
+import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecific
+import de.ii.ogcapi.async.domain.ImmutableQueryInputResultsSpecificN
 import de.ii.ogcapi.async.domain.JobQueriesHandler.Query
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus
 import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.I18n
+import de.ii.ogcapi.foundation.domain.QueryParameterSet
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException
+import de.ii.xtralink.jobs.Identifiers.Status
 import jakarta.ws.rs.NotAcceptableException
 import jakarta.ws.rs.core.HttpHeaders
 import jakarta.ws.rs.core.MediaType
@@ -25,6 +30,7 @@ import spock.lang.Specification
 class JobQueriesHandlerImplSpec extends Specification {
 
     static final MediaType GEO_JSON = new MediaType("application", "geo+json")
+    static final MediaType PROBLEM_JSON = new MediaType("application", "problem+json")
 
     AsyncJobs jobs = Stub()
     JobQueriesHandlerImpl handler = new JobQueriesHandlerImpl(Stub(I18n) { getLanguages() >> ([] as Set) }, jobs)
@@ -109,6 +115,52 @@ class JobQueriesHandlerImplSpec extends Specification {
 
         then:
         thrown(NotAcceptableException)
+    }
+
+    def "the result of each output of a failed job is the reason of the failure, value #index"() {
+        given:
+        jobs.getStatusInfo("job-2") >> Optional.of(Stub(OgcApiJobStatus) { getStatus() >> Status.FAILED })
+        jobs.getResultDocument("job-2") >> Optional.of(ImmutableResultDocument.of(PROBLEM_JSON, Stub(StreamingOutput)).withStatus(422))
+
+        when:
+        Response response = handler.handle(query, input, requestContext("application/json", [:]))
+
+        then:
+        response.status == 422
+        response.mediaType == PROBLEM_JSON
+
+        where:
+        query                   | input                                                                                  | index
+        Query.RESULTS_SPECIFIC   | new ImmutableQueryInputResultsSpecific.Builder().jobId("job-2").outputId("value").build()            | "-"
+        Query.RESULTS_SPECIFIC_N | new ImmutableQueryInputResultsSpecificN.Builder().jobId("job-2").outputId("value").indexN(0).build() | "0"
+    }
+
+    def "an output that is not among the results is an invalid value of outputs"() {
+        given:
+        jobs.getResultDocument("job-1") >> Optional.empty()
+        jobs.getResults("job-1") >> [value: 1]
+
+        when:
+        handler.handle(Query.RESULTS, new ImmutableQueryInputResults.Builder().jobId("job-1").build(),
+                requestContext("application/json", [outputs: ["other"]]))
+
+        then:
+        TypedClientErrorException e = thrown()
+        e.response.status == 400
+        e.type == "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/invalid-query-parameter-value"
+    }
+
+    private ApiRequestContext requestContext(String accept, Map<String, Object> typedValues) {
+        QueryParameterSet parameters = Stub() {
+            getTypedValues() >> typedValues
+        }
+        Stub(ApiRequestContext) {
+            getRequest() >> Optional.of(request(accept))
+            getMediaType() >> JobResultsFormatAny.MEDIA_TYPE
+            getAlternateMediaTypes() >> []
+            getLanguage() >> Optional.empty()
+            getQueryParameterSet() >> parameters
+        }
     }
 
     private Response results(String accept) {

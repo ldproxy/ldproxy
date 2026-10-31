@@ -36,7 +36,8 @@ import java.util.stream.Stream;
  * @ref:pathParameters {@link de.ii.ogcapi.async.app.parameter.PathParameterJobId}, {@link
  *     de.ii.ogcapi.async.app.parameter.PathParameterOutputId}, {@link
  *     de.ii.ogcapi.async.app.parameter.PathParameterN}
- * @ref:queryParameters {@link de.ii.ogcapi.async.app.parameter.QueryParameterFStatusInfoAsync}
+ * @ref:queryParameters {@link de.ii.ogcapi.async.app.parameter.QueryParameterFStatusInfoAsync},
+ *     {@link de.ii.ogcapi.async.app.parameter.QueryParameterOutputs}
  */
 @Singleton
 @AutoBind
