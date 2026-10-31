@@ -14,12 +14,17 @@ import de.ii.ogcapi.common.domain.async.JobContextAsync
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.common.domain.async.JobResultsSelector
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType
+import de.ii.ogcapi.foundation.domain.I18n
+import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2
+import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException
 import de.ii.xtralink.jobs.Identifiers.Status
 import de.ii.xtralink.jobs.Job
 import de.ii.xtralink.jobs.JobProgress
 import de.ii.xtraplatform.base.domain.Jackson
 import de.ii.xtraplatform.blobs.domain.ResourceStore
+import de.ii.xtraplatform.entities.domain.EntityRegistry
+import de.ii.xtraplatform.services.domain.ServicesContext
 import de.ii.xtraplatform.web.domain.Http
 import de.ii.xtraplatform.web.domain.HttpClient
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity
@@ -59,7 +64,7 @@ class AsyncJobsImplSpec extends Specification {
         }
         Lazy<Set<JobResultsSelector>> noSelectors = { -> [] as Set } as Lazy
 
-        asyncJobs = new AsyncJobsImpl(jobs, jackson, Stub(Http), noSelectors, root)
+        asyncJobs = new AsyncJobsImpl(jobs, jackson, Stub(Http), noSelectors, root, Stub(EntityRegistry), servicesContext(), Stub(I18n))
     }
 
     def "the results of an unknown job are not found"() {
@@ -262,7 +267,7 @@ class AsyncJobsImplSpec extends Specification {
         0 * jobs.delete(_)
     }
 
-    def "a running job sends the in-progress callback only while it has no errors: #errors"() {
+    def "a running job sends the in-progress callback only while it has no errors: #errors, #percent %"() {
         given:
         HttpClient httpClient = Mock()
         Http http = Stub() {
@@ -271,7 +276,7 @@ class AsyncJobsImplSpec extends Specification {
         Jackson jackson = Stub() {
             getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
         }
-        def callbacks = new AsyncJobsImpl(jobs, jackson, http, { -> [] as Set } as Lazy, Stub(ResourceStore))
+        def callbacks = new AsyncJobsImpl(jobs, jackson, http, { -> [] as Set } as Lazy, Stub(ResourceStore), Stub(EntityRegistry), servicesContext(), Stub(I18n))
         def subscriber = new ImmutableAsyncSubscriber.Builder()
                 .inProgressUri("http://localhost/progress")
                 .failedUri("http://localhost/failed")
@@ -279,19 +284,65 @@ class AsyncJobsImplSpec extends Specification {
         def context = toMap(new JobContextAsync("api", EntityType.OGC_API_PROCESSES, Optional.empty(), Optional.of(subscriber)))
 
         when:
-        callbacks.onProgress(job(Status.RUNNING, context, [:], errors))
+        callbacks.onProgress(job(Status.RUNNING, context, [:], errors, percent))
 
         then:
         posts * httpClient.postAsInputStream("http://localhost/progress", *_) >> new ByteArrayInputStream(new byte[0])
         0 * httpClient.postAsInputStream("http://localhost/failed", *_)
 
         where:
-        errors   || posts
-        []       || 1
-        ["boom"] || 0
+        errors   | percent || posts
+        []       | 0       || 1
+        []       | 50      || 1
+        ["boom"] | 0       || 0
+        // also when the job is about to finish: the client may have subscribed to this callback only
+        []       | 100     || 1
+    }
+
+    def "the status info of a callback links the job to monitor and its results below the URL of the API"() {
+        given:
+        HttpClient httpClient = Mock()
+        Http http = Stub() {
+            getDefaultClient() >> httpClient
+        }
+        Jackson jackson = Stub() {
+            getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
+        }
+        OgcApi api = Stub() {
+            getData() >> new ImmutableOgcApiDataV2.Builder().id('api').serviceType('OGC_API').build()
+        }
+        EntityRegistry entityRegistry = Stub() {
+            getEntity(OgcApi, 'api') >> Optional.of(api)
+        }
+        def callbacks = new AsyncJobsImpl(jobs, jackson, http, { -> [] as Set } as Lazy, Stub(ResourceStore),
+                entityRegistry, servicesContext(), Stub(I18n))
+        def subscriber = new ImmutableAsyncSubscriber.Builder()
+                .failedUri("http://localhost/failed")
+                .build()
+        def context = toMap(new JobContextAsync("api", EntityType.OGC_API_PROCESSES, Optional.empty(), Optional.of(subscriber)))
+        byte[] posted = null
+
+        when:
+        callbacks.onProgress(job(Status.FAILED, context, [:], ["boom"]))
+
+        then:
+        1 * httpClient.postAsInputStream("http://localhost/failed", *_) >> { args ->
+            posted = args[1] as byte[]
+            new ByteArrayInputStream(new byte[0])
+        }
+        // the serialized links are sorted, the order of the generator does not matter here
+        def links = new ObjectMapper().readValue(posted, Map).links.collect { [it.rel, it.type, it.href] } as Set
+        links == [
+                ['monitor', null, 'https://example.org/rest/services/api/jobs/job-1'],
+                ['https://www.opengis.net/def/rel/ogc/1.0/results', 'application/problem+json', 'https://example.org/rest/services/api/jobs/job-1/results']
+        ] as Set
     }
 
     // --- fixtures ------------------------------------------------------------------------------
+
+    private static ServicesContext servicesContext() {
+        return { -> URI.create('https://example.org/rest/services') } as ServicesContext
+    }
 
     private static Map<String, Object> asyncContext(EntityType entityType) {
         toMap(new JobContextAsync("api", entityType, Optional.empty(), Optional.empty()))
@@ -309,8 +360,8 @@ class AsyncJobsImplSpec extends Specification {
         Jobs.DEFAULT_MAPPER.readValue(Jobs.DEFAULT_MAPPER.writeValueAsBytes(value), Jobs.MAP_TYPE)
     }
 
-    private static Job job(Status status, Map<String, Object> context, Map<String, Object> outputs, List<String> errors = []) {
-        new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, errors,
+    private static Job job(Status status, Map<String, Object> context, Map<String, Object> outputs, List<String> errors = [], int percent = 0) {
+        new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, percent, null), status, errors,
                 context, null, null, [:], outputs, Optional.empty(), Optional.empty(), [], Optional.empty(),
                 Optional.empty())
     }
