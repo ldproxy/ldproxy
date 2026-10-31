@@ -75,7 +75,9 @@ import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.crs.domain.CrsTransformationException;
+import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
+import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
@@ -119,11 +121,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind
 public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     implements TilesQueriesHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TilesQueriesHandlerImpl.class);
 
   private final I18n i18n;
   private final CrsTransformerFactory crsTransformerFactory;
@@ -847,14 +853,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     tileQueryBuilder
         .generationParametersBuilder()
         .clipBoundingBox(
-            collectionData
-                .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
-                .flatMap(TilesConfiguration::getExtent)
-                .or(
-                    () ->
-                        apiData
-                            .getExtension(TilesConfiguration.class)
-                            .flatMap(TilesConfiguration::getExtent))
+            getConfiguredExtent(apiData, collectionData, queryInput.getBoundingBox().getEpsgCrs())
                 .or(
                     () ->
                         requestContext
@@ -946,15 +945,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     BoundingBox boundingBox = null;
     try {
       boundingBox =
-          collectionId
-              .flatMap(apiData::getCollectionData)
-              .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
-              .flatMap(TilesConfiguration::getExtent)
-              .or(
-                  () ->
-                      apiData
-                          .getExtension(TilesConfiguration.class)
-                          .flatMap(TilesConfiguration::getExtent))
+          getConfiguredExtent(
+                  apiData, collectionId.flatMap(apiData::getCollectionData), OgcCrs.CRS84)
               .or(() -> tilesetMetadata.flatMap(TilesetMetadata::getBounds))
               .orElse(
                   api.getSpatialExtent(collectionId)
@@ -1078,5 +1070,37 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
     builder.links(links);
 
     return builder.build();
+  }
+
+  private Optional<BoundingBox> getConfiguredExtent(
+      OgcApiDataV2 apiData,
+      Optional<FeatureTypeConfigurationOgcApi> collectionData,
+      EpsgCrs targetCrs) {
+    return collectionData
+        .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
+        .flatMap(TilesConfiguration::getExtent)
+        .or(
+            () ->
+                apiData
+                    .getExtension(TilesConfiguration.class)
+                    .flatMap(TilesConfiguration::getExtent))
+        .flatMap(extent -> transform(extent, targetCrs));
+  }
+
+  private Optional<BoundingBox> transform(BoundingBox boundingBox, EpsgCrs targetCrs) {
+    if (boundingBox.getEpsgCrs().equals(targetCrs)) {
+      return Optional.of(boundingBox);
+    }
+    try {
+      Optional<CrsTransformer> transformer =
+          crsTransformerFactory.getTransformer(boundingBox.getEpsgCrs(), targetCrs);
+      if (transformer.isPresent()) {
+        return Optional.of(transformer.get().transformBoundingBox(boundingBox));
+      }
+    } catch (CrsTransformationException e) {
+      LOGGER.warn(
+          "Cannot transform the configured tiles extent to {}: {}", targetCrs, e.getMessage());
+    }
+    return Optional.empty();
   }
 }

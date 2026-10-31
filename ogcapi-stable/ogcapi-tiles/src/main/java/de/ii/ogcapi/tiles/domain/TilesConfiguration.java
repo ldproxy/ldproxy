@@ -473,14 +473,6 @@ public interface TilesConfiguration
   }
 
   /**
-   * @langEn Specifies the data source for the tiles, see [Tile
-   *     Providers](../../providers/tile/README.md).
-   * @langDe Spezifiziert die Datenquelle für die Kacheln, siehe
-   *     [Tile-Provider](../../providers/tile/README.md).
-   * @default null
-   * @since v4.0
-   */
-  /**
    * @langEn Fixed spatial extent for tiles. If set, this bounding box is used as the clip bounding
    *     box for tile generation instead of the extent derived from the data or the tile matrix set.
    * @langDe Fester räumlicher Extent für Tiles. Wenn gesetzt, wird diese Bounding Box als
@@ -490,6 +482,14 @@ public interface TilesConfiguration
    */
   Optional<BoundingBox> getExtent();
 
+  /**
+   * @langEn Specifies the data source for the tiles, see [Tile
+   *     Providers](../../providers/tile/README.md).
+   * @langDe Spezifiziert die Datenquelle für die Kacheln, siehe
+   *     [Tile-Provider](../../providers/tile/README.md).
+   * @default null
+   * @since v4.0
+   */
   @JsonAlias("tileProviderId")
   @Nullable
   String getTileProvider();
