@@ -7,9 +7,11 @@
  */
 package de.ii.ogcapi.foundation.domain
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.models.media.StringSchema
+import javax.annotation.Nullable
 import spock.lang.Specification
 
 class ObjectSchemaSpec extends Specification {
@@ -56,6 +58,65 @@ class ObjectSchemaSpec extends Specification {
         schema.getProperties().containsKey('name')
         !schema.getProperties().containsKey('check')
         !schema.getRequired().contains('check')
+    }
+
+    def 'the getters of the interfaces of a class are properties'() {
+        when:
+        ObjectSchema schema = new ObjectSchema(StatusInfoResponse, classSchemaCache)
+
+        then:
+        schema.getProperties().keySet().containsAll(['id', 'status', 'links'])
+        schema.getRequired().contains('id')
+    }
+
+    def 'interface methods that are not getters or are ignored are not properties'() {
+        when:
+        ObjectSchema schema = new ObjectSchema(StatusInfoResponse, classSchemaCache)
+
+        then:
+        !schema.getProperties().containsKey('asText')
+        !schema.getProperties().containsKey('internal')
+    }
+
+    def 'the methods of an interface that are not getters are not properties'() {
+        when:
+        ObjectSchema schema = new ObjectSchema(StatusInfo, classSchemaCache)
+
+        then:
+        schema.getProperties().keySet() == ['status', 'id'] as Set
+    }
+
+    def 'a property declared by the class takes precedence over the interface'() {
+        when:
+        ObjectSchema schema = new ObjectSchema(StatusInfoResponse, classSchemaCache)
+
+        then:
+        !schema.getRequired().contains('status')
+    }
+
+    static interface Identified {
+        String getId()
+    }
+
+    static interface StatusInfo extends Identified {
+        String getStatus()
+
+        String asText()
+
+        @JsonIgnore
+        String getInternal()
+    }
+
+    static abstract class StatusInfoResponse implements StatusInfo {
+        @Nullable
+        String getStatus() {
+            return null
+        }
+
+        @JsonProperty(value = 'links', required = true)
+        List<String> getLinks() {
+            return []
+        }
     }
 
     static class WithCheck {
