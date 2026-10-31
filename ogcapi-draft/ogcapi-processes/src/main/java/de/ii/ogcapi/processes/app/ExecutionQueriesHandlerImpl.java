@@ -237,10 +237,9 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             queryInput.getCallbackRetries(),
             processesCoreConfiguration.getTtlSeconds());
 
-    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
+    // the response is not retrieved from the job, the job is the resource to monitor
     List<Link> links =
-        linkGenerator.generateLinks(
-            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 3);
+        new StatusInfoLinksGenerator().generateMonitorLinks(requestContext, 3, i18n, statusInfo);
 
     OgcApiJobStatusInfo statusInfoResponse =
         new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
