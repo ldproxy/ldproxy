@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobResult;
@@ -54,9 +55,14 @@ public class MockWaitingProcessor extends MockOapJobProcessor {
     }
 
     if (Boolean.TRUE.equals(inputs.getInputs().get("fail"))) {
-      return jobs.failure(
-          "The process failed after %d seconds, as requested by the input 'fail'."
-              .formatted(seconds));
+      // the reason is the request, the input asks for the failure
+      JobFailure failure =
+          JobFailure.of(
+              422,
+              "The process failed after %d seconds, as requested by the input 'fail'."
+                  .formatted(seconds));
+      jobs.outputs(job.id(), failure.asOutputs());
+      return jobs.failure(failure.getDetail());
     }
 
     return super.execute(partialJob, job, inputs, jobs);

@@ -9,6 +9,7 @@ package de.ii.ogcapi.transactions.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Strings;
+import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -222,11 +223,15 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       }
 
       if (applied.rejected()) {
-        jobs.outputs(job.id(), Map.of("resultPaths", resultPaths));
-        return jobs.failure(
-            String.format(
-                "Transaction %s failed with status %d, see %s",
-                documentPath, applied.status(), resultPath));
+        // the status of the rejected transaction is the reason for the failure of the job
+        JobFailure failure =
+            JobFailure.of(
+                applied.status(),
+                String.format(
+                    "Transaction %s failed with status %d, see %s",
+                    documentPath, applied.status(), resultPath));
+        jobs.outputs(job.id(), failure.addTo(Map.of("resultPaths", resultPaths)));
+        return jobs.failure(failure.getDetail());
       }
     }
 
