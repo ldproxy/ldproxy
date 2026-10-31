@@ -107,7 +107,7 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
         .rawLinks(processResponse.getLinks())
-        .title(processId)
+        .title(processResponse.getTitle().orElse(processId))
         .build();
   }
 }
