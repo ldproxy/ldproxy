@@ -24,6 +24,7 @@ import de.ii.ogcapi.processes.domain.model.ProcessRepository
 import de.ii.ogcapi.processes.domain.model.Property.Type
 import de.ii.xtraplatform.base.domain.Jackson
 import de.ii.xtraplatform.xtralink.domain.Jobs
+import jakarta.ws.rs.NotFoundException
 import spock.lang.Specification
 
 class OapJobResultsSelectorSpec extends Specification {
@@ -117,23 +118,41 @@ class OapJobResultsSelectorSpec extends Specification {
         2     || 3
     }
 
-    def "value #index of a multi-valued result is out of bounds"() {
+    def "value #index of a multi-valued result is out of bounds and not found"() {
         when:
         selector.selectSpecificResultN(RESULTS, context(execute()), KIND, "multi", index)
 
         then:
-        thrown(IllegalArgumentException)
+        thrown(NotFoundException)
 
         where:
-        index << [3, 10]
+        index << [3, 9, 10, Integer.MAX_VALUE]
     }
 
-    def "a single-valued result has no indexed values"() {
+    def "the value 0 of a single-valued result is its value"() {
+        expect:
+        selector.selectSpecificResultN(RESULTS, context(execute()), KIND, "single", 0) == "a"
+    }
+
+    def "a single-valued result has no value #index"() {
         when:
-        selector.selectSpecificResultN(RESULTS, context(execute()), KIND, "single", 0)
+        selector.selectSpecificResultN(RESULTS, context(execute()), KIND, "single", index)
 
         then:
-        thrown(IllegalArgumentException)
+        thrown(NotFoundException)
+
+        where:
+        index << [1, 10]
+    }
+
+    def "an output is multi-valued: #multiValued, if it has more than one occurrence: #outputId"() {
+        expect:
+        selector.isMultiValued(context(execute()), KIND, outputId) == multiValued
+
+        where:
+        outputId || multiValued
+        "single" || false
+        "multi"  || true
     }
 
     private static Optional<Map<String, OgcFormat>> selection(String... outputIds) {

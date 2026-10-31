@@ -11,6 +11,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.async.app.AsyncJobs.ResultDocument;
 import de.ii.ogcapi.async.app.format.JobResultsFormatAny;
+import de.ii.ogcapi.async.app.parameter.QueryParameterOutputs;
 import de.ii.ogcapi.async.domain.JobQueriesHandler;
 import de.ii.ogcapi.async.domain.JobResultValuesFormatExtension;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResultValues;
@@ -28,6 +29,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
 import de.ii.ogcapi.foundation.domain.HeaderContentDisposition;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.ImmutableLink;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
@@ -45,6 +47,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +57,9 @@ import org.glassfish.jersey.server.ContainerRequest;
 @Singleton
 @AutoBind
 public class JobQueriesHandlerImpl implements JobQueriesHandler {
+
+  static final String HEADER_VALUES_COUNT = "OGC-Output-Values-Count";
+  static final String PROFILE_VALUES = "https://www.opengis.net/def/profile/OGC/0/ogc-values";
 
   private final AsyncJobs jobAccess;
   private final Map<Query, QueryHandler<? extends QueryInput>> queryHandlers;
@@ -149,7 +155,8 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
       return resultDocumentResponse(requestContext, queryInput, jobId, resultDocument.get());
     }
 
-    Map<String, Object> jobResults = jobAccess.getResults(jobId);
+    Map<String, Object> jobResults =
+        selectOutputs(jobAccess.getResults(jobId), selectedOutputs(requestContext));
 
     // Requirement 34
     if (jobResults.isEmpty()) {
@@ -205,22 +212,55 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
 
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
-    requireJob(jobId, requestContext);
+    Optional<Response> failure = failureResponse(requestContext, queryInput, jobId);
+    if (failure.isPresent()) {
+      return failure.get();
+    }
     Object output = jobAccess.getResultsSpecific(jobId, outputId);
+    boolean multiValued = jobAccess.isMultiValued(jobId, outputId);
 
-    return basicResponse(requestContext, queryInput, jobId, output);
+    // Requirement 53 D: the values of a multi-valued output
+    List<Link> links =
+        multiValued
+            ? List.of(new ImmutableLink.Builder().href(PROFILE_VALUES).rel("profile").build())
+            : null;
+
+    return basicResponse(
+        requestContext, queryInput, jobId, output, valuesCount(output, multiValued), links);
   }
 
-  // Limitation: Requirement 50 ("0-th"-result) is not supported!
   private Response getJobResultsResponseSpecificN(
       QueryInputResultsSpecificN queryInput, ApiRequestContext requestContext) {
     String jobId = queryInput.getJobId();
     String outputId = queryInput.getOutputId();
     int indexN = queryInput.getIndexN();
-    requireJob(jobId, requestContext);
-    Object output = jobAccess.getResultsSpecificN(jobId, outputId, indexN);
+    Optional<Response> failure = failureResponse(requestContext, queryInput, jobId);
+    if (failure.isPresent()) {
+      return failure.get();
+    }
+    Object value = jobAccess.getResultsSpecificN(jobId, outputId, indexN);
+    int count =
+        valuesCount(
+            jobAccess.getResultsSpecific(jobId, outputId),
+            jobAccess.isMultiValued(jobId, outputId));
 
-    return basicResponse(requestContext, queryInput, jobId, output);
+    return basicResponse(requestContext, queryInput, jobId, value, count, null);
+  }
+
+  // Requirement 60: the results of a failed job, also of each output, are the reason
+  private Optional<Response> failureResponse(
+      ApiRequestContext requestContext, QueryInput queryInput, String jobId) {
+    if (requireJob(jobId, requestContext).getStatus() != Status.FAILED) {
+      return Optional.empty();
+    }
+    return jobAccess
+        .getResultDocument(jobId)
+        .map(failure -> resultDocumentResponse(requestContext, queryInput, jobId, failure));
+  }
+
+  // Requirements 51 to 53: the number of values that can be retrieved for an output
+  private static int valuesCount(Object output, boolean multiValued) {
+    return multiValued && output instanceof List<?> values ? values.size() : 1;
   }
 
   private Response dismissJobResponse(
@@ -271,6 +311,37 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
   }
 
   /*** Helper methods ***/
+  @SuppressWarnings("unchecked")
+  private static Optional<List<String>> selectedOutputs(ApiRequestContext requestContext) {
+    return Optional.ofNullable(
+            requestContext.getQueryParameterSet().getTypedValues().get(QueryParameterOutputs.NAME))
+        .map(value -> (List<String>) value)
+        .filter(outputs -> !outputs.isEmpty());
+  }
+
+  // Requirements 45, 46 and 55: only the selected outputs, each must be one of the results
+  private static Map<String, Object> selectOutputs(
+      Map<String, Object> results, Optional<List<String>> outputs) {
+    if (outputs.isEmpty()) {
+      return results;
+    }
+
+    Map<String, Object> selected = new LinkedHashMap<>();
+    for (String outputId : outputs.get()) {
+      if (!results.containsKey(outputId)) {
+        throw new TypedClientErrorException(
+            "Invalid value for query parameter 'outputs', the results do not contain an output '%s'."
+                .formatted(outputId),
+            Response.Status.BAD_REQUEST,
+            EntityType.OGC_API_PROCESSES
+                .exceptionType("invalid-query-parameter-value")
+                .orElse(null));
+      }
+      selected.put(outputId, results.get(outputId));
+    }
+    return selected;
+  }
+
   private static List<MediaType> acceptableMediaTypes(ApiRequestContext requestContext) {
     return requestContext
         .getRequest()
@@ -342,7 +413,12 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
   }
 
   private Response basicResponse(
-      ApiRequestContext requestContext, QueryInput queryInput, String jobId, Object output) {
+      ApiRequestContext requestContext,
+      QueryInput queryInput,
+      String jobId,
+      Object output,
+      int valuesCount,
+      List<Link> links) {
     OgcApi api = requestContext.getApi();
     JobResultValuesFormatExtension outputFormat =
         api.getOutputFormat(
@@ -374,12 +450,13 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
 
     return prepareSuccessResponse(
             requestContext,
-            null,
+            links,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
                 String.format("%s.%s", jobId, outputFormat.getMediaType().fileExtension())),
             i18n.getLanguages())
+        .header(HEADER_VALUES_COUNT, valuesCount)
         .entity(outputFormat.getEntity(valuesResponse, api, requestContext))
         .build();
   }

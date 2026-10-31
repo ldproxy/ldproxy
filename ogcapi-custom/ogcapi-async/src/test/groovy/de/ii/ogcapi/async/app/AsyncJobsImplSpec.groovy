@@ -30,7 +30,6 @@ import de.ii.xtraplatform.web.domain.Http
 import de.ii.xtraplatform.web.domain.HttpClient
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity
 import de.ii.xtraplatform.xtralink.domain.Jobs
-import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.NotFoundException
 import jakarta.ws.rs.core.MediaType
 import java.nio.charset.StandardCharsets
@@ -160,15 +159,20 @@ class AsyncJobsImplSpec extends Specification {
         JobFailure.of(400, "https://example.org/bad-value", "Bad value.") || 400  | [type: "https://example.org/bad-value", status: 400, title: "Bad Request", detail: "Bad value."]
     }
 
-    def "the outputs of a failed job are a bad request"() {
+    def "the outputs of a #status job are not available"() {
         given:
-        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_FEATURES), [:])
+        stored["job-1"] = job(status, asyncContext(EntityType.OGC_API_PROCESSES), [:])
 
         when:
         asyncJobs.getResults("job-1")
 
         then:
-        thrown(BadRequestException)
+        TypedClientErrorException e = thrown()
+        e.response.status == 404
+        e.type == "https://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/result-not-available"
+
+        where:
+        status << [Status.FAILED, Status.DISMISSED]
     }
 
     def "the results of a successful job are its outputs"() {
@@ -203,6 +207,18 @@ class AsyncJobsImplSpec extends Specification {
         expect:
         asyncJobs.getResultsSpecific("job-1", "value") == [1, 2]
         asyncJobs.getResultsSpecificN("job-1", "value", 1) == 2
+        asyncJobs.isMultiValued("job-1", "value")
+    }
+
+    def "a value beyond the values of an output is not found"() {
+        given:
+        stored["job-1"] = job(Status.SUCCESSFUL, asyncContext(EntityType.OGC_API_PROCESSES), [value: [1, 2]])
+
+        when:
+        asyncJobs.getResultsSpecificN("job-1", "value", 2)
+
+        then:
+        thrown(NotFoundException)
     }
 
     def "the result document is streamed from the store of the job kind"() {
