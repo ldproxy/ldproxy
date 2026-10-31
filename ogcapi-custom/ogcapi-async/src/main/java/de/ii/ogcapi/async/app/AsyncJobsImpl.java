@@ -17,6 +17,7 @@ import de.ii.ogcapi.common.domain.async.AsyncSubscriber;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.common.domain.async.JobResultsSelector;
 import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
@@ -52,6 +53,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -193,19 +195,34 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
             .withFileExtension(fileExtension(path)));
   }
 
+  // The status and type correspond to the reason that the processor stated, otherwise the failure
+  // is unexpected (500), with the errors of the job as detail.
   private ResultDocument failure(Job job) {
+    Optional<JobFailure> reason = JobFailure.from(job.outputs());
+    int status = reason.map(JobFailure::getStatus).orElse(500);
+    Response.StatusType statusType = Response.Status.fromStatusCode(status);
+
     Map<String, Object> problem = new LinkedHashMap<>();
-    problem.put("status", 500);
-    problem.put("title", "Internal Server Error");
+    reason.flatMap(JobFailure::getType).ifPresent(type -> problem.put("type", type));
+    problem.put("status", status);
+    // JAX-RS has no reason phrase for 422, as in ApiErrorMessage
+    problem.put(
+        "title",
+        Objects.nonNull(statusType)
+            ? statusType.getReasonPhrase()
+            : status == 422 ? "Unprocessable Entity" : "Error");
     problem.put(
         "detail",
-        job.errors().isEmpty()
-            ? "Job '%s' failed.".formatted(job.id())
-            : "Job '%s' failed: %s".formatted(job.id(), String.join(" ", job.errors())));
+        reason
+            .map(JobFailure::getDetail)
+            .orElse(
+                job.errors().isEmpty()
+                    ? "Job '%s' failed.".formatted(job.id())
+                    : "Job '%s' failed: %s".formatted(job.id(), String.join(" ", job.errors()))));
     StreamingOutput content = output -> mapper.writeValue(output, problem);
 
     return ImmutableResultDocument.of(MediaType.valueOf("application/problem+json"), content)
-        .withStatus(500)
+        .withStatus(status)
         .withFileExtension("json");
   }
 

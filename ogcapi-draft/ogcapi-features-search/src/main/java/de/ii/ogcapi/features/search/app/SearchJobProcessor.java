@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Strings;
+import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
@@ -148,7 +149,13 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
 
       try (Response response = queryHandler.handle(Query.QUERY, queryInput, requestContext)) {
         if (response.getStatus() >= 400) {
-          return jobs.failure(String.format("Query failed with status %d", response.getStatus()));
+          // the status of the query is the reason for the failure of the job
+          JobFailure failure =
+              JobFailure.of(
+                  response.getStatus(),
+                  String.format("Query failed with status %d", response.getStatus()));
+          jobs.outputs(job.id(), failure.asOutputs());
+          return jobs.failure(failure.getDetail());
         }
 
         String resultPath =

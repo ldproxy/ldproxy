@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import dagger.Lazy
 import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber
 import de.ii.ogcapi.common.domain.async.JobContextAsync
+import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.common.domain.async.JobResultsSelector
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType
@@ -139,6 +140,24 @@ class AsyncJobsImplSpec extends Specification {
 
         where:
         jobOutputs << [[:], outputs(JobResultFile.of(RESULT, "application/json"))]
+    }
+
+    def "the result of a failed job with a stated reason is a problem with its status, type and detail: #reason"() {
+        given:
+        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_PROCESSES), reason.asOutputs(), ["boom"])
+
+        when:
+        AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
+
+        then:
+        document.status == status
+        document.mediaType == new MediaType("application", "problem+json")
+        new ObjectMapper().readValue(content(document), Map) == problem
+
+        where:
+        reason                                                          || status | problem
+        JobFailure.of(422, "Failed as requested.")                      || 422    | [status: 422, title: "Unprocessable Entity", detail: "Failed as requested."]
+        JobFailure.of(400, "https://example.org/bad-value", "Bad value.") || 400  | [type: "https://example.org/bad-value", status: 400, title: "Bad Request", detail: "Bad value."]
     }
 
     def "the outputs of a failed job are a bad request"() {

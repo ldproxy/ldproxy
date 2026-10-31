@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.transactions.app
 
+import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.OgcApi
@@ -253,7 +254,9 @@ class TransactionJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.FAILURE
         result.messages() == ["Transaction api/d1/002.xml failed with status 422, see api/result_job-1/002.result.json"]
         applied == ["<one/>", "<two/>"]
-        jobs.outputs == [resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]]
+        // the status of the rejected document is the reason for the failure of the job
+        jobs.outputs == JobFailure.of(422, "Transaction api/d1/002.xml failed with status 422, see api/result_job-1/002.result.json")
+                .addTo([resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]])
         !files.containsKey(Path.of("api/result_job-1/003.result.json"))
         jobs.updates.isEmpty()
     }
