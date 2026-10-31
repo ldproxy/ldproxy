@@ -1994,7 +1994,7 @@
         },
         "supportsStandardResponseParameters": {
           "title": "supportsStandardResponseParameters",
-          "description": "The feature collection element referenced in `featureCollectionElementName` may support    the WFS 2.0 standard response parameters (`timeStamp`, `numberMatched`, `numberReturned`).    This configuration parameter controls whether the attributes are included in the feature    collection element as XML attributes.",
+          "description": "The feature collection element referenced in `featureCollectionElementName` may support    the WFS 2.0 standard response parameters (`timeStamp`, `numberMatched`, `numberReturned`).    This configuration parameter controls whether the attributes are included in the feature    collection element as XML attributes. If the number of features is not known when the    response starts, e.g. for a search that is returned in one pass, `numberMatched` is    `unknown` and `numberReturned` is `0`, since WFS 2.0 requires a number.",
           "oneOf": [
             {
               "type": "boolean"
