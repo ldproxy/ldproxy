@@ -7,11 +7,14 @@
  */
 package de.ii.ogcapi.processes.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import jakarta.validation.constraints.Min;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import org.immutables.value.Value;
 
 /**
@@ -33,8 +36,31 @@ import org.immutables.value.Value;
 public interface OgcInputDescription extends OgcDescriptionType, OgcSchemaAndOccurrences {
 
   enum Passing {
-    BY_VALUE
+    BY_VALUE;
+
     // BY_REFERENCE
+
+    // the value in the specification, e.g. "byValue"
+    @JsonValue
+    public String toValue() {
+      String[] words = name().toLowerCase(Locale.ROOT).split("_");
+      StringBuilder value = new StringBuilder(words[0]);
+      for (int i = 1; i < words.length; i++) {
+        value.append(Character.toUpperCase(words[i].charAt(0))).append(words[i].substring(1));
+      }
+      return value.toString();
+    }
+
+    // accepts the specification value as well as the enum name used in process definitions
+    @JsonCreator
+    public static Passing fromValue(String value) {
+      for (Passing passing : values()) {
+        if (passing.name().equalsIgnoreCase(value) || passing.toValue().equals(value)) {
+          return passing;
+        }
+      }
+      throw new IllegalArgumentException("Unknown value passing: " + value);
+    }
   }
 
   @SuppressWarnings("UnstableApiUsage")

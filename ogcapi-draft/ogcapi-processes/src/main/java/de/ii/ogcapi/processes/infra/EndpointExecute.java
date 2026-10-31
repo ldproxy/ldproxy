@@ -25,6 +25,9 @@ import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiRequestBody;
+import de.ii.ogcapi.foundation.domain.ImmutableApiResponse;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -125,7 +128,8 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
 
       Map<MediaType, ApiMediaTypeContent> requestContent = getRequestContent(apiData);
-      Map<MediaType, ApiMediaTypeContent> responseContent = getExecutionResponseContent(apiData);
+      Map<MediaType, ApiMediaTypeContent> responseContent =
+          getResponseContent(apiData, JobResultsFormatExtension.class);
 
       ApiOperation.of(
               requestContent,
@@ -140,6 +144,28 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
               TAGS,
               ProcessesCoreBuildingBlock.MATURITY,
               ProcessesCoreBuildingBlock.SPEC)
+          .map(
+              operation ->
+                  ImmutableApiOperation.copyOf(operation)
+                      .withRequestBody(
+                          new ImmutableApiRequestBody.Builder()
+                              .from(operation.getRequestBody().orElseThrow())
+                              .isRequired(true)
+                              .build())
+                      .withAdditionalResponses(
+                          new ImmutableApiResponse.Builder()
+                              .statusCode(ApiOperation.STATUS_201)
+                              .description(
+                                  "The process is executed asynchronously. The status info of the"
+                                      + " job is returned, its URI is in the header `Location`.")
+                              .content(getResponseContent(apiData, JobStatusFormatExtension.class))
+                              .build(),
+                          new ImmutableApiResponse.Builder()
+                              .statusCode(ApiOperation.STATUS_204)
+                              .description(
+                                  "The process was executed synchronously, no outputs were"
+                                      + " requested.")
+                              .build()))
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
 
       definitionBuilder.putResources(path, resourceBuilder.build());
@@ -216,9 +242,11 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
     return resourceFormats;
   }
 
-  // the results and the status info are both available as JSON, the results take precedence
-  private Map<MediaType, ApiMediaTypeContent> getExecutionResponseContent(OgcApiDataV2 apiData) {
+  // the results of a synchronous execution, the status info of an asynchronous one
+  private Map<MediaType, ApiMediaTypeContent> getResponseContent(
+      OgcApiDataV2 apiData, Class<? extends FormatExtension> formatType) {
     return getResourceFormats().stream()
+        .filter(formatType::isInstance)
         .filter(format -> format.isEnabledForApi(apiData))
         .map(FormatExtension::getContent)
         .filter(Objects::nonNull)
@@ -226,7 +254,7 @@ public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
             Collectors.toMap(
                 content -> content.getOgcApiMediaType().type(),
                 content -> content,
-                (results, statusInfo) -> results,
+                (first, second) -> first,
                 LinkedHashMap::new));
   }
 

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.app;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +50,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -110,7 +112,12 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     final OgcExecute executeRequest;
     try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+      // the schema of an execute request allows members that are not specified, they are ignored
+      executeRequest =
+          mapper
+              .readerFor(OgcExecute.class)
+              .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+              .readValue(queryInput.getRequestBody());
     } catch (IOException e) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Could not parse request body", e);
@@ -118,6 +125,11 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       throw new IllegalArgumentException(
           "Could not parse request body into a valid execute request.");
     }
+    // the JSON value null
+    if (Objects.isNull(executeRequest)) {
+      throw new IllegalArgumentException("The request body is not a valid execute request.");
+    }
+    validateUris(executeRequest);
 
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
@@ -132,6 +144,50 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     return executionResponseAsync(queryInput, requestContext, process, executeRequest);
+  }
+
+  // the process and the callbacks are URIs, the callbacks are sent with HTTP
+  static void validateUris(OgcExecute executeRequest) {
+    executeRequest
+        .getProcess()
+        .ifPresent(
+            process -> {
+              if (!isAbsoluteUri(process, false)) {
+                throw new IllegalArgumentException(
+                    "Invalid execute request: 'process' must be a URI, found '%s'."
+                        .formatted(process));
+              }
+            });
+    executeRequest
+        .getSubscriber()
+        .ifPresent(
+            subscriber ->
+                Map.of(
+                        "successUri", subscriber.getSuccessUri(),
+                        "inProgressUri", subscriber.getInProgressUri(),
+                        "failedUri", subscriber.getFailedUri())
+                    .forEach(
+                        (name, uri) ->
+                            uri.filter(value -> !isAbsoluteUri(value, true))
+                                .ifPresent(
+                                    value -> {
+                                      throw new IllegalArgumentException(
+                                          "Invalid execute request: the subscriber '%s' must be an HTTP URI, found '%s'."
+                                              .formatted(name, value));
+                                    })));
+  }
+
+  private static boolean isAbsoluteUri(String value, boolean http) {
+    try {
+      URI uri = new URI(value);
+      return uri.isAbsolute()
+          && (!http
+              || (("http".equalsIgnoreCase(uri.getScheme())
+                      || "https".equalsIgnoreCase(uri.getScheme()))
+                  && Objects.nonNull(uri.getHost())));
+    } catch (URISyntaxException e) {
+      return false;
+    }
   }
 
   // Requirements 19 and 20: the preference only decides if the process supports both modes
