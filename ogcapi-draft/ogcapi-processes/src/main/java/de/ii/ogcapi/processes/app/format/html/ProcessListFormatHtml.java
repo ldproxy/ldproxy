@@ -172,7 +172,7 @@ public class ProcessListFormatHtml
         .uri(URI.create("processes"))
         .i18n(i18n)
         .language(requestContext.getLanguage())
-        .description(i18n.get("processListLink", requestContext.getLanguage()))
+        .description(i18n.get("processListDescription", requestContext.getLanguage()))
         .title(processListTitle)
         .rawLinks(processListResponse.getLinks())
         .user(requestContext.getUser())
