@@ -295,10 +295,6 @@ class OgcApiCoreSpecCollections extends Specification {
                         .id('featureType1')
                         .label('FeatureType 1')
                         .description('foo bar')
-                        .extent(new ImmutableCollectionExtent.Builder()
-                                .spatial(BoundingBox.of(-180.0, -90.0, 180.0, 90.0, OgcCrs.CRS84))
-                                .temporal(new ImmutableTemporalExtent.Builder().build())
-                                .build())
                         .addExtensions(new ImmutableFeaturesCoreConfiguration.Builder()
                                 .enabled(true)
                                 .build())
@@ -341,7 +337,7 @@ class OgcApiCoreSpecCollections extends Specification {
     static def createOgcApiApiEntity(ExtensionRegistry registry, OgcApiDataV2 datasetData) {
         def entity = new OgcApiEntity(null, registry, () -> "", new AppContextTest(), null, new CacheTest(), datasetData)
         entity.updateSpatialExtent("featureType1", BoundingBox.of(-180, -90, 180, 90, OgcCrs.CRS84))
-        entity.updateTemporalExtent("featureType1", TemporalExtent.of(null, null))
+        entity.updateTemporalExtent("featureType1", TemporalExtent.of((String) null, (String) null))
         entity.updateItemCount("featureType1", 0)
         return entity
     }

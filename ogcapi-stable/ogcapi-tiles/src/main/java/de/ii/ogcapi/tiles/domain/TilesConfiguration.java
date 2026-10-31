@@ -21,6 +21,7 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
+import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.tiles.domain.TileAccess;
@@ -470,6 +471,16 @@ public interface TilesConfiguration
     COLLECTIONS,
     ALL
   }
+
+  /**
+   * @langEn Fixed spatial extent for tiles. If set, this bounding box is used as the clip bounding
+   *     box for tile generation instead of the extent derived from the data or the tile matrix set.
+   * @langDe Fester räumlicher Extent für Tiles. Wenn gesetzt, wird diese Bounding Box als
+   *     Clip-Bounding-Box für die Kachelerzeugung verwendet statt des aus den Daten oder dem
+   *     Tile-Matrix-Set abgeleiteten Extents.
+   * @default {}
+   */
+  Optional<BoundingBox> getExtent();
 
   /**
    * @langEn Specifies the data source for the tiles, see [Tile
