@@ -26,11 +26,23 @@ public abstract class JobStatusView extends OgcApiView {
 
   public abstract Optional<Locale> language();
 
+  // the value of the JSON representation, e.g. "running"; not "status", which inside the
+  // statusInfo section of the template resolves to the status of the job
+  @Value.Derived
+  public String statusValue() {
+    return statusInfo().getStatus().name().toLowerCase(Locale.ROOT);
+  }
+
   // keywords
 
   @Value.Derived
   public String jobIdTitle() {
     return i18n().get("jobIdTitle", language());
+  }
+
+  @Value.Derived
+  public String statusTitle() {
+    return i18n().get("jobStatusTitle", language());
   }
 
   @Value.Derived
