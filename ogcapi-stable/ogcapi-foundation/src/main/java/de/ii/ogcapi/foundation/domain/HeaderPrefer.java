@@ -136,13 +136,14 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
    * @return {@code true} if any of the {@code Prefer} header values contains the unparameterised
    *     token (e.g. {@code respond-async}). Matching is case-insensitive and exact: substrings
    *     ({@code respond-async-xyz}) and parameterised values ({@code return=respond-async}) do not
-   *     match.
+   *     match. Parameters of the preference after {@code ;} (RFC 7240, e.g. {@code respond-async;
+   *     x=1}) are ignored.
    */
   public static boolean containsToken(List<String> preferHeaders, String token) {
     if (preferHeaders == null) return false;
     for (String header : preferHeaders) {
-      for (String t : header.split(",")) {
-        if (token.equalsIgnoreCase(t.trim())) return true;
+      for (String preference : header.split(",")) {
+        if (token.equalsIgnoreCase(preference.split(";", 2)[0].trim())) return true;
       }
     }
     return false;
