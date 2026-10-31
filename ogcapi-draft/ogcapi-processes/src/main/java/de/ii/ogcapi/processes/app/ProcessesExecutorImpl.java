@@ -326,22 +326,35 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
   }
 
-  // Requirements 22 and 23: a value may be wrapped in a qualified value, an object with the member
-  // "value"; the wrapper is only removed if the provided value itself does not match the schema
+  // Requirements 22 and 23 and NOTE 3: an object value is encoded as a qualified value, an object
+  // with the member "value", as is a value qualified with a format; so an object with the member
+  // "value" is always a qualified value. A bounding box is a built-in value schema and not wrapped.
+  // Tolerated: an object value without the member "value" is taken as the value itself.
   private Object validValue(String processId, String inputId, OgcSchema schema, Object value) {
-    Optional<String> error = validateInputValue(processId, inputId, schema, value);
-    if (error.isEmpty()) {
-      return value;
+    Object actualValue = isQualifiedValue(schema, value) ? ((Map<?, ?>) value).get("value") : value;
+
+    Optional<String> error = validateInputValue(processId, inputId, schema, actualValue);
+    if (error.isPresent()) {
+      throw new IllegalArgumentException(
+          "Invalid execute request: input '%s' is invalid: %s".formatted(inputId, error.get()));
     }
 
-    if (value instanceof Map<?, ?> qualifiedValue
-        && qualifiedValue.containsKey("value")
-        && validateInputValue(processId, inputId, schema, qualifiedValue.get("value")).isEmpty()) {
-      return qualifiedValue.get("value");
-    }
+    return actualValue;
+  }
 
-    throw new IllegalArgumentException(
-        "Invalid execute request: input '%s' is invalid: %s".formatted(inputId, error.get()));
+  private static boolean isQualifiedValue(OgcSchema schema, Object value) {
+    return value instanceof Map<?, ?> map
+        && map.containsKey("value")
+        && !(isBbox(schema) && map.containsKey("bbox"));
+  }
+
+  private static boolean isBbox(OgcSchema schema) {
+    return schema.getFormat().filter(ProcessesExecutorImpl::isBboxFormat).isPresent();
+  }
+
+  private static boolean isBboxFormat(String format) {
+    return "ogc-bbox".equals(format)
+        || "https://www.opengis.net/def/format/ogcapi-processes/0/ogc-bbox".equals(format);
   }
 
   // Limitation: Not all standard JSON Schema formats and custom formats from OGC-Processes are
