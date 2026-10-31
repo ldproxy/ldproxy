@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.common.domain.async.AsyncSubscriber;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import de.ii.ogcapi.foundation.domain.SchemaFormat;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
@@ -57,6 +58,7 @@ public interface OgcExecute {
         from.getSubscriber().ifPresent(v -> AsyncSubscriber.FUNNEL.funnel(v, into));
       };
 
+  @SchemaFormat("uri")
   Optional<String> getProcess();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
