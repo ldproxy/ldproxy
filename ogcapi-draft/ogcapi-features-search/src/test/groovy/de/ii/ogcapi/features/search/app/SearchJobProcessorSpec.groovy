@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.search.app
 
+import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders
@@ -124,7 +125,7 @@ class SearchJobProcessorSpec extends Specification {
         text("api/result_job-1.json") == FEATURES
     }
 
-    def "a failed query writes no result"() {
+    def "a failed query writes no result, but its status as the reason for the failure"() {
         given:
         response = Response.status(400).entity("bad query").build()
 
@@ -135,7 +136,7 @@ class SearchJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.FAILURE
         result.messages() == ["Query failed with status 400"]
         files.isEmpty()
-        jobs.outputs == null
+        jobs.outputs == JobFailure.of(400, "Query failed with status 400").asOutputs()
         jobs.updates.isEmpty()
     }
 
