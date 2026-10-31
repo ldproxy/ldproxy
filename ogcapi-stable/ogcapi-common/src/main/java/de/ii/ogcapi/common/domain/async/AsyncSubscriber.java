@@ -10,6 +10,7 @@ package de.ii.ogcapi.common.domain.async;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.hash.Funnel;
 import de.ii.ogcapi.foundation.domain.ApiInfo;
+import de.ii.ogcapi.foundation.domain.SchemaFormat;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -36,10 +37,13 @@ public interface AsyncSubscriber {
         from.getMaxRetries().ifPresent(into::putInt);
       };
 
+  @SchemaFormat("uri")
   Optional<String> getSuccessUri();
 
+  @SchemaFormat("uri")
   Optional<String> getInProgressUri();
 
+  @SchemaFormat("uri")
   Optional<String> getFailedUri();
 
   Optional<Integer> getMaxRetries();
