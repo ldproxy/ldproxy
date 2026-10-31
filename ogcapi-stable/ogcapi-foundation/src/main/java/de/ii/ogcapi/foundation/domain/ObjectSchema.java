@@ -18,10 +18,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,19 +39,66 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
       processMethods(clazz, currentClazz, classSchemaCache);
       currentClazz = currentClazz.getSuperclass();
     }
+    // the properties declared in interfaces, e.g. in the interface of a specification schema that
+    // the class implements, unless the class declares them itself
+    for (Class<?> anInterface : getAllInterfaces(clazz)) {
+      processInterfaceMethods(clazz, anInterface, classSchemaCache);
+    }
   }
 
   private void processMethods(
       Class<?> baseClazz, Class<?> clazz, ClassSchemaCache classSchemaCache) {
     for (Method m : clazz.getDeclaredMethods()) {
-      // methods without a value, e.g. Immutables checks, are not properties
-      if (m.getParameterCount() == 0
-          && Modifier.isPublic(m.getModifiers())
-          && m.getReturnType() != void.class
-          && !hasIgnoreAnnotation(m)) {
+      if (isPropertyMethod(m) && (!clazz.isInterface() || isGetter(m))) {
         processMethod(baseClazz, m, classSchemaCache);
       }
     }
+  }
+
+  // other than in classes, interfaces declare also methods that are not serialized, e.g. a
+  // conversion or an Immutables check that returns a normalized instance, so only getters are
+  // properties, as for Jackson
+  private void processInterfaceMethods(
+      Class<?> baseClazz, Class<?> anInterface, ClassSchemaCache classSchemaCache) {
+    for (Method m : anInterface.getDeclaredMethods()) {
+      if (isPropertyMethod(m)
+          && isGetter(m)
+          && (Objects.isNull(getProperties())
+              || !getProperties().containsKey(getPropertyName(m)))) {
+        processMethod(baseClazz, m, classSchemaCache);
+      }
+    }
+  }
+
+  // methods without a value, e.g. Immutables checks, and static methods are not properties
+  private boolean isPropertyMethod(Method m) {
+    return m.getParameterCount() == 0
+        && Modifier.isPublic(m.getModifiers())
+        && !Modifier.isStatic(m.getModifiers())
+        && m.getReturnType() != void.class
+        && !hasIgnoreAnnotation(m);
+  }
+
+  private static boolean isGetter(Method m) {
+    String name = m.getName();
+    return m.isAnnotationPresent(JsonProperty.class)
+        || (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
+        || (name.startsWith("is") && name.length() > 2 && Character.isUpperCase(name.charAt(2)));
+  }
+
+  private static Set<Class<?>> getAllInterfaces(Class<?> clazz) {
+    Set<Class<?>> interfaces = new LinkedHashSet<>();
+    Deque<Class<?>> pending = new ArrayDeque<>();
+    for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+      pending.addAll(Arrays.asList(c.getInterfaces()));
+    }
+    while (!pending.isEmpty()) {
+      Class<?> anInterface = pending.poll();
+      if (anInterface != clazz && interfaces.add(anInterface)) {
+        pending.addAll(Arrays.asList(anInterface.getInterfaces()));
+      }
+    }
+    return interfaces;
   }
 
   private boolean hasIgnoreAnnotation(Method m) {
