@@ -53,15 +53,16 @@ class JobQueriesHandlerImplSpec extends Specification {
         ]
     }
 
-    def "a result document of type application/geo+json is not acceptable for Accept '#accept'"() {
+    def "a result document, the only representation, is returned also for Accept '#accept'"() {
         given:
         jobs.getResultDocument("job-1") >> Optional.of(ImmutableResultDocument.of(GEO_JSON, Stub(StreamingOutput)))
 
         when:
-        results(accept)
+        Response response = results(accept)
 
         then:
-        thrown(NotAcceptableException)
+        response.status == 200
+        response.mediaType == GEO_JSON
 
         where:
         accept << ["image/png", "text/html"]
