@@ -459,7 +459,7 @@ public class FeaturesCoreBuildingBlock
     return Optional.empty();
   }
 
-  private static <T> Optional<T> getConfiguredExtent(
+  static <T> Optional<T> getConfiguredExtent(
       OgcApiDataV2 apiData,
       @Nullable FeatureTypeConfigurationOgcApi collectionData,
       Function<CollectionExtent, Optional<T>> part) {
