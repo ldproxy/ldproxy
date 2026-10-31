@@ -51,6 +51,30 @@ class SecureXmlSpec extends Specification {
         thrown(SAXParseException)
     }
 
+    def "a reader() reused by a validator for several documents rejects a DOCTYPE every time"() {
+        given:
+        def schema = javax.xml.validation.SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI)
+                .newSchema(new javax.xml.transform.stream.StreamSource(new StringReader(
+                        '<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"><xs:element name="foo" type="xs:string"/></xs:schema>')))
+        def validator = schema.newValidator()
+        def reader = SecureXml.reader()
+        String doctype = "<?xml version=\"1.0\"?>\n<!DOCTYPE foo [ <!ENTITY xxe SYSTEM \"file:///etc/passwd\"> ]>\n<foo>&xxe;</foo>"
+        def validate = { String xml ->
+            validator.reset()
+            SecureXml.harden(validator)
+            try {
+                validator.validate(new SAXSource(reader, new InputSource(new StringReader(xml))))
+                return 'valid'
+            } catch (SAXParseException e) {
+                return e.message.toLowerCase().contains('doctype') ? 'doctype rejected' : 'invalid'
+            }
+        }
+
+        expect:
+        ['<foo>a</foo>', doctype, '<foo>b</foo>', doctype, '<bar/>'].collect(validate) ==
+                ['valid', 'doctype rejected', 'valid', 'doctype rejected', 'invalid']
+    }
+
     def "source() parses a well-formed document without a DOCTYPE"() {
         when:
         parseWithSource("<foo><bar>baz</bar></foo>")

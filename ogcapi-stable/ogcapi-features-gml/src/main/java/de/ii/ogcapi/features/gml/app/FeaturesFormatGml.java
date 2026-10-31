@@ -93,6 +93,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -104,6 +105,7 @@ import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
 
 /**
  * @title GML
@@ -221,6 +223,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
   // unsafe usage.
   private final ThreadLocal<Map<Schema, Validator>> validatorPool =
       ThreadLocal.withInitial(IdentityHashMap::new);
+  // Creating the hardened reader for the instance document (parser configuration) is about as
+  // costly as creating a Validator, so it is kept per thread as well; see SecureXml.reader().
+  private final ThreadLocal<XMLReader> readerPool = ThreadLocal.withInitial(SecureXml::reader);
   private final ConcurrentMap<Integer, ConcurrentMap<String, SchemaMapping>> schemaMappingCache =
       new ConcurrentHashMap<>();
   // Effective namespace prefix map per (api, collection): the configured application namespaces
@@ -760,7 +765,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     try {
       // The instance document is attacker-supplied (WFS-T request body); parse it through a reader
       // hardened against XXE and entity expansion. See SecureXml.
-      validator.validate(SecureXml.source(new InputSource(new StringReader(content))));
+      validator.validate(
+          new SAXSource(readerPool.get(), new InputSource(new StringReader(content))));
     } catch (SAXException e) {
       throw new IllegalArgumentException(
           "XML content is invalid, feature mutation is rejected: " + e.getMessage(), e);
