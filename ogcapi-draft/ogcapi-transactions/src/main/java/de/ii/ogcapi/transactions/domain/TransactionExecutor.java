@@ -56,9 +56,9 @@ public interface TransactionExecutor extends Volatile2 {
 
   /**
    * @param jobHook progress/cancellation hook for the request; empty leaves execution unchanged.
-   *     Cancellation is observed cooperatively: before each action and between insert batches.
-   *     Atomic: a cancelled transaction is rolled back as a whole. Batch: actions committed before
-   *     the cancellation stay committed, the rest are not executed.
+   *     Cancellation is observed cooperatively: before each action and every 100 features of an
+   *     insert. Atomic: a cancelled transaction is rolled back as a whole. Batch: actions committed
+   *     before the cancellation stay committed, the rest are not executed.
    */
   ExecutionResult execute(
       Transaction transaction,

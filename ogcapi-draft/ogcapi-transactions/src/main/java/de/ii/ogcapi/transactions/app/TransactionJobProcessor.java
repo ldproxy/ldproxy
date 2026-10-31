@@ -97,9 +97,9 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
    *
    * <p>A document compressed with gzip is recognized by its content and decompressed.
    *
-   * <p>A cancellation of the job is observed before each action and between insert batches: an
-   * atomic transaction is rolled back, in a batch the actions executed before stay committed. A
-   * folder is not continued after a cancellation.
+   * <p>A cancellation of the job is observed before each action and every 100 features of an
+   * insert: an atomic transaction is rolled back, in a batch the actions executed before stay
+   * committed. A folder is not continued after a cancellation.
    */
   @Override
   public JobResult execute(
