@@ -23,14 +23,21 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
+import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
+import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.xtralink.jobs.Identifiers.Status;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
+import de.ii.xtraplatform.entities.domain.EntityRegistry;
+import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
+import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -61,6 +68,9 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
   private final HttpClient httpClient;
   private final Lazy<Set<JobResultsSelector>> resultsSelectors;
   private final ResourceStore resourceStore;
+  private final EntityRegistry entityRegistry;
+  private final ServicesContext servicesContext;
+  private final I18n i18n;
 
   @Inject
   AsyncJobsImpl(
@@ -68,12 +78,18 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
       Jackson jackson,
       Http http,
       Lazy<Set<JobResultsSelector>> resultsSelectors,
-      ResourceStore resourceStore) {
+      ResourceStore resourceStore,
+      EntityRegistry entityRegistry,
+      ServicesContext servicesContext,
+      I18n i18n) {
     this.jobs = jobs;
     this.mapper = jackson.getDefaultObjectMapper();
     this.httpClient = http.getDefaultClient();
     this.resultsSelectors = resultsSelectors;
     this.resourceStore = resourceStore;
+    this.entityRegistry = entityRegistry;
+    this.servicesContext = servicesContext;
+    this.i18n = i18n;
   }
 
   private Optional<Job> getAsyncJob(String jobId) {
@@ -327,7 +343,8 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
               .get()
               .getFailedUri()
               .ifPresent(uri -> postStatusInfo(job, uri, callbackRetries, false));
-      // a running job with errors is about to fail, the failed callback follows
+      // a running job with errors is about to fail, the failed callback follows; at 100 % the
+      // callback is still sent, it may be the only one a client subscribed to
       case RUNNING -> {
         if (job.errors().isEmpty()) {
           subscriber.get().getInProgressUri().ifPresent(uri -> postStatusInfo(job, uri, 0, true));
@@ -350,9 +367,21 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     postJson(job.id(), uri, callbackRetries, false, payload);
   }
 
+  // A callback is not a response to a request, so the links of the status info are derived from
+  // the URL of the API of the job; the titles are in the default language.
   private void postStatusInfo(Job job, String uri, int callbackRetries, boolean ignoreError) {
+    OgcApiJobStatus statusInfo = OgcApiJobStatusInfo.of(job);
+    List<Link> links =
+        entityRegistry
+            .getEntity(OgcApi.class, JobContextEntity.from(job.context()))
+            .map(
+                api ->
+                    new StatusInfoLinksGenerator()
+                        .generateMonitorLinks(
+                            servicesContext.getApiUri(api.getData()), i18n, statusInfo))
+            .orElse(List.of());
     OgcApiJobStatusInfo statusInfoResponse =
-        new ImmutableOgcApiJobStatusInfo.Builder().from(OgcApiJobStatusInfo.of(job)).build();
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
 
     postJson(job.id(), uri, callbackRetries, ignoreError, toJson(statusInfoResponse));
   }

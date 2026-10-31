@@ -110,10 +110,8 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
           "The job has been dismissed and is no longer available: " + jobId);
     }
 
-    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
     List<Link> links =
-        linkGenerator.generateLinks(
-            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 0);
+        new StatusInfoLinksGenerator().generateLinks(requestContext, i18n, statusInfo);
 
     OgcApiJobStatusInfo statusInfoResponse =
         new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
@@ -245,13 +243,9 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
     OgcApiJobStatus statusInfo =
         jobAccess.dismissJob(jobId).orElseThrow(() -> noSuchJob(jobId, requestContext));
 
-    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
-    List<Link> links =
-        linkGenerator.generateLinks(
-            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 1);
-
+    // the job is removed, so there is nothing left to link
     OgcApiJobStatusInfo statusInfoResponse =
-        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -268,7 +262,7 @@ public class JobQueriesHandlerImpl implements JobQueriesHandler {
 
     return prepareSuccessResponse(
             requestContext,
-            queryInput.getIncludeLinkHeader() ? links : null,
+            null,
             HeaderCaching.of(lastModified, etag, queryInput),
             null,
             HeaderContentDisposition.of(
