@@ -28,6 +28,8 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiResponse;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -50,10 +52,12 @@ import org.slf4j.LoggerFactory;
 /**
  * @title Dismiss Job
  * @path jobs/{jobId}
- * @langEn Dismiss a job. If the job is currently in the accepted or running state, its status is
- *     set to dismissed. Otherwise, nothing is changed.
- * @langDe Einen Job abbrechen. Wenn sich der Job aktuell im Zustand "accepted" oder "running"
- *     befindet, wird sein Status auf "dismissed" gesetzt. Andernfalls wird nichts geändert.
+ * @langEn Dismiss a job. If the job is currently in the accepted or running state, it is cancelled.
+ *     Then the job and its results are removed. The response is the status info of the dismissed
+ *     job.
+ * @langDe Einen Job verwerfen. Wenn sich der Job aktuell im Zustand "accepted" oder "running"
+ *     befindet, wird er abgebrochen. Danach werden der Job und seine Ergebnisse entfernt. Die
+ *     Antwort sind die Statusinformationen des verworfenen Jobs.
  * @ref:formats {@link de.ii.ogcapi.common.domain.async.JobStatusFormatExtension}
  */
 @Singleton
@@ -100,7 +104,7 @@ public class EndpointDismiss extends Endpoint implements ConformanceClass {
       String operationSummary = "Dismiss a job";
       Optional<String> operationDescription =
           Optional.of(
-              "If the job is currently in the accepted or running state, its status is set to dismissed. Otherwise, nothing is changed.");
+              "If the job is currently in the accepted or running state, it is cancelled. Then the job and its results are removed. The response is the status info of the dismissed job.");
 
       ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
           new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
@@ -120,6 +124,16 @@ public class EndpointDismiss extends Endpoint implements ConformanceClass {
               AsyncBuildingBlock.MATURITY,
               AsyncBuildingBlock.SPEC,
               false)
+          // Requirement 116: the status info of the dismissed job
+          .map(
+              operation ->
+                  ImmutableApiOperation.copyOf(operation)
+                      .withSuccess(
+                          new ImmutableApiResponse.Builder()
+                              .statusCode(ApiOperation.STATUS_200)
+                              .description("The status info of the dismissed job.")
+                              .content(getResponseContent(apiData))
+                              .build()))
           .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
 
       definitionBuilder.putResources(path, resourceBuilder.build());

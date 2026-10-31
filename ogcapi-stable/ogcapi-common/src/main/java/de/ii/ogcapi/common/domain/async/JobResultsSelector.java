@@ -25,4 +25,9 @@ public interface JobResultsSelector {
       String kind,
       String resultKey,
       int resultIndex);
+
+  /** Whether the output can have more than one value, e.g. with {@code maxOccurs} above 1. */
+  default boolean isMultiValued(Map<String, Object> context, String kind, String resultKey) {
+    return false;
+  }
 }

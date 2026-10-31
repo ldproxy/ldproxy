@@ -126,8 +126,14 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
       return job.get();
     }
 
+    // failed without a result or dismissed
     if (status != Status.SUCCESSFUL) {
-      throw new BadRequestException("Status of job '" + jobId + "' is not SUCCESSFUL");
+      throw new TypedClientErrorException(
+          "No results are available for job '%s'.".formatted(jobId),
+          Response.Status.NOT_FOUND,
+          JobContextAsync.entityTypeFrom(job.get().context())
+              .exceptionType("result-not-available")
+              .orElse(null));
     }
 
     return job.get();
@@ -306,11 +312,25 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
 
     int size = list.size();
     if (size <= resultIndex) {
-      throw new IllegalArgumentException(
-          "Out of bound for '%d' (list size: %d)".formatted(resultIndex, size));
+      throw new NotFoundException(
+          "The output '%s' has no value with index %d, the number of values is %d."
+              .formatted(resultKey, resultIndex, size));
     }
 
     return list.get(resultIndex);
+  }
+
+  @Override
+  public boolean isMultiValued(String jobId, String outputId) {
+    Job job = getNamedOutputsJobCheck(jobId);
+
+    for (JobResultsSelector selector : resultsSelectors.get()) {
+      if (selector.canHandle(job.context())) {
+        return selector.isMultiValued(job.context(), job.kind(), outputId);
+      }
+    }
+
+    return job.outputs().get(outputId) instanceof List;
   }
 
   @Override
