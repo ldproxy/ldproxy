@@ -22,8 +22,9 @@ import spock.lang.Specification
  *
  * <ul>
  *   <li>root-element validation and end-to-end iteration over multiple actions
- *   <li>{@code wfs:Insert} emits one TxInsert per consecutive-same-collection group of
- *       children, with every feature pre-buffered and exposed via its items() iterator
+ *   <li>{@code wfs:Insert} emits one TxInsert for the collection of its first feature, whose
+ *       items() iterator reads the features from the body; features of other collections follow
+ *       as one TxInsert per collection
  *   <li>{@code wfs:Replace} / {@code wfs:Update} / {@code wfs:Delete} parse the
  *       collection name, fes:ResourceId/@rid filter, and per-property modify/delete lists
  *   <li>only {@code fes:ResourceId/@rid} filters are accepted (anything else is a hard error)
@@ -512,6 +513,129 @@ class WfsTransactionParserSpec extends Specification {
 
         then:
         types == [TxActionType.INSERT, TxActionType.UPDATE, TxActionType.DELETE]
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'wfs:Insert features are read from the body while items() is iterated'() {
+        given:
+        def features = (1..2000).collect { "<ax:AX_Buildings><ax:id>${it}</ax:id></ax:AX_Buildings>" }.join('\n')
+        def body = """<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert>
+                ${features}
+              </wfs:Insert>
+            </wfs:Transaction>""".getBytes('UTF-8')
+        def bytesRead = new java.util.concurrent.atomic.AtomicLong()
+        def counting = new FilterInputStream(new ByteArrayInputStream(body)) {
+            @Override
+            int read() throws IOException {
+                int b = super.read()
+                if (b >= 0) bytesRead.incrementAndGet()
+                return b
+            }
+
+            @Override
+            int read(byte[] buf, int off, int len) throws IOException {
+                int n = super.read(buf, off, len)
+                if (n > 0) bytesRead.addAndGet(n)
+                return n
+            }
+        }
+
+        when:
+        def tx = parser.parse(counting, XML)
+        def it = tx.actions()
+        def insert = (TxInsert) it.next()
+        def items = insert.items()
+        def first = new String(items.next().payload().readAllBytes(), 'UTF-8')
+        def readAfterFirst = bytesRead.get()
+        def count = 1
+        while (items.hasNext()) {
+            items.next()
+            count++
+        }
+
+        then:
+        first.contains('<ax:id>1</ax:id>')
+        readAfterFirst < body.length / 4
+        count == 2000
+        !it.hasNext()
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'features of another collection in the same wfs:Insert follow as their own TxInsert'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert handle="ins-1">
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+                <ax:AX_Roads><ax:id>r1</ax:id></ax:AX_Roads>
+                <ax:AX_Buildings><ax:id>2</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>3</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def it = tx.actions()
+        def actions = []
+        while (it.hasNext()) {
+            def insert = (TxInsert) it.next()
+            def ids = []
+            def items = insert.items()
+            while (items.hasNext()) {
+                def payload = new String(items.next().payload().readAllBytes(), 'UTF-8')
+                ids << (payload =~ /<ax:id>([^<]*)<\/ax:id>/)[0][1]
+            }
+            actions << [insert.collectionId, insert.actionId.orElse(null), ids]
+        }
+
+        then: 'a wfs:Insert with features of another collection is not merged with its sibling'
+        actions == [
+                ['AX_Buildings', 'ins-1', ['1', '2']],
+                ['AX_Roads', 'ins-1', ['r1']],
+                ['AX_Buildings', null, ['3']]
+        ]
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'the unread features of an insert are skipped when the next action is requested'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:fes="http://www.opengis.net/fes/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+                <ax:AX_Buildings><ax:id>2</ax:id></ax:AX_Buildings>
+                <ax:AX_Buildings><ax:id>3</ax:id></ax:AX_Buildings>
+              </wfs:Insert>
+              <wfs:Delete typeName="ax:AX_Buildings">
+                <fes:Filter><fes:ResourceId rid="9"/></fes:Filter>
+              </wfs:Delete>
+            </wfs:Transaction>'''
+
+        when:
+        def tx = parser.parse(bytes(body), XML)
+        def it = tx.actions()
+        def insert = (TxInsert) it.next()
+        insert.items().next()
+        def next = it.next()
+
+        then:
+        next instanceof TxDelete
+        ((TxDelete) next).collectionId == 'AX_Buildings'
+        !it.hasNext()
 
         cleanup:
         tx.close()
