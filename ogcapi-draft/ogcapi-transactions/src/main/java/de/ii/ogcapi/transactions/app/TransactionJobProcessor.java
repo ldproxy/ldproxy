@@ -248,9 +248,15 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
   private JobResult cancelled(Job job, JobProcessing jobs, @Nullable Applied applied) {
     if (applied == null) {
       LOGGER.info("Transaction job {} was cancelled before the next document", job.id());
+    } else if (applied.rejected()) {
+      // an atomic transaction is rolled back, a batch keeps the actions committed before
+      LOGGER.info(
+          "Transaction job {} was cancelled, the transaction was stopped (response status {})",
+          job.id(),
+          applied.status());
     } else {
       LOGGER.info(
-          "Transaction job {} was cancelled, the transaction ended with status {}",
+          "Transaction job {} was cancelled after the transaction was applied (response status {})",
           job.id(),
           applied.status());
     }
