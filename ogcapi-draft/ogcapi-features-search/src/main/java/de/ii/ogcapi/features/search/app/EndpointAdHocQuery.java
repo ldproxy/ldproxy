@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -254,6 +255,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             TAGS,
             SearchBuildingBlock.MATURITY,
             SearchBuildingBlock.SPEC)
+        .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
         .ifPresent(operation -> resourceBuilder.putOperations(method.toString(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
