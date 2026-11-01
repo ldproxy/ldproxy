@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
+import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
@@ -32,6 +33,12 @@ public interface SearchQueriesHandler
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
+
+  /**
+   * Validates a query as its execution would, without executing it, e.g. before the query is
+   * submitted as a job. An invalid query fails with the same exception as its execution.
+   */
+  void validate(QueryInputQuery queryInput, ApiRequestContext requestContext);
 
   enum Query implements QueryIdentifier {
     STORED_QUERIES,
