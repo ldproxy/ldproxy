@@ -15,6 +15,7 @@ import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
+import de.ii.ogcapi.processes.domain.model.ProcessJobOptions;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
@@ -49,6 +50,9 @@ public interface OapJob extends JobInputs {
       Map<String, Object> inputs,
       long ttlSeconds) {
     ImmutableOapJob oapJob = new ImmutableOapJob.Builder().inputs(inputs).build();
+    ProcessJobOptions options = process.getJob();
+    List<String> partials =
+        options.getPartials().stream().map(partial -> kind(process.getId(), partial)).toList();
     JobConfiguration job =
         Jobs.create(
             kind(process.getId()),
@@ -58,7 +62,7 @@ public interface OapJob extends JobInputs {
             oapJob,
             new OapJobContext(apiId, executeRequest, process.getId()),
             null,
-            List.of(kind(process.getId(), "execute")),
+            partials,
             Optional.of((int) ttlSeconds));
 
     return new JobConfiguration(
@@ -69,10 +73,10 @@ public interface OapJob extends JobInputs {
         job.inputs(),
         job.context(),
         job.progress(),
-        process.getJobSetup(),
-        process.getJobCleanup(),
+        options.getSetup(),
+        options.getCleanup(),
         job.partials(),
-        job.sequential(),
+        options.getSequential(),
         job.followUps(),
         job.ttlSeconds());
   }

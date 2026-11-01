@@ -23,26 +23,13 @@ import org.immutables.value.Value;
 public interface ProcessData extends StoredValue, OgcProcess {
 
   /**
-   * @langEn Whether the job of an execution starts with a setup step `oap:{processId}:setup`. The
-   *     step `oap:{processId}:execute` is then queued once setup succeeded, otherwise directly.
-   * @langDe Ob der Job einer Ausführung mit einem Setup-Schritt `oap:{processId}:setup` beginnt.
-   *     Der Schritt `oap:{processId}:execute` wird dann eingereiht, sobald das Setup erfolgreich
-   *     war, sonst direkt.
-   * @default false
+   * @langEn The steps of the job that runs an execution.
+   * @langDe Die Schritte des Jobs, der eine Ausführung durchführt.
+   * @default {}
    */
   @Value.Default
-  default boolean getJobSetup() {
-    return false;
-  }
-
-  /**
-   * @langEn Whether the job of an execution ends with a cleanup step `oap:{processId}:cleanup`.
-   * @langDe Ob der Job einer Ausführung mit einem Cleanup-Schritt `oap:{processId}:cleanup` endet.
-   * @default false
-   */
-  @Value.Default
-  default boolean getJobCleanup() {
-    return false;
+  default ProcessJobOptions getJob() {
+    return new ImmutableProcessJobOptions.Builder().build();
   }
 
   abstract class Builder implements ValueBuilder<ProcessData> {}
