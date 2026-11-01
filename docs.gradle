@@ -3,7 +3,7 @@ apply plugin: 'de.undercouch.download'
 
 node {
     version = '20.10.0'
-    yarnVersion = 'berry'
+    nodeProjectDir = new File(project.buildDir, 'markdown')
     download = project.findProperty('downloadNode') != 'false' ?: false
     // do not declare the repository, that is not allowed outside of settings.gradle
     // it is automatically added by the settings plugin
@@ -113,25 +113,27 @@ tasks.register('markdownAssemble', Copy) {
     from file('src/markdown')
     into new File(project.buildDir, 'markdown')
     include "*.*"
-    include ".yarn/releases/*.*"
 }
 
-yarn_install {
+npmInstall {
     dependsOn tasks.named("docsAssemble")
     dependsOn tasks.named("markdownAssemble")
     inputs.file("${project.workingDir}/package.json")
-    inputs.file("${project.workingDir}/yarn.lock")
-    outputs.dir("${project.workingDir}/node_modules")
-    outputs.dir("${project.workingDir}/.yarn/cache")
+    inputs.file("${project.workingDir}/package-lock.json")
+    // node_modules has tens of thousands of files, fingerprinting all of them is expensive,
+    // npm's hidden lockfile is enough to detect whether an install is needed
+    nodeModulesOutputFilter {
+        include '.package-lock.json'
+    }
     execOverrides {
         it.workingDir = project.workingDir
     }
 }
 
-task docsVuepress(type: YarnTask) {
-    dependsOn yarn_install
+task docsVuepress(type: NpmTask) {
+    dependsOn npmInstall
     inputs.file("${project.workingDir}/package.json")
-    inputs.file("${project.workingDir}/yarn.lock")
+    inputs.file("${project.workingDir}/package-lock.json")
     inputs.dir("${project.workingDir}/docs")
     outputs.dir("${project.workingDir}/docs/.vuepress/dist")
     execOverrides {
@@ -140,10 +142,10 @@ task docsVuepress(type: YarnTask) {
     args = ['run', 'docs:build']
 }
 
-task docsVuepressDev(type: YarnTask) {
-    dependsOn yarn_install
+task docsVuepressDev(type: NpmTask) {
+    dependsOn npmInstall
     inputs.file("${project.workingDir}/package.json")
-    inputs.file("${project.workingDir}/yarn.lock")
+    inputs.file("${project.workingDir}/package-lock.json")
     inputs.dir("${project.workingDir}/docs")
     outputs.upToDateWhen { false }
     execOverrides {
