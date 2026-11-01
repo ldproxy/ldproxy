@@ -59,11 +59,7 @@ class XtralinkJobProtocolSpec extends Specification {
 
     private static JobResult process(String kind, String partialJobId, Job job) {
         if (kind.endsWith(':setup')) {
-            // mirrors JobProcessorSimple.presetup: job total 1, execute partial with total 1
-            JobQueue.init(job.id(), new InitProgress(1, null))
-            JobQueue.pushPartial(new PartialJobConfiguration(
-                    kind.replace(':setup', ':execute'), job.priority(), job.id(),
-                    new JobProgress(0, 1, 0, null), List.of(), Optional.empty(), Map.of()))
+            // the backend queues the execute partial once setup succeeded
             return new JobResult(Identifiers.Result.SUCCESS, List.of())
         }
         if (kind.endsWith(':cleanup')) {
@@ -128,7 +124,8 @@ class XtralinkJobProtocolSpec extends Specification {
 
     private static JobConfiguration jobConfiguration(String kind) {
         return new JobConfiguration(kind, 1, 'Spec job', '', Map.of(), Map.of(),
-                new JobProgress(0, 0, 0, null), true, true, List.of(), Optional.empty())
+                new JobProgress(0, 0, 0, null), true, true, List.of(kind + ':execute'), false, List.of(),
+                Optional.empty())
     }
 
     private static Job awaitTerminal(String jobId) {

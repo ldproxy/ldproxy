@@ -397,7 +397,7 @@ class AsyncJobsImplSpec extends Specification {
 
     private static Job job(Status status, Map<String, Object> context, Map<String, Object> outputs, List<String> errors = [], int percent = 0) {
         new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, percent, null), status, errors,
-                context, null, null, [:], outputs, Optional.empty(), Optional.empty(), [], Optional.empty(),
+                context, null, null, [:], outputs, Optional.empty(), Optional.empty(), [], [], Optional.empty(),
                 Optional.empty())
     }
 

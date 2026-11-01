@@ -18,6 +18,7 @@ import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -57,6 +58,7 @@ public interface OapJob extends JobInputs {
             oapJob,
             new OapJobContext(apiId, executeRequest, process.getId()),
             null,
+            List.of(kind(process.getId(), "execute")),
             Optional.of((int) ttlSeconds));
 
     return new JobConfiguration(
@@ -69,6 +71,8 @@ public interface OapJob extends JobInputs {
         job.progress(),
         process.getJobSetup(),
         process.getJobCleanup(),
+        job.partials(),
+        job.sequential(),
         job.followUps(),
         job.ttlSeconds());
   }

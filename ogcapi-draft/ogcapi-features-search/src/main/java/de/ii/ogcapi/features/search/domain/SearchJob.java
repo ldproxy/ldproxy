@@ -12,7 +12,9 @@ import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
+import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple.Phase;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -58,6 +60,7 @@ public interface SearchJob extends JobInputs {
         searchJob,
         new JobContextAsync(apiId, EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()),
         null,
+        List.of(Phase.EXECUTE.getPartialKind(KIND)),
         Optional.of((int) ttlSeconds));
   }
 
