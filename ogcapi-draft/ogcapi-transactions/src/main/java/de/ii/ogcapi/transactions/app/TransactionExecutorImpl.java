@@ -93,8 +93,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -631,18 +633,55 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     boolean ignoreExisting =
         preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
     List<String> ignoredIds = new ArrayList<>();
-    // the canonical ids of the items in the batch that is not written yet, see the pre-flight
-    Set<String> batchedIds = new HashSet<>();
+    // With the pre-flight, the items are read ahead in groups of INSERT_BATCH_SIZE and their ids
+    // checked with one query; the ids of the group of which a version exists, and the ids of the
+    // group that are written or in the batch since then, which the query could not see
+    Deque<InsertItem> readAhead = new ArrayDeque<>(INSERT_BATCH_SIZE);
+    Set<String> conflictingIds = new HashSet<>();
+    Set<String> acceptedIds = new HashSet<>();
     int itemCount = 0;
     Iterator<InsertItem> items = action.items();
-    while (items.hasNext()) {
+    while (!readAhead.isEmpty() || items.hasNext()) {
       // cooperative cancellation every INSERT_BATCH_SIZE items, counted independently of the
       // batch flushes, since an id override flushes the batch per item; the exception is turned
       // into a CANCELLED result in runAction
       if (++itemCount % INSERT_BATCH_SIZE == 0) {
         jobHook.ifPresent(JobHook::checkpoint);
       }
-      InsertItem item = items.next();
+      if (preflight && readAhead.isEmpty()) {
+        // the batch is written first, so the query sees all items before the group
+        if (!batch.isEmpty()) {
+          ActionResult failedBatch =
+              flushInsertBatch(
+                  action,
+                  apiData,
+                  session,
+                  featureType,
+                  batch,
+                  batchItems,
+                  requestCrs,
+                  ids,
+                  extents,
+                  roleOverrides);
+          if (failedBatch != null) return failedBatch;
+        }
+        List<String> groupIds = new ArrayList<>(INSERT_BATCH_SIZE);
+        while (readAhead.size() < INSERT_BATCH_SIZE && items.hasNext()) {
+          InsertItem next = items.next();
+          readAhead.add(next);
+          next.featureId()
+              .map(
+                  raw -> strategy.splitCompositeId(apiData, canonicalCollectionId, raw).canonical())
+              .ifPresent(groupIds::add);
+        }
+        MutationResult check = session.findConflictingVersions(featureType, groupIds);
+        if (check.getError().isPresent()) {
+          return failed(canonicalCollectionId, action, check.getError().get(), groupIds);
+        }
+        conflictingIds = new HashSet<>(check.getIds());
+        acceptedIds.clear();
+      }
+      InsertItem item = readAhead.isEmpty() ? items.next() : readAhead.poll();
       // Composite-id split: the raw gml:id may carry a uniqueness suffix; the
       // canonical id is what we check / write. Items without a featureId pass through unchanged.
       Optional<CompositeId> compositeForItem =
@@ -660,19 +699,25 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             chainRejectError(canonicalCollectionId, canonicalIdForItem.get(), action),
             List.of(canonicalIdForItem.get()));
       }
-      if (preflight && canonicalIdForItem.isPresent()) {
+      if (preflight
+          && canonicalIdForItem.isPresent()
+          && (conflictingIds.contains(canonicalIdForItem.get())
+              || acceptedIds.contains(canonicalIdForItem.get()))) {
         // Versioned-Insert pre-flight: refuse to write if any version of this id already exists
-        // (open or retired). Adding new versions of an existing feature goes through Replace /
-        // Update / Delete; Insert is reserved for brand-new ids.
+        // (open or retired), also from an earlier item of the action (an Insert/Insert pair for
+        // the same id). Adding new versions of an existing feature goes through Replace / Update /
+        // Delete; Insert is reserved for brand-new ids.
         //
-        // The check does not see the items of the batch that is not written yet. Only an item
-        // with the same id as one of them would be affected (an Insert/Insert pair for the same id
-        // within one action, the second insert would otherwise miss the first), so only then the
-        // batch is written first; otherwise the batch keeps growing.
-        if (batch.isEmpty()) {
-          batchedIds.clear();
+        // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
+        // object the recipient already has); the item is skipped and reported in the summary
+        // warnings of the transaction.
+        if (ignoreExisting) {
+          ignoredIds.add(canonicalIdForItem.get());
+          continue;
         }
-        if (batchedIds.contains(canonicalIdForItem.get())) {
+        // the error comes from the check of the single id, which has to see an earlier item of
+        // the action with the id in the batch
+        if (!batch.isEmpty() && acceptedIds.contains(canonicalIdForItem.get())) {
           ActionResult failedBatch =
               flushInsertBatch(
                   action,
@@ -686,18 +731,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   extents,
                   roleOverrides);
           if (failedBatch != null) return failedBatch;
-          batchedIds.clear();
         }
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
-          // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
-          // object the recipient already has); the item is skipped and reported in the summary
-          // warnings of the transaction.
-          if (ignoreExisting) {
-            ignoredIds.add(canonicalIdForItem.get());
-            continue;
-          }
           return failed(
               canonicalCollectionId,
               action,
@@ -774,11 +811,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   extents,
                   perItemOverrides);
           if (failedSingle != null) return failedSingle;
+          acceptedIds.add(canonicalIdForItem.get());
           continue;
         }
         batch.add(source);
         batchItems.add(item);
-        canonicalIdForItem.ifPresent(batchedIds::add);
+        canonicalIdForItem.ifPresent(acceptedIds::add);
       } catch (java.io.IOException e) {
         return failedInsert(action, apiData, batchItems, e);
       }

@@ -31,16 +31,16 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 
 /**
- * The versioned-insert pre-flight checks every feature id against the database. Inserts are still
- * written in batches: the batch is only written before the check when the id repeats an id of the
- * batch, since the check cannot see features that are not written yet.
+ * The versioned-insert pre-flight checks the ids of the next 100 items with one query, before the
+ * items are written in batches. The id of a single item is only checked again for a conflict, for
+ * its error; an id that repeats an id of the batch writes the batch first, so that check finds it.
  *
  * <p>Decoding is replaced through the package-private {@code axes} and {@code decodeFeature} seams, the session is a
  * recording fake that knows which ids are "in the database".
  */
 class TransactionExecutorInsertBatchSpec extends Specification {
 
-    def 'without repeated ids the features are written in batches of 100'() {
+    def 'without repeated ids the features are written in batches of 100, with one check per batch'() {
         given:
         RecordingSession session = new RecordingSession()
         List<String> ids = (1..250).collect { "f$it".toString() }
@@ -51,7 +51,8 @@ class TransactionExecutorInsertBatchSpec extends Specification {
         then:
         result.status == ActionStatus.SUCCESS
         session.batches*.size() == [100, 100, 50]
-        session.checked == ids
+        session.groups == [ids[0..99], ids[100..199], ids[200..249]]
+        session.checked.isEmpty()
         result.featureIds == ids
     }
 
@@ -66,7 +67,8 @@ class TransactionExecutorInsertBatchSpec extends Specification {
         result.status == ActionStatus.FAILED
         result.error.get().contains("'a'")
         session.batches == [['a', 'b']]
-        session.checked == ['a', 'b', 'a']
+        session.groups == [['a', 'b', 'a', 'c']]
+        session.checked == ['a']
     }
 
     def 'with ignored existing features a repeated id is skipped and the batch continues'() {
@@ -78,7 +80,8 @@ class TransactionExecutorInsertBatchSpec extends Specification {
 
         then:
         result.status == ActionStatus.SUCCESS
-        session.batches == [['a', 'b'], ['c']]
+        session.batches == [['a', 'b', 'c']]
+        session.checked.isEmpty()
         result.featureIds == ['a', 'b', 'c']
     }
 
@@ -93,7 +96,36 @@ class TransactionExecutorInsertBatchSpec extends Specification {
         result.status == ActionStatus.FAILED
         result.error.get().contains("'x'")
         session.batches.isEmpty()
-        session.checked == ['a', 'b', 'x']
+        session.groups == [['a', 'b', 'x']]
+        session.checked == ['x']
+    }
+
+    def 'the check of the next 100 items sees the items written before'() {
+        given:
+        RecordingSession session = new RecordingSession()
+        List<String> ids = (1..150).collect { "f$it".toString() } + ['f5']
+
+        when:
+        ActionResult result = run(session, preflight(true), ids)
+
+        then:
+        result.status == ActionStatus.SUCCESS
+        session.batches*.size() == [100, 50]
+        session.groups*.size() == [100, 51]
+        result.featureIds == ids[0..149]
+    }
+
+    def 'a failing check fails the action without writing'() {
+        given:
+        RecordingSession session = new RecordingSession(checkFails: true)
+
+        when:
+        ActionResult result = run(session, preflight(false), ['a', 'b'])
+
+        then:
+        result.status == ActionStatus.FAILED
+        result.error.get().contains('connection lost')
+        session.batches.isEmpty()
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -182,6 +214,23 @@ class TransactionExecutorInsertBatchSpec extends Specification {
         Map<FeatureTokenSource, String> sources = [:]
         List<List<String>> batches = []
         List<String> checked = []
+        List<List<String>> groups = []
+        boolean checkFails = false
+
+        @Override
+        FeatureTransactions.MutationResult findConflictingVersions(
+                String featureType, Collection<String> featureIds) {
+            groups << (featureIds as List<String>)
+            def builder = ImmutableMutationResult.builder()
+                    .type(FeatureTransactions.MutationResult.Type.CREATE)
+                    .hasFeatures(false)
+            if (checkFails) {
+                builder.error(new IllegalStateException('connection lost'))
+            } else {
+                builder.ids(featureIds.findAll { existing.contains(it) }.unique())
+            }
+            return builder.build()
+        }
 
         @Override
         FeatureTransactions.MutationResult assertNoConflictingVersion(String featureType, String featureId) {
