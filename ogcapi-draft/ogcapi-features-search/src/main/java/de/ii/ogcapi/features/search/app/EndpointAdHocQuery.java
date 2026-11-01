@@ -290,14 +290,6 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
     }
     query = new ImmutableQueryExpression.Builder().from(query).supportPaging(false).build();
 
-    if (HeaderPrefer.containsToken(prefer, "respond-async")
-        && apiData
-            .getExtension(SearchConfiguration.class)
-            .map(SearchConfiguration::isAsync)
-            .orElse(false)) {
-      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, query, false);
-    }
-
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
 
@@ -318,6 +310,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             .isStoredQuery(false)
             .build();
 
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
+      // an invalid query is rejected before a job is created, as by a synchronous request
+      queryHandler.validate(queryInput, requestContext);
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, query, false);
+    }
+
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
   }
 
@@ -330,5 +328,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
     return Set.of(queryHandler, providers.getFeatureProviderOrThrow(apiData));
+  }
+
+  private static boolean isAsync(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::isAsync)
+        .orElse(false);
   }
 }
