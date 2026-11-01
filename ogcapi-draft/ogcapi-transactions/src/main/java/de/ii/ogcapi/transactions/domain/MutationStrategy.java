@@ -219,11 +219,11 @@ public interface MutationStrategy extends ApiExtension {
 
   /**
    * Whether the executor should run the versioned-insert pre-flight check via {@link
-   * FeatureTransactions.Session#assertNoConflictingVersion(String, String)} for every {@code
-   * Insert} item that carries an id. Used by versioned strategies to reject inserts on a feature id
-   * that already exists in any version (open or retired) — clients add new versions via {@code
-   * Replace} / {@code Update} / {@code Delete}, not {@code Insert}. Plain strategies inherit the
-   * default {@code false}.
+   * FeatureTransactions.Session#findConflictingVersions(String, java.util.Collection)} for the
+   * {@code Insert} items that carry an id. Used by versioned strategies to reject inserts on a
+   * feature id that already exists in any version (open or retired) — clients add new versions via
+   * {@code Replace} / {@code Update} / {@code Delete}, not {@code Insert}. Plain strategies inherit
+   * the default {@code false}.
    */
   default boolean requiresInsertPreflight() {
     return false;
