@@ -13,5 +13,5 @@
     "vuepress-plugin-md-enhance": "2.0.0-rc.4",
     "vuepress-plugin-theme-extensions": "azahnen/vuepress-plugin-theme-extensions#1a6e0da4540e2adf5ef8a6f6da0e0e455575beb6"
   },
-  "packageManager": "yarn@4.0.2"
+  "packageManager": "yarn@4.18.1"
 }
