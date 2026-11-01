@@ -22,6 +22,7 @@ import de.ii.ogcapi.styles.app.SchemaCacheStyleLayer;
 import de.ii.ogcapi.styles.domain.MbStyleLayer.LayerType;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.docs.DocFile;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaGeometry;
@@ -51,6 +52,32 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
+/**
+ * @langEn # MapLibre Styles
+ *     <p>MapLibre stylesheets are used by the building block
+ *     [Styles](../services/building-blocks/styles.md) and by the web maps of other building blocks,
+ *     e.g. [Tiles](../services/building-blocks/tiles.md) and [Features -
+ *     HTML](../services/building-blocks/features_-_html.md). They follow the [MapLibre Style
+ *     Specification](https://maplibre.org/maplibre-style-spec/). The URIs of sprites, glyphs and
+ *     sources may contain `{serviceUrl}`.
+ * @langDe # MapLibre-Styles
+ *     <p>MapLibre-Stylesheets werden vom Baustein [Styles](../services/building-blocks/styles.md)
+ *     und von den Webkarten anderer Bausteine genutzt, z.B.
+ *     [Tiles](../services/building-blocks/tiles.md) und [Features -
+ *     HTML](../services/building-blocks/features_-_html.md). Sie folgen der [MapLibre Style
+ *     Specification](https://maplibre.org/maplibre-style-spec/). Die URIs von Sprites, Glyphs und
+ *     Sources dürfen `{serviceUrl}` enthalten.
+ * @langEn ## Storage
+ *     <p>MapLibre stylesheets reside in the
+ *     [Store](../application/20-configuration/10-store-new.md) as values with type
+ *     `maplibre-styles` and relative path `{apiId}/{styleId}.json`. YAML (`yml`) is supported as
+ *     well, the extension `mbs` is still supported.
+ * @langDe ## Speicherung
+ *     <p>MapLibre-Stylesheets liegen im [Store](../application/20-configuration/10-store-new.md)
+ *     als Values mit Typ `maplibre-styles` und dem relativen Pfad `{apiId}/{styleId}.json`. YAML
+ *     (`yml`) wird ebenfalls unterstützt, die Endung `mbs` wird weiterhin unterstützt.
+ */
+@DocFile(path = "auxiliaries", name = "maplibre-styles.md")
 @Value.Immutable
 @Value.Style(
     jdkOnly = true,
