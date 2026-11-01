@@ -15,6 +15,8 @@ import static de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOp
 import static de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions.SYNC_EXECUTE
 
 import de.ii.ogcapi.common.domain.async.AsyncCallbacks
+import de.ii.ogcapi.common.domain.async.JobFailure
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcSchema
@@ -161,6 +163,32 @@ class ProcessesExecutorImplSpec extends Specification {
         status           | errors   | message
         Status.FAILED    | ["boom"] | "The execution of process 'TestProcess' ended with job status FAILED: boom"
         Status.DISMISSED | []       | "The execution of process 'TestProcess' ended with job status DISMISSED."
+    }
+
+    def "a synchronous execution whose job failed with a stated client error answers it"() {
+        when:
+        executor.executeSync("api", testProcess, execute([count: 1]), 1000)
+
+        then:
+        1 * jobs.push(_) >> job(Status.ACCEPTED, [:])
+        1 * jobs.waitFor("job-1") >> CompletableFuture.completedFuture(
+                job(Status.FAILED, JobFailure.of(422, "urn:example:invalid", "The input is invalid.").asOutputs(), ["The input is invalid."]))
+        TypedClientErrorException e = thrown()
+        e.response.status == 422
+        e.message == "The input is invalid."
+        e.type == "urn:example:invalid"
+    }
+
+    def "a synchronous execution whose job failed with a stated server error is unexpected"() {
+        when:
+        executor.executeSync("api", testProcess, execute([count: 1]), 1000)
+
+        then:
+        1 * jobs.push(_) >> job(Status.ACCEPTED, [:])
+        1 * jobs.waitFor("job-1") >> CompletableFuture.completedFuture(
+                job(Status.FAILED, JobFailure.of(500, "Disk full.").asOutputs(), ["Disk full."]))
+        IllegalStateException e = thrown()
+        e.message == "The execution of process 'TestProcess' ended with job status FAILED: Disk full."
     }
 
     def "a synchronous execution that exceeds the timeout is cancelled"() {

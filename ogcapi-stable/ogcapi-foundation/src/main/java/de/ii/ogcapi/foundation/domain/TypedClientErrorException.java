@@ -23,6 +23,12 @@ public class TypedClientErrorException extends ClientErrorException {
     this.type = type;
   }
 
+  /** For a client error without a constant in {@link Response.Status}, e.g. 422. */
+  public TypedClientErrorException(String message, int status, String type) {
+    super(message, status);
+    this.type = type;
+  }
+
   public String getType() {
     return type;
   }
