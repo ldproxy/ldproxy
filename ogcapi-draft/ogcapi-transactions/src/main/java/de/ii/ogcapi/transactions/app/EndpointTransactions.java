@@ -17,6 +17,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CountingInputStream;
 import dagger.Lazy;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.common.domain.async.JobResultFile;
 import de.ii.ogcapi.crs.domain.CrsSupport;
 import de.ii.ogcapi.crs.domain.HeaderContentCrs;
@@ -40,6 +41,8 @@ import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableApiResponse;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -395,6 +398,24 @@ public class EndpointTransactions extends Endpoint
             TAGS,
             TransactionsBuildingBlock.MATURITY,
             TransactionsBuildingBlock.SPEC)
+        .map(
+            operation ->
+                ImmutableApiOperation.copyOf(operation)
+                    .withAdditionalResponses(
+                        new ImmutableApiResponse.Builder()
+                            .statusCode(ApiOperation.STATUS_204)
+                            .description(
+                                "The transaction was executed successfully, `return=none` was"
+                                    + " requested.")
+                            .build()))
+        .map(
+            operation ->
+                AsyncResponses.withAccepted(
+                    operation,
+                    apiData
+                        .getExtension(TransactionsConfiguration.class)
+                        .map(c -> Objects.equals(c.getAsync(), true))
+                        .orElse(false)))
         .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
