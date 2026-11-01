@@ -31,6 +31,7 @@ public interface ProcessJobOptions {
    * @langDe Ob der Job mit dem Schritt `setup` beginnt. Die Schritte in `partials` werden dann
    *     eingereiht, sobald er erfolgreich war.
    * @default false
+   * @since 4.9
    */
   @Value.Default
   default boolean getSetup() {
@@ -38,9 +39,12 @@ public interface ProcessJobOptions {
   }
 
   /**
-   * @langEn The steps that execute the process, e.g. `[transform, execute]`.
-   * @langDe Die Schritte, die den Prozess ausführen, z.B. `[transform, execute]`.
+   * @langEn The steps that execute the process, e.g. `[transform, execute]`. At least one step is
+   *     required.
+   * @langDe Die Schritte, die den Prozess ausführen, z.B. `[transform, execute]`. Mindestens ein
+   *     Schritt ist erforderlich.
    * @default [execute]
+   * @since 4.9
    */
   @Value.Default
   default List<String> getPartials() {
@@ -53,6 +57,7 @@ public interface ProcessJobOptions {
    * @langDe Ob die Schritte in `partials` nacheinander in der angegebenen Reihenfolge laufen, jeder
    *     erst, wenn der vorige erfolgreich war. Sonst laufen sie parallel.
    * @default false
+   * @since 4.9
    */
   @Value.Default
   default boolean getSequential() {
@@ -63,6 +68,7 @@ public interface ProcessJobOptions {
    * @langEn Whether the job ends with the step `cleanup`, which also runs after a failure.
    * @langDe Ob der Job mit dem Schritt `cleanup` endet, der auch nach einem Fehler läuft.
    * @default false
+   * @since 4.9
    */
   @Value.Default
   default boolean getCleanup() {
