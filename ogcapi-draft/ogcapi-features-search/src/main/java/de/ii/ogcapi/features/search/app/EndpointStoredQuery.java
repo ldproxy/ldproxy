@@ -12,6 +12,7 @@ import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -252,6 +253,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       TAGS,
                       SearchBuildingBlock.MATURITY,
                       SearchBuildingBlock.SPEC)
+                  .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
                   .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
               // the same parameters in the request body, e.g. for geometries that are too large
               // for a URI; only without paging, since paging links, like all links and HTML,
@@ -277,6 +279,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                         TAGS,
                         SearchBuildingBlock.MATURITY,
                         SearchBuildingBlock.SPEC)
+                    .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
                     .ifPresent(operation -> resourceBuilder.putOperations("POST", operation));
               }
               definitionBuilder.putResources(path, resourceBuilder.build());
@@ -350,11 +353,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     QueryExpression executableQuery =
         new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
 
-    if (HeaderPrefer.containsToken(prefer, "respond-async")
-        && apiData
-            .getExtension(SearchConfiguration.class)
-            .map(SearchConfiguration::isAsync)
-            .orElse(false)) {
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
       return SearchAsync.submit(jobs, resultStore, requestContext, prefer, executableQuery, true);
     }
 
@@ -388,5 +387,12 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
     return Set.of(queryHandler, repository, providers.getFeatureProviderOrThrow(apiData));
+  }
+
+  private static boolean isAsync(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::isAsync)
+        .orElse(false);
   }
 }
