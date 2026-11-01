@@ -26,9 +26,7 @@ import de.ii.xtralink.jobs.Identifiers.Status
 import de.ii.xtralink.jobs.Job
 import de.ii.xtralink.jobs.JobConfiguration
 import de.ii.xtralink.jobs.JobProgress
-import de.ii.xtralink.jobs.PartialJobConfiguration
 import de.ii.xtraplatform.base.domain.Jackson
-import de.ii.xtraplatform.xtralink.domain.JobProcessing
 import de.ii.xtraplatform.xtralink.domain.Jobs
 import jakarta.ws.rs.WebApplicationException
 import java.util.concurrent.CompletableFuture
@@ -46,7 +44,6 @@ class ProcessesExecutorImplSpec extends Specification {
             [result: output(schema(Type.INTEGER))])
 
     Jobs jobs = Mock()
-    JobProcessing jobProcessing = Mock()
 
     ProcessesExecutorImpl executor
 
@@ -54,7 +51,7 @@ class ProcessesExecutorImplSpec extends Specification {
         Jackson jackson = Stub() {
             getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
         }
-        executor = new ProcessesExecutorImpl(jackson, jobs, jobProcessing, new SchemaValidatorImpl(), Stub(AsyncCallbacks))
+        executor = new ProcessesExecutorImpl(jackson, jobs, new SchemaValidatorImpl(), Stub(AsyncCallbacks))
     }
 
     def "valid inputs are accepted: #inputs"() {
@@ -95,7 +92,7 @@ class ProcessesExecutorImplSpec extends Specification {
         "bbox with 5 coordinates"       | [count: 1, bbox: [bbox: [0, 0, 1, 1, 1]]]
     }
 
-    def "a job with a setup step is pushed with it and the execution step is left to the setup"() {
+    def "a job with a setup step is pushed with it and the execution step as its partial"() {
         given:
         def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], true)
 
@@ -103,18 +100,19 @@ class ProcessesExecutorImplSpec extends Specification {
         executor.executeAsync("api", process, execute([count: 1]), 0, 3600)
 
         then:
-        1 * jobs.push({ JobConfiguration job -> job.kind() == "oap:TestProcess" && job.setup() && job.cleanup() }, _) >> job(Status.ACCEPTED, [:])
-        0 * jobProcessing.push(_)
+        1 * jobs.push({ JobConfiguration job ->
+            job.kind() == "oap:TestProcess" && job.setup() && job.cleanup() && job.partials() == ["oap:TestProcess:execute"]
+        }, _) >> job(Status.ACCEPTED, [:])
     }
 
-    def "by default the execution step is queued directly, without setup and cleanup steps"() {
+    def "by default the job has the execution step as its partial, without setup and cleanup steps"() {
         when:
         executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)
 
         then:
-        1 * jobs.push({ JobConfiguration job -> !job.setup() && !job.cleanup() }, _) >> job(Status.ACCEPTED, [:])
-        1 * jobProcessing.init("job-1", 1, null)
-        1 * jobProcessing.push({ PartialJobConfiguration partial -> partial.kind() == "oap:TestProcess:execute" })
+        1 * jobs.push({ JobConfiguration job ->
+            !job.setup() && !job.cleanup() && job.partials() == ["oap:TestProcess:execute"]
+        }, _) >> job(Status.ACCEPTED, [:])
     }
 
     def "the selected outputs of a synchronous execution are returned"() {
@@ -213,7 +211,7 @@ class ProcessesExecutorImplSpec extends Specification {
 
     private static Job job(Status status, Map<String, Object> outputs, List<String> errors = []) {
         new Job("job-1", "oap:TestProcess", 0L, -1L, -1L, -1L, 1000, new JobProgress(0, 1, 0, null), status, errors,
-                [:], null, null, [:], outputs, Optional.empty(), Optional.empty(), [], Optional.empty(),
+                [:], null, null, [:], outputs, Optional.empty(), Optional.empty(), [], [], Optional.empty(),
                 Optional.empty())
     }
 }

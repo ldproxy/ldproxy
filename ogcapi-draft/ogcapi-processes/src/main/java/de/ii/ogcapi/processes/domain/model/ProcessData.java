@@ -23,13 +23,11 @@ import org.immutables.value.Value;
 public interface ProcessData extends StoredValue, OgcProcess {
 
   /**
-   * @langEn Whether the job of an execution starts with a setup step. The setup step queues the
-   *     step that executes the process. Without it, the execution step is queued directly, e.g. for
-   *     processors outside of ldproxy that only handle the step `oap:{processId}:execute`.
-   * @langDe Ob der Job einer Ausführung mit einem Setup-Schritt beginnt. Der Setup-Schritt reiht
-   *     den Schritt ein, der den Prozess ausführt. Ohne ihn wird der Ausführungsschritt direkt
-   *     eingereiht, z.B. für Prozessoren außerhalb von ldproxy, die nur den Schritt
-   *     `oap:{processId}:execute` verarbeiten.
+   * @langEn Whether the job of an execution starts with a setup step `oap:{processId}:setup`. The
+   *     step `oap:{processId}:execute` is then queued once setup succeeded, otherwise directly.
+   * @langDe Ob der Job einer Ausführung mit einem Setup-Schritt `oap:{processId}:setup` beginnt.
+   *     Der Schritt `oap:{processId}:execute` wird dann eingereiht, sobald das Setup erfolgreich
+   *     war, sonst direkt.
    * @default false
    */
   @Value.Default
