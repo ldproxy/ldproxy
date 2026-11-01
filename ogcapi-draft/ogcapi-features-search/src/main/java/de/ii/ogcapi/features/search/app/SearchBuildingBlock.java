@@ -230,9 +230,10 @@ import java.util.Optional;
  *     </code>
  *     <p>In addition:
  *     <p><code>
- * - Responses are not paged, `limit` is an upper bound for the number of features in the
- *     response. Large extracts are the use case for asynchronous execution, which is a separate
- *     work item.
+ * - Only stored queries with `supportPaging: true` are paged. Without paging (the default, and
+ *     always for ad-hoc queries), `limit` has no effect and all matching features are returned;
+ *     the option `maximumFeaturesPerQuery` caps the number of features per query. Large extracts
+ *     can be retrieved with asynchronous execution (option `async`).
  *     </code>
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
@@ -246,7 +247,7 @@ import java.util.Optional;
  *     </code>
  *     <p>Außerdem:
  *     <p><code>
- * - Antworten werden nicht in Seiten aufgeteilt, `limit` ist eine Obergrenze für die Anzahl der Features in der Antwort. Für große Abrufe ist die asynchrone Ausführung von Abfragen vorgesehen, die ein separates Arbeitspaket ist.
+ * - Nur gespeicherte Abfragen mit `supportPaging: true` werden in Seiten aufgeteilt. Ohne Paging (der Standard, bei Ad-hoc-Abfragen immer) hat `limit` keine Wirkung und es werden alle passenden Features zurückgegeben; die Option `maximumFeaturesPerQuery` begrenzt die Anzahl der Features je Abfrage. Große Abrufe sind mit der asynchronen Ausführung möglich (Option `async`).
  *     </code>
  * @ref:cfg {@link de.ii.ogcapi.features.search.domain.SearchConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration}
