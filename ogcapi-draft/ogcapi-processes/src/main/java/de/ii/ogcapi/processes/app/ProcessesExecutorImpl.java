@@ -11,10 +11,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.async.AsyncCallbacks;
+import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcBbox;
@@ -105,6 +107,20 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     // a job that did not succeed has no outputs, which is not an execution without outputs
     if (finalJob.status() != Status.SUCCESSFUL) {
+      // a client error that the processor stated, e.g. 422 for inputs it cannot process, is
+      // answered as such, as by the results of an asynchronous execution; any other failure is
+      // unexpected
+      Optional<JobFailure> reason =
+          finalJob.status() == Status.FAILED
+              ? JobFailure.from(finalJob.outputs())
+                  .filter(failure -> failure.getStatus() >= 400 && failure.getStatus() < 500)
+              : Optional.empty();
+      if (reason.isPresent()) {
+        throw new TypedClientErrorException(
+            reason.get().getDetail(),
+            reason.get().getStatus(),
+            reason.get().getType().orElse(null));
+      }
       throw new IllegalStateException(
           "The execution of process '%s' ended with job status %s%s"
               .formatted(
