@@ -168,7 +168,7 @@ class SearchAsyncSpec extends Specification {
 
     private static Job job(Status status, Map<String, Object> outputs) {
         new Job("job-1", "feature-query", 0L, -1L, -1L, -1L, 1000, null, status, [], [:], null, null, [:], outputs,
-                Optional.empty(), Optional.empty(), [], Optional.empty(), Optional.empty())
+                Optional.empty(), Optional.empty(), [], [], Optional.empty(), Optional.empty())
     }
 
     private static String content(Response response) {

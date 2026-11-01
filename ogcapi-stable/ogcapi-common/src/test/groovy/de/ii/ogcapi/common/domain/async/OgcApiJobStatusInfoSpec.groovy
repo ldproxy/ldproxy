@@ -51,7 +51,7 @@ class OgcApiJobStatusInfoSpec extends Specification {
         Map<String, Object> context = Jobs.DEFAULT_MAPPER.convertValue(
                 new JobContextAsync("api", EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()), Jobs.MAP_TYPE)
         new Job("job-1", "feature-transaction", created, started, updated, finished, 1000, new JobProgress(0, 1, 0, null), status, errors,
-                context, null, null, [:], [:], Optional.empty(), Optional.empty(), [], Optional.empty(),
+                context, null, null, [:], [:], Optional.empty(), Optional.empty(), [], [], Optional.empty(),
                 Optional.empty())
     }
 }

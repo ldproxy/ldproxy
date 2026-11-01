@@ -333,7 +333,7 @@ class TransactionJobProcessorSpec extends Specification {
 
     private static Job job() {
         new Job("job-1", TransactionJob.KIND, null, null, null, null, null, null, null, [], [:], null, null, [:], [:],
-                Optional.empty(), Optional.empty(), [], Optional.empty(), Optional.empty())
+                Optional.empty(), Optional.empty(), [], [], Optional.empty(), Optional.empty())
     }
 
     private static PartialJob partialJob() {

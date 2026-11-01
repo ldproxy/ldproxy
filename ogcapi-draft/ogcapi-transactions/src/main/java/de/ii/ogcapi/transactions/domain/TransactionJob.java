@@ -15,8 +15,10 @@ import de.ii.ogcapi.foundation.domain.HeaderPrefer.Handling;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer.Return;
 import de.ii.xtralink.jobs.JobConfiguration;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
+import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple.Phase;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -57,6 +59,7 @@ public interface TransactionJob extends JobInputs {
         transactionJob,
         new JobContextAsync(apiId, EntityType.OGC_API_FEATURES, Optional.empty(), Optional.empty()),
         null,
+        List.of(Phase.EXECUTE.getPartialKind(KIND)),
         Optional.of((int) ttlSeconds));
   }
 
