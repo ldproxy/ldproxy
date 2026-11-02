@@ -42,10 +42,13 @@ public interface ProcessJobOptions {
   /**
    * @langEn The steps that execute the process, e.g. `[transform, execute]`. At least one step is
    *     required. The names `setup`, `cleanup` and `finalize` are reserved for the phases of every
-   *     job.
+   *     job. A step with a colon is the kind of a job of another processor and is queued as it is,
+   *     e.g. `feature-query:execute` for a search with a stored query.
    * @langDe Die Schritte, die den Prozess ausführen, z.B. `[transform, execute]`. Mindestens ein
    *     Schritt ist erforderlich. Die Namen `setup`, `cleanup` und `finalize` sind für die Phasen
-   *     jedes Jobs reserviert.
+   *     jedes Jobs reserviert. Ein Schritt mit einem Doppelpunkt ist die Art eines Jobs eines
+   *     anderen Prozessors und wird unverändert eingereiht, z.B. `feature-query:execute` für eine
+   *     Suche mit einer gespeicherten Abfrage.
    * @default [execute]
    * @since 4.9
    */
