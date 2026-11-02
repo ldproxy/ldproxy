@@ -14,4 +14,6 @@ dependencies {
 
     testProvided 'de.interactive_instruments:xtraplatform-features'
     testProvided 'de.interactive_instruments:xtraplatform-streams'
+    // the job queue spec loads the native xtralink library
+    testProvided 'de.interactive_instruments:xtraplatform-nativ-loader'
 }
