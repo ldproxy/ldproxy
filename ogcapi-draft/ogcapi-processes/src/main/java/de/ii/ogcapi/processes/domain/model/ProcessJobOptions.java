@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.domain.model;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Preconditions;
 import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 
 /**
@@ -40,9 +41,11 @@ public interface ProcessJobOptions {
 
   /**
    * @langEn The steps that execute the process, e.g. `[transform, execute]`. At least one step is
-   *     required.
+   *     required. The names `setup`, `cleanup` and `finalize` are reserved for the phases of every
+   *     job.
    * @langDe Die Schritte, die den Prozess ausführen, z.B. `[transform, execute]`. Mindestens ein
-   *     Schritt ist erforderlich.
+   *     Schritt ist erforderlich. Die Namen `setup`, `cleanup` und `finalize` sind für die Phasen
+   *     jedes Jobs reserviert.
    * @default [execute]
    * @since 4.9
    */
@@ -75,9 +78,24 @@ public interface ProcessJobOptions {
     return false;
   }
 
+  /**
+   * Partial names that are phases of every job: setup and cleanup are configured with the options
+   * of the same name, finalize runs when a job is removed.
+   */
+  Set<String> RESERVED_PARTIALS = Set.of("setup", "cleanup", "finalize");
+
   @Value.Check
   default void check() {
     Preconditions.checkState(
         !getPartials().isEmpty(), "A process job needs at least one partial, e.g. 'execute'.");
+    for (String partial : getPartials()) {
+      Preconditions.checkState(
+          !partial.isBlank(), "The partials of a process job must not be blank.");
+      Preconditions.checkState(
+          !RESERVED_PARTIALS.contains(partial),
+          "'%s' cannot be a partial of a process job: setup and cleanup are configured with the"
+              + " options of the same name, finalize is reserved.",
+          partial);
+    }
   }
 }
