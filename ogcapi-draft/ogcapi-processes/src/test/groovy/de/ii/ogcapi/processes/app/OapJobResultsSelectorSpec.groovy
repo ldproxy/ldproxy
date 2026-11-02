@@ -43,6 +43,7 @@ class OapJobResultsSelectorSpec extends Specification {
     def setup() {
         ProcessRepository repository = Stub() {
             getDirect("api", "TestProcess") >> testProcess
+            get("api", "TestProcess") >> Optional.of(testProcess)
         }
         Jackson jackson = Stub() {
             getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
@@ -71,6 +72,15 @@ class OapJobResultsSelectorSpec extends Specification {
 
         expect:
         OapJobResultsSelector.selectOutputs(outputs, Optional.empty()) == [single: "a", multi: [1, 2, 3], other: [value: "b"]]
+    }
+
+    def "the results are only the outputs the process defines, not other outputs of the job"() {
+        given:
+        def outputs = RESULTS + [queryPath: [value: "a/b.json", href: "", kind: ""], resultPath: "c.xml"]
+
+        expect:
+        selector.selectResults(outputs, context(execute())) == RESULTS
+        selector.selectResults(outputs, context(execute(selection("single")))) == [single: "a"]
     }
 
     def "selecting an output that was not produced is not available"() {
