@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.transactions.app;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxInsert;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.ogcapi.transactions.domain.TxUpdate.NameValue;
+import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.cql.domain.CqlParseException;
@@ -36,7 +38,10 @@ import jakarta.ws.rs.core.MediaType;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -48,8 +53,10 @@ import java.util.Optional;
  * bodies as defined by OGC API Features Part 11 §10.2.
  *
  * <p>Memory bound: at most one transaction action header is held at a time, and within an insert
- * action at most one feature payload is buffered. Streaming requires the following field-order
- * constraints inside a JSON action object:
+ * action at most one feature payload is buffered. The actions are streamed from the request body
+ * when {@code semantic} precedes {@code transaction}; otherwise they are spooled to a temporary
+ * file first, since no action may run before the semantic is known. Streaming requires the
+ * following field-order constraints inside a JSON action object:
  *
  * <ul>
  *   <li>{@code action} and {@code collection} MUST appear before {@code items} (insert).
@@ -73,10 +80,12 @@ public class JsonTransactionParser implements TransactionParser {
   private static final String FILTER_LANG_CQL2_TEXT = "cql2-text";
 
   private final Cql cql;
+  private final AppContext appContext;
 
   @Inject
-  public JsonTransactionParser(Cql cql) {
+  public JsonTransactionParser(Cql cql, AppContext appContext) {
     this.cql = cql;
+    this.appContext = appContext;
   }
 
   @Override
@@ -98,8 +107,9 @@ public class JsonTransactionParser implements TransactionParser {
       throw new IllegalArgumentException("Could not open transaction body as JSON", e);
     }
     try {
-      TxSemantic semantic = readEnvelope(parser);
-      return new JsonTransactionImpl(parser, body, semantic, cql);
+      Envelope envelope = readEnvelope(parser);
+      return new JsonTransactionImpl(
+          envelope.actions(), parser, body, envelope.spool(), envelope.semantic(), cql);
     } catch (IOException e) {
       closeQuietly(parser);
       closeQuietly(body);
@@ -112,34 +122,83 @@ public class JsonTransactionParser implements TransactionParser {
   }
 
   /**
-   * Reads the outer object up to and including the {@code transaction} field's {@code [}, returning
-   * the parsed {@code semantic}. After this call the parser is positioned ready to read either an
-   * action {@code {} or the {@code ]} terminator.
+   * The result of reading the outer object: the semantic and a parser positioned after the {@code
+   * [} of the {@code transaction} array, ready to read either an action {@code {} or the {@code ]}
+   * terminator. When the actions had to be spooled, {@code actions} reads the spool file and {@code
+   * spool} is the file to delete when the transaction is closed.
    */
-  private TxSemantic readEnvelope(JsonParser parser) throws IOException {
+  private record Envelope(TxSemantic semantic, JsonParser actions, Optional<Path> spool) {}
+
+  /**
+   * Reads the outer object up to the {@code transaction} array. If {@code semantic} precedes {@code
+   * transaction}, the actions are streamed from the request body. Otherwise the semantic is not yet
+   * known when the actions begin, since the members of a JSON object are unordered: the array is
+   * spooled to a temporary file, the rest of the object is read, and the actions are streamed from
+   * the spool file. No action is executed before the semantic is known.
+   */
+  private Envelope readEnvelope(JsonParser parser) throws IOException {
     if (parser.nextToken() != JsonToken.START_OBJECT) {
       throw new IllegalArgumentException("Transaction body must be a JSON object");
     }
-    TxSemantic semantic = TxSemantic.ATOMIC;
-    while (parser.nextToken() == JsonToken.FIELD_NAME) {
-      String field = parser.currentName();
-      JsonToken value = parser.nextToken();
-      if ("semantic".equals(field)) {
-        if (value != JsonToken.VALUE_STRING) {
-          throw new IllegalArgumentException("'semantic' must be a string");
+    Optional<TxSemantic> semantic = Optional.empty();
+    Path spool = null;
+    try {
+      while (parser.nextToken() == JsonToken.FIELD_NAME) {
+        String field = parser.currentName();
+        JsonToken value = parser.nextToken();
+        if ("semantic".equals(field)) {
+          if (value != JsonToken.VALUE_STRING) {
+            throw new IllegalArgumentException("'semantic' must be a string");
+          }
+          semantic = Optional.of(TxSemantic.fromJsonValue(parser.getText()));
+        } else if ("transaction".equals(field)) {
+          if (value != JsonToken.START_ARRAY) {
+            throw new IllegalArgumentException("'transaction' must be a JSON array of actions");
+          }
+          if (spool != null) {
+            throw new IllegalArgumentException(
+                "Transaction body must contain only one 'transaction' array");
+          }
+          if (semantic.isPresent()) {
+            return new Envelope(semantic.get(), parser, Optional.empty());
+          }
+          spool = spoolArray(parser);
+        } else {
+          parser.skipChildren();
         }
-        semantic = TxSemantic.fromJsonValue(parser.getText());
-      } else if ("transaction".equals(field)) {
-        if (value != JsonToken.START_ARRAY) {
-          throw new IllegalArgumentException("'transaction' must be a JSON array of actions");
-        }
-        return semantic;
-      } else {
-        parser.skipChildren();
       }
+      if (spool == null) {
+        throw new IllegalArgumentException(
+            "Transaction body must contain a 'transaction' array of actions");
+      }
+      JsonParser actions = MAPPER.getFactory().createParser(spool.toFile());
+      if (actions.nextToken() != JsonToken.START_ARRAY) {
+        closeQuietly(actions);
+        throw new IllegalStateException("Spooled transaction actions are not a JSON array");
+      }
+      return new Envelope(semantic.orElse(TxSemantic.ATOMIC), actions, Optional.of(spool));
+    } catch (IOException | RuntimeException e) {
+      deleteQuietly(spool);
+      throw e;
     }
-    throw new IllegalArgumentException(
-        "Transaction body must contain a 'transaction' array of actions");
+  }
+
+  /**
+   * Copies the array at the current token, including its {@code ]}, to a temporary file. Numbers
+   * are copied exactly, the memory use does not depend on the size of the array.
+   */
+  private Path spoolArray(JsonParser parser) throws IOException {
+    Path file =
+        Files.createTempFile(
+            Files.createDirectories(appContext.getTmpDir()), "transaction-", ".json");
+    try (OutputStream out = Files.newOutputStream(file);
+        JsonGenerator generator = MAPPER.getFactory().createGenerator(out)) {
+      generator.copyCurrentStructureExact(parser);
+    } catch (IOException | RuntimeException e) {
+      deleteQuietly(file);
+      throw e;
+    }
+    return file;
   }
 
   private static void closeQuietly(AutoCloseable c) {
@@ -151,21 +210,40 @@ public class JsonTransactionParser implements TransactionParser {
     }
   }
 
+  private static void deleteQuietly(Path file) {
+    if (file == null) return;
+    try {
+      Files.deleteIfExists(file);
+    } catch (IOException ignore) {
+      // best-effort
+    }
+  }
+
   /* ---------- Streaming Transaction implementation ---------- */
 
   private static final class JsonTransactionImpl implements Transaction {
 
+    private final JsonParser actions;
     private final JsonParser parser;
     private final InputStream body;
+    private final Optional<Path> spool;
     private final TxSemantic semantic;
     private final JsonActionIterator iterator;
     private boolean closed;
 
-    JsonTransactionImpl(JsonParser parser, InputStream body, TxSemantic semantic, Cql cql) {
+    JsonTransactionImpl(
+        JsonParser actions,
+        JsonParser parser,
+        InputStream body,
+        Optional<Path> spool,
+        TxSemantic semantic,
+        Cql cql) {
+      this.actions = actions;
       this.parser = parser;
       this.body = body;
+      this.spool = spool;
       this.semantic = semantic;
-      this.iterator = new JsonActionIterator(parser, cql);
+      this.iterator = new JsonActionIterator(actions, cql);
     }
 
     @Override
@@ -182,8 +260,12 @@ public class JsonTransactionParser implements TransactionParser {
     public void close() {
       if (closed) return;
       closed = true;
+      if (actions != parser) {
+        closeQuietly(actions);
+      }
       closeQuietly(parser);
       closeQuietly(body);
+      spool.ifPresent(JsonTransactionParser::deleteQuietly);
     }
   }
 
