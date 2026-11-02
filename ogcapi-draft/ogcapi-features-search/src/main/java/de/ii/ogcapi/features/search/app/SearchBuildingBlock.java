@@ -197,10 +197,16 @@ import java.util.Optional;
  * @cfgFilesDe Stored-Queries müssen im Value-Store unter dem relativen Pfad
  *     `queries/{apiId}/{queryId}.json` abgelegt werden.
  * @conformanceEn This building block is based on the draft [OGC API - Features - Part 10:
- *     Query](https://docs.ogc.org/DRAFTS/26-008.html). The implementation will change as the draft
- *     will evolve during the standardization process.
+ *     Query](https://docs.ogc.org/DRAFTS/26-008.html) and the chapters 5 and 6 of the original [OGC
+ *     Testbed-18 Filtering Service and Rule Set Engineering
+ *     Report](https://docs.ogc.org/per/22-024r2.html) and includes several extensions that will be
+ *     brought into the standardization process. The implementation will change as the draft will
+ *     evolve during the standardization process.
  * @conformanceDe Dieser Baustein basiert auf dem Entwurf [OGC API - Features - Part 10:
- *     Query](https://docs.ogc.org/DRAFTS/26-008.html). Die Implementierung wird sich im Zuge der
+ *     Query](https://docs.ogc.org/DRAFTS/26-008.html) und den Kapiteln 5 und 6 des ursprünglichen
+ *     [OGC Testbed-18 Filtering Service and Rule Set Engineering
+ *     Report](https://docs.ogc.org/per/22-024r2.html) und enthält mehrere Erweiterungen, die in den
+ *     Standardisierungsprozess eingebracht werden. Die Implementierung wird sich im Zuge der
  *     weiteren Standardisierung der Spezifikation noch ändern.
  * @limitationsEn Parameterized stored queries have the following constraints:
  *     <p><code>
