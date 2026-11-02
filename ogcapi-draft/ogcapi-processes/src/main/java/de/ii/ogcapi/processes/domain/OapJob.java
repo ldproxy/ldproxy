@@ -35,6 +35,15 @@ public interface OapJob extends JobInputs {
     return String.join(":", KIND, String.join(":", parts));
   }
 
+  /**
+   * The kind of the partial job of a step: a step of the process, e.g. {@code execute}, becomes
+   * {@code oap:{processId}:execute}; a step with a colon is the kind of a job of another processor,
+   * e.g. {@code feature-query:execute}, and is used as it is.
+   */
+  static String partialKind(String processId, String step) {
+    return step.contains(":") ? step : kind(processId, step);
+  }
+
   static String processId(String jobKind) {
     if (!jobKind.startsWith(KIND + ":")) {
       throw new IllegalArgumentException("Invalid job kind for OapJob: " + jobKind);
@@ -52,7 +61,9 @@ public interface OapJob extends JobInputs {
     ImmutableOapJob oapJob = new ImmutableOapJob.Builder().inputs(inputs).build();
     ProcessJobOptions options = process.getJob();
     List<String> partials =
-        options.getPartials().stream().map(partial -> kind(process.getId(), partial)).toList();
+        options.getPartials().stream()
+            .map(partial -> partialKind(process.getId(), partial))
+            .toList();
     JobConfiguration job =
         Jobs.create(
             kind(process.getId()),
