@@ -7,6 +7,10 @@
  */
 package de.ii.ogcapi.features.search.app
 
+import de.ii.xtraplatform.cql.app.CqlImpl
+import de.ii.ogcapi.foundation.domain.SchemaValidator
+import de.ii.ogcapi.features.search.domain.StoredQueryRepository
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry
 import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.common.domain.async.JobResultFile
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration
@@ -97,7 +101,8 @@ class SearchJobProcessorSpec extends Specification {
             handle(Query.QUERY, _, _) >> { queries++; response }
         }
 
-        processor = new SearchJobProcessor(appContext, entities, root, Stub(FeaturesCoreProviders), queryHandler)
+        processor = new SearchJobProcessor(appContext, entities, root, Stub(FeaturesCoreProviders), queryHandler,
+                Stub(ExtensionRegistry), Stub(StoredQueryRepository), Stub(SchemaValidator), new CqlImpl())
     }
 
     def "the result is written as an output file of the job and referenced as the job outputs"() {
