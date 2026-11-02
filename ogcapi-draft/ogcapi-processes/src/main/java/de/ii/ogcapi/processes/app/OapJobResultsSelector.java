@@ -9,6 +9,7 @@ package de.ii.ogcapi.processes.app;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.JobResultsSelector;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
@@ -17,6 +18,7 @@ import de.ii.ogcapi.processes.domain.OapJob.OapJobContext;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcFormat;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
@@ -54,14 +56,37 @@ public class OapJobResultsSelector implements JobResultsSelector {
   @Override
   public Map<String, Object> selectResults(
       Map<String, Object> results, Map<String, Object> context) {
+    Map<String, Object> outputs = outputsOfProcess(results, context);
+
     OgcExecute executeRequest;
     try {
       executeRequest = mapper.convertValue(context.get("executeRequest"), OgcExecute.class);
     } catch (Throwable e) {
+      return outputs;
+    }
+
+    return selectOutputs(outputs, executeRequest.getOutputSelections());
+  }
+
+  // the steps of a job may write outputs for later steps; only the outputs that the process
+  // defines are results
+  private Map<String, Object> outputsOfProcess(
+      Map<String, Object> results, Map<String, Object> context) {
+    Optional<ProcessData> process =
+        JobContextAsync.processIdFrom(context)
+            .flatMap(processId -> processRepository.get(JobContextEntity.from(context), processId));
+    if (process.isEmpty()) {
       return results;
     }
 
-    return selectOutputs(results, executeRequest.getOutputSelections());
+    Map<String, Object> outputs = new LinkedHashMap<>();
+    results.forEach(
+        (outputId, value) -> {
+          if (process.get().getOutputs().containsKey(outputId)) {
+            outputs.put(outputId, value);
+          }
+        });
+    return outputs;
   }
 
   @Override
