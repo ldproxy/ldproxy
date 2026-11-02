@@ -196,14 +196,18 @@ import java.util.Optional;
  *     `queries/{apiId}/{queryId}.json`.
  * @cfgFilesDe Stored-Queries müssen im Value-Store unter dem relativen Pfad
  *     `queries/{apiId}/{queryId}.json` abgelegt werden.
- * @conformanceEn This building block implements the OGC API Features extensions specified in
- *     chapters 5 and 6 of the [OGC Testbed-18 Filtering Service and Rule Set Engineering
- *     Report](https://docs.ogc.org/per/22-024r2.html). The implementation will change as the draft
- *     will evolve during the standardization process.
- * @conformanceDe Dieser Baustein implementiert die OGC-API-Features-Erweiterungen, die in den
- *     Kapiteln 5 und 6 des [OGC Testbed-18 Filtering Service and Rule Set Engineering
- *     Report](https://docs.ogc.org/per/22-024r2.html) spezifiziert sind. Die Implementierung wird
- *     sich im Zuge der weiteren Standardisierung der Spezifikation noch ändern.
+ * @conformanceEn This building block is based on the draft [OGC API - Features - Part 10:
+ *     Query](https://docs.ogc.org/DRAFTS/26-008.html) and the chapters 5 and 6 of the original [OGC
+ *     Testbed-18 Filtering Service and Rule Set Engineering
+ *     Report](https://docs.ogc.org/per/22-024r2.html) and includes several extensions that will be
+ *     brought into the standardization process. The implementation will change as the draft will
+ *     evolve during the standardization process.
+ * @conformanceDe Dieser Baustein basiert auf dem Entwurf [OGC API - Features - Part 10:
+ *     Query](https://docs.ogc.org/DRAFTS/26-008.html) und den Kapiteln 5 und 6 des ursprünglichen
+ *     [OGC Testbed-18 Filtering Service and Rule Set Engineering
+ *     Report](https://docs.ogc.org/per/22-024r2.html) und enthält mehrere Erweiterungen, die in den
+ *     Standardisierungsprozess eingebracht werden. Die Implementierung wird sich im Zuge der
+ *     weiteren Standardisierung der Spezifikation noch ändern.
  * @limitationsEn Parameterized stored queries have the following constraints:
  *     <p><code>
  * - The JSON Schema of a parameter supports a subset of the language. In particular,
@@ -266,8 +270,8 @@ public class SearchBuildingBlock implements ApiBuildingBlock {
   public static final Optional<ExternalDocumentation> SPEC =
       Optional.of(
           ExternalDocumentation.of(
-              "https://docs.ogc.org/per/22-024r2.html",
-              "Testbed-18: Filtering Service and Rule Set Engineering Report (PREDRAFT)"));
+              "https://docs.ogc.org/DRAFTS/26-008.html",
+              "OGC API - Features - Part 10: Query (DRAFT)"));
   public static final String QUERY_ID_PATTERN = "[\\w\\-]+";
 
   @Inject
