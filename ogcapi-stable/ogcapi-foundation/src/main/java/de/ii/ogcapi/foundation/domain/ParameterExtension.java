@@ -9,7 +9,6 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.github.azahnen.dagger.annotations.AutoMultiBind;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.base.domain.LogContext;
 import io.swagger.v3.core.util.Json;
@@ -126,12 +125,9 @@ public interface ParameterExtension extends ApiExtension {
           schemaContent = Json.mapper().writeValueAsString(schema.getItems());
         } else {
           if (values.size() == 1) {
+            // an empty value is an empty list, but empty items in a list are validated, too
             valueContent =
-                Splitter.on(",")
-                    .trimResults()
-                    .omitEmptyStrings()
-                    .splitToList(values.get(0))
-                    .stream()
+                ListParameterValues.split(values.get(0)).stream()
                     .map(v -> getJsonContent(v, schema.getItems()))
                     .collect(Collectors.joining(",", "[", "]"));
           }

@@ -43,10 +43,10 @@ import java.util.concurrent.ConcurrentMap;
  * @endpoints Features, Feature, Vector Tile
  * @langEn The properties that should be included for each feature. The parameter value is a
  *     comma-separated list of property names. By default, all feature properties with a value are
- *     returned.
+ *     returned. The feature id is always included.
  * @langDe Die Eigenschaften, die für jedes Feature enthalten sein sollen. Der Parameterwert ist
  *     eine kommagetrennte Liste von Eigenschaftsnamen. Standardmäßig werden alle
- *     Feature-Eigenschaften mit einem Wert zurückgegeben.
+ *     Feature-Eigenschaften mit einem Wert zurückgegeben. Die Feature-Id ist immer enthalten.
  */
 @Singleton
 @AutoBind
@@ -77,7 +77,7 @@ public class QueryParameterProperties extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The properties that should be included for each feature. The parameter value is a comma-separated list of property names. By default, all feature properties with a value are returned.";
+    return "The properties that should be included for each feature. The parameter value is a comma-separated list of property names. By default, all feature properties with a value are returned. The feature id is always included.";
   }
 
   @Override

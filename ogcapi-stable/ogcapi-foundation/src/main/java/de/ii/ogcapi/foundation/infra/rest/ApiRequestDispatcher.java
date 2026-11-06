@@ -10,6 +10,7 @@ package de.ii.ogcapi.foundation.infra.rest;
 import static de.ii.ogcapi.foundation.domain.ApiEndpointDefinition.SORT_PRIORITY_DUMMY;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -22,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.HttpRequestOverrideQueryParameter;
 import de.ii.ogcapi.foundation.domain.ImmutableRequestContext;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -35,8 +37,10 @@ import de.ii.xtraplatform.services.domain.AuditLog;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
 import io.dropwizard.auth.Auth;
 import io.dropwizard.jetty.HttpConnectorFactory;
+import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotAllowedException;
@@ -54,6 +58,7 @@ import jakarta.ws.rs.core.Request;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
@@ -64,6 +69,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.glassfish.jersey.message.internal.FormProvider;
 import org.glassfish.jersey.server.internal.routing.UriRoutingContext;
+import org.glassfish.jersey.uri.UriComponent;
+import org.glassfish.jersey.uri.UriComponent.Type;
 
 @Singleton
 @AutoBind
@@ -114,9 +121,10 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       @PathParam("entrypoint") String entrypoint,
       @Context OgcApi service,
       @Context ContainerRequestContext requestContext,
+      @Context HttpServletRequest servletRequest,
       @Context Request request,
       @Auth Optional<User> optionalUser) {
-    return dispatch("", service, requestContext, request, optionalUser);
+    return dispatch("", service, requestContext, servletRequest, request, optionalUser);
   }
 
   @Path("/{entrypoint: [^/]*}")
@@ -124,6 +132,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
       @PathParam("entrypoint") String entrypoint,
       @Context OgcApi api,
       @Context ContainerRequestContext requestContext,
+      @Context HttpServletRequest servletRequest,
       @Context Request request,
       @Auth Optional<User> optionalUser) {
 
@@ -162,7 +171,15 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
 
     // determine the query parameters of the request
     MultivaluedMap<String, String> actualParameters =
-        getActualQueryParameters(requestContext, body, isFormRequest);
+        withEncodedCommasInLists(
+            apiData,
+            knownParameters,
+            getRawQueryParameters(
+                Optional.ofNullable(servletRequest).map(HttpServletRequest::getQueryString),
+                requestContext,
+                body,
+                isFormRequest),
+            getActualQueryParameters(requestContext, body, isFormRequest));
 
     rejectNulCharacters(actualParameters);
 
@@ -264,6 +281,64 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
                     name.replace("\u0000", "\\u0000")));
           }
         });
+  }
+
+  // the raw values, before they are decoded, of the query parameters of a request
+  // the query string as sent by the client is used, the query of the request URI is re-encoded and
+  // does not distinguish an encoded from an unencoded comma
+  static MultivaluedMap<String, String> getRawQueryParameters(
+      Optional<String> rawQuery,
+      ContainerRequestContext requestContext,
+      Optional<byte[]> body,
+      boolean isFormRequest) {
+    MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
+    rawQuery.ifPresent(query -> addRawParameters(parameters, query));
+    // the raw values of a form are only used for the default charset UTF-8, the values of a form
+    // in another charset are decoded without keeping the encoded commas
+    String charset =
+        Objects.nonNull(requestContext.getMediaType())
+            ? requestContext.getMediaType().getParameters().get(MediaType.CHARSET_PARAMETER)
+            : null;
+    if (isFormRequest
+        && (Objects.isNull(charset) || StandardCharsets.UTF_8.name().equalsIgnoreCase(charset))) {
+      addRawParameters(parameters, new String(body.orElseThrow(), StandardCharsets.UTF_8));
+    }
+    return parameters;
+  }
+
+  private static void addRawParameters(MultivaluedMap<String, String> parameters, String query) {
+    for (String pair : Splitter.on('&').omitEmptyStrings().split(query)) {
+      int i = pair.indexOf('=');
+      String name = UriComponent.decode(i < 0 ? pair : pair.substring(0, i), Type.QUERY_PARAM);
+      parameters.add(name, i < 0 ? "" : pair.substring(i + 1));
+    }
+  }
+
+  // a comma within an item of a list is percent-encoded, while a comma that separates the items is
+  // not; for lists, the decoded value keeps the information, see ListParameterValues
+  static MultivaluedMap<String, String> withEncodedCommasInLists(
+      OgcApiDataV2 apiData,
+      List<OgcApiQueryParameter> knownParameters,
+      MultivaluedMap<String, String> rawParameters,
+      MultivaluedMap<String, String> actualParameters) {
+    MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>(actualParameters);
+    knownParameters.stream()
+        .filter(param -> !param.getExplode())
+        .filter(param -> parameters.containsKey(param.getName()))
+        .filter(param -> rawParameters.containsKey(param.getName()))
+        .filter(param -> isList(param.getSchema(apiData)))
+        .forEach(
+            param ->
+                parameters.put(
+                    param.getName(),
+                    rawParameters.get(param.getName()).stream()
+                        .map(ListParameterValues::decode)
+                        .toList()));
+    return parameters;
+  }
+
+  private static boolean isList(Schema<?> schema) {
+    return Objects.nonNull(schema) && "array".equals(schema.getType());
   }
 
   static MultivaluedMap<String, String> getActualQueryParameters(

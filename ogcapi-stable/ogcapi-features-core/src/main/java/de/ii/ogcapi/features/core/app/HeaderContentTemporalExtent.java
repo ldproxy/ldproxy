@@ -22,7 +22,6 @@ import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -35,10 +34,8 @@ public class HeaderContentTemporalExtent extends ApiExtensionCache implements Ap
       new ObjectSchema()
           .properties(
               ImmutableMap.of(
-                  "start",
-                  new IntegerSchema().minimum(BigDecimal.valueOf(0L)),
-                  "end",
-                  new IntegerSchema().minimum(BigDecimal.valueOf(0L))));
+                  "start", new IntegerSchema().format("int64"),
+                  "end", new IntegerSchema().format("int64")));
   private final SchemaValidator schemaValidator;
 
   @Inject
@@ -58,6 +55,11 @@ public class HeaderContentTemporalExtent extends ApiExtensionCache implements Ap
 
   @Override
   public boolean isResponseHeader() {
+    return true;
+  }
+
+  @Override
+  public boolean isExploded() {
     return true;
   }
 

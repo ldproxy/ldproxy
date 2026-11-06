@@ -607,7 +607,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         if (Objects.nonNull(interval.first()) && Objects.nonNull(interval.second())) {
           temporalExtentHeader =
               String.format(
-                  "start=%d, end=%d",
+                  "start=%d,end=%d",
                   interval.first().getEpochSecond(), interval.second().getEpochSecond());
         } else if (Objects.nonNull(interval.first())) {
           temporalExtentHeader = String.format("start=%d", interval.first().getEpochSecond());

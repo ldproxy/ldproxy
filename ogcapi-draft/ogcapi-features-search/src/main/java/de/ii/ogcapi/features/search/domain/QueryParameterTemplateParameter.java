@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.search.app.SearchBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
@@ -117,18 +118,14 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
         valueAsString.append(
             String.format(
                 "[\"%s\"]",
-                Splitter.on(',')
-                    .trimResults()
-                    .splitToStream(value)
+                ListParameterValues.split(value).stream()
                     .map(s -> s.replace("\"", "\\\""))
                     .collect(Collectors.joining("\",\""))));
       } else {
         valueAsString.append(
             String.format(
                 "[%s]",
-                Splitter.on(',')
-                    .trimResults()
-                    .splitToStream(value)
+                ListParameterValues.split(value).stream()
                     .map(s -> s.replace("\"", "\\\""))
                     .collect(Collectors.joining(","))));
       }
