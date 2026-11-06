@@ -62,7 +62,7 @@ import org.immutables.value.Value;
  *     <p>If the process is meant to be global, this must be stored in `values/processes`. If the
  *     process is for a specific API `foo`, it must be in `values/processes/foo`.
  *     <p>For more information on how to describe a process, see [OGC PROCESS
- *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description).
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#clause_process-description).
  * @examplesDe Beispielkonfiguration für eine API:
  *     <p><code>
  *   ```yaml
@@ -106,7 +106,7 @@ import org.immutables.value.Value;
  *     werden. Falls der Prozess für eine bestimmte API `foo` gelten soll, muss dieser in
  *     `values/processes/foo` liegen.
  *     <p>Weitere Informationen zur Beschreibung eines Prozesses finden Sie unter [OGC PROCESS
- *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description).
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#clause_process-description).
  */
 @Value.Immutable
 @Value.Style(builder = "new")

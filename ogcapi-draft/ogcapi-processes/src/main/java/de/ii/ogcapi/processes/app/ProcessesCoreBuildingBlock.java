@@ -27,8 +27,8 @@ import java.util.Optional;
  * @langDe Beschreibungen von unterstützten Prozessen abrufen und diese ausführen.
  * @scopeEn *Processes* allows describing, retrieving and executing processes.
  *     <p>Process descriptions are defined using the requirements class [OGC PROCESS
- *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description). They can be
- *     defined globally and on a per-API basis.
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#clause_process-description). They can
+ *     be defined globally and on a per-API basis.
  *     <p>This building block supports both synchronous and asynchronous execution of processes.
  *     Using the [configuration](#configuration), it is possible to limit support to only
  *     synchronous or asynchronous execution, or to support both modes.
@@ -38,7 +38,7 @@ import java.util.Optional;
  *     <p>Some limitations apply; see the [Limitations](#limitations) section.
  * @scopeDe *Processes* ermöglicht die Beschreibung, den Abruf und die Ausführung von Prozessen.
  *     <p>Prozessbeschreibungen werden mithilfe der Anforderungsklasse [OGC PROCESS
- *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#ogc_process_description) definiert.
+ *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#clause_process-description) definiert.
  *     Sie können global und pro API definiert werden.
  *     <p>Dieser Baustein unterstützt sowohl synchrone als auch asynchrone Ausführung von Prozessen.
  *     Über die [Konfiguration](#konfiguration) kann die Unterstützung auf nur synchrone oder
@@ -47,15 +47,19 @@ import java.util.Optional;
  *     [Async](./async.html) zur Verfügung gestellt, der automatisch aktiviert wird. Lesen Sie
  *     dessen Dokumentation für weitere Informationen zu den asynchronen Operationen.
  *     <p>Es gelten einige Einschränkungen; siehe den Abschnitt [Einschränkungen](#limitierungen).
- * @storageEn Process descriptions are stored locally as `values` using the
+ * @cfgFilesEn Process descriptions are stored locally as `values` using the
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html). Global
  *     process descriptions are stored in `values/processes`. API-specific process descriptions must
  *     be stored in `values/processes/{API}`, where `{API}` is the name of the API.
- * @storageDe Prozessbeschreibungen werden lokal als `values` im
+ *     <p>For the structure of process descriptions and the options of the job that runs an
+ *     execution, see [Processes](../../auxiliaries/processes.md).
+ * @cfgFilesDe Prozessbeschreibungen werden lokal als `values` im
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html) gespeichert.
  *     Globale Prozessbeschreibungen werden in `values/processes` abgelegt. API-spezifische
  *     Prozessbeschreibungen müssen in `values/processes/{API}` gespeichert werden, wobei `{API}`
  *     mit dem Namen der API ersetzt werden muss.
+ *     <p>Zur Struktur von Prozessbeschreibungen und den Optionen des Jobs, der eine Ausführung
+ *     durchführt, siehe [Prozesse](../../auxiliaries/processes.md).
  * @limitationsEn This implementation does not cover all details and has some limitations:
  *     <p><code>
  *  - All inputs must be provided inline. References are not supported.
