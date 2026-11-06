@@ -143,6 +143,11 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     }
 
     @Override
+    public boolean isWfs() {
+      return delegate.isWfs();
+    }
+
+    @Override
     public Iterator<TxAction> actions() {
       if (actions == null) {
         actions = new ActionLimitedIterator(delegate.actions(), maxActions);

@@ -117,6 +117,24 @@ class CommandHandlerTransactionsSpec extends Specification {
         executor.seen == 1
     }
 
+    def 'a wfs:Transaction stays one with maxActionsPerRequest: #maxActions'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [action()], wfs: true)
+        CountingExecutor executor = new CountingExecutor()
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(maxActions), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+
+        then: 'the executor resolves the property names of updates with the GML configuration'
+        executor.wfs
+
+        where:
+        maxActions << [null, 1]
+    }
+
     def 'a failed atomic transaction reports every error and hides rolled-back successes'() {
         given:
         RecordingParser parser = new RecordingParser(actions: [])
@@ -371,6 +389,7 @@ class CommandHandlerTransactionsSpec extends Specification {
 
     private static class RecordingParser implements TransactionParser {
         List<TxAction> actions
+        boolean wfs
         int parseCount
         String parsedBody
 
@@ -383,18 +402,25 @@ class CommandHandlerTransactionsSpec extends Specification {
         Transaction parse(InputStream body, MediaType mediaType) {
             parseCount++
             parsedBody = new String(body.readAllBytes(), StandardCharsets.UTF_8)
-            return new FixedTransaction(TxSemantic.ATOMIC, actions)
+            return new FixedTransaction(TxSemantic.ATOMIC, actions, wfs)
         }
     }
 
     private static class FixedTransaction implements Transaction {
         private final TxSemantic semantic
         private final List<TxAction> actions
+        private final boolean wfs
         boolean closed
 
-        FixedTransaction(TxSemantic semantic, List<TxAction> actions) {
+        FixedTransaction(TxSemantic semantic, List<TxAction> actions, boolean wfs = false) {
             this.semantic = semantic
             this.actions = actions
+            this.wfs = wfs
+        }
+
+        @Override
+        boolean isWfs() {
+            return wfs
         }
 
         @Override
@@ -432,6 +458,7 @@ class CommandHandlerTransactionsSpec extends Specification {
     private static class CountingExecutor implements TransactionExecutor {
         int seen
         boolean validate
+        boolean wfs
         Optional<JobHook> jobHook
 
         @Override
@@ -471,6 +498,7 @@ class CommandHandlerTransactionsSpec extends Specification {
                 HeaderPrefer.Handling handling,
                 Optional<Instant> ogcMutationDatetime) {
             this.validate = handling == HeaderPrefer.Handling.STRICT
+            this.wfs = transaction.isWfs()
             Iterator<TxAction> it = transaction.actions()
             while (it.hasNext()) {
                 it.next()
