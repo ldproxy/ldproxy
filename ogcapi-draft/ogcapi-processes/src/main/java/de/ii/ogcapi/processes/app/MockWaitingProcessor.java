@@ -23,11 +23,14 @@ import java.util.Map;
 /**
  * A test process that runs for a given number of seconds, so that a running job, its status and its
  * callbacks can be observed; with the input "fail" the job fails at the end. A dismissed job stops
- * within a second.
+ * within a second. A job waits at most {@value #MAX_SECONDS} seconds, so that a request cannot
+ * occupy a worker for long.
  */
 @Singleton
 @AutoBind(interfaces = JobProcessorBase.class)
 public class MockWaitingProcessor extends MockOapJobProcessor {
+
+  static final int MAX_SECONDS = 600;
 
   @Inject
   MockWaitingProcessor(ResourceStore resourceStore) {
@@ -42,6 +45,16 @@ public class MockWaitingProcessor extends MockOapJobProcessor {
   @Override
   public JobResult execute(PartialJob partialJob, Job job, OapJob inputs, JobProcessing jobs) {
     int seconds = seconds(inputs.getInputs());
+    if (seconds > MAX_SECONDS) {
+      // the reason is the request, the input asks for too long a wait
+      JobFailure failure =
+          JobFailure.of(
+              422,
+              "The input 'seconds' must be at most %d, found %d.".formatted(MAX_SECONDS, seconds));
+      jobs.outputs(job.id(), failure.asOutputs());
+      return jobs.failure(failure.getDetail());
+    }
+
     for (int i = 0; i < seconds; i++) {
       if (jobs.isCancelled(job.id())) {
         return jobs.failure("The job was cancelled");
