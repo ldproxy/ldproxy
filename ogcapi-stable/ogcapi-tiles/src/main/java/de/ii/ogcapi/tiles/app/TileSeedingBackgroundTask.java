@@ -273,6 +273,7 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
     // every tileset that has to be seeded, with the extent to fall back to, if the bounds of the
     // tileset are unknown
     Map<String, Supplier<Optional<BoundingBox>>> requiredTilesets = new LinkedHashMap<>();
+    Map<String, BoundingBox> configuredExtents = new LinkedHashMap<>();
 
     for (String cid : apiData.getCollections().keySet()) {
       if (collectionId.isPresent() && !collectionId.get().equals(cid)) {
@@ -280,16 +281,23 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
       }
       getTilesConfiguration(apiData, cid)
           .filter(cfg -> cfg.hasCollectionTiles(tilesProviders, apiData, cid))
-          .map(cfg -> cfg.getCollectionTileset(cid))
           .ifPresent(
-              tileset -> requiredTilesets.putIfAbsent(tileset, () -> api.getSpatialExtent(cid)));
+              cfg -> {
+                String tileset = cfg.getCollectionTileset(cid);
+                requiredTilesets.putIfAbsent(tileset, () -> api.getSpatialExtent(cid));
+                cfg.getExtent().ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
+              });
     }
 
     apiData
         .getExtension(TilesConfiguration.class)
         .filter(cfg -> cfg.hasDatasetVectorTiles(tilesProviders, apiData))
-        .map(TilesConfiguration::getDatasetTileset)
-        .ifPresent(tileset -> requiredTilesets.putIfAbsent(tileset, api::getSpatialExtent));
+        .ifPresent(
+            cfg -> {
+              String tileset = cfg.getDatasetTileset();
+              requiredTilesets.putIfAbsent(tileset, api::getSpatialExtent);
+              cfg.getExtent().ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
+            });
 
     for (String tileset : getSourceTilesets(tileProvider, requiredTilesets.keySet())) {
       requiredTilesets.putIfAbsent(tileset, Optional::empty);
@@ -301,7 +309,11 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
     requiredTilesets.forEach(
         (tileset, fallbackExtent) -> {
           Optional<BoundingBox> clipBoundingBox =
-              bbox.or(() -> getTilesetBounds(tileProvider, tileset)).or(fallbackExtent);
+              getClipBoundingBox(
+                  bbox,
+                  Optional.ofNullable(configuredExtents.get(tileset)),
+                  () -> getTilesetBounds(tileProvider, tileset),
+                  fallbackExtent);
 
           // without an extent there is no area with data, so there is nothing to seed
           if (clipBoundingBox.isEmpty()) {
@@ -434,6 +446,14 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
    * should also determine which tiles are seeded. The extent of the collection is only a fallback,
    * it may differ, if the tiles are generated from another feature provider than the features.
    */
+  static Optional<BoundingBox> getClipBoundingBox(
+      Optional<BoundingBox> changedArea,
+      Optional<BoundingBox> configuredExtent,
+      Supplier<Optional<BoundingBox>> tilesetBounds,
+      Supplier<Optional<BoundingBox>> apiExtent) {
+    return changedArea.or(() -> configuredExtent).or(tilesetBounds).or(apiExtent);
+  }
+
   private Optional<BoundingBox> getTilesetBounds(TileProvider tileProvider, String tileset) {
     return tileProvider.access().isAvailable()
         ? tileProvider.access().get().getMetadata(tileset).flatMap(TilesetMetadata::getBounds)

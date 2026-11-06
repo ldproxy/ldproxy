@@ -21,7 +21,6 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMetadata;
 import de.ii.ogcapi.foundation.domain.ImmutableApiSecurity;
-import de.ii.ogcapi.foundation.domain.ImmutableCollectionExtent;
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi.Builder;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2;
@@ -118,11 +117,6 @@ public class OgcApiFactory extends AbstractEntityFactory<OgcApiDataV2, OgcApiEnt
         .enabled(true)
         .apiValidation(MODE.NONE)
         .metadata(getMetadata())
-        .defaultExtent(
-            new ImmutableCollectionExtent.Builder()
-                .spatialComputed(true)
-                .temporalComputed(true)
-                .build())
         .accessControl(getSecurity())
         .extensions(getBuildingBlocks());
   }
