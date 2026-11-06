@@ -42,6 +42,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -135,10 +136,9 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       return executeFolder(
           partialJob, job, inputs, jobs, api, documentPath, documents.get(), jobHook);
     } catch (IOException e) {
-      if (LOGGER.isDebugEnabled()) {
-        LogContext.errorAsDebug(LOGGER, e, "Error checking transaction document");
-      }
-      return jobs.failure(String.format("Error checking transaction document: %s", e.getMessage()));
+      // an error of the store is unexpected; the errors of a job are public, so it is only logged,
+      // with an error ID that the job reports (see JobProcessorSimple)
+      throw new UncheckedIOException(e);
     }
   }
 

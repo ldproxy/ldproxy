@@ -58,6 +58,9 @@ class TransactionJobProcessorSpec extends Specification {
     /** The job is cancelled while the transaction with this number (from 1) is applied. */
     int cancelDuring = 0
 
+    /** The store throws this exception when a document is read. */
+    IOException storeError = null
+
     /** The transaction handler throws this exception, as for an invalid request. */
     RuntimeException rejectWith = null
 
@@ -71,7 +74,12 @@ class TransactionJobProcessorSpec extends Specification {
         ResourceStore store = Stub()
         store.size(_ as Path) >> { Path p -> files.containsKey(p) ? (long) files[p].length : -1L }
         store.has(_ as Path) >> { Path p -> files.containsKey(p) || (folderEntries && files.keySet().any { it.parent == p }) }
-        store.content(_ as Path) >> { Path p -> files.containsKey(p) ? Optional.of(new ByteArrayInputStream(files[p])) : Optional.empty() }
+        store.content(_ as Path) >> { Path p ->
+            if (storeError != null) {
+                throw storeError
+            }
+            files.containsKey(p) ? Optional.of(new ByteArrayInputStream(files[p])) : Optional.empty()
+        }
         store.walk(_ as Path, _ as Integer, _ as BiPredicate) >> { Path p, Integer depth, BiPredicate matcher ->
             files.keySet().findAll { it.parent == p }.collect { p.relativize(it) }.stream()
         }
@@ -349,6 +357,21 @@ class TransactionJobProcessorSpec extends Specification {
         applied.isEmpty()
     }
 
+    def "an error of the store is not reported by the job, but passed on to be logged with an error ID"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        storeError = new IOException("/data/resources/jobs/feature-transaction/api/d1/001.xml (Permission denied)")
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        UncheckedIOException e = thrown()
+        e.cause.is(storeError)
+        jobs.outputs == null
+        applied.isEmpty()
+    }
+
     def "a missing document path is reported as an invalid input"() {
         when:
         def result = execute("")
@@ -361,7 +384,11 @@ class TransactionJobProcessorSpec extends Specification {
     // --- fixtures ------------------------------------------------------------------------------
 
     private def execute(String documentPath, boolean resultAsFile = true, String mediaType = "application/xml") {
-        TransactionJob inputs = new ImmutableTransactionJob.Builder()
+        processor.execute(partialJob(), job(), inputs(documentPath, resultAsFile, mediaType), jobs)
+    }
+
+    private static TransactionJob inputs(String documentPath, boolean resultAsFile = true, String mediaType = "application/xml") {
+        new ImmutableTransactionJob.Builder()
                 .apiId("api")
                 .documentPath(documentPath)
                 .mediaType(mediaType)
@@ -369,7 +396,6 @@ class TransactionJobProcessorSpec extends Specification {
                 .returnPrefer(HeaderPrefer.Return.MINIMAL)
                 .resultAsFile(resultAsFile)
                 .build()
-        processor.execute(partialJob(), job(), inputs, jobs)
     }
 
     private static Job job() {

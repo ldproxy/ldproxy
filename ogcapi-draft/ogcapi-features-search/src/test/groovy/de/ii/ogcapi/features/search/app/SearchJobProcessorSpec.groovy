@@ -55,12 +55,20 @@ class SearchJobProcessorSpec extends Specification {
 
     int queries = 0
 
+    /** The store throws this exception when the result is written. */
+    IOException storeError = null
+
     RecordingJobs jobs = new RecordingJobs()
     SearchJobProcessor processor
 
     def setup() {
         ResourceStore store = Stub()
-        store.put(_ as Path, _ as InputStream) >> { Path p, InputStream content -> files[p] = content.readAllBytes() }
+        store.put(_ as Path, _ as InputStream) >> { Path p, InputStream content ->
+            if (storeError != null) {
+                throw storeError
+            }
+            files[p] = content.readAllBytes()
+        }
         ResourceStore root = Stub()
         root.with(*_) >> { args -> storeScope = args.flatten(); store }
 
@@ -153,6 +161,19 @@ class SearchJobProcessorSpec extends Specification {
         files.isEmpty()
         jobs.outputs == null
         jobs.updates.isEmpty()
+    }
+
+    def "an error of the store is not reported by the job, but passed on to be logged with an error ID"() {
+        given:
+        storeError = new IOException("/data/resources/jobs/feature-query/api/result_job-1.json (No space left on device)")
+
+        when:
+        execute()
+
+        then:
+        UncheckedIOException e = thrown()
+        e.cause.is(storeError)
+        jobs.outputs == null
     }
 
     def "a job for an unknown API is rejected without a query"() {

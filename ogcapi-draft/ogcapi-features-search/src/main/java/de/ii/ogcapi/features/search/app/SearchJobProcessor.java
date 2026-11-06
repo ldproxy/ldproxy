@@ -29,7 +29,6 @@ import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobResult;
 import de.ii.xtralink.jobs.PartialJob;
 import de.ii.xtraplatform.base.domain.AppContext;
-import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
@@ -44,6 +43,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,14 +53,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Singleton
 @AutoBind(interfaces = JobProcessorBase.class)
 public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(SearchJobProcessor.class);
 
   private final AppContext appContext;
   private final EntityRegistry entityRegistry;
@@ -170,10 +166,9 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
       // partial up itself
       jobs.update(partialJob.id(), 1);
     } catch (IOException e) {
-      if (LOGGER.isDebugEnabled()) {
-        LogContext.errorAsDebug(LOGGER, e, "Error executing query job");
-      }
-      return jobs.failure(String.format("Error executing query: %s", e.getMessage()));
+      // an error of the store is unexpected; the errors of a job are public, so it is only logged,
+      // with an error ID that the job reports (see JobProcessorSimple)
+      throw new UncheckedIOException(e);
     } finally {
       jobHook.finish();
     }
