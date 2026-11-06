@@ -29,6 +29,8 @@ import de.ii.xtraplatform.features.domain.JobHook
 import de.ii.xtraplatform.xtralink.domain.JobContext
 import de.ii.xtraplatform.xtralink.domain.JobInputs
 import de.ii.xtraplatform.xtralink.domain.JobProcessing
+import jakarta.ws.rs.BadRequestException
+import jakarta.ws.rs.InternalServerErrorException
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.nio.charset.StandardCharsets
@@ -55,6 +57,9 @@ class TransactionJobProcessorSpec extends Specification {
 
     /** The job is cancelled while the transaction with this number (from 1) is applied. */
     int cancelDuring = 0
+
+    /** The transaction handler throws this exception, as for an invalid request. */
+    RuntimeException rejectWith = null
 
     /** The job hooks handed to the transaction handler. */
     List<Optional<JobHook>> hooks = []
@@ -96,6 +101,9 @@ class TransactionJobProcessorSpec extends Specification {
         CommandHandlerTransactions handler = Stub()
         handler.processTransaction(_, _, _) >> { QueryInputTransaction input, ApiRequestContext context, Optional<JobHook> hook ->
             hooks << hook
+            if (rejectWith != null) {
+                throw rejectWith
+            }
             if (applied.size() == cancelDuring) {
                 jobs.cancelled = true
             }
@@ -150,6 +158,39 @@ class TransactionJobProcessorSpec extends Specification {
 
         where:
         resultAsFile << [true, false]
+    }
+
+    def "a document rejected with a client error, e.g. a malformed one, has the reason as its result: resultAsFile #resultAsFile"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        rejectWith = new BadRequestException("Could not parse transaction body: Malformed wfs:Transaction body")
+
+        when:
+        def result = execute("api/d1/001.xml", resultAsFile)
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The transaction was rejected with status 400, the results of the job contain the response document"]
+        text("api/result_job-1.json") ==
+                '{"status":400,"title":"Bad Request","detail":"Could not parse transaction body: Malformed wfs:Transaction body"}'
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json", 400)
+        jobs.updates.isEmpty()
+
+        where:
+        resultAsFile << [true, false]
+    }
+
+    def "a server error of the transaction is not a reason for the failure of the job"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        rejectWith = new InternalServerErrorException("connection lost")
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        thrown(InternalServerErrorException)
+        !files.containsKey(Path.of("api/result_job-1.json"))
     }
 
     def "without result file, the response document is the job outputs"() {

@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction;
 import de.ii.ogcapi.transactions.domain.TransactionJob;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
@@ -34,6 +35,7 @@ import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.BufferedInputStream;
@@ -44,9 +46,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -304,8 +308,33 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
           commandHandler.processTransaction(queryInput, requestContext, Optional.of(jobHook))) {
         Object entity = response.getEntity();
         return new Applied(response.getStatus(), entity == null ? null : entity.toString());
+      } catch (WebApplicationException e) {
+        int status = e.getResponse().getStatus();
+        if (status < 400 || status >= 500) {
+          throw e;
+        }
+        // a client error, e.g. a malformed transaction document, is the reason for the failure of
+        // the job, with the status and the problem details of a synchronous request
+        return new Applied(status, Jobs.DEFAULT_MAPPER.writeValueAsString(problem(e, status)));
       }
     }
+  }
+
+  private static Map<String, Object> problem(WebApplicationException e, int status) {
+    Map<String, Object> problem = new LinkedHashMap<>();
+    if (e instanceof TypedClientErrorException typed && Objects.nonNull(typed.getType())) {
+      problem.put("type", typed.getType());
+    }
+    Response.StatusType statusType = Response.Status.fromStatusCode(status);
+    problem.put("status", status);
+    // JAX-RS has no reason phrase for 422, as in ApiErrorMessage
+    problem.put(
+        "title",
+        Objects.nonNull(statusType)
+            ? statusType.getReasonPhrase()
+            : status == 422 ? "Unprocessable Entity" : "Error");
+    problem.put("detail", e.getMessage());
+    return problem;
   }
 
   private static InputStream decompressIfGzip(InputStream content) throws IOException {
