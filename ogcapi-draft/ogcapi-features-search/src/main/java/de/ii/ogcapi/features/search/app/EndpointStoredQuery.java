@@ -353,10 +353,6 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
     QueryExpression executableQuery =
         new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
 
-    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
-      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, executableQuery, true);
-    }
-
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
 
@@ -380,6 +376,12 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       queryInputBuilder.includeBodyLinks(false).includeLinkHeader(false);
     }
     QueryInputQuery queryInput = queryInputBuilder.build();
+
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
+      // an invalid query is rejected before a job is created, as by a synchronous request
+      queryHandler.validate(queryInput, requestContext);
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, executableQuery, true);
+    }
 
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
   }
