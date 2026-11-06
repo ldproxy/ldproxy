@@ -149,11 +149,13 @@ public class SearchJobProcessor extends JobProcessorSimple<SearchJob> {
 
       try (Response response = queryHandler.handle(Query.QUERY, queryInput, requestContext)) {
         if (response.getStatus() >= 400) {
+          String detail = String.format("Query failed with status %d", response.getStatus());
+          if (!JobFailure.isClientError(response.getStatus())) {
+            // a server error is no reason that the job states, the failure is unexpected
+            return jobs.failure(detail);
+          }
           // the status of the query is the reason for the failure of the job
-          JobFailure failure =
-              JobFailure.of(
-                  response.getStatus(),
-                  String.format("Query failed with status %d", response.getStatus()));
+          JobFailure failure = JobFailure.of(response.getStatus(), detail);
           jobs.outputs(job.id(), failure.asOutputs());
           return jobs.failure(failure.getDetail());
         }

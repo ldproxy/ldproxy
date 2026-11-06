@@ -27,6 +27,23 @@ class JobResultFileSpec extends Specification {
         JobResultFile.from(outputs) == Optional.of(resultFile)
     }
 
+    def "only the document of a client error states the reason for the failure of a job: #status"() {
+        expect:
+        JobResultFile.of("api/result_job-1.json", "application/json", status).statesClientError() == statesClientError
+
+        where:
+        status || statesClientError
+        200    || false
+        400    || true
+        422    || true
+        500    || false
+    }
+
+    def "a result file without status states no reason"() {
+        expect:
+        !JobResultFile.of("api/result_job-1.json", "application/json").statesClientError()
+    }
+
     def "the status of a result file persisted as job outputs is restored: #resultFile.resultStatus"() {
         when:
         Map<String, Object> outputs = MAPPER.readValue(MAPPER.writeValueAsBytes(resultFile), Map)

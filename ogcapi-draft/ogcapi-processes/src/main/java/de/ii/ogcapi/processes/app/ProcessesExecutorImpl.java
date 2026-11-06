@@ -104,7 +104,6 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       Optional<JobFailure> reason =
           finalJob.status() == Status.FAILED
               ? JobFailure.from(finalJob.outputs())
-                  .filter(failure -> failure.getStatus() >= 400 && failure.getStatus() < 500)
               : Optional.empty();
       if (reason.isPresent()) {
         throw new TypedClientErrorException(

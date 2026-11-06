@@ -177,16 +177,19 @@ class ProcessesExecutorImplSpec extends Specification {
         e.type == "urn:example:invalid"
     }
 
-    def "a synchronous execution whose job failed with a stated server error is unexpected"() {
+    def "a synchronous execution whose job failed with a stated status of no client error is unexpected: #failure.status"() {
         when:
         executor.executeSync("api", testProcess, execute([count: 1]), 1000)
 
         then:
         1 * jobs.push(_) >> job(Status.ACCEPTED, [:])
         1 * jobs.waitFor("job-1") >> CompletableFuture.completedFuture(
-                job(Status.FAILED, JobFailure.of(500, "Disk full.").asOutputs(), ["Disk full."]))
+                job(Status.FAILED, [failure: failure], ["Disk full."]))
         IllegalStateException e = thrown()
         e.message == "The execution of process 'TestProcess' ended with job status FAILED: Disk full."
+
+        where: 'as stated by a processor outside of ldproxy'
+        failure << [[status: 500, detail: "Disk full."], [status: 200, detail: "Disk full."]]
     }
 
     def "a synchronous execution that exceeds the timeout is cancelled"() {

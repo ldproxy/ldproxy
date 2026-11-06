@@ -140,6 +140,21 @@ class SearchJobProcessorSpec extends Specification {
         jobs.updates.isEmpty()
     }
 
+    def "a query that failed with a server error states no reason, the failure is unexpected"() {
+        given:
+        response = Response.status(503).entity("unavailable").build()
+
+        when:
+        def result = execute()
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["Query failed with status 503"]
+        files.isEmpty()
+        jobs.outputs == null
+        jobs.updates.isEmpty()
+    }
+
     def "a job for an unknown API is rejected without a query"() {
         when:
         def result = execute("unknown")

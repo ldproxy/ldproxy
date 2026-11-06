@@ -640,7 +640,7 @@ public class EndpointTransactions extends Endpoint
     Optional<JobResultFile> resultFile = JobResultFile.from(finished.outputs());
     boolean rejected =
         finished.status() == Identifiers.Status.FAILED
-            && resultFile.filter(file -> file.getResultStatus() != null).isPresent();
+            && resultFile.filter(JobResultFile::statesClientError).isPresent();
     if (finished.status() != Identifiers.Status.SUCCESSFUL && !rejected) {
       return Optional.empty();
     }

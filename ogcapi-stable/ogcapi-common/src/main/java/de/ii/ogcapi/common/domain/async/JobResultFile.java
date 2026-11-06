@@ -10,6 +10,7 @@ package de.ii.ogcapi.common.domain.async;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -65,6 +66,15 @@ public interface JobResultFile {
 
   default int status() {
     return Optional.ofNullable(getResultStatus()).orElse(200);
+  }
+
+  /**
+   * Whether the document is the response to a request that was rejected with a client error; the
+   * document of a failed job is the reason for the failure only then, as a stated {@link
+   * JobFailure}.
+   */
+  default boolean statesClientError() {
+    return Objects.nonNull(getResultStatus()) && JobFailure.isClientError(getResultStatus());
   }
 
   default Path path() {

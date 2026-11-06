@@ -159,6 +159,26 @@ class AsyncJobsImplSpec extends Specification {
         JobFailure.of(400, "https://example.org/bad-value", "Bad value.") || 400  | [type: "https://example.org/bad-value", status: 400, title: "Bad Request", detail: "Bad value."]
     }
 
+    def "the result of a failed job with a stated status of no client error is an unexpected failure: #jobOutputs"() {
+        given: 'as stated by a processor outside of ldproxy'
+        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_PROCESSES), jobOutputs, ["Disk full."])
+
+        when:
+        AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
+
+        then:
+        document.status == 500
+        document.mediaType == new MediaType("application", "problem+json")
+        new ObjectMapper().readValue(content(document), Map) ==
+                [status: 500, title: "Internal Server Error", detail: "Job 'job-1' failed: Disk full."]
+
+        where:
+        jobOutputs << [
+                [failure: [status: 200, detail: "Everything is fine."]],
+                [failure: [status: 503, detail: "Try again later."]],
+                outputs(JobResultFile.of(RESULT, "application/json", 200))]
+    }
+
     def "the outputs of a #status job are not available"() {
         given:
         stored["job-1"] = job(status, asyncContext(EntityType.OGC_API_PROCESSES), [:])

@@ -173,7 +173,7 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     // Requirement job-results-failed: an error status that corresponds to the reason, e.g. the
     // response document of a rejected transaction; otherwise the errors of the job
     if (job.status() == Status.FAILED
-        && resultFile.filter(file -> file.getResultStatus() != null).isEmpty()) {
+        && resultFile.filter(JobResultFile::statesClientError).isEmpty()) {
       return Optional.of(failure(job));
     }
 
