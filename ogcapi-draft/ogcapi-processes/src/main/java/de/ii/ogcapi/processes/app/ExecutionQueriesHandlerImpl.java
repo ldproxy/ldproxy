@@ -7,9 +7,18 @@
  */
 package de.ii.ogcapi.processes.app;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
+import de.ii.ogcapi.common.domain.async.OgcApiJobResults;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
+import de.ii.ogcapi.common.domain.async.StatusInfoLinksGenerator;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.HeaderCaching;
@@ -22,20 +31,13 @@ import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration.ExecutionMode;
+import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
-import de.ii.ogcapi.processes.domain.format.ResultsFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
-import de.ii.ogcapi.processes.domain.format.StatusInfoLinksGenerator;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcProcess;
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
-import de.ii.ogcapi.processes.domain.model.OgcStatusInfo;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.ImmutableStatusInfoResponse;
-import de.ii.ogcapi.processes.domain.model.web.ResultsResponse;
-import de.ii.ogcapi.processes.domain.model.web.StatusInfoResponse;
 import de.ii.xtraplatform.base.domain.ETag;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
@@ -47,6 +49,8 @@ import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
@@ -108,7 +112,12 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
 
     final OgcExecute executeRequest;
     try {
-      executeRequest = mapper.readValue(queryInput.getRequestBody(), OgcExecute.class);
+      // the schema of an execute request allows members that are not specified, they are ignored
+      executeRequest =
+          mapper
+              .readerFor(OgcExecute.class)
+              .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+              .readValue(queryInput.getRequestBody());
     } catch (IOException e) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Could not parse request body", e);
@@ -116,68 +125,101 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       throw new IllegalArgumentException(
           "Could not parse request body into a valid execute request.");
     }
+    // the JSON value null
+    if (Objects.isNull(executeRequest)) {
+      throw new IllegalArgumentException("The request body is not a valid execute request.");
+    }
+    validateUris(executeRequest);
 
     OgcApi api = requestContext.getApi();
     OgcApiDataV2 apiData = api.getData();
     String processId = queryInput.getProcessId();
-    OgcProcess process = processRepository.getDirect(apiData, processId);
-    List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
-    ExecutionMode executionMode = queryInput.getExecutionMode();
+    ProcessData process = processRepository.getDirect(apiData.getId(), processId);
 
-    boolean async = false;
-    switch (executionMode) {
-      case BOTH -> {
-        /*
-         * Cases:
-         * 1. jobControlOptions is empty: execute synchronously
-         * 2. process can be executed in either mode: execute asynchronously if prefered, synchronously else
-         * 3. process can only be executed asynchronously: execute asynchronously
-         * 4. process can only be executed synchronously: execute synchronously
-         */
-        if (jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)
-            && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          async = queryInput.getPreferAsync();
-        } else if (jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          async = true;
-        }
-      }
+    boolean async =
+        isExecutedAsync(process, queryInput.supportsAsync(), queryInput.getPreferAsync());
 
-      case SYNC -> {
-        if (!jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE)) {
-          throw new IllegalArgumentException(
-              "This server only supports synchronous execution but the process '"
-                  + processId
-                  + "' cannot be executed synchronously.");
-        }
-      }
-
-      case ASYNC -> {
-        if (!jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE)) {
-          throw new IllegalArgumentException(
-              "This server only supports asynchronous execution but the process '"
-                  + processId
-                  + "' cannot be executed asynchronously.");
-        }
-        async = true;
-      }
+    if (!async) {
+      return executionResponseSync(queryInput, requestContext, process, executeRequest);
     }
 
-    if (!async) return executionResponseSync(queryInput, requestContext, process, executeRequest);
-
     return executionResponseAsync(queryInput, requestContext, process, executeRequest);
+  }
+
+  // the process and the callbacks are URIs, the callbacks are sent with HTTP
+  static void validateUris(OgcExecute executeRequest) {
+    executeRequest
+        .getProcess()
+        .ifPresent(
+            process -> {
+              if (!isAbsoluteUri(process, false)) {
+                throw new IllegalArgumentException(
+                    "Invalid execute request: 'process' must be a URI, found '%s'."
+                        .formatted(process));
+              }
+            });
+    executeRequest
+        .getSubscriber()
+        .ifPresent(
+            subscriber ->
+                Map.of(
+                        "successUri", subscriber.getSuccessUri(),
+                        "inProgressUri", subscriber.getInProgressUri(),
+                        "failedUri", subscriber.getFailedUri())
+                    .forEach(
+                        (name, uri) ->
+                            uri.filter(value -> !isAbsoluteUri(value, true))
+                                .ifPresent(
+                                    value -> {
+                                      throw new IllegalArgumentException(
+                                          "Invalid execute request: the subscriber '%s' must be an HTTP URI, found '%s'."
+                                              .formatted(name, value));
+                                    })));
+  }
+
+  private static boolean isAbsoluteUri(String value, boolean http) {
+    try {
+      URI uri = new URI(value);
+      return uri.isAbsolute()
+          && (!http
+              || (("http".equalsIgnoreCase(uri.getScheme())
+                      || "https".equalsIgnoreCase(uri.getScheme()))
+                  && Objects.nonNull(uri.getHost())));
+    } catch (URISyntaxException e) {
+      return false;
+    }
+  }
+
+  // Requirements 19 and 20: the preference only decides if the process supports both modes
+  static boolean isExecutedAsync(OgcProcess process, boolean asyncSupported, boolean preferAsync) {
+    List<JobControlOptions> jobControlOptions = process.getJobControlOptions();
+    boolean canSync =
+        jobControlOptions.isEmpty() || jobControlOptions.contains(JobControlOptions.SYNC_EXECUTE);
+    boolean canAsync =
+        asyncSupported && jobControlOptions.contains(JobControlOptions.ASYNC_EXECUTE);
+
+    if (!canSync && !canAsync) {
+      throw new IllegalArgumentException(
+          "Process '%s' can only be executed asynchronously, which is not supported by this API."
+              .formatted(process.getId()));
+    }
+
+    return canAsync && (!canSync || preferAsync);
   }
 
   private Response executionResponseSync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
-    ResultsFormatExtension outputFormat =
+    JobResultsFormatExtension outputFormat =
         api.getOutputFormat(
-                ResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobResultsFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+            // process outputs are never encoded in an arbitrary media type
+            .filter(format -> !format.getMediaType().type().isWildcardType())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -185,12 +227,17 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
+    long timeoutMillis =
+        api.getData()
+            .getExtension(ProcessesCoreConfiguration.class)
+            .orElseThrow()
+            .getSyncTimeoutMillis();
     Map<String, Object> processResults =
-        processesExecutor.executeSync(api.getId(), process, executeRequest);
+        processesExecutor.executeSync(api.getId(), process, executeRequest, timeoutMillis);
 
     if (!processResults.isEmpty()) {
-      ResultsResponse resultsResponse =
-          new ImmutableResultsResponse.Builder().additionalProperties(processResults).build();
+      OgcApiJobResults resultsResponse =
+          new ImmutableOgcApiJobResults.Builder().additionalProperties(processResults).build();
 
       return prepareSuccessResponse(
               requestContext,
@@ -204,13 +251,15 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
           .entity(outputFormat.getEntity(resultsResponse, api, requestContext))
           .build();
     } else {
+      // Requirement 34
       return prepareSuccessResponse(
               requestContext,
               null,
               HeaderCaching.of(null, null, queryInput),
               null,
-              HeaderContentDisposition.of(String.format(process.getId())),
+              null,
               i18n.getLanguages())
+          .status(Response.Status.NO_CONTENT)
           .build();
     }
   }
@@ -218,14 +267,14 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   private Response executionResponseAsync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
-      OgcProcess process,
+      ProcessData process,
       OgcExecute executeRequest) {
 
     OgcApi api = requestContext.getApi();
 
-    StatusInfoFormatExtension outputFormat =
+    JobStatusFormatExtension outputFormat =
         api.getOutputFormat(
-                StatusInfoFormatExtension.class, requestContext.getMediaType(), Optional.empty())
+                JobStatusFormatExtension.class, requestContext.getMediaType(), Optional.empty())
             .orElseThrow(
                 () ->
                     new NotAcceptableException(
@@ -233,17 +282,23 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                             "The requested media type ''{0}'' is not supported for this resource.",
                             requestContext.getMediaType())));
 
-    OgcStatusInfo statusInfo =
+    ProcessesCoreConfiguration processesCoreConfiguration =
+        api.getData().getExtension(ProcessesCoreConfiguration.class).orElseThrow();
+
+    OgcApiJobStatus statusInfo =
         processesExecutor.executeAsync(
-            api.getId(), process, executeRequest, queryInput.getCallbackRetries());
+            api.getId(),
+            process,
+            executeRequest,
+            queryInput.getCallbackRetries(),
+            processesCoreConfiguration.getTtlSeconds());
 
-    final StatusInfoLinksGenerator linkGenerator = new StatusInfoLinksGenerator();
+    // the response is not retrieved from the job, the job is the resource to monitor
     List<Link> links =
-        linkGenerator.generateLinks(
-            requestContext.getUriCustomizer(), i18n, requestContext.getLanguage(), statusInfo, 3);
+        new StatusInfoLinksGenerator().generateMonitorLinks(requestContext, 3, i18n, statusInfo);
 
-    StatusInfoResponse statusInfoResponse =
-        new ImmutableStatusInfoResponse.Builder().from(statusInfo).links(links).build();
+    OgcApiJobStatusInfo statusInfoResponse =
+        new ImmutableOgcApiJobStatusInfo.Builder().from(statusInfo).links(links).build();
 
     Date lastModified = getLastModified(queryInput);
     EntityTag etag =
@@ -253,21 +308,36 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
                     .map(HtmlConfiguration::getSendEtags)
                     .orElse(false)
             ? ETag.from(
-                statusInfoResponse, StatusInfoResponse.FUNNEL, outputFormat.getMediaType().label())
+                statusInfoResponse, OgcApiJobStatusInfo.FUNNEL, outputFormat.getMediaType().label())
             : null;
     Response.ResponseBuilder response = evaluatePreconditions(requestContext, lastModified, etag);
     if (Objects.nonNull(response)) return response.build();
 
-    return prepareSuccessResponse(
-            requestContext,
-            queryInput.getIncludeLinkHeader() ? links : null,
-            HeaderCaching.of(lastModified, etag, queryInput),
-            null,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
-            i18n.getLanguages())
-        .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext))
-        .build();
+    Response.ResponseBuilder asyncResponse =
+        prepareSuccessResponse(
+                requestContext,
+                queryInput.getIncludeLinkHeader() ? links : null,
+                HeaderCaching.of(lastModified, etag, queryInput),
+                null,
+                HeaderContentDisposition.of(
+                    String.format(
+                        "%s.%s", process.getId(), outputFormat.getMediaType().fileExtension())),
+                i18n.getLanguages())
+            .status(Response.Status.CREATED)
+            .location(
+                URI.create(
+                    requestContext
+                        .getApiUriCustomizer()
+                        .appendPathSegments("jobs", statusInfo.getId())
+                        .toString()))
+            .entity(outputFormat.getEntity(statusInfoResponse, api, requestContext));
+
+    // the preference is only reported if the client sent it, otherwise the process is
+    // asynchronous only
+    if (queryInput.getPreferAsync()) {
+      asyncResponse.header("Preference-Applied", "respond-async");
+    }
+
+    return asyncResponse.build();
   }
 }

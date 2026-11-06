@@ -10,6 +10,7 @@ package de.ii.ogcapi.transactions.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import java.util.List;
@@ -75,7 +76,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "TRANSACTIONS")
 @JsonDeserialize(builder = ImmutableTransactionsConfiguration.Builder.class)
-public interface TransactionsConfiguration extends ExtensionConfiguration {
+public interface TransactionsConfiguration extends ExtensionConfiguration, AsyncConfiguration {
 
   enum Semantic {
     ATOMIC,
@@ -118,6 +119,25 @@ public interface TransactionsConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   Boolean getWfsTransaction();
+
+  /**
+   * @langEn Enables asynchronous execution. A request with `Prefer: respond-async` is accepted with
+   *     status 202 and executed as a background job; progress and outcome are tracked by the job.
+   *     When disabled, requests with `respond-async` are rejected with status 501.
+   * @langDe Aktiviert die asynchrone Ausführung. Eine Anfrage mit `Prefer: respond-async` wird mit
+   *     Status 202 angenommen und als Hintergrund-Job ausgeführt; Fortschritt und Ergebnis werden
+   *     im Job festgehalten. Ist die Option inaktiv, werden Anfragen mit `respond-async` mit Status
+   *     501 abgelehnt.
+   * @default false
+   * @since v4.9
+   */
+  @Override
+  @Nullable
+  Boolean getAsync();
+
+  @Override
+  @Nullable
+  Integer getMaxWait();
 
   /**
    * @langEn Semantic applied to requests that do not specify one. The default matches the OGC API

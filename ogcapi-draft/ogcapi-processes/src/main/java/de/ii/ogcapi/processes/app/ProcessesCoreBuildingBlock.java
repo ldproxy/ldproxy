@@ -8,7 +8,6 @@
 package de.ii.ogcapi.processes.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -16,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration;
+import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
@@ -126,7 +126,7 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of(
+    return List.of(
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
         "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description");
@@ -134,6 +134,10 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
-    return new ImmutableProcessesCoreConfiguration.Builder().enabled(false).build();
+    return new ImmutableProcessesCoreConfiguration.Builder()
+        .enabled(false)
+        .async(false)
+        .jobTtl(Duration.hours(1))
+        .build();
   }
 }

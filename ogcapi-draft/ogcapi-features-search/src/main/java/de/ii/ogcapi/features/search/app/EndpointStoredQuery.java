@@ -12,6 +12,7 @@ import static de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler.GROUP
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -23,6 +24,7 @@ import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.domain.SearchJob;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
@@ -30,12 +32,15 @@ import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
+import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
+import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -44,14 +49,17 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -96,6 +104,8 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   private final SearchQueriesHandler queryHandler;
   private final SchemaValidator schemaValidator;
   private final Cql cql;
+  private final Jobs jobs;
+  private final ResourceStore resultStore;
 
   @Inject
   public EndpointStoredQuery(
@@ -104,13 +114,17 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
       StoredQueryRepository repository,
       SearchQueriesHandler queryHandler,
       SchemaValidator schemaValidator,
-      Cql cql) {
+      Cql cql,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.providers = providers;
     this.repository = repository;
     this.queryHandler = queryHandler;
     this.schemaValidator = schemaValidator;
     this.cql = cql;
+    this.jobs = jobs;
+    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
   }
 
   @Override
@@ -208,6 +222,8 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                               !(param instanceof QueryParameterOffsetStoredQuery)
                                   || query.getSupportPaging().orElse(false))
                       .toList();
+              List<ApiHeader> headers =
+                  getHeaders(extensionRegistry, apiData, definitionPath, HttpMethods.GET);
 
               String operationSummary = "execute stored query " + query.getTitle().orElse(queryId);
               Optional<String> operationDescription =
@@ -227,7 +243,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       path,
                       false,
                       queryParameters,
-                      ImmutableList.of(),
+                      headers,
                       getResponseContent,
                       operationSummary,
                       operationDescription,
@@ -237,6 +253,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                       TAGS,
                       SearchBuildingBlock.MATURITY,
                       SearchBuildingBlock.SPEC)
+                  .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
                   .ifPresent(operation -> resourceBuilder.putOperations("GET", operation));
               // the same parameters in the request body, e.g. for geometries that are too large
               // for a URI; only without paging, since paging links, like all links and HTML,
@@ -262,6 +279,7 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
                         TAGS,
                         SearchBuildingBlock.MATURITY,
                         SearchBuildingBlock.SPEC)
+                    .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
                     .ifPresent(operation -> resourceBuilder.putOperations("POST", operation));
               }
               definitionBuilder.putResources(path, resourceBuilder.build());
@@ -287,9 +305,10 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @GET
   public Response getStoredQuery(
       @PathParam("queryId") String queryId,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-    return executeStoredQuery(queryId, api, requestContext, false);
+    return executeStoredQuery(queryId, prefer, api, requestContext, false);
   }
 
   /**
@@ -303,13 +322,18 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   public Response postStoredQuery(
       @PathParam("queryId") String queryId,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-    return executeStoredQuery(queryId, api, requestContext, true);
+    return executeStoredQuery(queryId, prefer, api, requestContext, true);
   }
 
   private Response executeStoredQuery(
-      String queryId, OgcApi api, ApiRequestContext requestContext, boolean isPost) {
+      String queryId,
+      List<String> prefer,
+      OgcApi api,
+      ApiRequestContext requestContext,
+      boolean isPost) {
     OgcApiDataV2 apiData = api.getData();
     ensureSupportForFeatures(apiData);
     checkPathParameter(extensionRegistry, apiData, "/search/{queryId}", "queryId", queryId);
@@ -328,6 +352,10 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
 
     QueryExpression executableQuery =
         new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
+
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, executableQuery, true);
+    }
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
@@ -359,5 +387,12 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
     return Set.of(queryHandler, repository, providers.getFeatureProviderOrThrow(apiData));
+  }
+
+  private static boolean isAsync(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::isAsync)
+        .orElse(false);
   }
 }

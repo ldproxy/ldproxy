@@ -8,7 +8,6 @@
 package de.ii.ogcapi.transactions.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.HeaderPrefer;
@@ -27,17 +26,7 @@ import java.util.Optional;
 @AutoBind
 public class HeaderPreferTransaction extends HeaderPrefer {
 
-  private final Schema<?> schema =
-      new StringSchema()
-          ._enum(
-              ImmutableList.of(
-                  "respond-async",
-                  "return=minimal",
-                  "return=none",
-                  "return=representation",
-                  "handling=strict",
-                  "handling=lenient"))
-          ._default("return=representation");
+  private final Schema<?> schema = new StringSchema().example("return=minimal, handling=strict");
 
   @Inject
   HeaderPreferTransaction(SchemaValidator schemaValidator) {
@@ -51,7 +40,8 @@ public class HeaderPreferTransaction extends HeaderPrefer {
 
   @Override
   public String getDescription() {
-    return "Controls how the server processes the transaction request. "
+    return "Controls how the server processes the transaction request. Multiple preferences are "
+        + "separated by commas. "
         + "'return=representation' (the default) returns the full Transaction Response document "
         + "with per-action results. 'return=minimal' returns the Transaction Response without the "
         + "per-action details. 'return=none' returns 204 No Content on success (a Transaction "
@@ -75,8 +65,17 @@ public class HeaderPreferTransaction extends HeaderPrefer {
         this.getClass().getCanonicalName() + apiData.hashCode() + definitionPath + method.name(),
         () ->
             isEnabledForApi(apiData)
+                && !isAsyncEnabled(apiData)
                 && method == HttpMethods.POST
                 && "/transactions".equals(definitionPath));
+  }
+
+  static boolean isAsyncEnabled(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(TransactionsConfiguration.class)
+        .map(TransactionsConfiguration::getAsync)
+        .map(Boolean.TRUE::equals)
+        .orElse(false);
   }
 
   @Override

@@ -88,6 +88,11 @@ public abstract class ProcessListView extends OgcApiView {
   // keywords
 
   @Value.Derived
+  public String idTitle() {
+    return i18n().get("idTitle", language());
+  }
+
+  @Value.Derived
   public String jobControlOptionsTitle() {
     return i18n().get("jobControlOptionsTitle", language());
   }

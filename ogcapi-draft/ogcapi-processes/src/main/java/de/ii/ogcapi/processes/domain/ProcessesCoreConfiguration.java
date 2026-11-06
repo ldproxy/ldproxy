@@ -7,10 +7,14 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import io.dropwizard.util.Duration;
 import jakarta.validation.constraints.Min;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -25,7 +29,7 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     async: true
  *   ```
  * </code>
  *     <p>Example for the process description of a simple `Echo`-Process:<code>
@@ -68,7 +72,7 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     async: true
  *   ```
  * </code>
  *     <p>Beispiel für die Prozessbeschreibung eines einfachen `Echo`-Prozesses:<code>
@@ -108,7 +112,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "PROCESSES_CORE")
 @JsonDeserialize(builder = ImmutableProcessesCoreConfiguration.Builder.class)
-public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
+public interface ProcessesCoreConfiguration extends ExtensionConfiguration, AsyncConfiguration {
 
   enum ExecutionMode {
     SYNC,
@@ -127,22 +131,6 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   @Nullable
   @Override
   Boolean getEnabled();
-
-  /**
-   * @langEn Sets the supported execution modes. If set to `SYNC`, only synchronous processes will
-   *     be supported and they will all be executed synchronously. Setting it to `ASYNC` has the
-   *     same effect for asynchronous processes and execution. To support both modes, set it to
-   *     `BOTH`.
-   * @langDe Legt die unterstützten Ausführungsmodi fest. Bei `SYNC` werden nur synchrone Prozesse
-   *     unterstützt und alle synchron ausgeführt. Bei `ASYNC` gilt dies entsprechend für asynchrone
-   *     Prozesse und Ausführung. Um beide Modi zu unterstützen, setzen Sie den Wert auf `BOTH`.
-   * @default SYNC
-   * @since 4.9
-   */
-  @Value.Default
-  default ExecutionMode getExecutionMode() {
-    return ExecutionMode.SYNC;
-  }
 
   /**
    * @langEn Sets the default value for parameter `limit`.
@@ -189,6 +177,30 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   @Value.Default
   default Integer getCallbackRetries() {
     return 3;
+  }
+
+  /**
+   * @langEn Maximum duration of a synchronous process execution. If the process has not finished by
+   *     then, the job is cancelled and the request fails with status code 504.
+   * @langDe Maximale Dauer einer synchronen Prozessausführung. Ist der Prozess bis dahin nicht
+   *     abgeschlossen, wird der Job abgebrochen und die Anfrage schlägt mit dem Statuscode 504
+   *     fehl.
+   * @default 5m
+   * @since 4.9
+   */
+  @Nullable
+  Duration getSyncTimeout();
+
+  @JsonIgnore
+  @Value.Lazy
+  default long getSyncTimeoutMillis() {
+    return Optional.ofNullable(getSyncTimeout()).orElse(Duration.minutes(5)).toMilliseconds();
+  }
+
+  @JsonIgnore
+  @Override
+  default boolean hasNamedOutputs() {
+    return true;
   }
 
   @Override

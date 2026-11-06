@@ -122,7 +122,9 @@ public class ContentNegotiationMediaTypeImpl implements ContentNegotiationMediaT
 
   private Optional<ApiMediaType> findMatchingOgcApiMediaType(
       MediaType mediaType, Set<ApiMediaType> supportedMediaTypes) {
-    return supportedMediaTypes.stream().filter(type -> type.type().equals(mediaType)).findFirst();
+    return supportedMediaTypes.stream()
+        .filter(type -> toTypes(type).anyMatch(candidate -> candidate.equals(mediaType)))
+        .findFirst();
   }
 
   private Stream<MediaType> toTypes(ApiMediaType apiMediaType) {

@@ -57,10 +57,21 @@ public interface ExecutionResult {
             .anyMatch(r -> r.getStatus() == ActionStatus.FAILED && r.isServerError());
   }
 
+  /**
+   * Whether execution was stopped by a cooperatively observed cancellation request. Atomic: the
+   * whole transaction was rolled back. Batch: actions committed before the cancellation stay
+   * committed.
+   */
+  @Value.Default
+  default boolean isCancelled() {
+    return false;
+  }
+
   /** Whether the transaction as a whole succeeded (no FAILED actions in atomic; any in batch). */
   @Value.Derived
   default boolean isSuccess() {
-    return getTransactionError().isEmpty()
+    return !isCancelled()
+        && getTransactionError().isEmpty()
         && getActionResults().stream().noneMatch(r -> r.getStatus() == ActionStatus.FAILED);
   }
 

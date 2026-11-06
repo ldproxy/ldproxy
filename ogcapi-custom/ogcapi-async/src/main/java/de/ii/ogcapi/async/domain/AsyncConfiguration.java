@@ -7,17 +7,23 @@
  */
 package de.ii.ogcapi.async.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "ASYNC")
 @JsonDeserialize(builder = ImmutableAsyncConfiguration.Builder.class)
-public interface AsyncConfiguration extends ExtensionConfiguration, CachingConfiguration {
+public interface AsyncConfiguration extends ExtensionConfiguration {
+
+  @JsonIgnore
+  @Nullable
+  @Override
+  Boolean getEnabled();
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -21,6 +22,7 @@ import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.domain.SearchJob;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
@@ -36,6 +38,7 @@ import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -45,14 +48,17 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
@@ -91,18 +97,24 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   private final FeaturesCoreProviders providers;
   private final Schema<?> schema;
   private final Map<String, Schema<?>> referencedSchemas;
+  private final Jobs jobs;
+  private final ResourceStore resultStore;
 
   @Inject
   public EndpointAdHocQuery(
       ExtensionRegistry extensionRegistry,
       SearchQueriesHandler queryHandler,
       FeaturesCoreProviders providers,
-      ClassSchemaCache classSchemaCache) {
+      ClassSchemaCache classSchemaCache,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
     this.providers = providers;
     this.schema = classSchemaCache.getSchema(QueryExpression.class);
     this.referencedSchemas = classSchemaCache.getReferencedSchemas(QueryExpression.class);
+    this.jobs = jobs;
+    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
   }
 
   @Override
@@ -211,7 +223,9 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             + "<p>General remarks:</p>"
             + "<ul><li>A \"title\" and \"description\" for the query expression can be added. "
             + "Providing both is strongly recommended to explain the query to users.\n"
-            + "<li>The \"limit\" member applies to the entire result set.\n"
+            + "<li>Ad-hoc queries are not paged: all matching features are returned, the "
+            + "\"limit\" member has no effect. The server may cap the number of features per "
+            + "query.\n"
             + "<li>\"sortby\" will only apply per query. A global \"sortby\" would require that "
             + "the results of all queries are compiled first and then the combined result set is "
             + "sorted. This would not support \"streaming\" the response.\n"
@@ -243,6 +257,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             TAGS,
             SearchBuildingBlock.MATURITY,
             SearchBuildingBlock.SPEC)
+        .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
         .ifPresent(operation -> resourceBuilder.putOperations(method.toString(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
@@ -253,6 +268,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Path("/")
   public Response getAdhocQuery(
       @Auth Optional<User> optionalUser,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
@@ -298,6 +314,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             .isStoredQuery(false)
             .build();
 
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
+      // an invalid query is rejected before a job is created, as by a synchronous request
+      queryHandler.validate(queryInput, requestContext);
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, query, false);
+    }
+
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
   }
 
@@ -310,5 +332,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
     return Set.of(queryHandler, providers.getFeatureProviderOrThrow(apiData));
+  }
+
+  private static boolean isAsync(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::isAsync)
+        .orElse(false);
   }
 }

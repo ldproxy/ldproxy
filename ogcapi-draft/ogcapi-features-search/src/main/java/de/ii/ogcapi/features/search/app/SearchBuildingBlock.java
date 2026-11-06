@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
@@ -101,7 +102,10 @@ import java.util.Optional;
  *     strongly recommended to explain the query to users.
  * - By default the result set is returned single-shot: all matching features in one pass, with no
  *     paging links and without "numberMatched"/"numberReturned"; this avoids a count query per
- *     (sub-)query and is considerably faster for large result sets. A stored query may set
+ *     (sub-)query and is considerably faster for large result sets. Formats in which these
+ *     attributes are required (GML with "supportsStandardResponseParameters") state
+ *     "numberMatched" as "unknown" and "numberReturned" as "0"; here "0" means that the number was
+ *     not determined. A stored query may set
  *     "supportPaging" to true to be paged instead: the response then reports "numberMatched" and
  *     "numberReturned" and the result can be retrieved page by page via "offset", with "next"/"prev"
  *     links. Ad-hoc queries (POST) are always single-shot, as there is no addressable URL to page
@@ -183,7 +187,7 @@ import java.util.Optional;
  *     <p>Allgemeines:
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
- * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt. Da eine in einem Durchgang ausgegebene Antwort zu groß sein kann, um in einem Browser dargestellt zu werden, wird sie mit einem Header "Content-Disposition: attachment" ausgegeben, d. h. Browser speichern die Antwort als Datei, anstatt sie anzuzeigen. Dies gilt auch für Formate, die Browser sonst direkt anzeigen, wie GeoJSON.
+ * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Formate, in denen diese Angaben Pflicht sind (GML mit "supportsStandardResponseParameters"), geben "numberMatched" als "unknown" und "numberReturned" als "0" an; "0" bedeutet hier, dass die Anzahl nicht bestimmt wurde. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt. Da eine in einem Durchgang ausgegebene Antwort zu groß sein kann, um in einem Browser dargestellt zu werden, wird sie mit einem Header "Content-Disposition: attachment" ausgegeben, d. h. Browser speichern die Antwort als Datei, anstatt sie anzuzeigen. Dies gilt auch für Formate, die Browser sonst direkt anzeigen, wie GeoJSON.
  * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
  * - HTML ist nur für Abfragen verfügbar, bei denen "supportPaging" auf true gesetzt ist und die die Antwort im Standard-Koordinatenreferenzsystem zurückgeben (die eingebettete Karte unterstützt keine anderen Koordinatenreferenzsysteme). Für alle anderen Abfragen wird HTML nicht in der Liste der Ausgabeformate der Abfrage aufgeführt und Anfragen nach HTML werden mit einem 406 (Not Acceptable) abgelehnt. Ist der Wert von "crs" ein Parameter, wird HTML nicht angeboten, da das Koordinatenreferenzsystem erst bei der Ausführung der Abfrage bekannt ist.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
@@ -226,9 +230,10 @@ import java.util.Optional;
  *     </code>
  *     <p>In addition:
  *     <p><code>
- * - Responses are not paged, `limit` is an upper bound for the number of features in the
- *     response. Large extracts are the use case for asynchronous execution, which is a separate
- *     work item.
+ * - Only stored queries with `supportPaging: true` are paged. Without paging (the default, and
+ *     always for ad-hoc queries), `limit` has no effect and all matching features are returned;
+ *     the option `maximumFeaturesPerQuery` caps the number of features per query. Large extracts
+ *     can be retrieved with asynchronous execution (option `async`).
  *     </code>
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
@@ -242,7 +247,7 @@ import java.util.Optional;
  *     </code>
  *     <p>Außerdem:
  *     <p><code>
- * - Antworten werden nicht in Seiten aufgeteilt, `limit` ist eine Obergrenze für die Anzahl der Features in der Antwort. Für große Abrufe ist die asynchrone Ausführung von Abfragen vorgesehen, die ein separates Arbeitspaket ist.
+ * - Nur gespeicherte Abfragen mit `supportPaging: true` werden in Seiten aufgeteilt. Ohne Paging (der Standard, bei Ad-hoc-Abfragen immer) hat `limit` keine Wirkung und es werden alle passenden Features zurückgegeben; die Option `maximumFeaturesPerQuery` begrenzt die Anzahl der Features je Abfrage. Große Abrufe sind mit der asynchronen Ausführung möglich (Option `async`).
  *     </code>
  * @ref:cfg {@link de.ii.ogcapi.features.search.domain.SearchConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.features.search.domain.ImmutableSearchConfiguration}
@@ -284,6 +289,9 @@ public class SearchBuildingBlock implements ApiBuildingBlock {
         .managerEnabled(false)
         .validationEnabled(false)
         .allLinksAreLocal(false)
+        .async(false)
+        .maxWait(60)
+        .jobTtl(Duration.hours(1))
         .build();
   }
 

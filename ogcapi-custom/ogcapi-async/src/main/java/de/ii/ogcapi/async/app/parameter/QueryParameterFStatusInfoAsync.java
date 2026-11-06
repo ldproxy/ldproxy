@@ -8,13 +8,15 @@
 package de.ii.ogcapi.async.app.parameter;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import de.ii.ogcapi.async.app.AsyncBuildingBlock;
+import de.ii.ogcapi.async.domain.AsyncConfiguration;
 import de.ii.ogcapi.common.domain.QueryParameterF;
+import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
-import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
-import de.ii.ogcapi.processes.domain.format.StatusInfoFormatExtension;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -48,11 +50,16 @@ public class QueryParameterFStatusInfoAsync extends QueryParameterF {
 
   @Override
   protected Class<? extends FormatExtension> getFormatClass() {
-    return StatusInfoFormatExtension.class;
+    return JobStatusFormatExtension.class;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return AsyncBuildingBlock.isAsyncEnabled(apiData);
   }
 
   @Override
   public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
-    return ProcessesCoreConfiguration.class;
+    return AsyncConfiguration.class;
   }
 }

@@ -55,11 +55,7 @@ public class ProcessListFormatHtml
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
-    }
-
-    return ImmutableList.of();
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
   }
 
   @Override
@@ -122,7 +118,7 @@ public class ProcessListFormatHtml
     // We just .get() because of the default values
     int offset = optionalOffset.get();
     int limit = optionalLimit.get();
-    int size = repository.getAll(api.getData()).size();
+    int size = repository.getAll(api.getData().getId()).size();
     int page = Math.floorDiv(offset, limit) + 1;
     int pages = (int) Math.ceil((double) size / limit);
 
@@ -176,7 +172,7 @@ public class ProcessListFormatHtml
         .uri(URI.create("processes"))
         .i18n(i18n)
         .language(requestContext.getLanguage())
-        .description(i18n.get("processListLink", requestContext.getLanguage()))
+        .description(i18n.get("processListDescription", requestContext.getLanguage()))
         .title(processListTitle)
         .rawLinks(processListResponse.getLinks())
         .user(requestContext.getUser())
