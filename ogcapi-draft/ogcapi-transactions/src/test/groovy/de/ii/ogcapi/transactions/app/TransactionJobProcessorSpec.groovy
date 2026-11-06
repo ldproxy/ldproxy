@@ -181,7 +181,7 @@ class TransactionJobProcessorSpec extends Specification {
         result.messages() == ["The transaction was rejected with status 400, the results of the job contain the response document"]
         text("api/result_job-1.json") ==
                 '{"status":400,"title":"Bad Request","detail":"Could not parse transaction body: Malformed wfs:Transaction body"}'
-        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json", 400)
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/problem+json", 400)
         jobs.updates.isEmpty()
 
         where:

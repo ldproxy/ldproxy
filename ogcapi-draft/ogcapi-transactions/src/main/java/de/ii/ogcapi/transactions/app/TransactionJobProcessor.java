@@ -67,6 +67,7 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
   private static final Logger LOGGER = LoggerFactory.getLogger(TransactionJobProcessor.class);
 
   private static final String RESULT_SUFFIX = ".result.json";
+  private static final String PROBLEM_JSON = "application/problem+json";
 
   private final AppContext appContext;
   private final EntityRegistry entityRegistry;
@@ -169,8 +170,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       jobs.outputs(
           job.id(),
           applied.rejected()
-              ? JobResultFile.of(resultPath, MediaType.APPLICATION_JSON, applied.status())
-              : JobResultFile.of(resultPath, MediaType.APPLICATION_JSON));
+              ? JobResultFile.of(resultPath, applied.mediaType(), applied.status())
+              : JobResultFile.of(resultPath, applied.mediaType()));
     } else if (applied.body() != null) {
       jobs.outputs(job.id(), Jobs.DEFAULT_MAPPER.readValue(applied.body(), Jobs.MAP_TYPE));
     }
@@ -267,8 +268,11 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
     return jobs.failure("The job was cancelled");
   }
 
-  /** The outcome of one transaction: the HTTP status and the response document, if any. */
-  private record Applied(int status, String body) {
+  /**
+   * The outcome of one transaction: the HTTP status and the response document, if any, with its
+   * media type.
+   */
+  private record Applied(int status, String body, String mediaType) {
     boolean rejected() {
       return status >= 400;
     }
@@ -307,7 +311,10 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
       try (Response response =
           commandHandler.processTransaction(queryInput, requestContext, Optional.of(jobHook))) {
         Object entity = response.getEntity();
-        return new Applied(response.getStatus(), entity == null ? null : entity.toString());
+        return new Applied(
+            response.getStatus(),
+            entity == null ? null : entity.toString(),
+            MediaType.APPLICATION_JSON);
       } catch (WebApplicationException e) {
         int status = e.getResponse().getStatus();
         if (status < 400 || status >= 500) {
@@ -315,7 +322,8 @@ public class TransactionJobProcessor extends JobProcessorSimple<TransactionJob> 
         }
         // a client error, e.g. a malformed transaction document, is the reason for the failure of
         // the job, with the status and the problem details of a synchronous request
-        return new Applied(status, Jobs.DEFAULT_MAPPER.writeValueAsString(problem(e, status)));
+        return new Applied(
+            status, Jobs.DEFAULT_MAPPER.writeValueAsString(problem(e, status)), PROBLEM_JSON);
       }
     }
   }
