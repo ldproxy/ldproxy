@@ -50,6 +50,35 @@ class HeaderPreferSpec extends Specification {
         " handling = strict " || HeaderPrefer.Handling.STRICT
     }
 
+    def "a preference with parameters or a quoted value is parsed: '#header'"() {
+        expect:
+        HeaderPrefer.parseHandling([header], HeaderPrefer.Handling.LENIENT) == HeaderPrefer.Handling.STRICT
+
+        where:
+        header << [
+                "handling=strict; x=1",
+                "handling=strict ;x=1;y",
+                'handling="strict"',
+                'handling="strict"; x=1',
+                "respond-async; x=1, handling=strict; y=2"]
+    }
+
+    def "parseWait parses '#header' as #expected"() {
+        expect:
+        HeaderPrefer.parseWait([header]) == expected
+
+        where:
+        header                         || expected
+        "wait=10"                      || Optional.of(10)
+        "wait=10; x=1"                 || Optional.of(10)
+        'wait="10"'                    || Optional.of(10)
+        "respond-async, wait=10;x=1"   || Optional.of(10)
+        "wait=-1"                      || Optional.empty()
+        "wait=ten"                     || Optional.empty()
+        "wait=10, wait=20"             || Optional.empty()
+        'wait="10'                     || Optional.empty()
+    }
+
     def "parseHandling picks the handling token out of a multi-value header"() {
         expect:
         HeaderPrefer.parseHandling(
