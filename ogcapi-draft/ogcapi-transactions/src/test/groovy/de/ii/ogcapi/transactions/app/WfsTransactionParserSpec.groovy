@@ -121,6 +121,37 @@ class WfsTransactionParserSpec extends Specification {
         tx.close()
     }
 
+    def 'a body that ends within a wfs:Insert fails the items of the insert and then the next action'() {
+        given:
+        def body = '''<?xml version="1.0"?>
+            <wfs:Transaction xmlns:wfs="http://www.opengis.net/wfs/2.0"
+                             xmlns:ax="http://example.org/ax">
+              <wfs:Insert>
+                <ax:AX_Buildings><ax:id>1</ax:id></ax:AX_Buildings>
+                <ax:AX_Buildings><ax:id>2'''
+        def tx = parser.parse(bytes(body), XML)
+        def actions = tx.actions()
+        def items = ((TxInsert) actions.next()).items()
+        items.next()
+
+        when: 'the executor reads the next feature of the insert'
+        items.hasNext()
+
+        then:
+        IllegalArgumentException itemError = thrown()
+        itemError.message.startsWith('Malformed wfs:Transaction body')
+
+        when: 'the executor reads the next action after the failed insert'
+        actions.hasNext()
+
+        then:
+        IllegalArgumentException actionError = thrown()
+        actionError.message.startsWith('Malformed wfs:Transaction body')
+
+        cleanup:
+        tx.close()
+    }
+
     def 'wfs:Insert feature payload carries ancestor namespace declarations'() {
         // given: gml: prefix declared only on the wfs:Transaction root
         def body = '''<?xml version="1.0"?>

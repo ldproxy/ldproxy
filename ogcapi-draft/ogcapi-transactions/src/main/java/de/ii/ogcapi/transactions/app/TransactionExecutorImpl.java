@@ -261,123 +261,142 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     Throwable fatalError = null;
     boolean anyFailed = false;
     boolean cancelled = false;
-
-    Iterator<TxAction> actions = transaction.actions();
-    while (actions.hasNext()) {
-      TxAction action = actions.next();
-      if (!cancelled && jobHook.map(JobHook::isCancelRequested).orElse(false)) {
-        cancelled = true;
-      }
-      if (fatalError != null || cancelled || (anyFailed && !collectErrors)) {
-        // execution has stopped — skip remaining actions but still drain insert items so the
-        // parser stays in a consistent state
-        drainQuietly(action);
-        results.add(skipped(canonicalCollectionId(api, action.getCollectionId()), action));
-        continue;
-      }
-      ActionResult result = null;
-      try {
-        String providerId = resolveProviderId(api, action.getCollectionId());
-        Session session = sessionsByProvider.get(providerId);
-        if (session == null) {
-          session = openSessionFor(api, action.getCollectionId());
-          // Store before running setup so a setup failure still leaves the session in the map
-          // for the rollback/close paths below.
-          sessionsByProvider.put(providerId, session);
-          warnings.addAll(session.execute(setup));
-          if (collectErrors && !session.supportsSavepoints()) {
-            LOGGER.warn(
-                "collectErrors is enabled but the feature provider session does not support"
-                    + " savepoints — stopping at the first error for this transaction");
-            collectErrors = false;
-          }
-        }
-        boolean savepointActive = false;
-        if (collectErrors) {
-          session.savepoint();
-          savepointActive = true;
-        }
-        result =
-            runAction(
-                action,
-                session,
-                api,
-                ctx,
-                requestCrs,
-                touchedIdsByCollection,
-                strategyByCollection,
-                atomicScopeTimestamp,
-                ogcMutationDatetime,
-                validate,
-                false,
-                transaction.isWfs(),
-                jobHook);
-        result = withActionWarnings(result, session);
-        if (result.getStatus() == ActionStatus.CANCELLED) {
-          // the whole transaction is rolled back below; no savepoint handling needed
-          cancelled = true;
-        } else if (result.getStatus() == ActionStatus.FAILED) {
-          anyFailed = true;
-          if (savepointActive) {
-            // undo just this action's writes; the transaction stays usable for the rest
-            session.rollbackToSavepoint();
-          }
-        } else {
-          if (savepointActive) {
-            session.releaseSavepoint();
-          }
-          if (result.getStatus() == ActionStatus.SUCCESS) {
-            touchedIdsByCollection
-                .computeIfAbsent(result.getCollectionId(), k -> new HashSet<>())
-                .addAll(result.getFeatureIds());
-          }
-        }
-      } catch (RuntimeException e) {
-        // session acquisition, a setup hook, or savepoint handling failed — the transaction is
-        // no longer usable
-        recoverHookWarnings(e, warnings);
-        if (result == null) {
-          result = failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
-        }
-        anyFailed = true;
-        fatalError = e;
-      }
-      results.add(result);
-    }
-
+    // The sessions hold the writes and locks of the transaction until it is committed or rolled
+    // back. They are released as soon as execution stops, and also when reading the body fails,
+    // e.g. for a truncated or malformed request, which ends the method with an exception.
+    boolean sessionsOpen = true;
     boolean commitSucceeded = false;
     Optional<String> transactionError = Optional.empty();
     boolean transactionServerError = false;
-    if (!anyFailed && !cancelled) {
-      try {
-        // Pre-commit hooks run on the still-open transaction; a raised error aborts the
-        // whole transaction, a warning lets it commit and is surfaced in the response.
-        for (Session s : sessionsByProvider.values()) {
-          warnings.addAll(s.execute(preCommit));
+
+    try {
+      Iterator<TxAction> actions = transaction.actions();
+      while (actions.hasNext()) {
+        if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
+          // the rest of the body of a dismissed job is not read
+          cancelled = true;
+          break;
         }
-        sessionsByProvider.values().forEach(Session::commit);
-        commitSucceeded = true;
-      } catch (RuntimeException e) {
-        // pre-commit or commit failed — a transaction-level error not attributable to a single
-        // action; rollback whatever can still be rolled back
-        recoverHookWarnings(e, warnings);
-        if (e instanceof FeatureMutationHookException) {
-          // expected, configuration-driven rollback (a hook check fired) — reported to the
-          // client, so keep the log quiet and without a stack trace
-          LOGGER.debug("Pre-commit hook aborted the atomic transaction: {}", e.getMessage());
-        } else {
-          LOGGER.warn("Atomic transaction commit failed", e);
+        TxAction action = actions.next();
+        if (fatalError != null || (anyFailed && !collectErrors)) {
+          // execution has stopped — skip remaining actions but still drain insert items so the
+          // parser stays in a consistent state
+          drainQuietly(action);
+          results.add(skipped(canonicalCollectionId(api, action.getCollectionId()), action));
+          continue;
         }
-        rollbackQuietly(sessionsByProvider.values());
-        transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
-        transactionServerError = isServerError(e);
+        ActionResult result = null;
+        try {
+          String providerId = resolveProviderId(api, action.getCollectionId());
+          Session session = sessionsByProvider.get(providerId);
+          if (session == null) {
+            session = openSessionFor(api, action.getCollectionId());
+            // Store before running setup so a setup failure still leaves the session in the map
+            // for the rollback/close paths below.
+            sessionsByProvider.put(providerId, session);
+            warnings.addAll(session.execute(setup));
+            if (collectErrors && !session.supportsSavepoints()) {
+              LOGGER.warn(
+                  "collectErrors is enabled but the feature provider session does not support"
+                      + " savepoints — stopping at the first error for this transaction");
+              collectErrors = false;
+            }
+          }
+          boolean savepointActive = false;
+          if (collectErrors) {
+            session.savepoint();
+            savepointActive = true;
+          }
+          result =
+              runAction(
+                  action,
+                  session,
+                  api,
+                  ctx,
+                  requestCrs,
+                  touchedIdsByCollection,
+                  strategyByCollection,
+                  atomicScopeTimestamp,
+                  ogcMutationDatetime,
+                  validate,
+                  false,
+                  transaction.isWfs(),
+                  jobHook);
+          result = withActionWarnings(result, session);
+          if (result.getStatus() == ActionStatus.CANCELLED) {
+            // the whole transaction is rolled back; no savepoint handling needed
+            cancelled = true;
+          } else if (result.getStatus() == ActionStatus.FAILED) {
+            anyFailed = true;
+            if (savepointActive) {
+              // undo just this action's writes; the transaction stays usable for the rest
+              session.rollbackToSavepoint();
+            }
+          } else {
+            if (savepointActive) {
+              session.releaseSavepoint();
+            }
+            if (result.getStatus() == ActionStatus.SUCCESS) {
+              touchedIdsByCollection
+                  .computeIfAbsent(result.getCollectionId(), k -> new HashSet<>())
+                  .addAll(result.getFeatureIds());
+            }
+          }
+        } catch (RuntimeException e) {
+          // session acquisition, a setup hook, or savepoint handling failed — the transaction is
+          // no longer usable
+          recoverHookWarnings(e, warnings);
+          if (result == null) {
+            result = failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
+          }
+          anyFailed = true;
+          fatalError = e;
+        }
+        results.add(result);
+        if (sessionsOpen && (cancelled || fatalError != null || (anyFailed && !collectErrors))) {
+          // execution has stopped, the transaction is rolled back now and not only once the rest
+          // of the body, which is read to report the skipped actions, has been read
+          rollbackQuietly(sessionsByProvider.values());
+          closeQuietly(sessionsByProvider.values());
+          sessionsOpen = false;
+        }
+      }
+
+      if (!anyFailed && !cancelled) {
+        try {
+          // Pre-commit hooks run on the still-open transaction; a raised error aborts the
+          // whole transaction, a warning lets it commit and is surfaced in the response.
+          for (Session s : sessionsByProvider.values()) {
+            warnings.addAll(s.execute(preCommit));
+          }
+          sessionsByProvider.values().forEach(Session::commit);
+          commitSucceeded = true;
+        } catch (RuntimeException e) {
+          // pre-commit or commit failed — a transaction-level error not attributable to a single
+          // action; whatever can still be rolled back is rolled back below
+          recoverHookWarnings(e, warnings);
+          if (e instanceof FeatureMutationHookException) {
+            // expected, configuration-driven rollback (a hook check fired) — reported to the
+            // client, so keep the log quiet and without a stack trace
+            LOGGER.debug("Pre-commit hook aborted the atomic transaction: {}", e.getMessage());
+          } else {
+            LOGGER.warn("Atomic transaction commit failed", e);
+          }
+          transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
+          transactionServerError = isServerError(e);
+          results = flipSuccessesToRolledBack(results);
+        }
+      } else {
         results = flipSuccessesToRolledBack(results);
       }
-    } else {
-      rollbackQuietly(sessionsByProvider.values());
-      results = flipSuccessesToRolledBack(results);
+    } finally {
+      if (sessionsOpen) {
+        if (!commitSucceeded) {
+          rollbackQuietly(sessionsByProvider.values());
+        }
+        closeQuietly(sessionsByProvider.values());
+      }
     }
-    closeQuietly(sessionsByProvider.values());
 
     if (commitSucceeded) {
       emitChanges(api, results);
@@ -416,75 +435,79 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
     boolean cancelled = false;
 
-    Iterator<TxAction> actions = transaction.actions();
-    while (actions.hasNext()) {
-      // batch semantics: actions committed so far stay committed, the rest are not executed
-      if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
-        cancelled = true;
-        break;
-      }
-      TxAction action = actions.next();
-      Session session = null;
-      try {
-        session = openSessionFor(api, action.getCollectionId());
-        warnings.addAll(session.execute(setup));
-        // Batch semantics commit between actions, so each action sees a fresh committed
-        // snapshot — no need to track touched ids across actions.
-        // Per-action timestamp under batch semantics — each action's mutation is independent.
-        Instant batchScopeTimestamp = nowInstant();
-        ActionResult r =
-            runAction(
-                action,
-                session,
-                api,
-                ctx,
-                requestCrs,
-                Map.of(),
-                strategyByCollection,
-                batchScopeTimestamp,
-                ogcMutationDatetime,
-                validate,
-                true,
-                transaction.isWfs(),
-                jobHook);
-        r = withActionWarnings(r, session);
-        if (r.getStatus() == ActionStatus.CANCELLED) {
+    // the actions committed before are reported as changes also when reading the body fails, e.g.
+    // for a truncated request, which ends the method with an exception
+    try {
+      Iterator<TxAction> actions = transaction.actions();
+      while (actions.hasNext()) {
+        // batch semantics: actions committed so far stay committed, the rest are not executed
+        if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
           cancelled = true;
+          break;
         }
-        if (r.getStatus() == ActionStatus.SUCCESS) {
-          // Pre-commit hooks run per action under batch semantics; a raised error fails just
-          // this action (caught below), a warning lets it commit and is surfaced.
-          warnings.addAll(session.execute(preCommit));
-          session.commit();
-        } else {
-          session.rollback();
-        }
-        results.add(r);
-      } catch (RuntimeException e) {
-        recoverHookWarnings(e, warnings);
-        if (e instanceof FeatureMutationHookException) {
-          LOGGER.debug("Pre-commit hook failed the batch action: {}", e.getMessage());
-        }
-        if (session != null) {
-          try {
-            session.rollback();
-          } catch (RuntimeException ignored) {
-            // already failing, swallow
+        TxAction action = actions.next();
+        Session session = null;
+        try {
+          session = openSessionFor(api, action.getCollectionId());
+          warnings.addAll(session.execute(setup));
+          // Batch semantics commit between actions, so each action sees a fresh committed
+          // snapshot — no need to track touched ids across actions.
+          // Per-action timestamp under batch semantics — each action's mutation is independent.
+          Instant batchScopeTimestamp = nowInstant();
+          ActionResult r =
+              runAction(
+                  action,
+                  session,
+                  api,
+                  ctx,
+                  requestCrs,
+                  Map.of(),
+                  strategyByCollection,
+                  batchScopeTimestamp,
+                  ogcMutationDatetime,
+                  validate,
+                  true,
+                  transaction.isWfs(),
+                  jobHook);
+          r = withActionWarnings(r, session);
+          if (r.getStatus() == ActionStatus.CANCELLED) {
+            cancelled = true;
           }
-        }
-        results.add(failed(canonicalCollectionId(api, action.getCollectionId()), action, e));
-      } finally {
-        if (session != null) {
-          try {
-            session.close();
-          } catch (RuntimeException ignored) {
-            // best-effort
+          if (r.getStatus() == ActionStatus.SUCCESS) {
+            // Pre-commit hooks run per action under batch semantics; a raised error fails just
+            // this action (caught below), a warning lets it commit and is surfaced.
+            warnings.addAll(session.execute(preCommit));
+            session.commit();
+          } else {
+            session.rollback();
+          }
+          results.add(r);
+        } catch (RuntimeException e) {
+          recoverHookWarnings(e, warnings);
+          if (e instanceof FeatureMutationHookException) {
+            LOGGER.debug("Pre-commit hook failed the batch action: {}", e.getMessage());
+          }
+          if (session != null) {
+            try {
+              session.rollback();
+            } catch (RuntimeException ignored) {
+              // already failing, swallow
+            }
+          }
+          results.add(failed(canonicalCollectionId(api, action.getCollectionId()), action, e));
+        } finally {
+          if (session != null) {
+            try {
+              session.close();
+            } catch (RuntimeException ignored) {
+              // best-effort
+            }
           }
         }
       }
+    } finally {
+      emitChanges(api, results);
     }
-
-    emitChanges(api, results);
 
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.BATCH)

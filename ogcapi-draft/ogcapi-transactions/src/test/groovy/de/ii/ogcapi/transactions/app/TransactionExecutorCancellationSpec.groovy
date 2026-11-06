@@ -54,13 +54,16 @@ class TransactionExecutorCancellationSpec extends Specification {
                 a3: { success('a3', ['f3']) },
         ])
 
+        FixedTransaction transaction = transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3')
+
         when:
         ExecutionResult result = executor.execute(
-                transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                transaction, null, null, OgcCrs.CRS84,
                 HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.of(jobHook))
 
-        then: 'the first action ran but is rolled back, the remaining actions are skipped'
-        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.SKIPPED, ActionStatus.SKIPPED]
+        then: 'the first action ran but is rolled back, the rest of the body is not read'
+        statuses(result) == [ActionStatus.ROLLED_BACK]
+        transaction.read == ['a1']
         result.isCancelled()
         !result.isSuccess()
 
@@ -78,13 +81,16 @@ class TransactionExecutorCancellationSpec extends Specification {
                 a3: { success('a3', ['f3']) },
         ])
 
+        FixedTransaction transaction = transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3')
+
         when:
         ExecutionResult result = executor.execute(
-                transaction(TxSemantic.ATOMIC, 'a1', 'a2', 'a3'), null, null, OgcCrs.CRS84,
+                transaction, null, null, OgcCrs.CRS84,
                 HeaderPrefer.Handling.LENIENT, Optional.empty(), Optional.empty())
 
         then:
-        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.CANCELLED, ActionStatus.SKIPPED]
+        statuses(result) == [ActionStatus.ROLLED_BACK, ActionStatus.CANCELLED]
+        transaction.read == ['a1', 'a2']
         result.isCancelled()
         !result.isSuccess()
         session.calls.contains('rollback')
@@ -188,7 +194,7 @@ class TransactionExecutorCancellationSpec extends Specification {
                 .build()
     }
 
-    private static Transaction transaction(TxSemantic semantic, String... actionIds) {
+    private static FixedTransaction transaction(TxSemantic semantic, String... actionIds) {
         List<TxAction> actions = actionIds.collect {
             new ImmutableTxDelete.Builder().collectionId('c').actionId(it).addTargetIds('f').build() as TxAction
         }
@@ -253,6 +259,8 @@ class TransactionExecutorCancellationSpec extends Specification {
     private static class FixedTransaction implements Transaction {
         private final TxSemantic semantic
         private final List<TxAction> actions
+        /** The ids of the actions read from the transaction. */
+        final List<String> read = []
 
         FixedTransaction(TxSemantic semantic, List<TxAction> actions) {
             this.semantic = semantic
@@ -266,7 +274,21 @@ class TransactionExecutorCancellationSpec extends Specification {
 
         @Override
         Iterator<TxAction> actions() {
-            return actions.iterator()
+            Iterator<TxAction> iterator = actions.iterator()
+            List<String> read = this.read
+            return new Iterator<TxAction>() {
+                @Override
+                boolean hasNext() {
+                    return iterator.hasNext()
+                }
+
+                @Override
+                TxAction next() {
+                    TxAction action = iterator.next()
+                    read << action.actionId.get()
+                    return action
+                }
+            }
         }
 
         @Override
