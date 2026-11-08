@@ -85,6 +85,22 @@ class ExecuteRequestUrisSpec extends Specification {
         "https://"                       | "https://example.com/"
     }
 
+    def "the wildcard accepts the callback '#callback'"() {
+        expect:
+        ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, ["*"])
+
+        where:
+        callback << ["https://example.com/callbacks/done", "http://localhost:8765/progress", "http://10.0.0.5:7081/api/tasks/log-level"]
+    }
+
+    def "the wildcard does not accept the callback '#callback' that is not an HTTP URI"() {
+        expect:
+        !ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, ["*"])
+
+        where:
+        callback << ["ftp://example.com/callback", "mailto:someone@example.com", "relative/path", "not a uri"]
+    }
+
     def "an asynchronous execution with a subscriber is rejected, if the API sends no callbacks"() {
         when:
         ExecutionQueriesHandlerImpl.validateCallbacks(execute(null, "https://example.com/callbacks/done"), [])

@@ -37,6 +37,7 @@ class CallbackConfigurationSpec extends Specification {
         true  | []                                 || false
         false | ["https://example.com/callbacks/"] || false
         true  | ["https://example.com/callbacks/"] || true
+        true  | ["*"]                              || true
     }
 
     def "the allowed callback URIs of the defaults and of the API are merged"() {

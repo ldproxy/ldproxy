@@ -191,14 +191,20 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
    * @langEn The URIs to which the callbacks of an asynchronous execution may be sent. A callback
    *     URI of a subscriber is accepted, if it has the scheme, host and port of an entry and its
    *     path starts with the path of the entry, e.g. `https://example.com/callbacks/` accepts
-   *     `https://example.com/callbacks/job-done`. Without an entry, callbacks are not supported and
-   *     an asynchronous execution with a subscriber is rejected.
+   *     `https://example.com/callbacks/job-done`. The entry `*` accepts every HTTP(S) URI; use it
+   *     only for tests or in a closed environment, since a client can then direct requests of the
+   *     server to any host the server can reach, including services that are only reachable from
+   *     the server. Without an entry, callbacks are not supported and an asynchronous execution
+   *     with a subscriber is rejected.
    * @langDe Die URIs, an die die Callbacks einer asynchronen Ausführung gesendet werden dürfen.
    *     Eine Callback-URI eines Subscribers wird akzeptiert, wenn sie Schema, Host und Port eines
    *     Eintrags hat und ihr Pfad mit dem Pfad des Eintrags beginnt, z.B. akzeptiert
-   *     `https://example.com/callbacks/` die URI `https://example.com/callbacks/job-done`. Ohne
-   *     Eintrag werden Callbacks nicht unterstützt und eine asynchrone Ausführung mit einem
-   *     Subscriber wird abgelehnt.
+   *     `https://example.com/callbacks/` die URI `https://example.com/callbacks/job-done`. Der
+   *     Eintrag `*` akzeptiert jede HTTP(S)-URI; er sollte nur für Tests oder in einer
+   *     abgeschlossenen Umgebung verwendet werden, da ein Client dann Anfragen des Servers an jeden
+   *     Host richten kann, den der Server erreicht, auch an Dienste, die nur vom Server aus
+   *     erreichbar sind. Ohne Eintrag werden Callbacks nicht unterstützt und eine asynchrone
+   *     Ausführung mit einem Subscriber wird abgelehnt.
    * @default []
    * @since 4.9
    */

@@ -233,6 +233,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             });
   }
 
+  static final String ANY_CALLBACK_URI = "*";
+
   static boolean isAllowedCallbackUri(String callback, List<String> allowedUris) {
     try {
       URI uri = new URI(callback).normalize();
@@ -243,6 +245,12 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
   }
 
   private static boolean isBelow(URI uri, String allowedUri) {
+    // any callback URI, for tests or a closed environment
+    if (ANY_CALLBACK_URI.equals(allowedUri)) {
+      return Objects.nonNull(uri.getHost())
+          && ("http".equalsIgnoreCase(uri.getScheme())
+              || "https".equalsIgnoreCase(uri.getScheme()));
+    }
     try {
       URI allowed = new URI(allowedUri).normalize();
       return Objects.nonNull(allowed.getScheme())
