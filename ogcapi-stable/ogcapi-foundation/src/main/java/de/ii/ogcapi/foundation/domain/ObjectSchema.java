@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.reflect.TypeToken;
@@ -19,9 +21,12 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -34,56 +39,80 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
 
   public ObjectSchema(@NotNull Class<?> clazz, @NotNull ClassSchemaCache classSchemaCache) {
     super();
-    Class<?> currentClazz = clazz;
-    while (currentClazz != null && currentClazz != Object.class) {
-      processMethods(clazz, currentClazz, classSchemaCache);
-      currentClazz = currentClazz.getSuperclass();
-    }
-    // the properties declared in interfaces, e.g. in the interface of a specification schema that
-    // the class implements, unless the class declares them itself
-    for (Class<?> anInterface : getAllInterfaces(clazz)) {
-      processInterfaceMethods(clazz, anInterface, classSchemaCache);
-    }
-  }
-
-  private void processMethods(
-      Class<?> baseClazz, Class<?> clazz, ClassSchemaCache classSchemaCache) {
-    for (Method m : clazz.getDeclaredMethods()) {
-      if (isPropertyMethod(m) && (!clazz.isInterface() || isGetter(m))) {
-        processMethod(baseClazz, m, classSchemaCache);
+    // the class and its superclasses first, then the interfaces, e.g. the interface of a
+    // specification schema that the class implements; the most specific declaration of a method
+    // determines the property, but like Jackson the annotations of the methods it overrides apply,
+    // too, unless the overriding method has the same annotation
+    List<Class<?>> types = getTypeHierarchy(clazz);
+    Set<String> seen = new HashSet<>();
+    for (Class<?> type : types) {
+      for (Method m : type.getDeclaredMethods()) {
+        if (isAccessorCandidate(m) && seen.add(m.getName())) {
+          Accessor accessor = new Accessor(m, getDeclarations(types, m.getName()));
+          if (isProperty(accessor, type.isInterface())) {
+            processMethod(clazz, accessor, classSchemaCache);
+          }
+        }
       }
     }
   }
 
-  // other than in classes, interfaces declare also methods that are not serialized, e.g. a
-  // conversion or an Immutables check that returns a normalized instance, so only getters are
-  // properties, as for Jackson
-  private void processInterfaceMethods(
-      Class<?> baseClazz, Class<?> anInterface, ClassSchemaCache classSchemaCache) {
-    for (Method m : anInterface.getDeclaredMethods()) {
-      if (isPropertyMethod(m)
-          && isGetter(m)
-          && (Objects.isNull(getProperties())
-              || !getProperties().containsKey(getPropertyName(m)))) {
-        processMethod(baseClazz, m, classSchemaCache);
-      }
+  private static List<Class<?>> getTypeHierarchy(Class<?> clazz) {
+    List<Class<?>> types = new ArrayList<>();
+    for (Class<?> c = clazz; c != null && c != Object.class; c = c.getSuperclass()) {
+      types.add(c);
     }
+    types.addAll(getAllInterfaces(clazz));
+    return types;
   }
 
-  // methods without a value, e.g. Immutables checks, and static methods are not properties
-  private boolean isPropertyMethod(Method m) {
+  // methods with parameters, static or private methods and the bridges of covariant return types
+  // neither are properties nor override a property
+  private static boolean isAccessorCandidate(Method m) {
     return m.getParameterCount() == 0
-        && Modifier.isPublic(m.getModifiers())
         && !Modifier.isStatic(m.getModifiers())
-        && m.getReturnType() != void.class
-        && !hasIgnoreAnnotation(m);
+        && !Modifier.isPrivate(m.getModifiers())
+        && !m.isBridge()
+        && !m.isSynthetic();
   }
 
-  private static boolean isGetter(Method m) {
-    String name = m.getName();
-    return m.isAnnotationPresent(JsonProperty.class)
-        || (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3)))
-        || (name.startsWith("is") && name.length() > 2 && Character.isUpperCase(name.charAt(2)));
+  private static List<Method> getDeclarations(List<Class<?>> types, String name) {
+    List<Method> declarations = new ArrayList<>();
+    for (Class<?> type : types) {
+      try {
+        Method m = type.getDeclaredMethod(name);
+        if (isAccessorCandidate(m)) {
+          declarations.add(m);
+        }
+      } catch (NoSuchMethodException e) {
+        // not declared in this type
+      }
+    }
+    return declarations;
+  }
+
+  // methods without a value, e.g. Immutables checks, are not properties; other than in classes,
+  // interfaces declare also methods that are not serialized, e.g. a conversion or an Immutables
+  // check that returns a normalized instance, so only getters are properties, as for Jackson
+  private static boolean isProperty(Accessor accessor, boolean declaredInInterface) {
+    Method m = accessor.method();
+    return Modifier.isPublic(m.getModifiers())
+        && m.getReturnType() != void.class
+        && !isIgnored(accessor)
+        && (!declaredInInterface || isGetter(accessor));
+  }
+
+  private static boolean isGetter(Accessor accessor) {
+    String name = accessor.method().getName();
+    return Objects.nonNull(accessor.annotation(JsonProperty.class))
+        || hasPrefix(name, "get")
+        || hasPrefix(name, "is");
+  }
+
+  private static boolean hasPrefix(String name, String prefix) {
+    return name.startsWith(prefix)
+        && name.length() > prefix.length()
+        && Character.isUpperCase(name.charAt(prefix.length()));
   }
 
   private static Set<Class<?>> getAllInterfaces(Class<?> clazz) {
@@ -101,18 +130,17 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
     return interfaces;
   }
 
-  private boolean hasIgnoreAnnotation(Method m) {
-    return Arrays.stream(m.getAnnotations())
-        .anyMatch(
-            a ->
-                Objects.equals(
-                        a.annotationType(), com.fasterxml.jackson.annotation.JsonIgnore.class)
-                    || Objects.equals(
-                        a.annotationType(), com.fasterxml.jackson.annotation.JsonAnyGetter.class));
+  private static boolean isIgnored(Accessor accessor) {
+    JsonIgnore ignore = accessor.annotation(JsonIgnore.class);
+    JsonAnyGetter anyGetter = accessor.annotation(JsonAnyGetter.class);
+    return (Objects.nonNull(ignore) && ignore.value())
+        || (Objects.nonNull(anyGetter) && anyGetter.enabled());
   }
 
-  private void processMethod(Class<?> baseClazz, Method m, ClassSchemaCache classSchemaCache) {
-    String name = getPropertyName(m);
+  private void processMethod(
+      Class<?> baseClazz, Accessor accessor, ClassSchemaCache classSchemaCache) {
+    Method m = accessor.method();
+    String name = getPropertyName(accessor);
     Type type = m.getGenericReturnType();
 
     // special treatment for some classes
@@ -125,17 +153,11 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
     if (type instanceof ParameterizedType) {
       this.addProperties(
           name,
-          withFormat(m, generateSchema((ParameterizedType) type, baseClazz, classSchemaCache)));
-      boolean required = false;
-      for (Annotation a : m.getAnnotations()) {
-        if (Objects.equals(a.annotationType(), JsonProperty.class)) {
-          if (m.getAnnotation(JsonProperty.class).required()) {
-            required = true;
-            break;
-          }
-        }
-      }
-      if (required && !isOmittedWhenEmpty(baseClazz, m)) {
+          withFormat(
+              accessor, generateSchema((ParameterizedType) type, baseClazz, classSchemaCache)));
+      JsonProperty property = accessor.annotation(JsonProperty.class);
+      boolean required = Objects.nonNull(property) && property.required();
+      if (required && !isOmittedWhenEmpty(baseClazz, accessor)) {
         this.addRequiredItem(name);
       }
     } else {
@@ -143,14 +165,7 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("Type: {}", returnType);
       }
-      boolean required = true;
-      for (Annotation a : m.getAnnotations()) {
-        if (Objects.equals(a.annotationType(), javax.annotation.Nullable.class)) {
-          required = false;
-          break;
-        }
-      }
-      if (required) {
+      if (Objects.isNull(accessor.annotation(javax.annotation.Nullable.class))) {
         this.addRequiredItem(name);
       }
       if (Objects.equals(returnType, baseClazz)) {
@@ -163,14 +178,15 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
                         ClassSchemaCache.SCHEMA_PATH_TEMPLATE,
                         ClassSchemaCache.getSchemaId(returnType))));
       } else {
-        this.addProperties(name, withFormat(m, classSchemaCache.getSchema(returnType, baseClazz)));
+        this.addProperties(
+            name, withFormat(accessor, classSchemaCache.getSchema(returnType, baseClazz)));
       }
     }
   }
 
   // the schemas of basic types are shared, a format is set on a new schema
-  private static Schema<?> withFormat(Method m, Schema<?> schema) {
-    SchemaFormat format = m.getAnnotation(SchemaFormat.class);
+  private static Schema<?> withFormat(Accessor accessor, Schema<?> schema) {
+    SchemaFormat format = accessor.annotation(SchemaFormat.class);
     if (Objects.isNull(format)
         || Objects.isNull(schema)
         || Objects.nonNull(schema.get$ref())
@@ -182,8 +198,8 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
 
   // an empty collection or map is not serialized with Include.NON_EMPTY, so the property cannot be
   // required, even if it is declared as required in a supertype
-  private static boolean isOmittedWhenEmpty(Class<?> baseClazz, Method m) {
-    JsonInclude include = m.getAnnotation(JsonInclude.class);
+  private static boolean isOmittedWhenEmpty(Class<?> baseClazz, Accessor accessor) {
+    JsonInclude include = accessor.annotation(JsonInclude.class);
     if (Objects.isNull(include)) {
       include = findJsonInclude(baseClazz);
     }
@@ -211,20 +227,17 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
     return null;
   }
 
-  private String getPropertyName(Method m) {
-    String name = m.getName();
-
-    if (Arrays.stream(m.getAnnotations())
-        .anyMatch(a -> Objects.equals(a.annotationType(), JsonProperty.class))) {
-      String value = m.getAnnotation(JsonProperty.class).value();
-      if (!value.isBlank()) {
-        name = value;
-      }
+  // an explicit name is used as is, otherwise the prefix of a getter is removed
+  private static String getPropertyName(Accessor accessor) {
+    JsonProperty property = accessor.annotation(JsonProperty.class);
+    if (Objects.nonNull(property) && !property.value().isBlank()) {
+      return property.value();
     }
 
-    if (name.startsWith("get")) {
+    String name = accessor.method().getName();
+    if (hasPrefix(name, "get")) {
       name = name.substring(3);
-    } else if (name.startsWith("is")) {
+    } else if (hasPrefix(name, "is")) {
       name = name.substring(2);
     }
     return Character.toLowerCase(name.charAt(0)) + name.substring(1);
@@ -333,5 +346,18 @@ public class ObjectSchema extends io.swagger.v3.oas.models.media.ObjectSchema {
     }
 
     return new io.swagger.v3.oas.models.media.ObjectSchema();
+  }
+
+  // a method and all declarations of it in the type hierarchy, the most specific first
+  private record Accessor(Method method, List<Method> declarations) {
+    <A extends Annotation> A annotation(Class<A> type) {
+      for (Method declaration : declarations) {
+        A annotation = declaration.getAnnotation(type);
+        if (Objects.nonNull(annotation)) {
+          return annotation;
+        }
+      }
+      return null;
+    }
   }
 }
