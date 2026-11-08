@@ -15,6 +15,8 @@ import static de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOp
 import static de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions.SYNC_EXECUTE
 
 import de.ii.ogcapi.common.domain.async.AsyncCallbacks
+import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber
+import de.ii.ogcapi.common.domain.async.JobContextAsync
 import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
@@ -113,6 +115,31 @@ class ProcessesExecutorImplSpec extends Specification {
         1 * jobs.push({ JobConfiguration job ->
             !job.setup() && !job.cleanup() && job.partials() == ["oap:TestProcess:execute"]
         }, _) >> job(Status.ACCEPTED, [:])
+    }
+
+    def "a callback is retried as often as configured at most: #requested requested, #configured configured"() {
+        given:
+        def subscriber = new ImmutableAsyncSubscriber.Builder()
+                .successUri("https://example.com/callbacks/done")
+                .maxRetries(Optional.ofNullable(requested))
+                .build()
+        def request = new ImmutableOgcExecute.Builder().inputs([count: 1]).subscriber(subscriber).build()
+
+        when:
+        executor.executeAsync("api", testProcess, request, configured, 3600)
+
+        then:
+        1 * jobs.push({ JobConfiguration job ->
+            JobContextAsync.asyncSubscriberFrom(job.context(), Jobs.DEFAULT_MAPPER).get().getMaxRetries() == Optional.of(retries)
+        }, _) >> job(Status.ACCEPTED, [:])
+
+        where:
+        requested | configured || retries
+        null      | 3          || 3
+        1         | 3          || 1
+        1_000_000 | 3          || 3
+        -5        | 3          || 0
+        2         | 0          || 0
     }
 
     def "the selected outputs of a synchronous execution are returned"() {

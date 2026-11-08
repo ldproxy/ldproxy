@@ -11,6 +11,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.common.domain.async.AsyncCallbacks;
+import de.ii.ogcapi.common.domain.async.AsyncSubscriber;
+import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber;
 import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
@@ -19,6 +21,7 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
+import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcBbox;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
 import de.ii.ogcapi.processes.domain.model.OgcFormat;
@@ -159,13 +162,28 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
           "Process '" + process.getId() + "' does not support async execution.");
     }
 
-    // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, inputs, ttlSeconds);
+    // Create job, the client may request fewer callback retries than configured, but not more
+    OgcExecute request =
+        executeRequest
+            .getSubscriber()
+            .<OgcExecute>map(
+                subscriber ->
+                    ImmutableOgcExecute.copyOf(executeRequest)
+                        .withSubscriber(
+                            ImmutableAsyncSubscriber.copyOf(subscriber)
+                                .withMaxRetries(callbackRetries(subscriber, callbackRetries))))
+            .orElse(executeRequest);
+    JobConfiguration oapJob = OapJob.of(apiId, process, request, inputs, ttlSeconds);
 
     // Put job with callbacks in queue
     Job job = jobs.push(oapJob, asyncCallbacks);
 
     return OgcApiJobStatusInfo.of(job);
+  }
+
+  static int callbackRetries(AsyncSubscriber subscriber, int configuredRetries) {
+    return Math.max(
+        0, Math.min(configuredRetries, subscriber.getMaxRetries().orElse(configuredRetries)));
   }
 
   // Limitation: The draft allows for an input to have multiple schemas, but this implementation

@@ -54,9 +54,11 @@ import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,6 +145,13 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
       return executionResponseSync(queryInput, requestContext, process, executeRequest);
     }
 
+    validateCallbacks(
+        executeRequest,
+        apiData
+            .getExtension(ProcessesCoreConfiguration.class)
+            .map(ProcessesCoreConfiguration::getAllowedCallbackUris)
+            .orElse(List.of()));
+
     return executionResponseAsync(queryInput, requestContext, process, executeRequest);
   }
 
@@ -188,6 +197,87 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     } catch (URISyntaxException e) {
       return false;
     }
+  }
+
+  // the callbacks of an asynchronous execution are only sent to the allowed URIs, otherwise a
+  // client could direct requests of the server to any host the server can reach, including
+  // services that are only reachable from the server
+  static void validateCallbacks(OgcExecute executeRequest, List<String> allowedUris) {
+    List<String> callbacks =
+        executeRequest
+            .getSubscriber()
+            .map(
+                subscriber ->
+                    Stream.of(
+                            subscriber.getSuccessUri(),
+                            subscriber.getInProgressUri(),
+                            subscriber.getFailedUri())
+                        .flatMap(Optional::stream)
+                        .toList())
+            .orElse(List.of());
+    if (callbacks.isEmpty()) {
+      return;
+    }
+    if (allowedUris.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Invalid execute request: this API does not send callbacks, the request must not have a subscriber.");
+    }
+    callbacks.stream()
+        .filter(callback -> !isAllowedCallbackUri(callback, allowedUris))
+        .findFirst()
+        .ifPresent(
+            callback -> {
+              throw new IllegalArgumentException(
+                  "Invalid execute request: this API does not send callbacks to '%s'."
+                      .formatted(callback));
+            });
+  }
+
+  static boolean isAllowedCallbackUri(String callback, List<String> allowedUris) {
+    try {
+      URI uri = new URI(callback).normalize();
+      return allowedUris.stream().anyMatch(allowed -> isBelow(uri, allowed));
+    } catch (URISyntaxException e) {
+      return false;
+    }
+  }
+
+  private static boolean isBelow(URI uri, String allowedUri) {
+    try {
+      URI allowed = new URI(allowedUri).normalize();
+      return Objects.nonNull(allowed.getScheme())
+          && Objects.nonNull(allowed.getHost())
+          && allowed.getScheme().equalsIgnoreCase(uri.getScheme())
+          && allowed.getHost().equalsIgnoreCase(uri.getHost())
+          && port(allowed) == port(uri)
+          && isPathBelow(
+              Objects.requireNonNullElse(uri.getRawPath(), ""),
+              Objects.requireNonNullElse(allowed.getRawPath(), ""));
+    } catch (URISyntaxException e) {
+      return false;
+    }
+  }
+
+  private static int port(URI uri) {
+    if (uri.getPort() != -1) {
+      return uri.getPort();
+    }
+    return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
+  }
+
+  // the path of the allowed URI ends at a segment boundary, "/callbacks" does not accept
+  // "/callbacks-other"; encoded dots and slashes could be decoded to other segments by the
+  // receiving server, so such a path is not below a path
+  private static boolean isPathBelow(String path, String allowedPath) {
+    if (allowedPath.isEmpty() || "/".equals(allowedPath)) {
+      return true;
+    }
+    String lowerCase = path.toLowerCase(Locale.ROOT);
+    if (lowerCase.contains("%2e") || lowerCase.contains("%2f")) {
+      return false;
+    }
+    return path.equals(allowedPath)
+        || path.startsWith(allowedPath.endsWith("/") ? allowedPath : allowedPath + "/");
   }
 
   // Requirements 19 and 20: the preference only decides if the process supports both modes

@@ -11,14 +11,12 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.ogcapi.async.domain.ImmutableAsyncConfiguration;
 import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
-import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -41,7 +39,7 @@ import java.util.stream.Stream;
  */
 @Singleton
 @AutoBind
-public class AsyncBuildingBlock implements ApiBuildingBlock, ConformanceClass {
+public class AsyncBuildingBlock implements ApiBuildingBlock {
 
   public static final Optional<SpecificationMaturity> MATURITY =
       Optional.of(SpecificationMaturity.DRAFT_OGC);
@@ -78,10 +76,5 @@ public class AsyncBuildingBlock implements ApiBuildingBlock, ConformanceClass {
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
     return new ImmutableAsyncConfiguration.Builder().build();
-  }
-
-  @Override
-  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/callback");
   }
 }

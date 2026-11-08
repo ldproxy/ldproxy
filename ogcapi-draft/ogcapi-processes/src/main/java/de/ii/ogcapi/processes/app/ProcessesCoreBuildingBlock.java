@@ -15,9 +15,11 @@ import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.processes.domain.ImmutableProcessesCoreConfiguration;
+import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -126,10 +128,20 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return List.of(
-        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
-        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
-        "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description");
+    List<String> conformanceClasses =
+        new ArrayList<>(
+            List.of(
+                "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
+                "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
+                "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description"));
+    // callbacks are only sent to the configured URIs
+    if (apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::supportsCallbacks)
+        .isPresent()) {
+      conformanceClasses.add("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/callback");
+    }
+    return conformanceClasses;
   }
 
   @Override

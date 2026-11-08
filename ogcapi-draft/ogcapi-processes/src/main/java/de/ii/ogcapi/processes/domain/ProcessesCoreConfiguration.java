@@ -14,7 +14,9 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import io.dropwizard.util.Duration;
 import jakarta.validation.constraints.Min;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -29,6 +31,8 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
+ *     allowedCallbackUris:
+ *       - https://example.com/callbacks/
  *     async: true
  *   ```
  * </code>
@@ -72,6 +76,8 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
+ *     allowedCallbackUris:
+ *       - https://example.com/callbacks/
  *     async: true
  *   ```
  * </code>
@@ -166,10 +172,12 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   }
 
   /**
-   * @langEn Indicates how often the callback should be retried on errors. Should be set to `0` if
-   *     no retries are desired.
-   * @langDe Gibt an, wie oft der Callback bei Fehlern wiederholt werden soll. Sollte auf `0`
-   *     gesetzt werden, falls keine Wiederholungen erwünscht sind.
+   * @langEn Indicates how often the callback should be retried on errors at most. A client may
+   *     request fewer retries with `maxRetries` in the subscriber of the execute request. Should be
+   *     set to `0` if no retries are desired.
+   * @langDe Gibt an, wie oft der Callback bei Fehlern höchstens wiederholt werden soll. Ein Client
+   *     kann mit `maxRetries` im Subscriber der Ausführungsanfrage weniger Wiederholungen
+   *     anfordern. Sollte auf `0` gesetzt werden, falls keine Wiederholungen erwünscht sind.
    * @default 3
    * @since 4.9
    */
@@ -177,6 +185,28 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   @Value.Default
   default Integer getCallbackRetries() {
     return 3;
+  }
+
+  /**
+   * @langEn The URIs to which the callbacks of an asynchronous execution may be sent. A callback
+   *     URI of a subscriber is accepted, if it has the scheme, host and port of an entry and its
+   *     path starts with the path of the entry, e.g. `https://example.com/callbacks/` accepts
+   *     `https://example.com/callbacks/job-done`. Without an entry, callbacks are not supported and
+   *     an asynchronous execution with a subscriber is rejected.
+   * @langDe Die URIs, an die die Callbacks einer asynchronen Ausführung gesendet werden dürfen.
+   *     Eine Callback-URI eines Subscribers wird akzeptiert, wenn sie Schema, Host und Port eines
+   *     Eintrags hat und ihr Pfad mit dem Pfad des Eintrags beginnt, z.B. akzeptiert
+   *     `https://example.com/callbacks/` die URI `https://example.com/callbacks/job-done`. Ohne
+   *     Eintrag werden Callbacks nicht unterstützt und eine asynchrone Ausführung mit einem
+   *     Subscriber wird abgelehnt.
+   * @default []
+   * @since 4.9
+   */
+  List<String> getAllowedCallbackUris();
+
+  @JsonIgnore
+  default boolean supportsCallbacks() {
+    return isAsync() && !getAllowedCallbackUris().isEmpty();
   }
 
   /**
@@ -209,4 +239,18 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
+
+  // the allowed callback URIs of the defaults and of the API are merged, not replaced
+  @Override
+  default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    ProcessesCoreConfiguration src = (ProcessesCoreConfiguration) source;
+    return new ImmutableProcessesCoreConfiguration.Builder()
+        .from(source)
+        .from(this)
+        .allowedCallbackUris(
+            Stream.concat(src.getAllowedCallbackUris().stream(), getAllowedCallbackUris().stream())
+                .distinct()
+                .toList())
+        .build();
+  }
 }
