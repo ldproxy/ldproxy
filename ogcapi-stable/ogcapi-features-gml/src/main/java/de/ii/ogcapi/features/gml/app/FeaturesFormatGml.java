@@ -74,7 +74,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -91,6 +93,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamSource;
@@ -199,6 +202,9 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/gmlsf2";
 
   static final String XSD_CATALOG_STORE_TYPE = "xsdCatalog";
+  // A schema that is not in the xsdCatalog is loaded from its host; the timeouts keep an
+  // unreachable host from blocking the validation, and with it the transaction, indefinitely.
+  private static final int REMOTE_SCHEMA_TIMEOUT_MILLIS = 10_000;
 
   private final Values<Codelist> codelistStore;
   private final FeaturesCoreValidation featuresCoreValidator;
@@ -248,6 +254,13 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
 
   private static String upgradeToHttps(String url) {
     return url != null && url.startsWith("http://") ? "https://" + url.substring(7) : url;
+  }
+
+  private static InputStream openRemote(String url) throws IOException {
+    URLConnection connection = new URL(url).openConnection();
+    connection.setConnectTimeout(REMOTE_SCHEMA_TIMEOUT_MILLIS);
+    connection.setReadTimeout(REMOTE_SCHEMA_TIMEOUT_MILLIS);
+    return connection.getInputStream();
   }
 
   @Override
@@ -839,7 +852,8 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                         cfg -> {
                           Map<String, String> catalog = cfg.getXsdCatalog();
                           SchemaFactory factory = SecureXml.schemaFactory();
-                          factory.setResourceResolver(new XsdCatalogResolver(catalog));
+                          factory.setResourceResolver(
+                              new XsdCatalogResolver(url -> openFromCatalog(catalog, url)));
                           try {
                             return Optional.of(
                                 factory.newSchema(
@@ -854,7 +868,7 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
                                               }
                                               try {
                                                 return new StreamSource(
-                                                    new URL(resolved).openStream(), resolved);
+                                                    openRemote(resolved), resolved);
                                               } catch (IOException e) {
                                                 if (LOGGER.isWarnEnabled()) {
                                                   LOGGER.warn(
@@ -1178,17 +1192,21 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
     return true;
   }
 
-  // Resolves nested schemaLocation/import references during XML Schema validation. Lookup order:
+  // Resolves nested schemaLocation/import references during XML Schema validation. A relative
+  // systemId (e.g. an include of "aaa.xsd") is first resolved against the baseURI of the including
+  // schema. Lookup order:
   //   1. xsdCatalog entry for the systemId (or its http→https equivalent) — read from the
   //      xsdCatalog resource store so deployments behind a network restriction can run.
   //   2. https-upgrade for http:// systemIds — opens the canonical https mirror so historical
   //      http://schemas.opengis.net/... imports resolve without an external redirect.
-  // Other systemIds are left to the platform default (relative URL resolution against baseURI).
-  private final class XsdCatalogResolver implements LSResourceResolver {
-    private final Map<String, String> catalog;
+  // A schema that cannot be loaded from its host fails at once instead of being left to the
+  // platform default, which would try again without a timeout. Other systemIds are left to the
+  // platform default.
+  static final class XsdCatalogResolver implements LSResourceResolver {
+    private final Function<String, StreamSource> catalogLookup;
 
-    XsdCatalogResolver(Map<String, String> catalog) {
-      this.catalog = catalog;
+    XsdCatalogResolver(Function<String, StreamSource> catalogLookup) {
+      this.catalogLookup = catalogLookup;
     }
 
     @Override
@@ -1197,25 +1215,33 @@ public class FeaturesFormatGml extends FeatureFormatExtension implements Conform
       if (systemId == null) {
         return null;
       }
-      StreamSource cached = openFromCatalog(catalog, systemId);
+      String absolute = absolute(systemId, baseURI);
+      StreamSource cached = catalogLookup.apply(absolute);
       if (cached != null) {
         return new SimpleLSInput(cached.getInputStream(), cached.getSystemId(), publicId, baseURI);
       }
-      if (!systemId.startsWith("http://")) {
+      if (!absolute.startsWith("http://") && !absolute.startsWith("https://")) {
         return null;
       }
-      String upgraded = upgradeToHttps(systemId);
+      String upgraded = upgradeToHttps(absolute);
       try {
-        InputStream stream = new URL(upgraded).openStream();
-        return new SimpleLSInput(stream, upgraded, publicId, baseURI);
+        return new SimpleLSInput(openRemote(upgraded), upgraded, publicId, baseURI);
       } catch (IOException e) {
         if (LOGGER.isWarnEnabled()) {
-          LOGGER.warn(
-              "Could not upgrade schema location '{}' to https. Reason: {}",
-              systemId,
-              e.getMessage());
+          LOGGER.warn("Could not load schema location '{}'. Reason: {}", upgraded, e.getMessage());
         }
-        return null;
+        return new SimpleLSInput(InputStream.nullInputStream(), upgraded, publicId, baseURI);
+      }
+    }
+
+    static String absolute(String systemId, String baseURI) {
+      if (baseURI == null) {
+        return systemId;
+      }
+      try {
+        return URI.create(baseURI).resolve(systemId).toString();
+      } catch (IllegalArgumentException e) {
+        return systemId;
       }
     }
   }

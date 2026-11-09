@@ -22,6 +22,8 @@ import de.ii.xtraplatform.features.domain.transform.FeatureRefResolver;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +43,19 @@ public class GmlWriterProperties implements GmlWriter {
   private static final String XML_NAME_ATTRIBUTE_SEPARATOR = "___";
   private static final Set<String> ISO_19139_NAMESPACES =
       Set.of("http://www.isotc211.org/2005/gmd", "http://www.isotc211.org/2005/gco");
+
+  // what onObjectStart wrote for an object
+  private enum OpenedObject {
+    NOTHING,
+    XML_PATH,
+    LINK,
+    MEASURE,
+    GML_OBJECT
+  }
+
+  // for each open object, what was written at its start; the end closes the same, even if the
+  // schema of the end token differs, e.g. if the mapping is skipped
+  private final Deque<OpenedObject> openObjects = new ArrayDeque<>();
 
   @Inject
   public GmlWriterProperties() {}
@@ -65,12 +80,15 @@ public class GmlWriterProperties implements GmlWriter {
   @Override
   public void onObjectStart(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
+    if (context.schema().filter(FeatureSchema::isObject).isEmpty()) {
+      openObjects.push(OpenedObject.NOTHING);
+    } else {
       FeatureSchema schema = context.schema().orElseThrow();
 
       if (isXmlPathObject(context, schema)) {
         // the chain contributes both the property element and the object element; it was opened
         // by GmlWriterXmlPaths, which runs before this writer
+        openObjects.push(OpenedObject.XML_PATH);
         next.accept(context);
         return;
       }
@@ -100,6 +118,7 @@ public class GmlWriterProperties implements GmlWriter {
         // xlink:* attributes are added to this element by writeLinkAttribute()
         // and the element is closed by onObjectEnd().
         context.encoding().getState().setInLink(true);
+        openObjects.push(OpenedObject.LINK);
         if (schema.isFeatureRef()) {
           // GML renders references natively: collect the resolved id/title/type children and emit
           // xlink:href / xlink:title (and the element-name suffix) at onObjectEnd.
@@ -112,6 +131,7 @@ public class GmlWriterProperties implements GmlWriter {
         // by onObjectEnd().
         context.encoding().getState().setInMeasure(true);
         context.encoding().getState().setFirstMeasureProperty(Optional.empty());
+        openObjects.push(OpenedObject.MEASURE);
       } else {
         // Normal GML object: <propName><objectElement placeholder>…</objectElement></propName>
         String elementNameObject = context.encoding().startGmlObject(schema);
@@ -121,6 +141,7 @@ public class GmlWriterProperties implements GmlWriter {
         context.encoding().writeXmlAttPlaceholder();
         // Force the '>' of objectElement to be emitted
         context.encoding().closeStartElement();
+        openObjects.push(OpenedObject.GML_OBJECT);
       }
     }
 
@@ -130,16 +151,10 @@ public class GmlWriterProperties implements GmlWriter {
   @Override
   public void onObjectEnd(EncodingAwareContextGml context, Consumer<EncodingAwareContextGml> next)
       throws IOException {
-    if (context.schema().filter(FeatureSchema::isObject).isPresent()) {
-      if (isXmlPathObject(context, context.schema().orElseThrow())) {
-        // closed by GmlWriterXmlPaths together with the members' own wrappers
-        next.accept(context);
-        return;
-      }
-      boolean inLink = context.encoding().getState().getInLink();
-      boolean inMeasure = context.encoding().getState().getInMeasure();
+    OpenedObject opened = openObjects.isEmpty() ? OpenedObject.NOTHING : openObjects.pop();
 
-      if (inLink) {
+    switch (opened) {
+      case LINK -> {
         if (context.encoding().getState().getInFeatureRef()) {
           // Emit the reference's xlink attributes (and resolve the element-name suffix) from the
           // collected id/title/type, then close <propName xlink:href="…"/>.
@@ -149,16 +164,21 @@ public class GmlWriterProperties implements GmlWriter {
         context.encoding().getState().setInLink(false);
         context.encoding().getState().setInFeatureRef(false);
         context.encoding().getState().setRefSuffixPending(false);
-      } else if (inMeasure) {
+      }
+      case MEASURE -> {
         // Closes <propName uom="…">value</propName>
         context.encoding().writeEndElement();
         context.encoding().getState().setInMeasure(false);
-      } else {
+      }
+      case GML_OBJECT -> {
         // Closes </objectElement> then </propName>
         context.encoding().writeEndElement();
         context.encoding().writeEndElement();
         context.encoding().closeGmlObject();
       }
+      // nothing was written, or the chain is closed by GmlWriterXmlPaths together with the
+      // members' own wrappers
+      default -> {}
     }
 
     next.accept(context);
