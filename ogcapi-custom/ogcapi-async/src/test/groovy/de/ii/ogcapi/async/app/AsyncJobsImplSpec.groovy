@@ -28,6 +28,7 @@ import de.ii.xtraplatform.entities.domain.EntityRegistry
 import de.ii.xtraplatform.services.domain.ServicesContext
 import de.ii.xtraplatform.web.domain.Http
 import de.ii.xtraplatform.web.domain.HttpClient
+import de.ii.xtraplatform.web.domain.HttpClient.HttpResponse
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity
 import de.ii.xtraplatform.xtralink.domain.Jobs
 import jakarta.ws.rs.NotFoundException
@@ -342,8 +343,8 @@ class AsyncJobsImplSpec extends Specification {
         callbacks.onProgress(job(Status.RUNNING, context, [:], errors, percent))
 
         then:
-        posts * httpClient.postAsInputStream("http://localhost/progress", *_) >> new ByteArrayInputStream(new byte[0])
-        0 * httpClient.postAsInputStream("http://localhost/failed", *_)
+        posts * httpClient.post("http://localhost/progress", *_) >> HttpResponse.of(204, new byte[0])
+        0 * httpClient.post("http://localhost/failed", *_)
 
         where:
         errors   | percent || posts
@@ -381,9 +382,9 @@ class AsyncJobsImplSpec extends Specification {
         callbacks.onProgress(job(Status.FAILED, context, [:], ["boom"]))
 
         then:
-        1 * httpClient.postAsInputStream("http://localhost/failed", *_) >> { args ->
+        1 * httpClient.post("http://localhost/failed", *_) >> { args ->
             posted = args[1] as byte[]
-            new ByteArrayInputStream(new byte[0])
+            HttpResponse.of(204, new byte[0])
         }
         // the serialized links are sorted, the order of the generator does not matter here
         def links = new ObjectMapper().readValue(posted, Map).links.collect { [it.rel, it.type, it.href] } as Set
@@ -393,7 +394,71 @@ class AsyncJobsImplSpec extends Specification {
         ] as Set
     }
 
+    def "a callback answered with #response is sent #attempts times with at most #retries retries"() {
+        given:
+        HttpClient httpClient = Mock()
+        def callbacks = callbacks(httpClient)
+        def context = failedCallbackContext(retries)
+
+        when:
+        callbacks.onProgress(job(Status.FAILED, context, [:], ["boom"]))
+
+        then:
+        attempts * httpClient.post("http://localhost/failed", *_) >> { args ->
+            if (response < 0) {
+                throw new IllegalArgumentException("connection refused")
+            }
+            HttpResponse.of(response, new byte[0])
+        }
+
+        where:
+        // -1 is a failed connection; server errors, 408 and 429 may be temporary
+        response | retries || attempts
+        200      | 2       || 1
+        204      | 2       || 1
+        -1       | 2       || 3
+        500      | 2       || 3
+        503      | 2       || 3
+        408      | 2       || 3
+        429      | 2       || 3
+        503      | 0       || 1
+        400      | 2       || 1
+        404      | 2       || 1
+        301      | 2       || 1
+    }
+
+    def "a callback that succeeds on a retry is not sent again"() {
+        given:
+        HttpClient httpClient = Mock()
+        def callbacks = callbacks(httpClient)
+        def context = failedCallbackContext(5)
+
+        when:
+        callbacks.onProgress(job(Status.FAILED, context, [:], ["boom"]))
+
+        then:
+        2 * httpClient.post("http://localhost/failed", *_) >>> [HttpResponse.of(503, new byte[0]), HttpResponse.of(200, new byte[0])]
+    }
+
     // --- fixtures ------------------------------------------------------------------------------
+
+    private AsyncJobsImpl callbacks(HttpClient httpClient) {
+        Http http = Stub() {
+            getDefaultClient() >> httpClient
+        }
+        Jackson jackson = Stub() {
+            getDefaultObjectMapper() >> Jobs.DEFAULT_MAPPER
+        }
+        new AsyncJobsImpl(jobs, jackson, http, { -> [] as Set } as Lazy, Stub(ResourceStore), Stub(EntityRegistry), servicesContext(), Stub(I18n))
+    }
+
+    private static Map<String, Object> failedCallbackContext(int maxRetries) {
+        def subscriber = new ImmutableAsyncSubscriber.Builder()
+                .failedUri("http://localhost/failed")
+                .maxRetries(maxRetries)
+                .build()
+        toMap(new JobContextAsync("api", EntityType.OGC_API_PROCESSES, Optional.empty(), Optional.of(subscriber)))
+    }
 
     private static ServicesContext servicesContext() {
         return { -> URI.create('https://example.org/rest/services') } as ServicesContext

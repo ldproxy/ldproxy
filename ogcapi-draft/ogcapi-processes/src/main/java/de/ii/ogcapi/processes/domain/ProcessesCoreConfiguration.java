@@ -172,10 +172,12 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration, Asyn
   }
 
   /**
-   * @langEn Indicates how often the callback should be retried on errors at most. A client may
-   *     request fewer retries with `maxRetries` in the subscriber of the execute request. Should be
-   *     set to `0` if no retries are desired.
-   * @langDe Gibt an, wie oft der Callback bei Fehlern höchstens wiederholt werden soll. Ein Client
+   * @langEn Indicates how often the callback should be retried at most, when the subscriber cannot
+   *     be reached or responds with a server error (5xx), 408 or 429. A client may request fewer
+   *     retries with `maxRetries` in the subscriber of the execute request. Should be set to `0` if
+   *     no retries are desired.
+   * @langDe Gibt an, wie oft der Callback höchstens wiederholt werden soll, wenn der Subscriber
+   *     nicht erreichbar ist oder mit einem Serverfehler (5xx), 408 oder 429 antwortet. Ein Client
    *     kann mit `maxRetries` im Subscriber der Ausführungsanfrage weniger Wiederholungen
    *     anfordern. Sollte auf `0` gesetzt werden, falls keine Wiederholungen erwünscht sind.
    * @default 3

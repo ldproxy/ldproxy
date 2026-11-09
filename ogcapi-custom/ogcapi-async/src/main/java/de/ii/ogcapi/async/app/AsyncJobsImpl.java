@@ -38,6 +38,7 @@ import de.ii.xtraplatform.entities.domain.EntityRegistry;
 import de.ii.xtraplatform.services.domain.ServicesContext;
 import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.web.domain.HttpClient;
+import de.ii.xtraplatform.web.domain.HttpClient.HttpResponse;
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
@@ -435,40 +436,66 @@ public class AsyncJobsImpl implements AsyncJobs, AsyncCallbacks {
     }
   }
 
+  // A callback is delivered when the subscriber responds with a 2xx status. A failed connection,
+  // a server error, 408 and 429 may be temporary and are retried; any other status is final.
   private void postJson(
       String jobId, String uri, int retries, boolean ignoreError, byte[] payload) {
     int currentRetries = 0;
-    do {
-      try (InputStream is =
-          httpClient.postAsInputStream(
-              uri,
-              payload,
-              MediaType.APPLICATION_JSON_TYPE,
-              Map.of("Accept", MediaType.APPLICATION_JSON))) {
-        break;
+    while (true) {
+      Optional<HttpResponse> response;
+      Throwable error = null;
+      try {
+        response =
+            Optional.of(
+                httpClient.post(
+                    uri,
+                    payload,
+                    MediaType.APPLICATION_JSON_TYPE,
+                    Map.of("Accept", MediaType.APPLICATION_JSON)));
       } catch (Throwable e) {
-        if (currentRetries < retries) {
-          int delay = 100 * (currentRetries + 1);
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Failed sending callback for job '{}', retrying in {}ms", jobId, delay);
-          }
-          try {
-            Thread.sleep(delay);
-          } catch (InterruptedException ex) {
-            // ignore
-          }
-        } else {
-          if (!ignoreError) {
-            LogContext.errorAsWarn(
-                LOGGER,
-                e,
-                "Giving up sending callback for job '{}' after {} retries",
-                jobId,
-                currentRetries);
-          }
+        response = Optional.empty();
+        error = e;
+      }
+      if (response.filter(HttpResponse::isSuccessful).isPresent()) {
+        return;
+      }
+      boolean retryable = response.map(r -> isRetryable(r.getStatus())).orElse(true);
+      if (retryable && currentRetries < retries) {
+        int delay = 100 * (currentRetries + 1);
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Failed sending callback for job '{}', retrying in {}ms", jobId, delay);
+        }
+        try {
+          Thread.sleep(delay);
+        } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+        currentRetries++;
+        continue;
+      }
+      if (!ignoreError) {
+        if (Objects.nonNull(error)) {
+          LogContext.errorAsWarn(
+              LOGGER,
+              error,
+              "Giving up sending callback for job '{}' after {} retries",
+              jobId,
+              currentRetries);
+        } else if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Giving up sending callback for job '{}' after {} retries: the subscriber responded"
+                  + " with status {}",
+              jobId,
+              currentRetries,
+              response.get().getStatus());
         }
       }
-      currentRetries++;
-    } while (currentRetries <= retries);
+      return;
+    }
+  }
+
+  static boolean isRetryable(int status) {
+    return status >= 500 || status == 408 || status == 429;
   }
 }
