@@ -8,97 +8,95 @@
 package de.ii.ogcapi.features.core.app
 
 import de.ii.ogcapi.features.core.domain.ImmutableFeaturesCoreConfiguration
-import de.ii.ogcapi.foundation.domain.CollectionExtent
-import de.ii.ogcapi.foundation.domain.ImmutableCollectionExtent
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.TemporalExtent
 import de.ii.xtraplatform.crs.domain.BoundingBox
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.features.domain.Extent
+import de.ii.xtraplatform.features.domain.ImmutableExtent
+import de.ii.xtraplatform.features.domain.ImmutableSpatialExtent
+import de.ii.xtraplatform.features.domain.ImmutableTemporalExtent
+import de.ii.xtraplatform.features.domain.SpatialExtent
 import spock.lang.Specification
 
-import static de.ii.ogcapi.features.core.app.FeaturesCoreBuildingBlock.getConfiguredExtent
+import static de.ii.ogcapi.features.core.app.FeaturesCoreBuildingBlock.configuredSpatialExtent
+import static de.ii.ogcapi.features.core.app.FeaturesCoreBuildingBlock.configuredTemporalExtent
 
 class ConfiguredExtentSpec extends Specification {
 
-    static final BoundingBox COLLECTION_BBOX = BoundingBox.of(7.0, 50.0, 7.1, 50.1, OgcCrs.CRS84)
-    static final BoundingBox API_BBOX = BoundingBox.of(6.0, 49.0, 8.0, 51.0, OgcCrs.CRS84)
-    static final BoundingBox DEFAULT_BBOX = BoundingBox.of(5.0, 47.0, 15.0, 55.0, OgcCrs.CRS84)
-    static final TemporalExtent API_INTERVAL = TemporalExtent.of("2020-01-01", "2020-12-31")
-    static final TemporalExtent DEFAULT_INTERVAL = TemporalExtent.of("2000-01-01", null)
+    static final SpatialExtent COLLECTION_SPATIAL = spatial(7.0, 50.0, 7.1, 50.1)
+    static final SpatialExtent API_SPATIAL = spatial(6.0, 49.0, 8.0, 51.0)
+    static final SpatialExtent COMPUTED = ImmutableSpatialExtent.builder().computed(true).build()
+    static final de.ii.xtraplatform.features.domain.TemporalExtent API_INTERVAL =
+            ImmutableTemporalExtent.builder().start("2020-01-01").end("2020-12-31").build()
 
     def "the extent of the collection takes precedence"() {
         given:
-        def apiData = apiData(extent(COLLECTION_BBOX, null), extent(API_BBOX, null), extent(DEFAULT_BBOX, null))
+        def apiData = apiData(extent(COLLECTION_SPATIAL, null), extent(API_SPATIAL, null))
 
-        expect:
-        spatial(apiData) == Optional.of(COLLECTION_BBOX)
+        expect: 'the configured extent in CRS84'
+        configuredSpatialExtent(apiData, apiData.getCollections().get("foo")) == Optional.of(BoundingBox.of(7.0, 50.0, 7.1, 50.1, OgcCrs.CRS84))
     }
 
     def "the extent of the API applies to collections without one"() {
         given:
-        def apiData = apiData(null, extent(API_BBOX, null), extent(DEFAULT_BBOX, null))
+        def apiData = apiData(null, extent(API_SPATIAL, null))
 
         expect:
-        spatial(apiData) == Optional.of(API_BBOX)
-    }
-
-    def "the deprecated defaultExtent is still honored"() {
-        given:
-        def apiData = apiData(null, null, extent(DEFAULT_BBOX, DEFAULT_INTERVAL))
-
-        expect:
-        spatial(apiData) == Optional.of(DEFAULT_BBOX)
-        temporal(apiData) == Optional.of(DEFAULT_INTERVAL)
+        configuredSpatialExtent(apiData, apiData.getCollections().get("foo")) == Optional.of(BoundingBox.of(6.0, 49.0, 8.0, 51.0, OgcCrs.CRS84))
     }
 
     def "spatial and temporal extent are resolved independently"() {
-        given:
-        def apiData = apiData(extent(COLLECTION_BBOX, null), extent(null, API_INTERVAL), null)
+        given: 'a collection with a spatial extent only, an API with a temporal extent only'
+        def apiData = apiData(extent(COLLECTION_SPATIAL, null), extent(null, API_INTERVAL))
 
         expect:
-        spatial(apiData) == Optional.of(COLLECTION_BBOX)
-        temporal(apiData) == Optional.of(API_INTERVAL)
+        configuredSpatialExtent(apiData, apiData.getCollections().get("foo")) == Optional.of(BoundingBox.of(7.0, 50.0, 7.1, 50.1, OgcCrs.CRS84))
+        configuredTemporalExtent(apiData, apiData.getCollections().get("foo")) == Optional.of(TemporalExtent.of("2020-01-01T00:00:00Z", "2020-12-31T23:59:59Z"))
+    }
+
+    def "computed on a collection discards the extent of the API"() {
+        given:
+        def apiData = apiData(extent(COMPUTED, null), extent(API_SPATIAL, null))
+
+        expect: 'no fixed extent, it is computed from the data'
+        configuredSpatialExtent(apiData, apiData.getCollections().get("foo")).isEmpty()
     }
 
     def "nothing is configured, so the extent is left to the provider"() {
         given:
-        def apiData = apiData(null, null, null)
+        def apiData = apiData(null, null)
 
         expect:
-        spatial(apiData).isEmpty()
-        temporal(apiData).isEmpty()
+        configuredSpatialExtent(apiData, apiData.getCollections().get("foo")).isEmpty()
+        configuredTemporalExtent(apiData, apiData.getCollections().get("foo")).isEmpty()
     }
 
     def "an unknown collection falls back to the API level"() {
         given:
-        def apiData = apiData(null, extent(API_BBOX, null), null)
+        def apiData = apiData(null, extent(API_SPATIAL, null))
 
         expect:
-        getConfiguredExtent(apiData, null, CollectionExtent::getSpatial) == Optional.of(API_BBOX)
+        configuredSpatialExtent(apiData, null) == Optional.of(BoundingBox.of(6.0, 49.0, 8.0, 51.0, OgcCrs.CRS84))
     }
 
-    static Optional<BoundingBox> spatial(OgcApiDataV2 apiData) {
-        getConfiguredExtent(apiData, apiData.getCollections().get("foo"), CollectionExtent::getSpatial)
+    static SpatialExtent spatial(double xmin, double ymin, double xmax, double ymax) {
+        ImmutableSpatialExtent.builder().xmin(xmin).ymin(ymin).xmax(xmax).ymax(ymax).build()
     }
 
-    static Optional<TemporalExtent> temporal(OgcApiDataV2 apiData) {
-        getConfiguredExtent(apiData, apiData.getCollections().get("foo"), CollectionExtent::getTemporal)
-    }
-
-    static CollectionExtent extent(BoundingBox spatial, TemporalExtent temporal) {
-        new ImmutableCollectionExtent.Builder()
+    static Extent extent(SpatialExtent spatial, de.ii.xtraplatform.features.domain.TemporalExtent temporal) {
+        ImmutableExtent.builder()
                 .spatial(Optional.ofNullable(spatial))
                 .temporal(Optional.ofNullable(temporal))
                 .build()
     }
 
-    static OgcApiDataV2 apiData(CollectionExtent collectionExtent, CollectionExtent apiExtent, CollectionExtent defaultExtent) {
+    static OgcApiDataV2 apiData(Extent collectionExtent, Extent apiExtent) {
         new ImmutableOgcApiDataV2.Builder()
                 .id("api")
                 .serviceType("OGC_API")
-                .defaultExtent(Optional.ofNullable(defaultExtent))
                 .addExtensions(new ImmutableFeaturesCoreConfiguration.Builder()
                         .enabled(true)
                         .extent(Optional.ofNullable(apiExtent))

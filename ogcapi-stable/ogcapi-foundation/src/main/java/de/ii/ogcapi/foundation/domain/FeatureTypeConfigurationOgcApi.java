@@ -16,7 +16,6 @@ import de.ii.xtraplatform.docs.DocIgnore;
 import de.ii.xtraplatform.entities.domain.maptobuilder.Buildable;
 import de.ii.xtraplatform.entities.domain.maptobuilder.BuildableBuilder;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
-import de.ii.xtraplatform.features.domain.FeatureTypeExtent;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -83,9 +82,15 @@ public interface FeatureTypeConfigurationOgcApi
    */
   Optional<String> getPersistentUriTemplate();
 
-  // this option is only set at runtime
+  /**
+   * @deprecated Use `extent` in the FEATURES_CORE building block of the collection. A value set
+   *     here is used for that option, if it is not set.
+   */
+  @Deprecated
   @DocIgnore
-  Optional<FeatureTypeExtent> getExtent();
+  // the deprecated option itself, it is removed together with CollectionExtent
+  @SuppressWarnings("removal")
+  Optional<CollectionExtent> getExtent();
 
   /**
    * @langEn Array of additional link objects, required keys are `href` (the URI), `label` and `rel`
