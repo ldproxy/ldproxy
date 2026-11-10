@@ -8,6 +8,7 @@
 package de.ii.ldproxy.cfg;
 
 import de.ii.ldproxy.cfg.ValueMigration.ValueMigrationContext;
+import de.ii.ldproxy.cfg.migrations.ExtentMigrationV5;
 import de.ii.ldproxy.cfg.migrations.FeatureProviderSqlMigrationV5;
 import de.ii.ldproxy.cfg.migrations.FeaturesExtensionsMigrationV5;
 import de.ii.ldproxy.cfg.migrations.FeaturesHtmlMigrationV5;
@@ -33,7 +34,8 @@ public interface Migrations {
             new FeaturesHtmlMigrationV5(context),
             new FeaturesExtensionsMigrationV5(context),
             new FeatureProviderSqlMigrationV5(context),
-            new TileProviderFeaturesMigrationV5(context));
+            new TileProviderFeaturesMigrationV5(context),
+            new ExtentMigrationV5(context));
     List<ValueMigration> valueMigrations =
         List.of(new StoredQueryMigrationV5(valueMigrationContext));
 
