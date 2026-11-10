@@ -50,6 +50,26 @@ class McpToolResultSpec extends Specification {
         forTool.keySet() as List == ["type", "numberReturned", "features"]
     }
 
+    def 'the links of the features are left out, their other members are kept'() {
+        given:
+        Map<String, Object> result = [
+                type    : "FeatureCollection",
+                features: [
+                        [type: "Feature", id: "a", geometry: null, properties: [x: 1],
+                         links: [[rel: "predecessor-version", href: BASE + "/a?datetime=2020-01-01T00:00:00Z"]]],
+                        [type: "Feature", id: "b", geometry: null, properties: [x: 2]]]]
+
+        when:
+        Map<String, Object> forTool = McpServerImpl.forToolResult(result)
+
+        then:
+        forTool.features == [
+                [type: "Feature", id: "a", geometry: null, properties: [x: 1]],
+                [type: "Feature", id: "b", geometry: null, properties: [x: 2]]]
+        forTool.features[0].keySet() as List == ["type", "id", "geometry", "properties"]
+        result.features[0].links.size() == 1
+    }
+
     def 'the paging hint is added to a copy of the schema of the offset parameter'() {
         given:
         OgcApiQueryParameter offset = Stub(OgcApiQueryParameter)

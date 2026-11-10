@@ -251,7 +251,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
               .findFirst();
       if (schemaError.isPresent()) {
         LOGGER.warn(
-            "MCP tool '{}' of API '{}' is not available, its schema is not a valid JSON Schema 2020-12 document: {}",
+            "MCP tool '{}' of API '{}' is not available, its schema is not a valid JSON Schema"
+                + " 2020-12 document: {}",
             tool.getId(),
             api.getId(),
             schemaError.get());
@@ -402,15 +403,15 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   // of the links in a response, only those to other pages are useful for a client of a tool; a
   // client cannot follow a link, so the offset of the next page is stated as nextOffset, at the
-  // start of the result (see McpToolUtils.PAGING_HINT)
+  // start of the result (see McpToolUtils.PAGING_HINT); the links of the features are left out
   static Map<String, Object> forToolResult(Map<String, Object> result) {
-    if (!(result.get("links") instanceof List<?> links)) {
-      return result;
-    }
     List<?> pagingLinks =
-        links.stream()
-            .filter(link -> link instanceof Map<?, ?> map && PAGING_RELS.contains(map.get("rel")))
-            .toList();
+        result.get("links") instanceof List<?> links
+            ? links.stream()
+                .filter(
+                    link -> link instanceof Map<?, ?> map && PAGING_RELS.contains(map.get("rel")))
+                .toList()
+            : List.of();
     Optional<Long> nextOffset =
         pagingLinks.stream()
             .map(link -> (Map<?, ?>) link)
@@ -426,16 +427,29 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     Map<String, Object> forTool = new LinkedHashMap<>();
     result.forEach(
         (key, value) -> {
-          if (!"links".equals(key)) {
+          if ("links".equals(key)) {
+            if (!pagingLinks.isEmpty()) {
+              forTool.put(key, pagingLinks);
+            }
+          } else if ("features".equals(key) && value instanceof List<?> features) {
+            forTool.put(key, features.stream().map(McpServerImpl::withoutLinks).toList());
+          } else {
             forTool.put(key, value);
-          } else if (!pagingLinks.isEmpty()) {
-            forTool.put(key, pagingLinks);
           }
           if ("type".equals(key)) {
             nextOffset.ifPresent(offset -> forTool.put("nextOffset", offset));
           }
         });
     return forTool;
+  }
+
+  private static Object withoutLinks(Object feature) {
+    if (!(feature instanceof Map<?, ?> map) || !map.containsKey("links")) {
+      return feature;
+    }
+    Map<Object, Object> copy = new LinkedHashMap<>(map);
+    copy.remove("links");
+    return copy;
   }
 
   private String handleCollectionQuery(
