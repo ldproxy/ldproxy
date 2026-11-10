@@ -8,47 +8,43 @@
 package de.ii.ogcapi.features.core.domain
 
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration
-import de.ii.ogcapi.foundation.domain.ImmutableCollectionExtent
-import de.ii.ogcapi.foundation.domain.TemporalExtent
-import de.ii.xtraplatform.crs.domain.BoundingBox
-import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.features.domain.Extent
+import de.ii.xtraplatform.features.domain.ImmutableExtent
+import de.ii.xtraplatform.features.domain.ImmutableSpatialExtent
+import de.ii.xtraplatform.features.domain.ImmutableTemporalExtent
 import spock.lang.Specification
 
 class FeaturesCoreExtentConfigurationSpec extends Specification {
 
-    static final BoundingBox BBOX = BoundingBox.of(7.0, 50.0, 7.1, 50.1, OgcCrs.CRS84)
-    static final TemporalExtent INTERVAL = TemporalExtent.of("2020-01-01", "2020-12-31")
+    static final Extent API_EXTENT = ImmutableExtent.builder()
+            .spatial(ImmutableSpatialExtent.builder().xmin(7.0d).ymin(50.0d).xmax(7.1d).ymax(50.1d).build())
+            .temporal(ImmutableTemporalExtent.builder().start("2020-01-01").end("2020-12-31").build())
+            .build()
 
     def "a collection inherits the extent of the API"() {
         given:
-        def api = withExtent(BBOX, INTERVAL)
+        def api = new ImmutableFeaturesCoreConfiguration.Builder().extent(API_EXTENT).build()
         def collection = new ImmutableFeaturesCoreConfiguration.Builder().build()
 
         when:
         def merged = (FeaturesCoreConfiguration) collection.mergeInto((ExtensionConfiguration) api)
 
         then:
-        merged.extent == api.extent
+        merged.extent == Optional.of(API_EXTENT)
     }
 
     def "the extent of a collection replaces the extent of the API"() {
         given:
-        def api = withExtent(BBOX, INTERVAL)
-        def collection = withExtent(BoundingBox.of(6.0, 49.0, 8.0, 51.0, OgcCrs.CRS84), null)
+        def own = ImmutableExtent.builder()
+                .spatial(ImmutableSpatialExtent.builder().xmin(6.0d).ymin(49.0d).xmax(8.0d).ymax(51.0d).build())
+                .build()
+        def api = new ImmutableFeaturesCoreConfiguration.Builder().extent(API_EXTENT).build()
+        def collection = new ImmutableFeaturesCoreConfiguration.Builder().extent(own).build()
 
         when:
         def merged = (FeaturesCoreConfiguration) collection.mergeInto((ExtensionConfiguration) api)
 
         then:
-        merged.extent == collection.extent
-    }
-
-    static FeaturesCoreConfiguration withExtent(BoundingBox spatial, TemporalExtent temporal) {
-        new ImmutableFeaturesCoreConfiguration.Builder()
-                .extent(new ImmutableCollectionExtent.Builder()
-                        .spatial(Optional.ofNullable(spatial))
-                        .temporal(Optional.ofNullable(temporal))
-                        .build())
-                .build()
+        merged.extent == Optional.of(own)
     }
 }

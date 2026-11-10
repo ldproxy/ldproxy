@@ -75,6 +75,12 @@ public interface OgcApi extends Service {
   void setSpatialExtent(BoundingBox bbox);
 
   /**
+   * Remove a spatial extent of the dataset set with {@link #setSpatialExtent(BoundingBox)}. The
+   * spatial extent of the dataset is then the union of the spatial extents of the collections.
+   */
+  void removeSpatialExtent();
+
+  /**
    * Set spatial extent of a collection in the dataset.
    *
    * @param collectionId the name of the feature type
@@ -90,6 +96,20 @@ public interface OgcApi extends Service {
    * @return {@code true} if the value changed and was non-empty before
    */
   boolean updateSpatialExtent(String collectionId, BoundingBox bbox);
+
+  /**
+   * Set temporal extent of the dataset, independent of the temporal extents of the collections.
+   *
+   * @param temporalExtent the extent
+   */
+  void setTemporalExtent(TemporalExtent temporalExtent);
+
+  /**
+   * Remove a temporal extent of the dataset set with {@link #setTemporalExtent(TemporalExtent)}.
+   * The temporal extent of the dataset is then the union of the temporal extents of the
+   * collections.
+   */
+  void removeTemporalExtent();
 
   /**
    * Determine temporal extent of all collections in the dataset.

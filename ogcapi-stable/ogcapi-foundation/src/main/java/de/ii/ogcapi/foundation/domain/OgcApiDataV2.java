@@ -428,13 +428,14 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
   Optional<ExternalDocumentation> getExternalDocs();
 
   /**
-   * @langEn Deprecated. Use {@code extent} in FEATURES_CORE building block per collection instead.
-   * @langDe Deprecated. Stattdessen {@code extent} im FEATURES_CORE-Baustein pro Collection
-   *     verwenden.
+   * @langEn Deprecated. Use {@code extent} in FEATURES_CORE building block instead.
+   * @langDe Deprecated. Stattdessen {@code extent} im FEATURES_CORE-Baustein verwenden.
    * @deprecated
    */
-  @Deprecated
+  @Deprecated(since = "4.9", forRemoval = true)
   @JsonMerge(OptBoolean.FALSE)
+  // the deprecated option itself, it is removed together with CollectionExtent
+  @SuppressWarnings("removal")
   Optional<CollectionExtent> getDefaultExtent();
 
   /**
@@ -576,16 +577,6 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
   default boolean isDataset() {
     // return false if there no collection or no collection that is enabled
     return getCollections().values().stream().anyMatch(FeatureTypeConfigurationOgcApi::getEnabled);
-  }
-
-  /**
-   * Determine extent of a collection in the dataset.
-   *
-   * @param collectionId the name of the feature type
-   * @return the extent
-   */
-  default Optional<CollectionExtent> getExtent(String collectionId) {
-    return getDefaultExtent();
   }
 
   default <T extends ExtensionConfiguration> Optional<T> getExtension(

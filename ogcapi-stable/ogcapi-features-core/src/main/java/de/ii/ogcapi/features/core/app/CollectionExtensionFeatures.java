@@ -199,7 +199,14 @@ public class CollectionExtensionFeatures implements CollectionExtension {
             .orElse(false);
 
     Optional<BoundingBox> spatial = api.getSpatialExtent(collectionId);
-    Optional<TemporalExtent> temporal = api.getTemporalExtent(collectionId);
+    // data with primary temporal information has a temporal extent, even if it is not known
+    Optional<TemporalExtent> temporal =
+        api.getTemporalExtent(collectionId)
+            .or(
+                () ->
+                    isTemporal
+                        ? Optional.of(TemporalExtent.of((String) null, null))
+                        : Optional.empty());
     if (isSpatial && isTemporal) {
       collection.extent(OgcApiExtent.of(spatial, temporal));
     } else if (isSpatial) {

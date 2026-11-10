@@ -21,8 +21,8 @@ import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
-import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import de.ii.xtraplatform.features.domain.Extent;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.tiles.domain.TileAccess;
 import de.ii.xtraplatform.tiles.domain.TileProvider;
@@ -473,14 +473,21 @@ public interface TilesConfiguration
   }
 
   /**
-   * @langEn Fixed spatial extent for tiles. If set, this bounding box is used as the clip bounding
-   *     box for tile generation instead of the extent derived from the data or the tile matrix set.
-   * @langDe Fester räumlicher Extent für Tiles. Wenn gesetzt, wird diese Bounding Box als
+   * @langEn Fixed extent for tiles, only `spatial` in CRS84. If set, it is used as the clip
+   *     bounding box for tile generation instead of the extent derived from the data or the tile
+   *     matrix set.
+   * @langDe Fester Extent für Tiles, nur `spatial` in CRS84. Wenn gesetzt, wird er als
    *     Clip-Bounding-Box für die Kachelerzeugung verwendet statt des aus den Daten oder dem
    *     Tile-Matrix-Set abgeleiteten Extents.
    * @default {}
+   * @since v4.9
    */
-  Optional<BoundingBox> getExtent();
+  Optional<Extent> getExtent();
+
+  @Value.Check
+  default void checkExtentIsSpatial() {
+    Extent.checkSpatialOnly(getExtent());
+  }
 
   /**
    * @langEn Specifies the data source for the tiles, see [Tile

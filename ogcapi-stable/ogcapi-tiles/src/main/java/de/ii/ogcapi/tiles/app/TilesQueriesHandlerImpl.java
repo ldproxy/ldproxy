@@ -79,6 +79,7 @@ import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
+import de.ii.xtraplatform.features.domain.Extent;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaObject;
@@ -1076,14 +1077,13 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
       OgcApiDataV2 apiData,
       Optional<FeatureTypeConfigurationOgcApi> collectionData,
       EpsgCrs targetCrs) {
-    return collectionData
-        .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
-        .flatMap(TilesConfiguration::getExtent)
-        .or(
-            () ->
-                apiData
-                    .getExtension(TilesConfiguration.class)
-                    .flatMap(TilesConfiguration::getExtent))
+    return Extent.inherit(
+            collectionData
+                .flatMap(cd -> cd.getExtension(TilesConfiguration.class))
+                .flatMap(TilesConfiguration::getExtent),
+            apiData.getExtension(TilesConfiguration.class).flatMap(TilesConfiguration::getExtent))
+        .getSpatial()
+        .flatMap(spatial -> spatial.toBoundingBox(OgcCrs.CRS84))
         .flatMap(extent -> transform(extent, targetCrs));
   }
 

@@ -23,9 +23,11 @@ import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.OptionalCapability;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
+import de.ii.xtraplatform.features.domain.Extent;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.services.domain.TaskContext;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParameters;
@@ -285,7 +287,8 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
               cfg -> {
                 String tileset = cfg.getCollectionTileset(cid);
                 requiredTilesets.putIfAbsent(tileset, () -> api.getSpatialExtent(cid));
-                cfg.getExtent().ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
+                getConfiguredExtent(cfg)
+                    .ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
               });
     }
 
@@ -296,7 +299,8 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
             cfg -> {
               String tileset = cfg.getDatasetTileset();
               requiredTilesets.putIfAbsent(tileset, api::getSpatialExtent);
-              cfg.getExtent().ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
+              getConfiguredExtent(cfg)
+                  .ifPresent(extent -> configuredExtents.putIfAbsent(tileset, extent));
             });
 
     for (String tileset : getSourceTilesets(tileProvider, requiredTilesets.keySet())) {
@@ -446,6 +450,12 @@ public class TileSeedingBackgroundTask implements OgcApiBackgroundTask, WithChan
    * should also determine which tiles are seeded. The extent of the collection is only a fallback,
    * it may differ, if the tiles are generated from another feature provider than the features.
    */
+  private static Optional<BoundingBox> getConfiguredExtent(TilesConfiguration cfg) {
+    return cfg.getExtent()
+        .flatMap(Extent::getSpatial)
+        .flatMap(spatial -> spatial.toBoundingBox(OgcCrs.CRS84));
+  }
+
   static Optional<BoundingBox> getClipBoundingBox(
       Optional<BoundingBox> changedArea,
       Optional<BoundingBox> configuredExtent,

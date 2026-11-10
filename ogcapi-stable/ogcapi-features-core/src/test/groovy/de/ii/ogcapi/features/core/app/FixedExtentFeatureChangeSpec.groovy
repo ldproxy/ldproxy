@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.core.app
 
+import de.ii.ogcapi.features.core.domain.DeprecatedExtents
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders
 import de.ii.ogcapi.features.core.domain.ImmutableFeaturesCoreConfiguration
 import de.ii.ogcapi.foundation.domain.CollectionExtent
@@ -23,9 +24,10 @@ import de.ii.xtraplatform.features.domain.FeatureChange
 import de.ii.xtraplatform.features.domain.FeatureProviderDataV2
 import de.ii.xtraplatform.features.domain.FeatureProviderEntity
 import de.ii.xtraplatform.features.domain.FeatureSchema
-import de.ii.xtraplatform.features.domain.FeatureTypeExtent
-import de.ii.xtraplatform.features.domain.ImmutableFeatureTypeExtent
+import de.ii.xtraplatform.features.domain.Extent
+import de.ii.xtraplatform.features.domain.ImmutableExtent
 import de.ii.xtraplatform.features.domain.ImmutableSpatialExtent
+import de.ii.xtraplatform.features.domain.ImmutableTemporalExtent
 import org.threeten.extra.Interval
 import spock.lang.Specification
 
@@ -36,10 +38,10 @@ class FixedExtentFeatureChangeSpec extends Specification {
     static final BoundingBox CHANGED_AREA = BoundingBox.of(7.0, 50.0, 7.1, 50.1, OgcCrs.CRS84)
     static final Interval CHANGED_INTERVAL = Interval.of(Instant.parse("2020-06-01T00:00:00Z"), Instant.parse("2020-07-01T00:00:00Z"))
 
-    static final FeatureTypeExtent FIXED_PROVIDER_SPATIAL = ImmutableFeatureTypeExtent.builder()
+    static final Extent FIXED_PROVIDER_SPATIAL = ImmutableExtent.builder()
             .spatial(ImmutableSpatialExtent.builder().xmin(6.0d).ymin(49.0d).xmax(8.0d).ymax(51.0d).build())
             .build()
-    static final FeatureTypeExtent COMPUTED_TYPE_SPATIAL = ImmutableFeatureTypeExtent.builder()
+    static final Extent COMPUTED_TYPE_SPATIAL = ImmutableExtent.builder()
             .spatial(ImmutableSpatialExtent.builder().computed(true).build())
             .build()
 
@@ -74,7 +76,7 @@ class FixedExtentFeatureChangeSpec extends Specification {
 
     def "an extent configured in the deprecated defaultExtent is not changed"() {
         given:
-        withApi(null, fixed())
+        withApi(null, deprecatedFixed())
         withProvider(null, null)
 
         when:
@@ -125,14 +127,21 @@ class FixedExtentFeatureChangeSpec extends Specification {
         }
     }
 
-    static CollectionExtent fixed() {
+    static Extent fixed() {
+        ImmutableExtent.builder()
+                .spatial(ImmutableSpatialExtent.builder().xmin(6.0d).ymin(49.0d).xmax(8.0d).ymax(51.0d).build())
+                .temporal(ImmutableTemporalExtent.builder().start("2020-01-01").end("2020-12-31").build())
+                .build()
+    }
+
+    static CollectionExtent deprecatedFixed() {
         new ImmutableCollectionExtent.Builder()
                 .spatial(BoundingBox.of(6.0, 49.0, 8.0, 51.0, OgcCrs.CRS84))
                 .temporal(TemporalExtent.of("2020-01-01", "2020-12-31"))
                 .build()
     }
 
-    void withApi(CollectionExtent featuresCoreExtent, CollectionExtent defaultExtent) {
+    void withApi(Extent featuresCoreExtent, CollectionExtent defaultExtent) {
         OgcApiDataV2 apiData = new ImmutableOgcApiDataV2.Builder()
                 .id("api")
                 .serviceType("OGC_API")
@@ -146,10 +155,11 @@ class FixedExtentFeatureChangeSpec extends Specification {
                                 .build())
                         .build())
                 .build()
-        api.getData() >> apiData
+        // as on startup, the deprecated option is converted by the hydrator
+        api.getData() >> DeprecatedExtents.apply(apiData, false)
     }
 
-    void withProvider(FeatureTypeExtent typeExtent, FeatureTypeExtent providerExtent) {
+    void withProvider(Extent typeExtent, Extent providerExtent) {
         FeatureSchema schema = Stub() {
             getExtent() >> Optional.ofNullable(typeExtent)
         }

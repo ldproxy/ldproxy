@@ -9,41 +9,28 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.features.domain.Extent;
+import de.ii.xtraplatform.features.domain.ImmutableExtent;
+import de.ii.xtraplatform.features.domain.ImmutableSpatialExtent;
+import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * @langEn By default, spatial and temporal extents of the collections are derived from the data
- *     during startup. The extent of the dataset is always the union of the collection extents. For
- *     large datasets the automated derivation will slow down the startup of the API.
- *     <p>If the spatial extent should not be derived from the data source on startup, set
- *     `spatialComputed` to `false`.
- *     <p>If the temporal extent should not be derived from the data source on startup, set
- *     `temporalComputed` to `false`.
- *     <p>As an alternative, a default value for the spatial (`spatial`) and/or temporal
- *     (`temporal`) extent for each collection can be set.
- *     <p><code>
- * - Required keys for spatial extents (all values in `CRS84`): `xmin` (western longitude), `ymin` (southern latitude), `xmax` (eastern longitude), `ymax` (northern latitude).
- * - Required keys for temporal extents (all values in milliseconds since 1 January 1970): `start`, `end`.
- *     </code>
- * @langDe Es kann ein Standardwert für die räumliche (`spatial`) und/oder zeitliche (`temporal`)
- *     Ausdehnung der Daten angeben werden, die bei den Objektarten verwendet wird, wenn dort keine
- *     anderslautende Ausdehnung spezifiziert wird und die automatische Ableitung deaktiviert ist.
- *     <p>Für die räumliche Ausdehnung sind die folgenden Eigenschaften anzugeben (alle Angaben im
- *     Koordinatenreferenzsystem WGS 84): `xmin` (westlicher Längengrad), `ymin` (südlicher
- *     Breitengrad), `xmax` (östlicher Längengrad), `ymax` (nördlicher Breitengrad).
- *     <p>Für die zeitliche Ausdehnung sind die folgenden Eigenschaften anzugeben (alle Angaben in
- *     Millisekunden seit dem 1.1.1970): `start`, `end`.
- *     <p>Es handelt sich hierbei nicht um die Ausdehnung des Datensatzes insgesamt, dieser wird
- *     stets automatisch aus den Ausdehnungen der einzelnen Objektarten ermittelt.
- *     <p>Soll die räumliche Ausdehnung nicht automatisch aus den Daten der Objektarten beim Start
- *     von ldproxy ermittelt werden, kann `spatialComputed` mit dem Wert `false` angegeben werden.
- *     <p>Soll die zeitliche Ausdehnung nicht automatisch aus den Daten einer Objektart beim Start
- *     von ldproxy ermittelt werden, kann `temporalComputed` mit dem Wert `false` angegeben werden.
- *     <p>Bei großen Datenmengen verzögert die automatische Bestimmung die Zeitdauer, bis die API
- *     verfügbar ist.
+ * @langEn Deprecated, use `extent` in the building block `FEATURES_CORE` of the API or the
+ *     collection instead. A value set here is used for that option unless it is set there, and
+ *     `xtracfg upgrade` moves it there.
+ *     <p>A fixed spatial (`spatial`) and/or temporal (`temporal`) extent; a part that is not set is
+ *     computed from the data. `spatialComputed` and `temporalComputed` are ignored.
+ * @langDe Veraltet, stattdessen `extent` im Baustein `FEATURES_CORE` der API oder der Collection
+ *     verwenden. Ein hier gesetzter Wert wird für diese Option verwendet, wenn sie dort nicht
+ *     gesetzt ist, und `xtracfg upgrade` verschiebt ihn dorthin.
+ *     <p>Eine feste räumliche (`spatial`) und/oder zeitliche (`temporal`) Ausdehnung; ein nicht
+ *     gesetzter Teil wird aus den Daten berechnet. `spatialComputed` und `temporalComputed` werden
+ *     ignoriert.
  * @default
  */
+@Deprecated(since = "4.9", forRemoval = true)
 @Value.Immutable
 @JsonDeserialize(builder = ImmutableCollectionExtent.Builder.class)
 public interface CollectionExtent {
@@ -61,26 +48,58 @@ public interface CollectionExtent {
   Optional<BoundingBox> getSpatial();
 
   /**
-   * @deprecated Wird entfernt. Die automatische Berechnung erfolgt, wenn kein Wert gesetzt ist.
+   * @deprecated Will be removed. The extent is computed from the data, if no value is set.
    */
   @Deprecated
   Optional<Boolean> getSpatialComputed();
 
   /**
-   * @langEn `start` and `end` of the temporal extent of the data, specified as Unix timestamp in
-   *     milliseconds. Unspecified values indicate an unbounded interval end.
-   * @langDe Beginn (`start`) und Ende (`end`) der zeitlichen Ausdehnung der Daten. Die Angabe
-   *     erfolgt als Unix Timestamp in Millisekunden. Fehlende Angaben stehen für ein unbegrenztes
-   *     Intervall.
+   * @langEn `start` and `end` of the temporal extent of the data, as date (`yyyy-MM-dd`), date-time
+   *     with offset or Unix timestamp in milliseconds. A missing value is an unbounded start or
+   *     end.
+   * @langDe Beginn (`start`) und Ende (`end`) der zeitlichen Ausdehnung der Daten, als Datum
+   *     (`yyyy-MM-dd`), Zeitstempel mit Offset oder Unix Timestamp in Millisekunden. Eine fehlende
+   *     Angabe steht für einen unbegrenzten Beginn oder ein unbegrenztes Ende.
    * @default
    */
   Optional<TemporalExtent> getTemporal();
 
   /**
-   * @deprecated Wird entfernt. Die automatische Berechnung erfolgt, wenn kein Wert gesetzt ist.
+   * @deprecated Will be removed. The extent is computed from the data, if no value is set.
    */
   @Deprecated
   Optional<Boolean> getTemporalComputed();
 
-  // Deprecated: Berechnungs-Logik wird entfernt. Nur noch Wertecontainer.
+  /**
+   * The extent in the format of the option `extent` of the building blocks; the computed flags are
+   * ignored, the spatial extent is taken as CRS84, as documented for this format.
+   */
+  default Extent toExtent() {
+    ImmutableExtent.Builder builder = ImmutableExtent.builder();
+    getSpatial()
+        .ifPresent(
+            bbox ->
+                builder.spatial(
+                    ImmutableSpatialExtent.builder()
+                        .xmin(bbox.getXmin())
+                        .ymin(bbox.getYmin())
+                        .zmin(bbox.getZmin())
+                        .xmax(bbox.getXmax())
+                        .ymax(bbox.getYmax())
+                        .zmax(bbox.getZmax())
+                        .build()));
+    getTemporal()
+        .filter(
+            temporal ->
+                Objects.nonNull(temporal.getStartInstant())
+                    || Objects.nonNull(temporal.getEndInstant()))
+        .ifPresent(
+            temporal ->
+                builder.temporal(
+                    de.ii.xtraplatform.features.domain.ImmutableTemporalExtent.builder()
+                        .start(Objects.toString(temporal.getStartInstant(), null))
+                        .end(Objects.toString(temporal.getEndInstant(), null))
+                        .build()));
+    return builder.build();
+  }
 }
