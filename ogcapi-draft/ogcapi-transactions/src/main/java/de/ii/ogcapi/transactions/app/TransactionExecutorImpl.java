@@ -1611,19 +1611,32 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
   // Mutable accumulator that folds successive MutationResult extents from a streaming insert
   // batch or per-id update loop into a single union bbox / interval. Kept package-private only
   // to allow direct field access from runInsert / runUpdate above.
+  // In a temporal extent of a result, null is an unbounded begin or end, which stays unbounded.
   private static final class ExtentAccumulator {
     private BoundingBox bbox;
+    private boolean hasInterval;
     private Long beginMillis;
     private Long endMillis;
+    private boolean beginUnbounded;
+    private boolean endUnbounded;
 
     void merge(Optional<BoundingBox> nextBbox, Optional<Tuple<Long, Long>> nextInterval) {
       nextBbox.ifPresent(b -> bbox = (bbox == null) ? b : BoundingBox.merge(bbox, b));
       nextInterval.ifPresent(
           iv -> {
+            hasInterval = true;
             Long b = iv.first();
             Long e = iv.second();
-            if (b != null) beginMillis = (beginMillis == null) ? b : Math.min(beginMillis, b);
-            if (e != null) endMillis = (endMillis == null) ? e : Math.max(endMillis, e);
+            if (b == null) {
+              beginUnbounded = true;
+            } else {
+              beginMillis = (beginMillis == null) ? b : Math.min(beginMillis, b);
+            }
+            if (e == null) {
+              endUnbounded = true;
+            } else {
+              endMillis = (endMillis == null) ? e : Math.max(endMillis, e);
+            }
           });
     }
 
@@ -1632,9 +1645,11 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     }
 
     Optional<Interval> intervalMillis() {
-      if (beginMillis == null && endMillis == null) return Optional.empty();
-      Instant begin = beginMillis != null ? Instant.ofEpochMilli(beginMillis) : Instant.MIN;
-      Instant end = endMillis != null ? Instant.ofEpochMilli(endMillis) : Instant.MAX;
+      if (!hasInterval) return Optional.empty();
+      Instant begin =
+          beginUnbounded || beginMillis == null ? Instant.MIN : Instant.ofEpochMilli(beginMillis);
+      Instant end =
+          endUnbounded || endMillis == null ? Instant.MAX : Instant.ofEpochMilli(endMillis);
       return Optional.of(Interval.of(begin, end));
     }
   }
