@@ -52,6 +52,7 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
+import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
@@ -78,8 +79,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status.Family;
 import jakarta.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -95,6 +98,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -306,11 +310,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                         .build();
                   }
                 } catch (Throwable e) {
-                  LogContext.errorAsDebug(LOGGER, e, "Error executing MCP tool '{}'", tool.getId());
-
                   return CallToolResult.builder()
-                      .addTextContent(
-                          "Error executing tool '" + tool.getId() + "': " + e.getMessage())
+                      .addTextContent(toolError(tool.getId(), e))
                       .isError(true)
                       .build();
                 }
@@ -399,6 +400,38 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     mcpRequest.ifPresent(request -> builder.basePathSegments(request.getBasePathSegments()));
 
     return builder.requestUri(URI.create(uri.toString()));
+  }
+
+  // the error of a tool call as the model sees it: the message of an error in the arguments, so the
+  // call can be corrected; for an error of the server only that it is one, like the API does, since
+  // its message (for example of the database) does not help the client and may disclose internals
+  static String toolError(String toolId, Throwable error) {
+    String prefix = "Error executing tool '" + toolId + "': ";
+    for (Throwable e = error; Objects.nonNull(e); e = e.getCause() == e ? null : e.getCause()) {
+      if (e instanceof IllegalArgumentException
+          || e instanceof WebApplicationException webError
+              && webError.getResponse().getStatusInfo().getFamily() == Family.CLIENT_ERROR) {
+        LogContext.errorAsDebug(LOGGER, error, "Error executing MCP tool '{}'", toolId);
+        return prefix + e.getMessage();
+      }
+      if (e instanceof VolatileUnavailableException) {
+        LogContext.errorAsWarn(LOGGER, error, "Error executing MCP tool '{}'", toolId);
+        return prefix + "the data is currently not available. Please try again later.";
+      }
+    }
+    long id = ThreadLocalRandom.current().nextLong();
+    LogContext.error(
+        LOGGER,
+        error,
+        "Error executing MCP tool '{}', error ID {}",
+        toolId,
+        String.format("%016x", id));
+    return prefix
+        + String.format(
+            "an error of the server, not caused by the arguments of the call; it has been logged"
+                + " (error ID %016x). The data may be temporarily unavailable, trying again later"
+                + " may help.",
+            id);
   }
 
   // of the links in a response, only those to other pages are useful for a client of a tool; a

@@ -8,7 +8,10 @@
 package de.ii.ogcapi.mcp.app
 
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
+import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException
 import io.swagger.v3.oas.models.media.IntegerSchema
+import jakarta.ws.rs.InternalServerErrorException
+import jakarta.ws.rs.NotFoundException
 import spock.lang.Specification
 
 class McpToolResultSpec extends Specification {
@@ -68,6 +71,38 @@ class McpToolResultSpec extends Specification {
                 [type: "Feature", id: "b", geometry: null, properties: [x: 2]]]
         forTool.features[0].keySet() as List == ["type", "id", "geometry", "properties"]
         result.features[0].links.size() == 1
+    }
+
+    def 'an error in the arguments keeps its message'() {
+        expect:
+        McpServerImpl.toolError("query_x", error) == "Error executing tool 'query_x': " + message
+
+        where:
+        error                                                                       | message
+        new IllegalArgumentException("Parameter 'punt' is not a valid geometry")    | "Parameter 'punt' is not a valid geometry"
+        new NotFoundException("The feature 'a' does not exist.")                    | "The feature 'a' does not exist."
+        new RuntimeException("wrapped", new IllegalArgumentException("bad filter")) | "bad filter"
+    }
+
+    def 'an error of the server does not disclose its message'() {
+        when:
+        String text = McpServerImpl.toolError("query_x", error)
+
+        then:
+        text.startsWith("Error executing tool 'query_x': an error of the server, not caused by the arguments")
+        text =~ /error ID [0-9a-f]{16}/
+        !text.contains("relation")
+
+        where:
+        error << [
+                new RuntimeException("Unexpected SQL query error: relation \"wegdeel\" does not exist"),
+                new InternalServerErrorException("relation \"wegdeel\" does not exist")]
+    }
+
+    def 'unavailable data is reported as temporary'() {
+        expect:
+        McpServerImpl.toolError("query_x", new VolatileUnavailableException("provider bgt not available")) ==
+                "Error executing tool 'query_x': the data is currently not available. Please try again later."
     }
 
     def 'the paging hint is added to a copy of the schema of the offset parameter'() {
