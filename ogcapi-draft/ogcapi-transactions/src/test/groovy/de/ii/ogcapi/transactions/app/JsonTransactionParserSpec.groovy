@@ -13,8 +13,11 @@ import de.ii.ogcapi.transactions.domain.TxInsert
 import de.ii.ogcapi.transactions.domain.TxReplace
 import de.ii.ogcapi.transactions.domain.TxSemantic
 import de.ii.ogcapi.transactions.domain.TxUpdate
+import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.cql.app.CqlImpl
 import jakarta.ws.rs.core.MediaType
+import java.nio.file.Files
+import java.nio.file.Path
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -37,8 +40,17 @@ class JsonTransactionParserSpec extends Specification {
     @Shared
     JsonTransactionParser parser
 
+    @Shared
+    Path tmpDir
+
     def setupSpec() {
-        parser = new JsonTransactionParser(new CqlImpl())
+        tmpDir = Files.createTempDirectory('json-transaction-parser-spec')
+        def dir = tmpDir
+        parser = new JsonTransactionParser(new CqlImpl(), [getTmpDir: { -> dir }] as AppContext)
+    }
+
+    def cleanupSpec() {
+        tmpDir.toFile().deleteDir()
     }
 
     private static InputStream bytes(String s) {
@@ -109,6 +121,115 @@ class JsonTransactionParserSpec extends Specification {
 
         then:
         thrown(IllegalArgumentException)
+    }
+
+    private static final String ACTIONS = '''[
+            {"action": "insert", "collection": "buildings", "items": [
+               {"type": "Feature", "id": "1", "properties": {"h": 12.3456789012345678, "n": 7}, "geometry": {"type": "Point", "coordinates": [6053772.741, 6835449.584]}},
+               {"type": "Feature", "id": "2", "properties": {"h": null}, "geometry": null}
+            ]},
+            {"action": "delete", "collection": "buildings", "filter": { "op": "=", "args": [ { "property": "id" }, "9" ] }}
+          ]'''
+
+    private static List<String> drain(tx) {
+        def result = []
+        tx.actions().forEachRemaining { action ->
+            if (action instanceof TxInsert) {
+                action.items().forEachRemaining { item -> result << new String(item.payload().readAllBytes(), 'UTF-8') }
+            } else {
+                result << action.type.toString()
+            }
+        }
+        return result
+    }
+
+    private long spoolFiles() {
+        return Files.list(tmpDir).withCloseable { it.count() }
+    }
+
+    def 'envelope reads a semantic that follows the transaction array'() {
+        when:
+        def tx = parser.parse(bytes('{"transaction": ' + ACTIONS + ', "semantic": "batch"}'), JSON)
+
+        then: 'the semantic of the request is used, not the default'
+        tx.semantic == TxSemantic.BATCH
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'actions that precede the semantic are spooled and read back unchanged'() {
+        given:
+        def streamed = parser.parse(bytes('{"semantic": "batch", "transaction": ' + ACTIONS + '}'), JSON)
+        def expected = drain(streamed)
+        streamed.close()
+
+        when:
+        def tx = parser.parse(bytes('{"title": "t", "transaction": ' + ACTIONS + ', "semantic": "batch", "description": "d"}'), JSON)
+        def spooledWhileOpen = spoolFiles()
+        def actual = drain(tx)
+        tx.close()
+
+        then:
+        spooledWhileOpen == 1
+        actual == expected
+        actual.size() == 3
+        actual[2] == 'DELETE'
+
+        and: 'the spool file is deleted when the transaction is closed'
+        spoolFiles() == 0
+    }
+
+    def 'actions that follow the semantic are streamed without a spool file'() {
+        when:
+        def tx = parser.parse(bytes('{"semantic": "atomic", "transaction": ' + ACTIONS + '}'), JSON)
+        def spooled = spoolFiles()
+
+        then:
+        spooled == 0
+        tx.semantic == TxSemantic.ATOMIC
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'a transaction array without any semantic defaults to ATOMIC'() {
+        when:
+        def tx = parser.parse(bytes('{"transaction": ' + ACTIONS + ', "title": "t"}'), JSON)
+
+        then:
+        tx.semantic == TxSemantic.ATOMIC
+        drain(tx).size() == 3
+
+        cleanup:
+        tx.close()
+    }
+
+    def 'an invalid semantic after the transaction array is rejected and leaves no spool file'() {
+        when:
+        parser.parse(bytes('{"transaction": ' + ACTIONS + ', "semantic": "snapshot"}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+        spoolFiles() == 0
+    }
+
+    def 'a second transaction array is rejected and leaves no spool file'() {
+        when:
+        parser.parse(bytes('{"transaction": [], "transaction": [], "semantic": "batch"}'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+        spoolFiles() == 0
+    }
+
+    def 'a body truncated after the transaction array is rejected and leaves no spool file'() {
+        when:
+        parser.parse(bytes('{"transaction": ' + ACTIONS + ', "semantic": "bat'), JSON)
+
+        then:
+        thrown(IllegalArgumentException)
+        spoolFiles() == 0
     }
 
     def 'delete action: filter parsed as cql2-json (CQL2 filter, default lang)'() {
@@ -353,7 +474,7 @@ class JsonTransactionParserSpec extends Specification {
         given: 'streaming requires action+collection before items'
         def body = '''{
           "transaction": [
-            {"items": [{"type": "Feature", "id": "1", "properties": null, "geometry": null}]},
+            {"items": [{"type": "Feature", "id": "1", "properties": null, "geometry": null}],
              "action": "insert", "collection": "buildings"}
           ]
         }'''
@@ -366,7 +487,7 @@ class JsonTransactionParserSpec extends Specification {
         thrown(IllegalArgumentException)
 
         cleanup:
-        tx.close()
+        tx?.close()
     }
 
     def 'action object missing required action property is rejected'() {
