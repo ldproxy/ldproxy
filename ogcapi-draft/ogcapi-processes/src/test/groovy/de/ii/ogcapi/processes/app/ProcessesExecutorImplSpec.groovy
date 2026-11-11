@@ -22,6 +22,7 @@ import de.ii.ogcapi.foundation.domain.TypedClientErrorException
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcSchema
+import de.ii.ogcapi.processes.domain.model.ImmutableProcessJobOptions
 import de.ii.ogcapi.processes.domain.model.ProcessData
 import de.ii.ogcapi.processes.domain.model.Property.Type
 import de.ii.xtralink.jobs.Identifiers.Status
@@ -94,27 +95,43 @@ class ProcessesExecutorImplSpec extends Specification {
         "bbox with 5 coordinates"       | [count: 1, bbox: [bbox: [0, 0, 1, 1, 1]]]
     }
 
-    def "a job with a setup step is pushed with it and the execution step as its partial"() {
+    def "by default the job has the single partial execute, without setup and cleanup steps"() {
+        when:
+        executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)
+
+        then:
+        1 * jobs.push({ JobConfiguration job ->
+            job.kind() == "oap:TestProcess" && job.partials() == ["oap:TestProcess:execute"]
+                    && !job.setup() && !job.cleanup() && !job.sequential()
+        }, _) >> job(Status.ACCEPTED, [:])
+    }
+
+    def "the job options of the process are passed on, with the partials qualified by the process"() {
         given:
-        def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], true)
+        def options = new ImmutableProcessJobOptions.Builder()
+                .setup(true)
+                .partials(["transform", "execute"])
+                .sequential(true)
+                .cleanup(true)
+                .build()
+        def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], options)
 
         when:
         executor.executeAsync("api", process, execute([count: 1]), 0, 3600)
 
         then:
         1 * jobs.push({ JobConfiguration job ->
-            job.kind() == "oap:TestProcess" && job.setup() && job.cleanup() && job.partials() == ["oap:TestProcess:execute"]
+            job.partials() == ["oap:TestProcess:transform", "oap:TestProcess:execute"]
+                    && job.setup() && job.cleanup() && job.sequential()
         }, _) >> job(Status.ACCEPTED, [:])
     }
 
-    def "by default the job has the execution step as its partial, without setup and cleanup steps"() {
+    def "a process job without partials is rejected"() {
         when:
-        executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)
+        new ImmutableProcessJobOptions.Builder().partials([]).build()
 
         then:
-        1 * jobs.push({ JobConfiguration job ->
-            !job.setup() && !job.cleanup() && job.partials() == ["oap:TestProcess:execute"]
-        }, _) >> job(Status.ACCEPTED, [:])
+        thrown(IllegalStateException)
     }
 
     def "a callback is retried as often as configured at most: #requested requested, #configured configured"() {
