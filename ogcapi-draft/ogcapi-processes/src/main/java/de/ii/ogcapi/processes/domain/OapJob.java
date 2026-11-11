@@ -7,10 +7,9 @@
  */
 package de.ii.ogcapi.processes.domain;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.common.domain.async.JobContextAsync;
 import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
@@ -25,7 +24,6 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonDeserialize(builder = ImmutableOapJob.Builder.class)
 public interface OapJob extends JobInputs {
 
   String KIND = "oap";
@@ -124,7 +122,13 @@ public interface OapJob extends JobInputs {
     }
   }
 
-  @JsonAnyGetter
-  @JsonAnySetter
+  // the JSON of the job inputs is the object of the inputs; no input name is reserved, e.g. a
+  // process may have an input "inputs"
+  @JsonValue
   Map<String, Object> getInputs();
+
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  static OapJob fromInputs(Map<String, Object> inputs) {
+    return new ImmutableOapJob.Builder().inputs(inputs).build();
+  }
 }
