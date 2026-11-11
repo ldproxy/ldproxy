@@ -52,14 +52,14 @@ import java.util.Optional;
  * @cfgFilesEn Process descriptions are stored locally as `values` using the
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html). Global
  *     process descriptions are stored in `values/processes`. API-specific process descriptions must
- *     be stored in `values/processes/{API}`, where `{API}` is the name of the API.
+ *     be stored in `values/processes/{apiId}`, where `{apiId}` is the id of the API.
  *     <p>For the structure of process descriptions and the options of the job that runs an
  *     execution, see [Processes](../../auxiliaries/processes.md).
  * @cfgFilesDe Prozessbeschreibungen werden lokal als `values` im
  *     [Store](https://docs.ldproxy.net/application/20-configuration/10-store-new.html) gespeichert.
  *     Globale Prozessbeschreibungen werden in `values/processes` abgelegt. API-spezifische
- *     Prozessbeschreibungen müssen in `values/processes/{API}` gespeichert werden, wobei `{API}`
- *     mit dem Namen der API ersetzt werden muss.
+ *     Prozessbeschreibungen müssen in `values/processes/{apiId}` gespeichert werden, wobei
+ *     `{apiId}` mit der Id der API ersetzt werden muss.
  *     <p>Zur Struktur von Prozessbeschreibungen und den Optionen des Jobs, der eine Ausführung
  *     durchführt, siehe [Prozesse](../../auxiliaries/processes.md).
  * @limitationsEn This implementation does not cover all details and has some limitations:
