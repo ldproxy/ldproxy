@@ -1,0 +1,20 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = 'Processes that aggregate features or find the features nearest to a point.'
+descriptionDe = 'Prozesse, die Features aggregieren oder die einem Punkt nächstgelegenen Features finden.'
+
+dependencies {
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-foundation'
+    provided 'de.interactive_instruments:ogcapi-features-core'
+    provided 'de.interactive_instruments:ogcapi-features-search'
+    provided 'de.interactive_instruments:ogcapi-processes'
+    provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-geometries'
+    provided 'de.interactive_instruments:xtraplatform-streams'
+    provided 'de.interactive_instruments:xtraplatform-cql'
+    provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
+    provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
+}

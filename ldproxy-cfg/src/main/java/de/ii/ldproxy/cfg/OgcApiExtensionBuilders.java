@@ -35,6 +35,7 @@ import de.ii.ogcapi.html.domain.ImmutableHtmlConfiguration;
 import de.ii.ogcapi.json.domain.ImmutableJsonConfiguration;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpConfiguration;
 import de.ii.ogcapi.oas30.domain.ImmutableOas30Configuration;
+import de.ii.ogcapi.processes.features.domain.ImmutableProcessesFeaturesConfiguration;
 import de.ii.ogcapi.projections.app.ImmutableProjectionsConfiguration;
 import de.ii.ogcapi.pubsub.app.ImmutablePubSubConfiguration;
 import de.ii.ogcapi.resources.domain.ImmutableResourcesConfiguration;
@@ -141,6 +142,10 @@ public interface OgcApiExtensionBuilders {
 
   default ImmutableMcpConfiguration.Builder mcp() {
     return new ImmutableMcpConfiguration.Builder();
+  }
+
+  default ImmutableProcessesFeaturesConfiguration.Builder processesFeatures() {
+    return new ImmutableProcessesFeaturesConfiguration.Builder();
   }
 
   default ImmutableOas30Configuration.Builder oas30() {

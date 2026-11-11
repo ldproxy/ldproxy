@@ -74,6 +74,29 @@ class StoredQueryResolverSpec extends StoredQueryFixture {
         e.getMessage() == "The stored query 'unknown' does not exist in API 'demo'."
     }
 
+    def 'without a format, the parameters are checked and resolved in the same way'() {
+        when:
+        def resolved = resolver.resolveParameters(api, 'changes', ['beginn': '2026-10-01T00:00:00Z'])
+
+        then:
+        resolved.getQuery().getCollections() == ['ax_flurstueck']
+        resolved.getQueryParameterSet().getValues().getFirst('beginn') == '2026-10-01T00:00:00Z'
+
+        when:
+        resolver.resolveParameters(api, 'changes', ['ende': '2026-10-25T00:00:00Z'])
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.getMessage().contains('ende')
+
+        when:
+        resolver.resolveParameters(api, 'unknown', [:])
+
+        then:
+        def e2 = thrown(IllegalArgumentException)
+        e2.getMessage() == "The stored query 'unknown' does not exist in API 'demo'."
+    }
+
     def 'a job with a stored query id is a stored query job'() {
         when:
         def job = new ImmutableSearchJob.Builder()

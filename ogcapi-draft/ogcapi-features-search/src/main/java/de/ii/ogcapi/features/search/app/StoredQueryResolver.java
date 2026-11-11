@@ -13,6 +13,7 @@ import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.features.search.domain.StoredQueryResolution;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
@@ -119,28 +120,9 @@ final class StoredQueryResolver {
    */
   Resolved resolveForJob(OgcApi api, String queryId, Map<String, String> parameters) {
     OgcApiDataV2 apiData = api.getData();
-    String path = "/search/" + queryId;
-
-    if (!repository.exists(apiData, queryId)) {
-      throw new IllegalArgumentException(
-          String.format("The stored query '%s' does not exist in API '%s'.", queryId, api.getId()));
-    }
-
-    EndpointExtension endpoint =
-        extensionRegistry.getExtensionsForType(EndpointStoredQuery.class).stream()
-            .findFirst()
-            .orElseThrow(() -> new IllegalStateException("Stored queries are not available."));
-    ApiOperation operation =
-        Optional.ofNullable(endpoint.getDefinition(apiData))
-            .flatMap(definition -> definition.getOperation(path, "GET"))
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        String.format(
-                            "The stored query '%s' cannot be executed in API '%s'.",
-                            queryId, api.getId())));
-
-    List<OgcApiQueryParameter> definitions = operation.getQueryParameters();
+    EndpointExtension endpoint = getEndpoint();
+    List<OgcApiQueryParameter> definitions =
+        getOperation(api, endpoint, queryId).getQueryParameters();
     List<String> errors = validate(apiData, definitions, parameters);
 
     Optional<ApiMediaType> mediaType = Optional.empty();
@@ -175,6 +157,53 @@ final class StoredQueryResolver {
 
     return new Resolved(
         query, queryParameterSet, mediaType.get(), URI.create(requestUri.toString()));
+  }
+
+  /**
+   * Resolves the stored query {@code queryId} with the given parameter values, without a format.
+   *
+   * @throws IllegalArgumentException with all problems found, if the query does not exist, a
+   *     parameter is unknown or a value is invalid
+   */
+  StoredQueryResolution.Resolved resolveParameters(
+      OgcApi api, String queryId, Map<String, String> parameters) {
+    OgcApiDataV2 apiData = api.getData();
+    List<OgcApiQueryParameter> definitions =
+        getOperation(api, getEndpoint(), queryId).getQueryParameters();
+    List<String> errors = validate(apiData, definitions, parameters);
+
+    if (!errors.isEmpty()) {
+      throw new IllegalArgumentException(String.join(" ", errors));
+    }
+
+    QueryParameterSet queryParameterSet =
+        QueryParameterSet.of(definitions, parameters).evaluate(api, Optional.empty());
+    QueryExpression query =
+        resolve(repository.get(apiData, queryId), queryParameterSet, schemaValidator, cql);
+
+    return new StoredQueryResolution.Resolved(query, queryParameterSet);
+  }
+
+  private EndpointExtension getEndpoint() {
+    return extensionRegistry.getExtensionsForType(EndpointStoredQuery.class).stream()
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException("Stored queries are not available."));
+  }
+
+  private ApiOperation getOperation(OgcApi api, EndpointExtension endpoint, String queryId) {
+    if (!repository.exists(api.getData(), queryId)) {
+      throw new IllegalArgumentException(
+          String.format("The stored query '%s' does not exist in API '%s'.", queryId, api.getId()));
+    }
+
+    return Optional.ofNullable(endpoint.getDefinition(api.getData()))
+        .flatMap(definition -> definition.getOperation("/search/" + queryId, "GET"))
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format(
+                        "The stored query '%s' cannot be executed in API '%s'.",
+                        queryId, api.getId())));
   }
 
   // the checks of the request dispatcher for the parameters of a GET request
