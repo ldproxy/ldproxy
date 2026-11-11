@@ -18,10 +18,7 @@ import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
-import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
-import de.ii.ogcapi.features.search.domain.ParameterResolver;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
-import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchJob;
@@ -46,7 +43,6 @@ import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
@@ -340,18 +336,9 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
 
     StoredQueryExpression storedQuery = repository.get(apiData, queryId);
 
-    ImmutableStoredQueryExpression.Builder builder =
-        new ImmutableStoredQueryExpression.Builder().from(storedQuery);
-    QueryParameterSet queryParameterSet = requestContext.getQueryParameterSet();
-    for (OgcApiQueryParameter parameter : queryParameterSet.getDefinitions()) {
-      if (parameter instanceof QueryExpressionQueryParameter) {
-        ((QueryExpressionQueryParameter) parameter).applyTo(builder, queryParameterSet);
-      }
-    }
-    storedQuery = builder.build();
-
     QueryExpression executableQuery =
-        new ParameterResolver(queryParameterSet, schemaValidator, cql).visit(storedQuery);
+        StoredQueryResolver.resolve(
+            storedQuery, requestContext.getQueryParameterSet(), schemaValidator, cql);
 
     FeaturesCoreConfiguration coreConfiguration =
         apiData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();

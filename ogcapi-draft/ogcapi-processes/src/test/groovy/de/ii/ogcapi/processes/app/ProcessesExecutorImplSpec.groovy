@@ -126,6 +126,23 @@ class ProcessesExecutorImplSpec extends Specification {
         }, _) >> job(Status.ACCEPTED, [:])
     }
 
+    def "a partial with a colon is the kind of a job of another processor and is queued as it is"() {
+        given:
+        def options = new ImmutableProcessJobOptions.Builder()
+                .partials(["plan", "feature-query:execute", "build"])
+                .sequential(true)
+                .build()
+        def process = process([ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:], options)
+
+        when:
+        executor.executeAsync("api", process, execute([count: 1]), 0, 3600)
+
+        then:
+        1 * jobs.push({ JobConfiguration job ->
+            job.partials() == ["oap:TestProcess:plan", "feature-query:execute", "oap:TestProcess:build"]
+        }, _) >> job(Status.ACCEPTED, [:])
+    }
+
     def "a process job without partials is rejected"() {
         when:
         new ImmutableProcessJobOptions.Builder().partials([]).build()
