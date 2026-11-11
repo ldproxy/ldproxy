@@ -18,6 +18,8 @@ import de.ii.xtralink.jobs.JobResult;
 import de.ii.xtralink.jobs.PartialJob;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
+import de.ii.xtraplatform.web.domain.Http;
+import de.ii.xtraplatform.web.domain.HttpClient;
 import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobProcessing;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorSimple;
@@ -34,6 +36,7 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
 
   private final EntityRegistry entityRegistry;
   private final StepDispatcher dispatcher;
+  private final HttpClient httpClient;
   private final WorkflowRepository workflowRepository;
   private final WorkflowSlots workflowSlots;
 
@@ -42,11 +45,13 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
       ResourceStore resourceStore,
       EntityRegistry entityRegistry,
       StepDispatcher dispatcher,
+      Http http,
       WorkflowRepository workflowRepository,
       WorkflowSlots workflowSlots) {
     super(kind, resourceStore);
     this.entityRegistry = entityRegistry;
     this.dispatcher = dispatcher;
+    this.httpClient = http.getDefaultClient();
     this.workflowRepository = workflowRepository;
     this.workflowSlots = workflowSlots;
   }
@@ -91,6 +96,7 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
     WorkflowRunner runner =
         new WorkflowRunner(
             dispatcher,
+            new HttpExternalApis(httpClient::send, configuration.get().getAllowedExternalUris()),
             documentId -> workflowRepository.getDocument(apiId, documentId),
             apiId,
             Objects.requireNonNullElse(

@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.app
 
 import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber
+import de.ii.ogcapi.processes.domain.AllowedUris
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute
 import spock.lang.Specification
 
@@ -51,7 +52,7 @@ class ExecuteRequestUrisSpec extends Specification {
 
     def "a callback '#callback' below the allowed URI '#allowed' is accepted"() {
         expect:
-        ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, [allowed])
+        AllowedUris.isAllowed(callback, [allowed])
 
         where:
         allowed                          | callback
@@ -67,7 +68,7 @@ class ExecuteRequestUrisSpec extends Specification {
 
     def "a callback '#callback' that is not below the allowed URI '#allowed' is rejected"() {
         expect:
-        !ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, [allowed])
+        !AllowedUris.isAllowed(callback, [allowed])
 
         where:
         allowed                          | callback
@@ -87,7 +88,7 @@ class ExecuteRequestUrisSpec extends Specification {
 
     def "the wildcard accepts the callback '#callback'"() {
         expect:
-        ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, ["*"])
+        AllowedUris.isAllowed(callback, ["*"])
 
         where:
         callback << ["https://example.com/callbacks/done", "http://localhost:8765/progress", "http://10.0.0.5:7081/api/tasks/log-level"]
@@ -95,7 +96,7 @@ class ExecuteRequestUrisSpec extends Specification {
 
     def "the wildcard does not accept the callback '#callback' that is not an HTTP URI"() {
         expect:
-        !ExecutionQueriesHandlerImpl.isAllowedCallbackUri(callback, ["*"])
+        !AllowedUris.isAllowed(callback, ["*"])
 
         where:
         callback << ["ftp://example.com/callback", "mailto:someone@example.com", "relative/path", "not a uri"]

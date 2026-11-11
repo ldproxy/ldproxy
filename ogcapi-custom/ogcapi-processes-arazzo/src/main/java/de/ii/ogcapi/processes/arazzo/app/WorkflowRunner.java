@@ -19,6 +19,8 @@ import de.ii.ogcapi.processes.arazzo.domain.ArazzoSource;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoStep;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoWorkflow;
 import de.ii.ogcapi.processes.arazzo.domain.ImmutableArazzoParameter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ final class WorkflowRunner {
       Pattern.compile("^\\{\\$sourceDescriptions\\.([A-Za-z0-9_\\-]+)\\.url}#(/.*)$");
 
   private final StepDispatcher dispatcher;
+  private final ExternalApis externalApis;
   private final Function<String, Optional<ArazzoDocument>> storedDocuments;
   private final String apiId;
   private final int maximumSteps;
@@ -60,6 +63,8 @@ final class WorkflowRunner {
   private final Pause pause;
   private final Map<String, Map<String, Object>> workflows;
   private final List<Map<String, Object>> trace;
+  // the external APIs of the sources by URL, each document is read once per execution
+  private final Map<String, ExternalApi> externalSources;
   private int stepsRun;
 
   /** Pauses before a retry; the default waits, a test does not. */
@@ -77,12 +82,14 @@ final class WorkflowRunner {
    */
   WorkflowRunner(
       StepDispatcher dispatcher,
+      ExternalApis externalApis,
       Function<String, Optional<ArazzoDocument>> storedDocuments,
       String apiId,
       int maximumSteps,
       int maximumResponseSize,
       Pause pause) {
     this.dispatcher = dispatcher;
+    this.externalApis = externalApis;
     this.storedDocuments = storedDocuments;
     this.apiId = apiId;
     this.maximumSteps = maximumSteps;
@@ -90,6 +97,7 @@ final class WorkflowRunner {
     this.pause = pause;
     this.workflows = new LinkedHashMap<>();
     this.trace = new ArrayList<>();
+    this.externalSources = new HashMap<>();
   }
 
   // the pause of a retry; the job processor thread waits, as the specification requires
@@ -259,7 +267,10 @@ final class WorkflowRunner {
       success = runNested(state, step, context);
     } else {
       StepRequest request = request(state, step, context);
-      StepResponse response = dispatcher.dispatch(request, maximumResponseSize);
+      StepResponse response =
+          request.server().isPresent()
+              ? externalApis.dispatch(request, maximumResponseSize)
+              : dispatcher.dispatch(request, maximumResponseSize);
       exchange = Optional.of(new Exchange(request, response));
       entry.put("statusCode", response.statusCode());
       context = context.withExchange(exchange.get());
@@ -393,7 +404,8 @@ final class WorkflowRunner {
         pathParameters,
         query,
         headers,
-        body);
+        body,
+        operation.server());
   }
 
   private static String path(
@@ -495,8 +507,11 @@ final class WorkflowRunner {
       throw WorkflowException.problem(
           "The operation path '%s' does not point to an operation.", operationPath);
     }
-    return dispatcher
-        .operation(sourceApi, tokens.get(2).toUpperCase(Locale.ROOT), tokens.get(1))
+    String method = tokens.get(2).toUpperCase(Locale.ROOT);
+    String path = tokens.get(1);
+    return Optional.ofNullable(externalSources.get(sourceApi))
+        .map(api -> api.operation(method, path))
+        .orElseGet(() -> dispatcher.operation(sourceApi, method, path))
         .orElseThrow(
             () -> WorkflowException.problem("The operation '%s' does not exist.", operationPath));
   }
@@ -509,8 +524,7 @@ final class WorkflowRunner {
       throw WorkflowException.problem("The operation id '%s' is invalid.", operationId);
     }
     String sourceApi = openApiSource(document, rest.substring(0, dot));
-    return dispatcher
-        .operation(sourceApi, rest.substring(dot + 1))
+    return operation(sourceApi, rest.substring(dot + 1))
         .orElseThrow(
             () -> WorkflowException.problem("The operation '%s' does not exist.", operationId));
   }
@@ -524,10 +538,7 @@ final class WorkflowRunner {
             .toList();
     List<Operation> candidates =
         (apis.isEmpty() ? List.of(apiId) : apis)
-            .stream()
-                .map(api -> dispatcher.operation(api, operationId))
-                .flatMap(Optional::stream)
-                .toList();
+            .stream().map(api -> operation(api, operationId)).flatMap(Optional::stream).toList();
     if (candidates.size() != 1) {
       throw WorkflowException.problem(
           candidates.isEmpty()
@@ -539,20 +550,40 @@ final class WorkflowRunner {
     return candidates.get(0);
   }
 
+  private Optional<Operation> operation(String sourceApi, String operationId) {
+    return Optional.ofNullable(externalSources.get(sourceApi))
+        .map(api -> api.operation(operationId))
+        .orElseGet(() -> dispatcher.operation(sourceApi, operationId));
+  }
+
+  // the id of an API of this server, or the URL of an external API
   private String openApiSource(ArazzoDocument document, String name) {
     ArazzoSource source = source(document, name);
     if (!ArazzoSource.OPENAPI.equals(source.getType().orElse(ArazzoSource.OPENAPI))) {
       throw WorkflowException.problem(
           "The source description '%s' is not an OpenAPI document.", name);
     }
-    return dispatcher
-        .apiOfSource(source.getUrl(), apiId)
-        .orElseThrow(
-            () ->
-                WorkflowException.problem(
-                    "The source description '%s' (%s) is not an API of this server; other APIs"
-                        + " are not supported.",
-                    name, source.getUrl()));
+    String url = source.getUrl();
+    Optional<String> api = dispatcher.apiOfSource(url, apiId);
+    if (api.isPresent()) {
+      return api.get();
+    }
+    if (!isAbsolute(url)) {
+      throw WorkflowException.problem(
+          "The source description '%s' (%s) is not an API of this server.", name, url);
+    }
+    if (!externalSources.containsKey(url)) {
+      externalSources.put(url, externalApis.api(url, maximumResponseSize));
+    }
+    return url;
+  }
+
+  private static boolean isAbsolute(String url) {
+    try {
+      return new URI(url).isAbsolute();
+    } catch (URISyntaxException e) {
+      return false;
+    }
   }
 
   // --- actions

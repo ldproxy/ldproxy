@@ -10,6 +10,7 @@ package de.ii.ogcapi.processes.arazzo.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
+import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,9 +34,10 @@ public class ArazzoWorkflowProcessor extends ArazzoProcessor {
       ResourceStore resourceStore,
       EntityRegistry entityRegistry,
       StepDispatcher dispatcher,
+      Http http,
       WorkflowRepository workflowRepository,
       WorkflowSlots workflowSlots) {
-    super(KIND, resourceStore, entityRegistry, dispatcher, workflowRepository, workflowSlots);
+    super(KIND, resourceStore, entityRegistry, dispatcher, http, workflowRepository, workflowSlots);
     this.workflowRepository = workflowRepository;
   }
 

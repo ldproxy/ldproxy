@@ -19,9 +19,11 @@ class WorkflowRunnerSpec extends Specification {
     FakeDispatcher dispatcher = new FakeDispatcher()
     List<Long> pauses = []
     Map<String, ArazzoDocument> stored = [:]
+    FakeHttpClient http = new FakeHttpClient()
+    List<String> allowedExternalUris = []
 
     WorkflowRunner runner(int maximumSteps = 100) {
-        return new WorkflowRunner(dispatcher, { String id -> Optional.ofNullable(stored[id]) }, "bag", maximumSteps, 1000, { long ms -> pauses.add(ms) } as WorkflowRunner.Pause)
+        return new WorkflowRunner(dispatcher, new HttpExternalApis(http.client(), allowedExternalUris), { String id -> Optional.ofNullable(stored[id]) }, "bag", maximumSteps, 1000, { long ms -> pauses.add(ms) } as WorkflowRunner.Pause)
     }
 
     def "the outputs of a step are the inputs of the next step"() {
@@ -171,10 +173,11 @@ class WorkflowRunnerSpec extends Specification {
         runner().run(doc, "w", [:]).outputs() == [n: 7]
     }
 
-    def "a source that is not an API of this server is rejected"() {
+    def "a source that is not an API of this server is rejected, if it is not allowed"() {
         given:
+        allowedExternalUris = allowed
         def doc = document([workflow("w", [[stepId: "a", operationId: '$sourceDescriptions.ext.getItems']])],
-                [sourceDescriptions: [[name: "ext", url: "https://api.example.com/openapi.json"]]])
+                [sourceDescriptions: [[name: "ext", url: url]]])
 
         when:
         runner().run(doc, "w", [:])
@@ -184,6 +187,39 @@ class WorkflowRunnerSpec extends Specification {
         e.kind == WorkflowException.Kind.PROBLEM
         e.message.contains("not an API of this server")
         dispatcher.requests.isEmpty()
+        http.sent.isEmpty()
+
+        where:
+        url                                    | allowed
+        "https://api.example.com/openapi.json" | []
+        "https://api.example.com/openapi.json" | ["https://api.example.com/v1/"]
+        "/other/api"                           | ["*"]
+    }
+
+    def "steps call allowed external APIs over HTTP and APIs of this server in-process"() {
+        given:
+        allowedExternalUris = ["https://api.example.com/"]
+        http.responses["https://api.example.com/openapi.json"] = { String m ->
+            FakeHttpClient.response(200, '{"openapi": "3.0.3", "servers": [{"url": "/v1"}], "paths": {"/codes/{code}": {"get": {"operationId": "getCode"}}}}') }
+        http.responses["https://api.example.com/v1/codes/p%201"] = { String m ->
+            FakeHttpClient.response(200, '{"label": "Pand 1"}', ["content-type": "application/json"]) }
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([features: [[id: "p 1"]]]) }
+        def doc = document([workflow("w", [
+                [stepId: "find", operationId: '$sourceDescriptions.bag.pand.getItems', outputs: [id: '$response.body#/features/0/id']],
+                [stepId: "code", operationId: '$sourceDescriptions.ext.getCode', parameters: [[name: "code", in: "path", value: '$steps.find.outputs.id']],
+                 successCriteria: [[condition: '$statusCode == 200']], outputs: [label: '$response.body#/label', url: '$url']],
+                [stepId: "again", operationPath: '{$sourceDescriptions.ext.url}#/paths/~1codes~1{code}/get', parameters: [[name: "code", in: "path", value: 'p 1']]],
+        ], [outputs: [label: '$steps.code.outputs.label', url: '$steps.code.outputs.url']])],
+                [sourceDescriptions: [[name: "bag", url: "/bag/api"], [name: "ext", url: "https://api.example.com/openapi.json"]]])
+
+        when:
+        def result = runner().run(doc, "w", [:])
+
+        then:
+        result.outputs() == [label: "Pand 1", url: "https://api.example.com/v1/codes/p%201"]
+        dispatcher.requests*.operationId() == ["pand.getItems"]
+        // the document is read once
+        http.sent*.url == ["https://api.example.com/openapi.json", "https://api.example.com/v1/codes/p%201", "https://api.example.com/v1/codes/p%201"]
     }
 
     def "an operation without a handler is rejected"() {

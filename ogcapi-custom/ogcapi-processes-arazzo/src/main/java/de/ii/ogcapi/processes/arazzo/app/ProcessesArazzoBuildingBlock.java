@@ -21,8 +21,8 @@ import jakarta.inject.Singleton;
  * @scopeEn The building block runs workflows of
  *     [Arazzo](https://spec.openapis.org/arazzo/latest.html) descriptions (versions 1.0 and 1.1) as
  *     processes of the building block [Processes](processes.md). A workflow calls operations of the
- *     APIs of this server one after the other, the results of a step are available to the following
- *     steps.
+ *     APIs of this server, and of allowed external APIs, one after the other, the results of a step
+ *     are available to the following steps.
  *     <p>There are two ways to publish workflows:
  *     <p><code>
  *     - Stored workflows: each workflow of an Arazzo description in `values/workflows/{apiId}` is a
@@ -36,14 +36,16 @@ import jakarta.inject.Singleton;
  *     </code>
  *     <p>The supported subset of Arazzo:
  *     <p><code>
- *     - Source descriptions of the type `openapi` must be the OpenAPI document of an API of this
- *       server (`/{apiId}/api`); external APIs are not supported. Source descriptions of the type
- *       `arazzo` refer to stored descriptions of the API by file name.
- *     - Steps with `operationId`, `operationPath` or `workflowId`. The operations that a step can
- *       call are: the features of a collection and a feature
+ *     - Source descriptions of the type `openapi` are the OpenAPI document of an API of this server
+ *       (`/{apiId}/api`) or of an external API whose URL is allowed by `allowedExternalUris`.
+ *       Source descriptions of the type `arazzo` refer to stored descriptions of the API by file
+ *       name.
+ *     - Steps with `operationId`, `operationPath` or `workflowId`. The operations of the APIs of
+ *       this server that a step can call are: the features of a collection and a feature
  *       (`/collections/{collectionId}/items[/{featureId}]`), stored queries (`GET` and `POST
  *       /search/{queryId}`), ad-hoc queries (`POST /search`) and the execution of a process (`POST
- *       /processes/{processId}/execution`). The responses are JSON.
+ *       /processes/{processId}/execution`); their responses are JSON. Steps call the GET and POST
+ *       operations of external APIs over HTTP, at the server of the OpenAPI document.
  *     - Parameters in `path`, `query` and `header`, request bodies with JSON content and
  *       replacements with JSON Pointers.
  *     - Success criteria of the types `simple` and `regex`; without criteria, a step is successful
@@ -60,14 +62,16 @@ import jakarta.inject.Singleton;
  *     most `jobs.maxConcurrent - 1` workflows run at the same time, so that a job stays free for
  *     the processes they execute; a further execution of a workflow fails at once with the status
  *     429, the client retries later.
- *     <p>A step has the permissions of a request without credentials. The input schema of a stored
- *     workflow may only use the keywords of process descriptions, annotations such as `default` and
- *     `examples` are allowed; `default` values apply to missing inputs.
+ *     <p>A step has the permissions of a request without credentials. A request to an external API
+ *     has only the headers of the parameters of its step, the credentials of the caller are not
+ *     sent. The input schema of a stored workflow may only use the keywords of process
+ *     descriptions, annotations such as `default` and `examples` are allowed; `default` values
+ *     apply to missing inputs.
  * @scopeDe Der Baustein führt Workflows aus
  *     [Arazzo](https://spec.openapis.org/arazzo/latest.html)-Beschreibungen (Versionen 1.0 und 1.1)
  *     als Prozesse des Bausteins [Processes](processes.md) aus. Ein Workflow ruft nacheinander
- *     Operationen der APIs dieses Servers auf, die Ergebnisse eines Schritts stehen den folgenden
- *     Schritten zur Verfügung.
+ *     Operationen der APIs dieses Servers und erlaubter externer APIs auf, die Ergebnisse eines
+ *     Schritts stehen den folgenden Schritten zur Verfügung.
  *     <p>Workflows werden auf zwei Arten veröffentlicht:
  *     <p><code>
  *     - Gespeicherte Workflows: Jeder Workflow einer Arazzo-Beschreibung in
@@ -82,14 +86,17 @@ import jakarta.inject.Singleton;
  *     </code>
  *     <p>Die unterstützte Teilmenge von Arazzo:
  *     <p><code>
- *     - Quellbeschreibungen vom Typ `openapi` müssen das OpenAPI-Dokument einer API dieses Servers
- *       sein (`/{apiId}/api`); externe APIs werden nicht unterstützt. Quellbeschreibungen vom Typ
- *       `arazzo` verweisen über den Dateinamen auf gespeicherte Beschreibungen der API.
- *     - Schritte mit `operationId`, `operationPath` oder `workflowId`. Die Operationen, die ein
- *       Schritt aufrufen kann, sind: die Features einer Collection und ein Feature
+ *     - Quellbeschreibungen vom Typ `openapi` sind das OpenAPI-Dokument einer API dieses Servers
+ *       (`/{apiId}/api`) oder einer externen API, deren URL `allowedExternalUris` erlaubt.
+ *       Quellbeschreibungen vom Typ `arazzo` verweisen über den Dateinamen auf gespeicherte
+ *       Beschreibungen der API.
+ *     - Schritte mit `operationId`, `operationPath` oder `workflowId`. Die Operationen der APIs
+ *       dieses Servers, die ein Schritt aufrufen kann, sind: die Features einer Collection und ein Feature
  *       (`/collections/{collectionId}/items[/{featureId}]`), gespeicherte Abfragen (`GET` und `POST
  *       /search/{queryId}`), Ad-hoc-Abfragen (`POST /search`) und die Ausführung eines Prozesses
- *       (`POST /processes/{processId}/execution`). Die Antworten sind JSON.
+ *       (`POST /processes/{processId}/execution`); ihre Antworten sind JSON. Die GET- und
+ *       POST-Operationen externer APIs rufen Schritte über HTTP auf, beim Server des
+ *       OpenAPI-Dokuments.
  *     - Parameter in `path`, `query` und `header`, Anfrageinhalte in JSON und Ersetzungen mit JSON
  *       Pointern.
  *     - Erfolgskriterien vom Typ `simple` und `regex`; ohne Kriterien ist ein Schritt bei einem
@@ -108,10 +115,11 @@ import jakarta.inject.Singleton;
  *     gleichzeitig, damit ein Job für die Prozesse frei bleibt, die sie ausführen; eine weitere
  *     Ausführung eines Workflows schlägt sofort mit dem Status 429 fehl, der Client wiederholt sie
  *     später.
- *     <p>Ein Schritt hat die Berechtigungen einer Anfrage ohne Anmeldedaten. Das Eingabeschema
- *     eines gespeicherten Workflows darf nur die Schlüsselwörter von Prozessbeschreibungen
- *     verwenden, Annotationen wie `default` und `examples` sind erlaubt; `default`-Werte gelten für
- *     fehlende Eingaben.
+ *     <p>Ein Schritt hat die Berechtigungen einer Anfrage ohne Anmeldedaten. Eine Anfrage an eine
+ *     externe API hat nur die Header aus den Parametern ihres Schritts, die Anmeldedaten des
+ *     Aufrufers werden nicht gesendet. Das Eingabeschema eines gespeicherten Workflows darf nur die
+ *     Schlüsselwörter von Prozessbeschreibungen verwenden, Annotationen wie `default` und
+ *     `examples` sind erlaubt; `default`-Werte gelten für fehlende Eingaben.
  * @ref:cfg {@link de.ii.ogcapi.processes.arazzo.domain.ProcessesArazzoConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.processes.arazzo.domain.ImmutableProcessesArazzoConfiguration}

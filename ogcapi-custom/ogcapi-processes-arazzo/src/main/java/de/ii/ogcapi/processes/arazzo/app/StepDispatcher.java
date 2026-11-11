@@ -51,6 +51,8 @@ public interface StepDispatcher {
    * @param method the HTTP method
    * @param path the path below the API, with the names of the path parameters in braces
    * @param isSupported whether the operation can be a step of a workflow
+   * @param server the URL of the server of an external API, the path is relative to it; empty for
+   *     an API of this server
    */
   // a class, not a record: the documentation tool of the build does not support public records
   @SuppressWarnings("PMD.DataClass") // a value, a record if the documentation tool allowed it
@@ -61,14 +63,26 @@ public interface StepDispatcher {
     private final String method;
     private final String path;
     private final boolean isSupported;
+    private final Optional<String> server;
 
     public Operation(
         String apiId, String operationId, String method, String path, boolean isSupported) {
+      this(apiId, operationId, method, path, isSupported, Optional.empty());
+    }
+
+    public Operation(
+        String apiId,
+        String operationId,
+        String method,
+        String path,
+        boolean isSupported,
+        Optional<String> server) {
       this.apiId = apiId;
       this.operationId = operationId;
       this.method = method;
       this.path = path;
       this.isSupported = isSupported;
+      this.server = server;
     }
 
     public String apiId() {
@@ -89,6 +103,10 @@ public interface StepDispatcher {
 
     public boolean isSupported() {
       return isSupported;
+    }
+
+    public Optional<String> server() {
+      return server;
     }
   }
 }

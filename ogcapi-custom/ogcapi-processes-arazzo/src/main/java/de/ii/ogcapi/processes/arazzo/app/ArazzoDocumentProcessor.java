@@ -12,6 +12,7 @@ import de.ii.ogcapi.processes.arazzo.domain.ArazzoDocument;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoWorkflow;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.EntityRegistry;
+import de.ii.xtraplatform.web.domain.Http;
 import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
 import jakarta.inject.Inject;
@@ -37,9 +38,10 @@ public class ArazzoDocumentProcessor extends ArazzoProcessor {
       ResourceStore resourceStore,
       EntityRegistry entityRegistry,
       StepDispatcher dispatcher,
+      Http http,
       WorkflowRepository workflowRepository,
       WorkflowSlots workflowSlots) {
-    super(KIND, resourceStore, entityRegistry, dispatcher, workflowRepository, workflowSlots);
+    super(KIND, resourceStore, entityRegistry, dispatcher, http, workflowRepository, workflowSlots);
   }
 
   @Override
