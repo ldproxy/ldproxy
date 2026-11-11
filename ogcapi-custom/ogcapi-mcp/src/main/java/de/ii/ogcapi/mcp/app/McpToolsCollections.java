@@ -13,6 +13,7 @@ import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
+import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
@@ -61,6 +62,7 @@ final class McpToolsCollections implements McpToolSource {
   private final FeaturesCoreProviders providers;
   private final FeaturesQuery ogcApiFeaturesQuery;
   private final FeaturesCoreQueriesHandler featuresCoreQueriesHandler;
+  private final ApiRequestAuthorizer apiRequestAuthorizer;
   private final ObjectMapper mcpObjectMapper;
 
   McpToolsCollections(
@@ -69,12 +71,14 @@ final class McpToolsCollections implements McpToolSource {
       FeaturesCoreProviders providers,
       FeaturesQuery ogcApiFeaturesQuery,
       FeaturesCoreQueriesHandler featuresCoreQueriesHandler,
+      ApiRequestAuthorizer apiRequestAuthorizer,
       ObjectMapper mcpObjectMapper) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.providers = providers;
     this.ogcApiFeaturesQuery = ogcApiFeaturesQuery;
     this.featuresCoreQueriesHandler = featuresCoreQueriesHandler;
+    this.apiRequestAuthorizer = apiRequestAuthorizer;
     this.mcpObjectMapper = mcpObjectMapper;
   }
 
@@ -98,8 +102,7 @@ final class McpToolsCollections implements McpToolSource {
       Optional<ApiRequestContext> mcpRequest)
       throws IOException {
     String collectionId = tool.getId().substring(PREFIX.length());
-    String result =
-        handleCollectionQuery(api, mcpRequest, collectionId, arguments, tool.getQueryParameters());
+    String result = handleCollectionQuery(api, mcpRequest, tool, collectionId, arguments);
 
     return McpServerImpl.forToolResult(mcpObjectMapper.readValue(result, Map.class));
   }
@@ -107,10 +110,11 @@ final class McpToolsCollections implements McpToolSource {
   private String handleCollectionQuery(
       OgcApi api,
       Optional<ApiRequestContext> mcpRequest,
+      McpTool tool,
       String collectionId,
-      Map<String, Object> parameters,
-      List<OgcApiQueryParameter> queryParameters) {
+      Map<String, Object> parameters) {
     OgcApiDataV2 apiData = api.getData();
+    List<OgcApiQueryParameter> queryParameters = tool.getQueryParameters();
 
     Map<String, String> stringParams =
         McpInternalRequests.queryParameterValues(
@@ -137,6 +141,25 @@ final class McpToolsCollections implements McpToolSource {
                         String.format(
                             "Features are not supported in collection '%s'.", collectionId)));
 
+    // the same permissions as a request to the features of the collection; the query is derived
+    // from the parameters of the request that is returned, a policy may have added some
+    ApiRequestContext requestContext =
+        McpInternalRequests.internalRequest(
+                appContext, api, mcpRequest, stringParams, "collections", collectionId, "items")
+            .method("GET")
+            .mediaType(
+                new ImmutableApiMediaType.Builder()
+                    .type(new MediaType("application", "geo+json"))
+                    .label("GeoJSON")
+                    .parameter("json")
+                    .build())
+            .alternateMediaTypes(Set.of())
+            .queryParameterSet(parameterSet)
+            .build();
+    requestContext =
+        McpInternalRequests.authorize(apiRequestAuthorizer, tool, requestContext, Optional.empty());
+    parameterSet = requestContext.getQueryParameterSet();
+
     int defaultPageSize = coreConfiguration.getDefaultPageSize();
 
     FeatureQuery query =
@@ -158,19 +181,6 @@ final class McpToolsCollections implements McpToolSource {
             .defaultPageSize(Optional.of(defaultPageSize))
             .profiles(Profile.of(extensionRegistry, ProfileRelAsKeyTitle.ID))
             .sendResponseAsStream(false)
-            .build();
-
-    ApiRequestContext requestContext =
-        McpInternalRequests.internalRequest(
-                appContext, api, mcpRequest, stringParams, "collections", collectionId, "items")
-            .mediaType(
-                new ImmutableApiMediaType.Builder()
-                    .type(new MediaType("application", "geo+json"))
-                    .label("GeoJSON")
-                    .parameter("json")
-                    .build())
-            .alternateMediaTypes(Set.of())
-            .queryParameterSet(parameterSet)
             .build();
 
     try (Response response =

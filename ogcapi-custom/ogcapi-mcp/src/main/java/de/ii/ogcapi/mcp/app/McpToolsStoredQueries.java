@@ -19,6 +19,7 @@ import de.ii.ogcapi.features.search.domain.QueryExpressionQueryParameter;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
+import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -55,6 +56,7 @@ final class McpToolsStoredQueries implements McpToolSource {
   private final FeaturesCoreProviders providers;
   private final SearchQueriesHandler searchQueriesHandler;
   private final Cql cql;
+  private final ApiRequestAuthorizer apiRequestAuthorizer;
   private final ObjectMapper mcpObjectMapper;
 
   McpToolsStoredQueries(
@@ -64,6 +66,7 @@ final class McpToolsStoredQueries implements McpToolSource {
       FeaturesCoreProviders providers,
       SearchQueriesHandler searchQueriesHandler,
       Cql cql,
+      ApiRequestAuthorizer apiRequestAuthorizer,
       ObjectMapper mcpObjectMapper) {
     this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
@@ -71,6 +74,7 @@ final class McpToolsStoredQueries implements McpToolSource {
     this.providers = providers;
     this.searchQueriesHandler = searchQueriesHandler;
     this.cql = cql;
+    this.apiRequestAuthorizer = apiRequestAuthorizer;
     this.mcpObjectMapper = mcpObjectMapper;
   }
 
@@ -103,8 +107,7 @@ final class McpToolsStoredQueries implements McpToolSource {
       Optional<ApiRequestContext> mcpRequest)
       throws IOException {
     String queryId = tool.getId().substring(PREFIX.length());
-    String result =
-        handleStoredQuery(api, mcpRequest, queryId, arguments, tool.getQueryParameters());
+    String result = handleStoredQuery(api, mcpRequest, tool, queryId, arguments);
 
     return McpServerImpl.forToolResult(mcpObjectMapper.readValue(result, Map.class));
   }
@@ -112,12 +115,13 @@ final class McpToolsStoredQueries implements McpToolSource {
   private String handleStoredQuery(
       OgcApi api,
       Optional<ApiRequestContext> mcpRequest,
+      McpTool tool,
       String queryId,
-      Map<String, Object> parameters,
-      List<OgcApiQueryParameter> queryParameters)
+      Map<String, Object> parameters)
       throws IOException {
 
     OgcApiDataV2 apiData = api.getData();
+    List<OgcApiQueryParameter> queryParameters = tool.getQueryParameters();
 
     Map<String, String> stringParams =
         McpInternalRequests.queryParameterValues(
@@ -125,6 +129,25 @@ final class McpToolsStoredQueries implements McpToolSource {
 
     QueryParameterSet queryParameterSet = QueryParameterSet.of(queryParameters, stringParams);
     queryParameterSet = queryParameterSet.evaluate(api, Optional.empty());
+
+    // the same permissions as a request to the stored query; the query is derived from the
+    // parameters of the request that is returned, a policy may have added some
+    ApiRequestContext requestContext =
+        McpInternalRequests.internalRequest(
+                appContext, api, mcpRequest, stringParams, "search", queryId)
+            .method("GET")
+            .mediaType(
+                new ImmutableApiMediaType.Builder()
+                    .type(new MediaType("application", "geo+json"))
+                    .label("GeoJSON")
+                    .parameter("json")
+                    .build())
+            .alternateMediaTypes(Set.of())
+            .queryParameterSet(queryParameterSet)
+            .build();
+    requestContext =
+        McpInternalRequests.authorize(apiRequestAuthorizer, tool, requestContext, Optional.empty());
+    queryParameterSet = requestContext.getQueryParameterSet();
 
     StoredQueryExpression storedQuery = storedQueryRepository.get(apiData, queryId);
     ImmutableStoredQueryExpression.Builder builder =
@@ -185,19 +208,6 @@ final class McpToolsStoredQueries implements McpToolSource {
             .defaultPageSize(Optional.ofNullable(coreConfiguration.getDefaultPageSize()))
             .maximumPageSize(Optional.ofNullable(coreConfiguration.getMaximumPageSize()))
             .isStoredQuery(true)
-            .build();
-
-    ApiRequestContext requestContext =
-        McpInternalRequests.internalRequest(
-                appContext, api, mcpRequest, stringParams, "search", queryId)
-            .mediaType(
-                new ImmutableApiMediaType.Builder()
-                    .type(new MediaType("application", "geo+json"))
-                    .label("GeoJSON")
-                    .parameter("json")
-                    .build())
-            .alternateMediaTypes(Set.of())
-            .queryParameterSet(queryParameterSet)
             .build();
 
     try (Response response =

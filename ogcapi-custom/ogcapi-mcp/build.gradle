@@ -19,6 +19,8 @@ dependencies {
     // the schema and transformation classes reference these types
     testProvided 'de.interactive_instruments:xtraplatform-geometries'
     testProvided 'de.interactive_instruments:xtraplatform-codelists'
+    // the request context of a tool call references the API, which references these types
+    testProvided 'de.interactive_instruments:xtraplatform-cache'
 
     embedded (libCatalog.mcp.core) {
         exclude module: 'jackson-annotations'

@@ -61,7 +61,7 @@ class McpToolsProcessesSpec extends Specification {
                 type: object
         """.stripIndent())
 
-    McpToolsProcesses tools = new McpToolsProcesses(null, null, null, null, JSON)
+    McpToolsProcesses tools = new McpToolsProcesses(null, null, null, null, null, JSON)
 
     static Map<String, Object> asMap(io.swagger.v3.oas.models.media.Schema<?> schema) {
         JSON.readValue(Json.pretty(schema), Map)

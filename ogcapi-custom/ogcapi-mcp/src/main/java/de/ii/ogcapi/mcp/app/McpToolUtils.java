@@ -11,6 +11,7 @@ import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryabl
 import de.ii.ogcapi.features.search.domain.QueryParameterTemplateParameter;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -24,6 +25,7 @@ import de.ii.ogcapi.mcp.domain.McpTool;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -228,6 +230,7 @@ public class McpToolUtils {
                       .inputSchema(inputSchema)
                       .outputSchema(outputSchema)
                       .queryParameters(parameters)
+                      .operation(operation(resourceMapByQueryId.get(queryId), "executeStoredQuery"))
                       .build();
             })
         .toList();
@@ -407,9 +410,19 @@ public class McpToolUtils {
                       .inputSchema(inputSchema)
                       .outputSchema(outputObjectSchema)
                       .queryParameters(collectionQueryParameters)
+                      .operation(operation(e.getValue(), "getItems"))
                       .build();
             })
         .toList();
+  }
+
+  // the operation that a tool executes, the GET operation if the resource has several
+  static Optional<ApiOperation> operation(OgcApiResource resource, String operationId) {
+    return resource.getOperations().entrySet().stream()
+        .filter(entry -> entry.getValue().getOperationId().contains(operationId))
+        .sorted(Comparator.comparing(entry -> !"GET".equals(entry.getKey())))
+        .map(Entry::getValue)
+        .findFirst();
   }
 
   // the result of a tool call states the offset of the next page, if there is one (see

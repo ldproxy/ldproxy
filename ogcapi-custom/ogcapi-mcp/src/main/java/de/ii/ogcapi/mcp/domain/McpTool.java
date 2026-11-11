@@ -8,8 +8,10 @@
 package de.ii.ogcapi.mcp.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import java.util.List;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -44,6 +46,13 @@ public interface McpTool {
 
   @JsonIgnore
   List<OgcApiQueryParameter> getQueryParameters();
+
+  /**
+   * The operation of the API that the tool executes; a call requires the same permissions as a
+   * request to the operation.
+   */
+  @JsonIgnore
+  Optional<ApiOperation> getOperation();
 
   /**
    * Whether the tool only reads data, as the tools for features and stored queries do; a process

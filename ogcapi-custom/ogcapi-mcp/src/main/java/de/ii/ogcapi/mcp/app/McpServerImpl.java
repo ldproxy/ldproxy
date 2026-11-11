@@ -120,6 +120,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                 providers,
                 ogcApiFeaturesQuery,
                 featuresCoreQueriesHandler,
+                apiRequestAuthorizer,
                 mcpObjectMapper),
             new McpToolsStoredQueries(
                 appContext,
@@ -128,8 +129,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                 providers,
                 searchQueriesHandler,
                 cql,
+                apiRequestAuthorizer,
                 mcpObjectMapper),
             new McpToolsProcesses(
+                appContext,
                 extensionRegistry,
                 processRepository,
                 processesExecutor,

@@ -13,6 +13,7 @@ import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ApiSecurity.PolicyAttribute;
 import de.ii.ogcapi.foundation.domain.ImmutableRequestContext.Builder;
+import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.PolicyObligationFulfiller;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.util.Tuple;
@@ -69,8 +70,11 @@ public class PolicyObligationFulfillerParameters implements PolicyObligationFulf
               fulfilled.add(attribute);
             });
 
+    // an internal request, for example of a tool call of the MCP endpoint, has no HTTP request
     ApiRequestContext newRequestContext =
-        new Builder().from(requestContext).queryParameterSet(newQueryParameterSet[0]).build();
+        requestContext instanceof ImmutableStaticRequestContext staticRequestContext
+            ? staticRequestContext.withQueryParameterSet(newQueryParameterSet[0])
+            : new Builder().from(requestContext).queryParameterSet(newQueryParameterSet[0]).build();
 
     return Tuple.of(newRequestContext, fulfilled);
   }

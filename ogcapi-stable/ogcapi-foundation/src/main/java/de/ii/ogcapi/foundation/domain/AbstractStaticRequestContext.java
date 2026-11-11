@@ -32,6 +32,15 @@ public abstract class AbstractStaticRequestContext implements ApiRequestContext 
     return getWebContext().getPathPrefix();
   }
 
+  // an internal request has no HTTP method; a request that is executed on behalf of an operation,
+  // for example a tool call of the MCP endpoint, can state the method of the operation, so that
+  // policies see the same request as for the operation
+  @Value.Default
+  @Override
+  public String getMethod() {
+    return "INTERNAL";
+  }
+
   @Value.Derived
   @Override
   public URICustomizer getUriCustomizer() {

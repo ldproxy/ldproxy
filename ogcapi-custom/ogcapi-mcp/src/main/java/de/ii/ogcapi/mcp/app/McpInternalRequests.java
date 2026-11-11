@@ -7,10 +7,12 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.mcp.domain.McpTool;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
@@ -53,7 +55,27 @@ final class McpInternalRequests {
     parameters.forEach(uri::setParameter);
     mcpRequest.ifPresent(request -> builder.basePathSegments(request.getBasePathSegments()));
 
-    return builder.requestUri(URI.create(uri.toString()));
+    return builder
+        .requestUri(URI.create(uri.toString()))
+        .user(mcpRequest.flatMap(ApiRequestContext::getUser));
+  }
+
+  // a tool call requires the same permissions as a request to the operation of the tool; a policy
+  // may change the request, e.g. add a filter, so the request that is returned is executed
+  static ApiRequestContext authorize(
+      ApiRequestAuthorizer authorizer,
+      McpTool tool,
+      ApiRequestContext internalRequest,
+      Optional<byte[]> body) {
+    return authorizer.checkAuthorization(
+        internalRequest,
+        tool.getOperation()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "The MCP tool '%s' has no operation.".formatted(tool.getId()))),
+        internalRequest.getUser(),
+        body);
   }
 
   // the arguments of a tool call as the values of query parameters

@@ -11,12 +11,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.ApiSecurity;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
@@ -30,18 +31,20 @@ import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions;
 import de.ii.ogcapi.processes.domain.model.OgcSchemaAndOccurrences;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
+import de.ii.xtraplatform.base.domain.AppContext;
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The processes that can be executed synchronously, a tool per process. Processes are only tools if
@@ -55,6 +58,7 @@ final class McpToolsProcesses implements McpToolSource {
   private static final String EXECUTE_OPERATION = "executeProcess";
   private static final String ANY = "*";
 
+  private final AppContext appContext;
   private final ExtensionRegistry extensionRegistry;
   private final ProcessRepository processRepository;
   private final ProcessesExecutor processesExecutor;
@@ -62,11 +66,13 @@ final class McpToolsProcesses implements McpToolSource {
   private final ObjectMapper objectMapper;
 
   McpToolsProcesses(
+      AppContext appContext,
       ExtensionRegistry extensionRegistry,
       ProcessRepository processRepository,
       ProcessesExecutor processesExecutor,
       ApiRequestAuthorizer apiRequestAuthorizer,
       ObjectMapper objectMapper) {
+    this.appContext = appContext;
     this.extensionRegistry = extensionRegistry;
     this.processRepository = processRepository;
     this.processesExecutor = processesExecutor;
@@ -82,7 +88,9 @@ final class McpToolsProcesses implements McpToolSource {
   @Override
   public List<McpTool> getTools(OgcApi api, McpConfiguration configuration) {
     OgcApiDataV2 apiData = api.getData();
-    if (!isEnabled(apiData)) {
+    Optional<ApiOperation> executeOperation =
+        isEnabled(apiData) ? executeOperation(apiData) : Optional.empty();
+    if (executeOperation.isEmpty()) {
       return List.of();
     }
 
@@ -94,7 +102,11 @@ final class McpToolsProcesses implements McpToolSource {
     return processRepository.getAll(apiData.getId()).values().stream()
         .filter(process -> isIncluded(process, included, excluded))
         .filter(McpToolsProcesses::canExecuteSync)
-        .map(process -> toTool(apiData, process))
+        .map(
+            process ->
+                (McpTool)
+                    ImmutableMcpTool.copyOf(toTool(apiData, process))
+                        .withOperation(executeOperation))
         .toList();
   }
 
@@ -136,7 +148,25 @@ final class McpToolsProcesses implements McpToolSource {
     }
     OgcExecute executeRequest = new ImmutableOgcExecute.Builder().inputs(inputs).build();
 
-    authorize(api, mcpRequest, executeRequest);
+    // the same permissions as a request to the execution endpoint of the process
+    ApiRequestContext requestContext =
+        McpInternalRequests.internalRequest(
+                appContext, api, mcpRequest, Map.of(), "processes", processId, "execution")
+            .method("POST")
+            .mediaType(
+                new ImmutableApiMediaType.Builder()
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .label("JSON")
+                    .parameter("json")
+                    .build())
+            .alternateMediaTypes(Set.of())
+            .queryParameterSet(QueryParameterSet.of(List.of(), Map.of()))
+            .build();
+    McpInternalRequests.authorize(
+        apiRequestAuthorizer,
+        tool,
+        requestContext,
+        Optional.of(objectMapper.writeValueAsBytes(executeRequest)));
 
     long timeoutMillis =
         apiData.getExtension(ProcessesCoreConfiguration.class).orElseThrow().getSyncTimeoutMillis();
@@ -165,30 +195,6 @@ final class McpToolsProcesses implements McpToolSource {
   static boolean canExecuteSync(ProcessData process) {
     List<JobControlOptions> options = process.getJobControlOptions();
     return options.isEmpty() || options.contains(JobControlOptions.SYNC_EXECUTE);
-  }
-
-  // the MCP endpoint only requires the permission to read the API, executing a process requires
-  // the permission of the execution endpoint
-  private void authorize(
-      OgcApi api, Optional<ApiRequestContext> mcpRequest, OgcExecute executeRequest)
-      throws IOException {
-    OgcApiDataV2 apiData = api.getData();
-    if (apiData.getAccessControl().filter(ApiSecurity::isEnabled).isEmpty()) {
-      return;
-    }
-
-    ApiRequestContext requestContext =
-        mcpRequest.orElseThrow(() -> new NotAuthorizedException("Bearer realm=\"ldproxy\""));
-    ApiOperation operation =
-        executeOperation(apiData)
-            .orElseThrow(
-                () -> new NotFoundException("The execution of processes is not available."));
-
-    apiRequestAuthorizer.checkAuthorization(
-        requestContext,
-        operation,
-        requestContext.getUser(),
-        Optional.of(objectMapper.writeValueAsBytes(executeRequest)));
   }
 
   private Optional<ApiOperation> executeOperation(OgcApiDataV2 apiData) {
