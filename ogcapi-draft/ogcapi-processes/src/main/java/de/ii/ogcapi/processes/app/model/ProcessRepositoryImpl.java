@@ -38,11 +38,13 @@ public class ProcessRepositoryImpl extends AbstractVolatile
     implements ProcessRepository, AppLifeCycle {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessRepositoryImpl.class);
+  // the processes are read from the store on every call, so that added or changed process
+  // descriptions take effect with a reload of the values, without a restart
   private final Values<ProcessData> customProcessStore;
-  private final Map<String, Map<String, ProcessData>> apiProcessesCache;
-  private final Map<String, ProcessData> globalProcessesCache;
   private final VolatileRegistry volatileRegistry;
   private final Lazy<Set<ProcessContribution>> contributions;
+  // the API processes that are ignored because of a global process with the same id, warned once
+  private final Set<String> ignoredApiProcesses;
 
   @Inject
   public ProcessRepositoryImpl(
@@ -51,51 +53,17 @@ public class ProcessRepositoryImpl extends AbstractVolatile
       Lazy<Set<ProcessContribution>> contributions) {
     super(volatileRegistry, "app/processes");
     this.customProcessStore = valueStore.forType(ProcessData.class);
-    this.apiProcessesCache = new ConcurrentHashMap<>();
-    this.globalProcessesCache = new ConcurrentHashMap<>();
     this.volatileRegistry = volatileRegistry;
     this.contributions = contributions;
+    this.ignoredApiProcesses = ConcurrentHashMap.newKeySet();
   }
 
   @Override
   public CompletionStage<Void> onStart(boolean isStartupAsync) {
     onVolatileStart();
-    return volatileRegistry.onAvailable(customProcessStore).thenRun(this::initCache);
-  }
-
-  private void initCache() {
-    List<Identifier> processes = customProcessStore.identifiers();
-
-    // Generate the global cache
-    processes.stream()
-        .filter(identifier -> identifier.path().isEmpty())
-        .forEach(
-            identifier -> {
-              globalProcessesCache.put(identifier.id(), customProcessStore.get(identifier));
-            });
-
-    // Generate the API-cache
-    processes.stream()
-        .filter(identifier -> !identifier.path().isEmpty())
-        .forEach(
-            identifier -> {
-              String apiId = identifier.path().get(0);
-              String processId = identifier.id();
-              if (globalProcessesCache.containsKey(processId)) {
-                if (LOGGER.isWarnEnabled()) {
-                  LOGGER.warn(
-                      "Process '{}' of API '{}' is already defined globally and will therefore be ignored!",
-                      processId,
-                      apiId);
-                }
-                return;
-              }
-              apiProcessesCache
-                  .computeIfAbsent(apiId, k -> new ConcurrentHashMap<>())
-                  .put(processId, customProcessStore.get(identifier));
-            });
-
-    setState(State.AVAILABLE);
+    return volatileRegistry
+        .onAvailable(customProcessStore)
+        .thenRun(() -> setState(State.AVAILABLE));
   }
 
   @Override
@@ -107,32 +75,60 @@ public class ProcessRepositoryImpl extends AbstractVolatile
 
   @Override
   public Optional<ProcessData> get(String apiId, String processId) {
-    if (globalProcessesCache.containsKey(processId)) {
-      return Optional.of(globalProcessesCache.get(processId));
-    }
-
-    Map<String, ProcessData> apiProcesses = apiProcessesCache.get(apiId);
-    if (apiProcesses != null && apiProcesses.containsKey(processId)) {
-      return Optional.of(apiProcesses.get(processId));
-    }
-
-    return contributions.get().stream()
-        .map(contribution -> contribution.getProcesses(apiId).get(processId))
-        .filter(Objects::nonNull)
-        .findFirst();
+    return Optional.ofNullable(getStored(apiId).get(processId))
+        .or(
+            () ->
+                contributions.get().stream()
+                    .map(contribution -> contribution.getProcesses(apiId).get(processId))
+                    .filter(Objects::nonNull)
+                    .findFirst());
   }
 
   @Override
   public Map<String, ProcessData> getAll(String apiId) {
-    Map<String, ProcessData> result = new LinkedHashMap<>(globalProcessesCache);
-    Map<String, ProcessData> apiMap = apiProcessesCache.get(apiId);
-    if (apiMap != null) {
-      result.putAll(apiMap);
-    }
+    Map<String, ProcessData> result = getStored(apiId);
     // a process description in the values takes precedence over a contributed process
     contributions
         .get()
         .forEach(contribution -> contribution.getProcesses(apiId).forEach(result::putIfAbsent));
     return result;
+  }
+
+  // the global processes first, then those of the API; a global process wins over a process of
+  // the API with the same id
+  private Map<String, ProcessData> getStored(String apiId) {
+    List<Identifier> identifiers = customProcessStore.identifiers();
+    Map<String, ProcessData> result = new LinkedHashMap<>();
+    identifiers.stream()
+        .filter(identifier -> identifier.path().isEmpty())
+        .forEach(identifier -> putIfPresent(result, identifier));
+    identifiers.stream()
+        .filter(
+            identifier -> !identifier.path().isEmpty() && identifier.path().get(0).equals(apiId))
+        .forEach(
+            identifier -> {
+              if (result.containsKey(identifier.id())) {
+                warnIgnored(apiId, identifier.id());
+              } else {
+                putIfPresent(result, identifier);
+              }
+            });
+    return result;
+  }
+
+  private void putIfPresent(Map<String, ProcessData> processes, Identifier identifier) {
+    ProcessData process = customProcessStore.get(identifier);
+    if (Objects.nonNull(process)) {
+      processes.put(identifier.id(), process);
+    }
+  }
+
+  private void warnIgnored(String apiId, String processId) {
+    if (ignoredApiProcesses.add(apiId + "/" + processId) && LOGGER.isWarnEnabled()) {
+      LOGGER.warn(
+          "Process '{}' of API '{}' is already defined globally and will therefore be ignored!",
+          processId,
+          apiId);
+    }
   }
 }

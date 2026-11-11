@@ -12,10 +12,8 @@ import static de.ii.ogcapi.processes.domain.ProcessesQueriesHandler.GROUP_PROCES
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
-import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -32,6 +30,7 @@ import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcess;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
 import de.ii.ogcapi.processes.domain.format.ProcessFormatExtension;
+import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -56,7 +55,7 @@ import org.slf4j.LoggerFactory;
  */
 @Singleton
 @AutoBind
-public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
+public class EndpointProcess extends EndpointProcessIds {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointProcess.class);
   private static final List<String> TAGS = ImmutableList.of("Processes");
@@ -65,8 +64,10 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
 
   @Inject
   public EndpointProcess(
-      ExtensionRegistry extensionRegistry, ProcessesQueriesHandler queryHandler) {
-    super(extensionRegistry);
+      ExtensionRegistry extensionRegistry,
+      ProcessesQueriesHandler queryHandler,
+      ProcessRepository processRepository) {
+    super(extensionRegistry, processRepository);
     this.queryHandler = queryHandler;
   }
 
