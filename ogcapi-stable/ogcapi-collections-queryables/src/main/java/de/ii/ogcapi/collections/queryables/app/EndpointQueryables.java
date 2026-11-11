@@ -97,7 +97,7 @@ public class EndpointQueryables extends EndpointSubCollection
     this.queryHandler = queryHandler;
     this.providers = featuresCoreProviders;
     this.schemaCache =
-        new SchemaCacheQueryables(valueStore.forType(Codelist.class)::asMap, featuresCoreProviders);
+        new SchemaCacheQueryables(valueStore.forType(Codelist.class), featuresCoreProviders);
   }
 
   @Override

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.slf4j.Logger;
@@ -31,15 +33,18 @@ public abstract class Endpoint implements EndpointExtension {
   private static final Logger LOGGER = LoggerFactory.getLogger(Endpoint.class);
 
   protected final ExtensionRegistry extensionRegistry;
-  // temporarily changed to protected
-  protected final Map<Integer, ApiEndpointDefinition> apiDefinitions;
-  protected final Map<String, Integer> apiHashes;
+  private final Map<Integer, ApiEndpointDefinition> apiDefinitions;
+  private final Map<String, Integer> apiHashes;
+  private final Supplier<List<ApiDefinitionDependency>> definitionDependencies;
   protected List<? extends FormatExtension> formats;
 
   public Endpoint(ExtensionRegistry extensionRegistry) {
     this.extensionRegistry = extensionRegistry;
     this.apiDefinitions = new ConcurrentHashMap<>();
     this.apiHashes = new ConcurrentHashMap<>();
+    this.definitionDependencies =
+        Suppliers.memoize(
+            () -> extensionRegistry.getExtensionsForType(ApiDefinitionDependency.class));
   }
 
   @Override
@@ -88,24 +93,24 @@ public abstract class Endpoint implements EndpointExtension {
     EndpointExtension.super.onShutdown(api);
   }
 
-  // temporarily removed "final" until a better solution has been implemented
   @Override
-  public ApiEndpointDefinition getDefinition(OgcApiDataV2 apiData) {
+  public final ApiEndpointDefinition getDefinition(OgcApiDataV2 apiData) {
     if (!isEnabledForApi(apiData)
         || (this instanceof ApiExtensionHealth
             && !((ApiExtensionHealth) this).getComposedVolatile(apiData).isAvailable())) {
       return EndpointExtension.super.getDefinition(apiData);
     }
 
-    if (apiHashes.containsKey(apiData.getId())
-        && apiHashes.get(apiData.getId()) != apiData.hashCode()) {
-      apiDefinitions.remove(apiHashes.get(apiData.getId()));
+    // the definition is derived from the API configuration and from data that can change while the
+    // API is running, for example codelists
+    int definitionKey = Objects.hash(apiData.hashCode(), getDefinitionDependenciesRevision());
+    Integer previousKey = apiHashes.put(apiData.getId(), definitionKey);
+    if (Objects.nonNull(previousKey) && previousKey != definitionKey) {
+      apiDefinitions.remove(previousKey);
     }
 
-    apiHashes.put(apiData.getId(), apiData.hashCode());
-
     return apiDefinitions.computeIfAbsent(
-        apiData.hashCode(),
+        definitionKey,
         ignore -> {
           if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Generating API definition for {}", this.getClass().getSimpleName());
@@ -120,6 +125,12 @@ public abstract class Endpoint implements EndpointExtension {
 
           return apiEndpointDefinition;
         });
+  }
+
+  private long getDefinitionDependenciesRevision() {
+    return definitionDependencies.get().stream()
+        .mapToLong(ApiDefinitionDependency::getRevision)
+        .sum();
   }
 
   protected abstract ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData);

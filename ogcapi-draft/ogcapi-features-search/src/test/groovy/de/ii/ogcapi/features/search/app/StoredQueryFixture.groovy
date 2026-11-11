@@ -23,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
 import de.ii.ogcapi.foundation.domain.SchemaValidator
+import de.ii.xtraplatform.base.domain.resiliency.Volatile2
 import de.ii.xtraplatform.blobs.domain.ResourceStore
 import de.ii.xtraplatform.cql.app.CqlImpl
 import io.swagger.v3.oas.models.media.ObjectSchema
@@ -55,13 +56,28 @@ abstract class StoredQueryFixture extends Specification {
 
         List<OgcApiQueryParameter> parameters = [parameter('f'), parameter('gebiet'), parameter('beginn')]
         ExtensionRegistry definitionRegistry = registry(parameters)
-        EndpointStoredQuery real = new EndpointStoredQuery(
-                definitionRegistry, null, repository, null, null, null, null, Stub(ResourceStore))
-        def definition = real.computeDefinition(api.getData())
+        Volatile2 available = Stub()
+        available.isAvailable() >> true
+        ImmutableSet<ApiMediaType> mediaTypes = ImmutableSet.of(apiMediaType(GML, "xml"), apiMediaType(MediaType.APPLICATION_JSON_TYPE, "json"))
 
-        EndpointStoredQuery endpoint = Stub()
-        endpoint.getDefinition(_) >> definition
-        endpoint.getMediaTypes(_, '/changes', 'GET') >> ImmutableSet.of(apiMediaType(GML, "xml"), apiMediaType(MediaType.APPLICATION_JSON_TYPE, "json"))
+        // the real endpoint derives the definition, only the API and its health are given
+        EndpointStoredQuery endpoint = new EndpointStoredQuery(
+                definitionRegistry, null, repository, null, null, null, null, Stub(ResourceStore)) {
+            @Override
+            boolean isEnabledForApi(OgcApiDataV2 data) {
+                return true
+            }
+
+            @Override
+            Volatile2 getComposedVolatile(OgcApiDataV2 data) {
+                return available
+            }
+
+            @Override
+            ImmutableSet<ApiMediaType> getMediaTypes(OgcApiDataV2 data, String requestSubPath, String method) {
+                return mediaTypes
+            }
+        }
 
         extensionRegistry = Stub()
         extensionRegistry.getExtensionsForType(EndpointStoredQuery) >> [endpoint]

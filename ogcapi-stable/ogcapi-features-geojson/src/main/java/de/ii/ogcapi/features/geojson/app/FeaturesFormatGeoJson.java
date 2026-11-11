@@ -149,9 +149,9 @@ public class FeaturesFormatGeoJson extends FeatureFormatExtension
     this.schemaHandler = schemaHandler;
     this.schemaValidator = schemaValidator;
     this.schemaCacheReceivables =
-        new ReceivablesJsonSchemaCache(valueStore.forType(Codelist.class)::asMap);
+        new ReceivablesJsonSchemaCache(valueStore.forType(Codelist.class));
     this.schemaCacheReturnables =
-        new ReturnablesJsonSchemaCache(valueStore.forType(Codelist.class)::asMap);
+        new ReturnablesJsonSchemaCache(valueStore.forType(Codelist.class));
   }
 
   @Override
