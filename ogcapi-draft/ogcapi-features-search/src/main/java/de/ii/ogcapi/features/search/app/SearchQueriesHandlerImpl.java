@@ -644,6 +644,112 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
     }
 
     QueryExpression queryExpression = queryInput.getQuery();
+    ResolvedQuery resolved = resolve(queryInput, requestContext);
+    List<String> collectionIds = resolved.collectionIds;
+    FeatureFormatExtension outputFormat = resolved.outputFormat;
+    List<Profile> profiles = resolved.profiles;
+    boolean htmlSupported = resolved.htmlSupported;
+    MultiFeatureQuery query = resolved.query;
+
+    // attach after the profile transformations so no rebuild can drop the hook; the provider
+    // reports progress and observes cancellation through it
+    if (queryInput.getJobHook().isPresent()) {
+      query =
+          ImmutableMultiFeatureQuery.builder().from(query).jobHook(queryInput.getJobHook()).build();
+    }
+
+    EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
+    List<ApiMediaType> alternateMediaTypes =
+        htmlSupported
+            ? requestContext.getAlternateMediaTypes()
+            : requestContext.getAlternateMediaTypes().stream()
+                .filter(mediaType -> !mediaType.matches(MediaType.TEXT_HTML_TYPE))
+                .collect(Collectors.toUnmodifiableList());
+    List<Link> links =
+        queryInput.isStoredQuery()
+            ? new StoredQueriesLinkGenerator()
+                .generateFeaturesLinks(
+                    requestContext.getUriCustomizer(),
+                    query.getOffset(),
+                    query.getLimit(),
+                    query.getSupportPaging(),
+                    requestContext.getMediaType(),
+                    alternateMediaTypes,
+                    i18n,
+                    requestContext.getLanguage())
+            : ImmutableList.of();
+
+    Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
+        getStreamingOutput(
+            requestContext,
+            queryExpression,
+            query,
+            queryInput.getAllLinksAreLocal(),
+            collectionIds,
+            featureProvider,
+            outputFormat,
+            profiles,
+            queryInput.getDefaultCrs(),
+            targetCrs,
+            queryInput.includeBodyLinks() ? links : List.of(),
+            queryInput.isStoredQuery()
+                ? (query.getSupportPaging()
+                    ? FeatureQueryScope.STORED_QUERY
+                    : FeatureQueryScope.STORED_QUERY_SINGLE_SHOT)
+                : FeatureQueryScope.AD_HOC_QUERY);
+
+    StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
+    CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
+
+    return prepareSuccessResponse(
+            requestContext,
+            queryInput.getIncludeLinkHeader() ? links : null,
+            HeaderCaching.of(lastModified, etag, queryInput),
+            targetCrs,
+            HeaderContentDisposition.of(
+                String.format(
+                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension()),
+                // without paging, responses may be too large for a browser to render directly
+                !query.getSupportPaging()),
+            collectionMetadata,
+            i18n.getLanguages())
+        .entity(streamingOutput)
+        .build();
+  }
+
+  @Override
+  public void validate(QueryInputQuery queryInput, ApiRequestContext requestContext) {
+    ensureFeatureProviderSupportsQueries(queryInput.getFeatureProvider());
+    resolve(queryInput, requestContext);
+  }
+
+  /** What a query resolves to before it is executed. */
+  private static final class ResolvedQuery {
+    private final List<String> collectionIds;
+    private final FeatureFormatExtension outputFormat;
+    private final List<Profile> profiles;
+    private final boolean htmlSupported;
+    private final MultiFeatureQuery query;
+
+    private ResolvedQuery(
+        List<String> collectionIds,
+        FeatureFormatExtension outputFormat,
+        List<Profile> profiles,
+        boolean htmlSupported,
+        MultiFeatureQuery query) {
+      this.collectionIds = collectionIds;
+      this.outputFormat = outputFormat;
+      this.profiles = profiles;
+      this.htmlSupported = htmlSupported;
+      this.query = query;
+    }
+  }
+
+  // Resolves the query expression to the feature query with the negotiated format, profiles and
+  // CRS; an invalid query, e.g. an unknown collection or an invalid filter, fails here.
+  private ResolvedQuery resolve(QueryInputQuery queryInput, ApiRequestContext requestContext) {
+    FeatureProvider featureProvider = queryInput.getFeatureProvider();
+    QueryExpression queryExpression = queryInput.getQuery();
 
     List<String> collectionIds =
         queryExpression.getCollections().size() == 1
@@ -725,63 +831,7 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
             outputFormat.isRestrictedToSimpleFeaturesGeometries(profiles),
             featureProvider.info().getGeometryTypes());
 
-    EpsgCrs targetCrs = query.getCrs().orElse(queryInput.getDefaultCrs());
-    List<ApiMediaType> alternateMediaTypes =
-        htmlSupported
-            ? requestContext.getAlternateMediaTypes()
-            : requestContext.getAlternateMediaTypes().stream()
-                .filter(mediaType -> !mediaType.matches(MediaType.TEXT_HTML_TYPE))
-                .collect(Collectors.toUnmodifiableList());
-    List<Link> links =
-        queryInput.isStoredQuery()
-            ? new StoredQueriesLinkGenerator()
-                .generateFeaturesLinks(
-                    requestContext.getUriCustomizer(),
-                    query.getOffset(),
-                    query.getLimit(),
-                    query.getSupportPaging(),
-                    requestContext.getMediaType(),
-                    alternateMediaTypes,
-                    i18n,
-                    requestContext.getLanguage())
-            : ImmutableList.of();
-
-    Tuple<StreamingOutput, CollectionMetadata> streamingOutputAndMetadata =
-        getStreamingOutput(
-            requestContext,
-            queryExpression,
-            query,
-            queryInput.getAllLinksAreLocal(),
-            collectionIds,
-            featureProvider,
-            outputFormat,
-            profiles,
-            queryInput.getDefaultCrs(),
-            targetCrs,
-            queryInput.includeBodyLinks() ? links : List.of(),
-            queryInput.isStoredQuery()
-                ? (query.getSupportPaging()
-                    ? FeatureQueryScope.STORED_QUERY
-                    : FeatureQueryScope.STORED_QUERY_SINGLE_SHOT)
-                : FeatureQueryScope.AD_HOC_QUERY);
-
-    StreamingOutput streamingOutput = streamingOutputAndMetadata.first();
-    CollectionMetadata collectionMetadata = streamingOutputAndMetadata.second();
-
-    return prepareSuccessResponse(
-            requestContext,
-            queryInput.getIncludeLinkHeader() ? links : null,
-            HeaderCaching.of(lastModified, etag, queryInput),
-            targetCrs,
-            HeaderContentDisposition.of(
-                String.format(
-                    "%s.%s", queryExpression.getId(), outputFormat.getMediaType().fileExtension()),
-                // without paging, responses may be too large for a browser to render directly
-                !query.getSupportPaging()),
-            collectionMetadata,
-            i18n.getLanguages())
-        .entity(streamingOutput)
-        .build();
+    return new ResolvedQuery(collectionIds, outputFormat, profiles, htmlSupported, query);
   }
 
   private List<Profile> negotiateQueryProfiles(
@@ -1436,6 +1486,21 @@ public class SearchQueriesHandlerImpl extends AbstractVolatileComposed
         featureStream
             .runWith(featureSink, propertyTransformations, onCollectionMetadata)
             .toCompletableFuture();
+
+    // a stream that fails or is cancelled before the meta phase never reaches the transformer
+    // that completes onCollectionMetadata — propagate the outcome so the join below cannot hang
+    stream.whenComplete(
+        (result, throwable) -> {
+          if (!onCollectionMetadata.isDone()) {
+            onCollectionMetadata.completeExceptionally(
+                throwable != null
+                    ? throwable
+                    : result != null && result.getError().isPresent()
+                        ? result.getError().get()
+                        : new IllegalStateException(
+                            "The feature stream finished without providing metadata"));
+          }
+        });
 
     // wait for collection metadata
     CollectionMetadata collectionMetadata = awaitMetadata(onCollectionMetadata, stream);

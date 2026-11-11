@@ -647,11 +647,16 @@ public interface GmlConfiguration
    * @langEn The feature collection element referenced in `featureCollectionElementName` may support
    *     the WFS 2.0 standard response parameters (`timeStamp`, `numberMatched`, `numberReturned`).
    *     This configuration parameter controls whether the attributes are included in the feature
-   *     collection element as XML attributes.
+   *     collection element as XML attributes. If the number of features is not known when the
+   *     response starts, e.g. for a search that is returned in one pass, `numberMatched` is
+   *     `unknown` and `numberReturned` is `0`, since WFS 2.0 requires a number.
    * @langDe Das Feature-Collection-Element, auf das in `featureCollectionElementName` verwiesen
    *     wird, kann die WFS-2.0-Standardantwortparameter (`timeStamp`, `numberMatched`,
    *     `numberReturned`) unterstützen. Dieser Konfigurationsparameter steuert, ob die Attribute
-   *     als XML-Attribute in das Feature-Collection-Element aufgenommen werden.
+   *     als XML-Attribute in das Feature-Collection-Element aufgenommen werden. Ist die Anzahl der
+   *     Features zu Beginn der Antwort nicht bekannt, z. B. bei einer Suche, die in einem Durchgang
+   *     ausgegeben wird, ist `numberMatched` `unknown` und `numberReturned` `0`, da WFS 2.0 eine
+   *     Zahl verlangt.
    * @default false
    * @examplesAll <code>
    * ```yaml

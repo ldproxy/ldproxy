@@ -1,0 +1,19 @@
+maturity = 'PROPOSAL'
+maintenance = 'FULL'
+description = 'The core capabilities to publish executable processes.'
+descriptionDe = 'Die Kernfunktionen zur Bereitstellung von ausführbaren Prozessen.'
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
+    provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
+    provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-html'
+
+    testProvided 'de.interactive_instruments:xtraplatform-features'
+    testProvided 'de.interactive_instruments:xtraplatform-streams'
+    // the job queue spec loads the native xtralink library
+    testProvided 'de.interactive_instruments:xtraplatform-nativ-loader'
+}

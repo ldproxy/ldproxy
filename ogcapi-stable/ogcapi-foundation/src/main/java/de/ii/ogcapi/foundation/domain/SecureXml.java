@@ -58,12 +58,20 @@ public final class SecureXml {
   }
 
   /**
-   * A {@link SAXSource} backed by a reader that rejects DOCTYPE declarations and does not resolve
-   * external entities, for validating an untrusted instance document. A fresh reader is created per
-   * call so the settings apply regardless of {@link Validator#reset()} (which clears
-   * validator-level configuration).
+   * A {@link SAXSource} backed by a new {@link #reader()}, for validating an untrusted instance
+   * document. The settings belong to the reader, so they apply regardless of {@link
+   * Validator#reset()} (which clears validator-level configuration).
    */
   public static SAXSource source(InputSource input) {
+    return new SAXSource(reader(), input);
+  }
+
+  /**
+   * A reader that rejects DOCTYPE declarations and does not resolve external entities, for
+   * untrusted instance documents. Creating a reader is costly; one reader can parse several
+   * documents in turn, with the same settings, but it must not be used concurrently.
+   */
+  public static XMLReader reader() {
     try {
       SAXParserFactory factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
@@ -71,8 +79,7 @@ public final class SecureXml {
       factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
       factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-      XMLReader reader = factory.newSAXParser().getXMLReader();
-      return new SAXSource(reader, input);
+      return factory.newSAXParser().getXMLReader();
     } catch (ParserConfigurationException | SAXException e) {
       throw new IllegalStateException("Could not create a secure XML parser for validation.", e);
     }

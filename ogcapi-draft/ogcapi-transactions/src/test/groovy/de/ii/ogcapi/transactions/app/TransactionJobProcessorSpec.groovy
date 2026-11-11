@@ -7,6 +7,9 @@
  */
 package de.ii.ogcapi.transactions.app
 
+import de.ii.ogcapi.common.domain.async.JobFailure
+import de.ii.ogcapi.common.domain.async.JobResultFile
+import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.OgcApi
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.transactions.app.CommandHandlerTransactions.QueryInputTransaction
@@ -22,9 +25,12 @@ import de.ii.xtralink.jobs.PartialJobConfiguration
 import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.blobs.domain.ResourceStore
 import de.ii.xtraplatform.entities.domain.EntityRegistry
+import de.ii.xtraplatform.features.domain.JobHook
 import de.ii.xtraplatform.xtralink.domain.JobContext
 import de.ii.xtraplatform.xtralink.domain.JobInputs
 import de.ii.xtraplatform.xtralink.domain.JobProcessing
+import jakarta.ws.rs.BadRequestException
+import jakarta.ws.rs.InternalServerErrorException
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.nio.charset.StandardCharsets
@@ -49,6 +55,18 @@ class TransactionJobProcessorSpec extends Specification {
     /** The status of each subsequent transaction; 200 when the list is exhausted. */
     List<Integer> statuses = []
 
+    /** The job is cancelled while the transaction with this number (from 1) is applied. */
+    int cancelDuring = 0
+
+    /** The store throws this exception when a document is read. */
+    IOException storeError = null
+
+    /** The transaction handler throws this exception, as for an invalid request. */
+    RuntimeException rejectWith = null
+
+    /** The job hooks handed to the transaction handler. */
+    List<Optional<JobHook>> hooks = []
+
     RecordingJobs jobs = new RecordingJobs()
     TransactionJobProcessor processor
 
@@ -56,7 +74,12 @@ class TransactionJobProcessorSpec extends Specification {
         ResourceStore store = Stub()
         store.size(_ as Path) >> { Path p -> files.containsKey(p) ? (long) files[p].length : -1L }
         store.has(_ as Path) >> { Path p -> files.containsKey(p) || (folderEntries && files.keySet().any { it.parent == p }) }
-        store.content(_ as Path) >> { Path p -> files.containsKey(p) ? Optional.of(new ByteArrayInputStream(files[p])) : Optional.empty() }
+        store.content(_ as Path) >> { Path p ->
+            if (storeError != null) {
+                throw storeError
+            }
+            files.containsKey(p) ? Optional.of(new ByteArrayInputStream(files[p])) : Optional.empty()
+        }
         store.walk(_ as Path, _ as Integer, _ as BiPredicate) >> { Path p, Integer depth, BiPredicate matcher ->
             files.keySet().findAll { it.parent == p }.collect { p.relativize(it) }.stream()
         }
@@ -84,7 +107,14 @@ class TransactionJobProcessorSpec extends Specification {
         }
 
         CommandHandlerTransactions handler = Stub()
-        handler.processTransaction(_, _) >> {
+        handler.processTransaction(_, _, _) >> { QueryInputTransaction input, ApiRequestContext context, Optional<JobHook> hook ->
+            hooks << hook
+            if (rejectWith != null) {
+                throw rejectWith
+            }
+            if (applied.size() == cancelDuring) {
+                jobs.cancelled = true
+            }
             int status = statuses.isEmpty() ? 200 : statuses.remove(0)
             response(status, """{"summary":{"document":${applied.size()}}}""")
         }
@@ -103,7 +133,7 @@ class TransactionJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.SUCCESS
         applied == [WFS]
         text("api/result_job-1.json") == '{"summary":{"document":1}}'
-        jobs.outputs == [resultPath: "api/result_job-1.json"]
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json")
         jobs.updates == [1]
     }
 
@@ -119,34 +149,123 @@ class TransactionJobProcessorSpec extends Specification {
         applied == [WFS]
     }
 
-    def "the result of a rejected document is written as well"() {
+    def "the result of a rejected document is written with its status: resultAsFile #resultAsFile"() {
         given:
         files[Path.of("api/d1/001.xml")] = bytes(WFS)
         statuses << 422
+
+        when:
+        def result = execute("api/d1/001.xml", resultAsFile)
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The transaction was rejected with status 422, the results of the job contain the response document"]
+        text("api/result_job-1.json") == '{"summary":{"document":1}}'
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/json", 422)
+        jobs.updates.isEmpty()
+
+        where:
+        resultAsFile << [true, false]
+    }
+
+    def "a document rejected with a client error, e.g. a malformed one, has the reason as its result: resultAsFile #resultAsFile"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        rejectWith = new BadRequestException("Could not parse transaction body: Malformed wfs:Transaction body")
+
+        when:
+        def result = execute("api/d1/001.xml", resultAsFile)
+
+        then:
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The transaction was rejected with status 400, the results of the job contain the response document"]
+        text("api/result_job-1.json") ==
+                '{"status":400,"title":"Bad Request","detail":"Could not parse transaction body: Malformed wfs:Transaction body"}'
+        jobs.outputs == JobResultFile.of("api/result_job-1.json", "application/problem+json", 400)
+        jobs.updates.isEmpty()
+
+        where:
+        resultAsFile << [true, false]
+    }
+
+    def "a server error of the transaction is not a reason for the failure of the job"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        rejectWith = new InternalServerErrorException("connection lost")
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        thrown(InternalServerErrorException)
+        !files.containsKey(Path.of("api/result_job-1.json"))
+    }
+
+    def "without result file, the response document is the job outputs"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+
+        when:
+        def result = execute("api/d1/001.xml", false)
+
+        then:
+        result.status() == Identifiers.Result.SUCCESS
+        !files.containsKey(Path.of("api/result_job-1.json"))
+        jobs.outputs == [summary: [document: 1]]
+    }
+
+    def "the job hook is handed to the transaction and observes the cancellation of the job"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        hooks.size() == 1
+        hooks[0].isPresent()
+        !hooks[0].get().isCancelRequested()
+
+        when:
+        jobs.cancelled = true
+
+        then:
+        hooks[0].get().isCancelRequested()
+    }
+
+    def "a single document cancelled while it is applied has no result"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        cancelDuring = 1
 
         when:
         def result = execute("api/d1/001.xml")
 
         then:
         result.status() == Identifiers.Result.FAILURE
-        result.messages() == ["Transaction failed with status 422, see api/result_job-1.json"]
-        text("api/result_job-1.json") == '{"summary":{"document":1}}'
-        jobs.outputs == [resultPath: "api/result_job-1.json"]
+        result.messages() == ["The job was cancelled"]
+        !files.containsKey(Path.of("api/result_job-1.json"))
+        jobs.outputs == null
         jobs.updates.isEmpty()
     }
 
-    def "without result file, a rejection reports the response document in the message"() {
+    def "a folder cancelled while a document is applied keeps its result and stops"() {
         given:
-        files[Path.of("api/d1/001.xml")] = bytes(WFS)
-        statuses << 422
+        files[Path.of("api/d1/001.xml")] = bytes("<one/>")
+        files[Path.of("api/d1/002.xml")] = bytes("<two/>")
+        files[Path.of("api/d1/003.xml")] = bytes("<three/>")
+        cancelDuring = 2
 
         when:
-        def result = execute("api/d1/001.xml", false)
+        def result = execute("api/d1")
 
         then:
-        result.messages() == ['Transaction failed with status 422: {"summary":{"document":1}}']
-        !files.containsKey(Path.of("api/result_job-1.json"))
-        jobs.outputs == null
+        result.status() == Identifiers.Result.FAILURE
+        result.messages() == ["The job was cancelled"]
+        applied == ["<one/>", "<two/>"]
+        jobs.outputs == [resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]]
+        text("api/result_job-1/002.result.json") == '{"summary":{"document":2}}'
+        jobs.updates.isEmpty()
     }
 
     def "the documents of a folder are applied in name order and their results are written to the result folder of the job"() {
@@ -184,7 +303,9 @@ class TransactionJobProcessorSpec extends Specification {
         result.status() == Identifiers.Result.FAILURE
         result.messages() == ["Transaction api/d1/002.xml failed with status 422, see api/result_job-1/002.result.json"]
         applied == ["<one/>", "<two/>"]
-        jobs.outputs == [resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]]
+        // the status of the rejected document is the reason for the failure of the job
+        jobs.outputs == JobFailure.of(422, "Transaction api/d1/002.xml failed with status 422, see api/result_job-1/002.result.json")
+                .addTo([resultPaths: ["api/result_job-1/001.result.json", "api/result_job-1/002.result.json"]])
         !files.containsKey(Path.of("api/result_job-1/003.result.json"))
         jobs.updates.isEmpty()
     }
@@ -236,6 +357,21 @@ class TransactionJobProcessorSpec extends Specification {
         applied.isEmpty()
     }
 
+    def "an error of the store is not reported by the job, but passed on to be logged with an error ID"() {
+        given:
+        files[Path.of("api/d1/001.xml")] = bytes(WFS)
+        storeError = new IOException("/data/resources/jobs/feature-transaction/api/d1/001.xml (Permission denied)")
+
+        when:
+        execute("api/d1/001.xml")
+
+        then:
+        UncheckedIOException e = thrown()
+        e.cause.is(storeError)
+        jobs.outputs == null
+        applied.isEmpty()
+    }
+
     def "a missing document path is reported as an invalid input"() {
         when:
         def result = execute("")
@@ -248,7 +384,11 @@ class TransactionJobProcessorSpec extends Specification {
     // --- fixtures ------------------------------------------------------------------------------
 
     private def execute(String documentPath, boolean resultAsFile = true, String mediaType = "application/xml") {
-        TransactionJob inputs = new ImmutableTransactionJob.Builder()
+        processor.execute(partialJob(), job(), inputs(documentPath, resultAsFile, mediaType), jobs)
+    }
+
+    private static TransactionJob inputs(String documentPath, boolean resultAsFile = true, String mediaType = "application/xml") {
+        new ImmutableTransactionJob.Builder()
                 .apiId("api")
                 .documentPath(documentPath)
                 .mediaType(mediaType)
@@ -256,7 +396,6 @@ class TransactionJobProcessorSpec extends Specification {
                 .returnPrefer(HeaderPrefer.Return.MINIMAL)
                 .resultAsFile(resultAsFile)
                 .build()
-        processor.execute(partialJob(), job(), inputs, jobs)
     }
 
     private static Job job() {
@@ -309,6 +448,8 @@ class TransactionJobProcessorSpec extends Specification {
 
         def <T extends JobContext> T getContext(BaseJob job, Class<T> contextClass) { null }
 
-        boolean isCancelled(String jobId) { false }
+        boolean cancelled = false
+
+        boolean isCancelled(String jobId) { cancelled }
     }
 }

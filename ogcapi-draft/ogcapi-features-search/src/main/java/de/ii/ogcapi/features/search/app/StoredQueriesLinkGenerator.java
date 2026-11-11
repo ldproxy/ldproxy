@@ -90,7 +90,7 @@ public class StoredQueriesLinkGenerator extends DefaultLinksGenerator {
 
     final ImmutableList.Builder<Link> builder = new ImmutableList.Builder<>();
 
-    addSelfLink(uriBuilder, name, queryId, parameterNames, i18n, language, builder);
+    addSelfLink(uriBuilder, name, queryId, i18n, language, builder);
 
     if (managerEnabled) {
       addDefinitionLink(uriBuilder, name, queryId, i18n, language, builder);
@@ -175,47 +175,27 @@ public class StoredQueriesLinkGenerator extends DefaultLinksGenerator {
                         .build()));
   }
 
+  // the link to the query resource itself; links are never templated, the parameters of the query
+  // are described by the "describedby" links
   private void addSelfLink(
       URICustomizer uriBuilder,
       String name,
       String queryId,
-      Set<String> parameterNames,
       I18n i18n,
       Optional<Locale> language,
       ImmutableList.Builder<Link> builder) {
-    Builder selfBuilder =
+    builder.add(
         new Builder()
             .rel(SELF)
-            .title(i18n.get(STORED_QUERY_LINK, language).replace(NAME_TEMPLATE, name));
-
-    if (parameterNames.isEmpty()) {
-      selfBuilder.href(
-          uriBuilder
-              .copy()
-              .ensureNoTrailingSlash()
-              .ensureLastPathSegment(queryId)
-              .removeParameters(F)
-              .toString());
-    } else {
-      selfBuilder
-          .href(
-              uriBuilder
-                  .copy()
-                  .clearParameters()
-                  .ensureNoTrailingSlash()
-                  .ensureLastPathSegment(
-                      String.format("%s{?%s}", queryId, String.join(",", parameterNames)))
-                  .toString())
-          .templated(true)
-          .varBase(
-              uriBuilder
-                  .copy()
-                  .clearParameters()
-                  .ensureLastPathSegments(queryId, PARAMETERS)
-                  .ensureTrailingSlash()
-                  .toString());
-    }
-    builder.add(selfBuilder.build());
+            .title(i18n.get(STORED_QUERY_LINK, language).replace(NAME_TEMPLATE, name))
+            .href(
+                uriBuilder
+                    .copy()
+                    .ensureNoTrailingSlash()
+                    .ensureLastPathSegment(queryId)
+                    .removeParameters(F)
+                    .toString())
+            .build());
   }
 
   public List<Link> generateFeaturesLinks(

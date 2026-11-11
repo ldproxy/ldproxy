@@ -17,7 +17,6 @@ import de.ii.ogcapi.common.domain.QueryParameterDryRun;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputStoredQueryCreateReplace;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputStoredQueryDelete;
-import de.ii.ogcapi.features.search.domain.ImmutableStoredQueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryExpression;
@@ -42,6 +41,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.cql.domain.Cql;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -81,12 +81,14 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
   private static final List<String> TAGS = ImmutableList.of("Manage stored queries");
 
   private final SearchQueriesHandler queryHandler;
+  private final Cql cql;
 
   @Inject
   public EndpointStoredQueriesManager(
-      ExtensionRegistry extensionRegistry, SearchQueriesHandler queryHandler) {
+      ExtensionRegistry extensionRegistry, SearchQueriesHandler queryHandler, Cql cql) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
+    this.cql = cql;
   }
 
   @Override
@@ -225,11 +227,7 @@ public class EndpointStoredQueriesManager extends EndpointRequiresFeatures
 
     StoredQueryExpression query;
     try {
-      query =
-          new ImmutableStoredQueryExpression.Builder()
-              .from(StoredQueryExpression.of(requestBody))
-              .id(queryId)
-              .build();
+      query = StoredQueryExpression.of(requestBody, queryId, cql);
     } catch (IOException e) {
       // the message of the cause is added to the response
       throw new IllegalArgumentException("The content of the query expression is invalid", e);

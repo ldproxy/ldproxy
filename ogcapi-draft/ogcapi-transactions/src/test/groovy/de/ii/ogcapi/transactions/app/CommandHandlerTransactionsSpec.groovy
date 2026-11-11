@@ -28,6 +28,7 @@ import de.ii.xtraplatform.base.domain.resiliency.Volatile2
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry
 import de.ii.xtraplatform.crs.domain.EpsgCrs
 import de.ii.xtraplatform.crs.domain.OgcCrs
+import de.ii.xtraplatform.features.domain.JobHook
 import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.core.MediaType
 import spock.lang.Specification
@@ -56,6 +57,31 @@ class CommandHandlerTransactionsSpec extends Specification {
         parser.parseCount == 1
         parser.parsedBody == body
         executor.validate
+    }
+
+    def 'the job hook of an asynchronous transaction reaches the executor'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [])
+        CountingExecutor executor = new CountingExecutor()
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+        JobHook hook = new JobHook() {}
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+
+        then:
+        executor.jobHook == Optional.empty()
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(0), HeaderPrefer.Handling.LENIENT),
+                requestContext(),
+                Optional.of(hook))
+
+        then:
+        executor.jobHook == Optional.of(hook)
     }
 
     def 'maxActionsPerRequest aborts lazily when the request has too many actions'() {
@@ -89,6 +115,24 @@ class CommandHandlerTransactionsSpec extends Specification {
         then:
         response.status == 200
         executor.seen == 1
+    }
+
+    def 'a wfs:Transaction stays one with maxActionsPerRequest: #maxActions'() {
+        given:
+        RecordingParser parser = new RecordingParser(actions: [action()], wfs: true)
+        CountingExecutor executor = new CountingExecutor()
+        CommandHandlerTransactionsImpl handler = new CommandHandlerTransactionsImpl(executor, volatileRegistry)
+
+        when:
+        handler.processTransaction(
+                queryInput(parser, '{"transaction":[]}', config(maxActions), HeaderPrefer.Handling.LENIENT),
+                requestContext())
+
+        then: 'the executor resolves the property names of updates with the GML configuration'
+        executor.wfs
+
+        where:
+        maxActions << [null, 1]
     }
 
     def 'a failed atomic transaction reports every error and hides rolled-back successes'() {
@@ -345,6 +389,7 @@ class CommandHandlerTransactionsSpec extends Specification {
 
     private static class RecordingParser implements TransactionParser {
         List<TxAction> actions
+        boolean wfs
         int parseCount
         String parsedBody
 
@@ -357,18 +402,25 @@ class CommandHandlerTransactionsSpec extends Specification {
         Transaction parse(InputStream body, MediaType mediaType) {
             parseCount++
             parsedBody = new String(body.readAllBytes(), StandardCharsets.UTF_8)
-            return new FixedTransaction(TxSemantic.ATOMIC, actions)
+            return new FixedTransaction(TxSemantic.ATOMIC, actions, wfs)
         }
     }
 
     private static class FixedTransaction implements Transaction {
         private final TxSemantic semantic
         private final List<TxAction> actions
+        private final boolean wfs
         boolean closed
 
-        FixedTransaction(TxSemantic semantic, List<TxAction> actions) {
+        FixedTransaction(TxSemantic semantic, List<TxAction> actions, boolean wfs = false) {
             this.semantic = semantic
             this.actions = actions
+            this.wfs = wfs
+        }
+
+        @Override
+        boolean isWfs() {
+            return wfs
         }
 
         @Override
@@ -406,6 +458,8 @@ class CommandHandlerTransactionsSpec extends Specification {
     private static class CountingExecutor implements TransactionExecutor {
         int seen
         boolean validate
+        boolean wfs
+        Optional<JobHook> jobHook
 
         @Override
         Volatile2.State getState() {
@@ -429,8 +483,22 @@ class CommandHandlerTransactionsSpec extends Specification {
                 ApiRequestContext requestContext,
                 EpsgCrs requestCrs,
                 HeaderPrefer.Handling handling,
+                Optional<Instant> ogcMutationDatetime,
+                Optional<JobHook> jobHook) {
+            this.jobHook = jobHook
+            return execute(transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
+        }
+
+        @Override
+        ExecutionResult execute(
+                Transaction transaction,
+                OgcApi api,
+                ApiRequestContext requestContext,
+                EpsgCrs requestCrs,
+                HeaderPrefer.Handling handling,
                 Optional<Instant> ogcMutationDatetime) {
             this.validate = handling == HeaderPrefer.Handling.STRICT
+            this.wfs = transaction.isWfs()
             Iterator<TxAction> it = transaction.actions()
             while (it.hasNext()) {
                 it.next()
