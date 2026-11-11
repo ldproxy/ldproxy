@@ -8,6 +8,8 @@
 package de.ii.ogcapi.processes.app.model;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
+import dagger.Lazy;
+import de.ii.ogcapi.processes.domain.model.ProcessContribution;
 import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.AppLifeCycle;
@@ -22,7 +24,9 @@ import jakarta.ws.rs.NotFoundException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -38,14 +42,19 @@ public class ProcessRepositoryImpl extends AbstractVolatile
   private final Map<String, Map<String, ProcessData>> apiProcessesCache;
   private final Map<String, ProcessData> globalProcessesCache;
   private final VolatileRegistry volatileRegistry;
+  private final Lazy<Set<ProcessContribution>> contributions;
 
   @Inject
-  public ProcessRepositoryImpl(ValueStore valueStore, VolatileRegistry volatileRegistry) {
+  public ProcessRepositoryImpl(
+      ValueStore valueStore,
+      VolatileRegistry volatileRegistry,
+      Lazy<Set<ProcessContribution>> contributions) {
     super(volatileRegistry, "app/processes");
     this.customProcessStore = valueStore.forType(ProcessData.class);
     this.apiProcessesCache = new ConcurrentHashMap<>();
     this.globalProcessesCache = new ConcurrentHashMap<>();
     this.volatileRegistry = volatileRegistry;
+    this.contributions = contributions;
   }
 
   @Override
@@ -107,7 +116,10 @@ public class ProcessRepositoryImpl extends AbstractVolatile
       return Optional.of(apiProcesses.get(processId));
     }
 
-    return Optional.empty();
+    return contributions.get().stream()
+        .map(contribution -> contribution.getProcesses(apiId).get(processId))
+        .filter(Objects::nonNull)
+        .findFirst();
   }
 
   @Override
@@ -117,6 +129,10 @@ public class ProcessRepositoryImpl extends AbstractVolatile
     if (apiMap != null) {
       result.putAll(apiMap);
     }
+    // a process description in the values takes precedence over a contributed process
+    contributions
+        .get()
+        .forEach(contribution -> contribution.getProcesses(apiId).forEach(result::putIfAbsent));
     return result;
   }
 }

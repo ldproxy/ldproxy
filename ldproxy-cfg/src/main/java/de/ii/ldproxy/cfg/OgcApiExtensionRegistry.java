@@ -40,6 +40,7 @@ import de.ii.ogcapi.html.app.HtmlBuildingBlock;
 import de.ii.ogcapi.json.app.JsonBuildingBlock;
 import de.ii.ogcapi.mcp.app.McpBuildingBlock;
 import de.ii.ogcapi.oas30.app.OpenApiBuildingBlock;
+import de.ii.ogcapi.processes.arazzo.app.ProcessesArazzoBuildingBlock;
 import de.ii.ogcapi.processes.features.app.ProcessesFeaturesBuildingBlock;
 import de.ii.ogcapi.profile.codelist.app.ProfileCodelistBuildingBlock;
 import de.ii.ogcapi.profile.crs.app.ProfileCrsBuildingBlock;
@@ -94,6 +95,7 @@ class OgcApiExtensionRegistry implements ExtensionRegistry {
             .add(new JsonFgBuildingBlock())
             .add(new McpBuildingBlock())
             .add(new ProcessesFeaturesBuildingBlock())
+            .add(new ProcessesArazzoBuildingBlock())
             .add(new OpenApiBuildingBlock())
             .add(new ProfileCodelistBuildingBlock())
             .add(new ProfileRelBuildingBlock())

@@ -39,7 +39,7 @@ public interface OgcSchema {
       (from, into) -> {
         from.getTitle().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getDescription().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
-        into.putString(from.getType().name(), StandardCharsets.UTF_8);
+        from.getType().ifPresent(v -> into.putString(v.name(), StandardCharsets.UTF_8));
         from.getFormat().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getContentMediaType().ifPresent(v -> into.putString(v, StandardCharsets.UTF_8));
         from.getMaximum().ifPresent(v -> into.putString(v.toString(), StandardCharsets.UTF_8));
@@ -71,7 +71,8 @@ public interface OgcSchema {
 
   Optional<String> getDescription();
 
-  Type getType();
+  // without a type, a value of any type is valid, e.g. an output of a workflow
+  Optional<Type> getType();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> getEnum();

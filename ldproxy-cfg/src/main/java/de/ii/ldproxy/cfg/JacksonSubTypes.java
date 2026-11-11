@@ -37,6 +37,7 @@ import de.ii.ogcapi.html.app.JacksonSubTypeIdsHtml;
 import de.ii.ogcapi.json.app.JacksonSubTypeIdsJson;
 import de.ii.ogcapi.mcp.app.JacksonSubTypeIdsMcp;
 import de.ii.ogcapi.oas30.app.JacksonSubTypeIdsOas30;
+import de.ii.ogcapi.processes.arazzo.app.JacksonSubTypeIdsProcessesArazzo;
 import de.ii.ogcapi.processes.features.app.JacksonSubTypeIdsProcessesFeatures;
 import de.ii.ogcapi.profile.codelist.app.JacksonSubTypeIdsProfileCodelist;
 import de.ii.ogcapi.profile.crs.app.JacksonSubTypeIdsProfileCrs;
@@ -91,6 +92,7 @@ public interface JacksonSubTypes {
         .add(new JacksonSubTypeIdsJsonFg())
         .add(new JacksonSubTypeIdsMcp())
         .add(new JacksonSubTypeIdsProcessesFeatures())
+        .add(new JacksonSubTypeIdsProcessesArazzo())
         .add(new JacksonSubTypeIdsOas30())
         .add(new JacksonSubTypeIdsOgcApiCollections())
         .add(new JacksonSubTypeIdsOgcApiCommon())

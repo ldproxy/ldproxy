@@ -100,7 +100,7 @@ public abstract class ProcessView extends OgcApiView {
   // the JSON Schema keywords of the value, not translated
   private static String schema(OgcSchema schema) {
     List<String> keywords = new ArrayList<>();
-    keywords.add("type: " + type(schema.getType()));
+    schema.getType().ifPresent(type -> keywords.add("type: " + type(type)));
     schema.getItems().ifPresent(items -> keywords.add("items: " + type(items.getType())));
     schema.getFormat().ifPresent(format -> keywords.add("format: " + format));
     schema

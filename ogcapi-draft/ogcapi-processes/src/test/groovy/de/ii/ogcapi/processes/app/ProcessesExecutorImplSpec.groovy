@@ -95,6 +95,26 @@ class ProcessesExecutorImplSpec extends Specification {
         "bbox with 5 coordinates"       | [count: 1, bbox: [bbox: [0, 0, 1, 1, 1]]]
     }
 
+    def "an input is validated with the schema of the current process description"() {
+        given:
+        ProcessData before = process([SYNC_EXECUTE, ASYNC_EXECUTE], [count: input(schema(Type.INTEGER))], [:])
+        ProcessData after = process([SYNC_EXECUTE, ASYNC_EXECUTE], [count: input(schema(Type.STRING))], [:])
+        jobs.push(_, _) >> job(Status.ACCEPTED, [:])
+        executor.executeAsync("api", before, execute([count: 1]), 0, 3600)
+
+        when:
+        executor.executeAsync("api", after, execute([count: 1]), 0, 3600)
+
+        then:
+        thrown(IllegalArgumentException)
+
+        when:
+        executor.executeAsync("api", after, execute([count: "one"]), 0, 3600)
+
+        then:
+        1 * jobs.push(_, _) >> job(Status.ACCEPTED, [:])
+    }
+
     def "by default the job has the single partial execute, without setup and cleanup steps"() {
         when:
         executor.executeAsync("api", testProcess, execute([count: 1]), 0, 3600)

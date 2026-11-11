@@ -1,0 +1,19 @@
+maturity = 'PROPOSAL'
+maintenance = 'NONE'
+description = 'Processes that run workflows described with Arazzo.'
+descriptionDe = 'Prozesse, die mit Arazzo beschriebene Workflows ausführen.'
+
+dependencies {
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-foundation'
+    provided 'de.interactive_instruments:ogcapi-features-core'
+    provided 'de.interactive_instruments:ogcapi-features-search'
+    provided 'de.interactive_instruments:ogcapi-processes'
+    provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
+    provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:xtraplatform-features'
+    provided 'de.interactive_instruments:xtraplatform-values'
+    provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
+}

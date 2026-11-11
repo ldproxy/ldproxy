@@ -63,7 +63,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   private final Jobs jobs;
   private final SchemaValidator schemaValidator;
   private final AsyncCallbacks asyncCallbacks;
-  private final Map<String, Map<String, CompiledJsonSchema>> inputsSchemaCache;
+  private final Map<String, CompiledJsonSchema> inputsSchemaCache;
 
   @Inject
   ProcessesExecutorImpl(
@@ -224,11 +224,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                     "Invalid execute request: An instance [%d] of input '%s' is null"
                         .formatted(i, inputId));
               }
-              parsedInstances.add(parseInputValue(process.getId(), inputId, schema, instance));
+              parsedInstances.add(parseInputValue(inputId, schema, instance));
             }
             parsedInputs.put(inputId, parsedInstances);
           } else {
-            parsedInputs.put(inputId, parseInputValue(process.getId(), inputId, schema, value));
+            parsedInputs.put(inputId, parseInputValue(inputId, schema, value));
           }
         });
     return parsedInputs;
@@ -293,23 +293,20 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
   }
 
-  private Optional<String> validateInputValue(
-      String processId, String inputId, OgcSchema schema, Object value) {
-    Map<String, CompiledJsonSchema> schemaCache =
-        inputsSchemaCache.computeIfAbsent(processId, k -> new ConcurrentHashMap<>());
+  private Optional<String> validateInputValue(String inputId, OgcSchema schema, Object value) {
+    String schemaString;
+    try {
+      schemaString = mapper.writeValueAsString(schema);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Could not serialize Schema of input '%s'.".formatted(inputId), e);
+    }
 
+    // by schema, not by process and input: process descriptions are values that can change, and
+    // processes of different APIs can have the same id
     CompiledJsonSchema compiledSchema =
-        schemaCache.computeIfAbsent(
-            inputId,
+        inputsSchemaCache.computeIfAbsent(
+            schemaString,
             k -> {
-              String schemaString;
-              try {
-                schemaString = mapper.writeValueAsString(schema);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(
-                    "Could not serialize Schema of input '%s'.".formatted(inputId), e);
-              }
-
               try {
                 return schemaValidator.compile(schemaString);
               } catch (IOException e) {
@@ -336,10 +333,10 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
   // with the member "value", as is a value qualified with a format; so an object with the member
   // "value" is always a qualified value. A bounding box is a built-in value schema and not wrapped.
   // Tolerated: an object value without the member "value" is taken as the value itself.
-  private Object validValue(String processId, String inputId, OgcSchema schema, Object value) {
+  private Object validValue(String inputId, OgcSchema schema, Object value) {
     Object actualValue = isQualifiedValue(schema, value) ? ((Map<?, ?>) value).get("value") : value;
 
-    Optional<String> error = validateInputValue(processId, inputId, schema, actualValue);
+    Optional<String> error = validateInputValue(inputId, schema, actualValue);
     if (error.isPresent()) {
       throw new IllegalArgumentException(
           "Invalid execute request: input '%s' is invalid: %s".formatted(inputId, error.get()));
@@ -365,9 +362,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   // Limitation: Not all standard JSON Schema formats and custom formats from OGC-Processes are
   // supported. The processor receives the value as JSON, the format is only checked here.
-  private Object parseInputValue(
-      String processId, String inputId, OgcSchema schema, Object providedValue) {
-    Object value = validValue(processId, inputId, schema, providedValue);
+  private Object parseInputValue(String inputId, OgcSchema schema, Object providedValue) {
+    Object value = validValue(inputId, schema, providedValue);
 
     if (schema.getFormat().isEmpty()) {
       return value;
