@@ -44,4 +44,14 @@ public interface McpTool {
 
   @JsonIgnore
   List<OgcApiQueryParameter> getQueryParameters();
+
+  /**
+   * Whether the tool only reads data, as the tools for features and stored queries do; a process
+   * may change data or have other effects.
+   */
+  @JsonIgnore
+  @Value.Default
+  default boolean isReadOnly() {
+    return true;
+  }
 }

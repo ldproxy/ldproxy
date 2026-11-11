@@ -25,6 +25,8 @@ import org.immutables.value.Value;
  *       - "*"
  *     queries:
  *       - "*"
+ *     processes:
+ *       - "*"
  *   excluded:
  *     collections:
  *      - "collection_to_exclude"
@@ -37,16 +39,20 @@ import org.immutables.value.Value;
 public interface McpConfiguration extends ExtensionConfiguration {
 
   /**
-   * @langEn Specifies which collections and queries should be included in the MCP schema.
-   * @langDe Gibt an, welche Collections und Queries ins MCP-Schema übernommen werden sollen.
+   * @langEn Specifies which collections, stored queries and processes should be included in the MCP
+   *     schema.
+   * @langDe Gibt an, welche Collections, Stored Queries und Prozesse ins MCP-Schema übernommen
+   *     werden sollen.
    * @default []
    * @since v4.6
    */
   Optional<McpIncludeExclude> getIncluded();
 
   /**
-   * @langEn Specifies which collections and queries should be excluded from the MCP schema.
-   * @langDe Gibt an, welche Collections und Queries vom MCP-Schema ausgeschlossen werden sollen.
+   * @langEn Specifies which collections, stored queries and processes should be excluded from the
+   *     MCP schema.
+   * @langDe Gibt an, welche Collections, Stored Queries und Prozesse vom MCP-Schema ausgeschlossen
+   *     werden sollen.
    * @default []
    * @since v4.6
    */
@@ -81,6 +87,21 @@ public interface McpConfiguration extends ExtensionConfiguration {
      * @since v4.6
      */
     List<String> getQueries();
+
+    /**
+     * @langEn List of process ids or titles to be included or excluded, `*` includes all processes.
+     *     Only processes that can be executed synchronously are tools, and only if they are
+     *     included: without an entry in `included`, no process is a tool. A tool call executes the
+     *     process like a request to its execution endpoint and requires the same permissions.
+     * @langDe Liste der Prozess-Ids oder -Titel, die eingeschlossen oder ausgeschlossen werden
+     *     sollen, `*` schließt alle Prozesse ein. Nur Prozesse, die synchron ausgeführt werden
+     *     können, sind Tools, und nur, wenn sie eingeschlossen sind: ohne einen Eintrag in
+     *     `included` ist kein Prozess ein Tool. Ein Tool-Aufruf führt den Prozess wie eine Anfrage
+     *     an seinen Ausführungs-Endpunkt aus und erfordert dieselben Berechtigungen.
+     * @default []
+     * @since v5.0
+     */
+    List<String> getProcesses();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}

@@ -5,6 +5,7 @@ dependencies {
     provided 'de.interactive_instruments:ogcapi-common'
     provided 'de.interactive_instruments:ogcapi-foundation'
     provided 'de.interactive_instruments:ogcapi-features-search'
+    provided 'de.interactive_instruments:ogcapi-processes'
     provided 'de.interactive_instruments:ogcapi-collections-queryables'
     provided 'de.interactive_instruments:ogcapi-features-core'
     provided 'de.interactive_instruments:xtraplatform-features'
@@ -13,6 +14,7 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-cql'
     provided 'de.interactive_instruments:xtraplatform-crs'
     provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-auth'
 
     // the schema and transformation classes reference these types
     testProvided 'de.interactive_instruments:xtraplatform-geometries'
