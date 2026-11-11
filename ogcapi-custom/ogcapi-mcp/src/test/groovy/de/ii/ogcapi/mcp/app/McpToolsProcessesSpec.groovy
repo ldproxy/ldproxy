@@ -114,6 +114,61 @@ class McpToolsProcessesSpec extends Specification {
         validator.validateSchema(asMap(tool.outputSchema)).valid()
     }
 
+    def 'an exclusive bound of a process input is an exclusive bound of the tool schema'() {
+        given:
+        def nearest = process("""\
+            id: nearest
+            title: Nearest
+            version: 1.0.0
+            inputs:
+              distance:
+                title: Distance
+                schema:
+                  type: number
+                  exclusiveMinimum: 0
+            outputs: {}
+            """.stripIndent())
+        def validator = new DefaultJsonSchemaValidator(JSON)
+
+        when:
+        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, nearest).inputSchema))
+
+        then:
+        input['properties']['distance'] == [type: 'number', exclusiveMinimum: 0, title: 'Distance']
+        validator.validateSchema(input).valid()
+    }
+
+    def 'a property without a type allows values of any type'() {
+        given:
+        def aggregate = process("""\
+            id: aggregate
+            title: Aggregate
+            version: 1.0.0
+            inputs:
+              source:
+                title: Source
+                schema:
+                  type: object
+                  properties:
+                    collection:
+                      description: A collection id or a list of collection ids.
+                    query:
+                      type: string
+            outputs: {}
+            """.stripIndent())
+        def validator = new DefaultJsonSchemaValidator(JSON)
+
+        when:
+        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, aggregate).inputSchema))
+        def source = input['properties']['source']
+
+        then:
+        source.type == 'object'
+        !source['properties']['collection'].containsKey('type')
+        source['properties']['query'].type == 'string'
+        validator.validateSchema(input).valid()
+    }
+
     def 'a process without inputs and outputs has empty object schemas'() {
         given:
         def answer = process("""\

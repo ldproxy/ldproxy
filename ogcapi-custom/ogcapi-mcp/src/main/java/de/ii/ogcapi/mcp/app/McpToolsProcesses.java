@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The processes that can be executed synchronously, a tool per process. Processes are only tools if
@@ -52,6 +54,8 @@ import java.util.Set;
  * execution endpoint, with the same validation of the inputs and the same permissions.
  */
 final class McpToolsProcesses implements McpToolSource {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(McpToolsProcesses.class);
 
   static final String PREFIX = "process_";
 
@@ -102,11 +106,9 @@ final class McpToolsProcesses implements McpToolSource {
     return processRepository.getAll(apiData.getId()).values().stream()
         .filter(process -> isIncluded(process, included, excluded))
         .filter(McpToolsProcesses::canExecuteSync)
-        .map(
-            process ->
-                (McpTool)
-                    ImmutableMcpTool.copyOf(toTool(apiData, process))
-                        .withOperation(executeOperation))
+        .map(process -> toToolIfPossible(apiData, process))
+        .flatMap(Optional::stream)
+        .map(tool -> (McpTool) ImmutableMcpTool.copyOf(tool).withOperation(executeOperation))
         .toList();
   }
 
@@ -206,6 +208,21 @@ final class McpToolsProcesses implements McpToolSource {
         .findFirst();
   }
 
+  // a process whose schemas cannot be represented is left out, the other tools stay available
+  private Optional<McpTool> toToolIfPossible(OgcApiDataV2 apiData, ProcessData process) {
+    try {
+      return Optional.of(toTool(apiData, process));
+    } catch (IllegalArgumentException e) {
+      LOGGER.warn(
+          "Process '{}' of API '{}' is not available as an MCP tool, a schema of an input or output"
+              + " cannot be converted: {}",
+          process.getId(),
+          apiData.getId(),
+          e.getMessage());
+      return Optional.empty();
+    }
+  }
+
   McpTool toTool(OgcApiDataV2 apiData, ProcessData process) {
     ObjectSchema inputSchema = new ObjectSchema();
     process
@@ -240,12 +257,37 @@ final class McpToolsProcesses implements McpToolSource {
         .build();
   }
 
+  // the deserializer makes a schema without a type an object schema; a value of any type, e.g. a
+  // string or an array, stays allowed
+  @SuppressWarnings("unchecked")
+  private static void keepUntyped(Map<String, Object> source, Schema<?> schema) {
+    if (Objects.isNull(schema)) {
+      return;
+    }
+    if (Objects.isNull(source.get("type"))) {
+      schema.setType(null);
+      schema.setTypes(null);
+    }
+    if (source.get("properties") instanceof Map<?, ?> properties
+        && Objects.nonNull(schema.getProperties())) {
+      properties.forEach(
+          (name, property) -> {
+            if (property instanceof Map<?, ?> propertySource) {
+              keepUntyped((Map<String, Object>) propertySource, schema.getProperties().get(name));
+            }
+          });
+    }
+    if (source.get("items") instanceof Map<?, ?> items) {
+      keepUntyped((Map<String, Object>) items, schema.getItems());
+    }
+  }
+
   // the schema of an input or output; with more than one value, the schema of an array of values
   private Schema<?> toSchema(OgcSchemaAndOccurrences occurrences, OgcDescriptionType description) {
+    Map<String, Object> source = objectMapper.convertValue(occurrences.getSchema(), Map.class);
     Schema<?> schema =
-        Json.mapper()
-            .convertValue(
-                objectMapper.convertValue(occurrences.getSchema(), Map.class), Schema.class);
+        Json.mapper().convertValue(McpSchemaVersions.toOpenApi30(source), Schema.class);
+    keepUntyped(source, schema);
 
     if (occurrences.getMaxOccurs() > 1) {
       ArraySchema array = new ArraySchema();

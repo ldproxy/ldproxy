@@ -335,7 +335,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   @SuppressWarnings("unchecked")
   private Map<String, Object> toMap(Schema<?> schema) throws IOException {
-    return objectMapper.readValue(Json.pretty(schema), Map.class);
+    return McpSchemaVersions.toJsonSchema2020(
+        objectMapper.readValue(Json.pretty(schema), Map.class));
   }
 
   private static Optional<ApiRequestContext> mcpRequest(McpTransportContext context) {
