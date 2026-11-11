@@ -7,10 +7,16 @@
  */
 package de.ii.ogcapi.processes.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import io.dropwizard.util.Duration;
 import jakarta.validation.constraints.Min;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -25,7 +31,9 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     allowedCallbackUris:
+ *       - https://example.com/callbacks/
+ *     async: true
  *   ```
  * </code>
  *     <p>Example for the process description of a simple `Echo`-Process:<code>
@@ -68,7 +76,9 @@ import org.immutables.value.Value;
  *     minimumPageSize: 5
  *     maximumPageSize: 100
  *     callbackRetries: 2
- *     executionMode: BOTH
+ *     allowedCallbackUris:
+ *       - https://example.com/callbacks/
+ *     async: true
  *   ```
  * </code>
  *     <p>Beispiel für die Prozessbeschreibung eines einfachen `Echo`-Prozesses:<code>
@@ -108,7 +118,7 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "PROCESSES_CORE")
 @JsonDeserialize(builder = ImmutableProcessesCoreConfiguration.Builder.class)
-public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
+public interface ProcessesCoreConfiguration extends ExtensionConfiguration, AsyncConfiguration {
 
   enum ExecutionMode {
     SYNC,
@@ -127,22 +137,6 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   @Nullable
   @Override
   Boolean getEnabled();
-
-  /**
-   * @langEn Sets the supported execution modes. If set to `SYNC`, only synchronous processes will
-   *     be supported and they will all be executed synchronously. Setting it to `ASYNC` has the
-   *     same effect for asynchronous processes and execution. To support both modes, set it to
-   *     `BOTH`.
-   * @langDe Legt die unterstützten Ausführungsmodi fest. Bei `SYNC` werden nur synchrone Prozesse
-   *     unterstützt und alle synchron ausgeführt. Bei `ASYNC` gilt dies entsprechend für asynchrone
-   *     Prozesse und Ausführung. Um beide Modi zu unterstützen, setzen Sie den Wert auf `BOTH`.
-   * @default SYNC
-   * @since 4.9
-   */
-  @Value.Default
-  default ExecutionMode getExecutionMode() {
-    return ExecutionMode.SYNC;
-  }
 
   /**
    * @langEn Sets the default value for parameter `limit`.
@@ -178,10 +172,14 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
   }
 
   /**
-   * @langEn Indicates how often the callback should be retried on errors. Should be set to `0` if
+   * @langEn Indicates how often the callback should be retried at most, when the subscriber cannot
+   *     be reached or responds with a server error (5xx), 408 or 429. A client may request fewer
+   *     retries with `maxRetries` in the subscriber of the execute request. Should be set to `0` if
    *     no retries are desired.
-   * @langDe Gibt an, wie oft der Callback bei Fehlern wiederholt werden soll. Sollte auf `0`
-   *     gesetzt werden, falls keine Wiederholungen erwünscht sind.
+   * @langDe Gibt an, wie oft der Callback höchstens wiederholt werden soll, wenn der Subscriber
+   *     nicht erreichbar ist oder mit einem Serverfehler (5xx), 408 oder 429 antwortet. Ein Client
+   *     kann mit `maxRetries` im Subscriber der Ausführungsanfrage weniger Wiederholungen
+   *     anfordern. Sollte auf `0` gesetzt werden, falls keine Wiederholungen erwünscht sind.
    * @default 3
    * @since 4.9
    */
@@ -191,10 +189,76 @@ public interface ProcessesCoreConfiguration extends ExtensionConfiguration {
     return 3;
   }
 
+  /**
+   * @langEn The URIs to which the callbacks of an asynchronous execution may be sent. A callback
+   *     URI of a subscriber is accepted, if it has the scheme, host and port of an entry and its
+   *     path starts with the path of the entry, e.g. `https://example.com/callbacks/` accepts
+   *     `https://example.com/callbacks/job-done`. The entry `*` accepts every HTTP(S) URI; use it
+   *     only for tests or in a closed environment, since a client can then direct requests of the
+   *     server to any host the server can reach, including services that are only reachable from
+   *     the server. Without an entry, callbacks are not supported and an asynchronous execution
+   *     with a subscriber is rejected.
+   * @langDe Die URIs, an die die Callbacks einer asynchronen Ausführung gesendet werden dürfen.
+   *     Eine Callback-URI eines Subscribers wird akzeptiert, wenn sie Schema, Host und Port eines
+   *     Eintrags hat und ihr Pfad mit dem Pfad des Eintrags beginnt, z.B. akzeptiert
+   *     `https://example.com/callbacks/` die URI `https://example.com/callbacks/job-done`. Der
+   *     Eintrag `*` akzeptiert jede HTTP(S)-URI; er sollte nur für Tests oder in einer
+   *     abgeschlossenen Umgebung verwendet werden, da ein Client dann Anfragen des Servers an jeden
+   *     Host richten kann, den der Server erreicht, auch an Dienste, die nur vom Server aus
+   *     erreichbar sind. Ohne Eintrag werden Callbacks nicht unterstützt und eine asynchrone
+   *     Ausführung mit einem Subscriber wird abgelehnt.
+   * @default []
+   * @since 4.9
+   */
+  List<String> getAllowedCallbackUris();
+
+  @JsonIgnore
+  default boolean supportsCallbacks() {
+    return isAsync() && !getAllowedCallbackUris().isEmpty();
+  }
+
+  /**
+   * @langEn Maximum duration of a synchronous process execution. If the process has not finished by
+   *     then, the job is cancelled and the request fails with status code 504.
+   * @langDe Maximale Dauer einer synchronen Prozessausführung. Ist der Prozess bis dahin nicht
+   *     abgeschlossen, wird der Job abgebrochen und die Anfrage schlägt mit dem Statuscode 504
+   *     fehl.
+   * @default 5m
+   * @since 4.9
+   */
+  @Nullable
+  Duration getSyncTimeout();
+
+  @JsonIgnore
+  @Value.Lazy
+  default long getSyncTimeoutMillis() {
+    return Optional.ofNullable(getSyncTimeout()).orElse(Duration.minutes(5)).toMilliseconds();
+  }
+
+  @JsonIgnore
+  @Override
+  default boolean hasNamedOutputs() {
+    return true;
+  }
+
   @Override
   default Builder getBuilder() {
     return new ImmutableProcessesCoreConfiguration.Builder();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
+
+  // the allowed callback URIs of the defaults and of the API are merged, not replaced
+  @Override
+  default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    ProcessesCoreConfiguration src = (ProcessesCoreConfiguration) source;
+    return new ImmutableProcessesCoreConfiguration.Builder()
+        .from(source)
+        .from(this)
+        .allowedCallbackUris(
+            Stream.concat(src.getAllowedCallbackUris().stream(), getAllowedCallbackUris().stream())
+                .distinct()
+                .toList())
+        .build();
+  }
 }

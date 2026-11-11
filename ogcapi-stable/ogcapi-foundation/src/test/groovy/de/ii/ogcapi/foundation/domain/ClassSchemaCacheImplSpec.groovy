@@ -8,6 +8,8 @@
 package de.ii.ogcapi.foundation.domain
 
 
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 import de.ii.ogcapi.foundation.infra.json.ClassSchemaCacheImpl
 import io.swagger.v3.oas.models.media.Schema
 import spock.lang.Shared
@@ -46,4 +48,50 @@ class ClassSchemaCacheImplSpec extends Specification {
         schema.getProperties().get("description").getType() == "string"
     }
 
+    def 'the values of an enum are its JSON values'() {
+        when:
+        Schema schema = schemaGenerator.getSchema(Mode.class)
+
+        then:
+        schema.getEnum() == ['sync-execute', 'async-execute']
+    }
+
+    def 'the values of an enum are the names of its JSON properties'() {
+        when:
+        Schema schema = schemaGenerator.getSchema(Kind.class)
+
+        then:
+        schema.getEnum() == ['object', 'ARRAY']
+    }
+
+    def 'an object serialized as any value of a JSON value method has the schema of any value'() {
+        when:
+        Schema schema = schemaGenerator.getSchema(AnyValue.class)
+
+        then:
+        schema.getType() == null
+        schema.getProperties() == null
+        schema.getRequired() == null
+    }
+
+    enum Mode {
+        SYNC_EXECUTE,
+        ASYNC_EXECUTE
+
+        @JsonValue
+        String toValue() {
+            return name().toLowerCase(Locale.ROOT).replace('_', '-')
+        }
+    }
+
+    enum Kind {
+        @JsonProperty("object")
+        OBJECT,
+        ARRAY
+    }
+
+    static abstract class AnyValue {
+        @JsonValue
+        abstract Object getValue()
+    }
 }

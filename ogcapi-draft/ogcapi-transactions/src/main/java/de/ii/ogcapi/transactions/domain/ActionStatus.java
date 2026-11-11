@@ -25,5 +25,12 @@ public enum ActionStatus {
    * Atomic-only: action ran successfully, but its changes were undone because the transaction as a
    * whole failed (a sibling action failed, or the commit was aborted).
    */
-  ROLLED_BACK
+  ROLLED_BACK,
+
+  /**
+   * Execution of the action was stopped because cancellation of the request was cooperatively
+   * observed while it ran. Atomic: the whole transaction is rolled back. Batch: the action's own
+   * changes are rolled back, earlier committed actions stay committed.
+   */
+  CANCELLED
 }

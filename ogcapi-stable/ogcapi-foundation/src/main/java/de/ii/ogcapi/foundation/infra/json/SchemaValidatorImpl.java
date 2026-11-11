@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Singleton
 @AutoBind
@@ -75,7 +76,20 @@ public class SchemaValidatorImpl implements SchemaValidator {
       return Optional.empty();
     }
 
-    return Optional.of(result.toString());
+    return Optional.of(
+        result.stream()
+            .map(SchemaValidatorImpl::message)
+            .collect(Collectors.joining(", ", "[", "]")));
+  }
+
+  // as Error.toString(), but without the separator before the message if the location is empty,
+  // i.e. for the validated value itself
+  private static String message(Error error) {
+    String location =
+        error.getInstanceLocation() != null
+            ? error.getInstanceLocation().toString()
+            : error.getSchemaLocation() != null ? error.getSchemaLocation().toString() : "";
+    return location.isEmpty() ? error.getMessage() : location + ": " + error.getMessage();
   }
 
   private CompiledJsonSchemaImpl compileInternal(String schemaContent) throws IOException {

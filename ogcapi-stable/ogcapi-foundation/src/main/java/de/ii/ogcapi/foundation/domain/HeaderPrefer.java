@@ -136,13 +136,14 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
    * @return {@code true} if any of the {@code Prefer} header values contains the unparameterised
    *     token (e.g. {@code respond-async}). Matching is case-insensitive and exact: substrings
    *     ({@code respond-async-xyz}) and parameterised values ({@code return=respond-async}) do not
-   *     match.
+   *     match. Parameters of the preference after {@code ;} (RFC 7240, e.g. {@code respond-async;
+   *     x=1}) are ignored.
    */
   public static boolean containsToken(List<String> preferHeaders, String token) {
     if (preferHeaders == null) return false;
     for (String header : preferHeaders) {
-      for (String t : header.split(",")) {
-        if (token.equalsIgnoreCase(t.trim())) return true;
+      for (String preference : header.split(",")) {
+        if (token.equalsIgnoreCase(preference.split(";", 2)[0].trim())) return true;
       }
     }
     return false;
@@ -154,9 +155,11 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
    *
    * <p>Scans every comma-separated token in every header value, decodes any whose parameter name
    * matches {@code name} (case-insensitively), and collects the distinct successfully-parsed
-   * values. Returns the single value when exactly one was found; returns {@code fallback} otherwise
-   * — including the RFC 7240 §2 case where mutually-exclusive preferences are sent together ("a
-   * request containing both preferences can be treated as though neither were specified").
+   * values. The parameters of a preference after {@code ;} are ignored and a value may be a quoted
+   * string (RFC 7240 §2, e.g. {@code wait="10"; x=1}). Returns the single value when exactly one
+   * was found; returns {@code fallback} otherwise — including the RFC 7240 §2 case where
+   * mutually-exclusive preferences are sent together ("a request containing both preferences can be
+   * treated as though neither were specified").
    */
   public static <T> T parseParameterised(
       List<String> preferHeaders, String name, Function<String, Optional<T>> parser, T fallback) {
@@ -164,16 +167,22 @@ public abstract class HeaderPrefer extends ApiExtensionCache implements ApiHeade
     Set<T> found = new HashSet<>();
     for (String header : preferHeaders) {
       for (String token : header.split(",")) {
-        String t = token.trim();
+        String t = token.split(";", 2)[0].trim();
         if (t.regionMatches(true, 0, name, 0, name.length())) {
           int eq = t.indexOf('=');
           if (eq > 0 && t.substring(name.length(), eq).trim().isEmpty()) {
-            parser.apply(t.substring(eq + 1).trim()).ifPresent(found::add);
+            parser.apply(unquote(t.substring(eq + 1).trim())).ifPresent(found::add);
           }
         }
       }
     }
     return found.size() == 1 ? found.iterator().next() : fallback;
+  }
+
+  private static String unquote(String value) {
+    return value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")
+        ? value.substring(1, value.length() - 1)
+        : value;
   }
 
   /**

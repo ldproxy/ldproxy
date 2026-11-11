@@ -9,6 +9,7 @@ package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.AsyncConfiguration;
 import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
@@ -32,7 +33,8 @@ import org.immutables.value.Value;
 @Value.Style(builder = "new")
 @JsonDynamicSubType(superType = ExtensionConfiguration.class, id = "SEARCH")
 @JsonDeserialize(builder = ImmutableSearchConfiguration.Builder.class)
-public interface SearchConfiguration extends ExtensionConfiguration, CachingConfiguration {
+public interface SearchConfiguration
+    extends ExtensionConfiguration, CachingConfiguration, AsyncConfiguration {
 
   /**
    * @langEn Option to manage stored queries using PUT and DELETE.

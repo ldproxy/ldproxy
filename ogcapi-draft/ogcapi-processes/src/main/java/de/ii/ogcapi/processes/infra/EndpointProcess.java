@@ -27,6 +27,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
+import de.ii.ogcapi.processes.app.parameter.PathParameterProcessId;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputProcess;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesQueriesHandler;
@@ -126,12 +127,12 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
       @PathParam("processId") String processId,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext) {
-
-    if (!isEnabledForApi(api.getData()))
-      throw new NotFoundException("Processes are not available in this API.");
-
-    checkPathParameter(
-        extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
+    try {
+      checkPathParameter(
+          extensionRegistry, api.getData(), "/processes/{processId}", "processId", processId);
+    } catch (NotFoundException e) {
+      throw PathParameterProcessId.noSuchProcess(processId);
+    }
 
     ProcessesQueriesHandler.QueryInputProcess queryInput =
         new ImmutableQueryInputProcess.Builder()
@@ -149,17 +150,10 @@ public class EndpointProcess extends Endpoint implements ApiExtensionHealth {
 
   @Override
   public List<? extends FormatExtension> getResourceFormats() {
-    if (formats == null)
+    if (formats == null) {
       formats = extensionRegistry.getExtensionsForType(ProcessFormatExtension.class);
+    }
     return formats;
-  }
-
-  @Override
-  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
-    return apiData
-        .getExtension(ProcessesCoreConfiguration.class)
-        .filter(ProcessesCoreConfiguration::isEnabled)
-        .isPresent();
   }
 
   @Override

@@ -9,13 +9,16 @@ package de.ii.ogcapi.processes.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import de.ii.ogcapi.common.domain.async.JobContextAsync;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
-import de.ii.ogcapi.processes.domain.model.OgcProcess;
+import de.ii.ogcapi.processes.domain.model.ProcessData;
 import de.ii.xtralink.jobs.JobConfiguration;
-import de.ii.xtraplatform.xtralink.domain.JobContext.JobContextEntity;
 import de.ii.xtraplatform.xtralink.domain.JobInputs;
 import de.ii.xtraplatform.xtralink.domain.Jobs;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -38,25 +41,66 @@ public interface OapJob extends JobInputs {
     return jobKind.substring(KIND.length() + 1);
   }
 
-  static JobConfiguration of(String apiId, OgcProcess process, OgcExecute executeRequest) {
-    ImmutableOapJob oapJob =
-        new ImmutableOapJob.Builder().inputs(executeRequest.getInputs()).build();
-    return Jobs.create(
-        kind(process.getId()),
-        1000,
-        LABEL,
-        String.format(" (Process: %s)", process.getTitle()),
-        oapJob,
-        new OapJobContext(apiId, executeRequest),
-        null,
-        Optional.empty());
+  // the inputs are the validated inputs of the execute request, with qualified values unwrapped
+  static JobConfiguration of(
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      Map<String, Object> inputs,
+      long ttlSeconds) {
+    ImmutableOapJob oapJob = new ImmutableOapJob.Builder().inputs(inputs).build();
+    JobConfiguration job =
+        Jobs.create(
+            kind(process.getId()),
+            1000,
+            LABEL,
+            String.format(" (Process: %s)", process.getTitle().orElse(process.getId())),
+            oapJob,
+            new OapJobContext(apiId, executeRequest, process.getId()),
+            null,
+            List.of(kind(process.getId(), "execute")),
+            Optional.of((int) ttlSeconds));
+
+    return new JobConfiguration(
+        job.kind(),
+        job.priority(),
+        job.label(),
+        job.description(),
+        job.inputs(),
+        job.context(),
+        job.progress(),
+        process.getJobSetup(),
+        process.getJobCleanup(),
+        job.partials(),
+        job.sequential(),
+        job.followUps(),
+        job.ttlSeconds());
   }
 
-  class OapJobContext extends JobContextEntity {
+  class OapJobContext extends JobContextAsync {
+    public static boolean is(Map<String, Object> context) {
+      return JobContextAsync.is(context) && context.containsKey("executeRequest");
+    }
+
+    public static Optional<OapJobContext> from(Map<String, Object> context, ObjectMapper mapper) {
+      if (!is(context)) {
+        return Optional.empty();
+      }
+      try {
+        return Optional.ofNullable(mapper.convertValue(context, OapJobContext.class));
+      } catch (Throwable e) {
+        return Optional.empty();
+      }
+    }
+
     private final OgcExecute executeRequest;
 
-    public OapJobContext(String entity, OgcExecute executeRequest) {
-      super(entity);
+    public OapJobContext(String entity, OgcExecute executeRequest, String processId) {
+      super(
+          entity,
+          EntityType.OGC_API_PROCESSES,
+          Optional.ofNullable(processId),
+          executeRequest.getSubscriber());
       this.executeRequest = executeRequest;
     }
 

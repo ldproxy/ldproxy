@@ -43,11 +43,7 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    if (isEnabledForApi(apiData)) {
-      return ImmutableList.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
-    }
-
-    return ImmutableList.of();
+    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
   }
 
   @Override
@@ -111,7 +107,7 @@ public class ProcessFormatHtml implements ProcessFormatExtension, FormatHtml, Co
         .uriCustomizer(requestContext.getUriCustomizer().copy())
         .i18n(i18n)
         .rawLinks(processResponse.getLinks())
-        .title(processId)
+        .title(processResponse.getTitle().orElse(processId))
         .build();
   }
 }

@@ -47,8 +47,9 @@ public abstract class ProcessListResponse extends PageRepresentation {
                 });
       };
 
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  @JsonProperty("processes")
+  // required, also if there are no processes
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  @JsonProperty(value = "processes", required = true)
   public abstract List<ProcessSummaryResponse> getProcessList();
 
   @JsonAnyGetter

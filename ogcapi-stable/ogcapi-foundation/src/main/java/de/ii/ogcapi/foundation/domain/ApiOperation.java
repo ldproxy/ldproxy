@@ -40,6 +40,7 @@ public interface ApiOperation {
   Logger LOGGER = LoggerFactory.getLogger(ApiOperation.class);
   String STATUS_200 = "200";
   String STATUS_201 = "201";
+  String STATUS_202 = "202";
   String STATUS_204 = "204";
 
   enum OperationType {

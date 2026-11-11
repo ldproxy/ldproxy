@@ -9,12 +9,14 @@ package de.ii.ogcapi.processes.app.parameter;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.common.domain.async.OgcApiJobStatus.EntityType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
 import de.ii.ogcapi.processes.app.ProcessesCoreBuildingBlock;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.model.ProcessRepository;
@@ -22,6 +24,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +49,14 @@ public class PathParameterProcessId implements OgcApiPathParameter {
     this.repository = repository;
   }
 
+  // Requirement no-such-process
+  public static TypedClientErrorException noSuchProcess(String processId) {
+    return new TypedClientErrorException(
+        "No process found with id '%s'.".formatted(processId),
+        Response.Status.NOT_FOUND,
+        EntityType.OGC_API_PROCESSES.exceptionType("no-such-process").orElseThrow());
+  }
+
   @Override
   public String getPattern() {
     return PROCESS_ID_REGEX;
@@ -53,7 +64,7 @@ public class PathParameterProcessId implements OgcApiPathParameter {
 
   @Override
   public List<String> getValues(OgcApiDataV2 apiData) {
-    return repository.getAll(apiData).keySet().stream().toList();
+    return repository.getAll(apiData.getId()).keySet().stream().toList();
   }
 
   @Override

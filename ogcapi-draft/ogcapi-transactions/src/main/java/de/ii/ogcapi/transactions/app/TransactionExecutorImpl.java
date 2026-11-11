@@ -76,6 +76,8 @@ import de.ii.xtraplatform.features.domain.FeatureTransactions.MutationResult;
 import de.ii.xtraplatform.features.domain.FeatureTransactions.Session;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureChange;
 import de.ii.xtraplatform.features.domain.ImmutablePropertyUpdate;
+import de.ii.xtraplatform.features.domain.JobCancelledException;
+import de.ii.xtraplatform.features.domain.JobHook;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.features.domain.Tuple;
 import de.ii.xtraplatform.features.domain.pipeline.FeatureEventHandlerEmptyValues;
@@ -91,8 +93,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -156,13 +160,14 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext requestContext,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     try (transaction) {
       return transaction.getSemantic() == TxSemantic.ATOMIC
           ? executeAtomic(
-              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime)
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime, jobHook)
           : executeBatch(
-              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime);
+              transaction, api, requestContext, requestCrs, handling, ogcMutationDatetime, jobHook);
     }
   }
 
@@ -226,7 +231,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
     TransactionsConfiguration cfg = transactionsConfig(api);
@@ -254,116 +260,143 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     // and always stops execution; a failed action only stops it when errors are not collected.
     Throwable fatalError = null;
     boolean anyFailed = false;
-
-    Iterator<TxAction> actions = transaction.actions();
-    while (actions.hasNext()) {
-      TxAction action = actions.next();
-      if (fatalError != null || (anyFailed && !collectErrors)) {
-        // execution has stopped — skip remaining actions but still drain insert items so the
-        // parser stays in a consistent state
-        drainQuietly(action);
-        results.add(skipped(canonicalCollectionId(api, action.getCollectionId()), action));
-        continue;
-      }
-      ActionResult result = null;
-      try {
-        String providerId = resolveProviderId(api, action.getCollectionId());
-        Session session = sessionsByProvider.get(providerId);
-        if (session == null) {
-          session = openSessionFor(api, action.getCollectionId());
-          // Store before running setup so a setup failure still leaves the session in the map
-          // for the rollback/close paths below.
-          sessionsByProvider.put(providerId, session);
-          warnings.addAll(session.execute(setup));
-          if (collectErrors && !session.supportsSavepoints()) {
-            LOGGER.warn(
-                "collectErrors is enabled but the feature provider session does not support"
-                    + " savepoints — stopping at the first error for this transaction");
-            collectErrors = false;
-          }
-        }
-        boolean savepointActive = false;
-        if (collectErrors) {
-          session.savepoint();
-          savepointActive = true;
-        }
-        result =
-            runAction(
-                action,
-                session,
-                api,
-                ctx,
-                requestCrs,
-                touchedIdsByCollection,
-                strategyByCollection,
-                atomicScopeTimestamp,
-                ogcMutationDatetime,
-                validate,
-                false,
-                transaction.isWfs());
-        result = withActionWarnings(result, session);
-        if (result.getStatus() == ActionStatus.FAILED) {
-          anyFailed = true;
-          if (savepointActive) {
-            // undo just this action's writes; the transaction stays usable for the rest
-            session.rollbackToSavepoint();
-          }
-        } else {
-          if (savepointActive) {
-            session.releaseSavepoint();
-          }
-          if (result.getStatus() == ActionStatus.SUCCESS) {
-            touchedIdsByCollection
-                .computeIfAbsent(result.getCollectionId(), k -> new HashSet<>())
-                .addAll(result.getFeatureIds());
-          }
-        }
-      } catch (RuntimeException e) {
-        // session acquisition, a setup hook, or savepoint handling failed — the transaction is
-        // no longer usable
-        recoverHookWarnings(e, warnings);
-        if (result == null) {
-          result = failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
-        }
-        anyFailed = true;
-        fatalError = e;
-      }
-      results.add(result);
-    }
-
+    boolean cancelled = false;
+    // The sessions hold the writes and locks of the transaction until it is committed or rolled
+    // back. They are released as soon as execution stops, and also when reading the body fails,
+    // e.g. for a truncated or malformed request, which ends the method with an exception.
+    boolean sessionsOpen = true;
     boolean commitSucceeded = false;
     Optional<String> transactionError = Optional.empty();
     boolean transactionServerError = false;
-    if (!anyFailed) {
-      try {
-        // Pre-commit hooks run on the still-open transaction; a raised error aborts the
-        // whole transaction, a warning lets it commit and is surfaced in the response.
-        for (Session s : sessionsByProvider.values()) {
-          warnings.addAll(s.execute(preCommit));
+
+    try {
+      Iterator<TxAction> actions = transaction.actions();
+      while (actions.hasNext()) {
+        if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
+          // the rest of the body of a dismissed job is not read
+          cancelled = true;
+          break;
         }
-        sessionsByProvider.values().forEach(Session::commit);
-        commitSucceeded = true;
-      } catch (RuntimeException e) {
-        // pre-commit or commit failed — a transaction-level error not attributable to a single
-        // action; rollback whatever can still be rolled back
-        recoverHookWarnings(e, warnings);
-        if (e instanceof FeatureMutationHookException) {
-          // expected, configuration-driven rollback (a hook check fired) — reported to the
-          // client, so keep the log quiet and without a stack trace
-          LOGGER.debug("Pre-commit hook aborted the atomic transaction: {}", e.getMessage());
-        } else {
-          LOGGER.warn("Atomic transaction commit failed", e);
+        TxAction action = actions.next();
+        if (fatalError != null || (anyFailed && !collectErrors)) {
+          // execution has stopped — skip remaining actions but still drain insert items so the
+          // parser stays in a consistent state
+          drainQuietly(action);
+          results.add(skipped(canonicalCollectionId(api, action.getCollectionId()), action));
+          continue;
         }
-        rollbackQuietly(sessionsByProvider.values());
-        transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
-        transactionServerError = isServerError(e);
+        ActionResult result = null;
+        try {
+          String providerId = resolveProviderId(api, action.getCollectionId());
+          Session session = sessionsByProvider.get(providerId);
+          if (session == null) {
+            session = openSessionFor(api, action.getCollectionId());
+            // Store before running setup so a setup failure still leaves the session in the map
+            // for the rollback/close paths below.
+            sessionsByProvider.put(providerId, session);
+            warnings.addAll(session.execute(setup));
+            if (collectErrors && !session.supportsSavepoints()) {
+              LOGGER.warn(
+                  "collectErrors is enabled but the feature provider session does not support"
+                      + " savepoints — stopping at the first error for this transaction");
+              collectErrors = false;
+            }
+          }
+          boolean savepointActive = false;
+          if (collectErrors) {
+            session.savepoint();
+            savepointActive = true;
+          }
+          result =
+              runAction(
+                  action,
+                  session,
+                  api,
+                  ctx,
+                  requestCrs,
+                  touchedIdsByCollection,
+                  strategyByCollection,
+                  atomicScopeTimestamp,
+                  ogcMutationDatetime,
+                  validate,
+                  false,
+                  transaction.isWfs(),
+                  jobHook);
+          result = withActionWarnings(result, session);
+          if (result.getStatus() == ActionStatus.CANCELLED) {
+            // the whole transaction is rolled back; no savepoint handling needed
+            cancelled = true;
+          } else if (result.getStatus() == ActionStatus.FAILED) {
+            anyFailed = true;
+            if (savepointActive) {
+              // undo just this action's writes; the transaction stays usable for the rest
+              session.rollbackToSavepoint();
+            }
+          } else {
+            if (savepointActive) {
+              session.releaseSavepoint();
+            }
+            if (result.getStatus() == ActionStatus.SUCCESS) {
+              touchedIdsByCollection
+                  .computeIfAbsent(result.getCollectionId(), k -> new HashSet<>())
+                  .addAll(result.getFeatureIds());
+            }
+          }
+        } catch (RuntimeException e) {
+          // session acquisition, a setup hook, or savepoint handling failed — the transaction is
+          // no longer usable
+          recoverHookWarnings(e, warnings);
+          if (result == null) {
+            result = failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
+          }
+          anyFailed = true;
+          fatalError = e;
+        }
+        results.add(result);
+        if (sessionsOpen && (cancelled || fatalError != null || (anyFailed && !collectErrors))) {
+          // execution has stopped, the transaction is rolled back now and not only once the rest
+          // of the body, which is read to report the skipped actions, has been read
+          rollbackQuietly(sessionsByProvider.values());
+          closeQuietly(sessionsByProvider.values());
+          sessionsOpen = false;
+        }
+      }
+
+      if (!anyFailed && !cancelled) {
+        try {
+          // Pre-commit hooks run on the still-open transaction; a raised error aborts the
+          // whole transaction, a warning lets it commit and is surfaced in the response.
+          for (Session s : sessionsByProvider.values()) {
+            warnings.addAll(s.execute(preCommit));
+          }
+          sessionsByProvider.values().forEach(Session::commit);
+          commitSucceeded = true;
+        } catch (RuntimeException e) {
+          // pre-commit or commit failed — a transaction-level error not attributable to a single
+          // action; whatever can still be rolled back is rolled back below
+          recoverHookWarnings(e, warnings);
+          if (e instanceof FeatureMutationHookException) {
+            // expected, configuration-driven rollback (a hook check fired) — reported to the
+            // client, so keep the log quiet and without a stack trace
+            LOGGER.debug("Pre-commit hook aborted the atomic transaction: {}", e.getMessage());
+          } else {
+            LOGGER.warn("Atomic transaction commit failed", e);
+          }
+          transactionError = Optional.of("atomic commit failed: " + errorMessage(e));
+          transactionServerError = isServerError(e);
+          results = flipSuccessesToRolledBack(results);
+        }
+      } else {
         results = flipSuccessesToRolledBack(results);
       }
-    } else {
-      rollbackQuietly(sessionsByProvider.values());
-      results = flipSuccessesToRolledBack(results);
+    } finally {
+      if (sessionsOpen) {
+        if (!commitSucceeded) {
+          rollbackQuietly(sessionsByProvider.values());
+        }
+        closeQuietly(sessionsByProvider.values());
+      }
     }
-    closeQuietly(sessionsByProvider.values());
 
     if (commitSucceeded) {
       emitChanges(api, results);
@@ -376,6 +409,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .addAllWarnings(lenientWarnings(results))
         .transactionError(transactionError)
         .isTransactionServerError(transactionServerError)
+        .isCancelled(cancelled)
         .build();
   }
 
@@ -387,7 +421,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       ApiRequestContext ctx,
       EpsgCrs requestCrs,
       HeaderPrefer.Handling handling,
-      Optional<Instant> ogcMutationDatetime) {
+      Optional<Instant> ogcMutationDatetime,
+      Optional<JobHook> jobHook) {
     // handling=strict turns on per-payload schema validation before any write.
     boolean validate = handling == HeaderPrefer.Handling.STRICT;
     TransactionsConfiguration cfg = transactionsConfig(api);
@@ -398,73 +433,88 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     // Reused across actions in a batch even though each action commits independently — keeps the
     // MutationStrategy lookup to one walk per (transaction, collectionId).
     Map<String, MutationStrategy> strategyByCollection = new LinkedHashMap<>();
+    boolean cancelled = false;
 
-    Iterator<TxAction> actions = transaction.actions();
-    while (actions.hasNext()) {
-      TxAction action = actions.next();
-      Session session = null;
-      try {
-        session = openSessionFor(api, action.getCollectionId());
-        warnings.addAll(session.execute(setup));
-        // Batch semantics commit between actions, so each action sees a fresh committed
-        // snapshot — no need to track touched ids across actions.
-        // Per-action timestamp under batch semantics — each action's mutation is independent.
-        Instant batchScopeTimestamp = nowInstant();
-        ActionResult r =
-            runAction(
-                action,
-                session,
-                api,
-                ctx,
-                requestCrs,
-                Map.of(),
-                strategyByCollection,
-                batchScopeTimestamp,
-                ogcMutationDatetime,
-                validate,
-                true,
-                transaction.isWfs());
-        r = withActionWarnings(r, session);
-        if (r.getStatus() == ActionStatus.SUCCESS) {
-          // Pre-commit hooks run per action under batch semantics; a raised error fails just
-          // this action (caught below), a warning lets it commit and is surfaced.
-          warnings.addAll(session.execute(preCommit));
-          session.commit();
-        } else {
-          session.rollback();
+    // the actions committed before are reported as changes also when reading the body fails, e.g.
+    // for a truncated request, which ends the method with an exception
+    try {
+      Iterator<TxAction> actions = transaction.actions();
+      while (actions.hasNext()) {
+        // batch semantics: actions committed so far stay committed, the rest are not executed
+        if (cancelled || jobHook.map(JobHook::isCancelRequested).orElse(false)) {
+          cancelled = true;
+          break;
         }
-        results.add(r);
-      } catch (RuntimeException e) {
-        recoverHookWarnings(e, warnings);
-        if (e instanceof FeatureMutationHookException) {
-          LOGGER.debug("Pre-commit hook failed the batch action: {}", e.getMessage());
-        }
-        if (session != null) {
-          try {
-            session.rollback();
-          } catch (RuntimeException ignored) {
-            // already failing, swallow
+        TxAction action = actions.next();
+        Session session = null;
+        try {
+          session = openSessionFor(api, action.getCollectionId());
+          warnings.addAll(session.execute(setup));
+          // Batch semantics commit between actions, so each action sees a fresh committed
+          // snapshot — no need to track touched ids across actions.
+          // Per-action timestamp under batch semantics — each action's mutation is independent.
+          Instant batchScopeTimestamp = nowInstant();
+          ActionResult r =
+              runAction(
+                  action,
+                  session,
+                  api,
+                  ctx,
+                  requestCrs,
+                  Map.of(),
+                  strategyByCollection,
+                  batchScopeTimestamp,
+                  ogcMutationDatetime,
+                  validate,
+                  true,
+                  transaction.isWfs(),
+                  jobHook);
+          r = withActionWarnings(r, session);
+          if (r.getStatus() == ActionStatus.CANCELLED) {
+            cancelled = true;
           }
-        }
-        results.add(failed(canonicalCollectionId(api, action.getCollectionId()), action, e));
-      } finally {
-        if (session != null) {
-          try {
-            session.close();
-          } catch (RuntimeException ignored) {
-            // best-effort
+          if (r.getStatus() == ActionStatus.SUCCESS) {
+            // Pre-commit hooks run per action under batch semantics; a raised error fails just
+            // this action (caught below), a warning lets it commit and is surfaced.
+            warnings.addAll(session.execute(preCommit));
+            session.commit();
+          } else {
+            session.rollback();
+          }
+          results.add(r);
+        } catch (RuntimeException e) {
+          recoverHookWarnings(e, warnings);
+          if (e instanceof FeatureMutationHookException) {
+            LOGGER.debug("Pre-commit hook failed the batch action: {}", e.getMessage());
+          }
+          if (session != null) {
+            try {
+              session.rollback();
+            } catch (RuntimeException ignored) {
+              // already failing, swallow
+            }
+          }
+          results.add(failed(canonicalCollectionId(api, action.getCollectionId()), action, e));
+        } finally {
+          if (session != null) {
+            try {
+              session.close();
+            } catch (RuntimeException ignored) {
+              // best-effort
+            }
           }
         }
       }
+    } finally {
+      emitChanges(api, results);
     }
-
-    emitChanges(api, results);
 
     return new ImmutableExecutionResult.Builder()
         .semantic(TxSemantic.BATCH)
         .actionResults(results)
         .warnings(warnings)
         .addAllWarnings(lenientWarnings(results))
+        .isCancelled(cancelled)
         .build();
   }
 
@@ -484,7 +534,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       Optional<Instant> ogcMutationDatetime,
       boolean validate,
       boolean skipInvalid,
-      boolean fromWfs) {
+      boolean fromWfs,
+      Optional<JobHook> jobHook) {
     // Pass the canonical collection id (e.g. lowercase `ap_pto`) into the strategy lookup —
     // raw action ids straight off the wire are often the mixed-case GML element name (`AP_PTO`)
     // and would cause `ApiExtension.isEnabledForApi` to miss the collection entirely.
@@ -516,7 +567,8 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 validate,
                 skipInvalid,
                 strategy,
-                mutationTimestamp);
+                mutationTimestamp,
+                jobHook);
         case REPLACE ->
             runReplace(
                 (TxReplace) action,
@@ -551,6 +603,10 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                 mutationTimestamp);
         default -> throw new IllegalArgumentException("Unknown action type: " + action.getType());
       };
+    } catch (JobCancelledException e) {
+      // a cooperative checkpoint fired mid-action; the action's writes are rolled back by the
+      // caller (atomic: whole transaction, batch: this action)
+      return cancelled(canonicalCollectionId(api, action.getCollectionId()), action);
     } catch (RuntimeException e) {
       return failed(canonicalCollectionId(api, action.getCollectionId()), action, e);
     }
@@ -566,8 +622,9 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       boolean validate,
       boolean skipInvalid,
       MutationStrategy strategy,
-      Instant mutationTimestamp) {
-    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
+      Instant mutationTimestamp,
+      Optional<JobHook> jobHook) {
+    Axes axes = axes(requestCrs);
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
@@ -599,9 +656,55 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
     boolean ignoreExisting =
         preflight && strategy.ignoresExistingFeatureOnInsert(apiData, canonicalCollectionId);
     List<String> ignoredIds = new ArrayList<>();
+    // With the pre-flight, the items are read ahead in groups of INSERT_BATCH_SIZE and their ids
+    // checked with one query; the ids of the group of which a version exists, and the ids of the
+    // group that are written or in the batch since then, which the query could not see
+    Deque<InsertItem> readAhead = new ArrayDeque<>(INSERT_BATCH_SIZE);
+    Set<String> conflictingIds = new HashSet<>();
+    Set<String> acceptedIds = new HashSet<>();
+    int itemCount = 0;
     Iterator<InsertItem> items = action.items();
-    while (items.hasNext()) {
-      InsertItem item = items.next();
+    while (!readAhead.isEmpty() || items.hasNext()) {
+      // cooperative cancellation every INSERT_BATCH_SIZE items, counted independently of the
+      // batch flushes, since an id override flushes the batch per item; the exception is turned
+      // into a CANCELLED result in runAction
+      if (++itemCount % INSERT_BATCH_SIZE == 0) {
+        jobHook.ifPresent(JobHook::checkpoint);
+      }
+      if (preflight && readAhead.isEmpty()) {
+        // the batch is written first, so the query sees all items before the group
+        if (!batch.isEmpty()) {
+          ActionResult failedBatch =
+              flushInsertBatch(
+                  action,
+                  apiData,
+                  session,
+                  featureType,
+                  batch,
+                  batchItems,
+                  requestCrs,
+                  ids,
+                  extents,
+                  roleOverrides);
+          if (failedBatch != null) return failedBatch;
+        }
+        List<String> groupIds = new ArrayList<>(INSERT_BATCH_SIZE);
+        while (readAhead.size() < INSERT_BATCH_SIZE && items.hasNext()) {
+          InsertItem next = items.next();
+          readAhead.add(next);
+          next.featureId()
+              .map(
+                  raw -> strategy.splitCompositeId(apiData, canonicalCollectionId, raw).canonical())
+              .ifPresent(groupIds::add);
+        }
+        MutationResult check = session.findConflictingVersions(featureType, groupIds);
+        if (check.getError().isPresent()) {
+          return failed(canonicalCollectionId, action, check.getError().get(), groupIds);
+        }
+        conflictingIds = new HashSet<>(check.getIds());
+        acceptedIds.clear();
+      }
+      InsertItem item = readAhead.isEmpty() ? items.next() : readAhead.poll();
       // Composite-id split: the raw gml:id may carry a uniqueness suffix; the
       // canonical id is what we check / write. Items without a featureId pass through unchanged.
       Optional<CompositeId> compositeForItem =
@@ -619,15 +722,25 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
             chainRejectError(canonicalCollectionId, canonicalIdForItem.get(), action),
             List.of(canonicalIdForItem.get()));
       }
-      if (preflight && canonicalIdForItem.isPresent()) {
+      if (preflight
+          && canonicalIdForItem.isPresent()
+          && (conflictingIds.contains(canonicalIdForItem.get())
+              || acceptedIds.contains(canonicalIdForItem.get()))) {
         // Versioned-Insert pre-flight: refuse to write if any version of this id already exists
-        // (open or retired). Adding new versions of an existing feature goes through Replace /
-        // Update / Delete; Insert is reserved for brand-new ids.
+        // (open or retired), also from an earlier item of the action (an Insert/Insert pair for
+        // the same id). Adding new versions of an existing feature goes through Replace / Update /
+        // Delete; Insert is reserved for brand-new ids.
         //
-        // The per-item batch must be flushed first so existing-row checks see writes from earlier
-        // items in this same action (e.g. an Insert/Insert pair for the same id within one
-        // action, second insert would otherwise miss the first).
-        if (!batch.isEmpty()) {
+        // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
+        // object the recipient already has); the item is skipped and reported in the summary
+        // warnings of the transaction.
+        if (ignoreExisting) {
+          ignoredIds.add(canonicalIdForItem.get());
+          continue;
+        }
+        // the error comes from the check of the single id, which has to see an earlier item of
+        // the action with the id in the batch
+        if (!batch.isEmpty() && acceptedIds.contains(canonicalIdForItem.get())) {
           ActionResult failedBatch =
               flushInsertBatch(
                   action,
@@ -645,13 +758,6 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         MutationResult precheck =
             session.assertNoConflictingVersion(featureType, canonicalIdForItem.get());
         if (precheck.getError().isPresent()) {
-          // With the option, the feature is left as it is (e.g. an NBA delivery that inserts an
-          // object the recipient already has); the item is skipped and reported in the summary
-          // warnings of the transaction.
-          if (ignoreExisting) {
-            ignoredIds.add(canonicalIdForItem.get());
-            continue;
-          }
           return failed(
               canonicalCollectionId,
               action,
@@ -728,10 +834,12 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
                   extents,
                   perItemOverrides);
           if (failedSingle != null) return failedSingle;
+          acceptedIds.add(canonicalIdForItem.get());
           continue;
         }
         batch.add(source);
         batchItems.add(item);
+        canonicalIdForItem.ifPresent(acceptedIds::add);
       } catch (java.io.IOException e) {
         return failedInsert(action, apiData, batchItems, e);
       }
@@ -871,7 +979,7 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
       MutationStrategy strategy,
       Instant mutationTimestamp,
       boolean fromWfs) {
-    Axes axes = crsInfo.is3d(requestCrs) ? Axes.XYZ : Axes.XY;
+    Axes axes = axes(requestCrs);
     OgcApiDataV2 apiData = api.getData();
     String featureType = resolveFeatureType(apiData, action.getCollectionId());
     String canonicalCollectionId = canonicalCollectionId(apiData, action.getCollectionId());
@@ -1843,7 +1951,13 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .toList();
   }
 
-  private FeatureTokenSource decodeFeature(
+  // Package-private so specs can replace it, together with decodeFeature (see runAction).
+  Axes axes(EpsgCrs crs) {
+    return crsInfo.is3d(crs) ? Axes.XYZ : Axes.XY;
+  }
+
+  // Package-private so specs can replace the decoding of a payload (see runAction).
+  FeatureTokenSource decodeFeature(
       MediaType contentType,
       InputStream body,
       OgcApiDataV2 apiData,
@@ -2011,6 +2125,15 @@ public class TransactionExecutorImpl extends AbstractVolatileComposed
         .collectionId(collectionId)
         .actionId(action.getActionId())
         .status(ActionStatus.SKIPPED)
+        .build();
+  }
+
+  private static ActionResult cancelled(String collectionId, TxAction action) {
+    return new ImmutableActionResult.Builder()
+        .type(action.getType())
+        .collectionId(collectionId)
+        .actionId(action.getActionId())
+        .status(ActionStatus.CANCELLED)
         .build();
   }
 
