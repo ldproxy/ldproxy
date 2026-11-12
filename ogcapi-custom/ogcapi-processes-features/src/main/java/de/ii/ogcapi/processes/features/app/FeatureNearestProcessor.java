@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryResolution;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.features.app.FeatureSelection.Selection;
 import de.ii.ogcapi.processes.features.domain.ProcessesFeaturesConfiguration;
 import de.ii.xtraplatform.base.domain.AppContext;
@@ -88,7 +89,10 @@ public class FeatureNearestProcessor extends FeatureProcessor {
 
   @Override
   protected Map<String, Object> process(
-      OgcApi api, ProcessesFeaturesConfiguration configuration, Map<String, Object> inputs)
+      OgcApi api,
+      ProcessesFeaturesConfiguration configuration,
+      Map<String, Object> inputs,
+      ExecutionRequestContext requestContext)
       throws IOException {
     Selection selection =
         featureSelection.select(api, required(inputs, FeatureSelection.INPUT_SOURCE));
@@ -125,7 +129,8 @@ public class FeatureNearestProcessor extends FeatureProcessor {
       throw tooManyFeatures(maximum);
     }
 
-    return Map.of(OUTPUT_FEATURES, features(selection, sorted(nearest)));
+    return Map.of(
+        OUTPUT_FEATURES, features(selection, sorted(nearest), requestContext.getProfiles()));
   }
 
   static List<Nearest> sorted(Collection<Nearest> nearest) {
@@ -138,7 +143,8 @@ public class FeatureNearestProcessor extends FeatureProcessor {
   }
 
   // one request per collection, the features in the order of their distance
-  private Map<String, Object> features(Selection selection, List<Nearest> nearest)
+  private Map<String, Object> features(
+      Selection selection, List<Nearest> nearest, List<String> requestedProfiles)
       throws IOException {
     Map<String, List<String>> idsByCollection = new LinkedHashMap<>();
     nearest.forEach(
@@ -149,7 +155,9 @@ public class FeatureNearestProcessor extends FeatureProcessor {
     Map<String, Map<String, Map<String, Object>>> featuresByCollection = new LinkedHashMap<>();
     for (Map.Entry<String, List<String>> entry : idsByCollection.entrySet()) {
       featuresByCollection.put(
-          entry.getKey(), featureSelection.features(selection, entry.getKey(), entry.getValue()));
+          entry.getKey(),
+          featureSelection.features(
+              selection, entry.getKey(), entry.getValue(), requestedProfiles));
     }
 
     List<Map<String, Object>> features = new ArrayList<>();

@@ -19,6 +19,7 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute;
@@ -77,7 +78,11 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
   @Override
   public Map<String, Object> executeSync(
-      String apiId, ProcessData process, OgcExecute executeRequest, long timeoutMillis) {
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      ExecutionRequestContext requestContext,
+      long timeoutMillis) {
 
     Map<String, Object> inputs = parseInputs(process, executeRequest.getInputs());
 
@@ -92,7 +97,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
     }
 
     // Create job
-    JobConfiguration oapJob = OapJob.of(apiId, process, executeRequest, inputs, 3600);
+    JobConfiguration oapJob =
+        OapJob.of(apiId, process, executeRequest, requestContext, inputs, 3600);
 
     // Push it and wait for its results
     Job job = jobs.push(oapJob);
@@ -148,6 +154,7 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
       String apiId,
       ProcessData process,
       OgcExecute executeRequest,
+      ExecutionRequestContext requestContext,
       int callbackRetries,
       long ttlSeconds) {
 
@@ -173,7 +180,8 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
                             ImmutableAsyncSubscriber.copyOf(subscriber)
                                 .withMaxRetries(callbackRetries(subscriber, callbackRetries))))
             .orElse(executeRequest);
-    JobConfiguration oapJob = OapJob.of(apiId, process, request, inputs, ttlSeconds);
+    JobConfiguration oapJob =
+        OapJob.of(apiId, process, request, requestContext, inputs, ttlSeconds);
 
     // Put job with callbacks in queue
     Job job = jobs.push(oapJob, asyncCallbacks);

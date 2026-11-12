@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.common.domain.QueryParameterProfile;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobResults;
 import de.ii.ogcapi.common.domain.async.ImmutableOgcApiJobStatusInfo;
 import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
@@ -27,11 +28,13 @@ import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryHandler;
 import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.ogcapi.html.domain.HtmlConfiguration;
 import de.ii.ogcapi.processes.domain.AllowedUris;
 import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
@@ -276,7 +279,8 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             .orElseThrow()
             .getSyncTimeoutMillis();
     Map<String, Object> processResults =
-        processesExecutor.executeSync(api.getId(), process, executeRequest, timeoutMillis);
+        processesExecutor.executeSync(
+            api.getId(), process, executeRequest, executionContext(requestContext), timeoutMillis);
 
     if (!processResults.isEmpty()) {
       OgcApiJobResults resultsResponse =
@@ -307,6 +311,20 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
     }
   }
 
+  // the context that the job carries to the steps: the profiles of the parameter profile, which
+  // apply e.g. to the features in the outputs
+  private static ExecutionRequestContext executionContext(ApiRequestContext requestContext) {
+    Object profiles =
+        requestContext.getQueryParameterSet().getTypedValues().get(QueryParameterProfile.PROFILE);
+    return ExecutionRequestContext.ofProfiles(
+        profiles instanceof List<?> list
+            ? list.stream()
+                .filter(Profile.class::isInstance)
+                .map(profile -> ((Profile) profile).getId())
+                .toList()
+            : List.of());
+  }
+
   private Response executionResponseAsync(
       QueryInputExecution queryInput,
       ApiRequestContext requestContext,
@@ -333,6 +351,7 @@ public class ExecutionQueriesHandlerImpl extends AbstractVolatileComposed
             api.getId(),
             process,
             executeRequest,
+            executionContext(requestContext),
             queryInput.getCallbackRetries(),
             processesCoreConfiguration.getTtlSeconds());
 

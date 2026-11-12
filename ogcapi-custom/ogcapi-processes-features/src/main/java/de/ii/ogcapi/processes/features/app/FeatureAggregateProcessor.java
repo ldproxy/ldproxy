@@ -15,6 +15,7 @@ import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.StoredQueryResolution;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.features.app.FeatureSelection.Selection;
 import de.ii.ogcapi.processes.features.domain.ProcessesFeaturesConfiguration;
 import de.ii.xtraplatform.base.domain.AppContext;
@@ -71,7 +72,10 @@ public class FeatureAggregateProcessor extends FeatureProcessor {
 
   @Override
   protected Map<String, Object> process(
-      OgcApi api, ProcessesFeaturesConfiguration configuration, Map<String, Object> inputs)
+      OgcApi api,
+      ProcessesFeaturesConfiguration configuration,
+      Map<String, Object> inputs,
+      ExecutionRequestContext requestContext)
       throws IOException {
     Aggregation aggregation = Aggregation.of(inputs);
     Selection selection =

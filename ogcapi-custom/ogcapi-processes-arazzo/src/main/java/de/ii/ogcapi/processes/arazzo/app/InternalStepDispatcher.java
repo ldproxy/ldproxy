@@ -38,6 +38,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.OgcExecute;
@@ -63,6 +64,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -518,9 +520,20 @@ public class InternalStepDispatcher implements StepDispatcher {
     if (noSlot.isPresent()) {
       throw new WebApplicationException(noSlot.get(), Response.Status.SERVICE_UNAVAILABLE);
     }
+    // the parameter profile of the step, as in a request of the execution endpoint
+    List<String> profiles =
+        Optional.ofNullable(request.query().get("profile")).stream()
+            .flatMap(value -> Arrays.stream(value.split(",")))
+            .map(String::trim)
+            .filter(profile -> !profile.isEmpty())
+            .toList();
     Map<String, Object> outputs =
         processesExecutor.executeSync(
-            apiData.getId(), process, executeRequest, configuration.getSyncTimeoutMillis());
+            apiData.getId(),
+            process,
+            executeRequest,
+            ExecutionRequestContext.ofProfiles(profiles),
+            configuration.getSyncTimeoutMillis());
     return Response.ok(toBytes(outputs), MediaType.APPLICATION_JSON_TYPE).build();
   }
 

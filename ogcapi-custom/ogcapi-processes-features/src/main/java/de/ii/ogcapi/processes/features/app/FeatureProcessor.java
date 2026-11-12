@@ -7,9 +7,11 @@
  */
 package de.ii.ogcapi.processes.features.app;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.ii.ogcapi.common.domain.async.JobFailure;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.features.domain.ProcessesFeaturesConfiguration;
 import de.ii.xtralink.jobs.Job;
@@ -41,12 +43,18 @@ abstract class FeatureProcessor extends JobProcessorSimple<OapJob> {
     this.entityRegistry = entityRegistry;
   }
 
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
   /**
+   * @param requestContext the context of the request of the execution, e.g. the requested profiles
    * @return the outputs of the process
    * @throws IllegalArgumentException if the request is invalid
    */
   protected abstract Map<String, Object> process(
-      OgcApi api, ProcessesFeaturesConfiguration configuration, Map<String, Object> inputs)
+      OgcApi api,
+      ProcessesFeaturesConfiguration configuration,
+      Map<String, Object> inputs,
+      ExecutionRequestContext requestContext)
       throws IOException;
 
   @Override
@@ -80,7 +88,12 @@ abstract class FeatureProcessor extends JobProcessorSimple<OapJob> {
 
     Map<String, Object> outputs;
     try {
-      outputs = process(api.get(), configuration.get(), inputs.getInputs());
+      outputs =
+          process(
+              api.get(),
+              configuration.get(),
+              inputs.getInputs(),
+              ExecutionRequestContext.from(job.context(), MAPPER));
     } catch (IllegalArgumentException e) {
       return clientFailure(job, jobs, 400, e.getMessage());
     } catch (WebApplicationException e) {

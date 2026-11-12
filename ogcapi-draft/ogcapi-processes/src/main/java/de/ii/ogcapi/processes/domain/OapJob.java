@@ -56,6 +56,16 @@ public interface OapJob extends JobInputs {
       OgcExecute executeRequest,
       Map<String, Object> inputs,
       long ttlSeconds) {
+    return of(apiId, process, executeRequest, ExecutionRequestContext.NONE, inputs, ttlSeconds);
+  }
+
+  static JobConfiguration of(
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      ExecutionRequestContext requestContext,
+      Map<String, Object> inputs,
+      long ttlSeconds) {
     ImmutableOapJob oapJob = new ImmutableOapJob.Builder().inputs(inputs).build();
     ProcessJobOptions options = process.getJob();
     List<String> partials =
@@ -69,7 +79,7 @@ public interface OapJob extends JobInputs {
             LABEL,
             String.format(" (Process: %s)", process.getTitle().orElse(process.getId())),
             oapJob,
-            new OapJobContext(apiId, executeRequest, process.getId()),
+            new OapJobContext(apiId, executeRequest, process.getId(), requestContext),
             null,
             partials,
             Optional.of((int) ttlSeconds));
@@ -107,18 +117,33 @@ public interface OapJob extends JobInputs {
     }
 
     private final OgcExecute executeRequest;
+    private final ExecutionRequestContext requestContext;
 
     public OapJobContext(String entity, OgcExecute executeRequest, String processId) {
+      this(entity, executeRequest, processId, ExecutionRequestContext.NONE);
+    }
+
+    public OapJobContext(
+        String entity,
+        OgcExecute executeRequest,
+        String processId,
+        ExecutionRequestContext requestContext) {
       super(
           entity,
           EntityType.OGC_API_PROCESSES,
           Optional.ofNullable(processId),
           executeRequest.getSubscriber());
       this.executeRequest = executeRequest;
+      this.requestContext = requestContext;
     }
 
     public OgcExecute getExecuteRequest() {
       return executeRequest;
+    }
+
+    // the member ExecutionRequestContext.JOB_CONTEXT_MEMBER of the context of the job
+    public ExecutionRequestContext getRequestContext() {
+      return requestContext;
     }
   }
 

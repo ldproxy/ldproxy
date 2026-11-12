@@ -22,6 +22,7 @@ import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpTool;
+import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute;
@@ -176,7 +177,13 @@ final class McpToolsProcesses implements McpToolSource {
     // feature collections in the outputs as in the results of the other tools
     Map<String, Object> outputs = new LinkedHashMap<>();
     processesExecutor
-        .executeSync(apiData.getId(), process, executeRequest, timeoutMillis)
+        .executeSync(
+            apiData.getId(),
+            process,
+            executeRequest,
+            // features in the outputs with references as in the results of the other tools
+            ExecutionRequestContext.ofProfiles(List.of(ProfileRelAsKeyTitle.ID)),
+            timeoutMillis)
         .forEach((outputId, value) -> outputs.put(outputId, forToolResult(value)));
     return outputs;
   }

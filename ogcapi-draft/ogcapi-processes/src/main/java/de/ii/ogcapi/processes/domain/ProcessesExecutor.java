@@ -14,13 +14,39 @@ import java.util.Map;
 
 public interface ProcessesExecutor {
 
-  Map<String, Object> executeSync(
-      String apiId, ProcessData process, OgcExecute executeRequest, long timeoutMillis);
+  default Map<String, Object> executeSync(
+      String apiId, ProcessData process, OgcExecute executeRequest, long timeoutMillis) {
+    return executeSync(apiId, process, executeRequest, ExecutionRequestContext.NONE, timeoutMillis);
+  }
 
+  /**
+   * @param requestContext the context of the request, which the job carries to the steps
+   */
+  Map<String, Object> executeSync(
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      ExecutionRequestContext requestContext,
+      long timeoutMillis);
+
+  default OgcApiJobStatus executeAsync(
+      String apiId,
+      ProcessData process,
+      OgcExecute executeRequest,
+      int callbackRetries,
+      long ttlSeconds) {
+    return executeAsync(
+        apiId, process, executeRequest, ExecutionRequestContext.NONE, callbackRetries, ttlSeconds);
+  }
+
+  /**
+   * @param requestContext the context of the request, which the job carries to the steps
+   */
   OgcApiJobStatus executeAsync(
       String apiId,
       ProcessData process,
       OgcExecute executeRequest,
+      ExecutionRequestContext requestContext,
       int callbackRetries,
       long ttlSeconds);
 }

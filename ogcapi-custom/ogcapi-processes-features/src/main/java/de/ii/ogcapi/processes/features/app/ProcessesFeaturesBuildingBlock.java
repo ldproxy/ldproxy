@@ -69,7 +69,9 @@ import jakarta.inject.Singleton;
  *     most 100, default 10). The output `features` is a GeoJSON feature collection in which each
  *     feature has the additional member `distance`, the distance from the point in meters. The
  *     features are encoded as in a response of `/collections/{collectionId}/items`, with the
- *     parameters `properties`, `exclude-properties` and `profile` of a collection source.
+ *     parameters `properties`, `exclude-properties` and `profile` of a collection source. Without
+ *     `profile` in the source, the profiles of the parameter `profile` of the execution request
+ *     apply.
  *     <p>The process descriptions are written by the deployment, the inputs and outputs follow the
  *     description above. Example of a process `aggregate-features`:
  *     <p><code>
@@ -180,7 +182,9 @@ import jakarta.inject.Singleton;
  *     höchstens 100, Default 10). Die Ausgabe `features` ist eine GeoJSON-FeatureCollection, in der
  *     jedes Feature das zusätzliche Member `distance` hat, die Entfernung vom Punkt in Metern. Die
  *     Features sind wie in einer Antwort von `/collections/{collectionId}/items` kodiert, mit den
- *     Parametern `properties`, `exclude-properties` und `profile` einer Collection-Quelle.
+ *     Parametern `properties`, `exclude-properties` und `profile` einer Collection-Quelle. Ohne
+ *     `profile` in der Quelle gelten die Profile des Parameters `profile` der Anfrage zur
+ *     Ausführung.
  *     <p>Die Prozessbeschreibungen schreibt das Deployment, die Eingaben und Ausgaben folgen der
  *     Beschreibung oben. Beispiel eines Prozesses `aggregate-features`:
  *     <p><code>

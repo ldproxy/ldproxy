@@ -304,12 +304,18 @@ class FeatureSelection {
    * embeddedFeatureLinkRels}. The parameters {@code properties}, {@code exclude-properties} and
    * {@code profile} of a collection source apply.
    *
+   * @param requestedProfiles the profiles that the request of the execution asks for, unless the
+   *     source has the parameter {@code profile}
    * @return the features by id; a feature that no longer exists is missing
    * @throws IllegalArgumentException if the query of the features fails with a client error
    */
   @SuppressWarnings("unchecked")
   Map<String, Map<String, Object>> features(
-      Selection selection, String collectionId, List<String> featureIds) throws IOException {
+      Selection selection,
+      String collectionId,
+      List<String> featureIds,
+      List<String> requestedProfiles)
+      throws IOException {
     OgcApi api = selection.api();
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData =
@@ -352,11 +358,7 @@ class FeatureSelection {
         new ImmutableQueryInputFeatures.Builder()
             .collectionId(collectionId)
             .query(query)
-            .profiles(
-                (List<Profile>)
-                    Objects.requireNonNullElse(
-                        parameterSet.getTypedValues().get(QueryParameterProfile.PROFILE),
-                        List.of()))
+            .profiles(profiles(parameterSet, requestedProfiles))
             .defaultProfilesResource(defaultProfiles(coreConfiguration))
             .featureProvider(providers.getFeatureProviderOrThrow(apiData, collectionData))
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
@@ -404,6 +406,19 @@ class FeatureSelection {
       }
     }
     return features;
+  }
+
+  // the profiles of the source, else those that the request of the execution asks for
+  @SuppressWarnings("unchecked")
+  private List<Profile> profiles(QueryParameterSet parameterSet, List<String> requestedProfiles) {
+    List<Profile> sourceProfiles =
+        (List<Profile>)
+            Objects.requireNonNullElse(
+                parameterSet.getTypedValues().get(QueryParameterProfile.PROFILE), List.of());
+    if (!sourceProfiles.isEmpty() || requestedProfiles.isEmpty()) {
+      return sourceProfiles;
+    }
+    return Profile.of(extensionRegistry, requestedProfiles.toArray(String[]::new));
   }
 
   // the default profiles of the collection, as for a request of the features
