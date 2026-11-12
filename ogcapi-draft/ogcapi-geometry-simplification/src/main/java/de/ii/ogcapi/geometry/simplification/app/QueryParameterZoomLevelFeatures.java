@@ -113,10 +113,31 @@ public class QueryParameterZoomLevelFeatures extends OgcApiQueryParameterBase
               }
               queryBuilder.maxAllowableOffset(maxAllowableOffset);
 
+              if (collectionData
+                  .getExtension(GeometrySimplificationConfiguration.class)
+                  .filter(GeometrySimplificationConfiguration::usesZoomLevelPrecision)
+                  .isPresent()) {
+                // the tolerance in meters and in degrees
+                double tolerance = 559_082_264.028_717 / 4096 / Math.pow(2, level);
+                queryBuilder.geometryPrecision(crsInfo.getPrecisionList(crs, precision(tolerance)));
+                queryBuilder.wgs84GeometryPrecision(
+                    crsInfo.getPrecisionList(OgcCrs.CRS84h, precision(tolerance)));
+              }
+
               if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Zoom level: {}; epsilon: {}", level, maxAllowableOffset);
               }
             });
+  }
+
+  // the decimal places per unit, so that rounding stays below the tolerance; 0 for no rounding
+  static Map<String, Integer> precision(double toleranceInMeters) {
+    return Map.of(
+        "metre", decimals(toleranceInMeters), "degree", decimals(toleranceInMeters / 111_319.5));
+  }
+
+  static int decimals(double tolerance) {
+    return Math.max(0, (int) Math.ceil(-Math.log10(tolerance)));
   }
 
   @Override
