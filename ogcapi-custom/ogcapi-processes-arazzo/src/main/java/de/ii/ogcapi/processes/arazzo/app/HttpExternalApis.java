@@ -17,6 +17,7 @@ import de.ii.xtraplatform.xtralink.domain.Jobs;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -54,40 +55,64 @@ final class HttpExternalApis implements ExternalApis {
   private final Map<String, Map<String, String>> configuredHeaders;
   private final Set<String> configuredHeaderNames;
   private final Map<String, String> servers;
+  private final Map<String, Integer> documentMaxAge;
+  private final ExternalApiDocuments documents;
+  private final String cacheKey;
+
+  /**
+   * The options of the external APIs of an API.
+   *
+   * @param allowedUris the URIs that requests may use, see {@link AllowedUris}
+   * @param headers the headers of the server for the requests to a URI, by the URI as in {@code
+   *     allowedUris}
+   * @param servers the servers of external APIs by the URL of the OpenAPI document; they replace
+   *     the servers of the document
+   * @param documentMaxAge how long an OpenAPI document is kept, in seconds, by the URI as in {@code
+   *     allowedUris}; it replaces the caching headers of the response
+   */
+  record Options(
+      List<String> allowedUris,
+      Map<String, Map<String, String>> headers,
+      Map<String, String> servers,
+      Map<String, Integer> documentMaxAge) {}
 
   /**
    * @param allowedUris the URIs that requests may use, see {@link AllowedUris}
    */
   HttpExternalApis(Sender client, List<String> allowedUris) {
-    this(client, allowedUris, Map.of(), Map.of());
+    this(
+        client,
+        new Options(allowedUris, Map.of(), Map.of(), Map.of()),
+        ExternalApiDocuments.NONE,
+        "");
   }
 
   /**
-   * @param allowedUris the URIs that requests may use, see {@link AllowedUris}
-   * @param configuredHeaders the headers of the server for the requests to a URI, by the URI as in
-   *     {@code allowedUris}
-   * @param servers the servers of external APIs by the URL of the OpenAPI document; they replace
-   *     the servers of the document
+   * @param documents the OpenAPI documents kept across executions
+   * @param cacheKey the key of the documents of these options, e.g. the id of the API; the
+   *     documents of other keys are not used, they may have been read with other headers
    */
   HttpExternalApis(
-      Sender client,
-      List<String> allowedUris,
-      Map<String, Map<String, String>> configuredHeaders,
-      Map<String, String> servers) {
+      Sender client, Options options, ExternalApiDocuments documents, String cacheKey) {
     this.client = client;
-    this.allowedUris = allowedUris;
+    this.allowedUris = options.allowedUris();
     this.configuredHeaders = new LinkedHashMap<>();
-    configuredHeaders.forEach(
-        (uri, headers) -> {
-          Map<String, String> lowerCase = new LinkedHashMap<>();
-          headers.forEach((name, value) -> lowerCase.put(name.toLowerCase(Locale.ROOT), value));
-          this.configuredHeaders.put(uri, lowerCase);
-        });
+    options
+        .headers()
+        .forEach(
+            (uri, headers) -> {
+              Map<String, String> lowerCase = new LinkedHashMap<>();
+              headers.forEach((name, value) -> lowerCase.put(name.toLowerCase(Locale.ROOT), value));
+              this.configuredHeaders.put(uri, lowerCase);
+            });
     this.configuredHeaderNames =
         this.configuredHeaders.values().stream()
             .flatMap(headers -> headers.keySet().stream())
             .collect(Collectors.toSet());
-    this.servers = servers;
+    this.servers = options.servers();
+    this.documentMaxAge = options.documentMaxAge();
+    this.documents = documents;
+    this.cacheKey = cacheKey;
   }
 
   /** Sends a request without following redirects, {@link HttpClient#send}. */
@@ -106,6 +131,15 @@ final class HttpExternalApis implements ExternalApis {
     checkAllowed(
         url,
         "The source description '%s' is not an API of this server and not an allowed external API.");
+    String key = cacheKey + " " + url;
+    ExternalApiDocuments.Document document =
+        documents.get(key).orElseGet(() -> read(url, maximumResponseSize, key));
+    return ExternalApi.of(
+        url, document.location(), document.content(), Optional.ofNullable(servers.get(url)));
+  }
+
+  // reads the document and keeps it as long as the configuration or the response allows
+  private ExternalApiDocuments.Document read(String url, int maximumResponseSize, String key) {
     Received received;
     try {
       received =
@@ -131,11 +165,47 @@ final class HttpExternalApis implements ExternalApis {
           String.format("The OpenAPI document '%s' is neither JSON nor YAML.", url),
           e);
     }
-    return ExternalApi.of(
-        url,
-        received.url(),
-        Objects.requireNonNullElse(document, Map.of()),
-        Optional.ofNullable(servers.get(url)));
+    ExternalApiDocuments.Document result =
+        new ExternalApiDocuments.Document(
+            received.url(), Objects.requireNonNullElse(document, Map.of()));
+    // only a valid document is kept
+    ExternalApi.of(url, result.location(), result.content(), Optional.empty());
+    documents.put(key, result, maxAge(url, received.response()));
+    return result;
+  }
+
+  // the configured time of the longest matching URI, else the max-age of the response
+  private long maxAge(String url, HttpResponse response) {
+    Optional<Integer> configured =
+        documentMaxAge.entrySet().stream()
+            .filter(entry -> AllowedUris.isAllowed(url, List.of(entry.getKey())))
+            .max(Comparator.comparingInt(entry -> entry.getKey().length()))
+            .map(Map.Entry::getValue);
+    if (configured.isPresent()) {
+      return configured.get();
+    }
+    return maxAge(response.getHeaders().get("cache-control"));
+  }
+
+  static long maxAge(String cacheControl) {
+    if (Objects.isNull(cacheControl)) {
+      return 0;
+    }
+    long maxAge = 0;
+    for (String directive : cacheControl.toLowerCase(Locale.ROOT).split(",")) {
+      String trimmed = directive.trim();
+      if ("no-store".equals(trimmed) || "no-cache".equals(trimmed)) {
+        return 0;
+      }
+      if (trimmed.startsWith("max-age=")) {
+        try {
+          maxAge = Long.parseLong(trimmed.substring("max-age=".length()).replace("\"", ""));
+        } catch (NumberFormatException e) {
+          return 0;
+        }
+      }
+    }
+    return maxAge;
   }
 
   @Override

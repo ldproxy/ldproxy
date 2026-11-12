@@ -36,8 +36,17 @@ public class ArazzoWorkflowProcessor extends ArazzoProcessor {
       StepDispatcher dispatcher,
       Http http,
       WorkflowRepository workflowRepository,
-      WorkflowSlots workflowSlots) {
-    super(KIND, resourceStore, entityRegistry, dispatcher, http, workflowRepository, workflowSlots);
+      WorkflowSlots workflowSlots,
+      ExternalApiDocuments externalApiDocuments) {
+    super(
+        KIND,
+        resourceStore,
+        entityRegistry,
+        dispatcher,
+        http,
+        workflowRepository,
+        workflowSlots,
+        externalApiDocuments);
     this.workflowRepository = workflowRepository;
   }
 

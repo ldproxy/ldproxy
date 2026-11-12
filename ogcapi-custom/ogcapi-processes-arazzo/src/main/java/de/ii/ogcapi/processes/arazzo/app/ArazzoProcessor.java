@@ -39,6 +39,7 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
   private final HttpClient httpClient;
   private final WorkflowRepository workflowRepository;
   private final WorkflowSlots workflowSlots;
+  private final ExternalApiDocuments externalApiDocuments;
 
   ArazzoProcessor(
       String kind,
@@ -47,13 +48,15 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
       StepDispatcher dispatcher,
       Http http,
       WorkflowRepository workflowRepository,
-      WorkflowSlots workflowSlots) {
+      WorkflowSlots workflowSlots,
+      ExternalApiDocuments externalApiDocuments) {
     super(kind, resourceStore);
     this.entityRegistry = entityRegistry;
     this.dispatcher = dispatcher;
     this.httpClient = http.getDefaultClient();
     this.workflowRepository = workflowRepository;
     this.workflowSlots = workflowSlots;
+    this.externalApiDocuments = externalApiDocuments;
   }
 
   /**
@@ -106,9 +109,15 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
             dispatcher,
             new HttpExternalApis(
                 httpClient::send,
-                config.getAllowedExternalUris(),
-                credentials ? config.getExternalApiHeaders() : Map.of(),
-                config.getExternalApiServers()),
+                new HttpExternalApis.Options(
+                    config.getAllowedExternalUris(),
+                    credentials ? config.getExternalApiHeaders() : Map.of(),
+                    config.getExternalApiServers(),
+                    config.getExternalApiDocumentMaxAge()),
+                externalApiDocuments,
+                // documents read with the headers of the server are not shared with other APIs or
+                // with descriptions from requests
+                apiId + (credentials ? "" : " request")),
             documentId -> workflowRepository.getDocument(apiId, documentId),
             apiId,
             Objects.requireNonNullElse(
@@ -117,7 +126,10 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
                 config.getMaximumResponseSize(),
                 ProcessesArazzoBuildingBlock.MAXIMUM_RESPONSE_SIZE),
             WorkflowRunner::sleep,
-            credentials ? config.getServerInputs() : Map.of());
+            credentials ? config.getServerInputs() : Map.of(),
+            Objects.requireNonNullElse(
+                config.getMaximumParallelLoopRuns(),
+                ProcessesArazzoBuildingBlock.MAXIMUM_PARALLEL_LOOP_RUNS));
 
     // the workflow holds its job slot while it runs; one slot stays free for its processes
     Optional<String> noSlot = workflowSlots.enterWorkflow();

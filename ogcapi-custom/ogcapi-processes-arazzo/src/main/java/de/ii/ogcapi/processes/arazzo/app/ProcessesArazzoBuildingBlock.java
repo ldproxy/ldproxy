@@ -62,7 +62,9 @@ import jakarta.inject.Singleton;
  *     - The extension `x-dso-forEach` of the Arazzo descriptions of the Digitaal Stelsel
  *       Omgevingswet: a step that calls a workflow runs it once per item of `items` (a runtime
  *       expression or a selector object), with the item as the input named in `als`; each output
- *       of the step is then the list of its values.
+ *       of the step is then the list of its values. The runs of the outermost loop execute in
+ *       parallel, at most `maximumParallelLoopRuns` at the same time; steps that execute a process
+ *       still run one after another.
  *     </code>
  *     <p>Not supported are AsyncAPI, `dependsOn`, `timeout` and parameters of actions. A
  *     description that uses them is rejected; a stored description is then not published, the
@@ -78,6 +80,8 @@ import jakarta.inject.Singleton;
  *     `serverInputs`, e.g. an API key of the server; both only for stored workflows. The input
  *     schema of a stored workflow may only use the keywords of process descriptions, annotations
  *     such as `default` and `examples` are allowed; `default` values apply to missing inputs.
+ *     <p>The OpenAPI documents of external APIs are kept across executions as long as the `max-age`
+ *     of their responses allows, or as long as `externalApiDocumentMaxAge` states.
  *     <p>To analyse a workflow, set the logger `de.ii.ogcapi.processes.arazzo` to `DEBUG` (in
  *     `cfg.yml` or at runtime with the task `log-level` of the admin port): each step is logged
  *     with the workflow, the method, the URL, the status code and the duration, the runs of a loop
@@ -130,7 +134,10 @@ import jakarta.inject.Singleton;
  *     - Die Erweiterung `x-dso-forEach` der Arazzo-Beschreibungen des Digitaal Stelsel
  *       Omgevingswet: Ein Schritt, der einen Workflow aufruft, führt ihn für jedes Element von
  *       `items` aus (ein Laufzeitausdruck oder ein Selektor-Objekt), mit dem Element als der in
- *       `als` genannten Eingabe; jede Ausgabe des Schritts ist dann die Liste ihrer Werte.
+ *       `als` genannten Eingabe; jede Ausgabe des Schritts ist dann die Liste ihrer Werte. Die
+ *       Durchläufe der äußersten Schleife werden parallel ausgeführt, höchstens
+ *       `maximumParallelLoopRuns` gleichzeitig; Schritte, die einen Prozess ausführen, laufen
+ *       weiterhin nacheinander.
  *     </code>
  *     <p>Nicht unterstützt werden AsyncAPI, `dependsOn`, `timeout` und Parameter von Aktionen. Eine
  *     Beschreibung, die sie verwendet, wird abgelehnt; eine gespeicherte Beschreibung wird dann
@@ -148,6 +155,8 @@ import jakarta.inject.Singleton;
  *     nur für gespeicherte Workflows. Das Eingabeschema eines gespeicherten Workflows darf nur die
  *     Schlüsselwörter von Prozessbeschreibungen verwenden, Annotationen wie `default` und
  *     `examples` sind erlaubt; `default`-Werte gelten für fehlende Eingaben.
+ *     <p>Die OpenAPI-Dokumente externer APIs werden über Ausführungen hinweg behalten, so lange es
+ *     `max-age` ihrer Antworten erlaubt oder `externalApiDocumentMaxAge` angibt.
  *     <p>Zur Analyse eines Workflows wird der Logger `de.ii.ogcapi.processes.arazzo` auf `DEBUG`
  *     gesetzt (in `cfg.yml` oder zur Laufzeit mit dem Task `log-level` des Admin-Ports): Jeder
  *     Schritt wird mit dem Workflow, der Methode, der URL, dem Statuscode und der Dauer
@@ -163,6 +172,7 @@ public class ProcessesArazzoBuildingBlock implements ApiBuildingBlock {
 
   public static final int MAXIMUM_STEPS = 100;
   public static final int MAXIMUM_RESPONSE_SIZE = 10_000_000;
+  public static final int MAXIMUM_PARALLEL_LOOP_RUNS = 4;
 
   @Inject
   public ProcessesArazzoBuildingBlock() {}
@@ -173,6 +183,7 @@ public class ProcessesArazzoBuildingBlock implements ApiBuildingBlock {
         .enabled(false)
         .maximumSteps(MAXIMUM_STEPS)
         .maximumResponseSize(MAXIMUM_RESPONSE_SIZE)
+        .maximumParallelLoopRuns(MAXIMUM_PARALLEL_LOOP_RUNS)
         .build();
   }
 }

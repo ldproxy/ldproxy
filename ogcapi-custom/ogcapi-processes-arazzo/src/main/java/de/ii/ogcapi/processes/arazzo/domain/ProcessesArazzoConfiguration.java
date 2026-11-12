@@ -33,6 +33,8 @@ import org.immutables.value.Value;
  *       x-api-key: '${example.apikey}'
  *   externalApiServers:
  *     https://api.example.com/v2/rules/openapi.json: https://api.example.com/v2/rules
+ *   externalApiDocumentMaxAge:
+ *     https://api.example.com/v2/: 3600
  *   serverInputs:
  *     apiKey: '${example.apikey}'
  * ```
@@ -145,6 +147,35 @@ public interface ProcessesArazzoConfiguration extends ExtensionConfiguration {
   Map<String, String> getServerInputs();
 
   /**
+   * @langEn How long the server keeps the OpenAPI document of an external API, in seconds, by the
+   *     URI of the API as in `allowedExternalUris`. It replaces the caching headers of the
+   *     response. Without an entry, a document is kept as long as the `max-age` of the header
+   *     `Cache-Control` of its response allows; with `no-store`, `no-cache` or without `max-age`,
+   *     it is read again by each execution.
+   * @langDe Wie lange der Server das OpenAPI-Dokument einer externen API behält, in Sekunden, nach
+   *     der URI der API wie in `allowedExternalUris`. Die Angabe ersetzt die Caching-Header der
+   *     Antwort. Ohne Eintrag wird ein Dokument so lange behalten, wie es `max-age` im Header
+   *     `Cache-Control` seiner Antwort erlaubt; mit `no-store`, `no-cache` oder ohne `max-age`
+   *     liest es jede Ausführung erneut.
+   * @default {}
+   * @since v5.0
+   */
+  Map<String, Integer> getExternalApiDocumentMaxAge();
+
+  /**
+   * @langEn The maximum number of runs of a loop (`x-dso-forEach`) that execute at the same time.
+   *     Loops within a run of a loop run one after another. With `1`, all loops run one after
+   *     another.
+   * @langDe Die maximale Anzahl an Durchläufen einer Schleife (`x-dso-forEach`), die gleichzeitig
+   *     ausgeführt werden. Schleifen innerhalb eines Durchlaufs einer Schleife laufen nacheinander.
+   *     Mit `1` laufen alle Schleifen nacheinander.
+   * @default 4
+   * @since v5.0
+   */
+  @Nullable
+  Integer getMaximumParallelLoopRuns();
+
+  /**
    * @langEn The ids of the workflows of the stored Arazzo descriptions that are published as
    *     processes. Without an entry, every workflow is a process. Workflows that are not published
    *     can still be called by other workflows.
@@ -176,6 +207,8 @@ public interface ProcessesArazzoConfiguration extends ExtensionConfiguration {
         .externalApiHeaders(merge(src.getExternalApiHeaders(), getExternalApiHeaders()))
         .externalApiServers(merge(src.getExternalApiServers(), getExternalApiServers()))
         .serverInputs(merge(src.getServerInputs(), getServerInputs()))
+        .externalApiDocumentMaxAge(
+            merge(src.getExternalApiDocumentMaxAge(), getExternalApiDocumentMaxAge()))
         .publishedWorkflows(
             Stream.concat(src.getPublishedWorkflows().stream(), getPublishedWorkflows().stream())
                 .distinct()

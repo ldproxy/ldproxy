@@ -383,4 +383,77 @@ class WorkflowRunnerSpec extends Specification {
         "Pand gesloopt"   | "p2" | 1
         "Pand in aanbouw" | null | 2
     }
+
+    // answers pand.getItems with 8 features, pand.getItem after a pause; counts the requests in parallel
+    static class SlowDispatcher extends FakeDispatcher {
+        final java.util.concurrent.atomic.AtomicInteger running = new java.util.concurrent.atomic.AtomicInteger()
+        final java.util.concurrent.atomic.AtomicInteger maximum = new java.util.concurrent.atomic.AtomicInteger()
+        final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger()
+
+        @Override
+        StepResponse dispatch(StepRequest request, int maximumResponseSize) {
+            if (request.operationId() == "pand.getItems") {
+                return ok([features: (1..8).collect { [id: "p" + it] }])
+            }
+            count.incrementAndGet()
+            int now = running.incrementAndGet()
+            maximum.accumulateAndGet(now, { a, b -> Math.max(a, b) } as java.util.function.IntBinaryOperator)
+            Thread.sleep(50)
+            running.decrementAndGet()
+            return ok([id: request.pathParameters().featureId])
+        }
+    }
+
+    WorkflowRunner parallelRunner(StepDispatcher slow, int parallel) {
+        return new WorkflowRunner(slow, new HttpExternalApis(http.client(), []), { String id -> Optional.empty() }, "bag", 100, 1000,
+                { long ms -> } as WorkflowRunner.Pause, [:], parallel)
+    }
+
+    def "the runs of a loop execute in parallel up to the maximum, in the order of the items"() {
+        given:
+        def slow = new SlowDispatcher()
+        def doc = document([
+                workflow("outer", [
+                        [stepId: "ids", operationId: "pand.getItems", outputs: [ids: [context: '$response.body', selector: '$.features[*].id', type: "jsonpath"]]],
+                        [stepId: "each", workflowId: "inner", "x-dso-forEach": [items: '$steps.ids.outputs.ids', als: "id"], outputs: [ids: '$outputs.id']]],
+                        [outputs: [ids: '$steps.each.outputs.ids']]),
+                workflow("inner", [[stepId: "get", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: '$inputs.id']],
+                                    outputs: [id: '$response.body#/id']]],
+                        [inputs: [type: "object", properties: [id: [type: "string"]]], outputs: [id: '$steps.get.outputs.id']]),
+        ])
+
+        when:
+        def result = parallelRunner(slow, parallel).run(doc, "outer", [:])
+
+        then:
+        result.outputs() == [ids: (1..8).collect { "p" + it }]
+        slow.count.get() == 8
+        slow.maximum.get() == parallel
+
+        where:
+        parallel << [1, 4]
+    }
+
+    def "loops within a run of a parallel loop run one after another"() {
+        given:
+        def slow = new SlowDispatcher()
+        def ids = [type: "array", items: [type: "string"]]
+        def doc = document([
+                workflow("outer", [[stepId: "each", workflowId: "middle", "x-dso-forEach": [items: '$inputs.ids', als: "id"],
+                                    parameters: [[name: "ids", value: '$inputs.ids']]]],
+                        [inputs: [type: "object", properties: [ids: ids]]]),
+                workflow("middle", [[stepId: "each", workflowId: "inner", "x-dso-forEach": [items: '$inputs.ids', als: "id"]]],
+                        [inputs: [type: "object", properties: [id: [type: "string"], ids: ids]]]),
+                workflow("inner", [[stepId: "get", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: '$inputs.id']]]],
+                        [inputs: [type: "object", properties: [id: [type: "string"]]]]),
+        ])
+
+        when:
+        // 3 runs of "middle" in parallel, each with 4 runs of "inner" one after another
+        parallelRunner(slow, 3).run(doc, "outer", [ids: ["a", "b", "c", "d"]])
+
+        then:
+        slow.count.get() == 16
+        slow.maximum.get() == 3
+    }
 }

@@ -204,8 +204,8 @@ paths:
 
     def "configured headers are added to the requests of their URI, a header of the step takes precedence"() {
         given:
-        def configured = new HttpExternalApis(http.client(), ["https://api.example.com/v1/", "https://cdn.example.com/"],
-                ["https://api.example.com/v1/": ["X-Api-Key": "server-key", "User-Agent": "ldproxy"]], [:])
+        def configured = new HttpExternalApis(http.client(), new HttpExternalApis.Options(["https://api.example.com/v1/", "https://cdn.example.com/"],
+                ["https://api.example.com/v1/": ["X-Api-Key": "server-key", "User-Agent": "ldproxy"]], [:], [:]), ExternalApiDocuments.NONE, "bag")
         http.responses["https://api.example.com/v1/items"] = { String method -> response(302, "", [location: "https://cdn.example.com/items"]) }
         http.responses["https://cdn.example.com/items"] = { String method -> response(200, "[]") }
         def request = new StepRequest("x", "getItems", "GET", "/items", [:], [:], ["user-agent": "step"], Optional.empty(), Optional.of("https://api.example.com/v1"))
@@ -225,7 +225,7 @@ paths:
 
     def "a configured server replaces the servers of the document"() {
         given:
-        def configured = new HttpExternalApis(http.client(), ["https://api.example.com/v1/"], [:], [(DOCUMENT): "https://api.example.com/v1/rules"])
+        def configured = new HttpExternalApis(http.client(), new HttpExternalApis.Options(["https://api.example.com/v1/"], [:], [(DOCUMENT): "https://api.example.com/v1/rules"], [:]), ExternalApiDocuments.NONE, "bag")
 
         when:
         def api = configured.api(DOCUMENT, 1000)
@@ -233,5 +233,48 @@ paths:
         then:
         api.operation("getItems").get().server() == Optional.of("https://api.example.com/v1/rules")
         api.operation("getSpecial").get().server() == Optional.of("https://api.example.com/v1/rules")
+    }
+
+    def "an OpenAPI document is kept as long as the configuration or its response allows"() {
+        given:
+        long now = 0
+        def documents = new ExternalApiDocumentsImpl({ -> now })
+        http.responses[DOCUMENT] = { String method -> response(200, YAML, cacheControl ? ["cache-control": cacheControl] : [:]) }
+        def options = new HttpExternalApis.Options(["https://api.example.com/v1/"], [:], [:], configured)
+        def apis = { String key -> new HttpExternalApis(http.client(), options, documents, key) }
+
+        when:
+        apis("bag").api(DOCUMENT, 1000)
+        now = 59_000
+        apis("bag").api(DOCUMENT, 1000)
+        // the documents of another API are not shared
+        apis("bgt").api(DOCUMENT, 1000)
+        now = 61_000
+        apis("bag").api(DOCUMENT, 1000)
+
+        then:
+        http.sent.size() == requests
+
+        where:
+        cacheControl                    | configured                           || requests
+        "public, max-age=60"            | [:]                                  || 3
+        "no-store, max-age=0"           | [:]                                  || 4
+        "no-cache, max-age=60"          | [:]                                  || 4
+        null                            | [:]                                  || 4
+        "no-store, max-age=0"           | ["https://api.example.com/": 60]     || 3
+        "public, max-age=60"            | ["https://api.example.com/v1/": 120] || 2
+    }
+
+    def "max-age is read from Cache-Control"() {
+        expect:
+        HttpExternalApis.maxAge(value) == seconds
+
+        where:
+        value                                              || seconds
+        "public, max-age=3600, no-transform"               || 3600
+        "Max-Age=\"10\""                                  || 10
+        "no-cache, no-store, max-age=0, must-revalidate"   || 0
+        "private"                                          || 0
+        "max-age=x"                                        || 0
     }
 }

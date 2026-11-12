@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,7 +34,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -69,7 +78,13 @@ final class WorkflowRunner {
   private final List<Map<String, Object>> trace;
   // the external APIs of the sources by URL, each document is read once per execution
   private final Map<String, ExternalApi> externalSources;
-  private int stepsRun;
+  private final int maximumParallelLoopRuns;
+  // the steps of all workflows of the execution, also of the runs of a loop in parallel
+  private final AtomicInteger stepsRun;
+  // set in a run of a loop that executes in parallel; loops within it run one after another
+  private final ThreadLocal<Boolean> inParallelRun;
+  // the steps that execute a process run one after another, each needs a job
+  private final ReentrantLock processSteps;
 
   /** Pauses before a retry; the default waits, a test does not. */
   @FunctionalInterface
@@ -116,6 +131,34 @@ final class WorkflowRunner {
       int maximumResponseSize,
       Pause pause,
       Map<String, String> serverInputs) {
+    this(
+        dispatcher,
+        externalApis,
+        storedDocuments,
+        apiId,
+        maximumSteps,
+        maximumResponseSize,
+        pause,
+        serverInputs,
+        1);
+  }
+
+  /**
+   * @param serverInputs the values of inputs that the server sets, by the name of the input; each
+   *     workflow with an input of this name receives the value, a caller cannot set it
+   * @param maximumParallelLoopRuns the maximum number of runs of a loop that execute at the same
+   *     time; only the runs of the outermost loop execute in parallel
+   */
+  WorkflowRunner(
+      StepDispatcher dispatcher,
+      ExternalApis externalApis,
+      Function<String, Optional<ArazzoDocument>> storedDocuments,
+      String apiId,
+      int maximumSteps,
+      int maximumResponseSize,
+      Pause pause,
+      Map<String, String> serverInputs,
+      int maximumParallelLoopRuns) {
     this.dispatcher = dispatcher;
     this.externalApis = externalApis;
     this.storedDocuments = storedDocuments;
@@ -125,9 +168,13 @@ final class WorkflowRunner {
     this.pause = pause;
     this.serverInputs = serverInputs;
     this.log = new WorkflowLog(serverInputs.keySet());
-    this.workflows = new LinkedHashMap<>();
-    this.trace = new ArrayList<>();
-    this.externalSources = new HashMap<>();
+    this.maximumParallelLoopRuns = maximumParallelLoopRuns;
+    this.workflows = Collections.synchronizedMap(new LinkedHashMap<>());
+    this.trace = Collections.synchronizedList(new ArrayList<>());
+    this.externalSources = new ConcurrentHashMap<>();
+    this.stepsRun = new AtomicInteger();
+    this.inParallelRun = new ThreadLocal<>();
+    this.processSteps = new ReentrantLock();
   }
 
   // the pause of a retry; the job processor thread waits, as the specification requires
@@ -201,7 +248,8 @@ final class WorkflowRunner {
       index = next.get() == NEXT ? index + 1 : next.get();
     }
     Map<String, Object> outputs = outputs(state);
-    log.finished(workflow.getWorkflowId(), depth, System.currentTimeMillis() - start, stepsRun);
+    log.finished(
+        workflow.getWorkflowId(), depth, System.currentTimeMillis() - start, stepsRun.get());
     return outputs;
   }
 
@@ -312,8 +360,7 @@ final class WorkflowRunner {
   private record StepOutcome(boolean success, Optional<Exchange> exchange) {}
 
   private StepOutcome execute(State state, ArazzoStep step) {
-    stepsRun++;
-    if (stepsRun > maximumSteps) {
+    if (stepsRun.incrementAndGet() > maximumSteps) {
       throw WorkflowException.failure(
           "The execution needs more than %d steps, the maximum of an execution.", maximumSteps);
     }
@@ -334,10 +381,7 @@ final class WorkflowRunner {
     }
     StepRequest request = request(state, step, context);
     long start = System.currentTimeMillis();
-    StepResponse response =
-        request.server().isPresent()
-            ? externalApis.dispatch(request, maximumResponseSize)
-            : dispatcher.dispatch(request, maximumResponseSize);
+    StepResponse response = dispatch(request);
     long millis = System.currentTimeMillis() - start;
     Exchange exchange = new Exchange(request, response);
     entry.put("statusCode", response.statusCode());
@@ -359,6 +403,27 @@ final class WorkflowRunner {
       stepOutputs(state, step, outputs(step, responseContext), entry);
     }
     return new StepOutcome(success, Optional.of(exchange));
+  }
+
+  private StepResponse dispatch(StepRequest request) {
+    if (request.server().isPresent()) {
+      return externalApis.dispatch(request, maximumResponseSize);
+    }
+    if (!isProcessExecution(request)) {
+      return dispatcher.dispatch(request, maximumResponseSize);
+    }
+    processSteps.lock();
+    try {
+      return dispatcher.dispatch(request, maximumResponseSize);
+    } finally {
+      processSteps.unlock();
+    }
+  }
+
+  private static boolean isProcessExecution(StepRequest request) {
+    return "POST".equals(request.method())
+        && request.path().startsWith("/processes/")
+        && request.path().endsWith("/execution");
   }
 
   private static Map<String, Object> outputs(ArazzoStep step, ExpressionContext context) {
@@ -418,24 +483,98 @@ final class WorkflowRunner {
         state.depth,
         target.getWorkflowId(),
         items.size());
-    int index = 0;
+    IntFunction<Optional<Map<String, Object>>> run =
+        index -> {
+          Object item = items.get(index);
+          log.item(state.depth, index + 1, items.size(), item);
+          Map<String, Object> itemInputs = new LinkedHashMap<>(inputs);
+          itemInputs.put(forEach.getAls(), item);
+          return runNested(targetDocument, target, itemInputs, state.depth + 1)
+              .map(context::withOutputs)
+              .filter(itemContext -> Criteria.all(step.getSuccessCriteria(), itemContext))
+              .map(itemContext -> outputs(step, itemContext));
+        };
     Map<String, Object> outputs = new LinkedHashMap<>();
     step.getOutputs().keySet().forEach(name -> outputs.put(name, new ArrayList<>()));
-    for (Object item : items) {
-      log.item(state.depth, ++index, items.size(), item);
-      Map<String, Object> itemInputs = new LinkedHashMap<>(inputs);
-      itemInputs.put(forEach.getAls(), item);
-      Optional<ExpressionContext> nested =
-          runNested(targetDocument, target, itemInputs, state.depth + 1)
-              .map(context::withOutputs)
-              .filter(itemContext -> Criteria.all(step.getSuccessCriteria(), itemContext));
-      if (nested.isEmpty()) {
+    for (Optional<Map<String, Object>> runOutputs : runs(items.size(), run)) {
+      if (runOutputs.isEmpty()) {
         return Optional.empty();
       }
-      outputs(step, nested.get())
-          .forEach((name, value) -> ((List<Object>) outputs.get(name)).add(value));
+      runOutputs.get().forEach((name, value) -> ((List<Object>) outputs.get(name)).add(value));
     }
     return Optional.of(outputs);
+  }
+
+  /**
+   * The runs of a loop, in the order of the items, until a run fails. The runs of the outermost
+   * loop execute in parallel up to the maximum, then each run waits for the end of all runs; the
+   * loops within a run execute one after another, so that the parallel requests stay limited.
+   */
+  private List<Optional<Map<String, Object>>> runs(
+      int count, IntFunction<Optional<Map<String, Object>>> run) {
+    List<Optional<Map<String, Object>>> results = new ArrayList<>();
+    if (maximumParallelLoopRuns <= 1 || count <= 1 || Boolean.TRUE.equals(inParallelRun.get())) {
+      for (int index = 0; index < count; index++) {
+        Optional<Map<String, Object>> result = run.apply(index);
+        results.add(result);
+        if (result.isEmpty()) {
+          break;
+        }
+      }
+      return results;
+    }
+    return parallelRuns(count, run);
+  }
+
+  // the runs wait for external APIs; they execute on the threads of a pool of the loop, the pool
+  // ends with the loop
+  @SuppressWarnings("PMD.DoNotUseThreads")
+  private List<Optional<Map<String, Object>>> parallelRuns(
+      int count, IntFunction<Optional<Map<String, Object>>> run) {
+    ExecutorService executor =
+        Executors.newFixedThreadPool(Math.min(maximumParallelLoopRuns, count));
+    try {
+      List<Future<Optional<Map<String, Object>>>> futures = new ArrayList<>();
+      for (int index = 0; index < count; index++) {
+        int current = index;
+        futures.add(
+            executor.submit(
+                () -> {
+                  inParallelRun.set(true);
+                  try {
+                    return run.apply(current);
+                  } finally {
+                    inParallelRun.remove();
+                  }
+                }));
+      }
+      List<Optional<Map<String, Object>>> results = new ArrayList<>();
+      for (Future<Optional<Map<String, Object>>> future : futures) {
+        results.add(result(future));
+      }
+      return results;
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  // the result of a run; a problem of the description or a failure of the run is thrown again
+  @SuppressWarnings("PMD.DoNotUseThreads")
+  private static Optional<Map<String, Object>> result(
+      Future<Optional<Map<String, Object>>> future) {
+    try {
+      return future.get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new WorkflowException(
+          WorkflowException.Kind.FAILURE, "The execution was interrupted.", e);
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException runtimeException) {
+        throw runtimeException;
+      }
+      throw new WorkflowException(
+          WorkflowException.Kind.FAILURE, "A run of a loop failed: " + e.getCause(), e);
+    }
   }
 
   // the items of a loop; no value is an empty list, a single value a list with one item
@@ -712,9 +851,7 @@ final class WorkflowRunner {
       throw WorkflowException.problem(
           "The source description '%s' (%s) is not an API of this server.", name, url);
     }
-    if (!externalSources.containsKey(url)) {
-      externalSources.put(url, externalApis.api(url, maximumResponseSize));
-    }
+    externalSources.computeIfAbsent(url, key -> externalApis.api(key, maximumResponseSize));
     return url;
   }
 
