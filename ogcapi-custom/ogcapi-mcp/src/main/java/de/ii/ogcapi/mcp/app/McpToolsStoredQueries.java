@@ -22,7 +22,6 @@ import de.ii.ogcapi.features.search.domain.StoredQueryRepository;
 import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -33,7 +32,6 @@ import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpTool;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.cql.domain.Cql;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
@@ -43,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /** The stored queries, a tool per stored query. */
 final class McpToolsStoredQueries implements McpToolSource {
@@ -136,13 +133,9 @@ final class McpToolsStoredQueries implements McpToolSource {
         McpInternalRequests.internalRequest(
                 appContext, api, mcpRequest, stringParams, "search", queryId)
             .method("GET")
-            .mediaType(
-                new ImmutableApiMediaType.Builder()
-                    .type(new MediaType("application", "geo+json"))
-                    .label("GeoJSON")
-                    .parameter("json")
-                    .build())
-            .alternateMediaTypes(Set.of())
+            .mediaType(McpInternalRequests.GEOJSON)
+            .alternateMediaTypes(
+                McpInternalRequests.alternateMediaTypes(tool, McpInternalRequests.GEOJSON))
             .queryParameterSet(queryParameterSet)
             .build();
     requestContext =

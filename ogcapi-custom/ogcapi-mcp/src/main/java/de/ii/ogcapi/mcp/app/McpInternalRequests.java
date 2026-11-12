@@ -7,8 +7,12 @@
  */
 package de.ii.ogcapi.mcp.app;
 
+import de.ii.ogcapi.foundation.domain.ApiMediaType;
+import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -16,6 +20,7 @@ import de.ii.ogcapi.mcp.domain.McpTool;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.swagger.v3.oas.models.media.Schema;
+import jakarta.ws.rs.core.MediaType;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,7 +36,26 @@ import java.util.stream.Stream;
 /** Helpers for the tools that execute a request to a resource of the API. */
 final class McpInternalRequests {
 
+  // the encoding of the features in the result of a tool
+  static final ApiMediaType GEOJSON =
+      new ImmutableApiMediaType.Builder()
+          .type(new MediaType("application", "geo+json"))
+          .label("GeoJSON")
+          .parameter("json")
+          .build();
+
   private McpInternalRequests() {}
+
+  // the other encodings of the operation of the tool, as in a request to the API; the response then
+  // links to them, for example to the HTML page with a map, and its self link keeps the query
+  // parameters
+  static Set<ApiMediaType> alternateMediaTypes(McpTool tool, ApiMediaType mediaType) {
+    return tool.getOperation().flatMap(ApiOperation::getSuccess).stream()
+        .flatMap(response -> response.getContent().values().stream())
+        .map(ApiMediaTypeContent::getOgcApiMediaType)
+        .filter(candidate -> !candidate.type().isCompatible(mediaType.type()))
+        .collect(Collectors.toUnmodifiableSet());
+  }
 
   // the context of an internal request to a resource of the API; it is derived from the MCP request
   // like a request to the API (forwarded host and prefix), so the links in the response are the

@@ -8,8 +8,11 @@
 package de.ii.ogcapi.mcp.app
 
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
+import de.ii.ogcapi.mcp.domain.ImmutableMcpTool
+import de.ii.ogcapi.mcp.domain.McpTool
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException
 import io.swagger.v3.oas.models.media.IntegerSchema
+import io.swagger.v3.oas.models.media.ObjectSchema
 import jakarta.ws.rs.InternalServerErrorException
 import jakarta.ws.rs.NotFoundException
 import spock.lang.Specification
@@ -18,16 +21,19 @@ class McpToolResultSpec extends Specification {
 
     static final String BASE = "https://example.com/bag/collections/pand/items"
 
-    def 'a result with a next page states the offset of the next page and keeps only the paging links'() {
+    static final Map<String, Object> SELF = [rel: "self", type: "application/geo+json", title: "This document", href: BASE + "?gemeentecode=0307&limit=10&f=json"]
+    static final Map<String, Object> HTML = [rel: "alternate", type: "text/html", title: "This document as HTML", href: BASE + "?gemeentecode=0307&limit=10&f=html"]
+    static final Map<String, Object> FG = [rel: "alternate", type: "application/geo+json", title: "This document as JSON-FG", href: BASE + "?gemeentecode=0307&limit=10&f=json&profile=jsonfg"]
+    static final Map<String, Object> NEXT = [rel: "next", type: "application/geo+json", href: BASE + "?gemeentecode=0307&f=json&limit=10&offset=20"]
+
+    def 'a result with a next page states the offset of the next page and keeps the links to the result in the HTTP API'() {
         given:
         Map<String, Object> result = [
                 type          : "FeatureCollection",
                 numberReturned: 10,
                 features      : [],
-                links         : [
-                        [rel: "self", href: BASE + "?gemeentecode=0307&limit=10&f=json"],
-                        [rel: "alternate", href: BASE + "?gemeentecode=0307&limit=10&f=html"],
-                        [rel: "next", href: BASE + "?gemeentecode=0307&f=json&limit=10&offset=20"]]]
+                links         : [SELF, HTML, FG, NEXT,
+                                 [rel: "collection", type: "application/json", href: "https://example.com/bag/collections/pand"]]]
 
         when:
         Map<String, Object> forTool = McpServerImpl.forToolResult(result)
@@ -35,22 +41,53 @@ class McpToolResultSpec extends Specification {
         then:
         forTool.keySet() as List == ["type", "nextOffset", "numberReturned", "features", "links"]
         forTool.nextOffset == 20L
-        forTool.links == [[rel: "next", href: BASE + "?gemeentecode=0307&f=json&limit=10&offset=20"]]
+        forTool.links == [SELF, HTML, NEXT]
     }
 
-    def 'a result without a next page has neither links nor nextOffset'() {
+    def 'a result without a next page has no nextOffset'() {
         given:
         Map<String, Object> result = [
                 type          : "FeatureCollection",
                 numberReturned: 3,
                 features      : [],
-                links         : [[rel: "self", href: BASE + "?gemeentecode=0307&f=json"]]]
+                links         : [SELF, HTML]]
 
         when:
         Map<String, Object> forTool = McpServerImpl.forToolResult(result)
 
         then:
-        forTool.keySet() as List == ["type", "numberReturned", "features"]
+        forTool.keySet() as List == ["type", "numberReturned", "features", "links"]
+        forTool.links == [SELF, HTML]
+    }
+
+    def 'a result without links has neither links nor nextOffset'() {
+        expect:
+        McpServerImpl.forToolResult([type: "FeatureCollection", features: []]).keySet() as List == ["type", "features"]
+    }
+
+    def 'the result in the HTTP API is a resource link'() {
+        given:
+        McpTool tool = new ImmutableMcpTool.Builder()
+                .id("collection_pand")
+                .name("Collection - Pand")
+                .description("Panden")
+                .inputSchema(new ObjectSchema())
+                .outputSchema(new ObjectSchema())
+                .build()
+
+        when:
+        def link = McpServerImpl.resourceLink(tool, McpServerImpl.forToolResult([type: "FeatureCollection", features: [], links: [HTML, SELF, NEXT]]))
+
+        then:
+        link.isPresent()
+        link.get().uri() == SELF.href
+        link.get().mimeType() == "application/geo+json"
+        link.get().name() == "collection_pand"
+        link.get().title() == "Collection - Pand"
+
+        and:
+        McpServerImpl.resourceLink(tool, [groups: [], total: [count: 0L]]).isEmpty()
+        McpServerImpl.resourceLink(tool, [type: "FeatureCollection", features: [], links: [HTML]]).isEmpty()
     }
 
     def 'the links of the features are left out, their other members are kept'() {

@@ -18,7 +18,6 @@ import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
-import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
@@ -30,13 +29,11 @@ import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import jakarta.ws.rs.NotFoundException;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /** The features of the collections, a tool per collection. */
 final class McpToolsCollections implements McpToolSource {
@@ -147,13 +144,9 @@ final class McpToolsCollections implements McpToolSource {
         McpInternalRequests.internalRequest(
                 appContext, api, mcpRequest, stringParams, "collections", collectionId, "items")
             .method("GET")
-            .mediaType(
-                new ImmutableApiMediaType.Builder()
-                    .type(new MediaType("application", "geo+json"))
-                    .label("GeoJSON")
-                    .parameter("json")
-                    .build())
-            .alternateMediaTypes(Set.of())
+            .mediaType(McpInternalRequests.GEOJSON)
+            .alternateMediaTypes(
+                McpInternalRequests.alternateMediaTypes(tool, McpInternalRequests.GEOJSON))
             .queryParameterSet(parameterSet)
             .build();
     requestContext =

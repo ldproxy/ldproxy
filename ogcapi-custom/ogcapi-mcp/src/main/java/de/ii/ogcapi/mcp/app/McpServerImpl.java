@@ -53,6 +53,7 @@ import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransp
 import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.Implementation;
+import io.modelcontextprotocol.spec.McpSchema.ResourceLink;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
@@ -86,7 +87,8 @@ import org.slf4j.LoggerFactory;
 public class McpServerImpl implements McpServer, AppLifeCycle {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(McpServerImpl.class);
-  private static final Set<String> PAGING_RELS = Set.of("next", "prev");
+  private static final Set<String> KEPT_RELS = Set.of("self", "next", "prev");
+  private static final String HTML = "text/html";
 
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
@@ -262,11 +264,13 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                               tool,
                               Objects.requireNonNullElse(request.arguments(), Map.of()),
                               mcpRequest(context));
-                  return CallToolResult.builder()
-                      .addTextContent(mcpObjectMapper.writeValueAsString(result))
-                      .isError(false)
-                      .structuredContent(result)
-                      .build();
+                  CallToolResult.Builder toolResult =
+                      CallToolResult.builder()
+                          .addTextContent(mcpObjectMapper.writeValueAsString(result))
+                          .isError(false)
+                          .structuredContent(result);
+                  resourceLink(tool, result).ifPresent(toolResult::addContent);
+                  return toolResult.build();
                 } catch (Throwable e) {
                   return CallToolResult.builder()
                       .addTextContent(toolError(tool.getId(), e))
@@ -377,19 +381,18 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             id);
   }
 
-  // of the links in a response, only those to other pages are useful for a client of a tool; a
-  // client cannot follow a link, so the offset of the next page is stated as nextOffset, at the
-  // start of the result (see McpToolUtils.PAGING_HINT); the links of the features are left out
+  // of the links in a response, a client of a tool needs those to other pages and those to the same
+  // result in the HTTP API: as data, for a client that downloads the result instead of reading it,
+  // and as HTML, for the person, who can open it on a map; a model cannot follow a link, so the
+  // offset of the next page is also stated as nextOffset, at the start of the result (see
+  // McpToolUtils.PAGING_HINT); the links of the features are left out
   static Map<String, Object> forToolResult(Map<String, Object> result) {
-    List<?> pagingLinks =
+    List<?> keptLinks =
         result.get("links") instanceof List<?> links
-            ? links.stream()
-                .filter(
-                    link -> link instanceof Map<?, ?> map && PAGING_RELS.contains(map.get("rel")))
-                .toList()
+            ? links.stream().filter(McpServerImpl::isKeptLink).toList()
             : List.of();
     Optional<Long> nextOffset =
-        pagingLinks.stream()
+        keptLinks.stream()
             .map(link -> (Map<?, ?>) link)
             .filter(link -> "next".equals(link.get("rel")) && link.get("href") instanceof String)
             .flatMap(
@@ -404,8 +407,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     result.forEach(
         (key, value) -> {
           if ("links".equals(key)) {
-            if (!pagingLinks.isEmpty()) {
-              forTool.put(key, pagingLinks);
+            if (!keptLinks.isEmpty()) {
+              forTool.put(key, keptLinks);
             }
           } else if ("features".equals(key) && value instanceof List<?> features) {
             forTool.put(key, features.stream().map(McpServerImpl::withoutLinks).toList());
@@ -417,6 +420,35 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
           }
         });
     return forTool;
+  }
+
+  private static boolean isKeptLink(Object link) {
+    return link instanceof Map<?, ?> map
+        && (KEPT_RELS.contains(map.get("rel"))
+            || "alternate".equals(map.get("rel")) && HTML.equals(map.get("type")));
+  }
+
+  // the result of the call in the HTTP API as a resource the client can read or store, for example
+  // as a file, so that the data can be processed without copying it from the text content
+  static Optional<ResourceLink> resourceLink(McpTool tool, Map<String, Object> result) {
+    return result.get("links") instanceof List<?> links
+        ? links.stream()
+            .filter(link -> link instanceof Map<?, ?> map && "self".equals(map.get("rel")))
+            .map(link -> (Map<?, ?>) link)
+            .filter(link -> link.get("href") instanceof String)
+            .findFirst()
+            .map(
+                link ->
+                    ResourceLink.builder()
+                        .name(tool.getId())
+                        .title(tool.getName())
+                        .uri((String) link.get("href"))
+                        .mimeType(link.get("type") instanceof String type ? type : null)
+                        .description(
+                            "The result of this call from the HTTP API, for example to save it as"
+                                + " a file.")
+                        .build())
+        : Optional.empty();
   }
 
   private static Object withoutLinks(Object feature) {
