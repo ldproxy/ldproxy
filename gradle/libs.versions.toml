@@ -6,6 +6,7 @@ flatgeobuf = '3.29.0'
 json-patch = '2.0.2'
 spdx = '2.0.5'
 mcp = '2.1.0'
+jsonpath = '1.0.0'
 
 [libraries]
 # foundation
@@ -25,5 +26,8 @@ json-patch = { module = "com.gravity9:json-patch-path", version.ref = "json-patc
 # mcp
 mcp-core = { module = "io.modelcontextprotocol.sdk:mcp-core", version.ref = "mcp" }
 mcp-json-jackson2 = { module = "io.modelcontextprotocol.sdk:mcp-json-jackson2", version.ref = "mcp" }
+
+# processes-arazzo
+jsonpath-core = { module = "io.github.treetrail:jsonpath-core", version.ref = "jsonpath" }
 
 [bundles]

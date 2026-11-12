@@ -30,6 +30,22 @@ class ArazzoCheckerSpec extends Specification {
         ArazzoChecker.problems(doc) == []
     }
 
+    def "selectors, JSONPath and XPath criteria and loops are within the subset"() {
+        given:
+        def doc = document([workflow("w", [
+                [stepId: "a", operationId: "pand.getItems",
+                 parameters: [[name: "q", in: "query", value: [context: '$inputs', selector: '/q', type: "jsonpointer"]]],
+                 successCriteria: [[context: '$response.body', condition: '$[?count(@.features) > 0]', type: "jsonpath"],
+                                   [context: '$response.body', condition: "//*[local-name()='a']", type: [type: "xpath", version: "xpath-10"]],
+                                   [context: '$response.body', condition: '$.features[?@.id == \'{$inputs.id}\']', type: "jsonpath"]],
+                 outputs: [ids: [context: '$response.body', selector: '$.features[*].id', type: "jsonpath", "x-note": "ids"]]],
+                [stepId: "b", workflowId: "w", "x-dso-forEach": [items: '$steps.a.outputs.ids', als: "id"], outputs: [n: '$outputs.n']],
+        ], [outputs: [first: [context: '$steps.a.outputs', selector: '$.ids[0]', type: "jsonpath"]]])])
+
+        expect:
+        ArazzoChecker.problems(doc) == []
+    }
+
     def "members outside the subset are problems"() {
         when:
         def problems = ArazzoChecker.problems(document([workflow("w", [step])]))
@@ -39,16 +55,21 @@ class ArazzoCheckerSpec extends Specification {
 
         where:
         step                                                                                                   || fragment
-        [stepId: "a", operationId: "x", successCriteria: [[context: '$response.body', condition: '$.a', type: "jsonpath"]]] || "only 'simple' and 'regex'"
+        [stepId: "a", operationId: "x", successCriteria: [[context: '$response.body', condition: '$.a', type: "jsonata"]]] || "only 'simple', 'regex', 'jsonpath' and 'xpath'"
+        [stepId: "a", operationId: "x", successCriteria: [[context: '$response.body', condition: '$[?(@.a ==]', type: "jsonpath"]]] || "jsonpath expression"
+        [stepId: "a", operationId: "x", successCriteria: [[condition: '$.a', type: "jsonpath"]]]                  || "has no context"
         [stepId: "a", operationId: "x", successCriteria: [[condition: '$a ==', type: [type: "simple", version: "1"]]]]      || "is invalid"
         [stepId: "a", channelPath: "c", action: "send"]                                                        || "exactly one of"
         [stepId: "a", operationId: "x", timeout: 1000]                                                          || "timeout"
         [stepId: "a", operationId: "x", dependsOn: ["b"]]                                                       || "dependsOn"
         [stepId: "a", operationId: "x", parameters: [[name: "q", in: "querystring", value: 1]]]                 || "querystring"
-        [stepId: "a", operationId: "x", parameters: [[name: "q", in: "query", value: [context: '$response.body', selector: '$.a', type: "jsonpath"]]]] || "selector object"
+        [stepId: "a", operationId: "x", parameters: [[name: "q", in: "query", value: [context: '$response.body', selector: '$.a', type: "jmespath"]]]] || "selector type 'jmespath'"
         [stepId: "a", operationId: "x", onSuccess: [[name: "g", type: "goto", stepId: "nope"]]]                 || "unknown step 'nope'"
         [stepId: "a", operationId: "x", onSuccess: [[name: "r", type: "retry"]]]                                || "type 'retry'"
-        [stepId: "a", operationId: "x", outputs: [o: [context: '$response.body', selector: '$.a', type: "jsonpath"]]] || "selector objects"
+        [stepId: "a", operationId: "x", outputs: [o: [context: '$response.body', selector: '//a[', type: "xpath"]]] || "xpath expression"
+        [stepId: "a", operationId: "x", outputs: [o: [selector: '$.a', type: "jsonpath"]]]                     || "neither a runtime expression nor a selector object"
+        [stepId: "a", operationId: "x", "x-dso-forEach": [items: '$inputs.ids', als: "id"]]                    || "does not call a workflow"
+        [stepId: "a", workflowId: "w", "x-dso-forEach": [items: 'ids', als: "id"]]                             || "items of 'x-dso-forEach'"
         [stepId: "a.b", operationId: "x"]                                                                       || "must only contain"
     }
 

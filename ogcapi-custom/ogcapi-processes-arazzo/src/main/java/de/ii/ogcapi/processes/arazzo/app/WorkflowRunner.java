@@ -12,6 +12,7 @@ import de.ii.ogcapi.processes.arazzo.app.StepDispatcher.Operation;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoAction;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoComponents;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoDocument;
+import de.ii.ogcapi.processes.arazzo.domain.ArazzoForEach;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoParameter;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoReplacement;
 import de.ii.ogcapi.processes.arazzo.domain.ArazzoRequestBody;
@@ -61,6 +62,7 @@ final class WorkflowRunner {
   private final int maximumSteps;
   private final int maximumResponseSize;
   private final Pause pause;
+  private final Map<String, String> serverInputs;
   private final Map<String, Map<String, Object>> workflows;
   private final List<Map<String, Object>> trace;
   // the external APIs of the sources by URL, each document is read once per execution
@@ -88,6 +90,30 @@ final class WorkflowRunner {
       int maximumSteps,
       int maximumResponseSize,
       Pause pause) {
+    this(
+        dispatcher,
+        externalApis,
+        storedDocuments,
+        apiId,
+        maximumSteps,
+        maximumResponseSize,
+        pause,
+        Map.of());
+  }
+
+  /**
+   * @param serverInputs the values of inputs that the server sets, by the name of the input; each
+   *     workflow with an input of this name receives the value, a caller cannot set it
+   */
+  WorkflowRunner(
+      StepDispatcher dispatcher,
+      ExternalApis externalApis,
+      Function<String, Optional<ArazzoDocument>> storedDocuments,
+      String apiId,
+      int maximumSteps,
+      int maximumResponseSize,
+      Pause pause,
+      Map<String, String> serverInputs) {
     this.dispatcher = dispatcher;
     this.externalApis = externalApis;
     this.storedDocuments = storedDocuments;
@@ -95,6 +121,7 @@ final class WorkflowRunner {
     this.maximumSteps = maximumSteps;
     this.maximumResponseSize = maximumResponseSize;
     this.pause = pause;
+    this.serverInputs = serverInputs;
     this.workflows = new LinkedHashMap<>();
     this.trace = new ArrayList<>();
     this.externalSources = new HashMap<>();
@@ -124,6 +151,12 @@ final class WorkflowRunner {
         workflow(document, workflowId)
             .orElseThrow(
                 () -> WorkflowException.problem("The workflow '%s' does not exist.", workflowId));
+    List<String> setByServer =
+        inputs.keySet().stream().filter(serverInputs::containsKey).sorted().toList();
+    if (!setByServer.isEmpty()) {
+      throw WorkflowException.problem(
+          "The inputs %s are set by the server, they cannot be part of a request.", setByServer);
+    }
     Map<String, Object> outputs = run(document, workflow, inputs, 0);
     return new Result(outputs, List.copyOf(trace));
   }
@@ -184,16 +217,18 @@ final class WorkflowRunner {
         state.inputs, state.outputs, state.steps, workflows, sources, Optional.empty());
   }
 
-  // the inputs with the defaults of the schema; the required inputs must have a value
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> inputs(
+  // the inputs with the values of the server and the defaults of the schema; the required inputs
+  // must have a value
+  private Map<String, Object> inputs(
       ArazzoDocument document, ArazzoWorkflow workflow, Map<String, Object> inputs) {
     Map<String, Object> actual = new LinkedHashMap<>(inputs);
     Map<String, Object> schema = inputSchema(document, workflow);
     if (schema.get("properties") instanceof Map<?, ?> properties) {
       properties.forEach(
           (name, property) -> {
-            if (property instanceof Map<?, ?> definition
+            if (serverInputs.containsKey(String.valueOf(name))) {
+              actual.put(String.valueOf(name), serverInputs.get(String.valueOf(name)));
+            } else if (property instanceof Map<?, ?> definition
                 && definition.containsKey("default")
                 && !actual.containsKey(String.valueOf(name))) {
               actual.put(String.valueOf(name), definition.get("default"));
@@ -261,44 +296,57 @@ final class WorkflowRunner {
     entry.put("stepId", step.getStepId());
     trace.add(entry);
 
-    Optional<Exchange> exchange = Optional.empty();
-    boolean success;
     if (step.getWorkflowId().isPresent()) {
-      success = runNested(state, step, context);
-    } else {
-      StepRequest request = request(state, step, context);
-      StepResponse response =
-          request.server().isPresent()
-              ? externalApis.dispatch(request, maximumResponseSize)
-              : dispatcher.dispatch(request, maximumResponseSize);
-      exchange = Optional.of(new Exchange(request, response));
-      entry.put("statusCode", response.statusCode());
-      context = context.withExchange(exchange.get());
-      success =
-          step.getSuccessCriteria().isEmpty()
-              ? response.isSuccessful()
-              : Criteria.all(step.getSuccessCriteria(), context);
+      Optional<Map<String, Object>> outputs = runWorkflowStep(state, step, context, entry);
+      entry.put("success", outputs.isPresent());
+      outputs.ifPresent(values -> stepOutputs(state, step, values, entry));
+      return new StepOutcome(outputs.isPresent(), Optional.empty());
     }
-    if (success && step.getWorkflowId().isPresent() && !step.getSuccessCriteria().isEmpty()) {
-      success = Criteria.all(step.getSuccessCriteria(), context);
-    }
+    StepRequest request = request(state, step, context);
+    StepResponse response =
+        request.server().isPresent()
+            ? externalApis.dispatch(request, maximumResponseSize)
+            : dispatcher.dispatch(request, maximumResponseSize);
+    Exchange exchange = new Exchange(request, response);
+    entry.put("statusCode", response.statusCode());
+    ExpressionContext responseContext = context.withExchange(exchange);
+    boolean success =
+        step.getSuccessCriteria().isEmpty()
+            ? response.isSuccessful()
+            : Criteria.all(step.getSuccessCriteria(), responseContext);
     entry.put("success", success);
     if (success) {
-      ExpressionContext outputsContext = context;
-      Map<String, Object> outputs = new LinkedHashMap<>();
-      step.getOutputs()
-          .forEach(
-              (name, value) ->
-                  outputs.put(name, RuntimeExpressions.resolve(value, outputsContext)));
-      state.steps.put(step.getStepId(), outputs);
-      if (!outputs.isEmpty()) {
-        entry.put("outputs", outputs);
-      }
+      stepOutputs(state, step, outputs(step, responseContext), entry);
     }
-    return new StepOutcome(success, exchange);
+    return new StepOutcome(success, Optional.of(exchange));
   }
 
-  private boolean runNested(State state, ArazzoStep step, ExpressionContext context) {
+  private static Map<String, Object> outputs(ArazzoStep step, ExpressionContext context) {
+    Map<String, Object> outputs = new LinkedHashMap<>();
+    step.getOutputs()
+        .forEach((name, value) -> outputs.put(name, RuntimeExpressions.resolve(value, context)));
+    return outputs;
+  }
+
+  private static void stepOutputs(
+      State state, ArazzoStep step, Map<String, Object> outputs, Map<String, Object> entry) {
+    state.steps.put(step.getStepId(), outputs);
+    if (!outputs.isEmpty()) {
+      entry.put("outputs", outputs);
+    }
+  }
+
+  /**
+   * A step that calls a workflow: the success criteria and the outputs of the step see the outputs
+   * of the workflow as {@code $outputs}. With the extension {@code x-dso-forEach}, the workflow
+   * runs once per item, each run must succeed, and each output of the step is the list of its
+   * values in all runs.
+   *
+   * @return the outputs of the step, empty if the step failed
+   */
+  @SuppressWarnings("unchecked")
+  private Optional<Map<String, Object>> runWorkflowStep(
+      State state, ArazzoStep step, ExpressionContext context, Map<String, Object> entry) {
     String reference = step.getWorkflowId().orElseThrow();
     ArazzoDocument targetDocument = targetDocument(state.document, reference);
     ArazzoWorkflow target = targetWorkflow(targetDocument, reference);
@@ -309,14 +357,51 @@ final class WorkflowRunner {
                 inputs.put(
                     parameter.getName().orElseThrow(),
                     RuntimeExpressions.resolve(parameter.getValue(), context)));
+    if (step.getForEach().isEmpty()) {
+      return runNested(targetDocument, target, inputs, state.depth + 1)
+          .map(context::withOutputs)
+          .filter(nested -> Criteria.all(step.getSuccessCriteria(), nested))
+          .map(nested -> outputs(step, nested));
+    }
+    ArazzoForEach forEach = step.getForEach().get();
+    List<?> items = items(RuntimeExpressions.resolve(forEach.getItems(), context));
+    entry.put("iterations", items.size());
+    Map<String, Object> outputs = new LinkedHashMap<>();
+    step.getOutputs().keySet().forEach(name -> outputs.put(name, new ArrayList<>()));
+    for (Object item : items) {
+      Map<String, Object> itemInputs = new LinkedHashMap<>(inputs);
+      itemInputs.put(forEach.getAls(), item);
+      Optional<ExpressionContext> nested =
+          runNested(targetDocument, target, itemInputs, state.depth + 1)
+              .map(context::withOutputs)
+              .filter(itemContext -> Criteria.all(step.getSuccessCriteria(), itemContext));
+      if (nested.isEmpty()) {
+        return Optional.empty();
+      }
+      outputs(step, nested.get())
+          .forEach((name, value) -> ((List<Object>) outputs.get(name)).add(value));
+    }
+    return Optional.of(outputs);
+  }
+
+  // the items of a loop; no value is an empty list, a single value a list with one item
+  private static List<?> items(Object value) {
+    if (Objects.isNull(value)) {
+      return List.of();
+    }
+    return value instanceof List<?> list ? list : List.of(value);
+  }
+
+  // the outputs of the workflow, empty if it failed
+  private Optional<Map<String, Object>> runNested(
+      ArazzoDocument document, ArazzoWorkflow workflow, Map<String, Object> inputs, int depth) {
     try {
-      run(targetDocument, target, inputs, state.depth + 1);
-      return true;
+      return Optional.of(run(document, workflow, inputs, depth));
     } catch (WorkflowException e) {
       if (e.getKind() == WorkflowException.Kind.PROBLEM) {
         throw e;
       }
-      return false;
+      return Optional.empty();
     }
   }
 
@@ -358,11 +443,12 @@ final class WorkflowRunner {
             () -> WorkflowException.problem("The workflow '%s' does not exist.", reference));
   }
 
-  // the id of a stored description: the name of the file without the extension
+  // the id of a stored description: the name of the file without the extension, also without a
+  // second extension '.arazzo', e.g. 'permits' for 'permits.arazzo.yaml'
   static String storedDocumentId(String url) {
     String name = url.replaceAll("[?#].*$", "");
     name = name.substring(name.lastIndexOf('/') + 1);
-    return name.replaceAll("\\.(ya?ml|json)$", "");
+    return name.replaceAll("\\.(ya?ml|json)$", "").replaceAll("\\.arazzo$", "");
   }
 
   private static ArazzoSource source(ArazzoDocument document, String name) {

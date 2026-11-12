@@ -21,9 +21,10 @@ class WorkflowRunnerSpec extends Specification {
     Map<String, ArazzoDocument> stored = [:]
     FakeHttpClient http = new FakeHttpClient()
     List<String> allowedExternalUris = []
+    Map<String, String> serverInputs = new LinkedHashMap<>()
 
     WorkflowRunner runner(int maximumSteps = 100) {
-        return new WorkflowRunner(dispatcher, new HttpExternalApis(http.client(), allowedExternalUris), { String id -> Optional.ofNullable(stored[id]) }, "bag", maximumSteps, 1000, { long ms -> pauses.add(ms) } as WorkflowRunner.Pause)
+        return new WorkflowRunner(dispatcher, new HttpExternalApis(http.client(), allowedExternalUris), { String id -> Optional.ofNullable(stored[id]) }, "bag", maximumSteps, 1000, { long ms -> pauses.add(ms) } as WorkflowRunner.Pause, serverInputs)
     }
 
     def "the outputs of a step are the inputs of the next step"() {
@@ -262,5 +263,124 @@ class WorkflowRunnerSpec extends Specification {
 
         then:
         dispatcher.requests*.query() == [[limit: "5"], [limit: "5"]]
+    }
+
+    def "the outputs of a step that calls a workflow see the outputs of the workflow"() {
+        given:
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([numberReturned: 5]) }
+        def doc = document([
+                workflow("outer", [[stepId: "call", workflowId: "inner", successCriteria: [[condition: '$outputs.n > 1']], outputs: [n: '$outputs.n']]],
+                        [outputs: [n: '$steps.call.outputs.n']]),
+                workflow("inner", [[stepId: "a", operationId: "pand.getItems", outputs: [n: '$response.body#/numberReturned']]],
+                        [outputs: [n: '$steps.a.outputs.n']]),
+        ])
+
+        expect:
+        runner().run(doc, "outer", [:]).outputs() == [n: 5]
+    }
+
+    def "x-dso-forEach runs the workflow once per item, the outputs of the step are lists"() {
+        given:
+        dispatcher.responses["pand.getItem"] = { StepRequest r, int n -> ok([properties: [bouwjaar: r.pathParameters().featureId == "p1" ? 1930 : 1975]]) }
+        def doc = document([
+                workflow("outer", [
+                        [stepId: "ids", operationId: "pand.getItems", outputs: [ids: [context: '$response.body', selector: '$.features[*].id', type: "jsonpath"]]],
+                        [stepId: "each", workflowId: "inner", "x-dso-forEach": [items: '$steps.ids.outputs.ids', als: "id"],
+                         parameters: [[name: "prefix", value: "pand"]], outputs: [jaar: '$outputs.jaar', label: '$outputs.label']]],
+                        [outputs: [jaren: '$steps.each.outputs.jaar', labels: '$steps.each.outputs.label']]),
+                workflow("inner", [[stepId: "get", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: '$inputs.id']],
+                                    outputs: [jaar: '$response.body#/properties/bouwjaar']]],
+                        [inputs : [type: "object", properties: [id: [type: "string"], prefix: [type: "string"]], required: ["id"]],
+                         outputs: [jaar: '$steps.get.outputs.jaar', label: '{$inputs.prefix} {$inputs.id}']]),
+        ])
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([features: features]) }
+
+        when:
+        def result = runner().run(doc, "outer", [:])
+
+        then:
+        result.outputs() == expected
+        result.steps().find { it.stepId == "each" }.iterations == features.size()
+
+        where:
+        features               | expected
+        [[id: "p1"], [id: "p2"]] | [jaren: [1930, 1975], labels: ["pand p1", "pand p2"]]
+        [[id: "p1"]]           | [jaren: [1930], labels: ["pand p1"]]
+        []                     | [jaren: [], labels: []]
+    }
+
+    def "a failed run of a loop fails the step"() {
+        given:
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([features: [[id: "p1"], [id: "missing"]]]) }
+        dispatcher.responses["pand.getItem"] = { StepRequest r, int n ->
+            r.pathParameters().featureId == "p1" ? ok([id: "p1"]) : new StepResponse(404, [:], Optional.empty()) }
+        def doc = document([
+                workflow("outer", [
+                        [stepId: "ids", operationId: "pand.getItems", outputs: [ids: [context: '$response.body', selector: '$.features[*].id', type: "jsonpath"]]],
+                        [stepId: "each", workflowId: "inner", "x-dso-forEach": [items: '$steps.ids.outputs.ids', als: "id"]]]),
+                workflow("inner", [[stepId: "get", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: '$inputs.id']]]],
+                        [inputs: [type: "object", properties: [id: [type: "string"]]]]),
+        ])
+
+        when:
+        runner().run(doc, "outer", [:])
+
+        then:
+        WorkflowException e = thrown()
+        e.kind == WorkflowException.Kind.FAILURE
+        e.message.contains("'each'")
+        dispatcher.requests*.path() == ["/collections/pand/items", "/collections/pand/items/p1", "/collections/pand/items/missing"]
+    }
+
+    def "inputs set by the server reach every workflow that declares them, a caller cannot set them"() {
+        given:
+        serverInputs = [apiKey: "secret"]
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([numberReturned: 1]) }
+        def inputs = [type: "object", properties: [apiKey: [type: "string", format: "password"]], required: ["apiKey"]]
+        def doc = document([
+                workflow("outer", [[stepId: "call", workflowId: "inner"]], [inputs: inputs]),
+                workflow("inner", [[stepId: "a", operationId: "pand.getItems", parameters: [[name: "x-api-key", in: "header", value: '$inputs.apiKey']]]],
+                        [inputs: inputs]),
+        ])
+
+        when:
+        runner().run(doc, "outer", [:])
+
+        then:
+        dispatcher.requests[0].headers()["x-api-key"] == "secret"
+
+        when:
+        runner().run(doc, "outer", [apiKey: "other"])
+
+        then:
+        WorkflowException e = thrown()
+        e.kind == WorkflowException.Kind.PROBLEM
+        e.message.contains("set by the server")
+    }
+
+    def "JSONPath criteria and selectors decide and select"() {
+        given:
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n ->
+            ok([features: [[id: "p1", properties: [status: "Pand in gebruik"]], [id: "p2", properties: [status: "Pand gesloopt"]]]]) }
+        dispatcher.responses["pand.getItem"] = { StepRequest r, int n -> ok([id: "p0"]) }
+        def doc = document([workflow("w", [
+                [stepId: "a", operationId: "pand.getItems",
+                 successCriteria: [[context: '$response.body', condition: '$[?length(@.features) == 2]', type: "jsonpath"]],
+                 onSuccess      : [[name: "none", type: "end", criteria: [[context: '$response.body', condition: '$.features[?@.properties.status == \'{$inputs.status}\']', type: [type: "jsonpath", version: "rfc9535"]]]]],
+                 outputs        : [ids: [context: '$response.body', selector: '$.features[?@.properties.status == \'{$inputs.status}\'].id', type: "jsonpath"]]],
+                [stepId: "b", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: "p0"]]],
+        ], [outputs: [ids: '$steps.a.outputs.ids']])])
+
+        when:
+        def result = runner().run(doc, "w", [status: status])
+
+        then:
+        result.outputs() == [ids: ids]
+        dispatcher.requests.size() == requests
+
+        where:
+        status            | ids  | requests
+        "Pand gesloopt"   | "p2" | 1
+        "Pand in aanbouw" | null | 2
     }
 }

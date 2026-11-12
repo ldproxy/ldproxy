@@ -10,7 +10,9 @@ package de.ii.ogcapi.processes.arazzo.domain;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -22,6 +24,17 @@ import org.immutables.value.Value;
  * - buildingBlock: PROCESSES_ARAZZO
  *   enabled: true
  *   maximumSteps: 50
+ *   publishedWorkflows:
+ *   - permit-check
+ *   allowedExternalUris:
+ *   - https://api.example.com/v2/
+ *   externalApiHeaders:
+ *     https://api.example.com/v2/:
+ *       x-api-key: '${example.apikey}'
+ *   externalApiServers:
+ *     https://api.example.com/v2/rules/openapi.json: https://api.example.com/v2/rules
+ *   serverInputs:
+ *     apiKey: '${example.apikey}'
  * ```
  * </code>
  */
@@ -84,6 +97,65 @@ public interface ProcessesArazzoConfiguration extends ExtensionConfiguration {
    */
   List<String> getAllowedExternalUris();
 
+  /**
+   * @langEn Headers that the server adds to the requests to external APIs, by the URI of the API as
+   *     in `allowedExternalUris`, e.g. an API key: the requests for the OpenAPI documents of source
+   *     descriptions and the requests of steps. A header that a step sets itself is not replaced. A
+   *     redirect to another host does not keep these headers. The headers are only sent for stored
+   *     workflows, not for Arazzo descriptions in the inputs of a process. Use a variable for a
+   *     secret, e.g. `${dso.apikey}`, so that it is not part of the configuration.
+   * @langDe Header, die der Server den Anfragen an externe APIs hinzufügt, nach der URI der API wie
+   *     in `allowedExternalUris`, z.B. ein API-Schlüssel: den Anfragen nach den OpenAPI-Dokumenten
+   *     der Quellbeschreibungen und den Anfragen der Schritte. Ein Header, den ein Schritt selbst
+   *     setzt, wird nicht ersetzt. Eine Weiterleitung zu einem anderen Host behält diese Header
+   *     nicht. Die Header werden nur für gespeicherte Workflows gesendet, nicht für
+   *     Arazzo-Beschreibungen in den Eingaben eines Prozesses. Für ein Geheimnis sollte eine
+   *     Variable verwendet werden, z.B. `${dso.apikey}`, damit es nicht Teil der Konfiguration ist.
+   * @default {}
+   * @since v5.0
+   */
+  Map<String, Map<String, String>> getExternalApiHeaders();
+
+  /**
+   * @langEn The URL of the server of an external API, by the URL of its OpenAPI document. It
+   *     replaces the servers in the document, e.g. for a document without servers, where the server
+   *     would otherwise be the root of the host of the document.
+   * @langDe Die URL des Servers einer externen API, nach der URL ihres OpenAPI-Dokuments. Sie
+   *     ersetzt die Server im Dokument, z.B. für ein Dokument ohne Server, bei dem der Server sonst
+   *     die Wurzel des Hosts des Dokuments wäre.
+   * @default {}
+   * @since v5.0
+   */
+  Map<String, String> getExternalApiServers();
+
+  /**
+   * @langEn Inputs of stored workflows whose values the server sets, by the name of the input, e.g.
+   *     an API key of the server for an external API. Each workflow that has an input with this
+   *     name receives the value, also a workflow that another one calls. The inputs are not part of
+   *     the description of a process and a client cannot set them. Use a variable for a secret,
+   *     e.g. `${dso.apikey}`.
+   * @langDe Eingaben gespeicherter Workflows, deren Werte der Server setzt, nach dem Namen der
+   *     Eingabe, z.B. ein API-Schlüssel des Servers für eine externe API. Jeder Workflow mit einer
+   *     Eingabe dieses Namens erhält den Wert, auch ein Workflow, den ein anderer aufruft. Die
+   *     Eingaben sind nicht Teil der Beschreibung eines Prozesses und ein Client kann sie nicht
+   *     setzen. Für ein Geheimnis sollte eine Variable verwendet werden, z.B. `${dso.apikey}`.
+   * @default {}
+   * @since v5.0
+   */
+  Map<String, String> getServerInputs();
+
+  /**
+   * @langEn The ids of the workflows of the stored Arazzo descriptions that are published as
+   *     processes. Without an entry, every workflow is a process. Workflows that are not published
+   *     can still be called by other workflows.
+   * @langDe Die Ids der Workflows der gespeicherten Arazzo-Beschreibungen, die als Prozesse
+   *     veröffentlicht werden. Ohne Eintrag ist jeder Workflow ein Prozess. Workflows, die nicht
+   *     veröffentlicht werden, können weiterhin von anderen Workflows aufgerufen werden.
+   * @default []
+   * @since v5.0
+   */
+  List<String> getPublishedWorkflows();
+
   abstract class Builder extends ExtensionConfiguration.Builder {}
 
   @Override
@@ -101,6 +173,19 @@ public interface ProcessesArazzoConfiguration extends ExtensionConfiguration {
             Stream.concat(src.getAllowedExternalUris().stream(), getAllowedExternalUris().stream())
                 .distinct()
                 .toList())
+        .externalApiHeaders(merge(src.getExternalApiHeaders(), getExternalApiHeaders()))
+        .externalApiServers(merge(src.getExternalApiServers(), getExternalApiServers()))
+        .serverInputs(merge(src.getServerInputs(), getServerInputs()))
+        .publishedWorkflows(
+            Stream.concat(src.getPublishedWorkflows().stream(), getPublishedWorkflows().stream())
+                .distinct()
+                .toList())
         .build();
+  }
+
+  private static <T> Map<String, T> merge(Map<String, T> source, Map<String, T> target) {
+    Map<String, T> merged = new LinkedHashMap<>(source);
+    merged.putAll(target);
+    return merged;
   }
 }

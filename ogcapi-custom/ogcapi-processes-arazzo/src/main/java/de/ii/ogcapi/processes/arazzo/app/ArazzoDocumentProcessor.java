@@ -86,4 +86,9 @@ public class ArazzoDocumentProcessor extends ArazzoProcessor {
             "The input 'workflowId' is required, the description has the workflows %s.",
             document.getWorkflows().stream().map(ArazzoWorkflow::getWorkflowId).toList()));
   }
+
+  @Override
+  protected boolean usesServerCredentials() {
+    return false;
+  }
 }

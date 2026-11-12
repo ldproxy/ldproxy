@@ -19,15 +19,18 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Calls external APIs over HTTP, only at the allowed URIs: the OpenAPI documents, the requests of
  * the steps and the targets of redirects. The credentials of the caller of the workflow are never
- * sent, a request has only the headers of the parameters of its step.
+ * sent, a request has only the headers of the parameters of its step and the configured headers of
+ * the server for its URI.
  */
 final class HttpExternalApis implements ExternalApis {
 
@@ -48,13 +51,43 @@ final class HttpExternalApis implements ExternalApis {
 
   private final Sender client;
   private final List<String> allowedUris;
+  private final Map<String, Map<String, String>> configuredHeaders;
+  private final Set<String> configuredHeaderNames;
+  private final Map<String, String> servers;
 
   /**
    * @param allowedUris the URIs that requests may use, see {@link AllowedUris}
    */
   HttpExternalApis(Sender client, List<String> allowedUris) {
+    this(client, allowedUris, Map.of(), Map.of());
+  }
+
+  /**
+   * @param allowedUris the URIs that requests may use, see {@link AllowedUris}
+   * @param configuredHeaders the headers of the server for the requests to a URI, by the URI as in
+   *     {@code allowedUris}
+   * @param servers the servers of external APIs by the URL of the OpenAPI document; they replace
+   *     the servers of the document
+   */
+  HttpExternalApis(
+      Sender client,
+      List<String> allowedUris,
+      Map<String, Map<String, String>> configuredHeaders,
+      Map<String, String> servers) {
     this.client = client;
     this.allowedUris = allowedUris;
+    this.configuredHeaders = new LinkedHashMap<>();
+    configuredHeaders.forEach(
+        (uri, headers) -> {
+          Map<String, String> lowerCase = new LinkedHashMap<>();
+          headers.forEach((name, value) -> lowerCase.put(name.toLowerCase(Locale.ROOT), value));
+          this.configuredHeaders.put(uri, lowerCase);
+        });
+    this.configuredHeaderNames =
+        this.configuredHeaders.values().stream()
+            .flatMap(headers -> headers.keySet().stream())
+            .collect(Collectors.toSet());
+    this.servers = servers;
   }
 
   /** Sends a request without following redirects, {@link HttpClient#send}. */
@@ -98,7 +131,11 @@ final class HttpExternalApis implements ExternalApis {
           String.format("The OpenAPI document '%s' is neither JSON nor YAML.", url),
           e);
     }
-    return ExternalApi.of(url, received.url(), Objects.requireNonNullElse(document, Map.of()));
+    return ExternalApi.of(
+        url,
+        received.url(),
+        Objects.requireNonNullElse(document, Map.of()),
+        Optional.ofNullable(servers.get(url)));
   }
 
   @Override
@@ -152,7 +189,7 @@ final class HttpExternalApis implements ExternalApis {
           client.send(
               request.method(),
               request.url(),
-              request.headers(),
+              withConfiguredHeaders(request.url(), request.headers()),
               request.body(),
               maximumResponseSize);
       String location = response.getHeaders().get(LOCATION);
@@ -167,8 +204,30 @@ final class HttpExternalApis implements ExternalApis {
     }
   }
 
-  // a redirect to another host drops the authorization; like browsers, a 303, and a 301 or 302
-  // after a POST, continue with a GET without content
+  // the configured headers of the URI, unless the request has a header with the same name
+  private Map<String, String> withConfiguredHeaders(String url, Map<String, String> headers) {
+    Map<String, String> result = new LinkedHashMap<>(headers);
+    Set<String> names =
+        headers.keySet().stream()
+            .map(name -> name.toLowerCase(Locale.ROOT))
+            .collect(Collectors.toSet());
+    configuredHeaders.forEach(
+        (uri, configured) -> {
+          if (AllowedUris.isAllowed(url, List.of(uri))) {
+            configured.forEach(
+                (name, value) -> {
+                  if (names.add(name)) {
+                    result.put(name, value);
+                  }
+                });
+          }
+        });
+    return result;
+  }
+
+  // a redirect to another host drops the authorization and the headers with the names of
+  // configured headers; like browsers, a 303, and a 301 or 302 after a POST, continue with a GET
+  // without content
   private Request redirected(Request request, int status, String location) {
     URI current = URI.create(request.url());
     URI target = current.resolve(location);
@@ -179,6 +238,9 @@ final class HttpExternalApis implements ExternalApis {
     Map<String, String> headers = new LinkedHashMap<>(request.headers());
     if (!Objects.equals(current.getHost(), target.getHost())) {
       headers.remove(AUTHORIZATION);
+      headers
+          .keySet()
+          .removeIf(name -> configuredHeaderNames.contains(name.toLowerCase(Locale.ROOT)));
     }
     if (status == 303 || (status == 301 || status == 302) && !GET.equals(request.method())) {
       headers.remove(CONTENT_TYPE);

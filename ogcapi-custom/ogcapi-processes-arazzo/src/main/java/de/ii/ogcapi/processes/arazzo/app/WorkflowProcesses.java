@@ -44,8 +44,10 @@ import org.slf4j.LoggerFactory;
  * Each workflow of a stored Arazzo description in {@code values/workflows/{apiId}} is a process of
  * the API, if the building block PROCESSES_ARAZZO is enabled: the id is the workflow id, the inputs
  * are the properties of the input schema, the outputs those of the workflow, and the process runs
- * the workflow with the step {@code arazzo-workflow:execute}. A description that is invalid or
- * outside the supported subset is not published, the problems are logged.
+ * the workflow with the step {@code arazzo-workflow:execute}. Only the workflows in {@code
+ * publishedWorkflows} are processes, if there are any, and the inputs that the server sets are not
+ * inputs of the process. A description that is invalid or outside the supported subset is not
+ * published, the problems are logged.
  */
 @Singleton
 @AutoBind
@@ -93,16 +95,29 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
           "maxItems",
           "minItems",
           ITEMS);
-  private static final Set<String> ITEMS_KEYWORDS = Set.of("type");
+  private static final Set<String> ITEMS_KEYWORDS = Set.of("type", "required", PROPERTIES);
   private static final Set<String> ANNOTATIONS =
       Set.of("default", "examples", "example", "$comment", "deprecated", "readOnly", "writeOnly");
 
   private final Values<ArazzoDocument> store;
   private final EntityRegistry entityRegistry;
-  // the processes derived from a description, as long as the description does not change
-  private final Map<Identifier, Derived> cache;
+  // the processes derived from a description for an API, as long as the description and the
+  // configuration of the API do not change
+  private final Map<Key, Derived> cache;
 
-  private record Derived(ArazzoDocument document, Map<String, ProcessData> processes) {}
+  private record Key(String apiId, Identifier identifier) {}
+
+  // the published workflows and the inputs set by the server
+  record Selection(List<String> published, Set<String> serverInputs) {
+    static final Selection ALL = new Selection(List.of(), Set.of());
+
+    boolean isPublished(String workflowId) {
+      return published.isEmpty() || published.contains(workflowId);
+    }
+  }
+
+  private record Derived(
+      ArazzoDocument document, Selection selection, Map<String, ProcessData> processes) {}
 
   @Inject
   public WorkflowProcesses(ValueStore valueStore, EntityRegistry entityRegistry) {
@@ -113,12 +128,13 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
 
   @Override
   public Map<String, ProcessData> getProcesses(String apiId) {
-    if (!isEnabled(apiId)) {
+    Optional<Selection> selection = selection(apiId);
+    if (selection.isEmpty()) {
       return Map.of();
     }
     Map<String, ProcessData> processes = new LinkedHashMap<>();
     for (Identifier identifier : identifiers(apiId)) {
-      derived(identifier)
+      derived(apiId, identifier, selection.get())
           .forEach(
               (id, process) -> {
                 if (processes.putIfAbsent(id, process) != null && LOGGER.isWarnEnabled()) {
@@ -135,8 +151,9 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
 
   @Override
   public Optional<ArazzoDocument> getByWorkflow(String apiId, String workflowId) {
+    Selection selection = selection(apiId).orElse(Selection.ALL);
     return identifiers(apiId).stream()
-        .filter(identifier -> derived(identifier).containsKey(workflowId))
+        .filter(identifier -> derived(apiId, identifier, selection).containsKey(workflowId))
         .findFirst()
         .map(store::get);
   }
@@ -144,17 +161,25 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
   @Override
   public Optional<ArazzoDocument> getDocument(String apiId, String documentId) {
     return identifiers(apiId).stream()
-        .filter(identifier -> identifier.id().equals(documentId))
+        .filter(
+            identifier ->
+                WorkflowRunner.storedDocumentId(identifier.id())
+                    .equals(WorkflowRunner.storedDocumentId(documentId)))
         .findFirst()
         .map(store::get);
   }
 
-  private boolean isEnabled(String apiId) {
+  // empty, if the building block is not enabled
+  private Optional<Selection> selection(String apiId) {
     return entityRegistry
         .getEntity(OgcApi.class, apiId)
         .flatMap(api -> api.getData().getExtension(ProcessesArazzoConfiguration.class))
         .filter(ExtensionConfiguration::isEnabled)
-        .isPresent();
+        .map(
+            configuration ->
+                new Selection(
+                    configuration.getPublishedWorkflows(),
+                    configuration.getServerInputs().keySet()));
   }
 
   // the descriptions of the API first, then the global ones
@@ -170,25 +195,34 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
     return identifiers;
   }
 
-  private Map<String, ProcessData> derived(Identifier identifier) {
+  private Map<String, ProcessData> derived(
+      String apiId, Identifier identifier, Selection selection) {
     ArazzoDocument document = store.get(identifier);
     if (Objects.isNull(document)) {
       return Map.of();
     }
-    Derived derived = cache.get(identifier);
-    if (Objects.isNull(derived) || !derived.document().equals(document)) {
-      derived = new Derived(document, derive(identifier, document));
-      cache.put(identifier, derived);
+    Key key = new Key(apiId, identifier);
+    Derived derived = cache.get(key);
+    if (Objects.isNull(derived)
+        || !derived.document().equals(document)
+        || !derived.selection().equals(selection)) {
+      derived = new Derived(document, selection, derive(identifier, document, selection));
+      cache.put(key, derived);
     }
     return derived.processes();
   }
 
-  private static Map<String, ProcessData> derive(Identifier identifier, ArazzoDocument document) {
+  static Map<String, ProcessData> derive(
+      Identifier identifier, ArazzoDocument document, Selection selection) {
     List<String> problems = new ArrayList<>(ArazzoChecker.problems(document));
     Map<String, ProcessData> processes = new LinkedHashMap<>();
     for (ArazzoWorkflow workflow : document.getWorkflows()) {
+      if (!selection.isPublished(workflow.getWorkflowId())) {
+        continue;
+      }
       try {
-        processes.put(workflow.getWorkflowId(), toProcess(document, workflow));
+        processes.put(
+            workflow.getWorkflowId(), toProcess(document, workflow, selection.serverInputs()));
       } catch (IllegalArgumentException e) {
         problems.add(e.getMessage());
       }
@@ -209,6 +243,15 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
    * @throws IllegalArgumentException if the inputs cannot be described as inputs of a process
    */
   static ProcessData toProcess(ArazzoDocument document, ArazzoWorkflow workflow) {
+    return toProcess(document, workflow, Set.of());
+  }
+
+  /**
+   * @param serverInputs the inputs that the server sets, they are not inputs of the process
+   * @throws IllegalArgumentException if the inputs cannot be described as inputs of a process
+   */
+  static ProcessData toProcess(
+      ArazzoDocument document, ArazzoWorkflow workflow, Set<String> serverInputs) {
     ImmutableProcessData.Builder builder =
         new ImmutableProcessData.Builder()
             .id(workflow.getWorkflowId())
@@ -225,6 +268,9 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
       properties.forEach(
           (name, property) -> {
             String input = String.valueOf(name);
+            if (serverInputs.contains(input)) {
+              return;
+            }
             Map<String, Object> definition = asMap(property, workflow, input);
             OgcSchema inputSchema = toSchema(definition, workflow, input);
             builder.putInputs(
@@ -298,6 +344,19 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
     if (schema.containsKey(ITEMS)) {
       Map<String, Object> items = withoutAnnotations(asMap(schema.get(ITEMS), workflow, input));
       checkKeywords(items, ITEMS_KEYWORDS, workflow, input + "[]");
+      if (items.get(PROPERTIES) instanceof Map<?, ?> properties) {
+        Map<String, Object> cleaned = new LinkedHashMap<>();
+        properties.forEach(
+            (name, property) -> {
+              String where = input + "[]." + name;
+              Map<String, Object> propertySchema =
+                  withoutAnnotations(asMap(property, workflow, where));
+              checkKeywords(propertySchema, PROPERTY_KEYWORDS, workflow, where);
+              checkItems(propertySchema, workflow, where);
+              cleaned.put(String.valueOf(name), propertySchema);
+            });
+        items.put(PROPERTIES, cleaned);
+      }
       schema.put(ITEMS, items);
     }
   }

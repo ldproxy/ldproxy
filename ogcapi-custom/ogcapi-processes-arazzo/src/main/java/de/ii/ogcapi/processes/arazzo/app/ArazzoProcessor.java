@@ -64,6 +64,12 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
   protected abstract Map<String, Object> process(
       String apiId, String processId, Map<String, Object> inputs, WorkflowRunner runner);
 
+  /**
+   * @return true, if the workflows get the configured headers for external APIs and the inputs set
+   *     by the server; only stored workflows do, a description from a request could pass them on
+   */
+  protected abstract boolean usesServerCredentials();
+
   @Override
   public Class<OapJob> getInputsClass() {
     return OapJob.class;
@@ -93,18 +99,25 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
     }
     String processId = JobContextAsync.processIdFrom(job.context()).orElse("");
 
+    ProcessesArazzoConfiguration config = configuration.get();
+    boolean credentials = usesServerCredentials();
     WorkflowRunner runner =
         new WorkflowRunner(
             dispatcher,
-            new HttpExternalApis(httpClient::send, configuration.get().getAllowedExternalUris()),
+            new HttpExternalApis(
+                httpClient::send,
+                config.getAllowedExternalUris(),
+                credentials ? config.getExternalApiHeaders() : Map.of(),
+                config.getExternalApiServers()),
             documentId -> workflowRepository.getDocument(apiId, documentId),
             apiId,
             Objects.requireNonNullElse(
-                configuration.get().getMaximumSteps(), ProcessesArazzoBuildingBlock.MAXIMUM_STEPS),
+                config.getMaximumSteps(), ProcessesArazzoBuildingBlock.MAXIMUM_STEPS),
             Objects.requireNonNullElse(
-                configuration.get().getMaximumResponseSize(),
+                config.getMaximumResponseSize(),
                 ProcessesArazzoBuildingBlock.MAXIMUM_RESPONSE_SIZE),
-            WorkflowRunner::sleep);
+            WorkflowRunner::sleep,
+            credentials ? config.getServerInputs() : Map.of());
 
     // the workflow holds its job slot while it runs; one slot stays free for its processes
     Optional<String> noSlot = workflowSlots.enterWorkflow();

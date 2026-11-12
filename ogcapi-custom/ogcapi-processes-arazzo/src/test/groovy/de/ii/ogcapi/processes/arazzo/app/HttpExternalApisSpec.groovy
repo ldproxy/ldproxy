@@ -201,4 +201,37 @@ paths:
     static StepRequest get(String path) {
         return new StepRequest("x", "op", "GET", path, [:], [:], [:], Optional.empty(), Optional.of("https://api.example.com/v1"))
     }
+
+    def "configured headers are added to the requests of their URI, a header of the step takes precedence"() {
+        given:
+        def configured = new HttpExternalApis(http.client(), ["https://api.example.com/v1/", "https://cdn.example.com/"],
+                ["https://api.example.com/v1/": ["X-Api-Key": "server-key", "User-Agent": "ldproxy"]], [:])
+        http.responses["https://api.example.com/v1/items"] = { String method -> response(302, "", [location: "https://cdn.example.com/items"]) }
+        http.responses["https://cdn.example.com/items"] = { String method -> response(200, "[]") }
+        def request = new StepRequest("x", "getItems", "GET", "/items", [:], [:], ["user-agent": "step"], Optional.empty(), Optional.of("https://api.example.com/v1"))
+
+        when:
+        configured.api(DOCUMENT, 1000)
+        configured.dispatch(request, 1000)
+
+        then:
+        http.sent[0].headers["x-api-key"] == "server-key"
+        http.sent[1].headers["x-api-key"] == "server-key"
+        http.sent[1].headers["user-agent"] == "step"
+        // the redirect to another host drops the configured headers
+        !http.sent[2].headers.containsKey("x-api-key")
+        http.sent[2].headers["user-agent"] == null
+    }
+
+    def "a configured server replaces the servers of the document"() {
+        given:
+        def configured = new HttpExternalApis(http.client(), ["https://api.example.com/v1/"], [:], [(DOCUMENT): "https://api.example.com/v1/rules"])
+
+        when:
+        def api = configured.api(DOCUMENT, 1000)
+
+        then:
+        api.operation("getItems").get().server() == Optional.of("https://api.example.com/v1/rules")
+        api.operation("getSpecial").get().server() == Optional.of("https://api.example.com/v1/rules")
+    }
 }

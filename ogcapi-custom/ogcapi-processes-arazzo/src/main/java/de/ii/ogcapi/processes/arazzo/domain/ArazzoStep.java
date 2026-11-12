@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.arazzo.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Map;
@@ -55,4 +56,8 @@ public interface ArazzoStep {
   Object getTimeout();
 
   List<String> getDependsOn();
+
+  /** The extension {@code x-dso-forEach}, a loop of a step that calls a workflow. */
+  @JsonProperty("x-dso-forEach")
+  Optional<ArazzoForEach> getForEach();
 }

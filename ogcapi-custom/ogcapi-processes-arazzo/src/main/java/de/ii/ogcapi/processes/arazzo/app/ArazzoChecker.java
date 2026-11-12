@@ -138,6 +138,24 @@ final class ArazzoChecker {
       problem("The %s uses 'dependsOn', which is not supported.", where);
     }
     boolean isWorkflow = step.getWorkflowId().isPresent();
+    step.getForEach()
+        .ifPresent(
+            forEach -> {
+              if (!isWorkflow) {
+                problem("The %s has 'x-dso-forEach', but does not call a workflow.", where);
+              }
+              if (Selectors.isSelector(forEach.getItems())) {
+                checkValue(forEach.getItems(), where);
+              } else if (!RuntimeExpressions.isExpression(forEach.getItems())) {
+                problem(
+                    "The items of 'x-dso-forEach' of the %s are neither a runtime expression nor a"
+                        + " selector object.",
+                    where);
+              }
+              if (forEach.getAls().isBlank()) {
+                problem("The input 'als' of 'x-dso-forEach' of the %s is empty.", where);
+              }
+            });
     step.getParameters().forEach(parameter -> checkParameter(parameter, where, isWorkflow));
     step.getRequestBody()
         .ifPresent(
@@ -280,9 +298,22 @@ final class ArazzoChecker {
           }
         }
       }
+      case ArazzoCriterion.JSONPATH, ArazzoCriterion.XPATH -> {
+        if (criterion.getContext().isEmpty()) {
+          problem("A %s criterion of the %s has no context.", type, where);
+        }
+        String problem =
+            criterion.getCondition().contains("{$")
+                ? null
+                : Selectors.syntaxProblem(type, criterion.getCondition());
+        if (Objects.nonNull(problem)) {
+          problem("A criterion of the %s is invalid: %s.", where, problem);
+        }
+      }
       default ->
           problem(
-              "A criterion of the %s has the type '%s', only 'simple' and 'regex' are supported.",
+              "A criterion of the %s has the type '%s', only 'simple', 'regex', 'jsonpath' and"
+                  + " 'xpath' are supported.",
               where, type);
     }
   }
@@ -290,10 +321,11 @@ final class ArazzoChecker {
   private void checkOutputs(Map<String, Object> outputs, String where) {
     outputs.forEach(
         (name, value) -> {
-          if (!(value instanceof String)) {
+          if (Selectors.isSelector(value)) {
+            checkValue(value, where);
+          } else if (!(value instanceof String)) {
             problem(
-                "The output '%s' of the %s is not a runtime expression; selector objects are not"
-                    + " supported.",
+                "The output '%s' of the %s is neither a runtime expression nor a selector object.",
                 name, where);
           }
         });
@@ -318,16 +350,16 @@ final class ArazzoChecker {
     }
   }
 
-  // selector objects of version 1.1 are not supported
+  // the selector objects of version 1.1 in a value
   private void checkValue(Object value, String where) {
-    if (value instanceof Map<?, ?> map) {
-      if (map.size() == 3
-          && map.containsKey("context")
-          && map.containsKey("selector")
-          && map.containsKey("type")) {
-        problem("The %s uses a selector object, which is not supported.", where);
-        return;
+    if (Selectors.isSelector(value)) {
+      String problem = Selectors.problem((Map<?, ?>) value);
+      if (Objects.nonNull(problem)) {
+        problem("A selector object of the %s is invalid: %s.", where, problem);
       }
+      return;
+    }
+    if (value instanceof Map<?, ?> map) {
       map.values().forEach(member -> checkValue(member, where));
     } else if (value instanceof List<?> list) {
       list.forEach(item -> checkValue(item, where));

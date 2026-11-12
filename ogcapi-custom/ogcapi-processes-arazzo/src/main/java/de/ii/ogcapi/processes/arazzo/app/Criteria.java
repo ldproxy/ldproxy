@@ -13,7 +13,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-/** The criteria of steps and actions, of the types {@code simple} and {@code regex}. */
+/**
+ * The criteria of steps and actions, of the types {@code simple}, {@code regex}, {@code jsonpath}
+ * and {@code xpath}.
+ */
 final class Criteria {
 
   private Criteria() {}
@@ -40,23 +43,30 @@ final class Criteria {
 
   static boolean test(ArazzoCriterion criterion, ExpressionContext context) {
     try {
-      if (ArazzoCriterion.REGEX.equals(type(criterion))) {
-        Object value =
-            criterion
-                .getContext()
-                .map(expression -> RuntimeExpressions.evaluate(expression, context))
-                .orElse(null);
-        if (value == null) {
-          return false;
-        }
-        String condition = criterion.getCondition();
-        if (condition.contains("{$")) {
-          condition = RuntimeExpressions.interpolate(condition, context);
-        }
-        return Pattern.compile(condition).matcher(RuntimeExpressions.stringify(value)).find();
+      String type = type(criterion);
+      if (ArazzoCriterion.SIMPLE.equals(type)) {
+        return SimpleCondition.parse(criterion.getCondition())
+            .test(expression -> RuntimeExpressions.evaluate(expression, context));
       }
-      return SimpleCondition.parse(criterion.getCondition())
-          .test(expression -> RuntimeExpressions.evaluate(expression, context));
+      Object value =
+          criterion
+              .getContext()
+              .map(expression -> RuntimeExpressions.evaluate(expression, context))
+              .orElse(null);
+      if (value == null) {
+        return false;
+      }
+      String condition = criterion.getCondition();
+      if (condition.contains("{$")) {
+        condition = RuntimeExpressions.interpolate(condition, context);
+      }
+      return switch (type) {
+        case ArazzoCriterion.REGEX ->
+            Pattern.compile(condition).matcher(RuntimeExpressions.stringify(value)).find();
+        case ArazzoCriterion.JSONPATH -> Selectors.matchesJsonPath(value, condition);
+        case ArazzoCriterion.XPATH -> Selectors.matchesXPath(value, condition);
+        default -> false;
+      };
     } catch (IllegalArgumentException e) {
       // an invalid expression, condition or regex fails the criterion
       return false;

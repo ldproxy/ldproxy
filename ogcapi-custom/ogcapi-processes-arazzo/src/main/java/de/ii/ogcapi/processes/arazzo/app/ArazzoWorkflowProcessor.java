@@ -56,4 +56,9 @@ public class ArazzoWorkflowProcessor extends ArazzoProcessor {
             inputs)
         .outputs();
   }
+
+  @Override
+  protected boolean usesServerCredentials() {
+    return true;
+  }
 }

@@ -21,6 +21,8 @@ public interface ArazzoCriterion {
 
   String SIMPLE = "simple";
   String REGEX = "regex";
+  String JSONPATH = "jsonpath";
+  String XPATH = "xpath";
 
   Optional<String> getContext();
 

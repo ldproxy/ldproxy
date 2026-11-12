@@ -34,6 +34,11 @@ record ExpressionContext(
         inputs, outputs, steps, workflows, sources, Optional.ofNullable(current));
   }
 
+  /** The context of the outputs of a step that calls a workflow: the outputs of that workflow. */
+  ExpressionContext withOutputs(Map<String, Object> workflowOutputs) {
+    return new ExpressionContext(inputs, workflowOutputs, steps, workflows, sources, exchange);
+  }
+
   /** The request and the response of a step. */
   record Exchange(StepRequest request, StepResponse response) {}
 }

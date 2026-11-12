@@ -16,4 +16,9 @@ dependencies {
     provided 'de.interactive_instruments:xtraplatform-values'
     provided 'de.interactive_instruments:xtraplatform-web'
     provided 'de.interactive_instruments:xtraplatform-xtralink'
+
+    // JSONPath as in RFC 9535, for the criteria and selectors of Arazzo
+    embedded (libCatalog.jsonpath.core) {
+        exclude module: 'jspecify'
+    }
 }

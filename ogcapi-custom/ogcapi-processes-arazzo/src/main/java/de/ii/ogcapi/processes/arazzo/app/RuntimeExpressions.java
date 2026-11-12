@@ -42,8 +42,8 @@ final class RuntimeExpressions {
 
   /**
    * A value of a parameter, a payload or an output: a runtime expression, a string with embedded
-   * expressions ({@code {$...}}), or a literal. Objects and arrays are resolved member by member,
-   * the result is mutable.
+   * expressions ({@code {$...}}), a selector object, or a literal. Objects and arrays are resolved
+   * member by member, the result is mutable.
    */
   static Object resolve(Object value, ExpressionContext context) {
     if (value instanceof String string) {
@@ -51,6 +51,9 @@ final class RuntimeExpressions {
         return evaluate(string, context);
       }
       return string.contains("{$") ? interpolate(string, context) : string;
+    }
+    if (Selectors.isSelector(value)) {
+      return Selectors.select((Map<?, ?>) value, context);
     }
     if (value instanceof Map<?, ?> map) {
       Map<String, Object> resolved = new LinkedHashMap<>();

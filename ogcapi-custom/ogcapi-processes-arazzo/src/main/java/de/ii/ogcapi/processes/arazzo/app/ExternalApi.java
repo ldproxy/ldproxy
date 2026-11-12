@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,32 +44,45 @@ final class ExternalApi {
    * @param location the URL from which the document was read, after redirects; relative server URLs
    *     are relative to it
    * @param document the OpenAPI document
+   * @param server the server of all operations, if it is set; it replaces the servers of the
+   *     document, its path items and its operations
    * @throws WorkflowException if the document is not an OpenAPI 3 document
    */
-  static ExternalApi of(String url, String location, Map<?, ?> document) {
+  static ExternalApi of(String url, String location, Map<?, ?> document, Optional<String> server) {
     if (!(document.get("openapi") instanceof String version) || !version.startsWith("3.")) {
       throw WorkflowException.problem(
           "The source description '%s' is not an OpenAPI 3 document.", url);
     }
     URI base = URI.create(location);
-    Optional<String> documentServer = server(document, base);
+    Function<Map<?, ?>, Optional<String>> serverOf =
+        server.isPresent() ? object -> Optional.empty() : object -> server(object, base);
+    Optional<String> documentServer = server.or(() -> serverOf.apply(document));
     List<Operation> operations = new ArrayList<>();
     if (document.get("paths") instanceof Map<?, ?> paths) {
       paths.forEach(
           (path, item) -> {
             if (item instanceof Map<?, ?> pathItem) {
               operations.addAll(
-                  operations(url, String.valueOf(path), pathItem, documentServer, base));
+                  operations(url, String.valueOf(path), pathItem, documentServer, serverOf, base));
             }
           });
     }
     return new ExternalApi(url, List.copyOf(operations));
   }
 
+  static ExternalApi of(String url, String location, Map<?, ?> document) {
+    return of(url, location, document, Optional.empty());
+  }
+
   // the operations of a path item, the server of the path item replaces the one of the document
   private static List<Operation> operations(
-      String url, String path, Map<?, ?> pathItem, Optional<String> documentServer, URI base) {
-    Optional<String> pathServer = server(pathItem, base).or(() -> documentServer);
+      String url,
+      String path,
+      Map<?, ?> pathItem,
+      Optional<String> documentServer,
+      Function<Map<?, ?>, Optional<String>> serverOf,
+      URI base) {
+    Optional<String> pathServer = serverOf.apply(pathItem).or(() -> documentServer);
     List<Operation> operations = new ArrayList<>();
     pathItem.forEach(
         (method, value) -> {
@@ -79,7 +93,7 @@ final class ExternalApi {
                     path,
                     String.valueOf(method),
                     operation,
-                    server(operation, base).or(() -> pathServer),
+                    serverOf.apply(operation).or(() -> pathServer),
                     base));
           }
         });

@@ -10,8 +10,11 @@ package de.ii.ogcapi.processes.arazzo.app
 import static de.ii.ogcapi.processes.arazzo.app.ArazzoFixtures.document
 import static de.ii.ogcapi.processes.arazzo.app.ArazzoFixtures.workflow
 
+import de.ii.ogcapi.foundation.infra.json.ClassSchemaCacheImpl
+import de.ii.ogcapi.processes.domain.model.OgcProcess
 import de.ii.ogcapi.processes.domain.model.OgcProcessSummary.JobControlOptions
 import de.ii.ogcapi.processes.domain.model.Property
+import de.ii.xtraplatform.values.domain.Identifier
 import spock.lang.Specification
 
 class WorkflowProcessesSpec extends Specification {
@@ -89,6 +92,48 @@ class WorkflowProcessesSpec extends Specification {
         "./shared.yml"              || "shared"
         "workflows/bag/shared.json" || "shared"
         "shared"                    || "shared"
+        "./11-dakkapel.arazzo.yaml" || "11-dakkapel"
+    }
+
+    def "an array input may have object items with properties"() {
+        given:
+        def doc = document([workflow("w", [[stepId: "a", operationId: "executeProcess"]], [inputs: [type: "object", properties: [
+                antwoorden: [type: "array", items: [type: "object", required: ["id"], properties: [id: [type: "integer"], antwoord: [type: "string", description: "Het antwoord"]]]]]]])])
+
+        when:
+        def items = WorkflowProcesses.toProcess(doc, doc.workflows[0]).inputs.antwoorden.schema.items.get()
+
+        then:
+        items.type == Property.Type.OBJECT
+        items.required == ["id"]
+        items.properties.keySet() == ["id", "antwoord"] as Set
+        items.properties.antwoord == [type: "string", description: "Het antwoord"]
+    }
+
+    def "the schema of a process description in the API definition can be derived"() {
+        when:
+        def schema = new ClassSchemaCacheImpl().getSchema(OgcProcess)
+
+        then:
+        schema.properties.containsKey("inputs")
+    }
+
+    def "only the published workflows are processes, the inputs set by the server are not inputs"() {
+        given:
+        def inputs = [type: "object", required: ["apiKey", "adres"], properties: [apiKey: [type: "string", format: "password"], adres: [type: "string"]]]
+        def doc = document([
+                workflow("vraag", [[stepId: "a", workflowId: "hulp"]], [inputs: inputs]),
+                // not published, so the unsupported keyword does not matter
+                workflow("hulp", [[stepId: "a", operationId: "executeProcess"]], [inputs: [type: "object", properties: [x: [oneOf: [[type: "string"]]]]]]),
+        ])
+
+        when:
+        def processes = WorkflowProcesses.derive(Identifier.from("dso", "workflows"), doc, new WorkflowProcesses.Selection(["vraag"], ["apiKey"] as Set))
+
+        then:
+        processes.keySet() == ["vraag"] as Set
+        processes.vraag.inputs.keySet() == ["adres"] as Set
+        processes.vraag.inputs.adres.minOccurs == 1
     }
 
     def "the operations with a handler can be steps"() {
