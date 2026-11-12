@@ -4,7 +4,7 @@ when:
 steps:
 
   libs:
-    image: eclipse-temurin:25@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507
+    image: eclipse-temurin:25@sha256:b8705e936964c228dfce359e63dbf08f6c69cb380ed1d576b1f6b1064f15567d
     environment:
       - DOCS_VERSION=next
     commands:
@@ -12,7 +12,7 @@ steps:
     secrets: [ snapshot_user, snapshot_pass]
 
   publish-snapshot:
-    image: eclipse-temurin:25@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507
+    image: eclipse-temurin:25@sha256:b8705e936964c228dfce359e63dbf08f6c69cb380ed1d576b1f6b1064f15567d
     commands:
       - ./gradlew publish -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]
@@ -33,7 +33,7 @@ steps:
       evaluate: 'not (CI_COMMIT_AUTHOR_EMAIL contains "renovate[bot]")'
 
   dist-arm64:
-    image: eclipse-temurin:25@sha256:83f4a7fc27df94dcc7b8de04d14cbbba8da14406f921e966969c3b09000aa507
+    image: eclipse-temurin:25@sha256:b8705e936964c228dfce359e63dbf08f6c69cb380ed1d576b1f6b1064f15567d
     commands:
       - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]
