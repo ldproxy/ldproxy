@@ -456,4 +456,43 @@ class WorkflowRunnerSpec extends Specification {
         slow.count.get() == 16
         slow.maximum.get() == 3
     }
+
+    def "a query or header parameter without a value is not sent"() {
+        given:
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> ok([features: []]) }
+        def doc = document([workflow("w", [[stepId: "a", operationId: "pand.getItems", parameters: [
+                [name: "datum", in: "query", value: '$inputs.datum'], [name: "x-trace", in: "header", value: '$inputs.trace'], [name: "limit", in: "query", value: 1]]]],
+                [inputs: [type: "object", properties: [datum: [type: "string"], trace: [type: "string"]]]])])
+
+        when:
+        runner().run(doc, "w", [:])
+
+        then:
+        dispatcher.requests[0].query() == [limit: "1"]
+        !dispatcher.requests[0].headers().containsKey("x-trace")
+    }
+
+    def "a failure action end fails the execution, but only ends a nested workflow"() {
+        given:
+        dispatcher.responses["pand.getItem"] = { StepRequest r, int n ->
+            r.pathParameters().featureId == "p1" ? ok([id: "p1"]) : new StepResponse(404, [:], Optional.of([detail: "Pand niet gevonden."])) }
+        def stop = [[name: "stop", type: "end", criteria: [[condition: '$statusCode == 404']]]]
+        def inner = workflow("inner", [[stepId: "get", operationId: "pand.getItem", parameters: [[name: "featureId", in: "path", value: '$inputs.id']],
+                                        onFailure: stop, outputs: [id: '$response.body#/id']]],
+                [inputs: [type: "object", properties: [id: [type: "string"]]], outputs: [id: '$steps.get.outputs.id']])
+        def outer = workflow("outer", [[stepId: "each", workflowId: "inner", "x-dso-forEach": [items: '$inputs.ids', als: "id"], outputs: [ids: '$outputs.id']]],
+                [inputs: [type: "object", properties: [ids: [type: "array", items: [type: "string"]]]], outputs: [ids: '$steps.each.outputs.ids']])
+        def doc = document([outer, inner])
+
+        expect: "the run of the nested workflow for p2 ends without outputs"
+        runner().run(doc, "outer", [ids: ["p1", "p2"]]).outputs() == [ids: ["p1", null]]
+
+        when: "the workflow that the caller started ends with the failure action"
+        runner().run(doc, "inner", [id: "p2"])
+
+        then:
+        WorkflowException e = thrown()
+        e.kind == WorkflowException.Kind.FAILURE
+        e.message.contains("failed with status 404: Pand niet gevonden")
+    }
 }

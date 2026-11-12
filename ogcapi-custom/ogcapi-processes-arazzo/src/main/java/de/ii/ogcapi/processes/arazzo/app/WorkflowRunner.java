@@ -665,8 +665,13 @@ final class WorkflowRunner {
     Map<String, String> query = new LinkedHashMap<>();
     Map<String, String> headers = new LinkedHashMap<>();
     for (ArazzoParameter parameter : parameters(state, step)) {
-      String value = parameterValue(RuntimeExpressions.resolve(parameter.getValue(), context));
+      Object resolved = RuntimeExpressions.resolve(parameter.getValue(), context);
       String name = parameter.getName().orElseThrow();
+      // a query or header parameter without a value, e.g. from an optional input, is not sent
+      if (Objects.isNull(resolved) && !ArazzoParameter.PATH.equals(parameter.getIn().orElse(""))) {
+        continue;
+      }
+      String value = parameterValue(resolved);
       switch (parameter.getIn().orElse("")) {
         case ArazzoParameter.PATH -> pathParameters.put(name, value);
         case ArazzoParameter.HEADER -> headers.put(name.toLowerCase(Locale.ROOT), value);
@@ -886,6 +891,12 @@ final class WorkflowRunner {
       if (!Criteria.all(action.getCriteria(), context)) {
         continue;
       }
+      // a failure action that ends the workflow that the caller started fails the execution with
+      // the detail of the step, an execution without outputs would hide the failure; a nested
+      // workflow ends, the calling step decides
+      if (ArazzoAction.END.equals(action.getType().orElse("")) && state.depth == 0) {
+        throw stepFailed(state, step, outcome);
+      }
       if (!ArazzoAction.RETRY.equals(action.getType().orElse(""))) {
         return transfer(state, action);
       }
@@ -901,7 +912,11 @@ final class WorkflowRunner {
         return Optional.of(index(state.workflow, step.getStepId()));
       }
     }
-    throw WorkflowException.failure(
+    throw stepFailed(state, step, outcome);
+  }
+
+  private static WorkflowException stepFailed(State state, ArazzoStep step, StepOutcome outcome) {
+    return WorkflowException.failure(
         "The step '%s' of the workflow '%s' failed%s.",
         step.getStepId(),
         state.workflow.getWorkflowId(),

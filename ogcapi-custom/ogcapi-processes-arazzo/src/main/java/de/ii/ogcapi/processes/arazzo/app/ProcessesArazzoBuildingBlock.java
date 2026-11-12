@@ -47,7 +47,8 @@ import jakarta.inject.Singleton;
  *       /processes/{processId}/execution`); their responses are JSON. Steps call the GET and POST
  *       operations of external APIs over HTTP, at the server of the OpenAPI document.
  *     - Parameters in `path`, `query` and `header`, request bodies with JSON content and
- *       replacements with JSON Pointers.
+ *       replacements with JSON Pointers. A query or header parameter without a value, e.g. from an
+ *       optional input, is not sent.
  *     - Success criteria of the types `simple`, `regex`, `jsonpath` (RFC 9535) and `xpath` (XPath
  *       1.0, for XML content); without criteria, a step is successful with a status code 2xx. A
  *       JSONPath condition that starts with a filter, e.g. `$[?length(@.features) > 0]`, tests an
@@ -56,7 +57,9 @@ import jakarta.inject.Singleton;
  *       parameters, payloads and replacements. A selector that selects one node has its value,
  *       several nodes a list of their values, no node no value.
  *     - The actions `end`, `goto` and `retry` with `retryAfter` (at most 60 seconds) and
- *       `retryLimit`, also as reusable components.
+ *       `retryLimit`, also as reusable components. A failure action `end` ends a nested workflow;
+ *       in the workflow of the process, it fails the execution with the status code and the detail
+ *       of the failed step.
  *     - All runtime expressions except `$message` and `$self`. The success criteria and the outputs
  *       of a step that calls a workflow see the outputs of that workflow as `$outputs`.
  *     - The extension `x-dso-forEach` of the Arazzo descriptions of the Digitaal Stelsel
@@ -118,7 +121,8 @@ import jakarta.inject.Singleton;
  *       POST-Operationen externer APIs rufen Schritte über HTTP auf, beim Server des
  *       OpenAPI-Dokuments.
  *     - Parameter in `path`, `query` und `header`, Anfrageinhalte in JSON und Ersetzungen mit JSON
- *       Pointern.
+ *       Pointern. Ein Query- oder Header-Parameter ohne Wert, z.B. aus einer optionalen Eingabe,
+ *       wird nicht gesendet.
  *     - Erfolgskriterien vom Typ `simple`, `regex`, `jsonpath` (RFC 9535) und `xpath` (XPath 1.0,
  *       für XML-Inhalte); ohne Kriterien ist ein Schritt bei einem Statuscode 2xx erfolgreich. Eine
  *       JSONPath-Bedingung, die mit einem Filter beginnt, z.B. `$[?length(@.features) > 0]`, prüft
@@ -127,7 +131,9 @@ import jakarta.inject.Singleton;
  *       Anfrageinhalten und Ersetzungen. Ein Selektor, der einen Knoten auswählt, hat dessen Wert,
  *       bei mehreren Knoten die Liste ihrer Werte, ohne Knoten keinen Wert.
  *     - Die Aktionen `end`, `goto` und `retry` mit `retryAfter` (höchstens 60 Sekunden) und
- *       `retryLimit`, auch als wiederverwendbare Komponenten.
+ *       `retryLimit`, auch als wiederverwendbare Komponenten. Eine Fehleraktion `end` beendet einen
+ *       verschachtelten Workflow; im Workflow des Prozesses lässt sie die Ausführung mit dem
+ *       Statuscode und dem Detail des fehlgeschlagenen Schritts fehlschlagen.
  *     - Alle Laufzeitausdrücke außer `$message` und `$self`. Die Erfolgskriterien und die Ausgaben
  *       eines Schritts, der einen Workflow aufruft, sehen die Ausgaben dieses Workflows als
  *       `$outputs`.
