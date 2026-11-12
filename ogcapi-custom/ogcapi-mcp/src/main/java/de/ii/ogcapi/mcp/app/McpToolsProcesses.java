@@ -173,8 +173,20 @@ final class McpToolsProcesses implements McpToolSource {
     long timeoutMillis =
         apiData.getExtension(ProcessesCoreConfiguration.class).orElseThrow().getSyncTimeoutMillis();
 
-    return new LinkedHashMap<>(
-        processesExecutor.executeSync(apiData.getId(), process, executeRequest, timeoutMillis));
+    // feature collections in the outputs as in the results of the other tools
+    Map<String, Object> outputs = new LinkedHashMap<>();
+    processesExecutor
+        .executeSync(apiData.getId(), process, executeRequest, timeoutMillis)
+        .forEach((outputId, value) -> outputs.put(outputId, forToolResult(value)));
+    return outputs;
+  }
+
+  @SuppressWarnings("unchecked")
+  static Object forToolResult(Object output) {
+    if (output instanceof Map<?, ?> map && "FeatureCollection".equals(map.get("type"))) {
+      return McpServerImpl.forToolResult((Map<String, Object>) map);
+    }
+    return output;
   }
 
   private static boolean isEnabled(OgcApiDataV2 apiData) {

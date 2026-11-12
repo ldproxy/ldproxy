@@ -8,11 +8,11 @@
 package de.ii.ogcapi.processes.features.app;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.ii.ogcapi.common.domain.QueryParameterProfile;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreQueriesHandler;
 import de.ii.ogcapi.features.core.domain.FeaturesQuery;
-import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeature;
 import de.ii.ogcapi.features.core.domain.ImmutableQueryInputFeatures;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
@@ -31,11 +31,15 @@ import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.cql.domain.Bbox;
+import de.ii.xtraplatform.cql.domain.In;
 import de.ii.xtraplatform.cql.domain.Property;
 import de.ii.xtraplatform.cql.domain.SIntersects;
+import de.ii.xtraplatform.cql.domain.Scalar;
+import de.ii.xtraplatform.cql.domain.ScalarLiteral;
 import de.ii.xtraplatform.cql.domain.SpatialLiteral;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
@@ -45,7 +49,6 @@ import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
-import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
@@ -98,6 +101,10 @@ class FeatureSelection {
           "maxallowableoffset",
           "zoom-level");
 
+  // the parameters of a collection source that shape the features that a process returns
+  private static final Set<String> OUTPUT_PARAMETERS =
+      Set.of("properties", "exclude-properties", "profile");
+
   private static final ApiMediaType GEOJSON =
       new ImmutableApiMediaType.Builder()
           .type(new MediaType("application", "geo+json"))
@@ -135,12 +142,18 @@ class FeatureSelection {
     this.crsTransformerFactory = crsTransformerFactory;
   }
 
-  /** A checked selection, ready to run. */
+  /**
+   * A checked selection, ready to run.
+   *
+   * @param outputParameters the parameters of a collection source that shape the features that a
+   *     process returns, see {@link #features}
+   */
   record Selection(
       OgcApi api,
       List<String> collections,
       Map<String, QueryParameterSet> itemsParameters,
-      Optional<StoredQueryResolution.Resolved> storedQuery) {
+      Optional<StoredQueryResolution.Resolved> storedQuery,
+      Map<String, String> outputParameters) {
 
     boolean isMultiCollection() {
       return collections.size() > 1;
@@ -286,47 +299,70 @@ class FeatureSelection {
   }
 
   /**
-   * A feature as GeoJSON, as returned by {@code /collections/{collectionId}/items/{featureId}}.
+   * Features of a collection as GeoJSON, as returned by {@code /collections/{collectionId}/items}
+   * for their ids: the links of a feature are only those of the relations in {@code
+   * embeddedFeatureLinkRels}. The parameters {@code properties}, {@code exclude-properties} and
+   * {@code profile} of a collection source apply.
    *
-   * @throws IllegalArgumentException if the query of the feature fails with a client error
+   * @return the features by id; a feature that no longer exists is missing
+   * @throws IllegalArgumentException if the query of the features fails with a client error
    */
   @SuppressWarnings("unchecked")
-  Map<String, Object> feature(OgcApi api, String collectionId, String featureId)
-      throws IOException {
+  Map<String, Map<String, Object>> features(
+      Selection selection, String collectionId, List<String> featureIds) throws IOException {
+    OgcApi api = selection.api();
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData =
         apiData.getCollectionData(collectionId).orElseThrow();
     FeaturesCoreConfiguration coreConfiguration =
         collectionData.getExtension(FeaturesCoreConfiguration.class).orElseThrow();
-    QueryParameterSet parameterSet =
-        QueryParameterSet.of(
-                queryParameters(
-                    api, String.format("/collections/%s/items/%s", collectionId, featureId)),
-                Map.of())
-            .evaluate(api, Optional.of(collectionData));
 
+    Map<String, String> parameters = new LinkedHashMap<>(selection.outputParameters());
+    String path = String.format("/collections/%s/items", collectionId);
+    List<OgcApiQueryParameter> definitions = queryParameters(api, path);
+    List<String> errors = validate(apiData, Optional.of(collectionId), definitions, parameters);
+    if (!errors.isEmpty()) {
+      throw new IllegalArgumentException(String.join(" ", errors));
+    }
+    QueryParameterSet parameterSet =
+        QueryParameterSet.of(definitions, parameters).evaluate(api, Optional.of(collectionData));
+
+    // the filter of the parameter ids, which a collection may not offer
     FeatureQuery query =
-        featuresQuery.requestToFeatureQuery(
-            apiData,
-            collectionData,
-            coreConfiguration.getDefaultEpsgCrs(),
-            coreConfiguration.getCoordinatePrecision(),
-            parameterSet,
-            featureId,
-            Optional.empty(),
-            SchemaBase.Scope.RETURNABLE,
-            false);
+        ImmutableFeatureQuery.builder()
+            .from(
+                featuresQuery.requestToFeatureQuery(
+                    apiData,
+                    collectionData,
+                    coreConfiguration.getDefaultEpsgCrs(),
+                    coreConfiguration.getCoordinatePrecision(),
+                    featureIds.size(),
+                    parameterSet,
+                    false))
+            .addFilters(
+                In.of(featureIds.stream().map(id -> (Scalar) ScalarLiteral.of(id)).toList()))
+            .limit(featureIds.size())
+            .offset(0)
+            .build();
 
     URICustomizer requestUri = new URICustomizer(api.getUri());
-    requestUri.appendPathSegments("collections", collectionId, "items", featureId);
+    requestUri.appendPathSegments("collections", collectionId, "items");
 
-    FeaturesCoreQueriesHandler.QueryInputFeature queryInput =
-        new ImmutableQueryInputFeature.Builder()
+    FeaturesCoreQueriesHandler.QueryInputFeatures queryInput =
+        new ImmutableQueryInputFeatures.Builder()
             .collectionId(collectionId)
-            .featureId(featureId)
             .query(query)
+            .profiles(
+                (List<Profile>)
+                    Objects.requireNonNullElse(
+                        parameterSet.getTypedValues().get(QueryParameterProfile.PROFILE),
+                        List.of()))
+            .defaultProfilesResource(defaultProfiles(coreConfiguration))
             .featureProvider(providers.getFeatureProviderOrThrow(apiData, collectionData))
             .defaultCrs(coreConfiguration.getDefaultEpsgCrs())
+            .defaultPageSize(Optional.of(featureIds.size()))
+            .sendResponseAsStream(false)
+            .includeBodyLinks(false)
             .shouldAuditLog(false)
             .build();
 
@@ -341,12 +377,13 @@ class FeatureSelection {
             .queryParameterSet(parameterSet)
             .build();
 
+    Map<String, Object> collection;
     try (Response response =
         featuresHandler.handle(
-            FeaturesCoreQueriesHandler.Query.FEATURE, queryInput, requestContext)) {
+            FeaturesCoreQueriesHandler.Query.FEATURES, queryInput, requestContext)) {
       if (response.getStatus() >= 400) {
         throw new WebApplicationException(
-            String.format("The query of the feature failed with status %d.", response.getStatus()),
+            String.format("The query of the features failed with status %d.", response.getStatus()),
             response.getStatus());
       }
       Object entity = response.getEntity();
@@ -355,12 +392,34 @@ class FeatureSelection {
         streamingOutput.write(bytes);
         entity = bytes.toByteArray();
       }
-      return MAPPER.readValue((byte[]) entity, Map.class);
+      collection = MAPPER.readValue((byte[]) entity, Map.class);
     }
+
+    Map<String, Map<String, Object>> features = new LinkedHashMap<>();
+    if (collection.get("features") instanceof List<?> list) {
+      for (Object feature : list) {
+        if (feature instanceof Map<?, ?> map && Objects.nonNull(map.get("id"))) {
+          features.put(String.valueOf(map.get("id")), (Map<String, Object>) map);
+        }
+      }
+    }
+    return features;
   }
 
-  private Selection items(OgcApi api, List<String> collections, Map<String, String> parameters) {
+  // the default profiles of the collection, as for a request of the features
+  private List<Profile> defaultProfiles(FeaturesCoreConfiguration coreConfiguration) {
+    return extensionRegistry.getExtensionsForType(Profile.class).stream()
+        .filter(
+            profile ->
+                profile
+                    .getId()
+                    .equals(coreConfiguration.getDefaultProfiles().get(profile.getProfileSet())))
+        .toList();
+  }
+
+  private Selection items(OgcApi api, List<String> collections, Map<String, String> allParameters) {
     OgcApiDataV2 apiData = api.getData();
+    Map<String, String> parameters = withoutOutput(allParameters);
     Map<String, QueryParameterSet> parameterSets = new LinkedHashMap<>();
     for (String collectionId : collections) {
       FeatureTypeConfigurationOgcApi collectionData =
@@ -385,12 +444,20 @@ class FeatureSelection {
           collectionId,
           QueryParameterSet.of(definitions, parameters).evaluate(api, Optional.of(collectionData)));
     }
-    return new Selection(api, List.copyOf(collections), parameterSets, Optional.empty());
+    Map<String, String> outputParameters = new LinkedHashMap<>();
+    allParameters.forEach(
+        (name, value) -> {
+          if (OUTPUT_PARAMETERS.contains(name.toLowerCase(Locale.ROOT))) {
+            outputParameters.put(name.toLowerCase(Locale.ROOT), value);
+          }
+        });
+    return new Selection(
+        api, List.copyOf(collections), parameterSets, Optional.empty(), outputParameters);
   }
 
   private Selection storedQuery(OgcApi api, String queryId, Map<String, String> parameters) {
     StoredQueryResolution.Resolved resolved =
-        storedQueryResolution.resolve(api, queryId, parameters);
+        storedQueryResolution.resolve(api, queryId, withoutOutput(parameters));
     List<String> collections =
         resolved.getQuery().getQueries().stream()
             .filter(query -> !query.getResultSetOnly())
@@ -400,7 +467,7 @@ class FeatureSelection {
     if (collections.isEmpty()) {
       collections = resolved.getQuery().getCollections();
     }
-    return new Selection(api, collections, Map.of(), Optional.of(resolved));
+    return new Selection(api, collections, Map.of(), Optional.of(resolved), Map.of());
   }
 
   // an /items or /search URL of the same API
@@ -767,7 +834,7 @@ class FeatureSelection {
     }
     map.forEach(
         (name, value) -> {
-          if (Objects.isNull(value) || isIgnored(String.valueOf(name))) {
+          if (Objects.isNull(value) || isDropped(String.valueOf(name))) {
             return;
           }
           if (value instanceof List<?> list) {
@@ -801,7 +868,7 @@ class FeatureSelection {
           separator < 0
               ? ""
               : URLDecoder.decode(pair.substring(separator + 1), StandardCharsets.UTF_8);
-      if (!isIgnored(name)) {
+      if (!isDropped(name)) {
         parameters.put(name, value);
       }
     }
@@ -810,5 +877,20 @@ class FeatureSelection {
 
   private static boolean isIgnored(String name) {
     return IGNORED_PARAMETERS.contains(name.toLowerCase(Locale.ROOT));
+  }
+
+  private static boolean isOutput(String name) {
+    return OUTPUT_PARAMETERS.contains(name.toLowerCase(Locale.ROOT));
+  }
+
+  // the output parameters are kept until the selection is checked, see items()
+  private static boolean isDropped(String name) {
+    return isIgnored(name) && !isOutput(name);
+  }
+
+  private static Map<String, String> withoutOutput(Map<String, String> parameters) {
+    Map<String, String> selection = new LinkedHashMap<>(parameters);
+    selection.keySet().removeIf(FeatureSelection::isOutput);
+    return selection;
   }
 }

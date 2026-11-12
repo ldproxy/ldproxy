@@ -125,7 +125,7 @@ public class FeatureNearestProcessor extends FeatureProcessor {
       throw tooManyFeatures(maximum);
     }
 
-    return Map.of(OUTPUT_FEATURES, features(api, sorted(nearest)));
+    return Map.of(OUTPUT_FEATURES, features(selection, sorted(nearest)));
   }
 
   static List<Nearest> sorted(Collection<Nearest> nearest) {
@@ -137,16 +137,34 @@ public class FeatureNearestProcessor extends FeatureProcessor {
     return sorted;
   }
 
-  private Map<String, Object> features(OgcApi api, List<Nearest> nearest) throws IOException {
+  // one request per collection, the features in the order of their distance
+  private Map<String, Object> features(Selection selection, List<Nearest> nearest)
+      throws IOException {
+    Map<String, List<String>> idsByCollection = new LinkedHashMap<>();
+    nearest.forEach(
+        feature ->
+            idsByCollection
+                .computeIfAbsent(feature.collectionId(), id -> new ArrayList<>())
+                .add(feature.featureId()));
+    Map<String, Map<String, Map<String, Object>>> featuresByCollection = new LinkedHashMap<>();
+    for (Map.Entry<String, List<String>> entry : idsByCollection.entrySet()) {
+      featuresByCollection.put(
+          entry.getKey(), featureSelection.features(selection, entry.getKey(), entry.getValue()));
+    }
+
     List<Map<String, Object>> features = new ArrayList<>();
     for (Nearest feature : nearest) {
       Map<String, Object> geoJson =
-          new LinkedHashMap<>(
-              featureSelection.feature(api, feature.collectionId(), feature.featureId()));
-      geoJson.put(
+          featuresByCollection.get(feature.collectionId()).get(feature.featureId());
+      // a feature deleted in the meantime is left out
+      if (Objects.isNull(geoJson)) {
+        continue;
+      }
+      Map<String, Object> withDistance = new LinkedHashMap<>(geoJson);
+      withDistance.put(
           MEMBER_DISTANCE,
           BigDecimal.valueOf(feature.distance()).setScale(1, RoundingMode.HALF_UP).doubleValue());
-      features.add(geoJson);
+      features.add(withDistance);
     }
     Map<String, Object> collection = new LinkedHashMap<>();
     collection.put("type", "FeatureCollection");

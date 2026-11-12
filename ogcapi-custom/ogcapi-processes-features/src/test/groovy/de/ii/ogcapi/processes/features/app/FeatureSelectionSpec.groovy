@@ -11,10 +11,10 @@ import spock.lang.Specification
 
 class FeatureSelectionSpec extends Specification {
 
-    def "parameter values are written as in a query string, the ignored parameters are dropped"() {
+    def "parameter values are written as in a query string, the ignored parameters are dropped, those that shape the returned features are kept"() {
         expect:
-        FeatureSelection.parameters([status: "Pand gesloopt", huisnummer: 1, bbox: [5.0, 52.0, 5.1, 52.1], limit: 10, f: "json", "Exclude-Properties": "", leeg: null]) ==
-                [status: "Pand gesloopt", huisnummer: "1", bbox: "5.0,52.0,5.1,52.1"]
+        FeatureSelection.parameters([status: "Pand gesloopt", huisnummer: 1, bbox: [5.0, 52.0, 5.1, 52.1], limit: 10, f: "json", crs: "x", "Exclude-Properties": "", properties: ["a", "b"], profile: "rel-as-key-title", leeg: null]) ==
+                [status: "Pand gesloopt", huisnummer: "1", bbox: "5.0,52.0,5.1,52.1", "Exclude-Properties": "", properties: "a,b", profile: "rel-as-key-title"]
     }
 
     def "object values are rejected"() {

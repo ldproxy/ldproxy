@@ -32,7 +32,9 @@ import jakarta.inject.Singleton;
  *     - `{"collection": "...", "parameters": {...}}`: the features of a collection, or of several
  *       collections with a list of ids, with query parameters of `/collections/{collectionId}/items`,
  *       e.g. queryables, `filter`, `bbox` or `datetime`. Parameters that select a page, the
- *       properties, the coordinate reference system or the format are ignored.
+ *       coordinate reference system or the format are ignored, as are the parameters that select
+ *       the properties or the profiles; those apply only to the features that
+ *       `feature-nearest:execute` returns.
  *     - `{"query": "...", "parameters": {...}}`: the features returned by a stored query, with the
  *       values of its parameters.
  *     - `{"href": "..."}`: the URL of a request of `/collections/{collectionId}/items` or of
@@ -65,7 +67,9 @@ import jakarta.inject.Singleton;
  *     <p>The step `feature-nearest:execute` takes the inputs `point` (`[lon, lat]` in CRS84),
  *     `distance` (the maximum distance in meters) and `limit` (the maximum number of features, at
  *     most 100, default 10). The output `features` is a GeoJSON feature collection in which each
- *     feature has the additional member `distance`, the distance from the point in meters.
+ *     feature has the additional member `distance`, the distance from the point in meters. The
+ *     features are encoded as in a response of `/collections/{collectionId}/items`, with the
+ *     parameters `properties`, `exclude-properties` and `profile` of a collection source.
  *     <p>The process descriptions are written by the deployment, the inputs and outputs follow the
  *     description above. Example of a process `aggregate-features`:
  *     <p><code>
@@ -137,8 +141,9 @@ import jakarta.inject.Singleton;
  *     - `{"collection": "...", "parameters": {...}}`: die Features einer Collection, oder mehrerer
  *       Collections mit einer Liste von Ids, mit Query-Parametern von
  *       `/collections/{collectionId}/items`, z.B. Queryables, `filter`, `bbox` oder `datetime`.
- *       Parameter, die eine Seite, die Eigenschaften, das Koordinatenreferenzsystem oder das Format
- *       auswählen, werden ignoriert.
+ *       Parameter, die eine Seite, das Koordinatenreferenzsystem oder das Format auswählen, werden
+ *       ignoriert, ebenso die Parameter, die die Eigenschaften oder die Profile auswählen; diese
+ *       gelten nur für die Features, die `feature-nearest:execute` liefert.
  *     - `{"query": "...", "parameters": {...}}`: die Features, die eine Stored Query liefert, mit
  *       den Werten ihrer Parameter.
  *     - `{"href": "..."}`: die URL einer Anfrage von `/collections/{collectionId}/items` oder von
@@ -173,7 +178,9 @@ import jakarta.inject.Singleton;
  *     <p>Der Schritt `feature-nearest:execute` hat die Eingaben `point` (`[lon, lat]` in CRS84),
  *     `distance` (die maximale Entfernung in Metern) und `limit` (die maximale Anzahl an Features,
  *     höchstens 100, Default 10). Die Ausgabe `features` ist eine GeoJSON-FeatureCollection, in der
- *     jedes Feature das zusätzliche Member `distance` hat, die Entfernung vom Punkt in Metern.
+ *     jedes Feature das zusätzliche Member `distance` hat, die Entfernung vom Punkt in Metern. Die
+ *     Features sind wie in einer Antwort von `/collections/{collectionId}/items` kodiert, mit den
+ *     Parametern `properties`, `exclude-properties` und `profile` einer Collection-Quelle.
  *     <p>Die Prozessbeschreibungen schreibt das Deployment, die Eingaben und Ausgaben folgen der
  *     Beschreibung oben. Beispiel eines Prozesses `aggregate-features`:
  *     <p><code>

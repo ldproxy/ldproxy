@@ -219,4 +219,18 @@ class McpToolsProcessesSpec extends Specification {
         '[SYNC_EXECUTE, ASYNC_EXECUTE]' || true
         '[ASYNC_EXECUTE]'               || false
     }
+
+    def 'a feature collection in the outputs is returned without the links of the features'() {
+        given:
+        def collection = [
+            type    : 'FeatureCollection',
+            features: [[type: 'Feature', id: '1', links: [[rel: 'predecessor-version', href: 'x']], properties: [a: 1], distance: 5.9d]]]
+
+        expect:
+        McpToolsProcesses.forToolResult(collection) == [
+            type    : 'FeatureCollection',
+            features: [[type: 'Feature', id: '1', properties: [a: 1], distance: 5.9d]]]
+        McpToolsProcesses.forToolResult([groups: [], total: [count: 0L]]) == [groups: [], total: [count: 0L]]
+        McpToolsProcesses.forToolResult(42) == 42
+    }
 }
