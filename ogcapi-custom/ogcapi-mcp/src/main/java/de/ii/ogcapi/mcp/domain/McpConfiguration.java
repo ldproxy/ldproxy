@@ -68,6 +68,20 @@ public interface McpConfiguration extends ExtensionConfiguration {
    */
   Optional<Boolean> getAddMetadataAsText();
 
+  /**
+   * @langEn If set to `false`, the description of the API is only given in the instructions of the
+   *     MCP server, not also at the end of each tool description. This keeps the tool definitions
+   *     small, but clients that do not pass the instructions to the model then no longer see the
+   *     description of the API.
+   * @langDe Wenn auf `false` gesetzt, wird die Beschreibung der API nur in den Anweisungen
+   *     (Instructions) des MCP-Servers angegeben, nicht zusätzlich am Ende jeder Tool-Beschreibung.
+   *     Das hält die Tool-Definitionen klein, Clients, die die Anweisungen nicht an das Modell
+   *     weitergeben, sehen die Beschreibung der API dann aber nicht mehr.
+   * @default true
+   * @since v5.0
+   */
+  Optional<Boolean> getApiDescriptionInTools();
+
   @Value.Immutable
   @JsonDeserialize(builder = ImmutableMcpIncludeExclude.Builder.class)
   interface McpIncludeExclude {

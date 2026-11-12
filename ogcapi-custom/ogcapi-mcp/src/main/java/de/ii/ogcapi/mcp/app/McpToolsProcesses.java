@@ -107,7 +107,7 @@ final class McpToolsProcesses implements McpToolSource {
     return processRepository.getAll(apiData.getId()).values().stream()
         .filter(process -> isIncluded(process, included, excluded))
         .filter(McpToolsProcesses::canExecuteSync)
-        .map(process -> toToolIfPossible(apiData, process))
+        .map(process -> toToolIfPossible(apiData, configuration, process))
         .flatMap(Optional::stream)
         .map(tool -> (McpTool) ImmutableMcpTool.copyOf(tool).withOperation(executeOperation))
         .toList();
@@ -228,9 +228,10 @@ final class McpToolsProcesses implements McpToolSource {
   }
 
   // a process whose schemas cannot be represented is left out, the other tools stay available
-  private Optional<McpTool> toToolIfPossible(OgcApiDataV2 apiData, ProcessData process) {
+  private Optional<McpTool> toToolIfPossible(
+      OgcApiDataV2 apiData, McpConfiguration configuration, ProcessData process) {
     try {
-      return Optional.of(toTool(apiData, process));
+      return Optional.of(toTool(apiData, configuration, process));
     } catch (IllegalArgumentException e) {
       LOGGER.warn(
           "Process '{}' of API '{}' is not available as an MCP tool, a schema of an input or output"
@@ -242,7 +243,7 @@ final class McpToolsProcesses implements McpToolSource {
     }
   }
 
-  McpTool toTool(OgcApiDataV2 apiData, ProcessData process) {
+  McpTool toTool(OgcApiDataV2 apiData, McpConfiguration configuration, ProcessData process) {
     ObjectSchema inputSchema = new ObjectSchema();
     process
         .getInputs()
@@ -268,7 +269,9 @@ final class McpToolsProcesses implements McpToolSource {
         // what the tool is for first, clients may only show the beginning
         .description(
             process.getDescription().or(process::getTitle).orElse("Process " + process.getId())
-                + apiData.getDescription().map(desc -> System.lineSeparator() + desc).orElse(""))
+                + McpToolUtils.apiDescription(apiData, configuration)
+                    .map(desc -> System.lineSeparator() + desc)
+                    .orElse(""))
         .inputSchema(inputSchema)
         .outputSchema(outputSchema)
         // a process may change data or have other effects

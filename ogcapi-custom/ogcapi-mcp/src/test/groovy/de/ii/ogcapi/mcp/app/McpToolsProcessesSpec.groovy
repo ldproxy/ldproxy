@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
+import de.ii.ogcapi.mcp.domain.ImmutableMcpConfiguration
+import de.ii.ogcapi.mcp.domain.McpConfiguration
 import de.ii.ogcapi.processes.domain.model.ProcessData
 import io.modelcontextprotocol.json.schema.jackson2.DefaultJsonSchemaValidator
 import io.swagger.v3.core.util.Json
@@ -61,6 +63,8 @@ class McpToolsProcessesSpec extends Specification {
                 type: object
         """.stripIndent())
 
+    static final McpConfiguration CONFIG = new ImmutableMcpConfiguration.Builder().build()
+
     McpToolsProcesses tools = new McpToolsProcesses(null, null, null, null, null, JSON)
 
     static Map<String, Object> asMap(io.swagger.v3.oas.models.media.Schema<?> schema) {
@@ -69,7 +73,7 @@ class McpToolsProcessesSpec extends Specification {
 
     def 'a process is a tool with the inputs as arguments'() {
         when:
-        def tool = tools.toTool(API, COUNTS)
+        def tool = tools.toTool(API, CONFIG, COUNTS)
         def input = asMap(tool.inputSchema)
 
         then:
@@ -84,7 +88,7 @@ class McpToolsProcessesSpec extends Specification {
 
     def 'an input with more than one value is an array of its values'() {
         when:
-        def input = asMap(tools.toTool(API, COUNTS).inputSchema)
+        def input = asMap(tools.toTool(API, CONFIG, COUNTS).inputSchema)
 
         then:
         input['properties']['years']['type'] == 'array'
@@ -96,7 +100,7 @@ class McpToolsProcessesSpec extends Specification {
 
     def 'the outputs are the properties of the result, none of them required'() {
         when:
-        def output = asMap(tools.toTool(API, COUNTS).outputSchema)
+        def output = asMap(tools.toTool(API, CONFIG, COUNTS).outputSchema)
 
         then:
         output.type == 'object'
@@ -104,10 +108,18 @@ class McpToolsProcessesSpec extends Specification {
         output['properties']['groups'] == [type: 'array', items: [type: 'object'], title: 'Groups']
     }
 
+    def 'without the description of the API in the tools, a process tool only describes the process'() {
+        when:
+        def tool = tools.toTool(API, new ImmutableMcpConfiguration.Builder().apiDescriptionInTools(false).build(), COUNTS)
+
+        then:
+        tool.description == 'Counts the buildings per area.'
+    }
+
     def 'the schemas of a process tool are valid JSON Schema 2020-12 documents'() {
         given:
         def validator = new DefaultJsonSchemaValidator(JSON)
-        def tool = tools.toTool(API, COUNTS)
+        def tool = tools.toTool(API, CONFIG, COUNTS)
 
         expect:
         validator.validateSchema(asMap(tool.inputSchema)).valid()
@@ -131,7 +143,7 @@ class McpToolsProcessesSpec extends Specification {
         def validator = new DefaultJsonSchemaValidator(JSON)
 
         when:
-        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, nearest).inputSchema))
+        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, CONFIG, nearest).inputSchema))
 
         then:
         input['properties']['distance'] == [type: 'number', exclusiveMinimum: 0, title: 'Distance']
@@ -159,7 +171,7 @@ class McpToolsProcessesSpec extends Specification {
         def validator = new DefaultJsonSchemaValidator(JSON)
 
         when:
-        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, aggregate).inputSchema))
+        def input = McpSchemaVersions.toJsonSchema2020(asMap(tools.toTool(API, CONFIG, aggregate).inputSchema))
         def source = input['properties']['source']
 
         then:
@@ -177,7 +189,7 @@ class McpToolsProcessesSpec extends Specification {
             """.stripIndent())
 
         when:
-        def tool = tools.toTool(API, answer)
+        def tool = tools.toTool(API, CONFIG, answer)
 
         then:
         tool.name == 'Process - answer'

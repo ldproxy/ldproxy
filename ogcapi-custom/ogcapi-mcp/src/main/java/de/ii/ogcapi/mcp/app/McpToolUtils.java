@@ -223,8 +223,7 @@ public class McpToolUtils {
                                   .findFirst()
                                   .flatMap(StoredQueryExpression::getDescription)
                                   .orElse("Tool for stored query: " + queryId)
-                              + apiData
-                                  .getDescription()
+                              + apiDescription(apiData, mcpConfiguration)
                                   .map(desc -> System.lineSeparator() + desc)
                                   .orElse(""))
                       .inputSchema(inputSchema)
@@ -364,8 +363,7 @@ public class McpToolUtils {
                           .getDescription()
                           .map(s -> s + System.lineSeparator())
                           .orElse("")
-                      + apiData
-                          .getDescription()
+                      + apiDescription(apiData, mcpConfiguration)
                           .map(desc -> desc + System.lineSeparator())
                           .orElse("")
                       + mcpConfiguration
@@ -423,6 +421,15 @@ public class McpToolUtils {
         .sorted(Comparator.comparing(entry -> !"GET".equals(entry.getKey())))
         .map(Entry::getValue)
         .findFirst();
+  }
+
+  // the description of the API is the background of all tools and always part of the instructions
+  // of the server (see McpServerImpl); clients that pass the instructions to the model do not need
+  // it again in each tool description
+  static Optional<String> apiDescription(OgcApiDataV2 apiData, McpConfiguration mcpConfiguration) {
+    return mcpConfiguration.getApiDescriptionInTools().orElse(true)
+        ? apiData.getDescription()
+        : Optional.empty();
   }
 
   // the result of a tool call states the offset of the next page, if there is one (see
