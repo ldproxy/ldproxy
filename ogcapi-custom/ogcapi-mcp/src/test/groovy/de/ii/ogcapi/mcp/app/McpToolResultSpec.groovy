@@ -121,6 +121,28 @@ class McpToolResultSpec extends Specification {
         new RuntimeException("wrapped", new IllegalArgumentException("bad filter")) | "bad filter"
     }
 
+    def 'an error in the arguments is logged without a stacktrace'() {
+        given:
+        def logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(McpServerImpl)
+        def appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>()
+        def level = logger.level
+        appender.start()
+        logger.addAppender(appender)
+        logger.level = ch.qos.logback.classic.Level.DEBUG
+
+        when:
+        McpServerImpl.toolError("process_x", new NotFoundException("The workId 'a' does not exist."))
+
+        then:
+        appender.list.size() == 1
+        appender.list[0].formattedMessage.contains("The workId 'a' does not exist.")
+        appender.list[0].throwableProxy == null
+
+        cleanup:
+        logger.detachAppender(appender)
+        logger.level = level
+    }
+
     def 'an error of the server does not disclose its message'() {
         when:
         String text = McpServerImpl.toolError("query_x", error)

@@ -358,7 +358,11 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       if (e instanceof IllegalArgumentException
           || e instanceof WebApplicationException webError
               && webError.getResponse().getStatusInfo().getFamily() == Family.CLIENT_ERROR) {
-        LogContext.errorAsDebug(LOGGER, error, "Error executing MCP tool '{}'", toolId);
+        // an error in the request, not of the server: like the API, only the message, without the
+        // stacktrace that LogContext would log regardless of the level
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Error in the call of MCP tool '{}': {}", toolId, e.getMessage());
+        }
         return prefix + e.getMessage();
       }
       if (e instanceof VolatileUnavailableException) {
