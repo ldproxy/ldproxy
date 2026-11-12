@@ -10,6 +10,7 @@ package de.ii.ogcapi.projections.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.base.Splitter;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.features.core.domain.SchemaInfo;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
@@ -22,6 +23,7 @@ import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.foundation.domain.TypedQueryParameter;
 import de.ii.ogcapi.tiles.domain.TileGenerationUserParameter;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.tiles.domain.ImmutableTileGenerationParametersTransient;
 import de.ii.xtraplatform.tiles.domain.TileGenerationSchema;
@@ -43,11 +45,12 @@ import java.util.stream.Collectors;
  * @endpoints Features, Feature, Vector Tile
  * @langEn The properties that should be excluded for each feature. The parameter value is a
  *     comma-separated list of property names. By default, all feature properties with a value are
- *     returned. The parameter must not be used together with the "properties" parameter.
+ *     returned. The feature id cannot be excluded. The parameter must not be used together with the
+ *     "properties" parameter.
  * @langDe Die Eigenschaften, die für jedes Feature ausgeschlossen werden sollen. Der Parameterwert
  *     ist eine kommagetrennte Liste von Eigenschaftsnamen. Standardmäßig werden alle
- *     Feature-Eigenschaften mit einem Wert zurückgegeben. Der Parameter darf nicht zusammen mit dem
- *     Parameter "properties" verwendet werden.
+ *     Feature-Eigenschaften mit einem Wert zurückgegeben. Die Feature-Id kann nicht ausgeschlossen
+ *     werden. Der Parameter darf nicht zusammen mit dem Parameter "properties" verwendet werden.
  */
 @Singleton
 @AutoBind
@@ -58,11 +61,14 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
 
   private final SchemaInfo schemaInfo;
   private final SchemaValidator schemaValidator;
+  private final FeaturesCoreProviders providers;
 
   @Inject
-  public QueryParameterExcludeProperties(SchemaInfo schemaInfo, SchemaValidator schemaValidator) {
+  public QueryParameterExcludeProperties(
+      SchemaInfo schemaInfo, SchemaValidator schemaValidator, FeaturesCoreProviders providers) {
     this.schemaInfo = schemaInfo;
     this.schemaValidator = schemaValidator;
+    this.providers = providers;
   }
 
   @Override
@@ -77,7 +83,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
 
   @Override
   public String getDescription() {
-    return "The properties that should be excluded for each feature. The parameter value is a comma-separated list of property names. By default, all feature properties with a value are returned. The parameter must not be used together with the 'properties' parameter.";
+    return "The properties that should be excluded for each feature. The parameter value is a comma-separated list of property names. By default, all feature properties with a value are returned. The feature id cannot be excluded. The parameter must not be used together with the 'properties' parameter.";
   }
 
   @Override
@@ -99,6 +105,18 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
             "*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)).minItems(1));
   }
 
+  // the feature id cannot be excluded
+  private List<String> getExcludablePropertyNames(OgcApiDataV2 apiData, String collectionId) {
+    Optional<String> idProperty =
+        Optional.ofNullable(apiData.getCollections().get(collectionId))
+            .flatMap(collectionData -> providers.getFeatureSchema(apiData, collectionData))
+            .flatMap(FeatureSchema::getIdProperty)
+            .map(FeatureSchema::getFullPathAsString);
+    return schemaInfo.getPropertyNames(apiData, collectionId, true, false).stream()
+        .filter(name -> idProperty.map(id -> !id.equals(name)).orElse(true))
+        .toList();
+  }
+
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
     return schemaMap
@@ -108,8 +126,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
             ignore ->
                 new ArraySchema()
                     .items(
-                        new StringSchema()
-                            ._enum(schemaInfo.getPropertyNames(apiData, collectionId, true, false)))
+                        new StringSchema()._enum(getExcludablePropertyNames(apiData, collectionId)))
                     .minItems(1));
   }
 

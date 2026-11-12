@@ -8,7 +8,6 @@
 package de.ii.ogcapi.text.search.app;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
@@ -16,6 +15,7 @@ import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
@@ -94,7 +94,10 @@ public class QueryParameterQ extends OgcApiQueryParameterBase
             .map(Set::copyOf)
             .orElse(ImmutableSet.of());
 
-    return qToCql(textSearchProperties, Splitter.on(",").trimResults().splitToList(value));
+    // an empty value is a single empty search term
+    return qToCql(
+        textSearchProperties,
+        value.isBlank() ? List.of(value.trim()) : ListParameterValues.split(value));
   }
 
   @Override
