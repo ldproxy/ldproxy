@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,6 +64,7 @@ final class WorkflowRunner {
   private final int maximumResponseSize;
   private final Pause pause;
   private final Map<String, String> serverInputs;
+  private final WorkflowLog log;
   private final Map<String, Map<String, Object>> workflows;
   private final List<Map<String, Object>> trace;
   // the external APIs of the sources by URL, each document is read once per execution
@@ -122,6 +124,7 @@ final class WorkflowRunner {
     this.maximumResponseSize = maximumResponseSize;
     this.pause = pause;
     this.serverInputs = serverInputs;
+    this.log = new WorkflowLog(serverInputs.keySet());
     this.workflows = new LinkedHashMap<>();
     this.trace = new ArrayList<>();
     this.externalSources = new HashMap<>();
@@ -157,8 +160,14 @@ final class WorkflowRunner {
       throw WorkflowException.problem(
           "The inputs %s are set by the server, they cannot be part of a request.", setByServer);
     }
-    Map<String, Object> outputs = run(document, workflow, inputs, 0);
-    return new Result(outputs, List.copyOf(trace));
+    long start = System.currentTimeMillis();
+    try {
+      Map<String, Object> outputs = run(document, workflow, inputs, 0);
+      return new Result(outputs, List.copyOf(trace));
+    } catch (WorkflowException e) {
+      log.failed(workflowId, System.currentTimeMillis() - start, e.getMessage());
+      throw e;
+    }
   }
 
   private static Optional<ArazzoWorkflow> workflow(ArazzoDocument document, String workflowId) {
@@ -175,7 +184,9 @@ final class WorkflowRunner {
       throw WorkflowException.failure(
           "The workflows are nested more than %d levels deep.", MAXIMUM_DEPTH);
     }
+    long start = System.currentTimeMillis();
     Map<String, Object> actualInputs = inputs(document, workflow, inputs);
+    log.started(workflow.getWorkflowId(), depth, actualInputs, passwords(document, workflow));
     State state = new State(document, workflow, actualInputs, depth);
     List<ArazzoStep> steps = workflow.getSteps();
     int index = 0;
@@ -189,7 +200,23 @@ final class WorkflowRunner {
       }
       index = next.get() == NEXT ? index + 1 : next.get();
     }
-    return outputs(state);
+    Map<String, Object> outputs = outputs(state);
+    log.finished(workflow.getWorkflowId(), depth, System.currentTimeMillis() - start, stepsRun);
+    return outputs;
+  }
+
+  // the inputs with the format password, their values are not logged
+  private static Set<String> passwords(ArazzoDocument document, ArazzoWorkflow workflow) {
+    if (!(inputSchema(document, workflow).get("properties") instanceof Map<?, ?> properties)) {
+      return Set.of();
+    }
+    return properties.entrySet().stream()
+        .filter(
+            property ->
+                property.getValue() instanceof Map<?, ?> definition
+                    && "password".equals(definition.get("format")))
+        .map(property -> String.valueOf(property.getKey()))
+        .collect(Collectors.toSet());
   }
 
   /** The state of a running workflow. */
@@ -299,14 +326,19 @@ final class WorkflowRunner {
     if (step.getWorkflowId().isPresent()) {
       Optional<Map<String, Object>> outputs = runWorkflowStep(state, step, context, entry);
       entry.put("success", outputs.isPresent());
+      if (outputs.isEmpty()) {
+        log.stepFailed(state.workflow.getWorkflowId(), step.getStepId(), state.depth);
+      }
       outputs.ifPresent(values -> stepOutputs(state, step, values, entry));
       return new StepOutcome(outputs.isPresent(), Optional.empty());
     }
     StepRequest request = request(state, step, context);
+    long start = System.currentTimeMillis();
     StepResponse response =
         request.server().isPresent()
             ? externalApis.dispatch(request, maximumResponseSize)
             : dispatcher.dispatch(request, maximumResponseSize);
+    long millis = System.currentTimeMillis() - start;
     Exchange exchange = new Exchange(request, response);
     entry.put("statusCode", response.statusCode());
     ExpressionContext responseContext = context.withExchange(exchange);
@@ -314,6 +346,14 @@ final class WorkflowRunner {
         step.getSuccessCriteria().isEmpty()
             ? response.isSuccessful()
             : Criteria.all(step.getSuccessCriteria(), responseContext);
+    log.request(
+        state.workflow.getWorkflowId(),
+        step.getStepId(),
+        state.depth,
+        request,
+        response,
+        millis,
+        success);
     entry.put("success", success);
     if (success) {
       stepOutputs(state, step, outputs(step, responseContext), entry);
@@ -358,6 +398,12 @@ final class WorkflowRunner {
                     parameter.getName().orElseThrow(),
                     RuntimeExpressions.resolve(parameter.getValue(), context)));
     if (step.getForEach().isEmpty()) {
+      log.callsWorkflow(
+          state.workflow.getWorkflowId(),
+          step.getStepId(),
+          state.depth,
+          target.getWorkflowId(),
+          -1);
       return runNested(targetDocument, target, inputs, state.depth + 1)
           .map(context::withOutputs)
           .filter(nested -> Criteria.all(step.getSuccessCriteria(), nested))
@@ -366,9 +412,17 @@ final class WorkflowRunner {
     ArazzoForEach forEach = step.getForEach().get();
     List<?> items = items(RuntimeExpressions.resolve(forEach.getItems(), context));
     entry.put("iterations", items.size());
+    log.callsWorkflow(
+        state.workflow.getWorkflowId(),
+        step.getStepId(),
+        state.depth,
+        target.getWorkflowId(),
+        items.size());
+    int index = 0;
     Map<String, Object> outputs = new LinkedHashMap<>();
     step.getOutputs().keySet().forEach(name -> outputs.put(name, new ArrayList<>()));
     for (Object item : items) {
+      log.item(state.depth, ++index, items.size(), item);
       Map<String, Object> itemInputs = new LinkedHashMap<>(inputs);
       itemInputs.put(forEach.getAls(), item);
       Optional<ExpressionContext> nested =
@@ -703,7 +757,9 @@ final class WorkflowRunner {
       // the retries of an action are exhausted before the following failure actions apply
       if (done < action.getRetryLimit().orElse(1)) {
         state.retries.put(key, done + 1);
-        pause.pause(retryAfterMillis(action, outcome));
+        long retryAfter = retryAfterMillis(action, outcome);
+        log.retry(state.workflow.getWorkflowId(), step.getStepId(), state.depth, retryAfter);
+        pause.pause(retryAfter);
         runTargetOfRetry(state, action);
         return Optional.of(index(state.workflow, step.getStepId()));
       }
