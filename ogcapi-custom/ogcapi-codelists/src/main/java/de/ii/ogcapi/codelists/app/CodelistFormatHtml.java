@@ -107,14 +107,24 @@ public class CodelistFormatHtml implements CodelistFormatExtension, FormatHtml {
                   }
                 });
 
-    List<SimpleEntry<String, String>> codelistEntries =
+    // an enumeration has no labels, every code is its own label
+    boolean isEnumeration =
         codelist.getEntries().entrySet().stream()
-            .sorted(
-                intAsKey
-                    ? Comparator.comparingInt(entry -> Integer.parseInt(entry.getKey()))
-                    : Map.Entry.comparingByKey())
-            .map(e -> new SimpleEntry<>(e.getKey(), e.getValue()))
-            .collect(Collectors.toList());
+            .allMatch(entry -> entry.getKey().equals(entry.getValue()));
+
+    // an enumeration keeps the order of its values
+    List<SimpleEntry<String, String>> codelistEntries =
+        isEnumeration
+            ? codelist.getEntries().keySet().stream()
+                .map(key -> new SimpleEntry<>(key, ""))
+                .collect(Collectors.toList())
+            : codelist.getEntries().entrySet().stream()
+                .sorted(
+                    intAsKey
+                        ? Comparator.comparingInt(entry -> Integer.parseInt(entry.getKey()))
+                        : Map.Entry.comparingByKey())
+                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
 
     return new ImmutableCodelistView.Builder()
         .apiData(apiData)
