@@ -7,6 +7,7 @@
  */
 package de.ii.ldproxy.cfg
 
+import de.ii.ldproxy.cfg.migrations.ExtentMigrationV5
 import de.ii.ldproxy.cfg.migrations.FeatureProviderSqlMigrationV5
 import de.ii.ldproxy.cfg.migrations.FeaturesExtensionsMigrationV5
 import de.ii.ldproxy.cfg.migrations.FeaturesHtmlMigrationV5
@@ -36,9 +37,10 @@ class MigrationsSpec extends Specification {
                 FeaturesHtmlMigrationV5,
                 FeaturesExtensionsMigrationV5,
                 FeatureProviderSqlMigrationV5,
-                TileProviderFeaturesMigrationV5
+                TileProviderFeaturesMigrationV5,
+                ExtentMigrationV5
         ])
-        registered.size() == 6
+        registered.size() == 7
     }
 
     def "all v5 value migrations are registered"() {

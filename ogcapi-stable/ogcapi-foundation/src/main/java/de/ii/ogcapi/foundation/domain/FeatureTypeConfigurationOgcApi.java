@@ -82,8 +82,14 @@ public interface FeatureTypeConfigurationOgcApi
    */
   Optional<String> getPersistentUriTemplate();
 
-  // this option is only set at runtime
+  /**
+   * @deprecated Use `extent` in the FEATURES_CORE building block of the collection. A value set
+   *     here is used for that option, if it is not set.
+   */
+  @Deprecated
   @DocIgnore
+  // the deprecated option itself, it is removed together with CollectionExtent
+  @SuppressWarnings("removal")
   Optional<CollectionExtent> getExtent();
 
   /**

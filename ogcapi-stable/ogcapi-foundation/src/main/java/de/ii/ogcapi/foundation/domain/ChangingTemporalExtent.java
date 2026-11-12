@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import de.ii.xtraplatform.entities.domain.ChangingValue;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -17,22 +18,23 @@ public interface ChangingTemporalExtent extends ChangingValue<TemporalExtent> {
 
   static ChangingTemporalExtent of(TemporalExtent interval) {
     return new ImmutableChangingTemporalExtent.Builder()
-        .value(Objects.requireNonNullElse(interval, TemporalExtent.of(null, null)))
+        .value(
+            Objects.requireNonNullElse(interval, TemporalExtent.of((String) null, (String) null)))
         .build();
   }
 
   @Override
   default Optional<ChangingValue<TemporalExtent>> updateWith(ChangingValue<TemporalExtent> delta) {
     TemporalExtent deltaExtent = delta.getValue();
-    Long currentStart = getValue().getStart();
-    Long currentEnd = getValue().getEnd();
-    Long deltaStart = deltaExtent.getStart();
-    Long deltaEnd = deltaExtent.getEnd();
+    Instant currentStart = getValue().getStartInstant();
+    Instant currentEnd = getValue().getEndInstant();
+    Instant deltaStart = deltaExtent.getStartInstant();
+    Instant deltaEnd = deltaExtent.getEndInstant();
 
-    if (Objects.requireNonNullElse(currentStart, Long.MIN_VALUE)
-            <= Objects.requireNonNullElse(deltaStart, Long.MIN_VALUE)
-        && Objects.requireNonNullElse(currentEnd, Long.MAX_VALUE)
-            >= Objects.requireNonNullElse(deltaEnd, Long.MAX_VALUE)) {
+    if (!Objects.requireNonNullElse(currentStart, Instant.MIN)
+            .isAfter(Objects.requireNonNullElse(deltaStart, Instant.MIN))
+        && !Objects.requireNonNullElse(currentEnd, Instant.MAX)
+            .isBefore(Objects.requireNonNullElse(deltaEnd, Instant.MAX))) {
       return Optional.empty();
     }
 
@@ -41,7 +43,9 @@ public interface ChangingTemporalExtent extends ChangingValue<TemporalExtent> {
             TemporalExtent.of(
                 currentStart == null || deltaStart == null
                     ? null
-                    : Math.min(currentStart, deltaStart),
-                currentEnd == null || deltaEnd == null ? null : Math.max(currentEnd, deltaEnd))));
+                    : (currentStart.isBefore(deltaStart) ? currentStart : deltaStart),
+                currentEnd == null || deltaEnd == null
+                    ? null
+                    : (currentEnd.isAfter(deltaEnd) ? currentEnd : deltaEnd))));
   }
 }

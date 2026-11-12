@@ -11,7 +11,6 @@ import static de.ii.ogcapi.common.domain.QueriesHandlerCommon.GROUP_COLLECTIONS_
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import de.ii.ogcapi.collections.app.CollectionsBuildingBlock;
 import de.ii.ogcapi.collections.app.ImmutableQueryInputFeatureCollection;
 import de.ii.ogcapi.collections.app.QueriesHandlerCollectionsImpl;
@@ -23,7 +22,6 @@ import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -37,10 +35,7 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.ogcapi.foundation.domain.TemporalExtent;
 import de.ii.xtraplatform.auth.domain.User;
-import de.ii.xtraplatform.crs.domain.BoundingBox;
-import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
@@ -55,8 +50,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -123,67 +116,6 @@ public class EndpointCollection extends EndpointSubCollection {
               MessageFormat.format(
                   "Persistent URI template ''{0}'' in collection ''{1}'' does not have a valid value pattern.",
                   persistentUriTemplate.get(), collectionData.getId()));
-        }
-      }
-
-      Optional<CollectionExtent> extent = api.getData().getExtent(collectionData.getId());
-      if (extent.isPresent()) {
-        Optional<BoundingBox> spatial = extent.get().getSpatial();
-        if (spatial.isPresent() && Objects.nonNull(spatial.get())) {
-          BoundingBox bbox = spatial.get();
-          if (!ImmutableSet.of(4326, 4979).contains(bbox.getEpsgCrs().getCode())
-              || bbox.getEpsgCrs().getForceAxisOrder() != EpsgCrs.Force.LON_LAT) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' must be in CRS84 or CRS84h. Found: ''{1}, {2}''.",
-                    collectionData.getId(),
-                    bbox.getEpsgCrs().toSimpleString(),
-                    bbox.getEpsgCrs().getForceAxisOrder()));
-          }
-          if (bbox.getXmin() < -180.0 || bbox.getXmin() > 180.0) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' has a longitude value that is not between -180 and 180. Found: ''{1}''.",
-                    collectionData.getId(), bbox.getXmin()));
-          }
-          if (bbox.getXmax() < -180.0 || bbox.getXmax() > 180.0) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' has a longitude value that is not between -180 and 180. Found: ''{1}''.",
-                    collectionData.getId(), bbox.getXmax()));
-          }
-          if (bbox.getYmin() < -90.0 || bbox.getYmin() > 90.0) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' has a latitude value that is not between -90 and 90. Found: ''{1}''.",
-                    collectionData.getId(), bbox.getYmin()));
-          }
-          if (bbox.getYmax() < -90.0 || bbox.getYmax() > 90.0) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' has a latitude value that is not between -90 and 90. Found: ''{1}''.",
-                    collectionData.getId(), bbox.getYmax()));
-          }
-          if (bbox.getYmax() < bbox.getYmin()) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The spatial extent in collection ''{0}'' has a maxmimum latitude value ''{1}'' that is lower than the minimum value ''{2}''.",
-                    collectionData.getId(), bbox.getYmax(), bbox.getYmin()));
-          }
-        }
-        Optional<TemporalExtent> temporal = extent.get().getTemporal();
-        if (temporal.isPresent() && Objects.nonNull(temporal.get())) {
-          Long start =
-              Objects.nonNull(temporal.get().getStart()) ? temporal.get().getStart() : null;
-          Long end = Objects.nonNull(temporal.get().getEnd()) ? temporal.get().getEnd() : null;
-          if (start != null && end != null && end < start) {
-            builder.addStrictErrors(
-                MessageFormat.format(
-                    "The temporal extent in collection ''{0}'' has an end ''{1}'' before the start ''{2}''.",
-                    collectionData.getId(),
-                    Instant.ofEpochMilli(end).truncatedTo(ChronoUnit.SECONDS).toString(),
-                    Instant.ofEpochMilli(start).truncatedTo(ChronoUnit.SECONDS).toString()));
-          }
         }
       }
     }

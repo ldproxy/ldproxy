@@ -428,14 +428,14 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
   Optional<ExternalDocumentation> getExternalDocs();
 
   /**
-   * @langEn By default, the spatial and temporal extent of data is derived from the data when
-   *     starting the API, but the [Default Extent](#default-extent) can also be configured.
-   * @langDe Die räumliche und zeitliche Ausdehnung der Daten wird normalerweise aus den Daten
-   *     während des Starts der API abgeleitet, aber die [Angaben](#ausdehnung-der-daten) können
-   *     auch in der Konfiguration gesetzt werden.
-   * @default { "spatialComputed": true, "temporalComputed": true }
+   * @langEn Deprecated. Use {@code extent} in FEATURES_CORE building block instead.
+   * @langDe Deprecated. Stattdessen {@code extent} im FEATURES_CORE-Baustein verwenden.
+   * @deprecated
    */
+  @Deprecated(since = "4.9", forRemoval = true)
   @JsonMerge(OptBoolean.FALSE)
+  // the deprecated option itself, it is removed together with CollectionExtent
+  @SuppressWarnings("removal")
   Optional<CollectionExtent> getDefaultExtent();
 
   /**
@@ -577,38 +577,6 @@ public interface OgcApiDataV2 extends ServiceData, ExtendableConfiguration {
   default boolean isDataset() {
     // return false if there no collection or no collection that is enabled
     return getCollections().values().stream().anyMatch(FeatureTypeConfigurationOgcApi::getEnabled);
-  }
-
-  /**
-   * Determine extent of a collection in the dataset.
-   *
-   * @param collectionId the name of the feature type
-   * @return the extent
-   */
-  default Optional<CollectionExtent> getExtent(String collectionId) {
-    return getCollections().values().stream()
-        .filter(featureTypeConfiguration -> featureTypeConfiguration.getId().equals(collectionId))
-        .filter(FeatureTypeConfigurationOgcApi::getEnabled)
-        .findFirst()
-        .flatMap(FeatureTypeConfigurationOgcApi::getExtent)
-        .flatMap(
-            collectionExtent -> mergeExtents(getDefaultExtent(), Optional.of(collectionExtent)))
-        .or(this::getDefaultExtent);
-  }
-
-  private Optional<CollectionExtent> mergeExtents(
-      Optional<CollectionExtent> defaultExtent, Optional<CollectionExtent> collectionExtent) {
-    if (defaultExtent.isEmpty()) {
-      return collectionExtent;
-    } else if (collectionExtent.isEmpty()) {
-      return defaultExtent;
-    }
-
-    return Optional.of(
-        new ImmutableCollectionExtent.Builder()
-            .from(defaultExtent.get())
-            .from(collectionExtent.get())
-            .build());
   }
 
   default <T extends ExtensionConfiguration> Optional<T> getExtension(

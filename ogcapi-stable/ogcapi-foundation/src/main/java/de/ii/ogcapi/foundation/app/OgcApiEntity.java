@@ -57,6 +57,9 @@ import org.slf4j.LoggerFactory;
     data = OgcApiDataV2.class)
 public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcApi {
 
+  // key of the extent of the API, if it is set independent of the collections
+  private static final String API_EXTENT = "UNKNOWN";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(OgcApiEntity.class);
 
   private final CrsTransformerFactory crsTransformerFactory;
@@ -227,7 +230,14 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
 
   @Override
   public Optional<BoundingBox> getSpatialExtent() {
-    return getChangingData().get(ChangingSpatialExtent.class).map(ChangingValue::getValue);
+    Optional<BoundingBox> configuredApiExtent =
+        getChangingData().get(ChangingSpatialExtent.class, API_EXTENT).map(ChangingValue::getValue);
+
+    if (configuredApiExtent.isPresent()) {
+      return configuredApiExtent;
+    }
+
+    return unionOfCollections(ChangingSpatialExtent.class);
   }
 
   @Override
@@ -261,7 +271,12 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
 
   @Override
   public void setSpatialExtent(BoundingBox bbox) {
-    getChangingData().put(ChangingSpatialExtent.class, "UNKNOWN", ChangingSpatialExtent.of(bbox));
+    getChangingData().put(ChangingSpatialExtent.class, API_EXTENT, ChangingSpatialExtent.of(bbox));
+  }
+
+  @Override
+  public void removeSpatialExtent() {
+    getChangingData().remove(ChangingSpatialExtent.class, API_EXTENT);
   }
 
   @Override
@@ -278,7 +293,26 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
 
   @Override
   public Optional<TemporalExtent> getTemporalExtent() {
-    return getChangingData().get(ChangingTemporalExtent.class).map(ChangingValue::getValue);
+    Optional<TemporalExtent> configuredApiExtent =
+        getChangingData()
+            .get(ChangingTemporalExtent.class, API_EXTENT)
+            .map(ChangingValue::getValue);
+
+    if (configuredApiExtent.isPresent()) {
+      return configuredApiExtent;
+    }
+
+    return unionOfCollections(ChangingTemporalExtent.class);
+  }
+
+  // the union of the current collections, a reload keeps values of collections that are gone
+  private <T, U extends ChangingValue<T>> Optional<T> unionOfCollections(Class<U> type) {
+    return getData().getCollections().keySet().stream()
+        .map(collectionId -> getChangingData().get(type, collectionId))
+        .flatMap(Optional::stream)
+        .map(value -> (ChangingValue<T>) value)
+        .reduce((first, second) -> first.updateWith(second).orElse(first))
+        .map(ChangingValue::getValue);
   }
 
   @Override
@@ -286,6 +320,17 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
     return getChangingData()
         .get(ChangingTemporalExtent.class, collectionId)
         .map(ChangingValue::getValue);
+  }
+
+  @Override
+  public void setTemporalExtent(TemporalExtent temporalExtent) {
+    getChangingData()
+        .put(ChangingTemporalExtent.class, API_EXTENT, ChangingTemporalExtent.of(temporalExtent));
+  }
+
+  @Override
+  public void removeTemporalExtent() {
+    getChangingData().remove(ChangingTemporalExtent.class, API_EXTENT);
   }
 
   @Override

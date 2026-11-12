@@ -20,7 +20,6 @@ import de.ii.ogcapi.features.core.domain.WithChangeListeners;
 import de.ii.ogcapi.foundation.domain.ApiBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
-import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
@@ -34,13 +33,18 @@ import de.ii.xtraplatform.crs.domain.CrsTransformationException;
 import de.ii.xtraplatform.crs.domain.CrsTransformer;
 import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
+import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
 import de.ii.xtraplatform.features.domain.DatasetChangeListener;
+import de.ii.xtraplatform.features.domain.Extent;
 import de.ii.xtraplatform.features.domain.FeatureChangeListener;
 import de.ii.xtraplatform.features.domain.FeatureExtents;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.FeatureProviderEntity;
 import de.ii.xtraplatform.features.domain.FeatureQueries;
+import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.SpatialExtent;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaArray;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaBoolean;
@@ -54,11 +58,14 @@ import io.swagger.v3.oas.models.media.ComposedSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,12 +233,16 @@ public class FeaturesCoreBuildingBlock
   public ValidationResult onStartup(OgcApi api, MODE apiValidation) {
     OgcApiDataV2 apiData = api.getData();
 
+    ValidationResult validationResult = validateConfiguredExtents(apiData, apiValidation);
+
     apiData
         .getCollections()
         .keySet()
         .forEach(
             collectionId ->
                 initMetadata(api, collectionId, Instant.now().truncatedTo(ChronoUnit.SECONDS)));
+
+    initApiMetadata(api);
 
     providers
         .getFeatureProvider(apiData)
@@ -271,7 +282,68 @@ public class FeaturesCoreBuildingBlock
             JsonSchemaRef.class,
             JsonSchemaOneOf.class));
 
-    return ValidationResult.of();
+    return validationResult;
+  }
+
+  ValidationResult validateConfiguredExtents(OgcApiDataV2 apiData, MODE apiValidation) {
+    if (apiValidation == MODE.NONE) {
+      return ValidationResult.of();
+    }
+
+    ImmutableValidationResult.Builder builder =
+        ImmutableValidationResult.builder().mode(apiValidation);
+
+    for (FeatureTypeConfigurationOgcApi collectionData : apiData.getCollections().values()) {
+      configuredSpatialExtent(apiData, collectionData)
+          .ifPresent(bbox -> validateCrs84(builder, collectionData.getId(), bbox));
+    }
+
+    return builder.build();
+  }
+
+  private static void validateCrs84(
+      ImmutableValidationResult.Builder builder, String collectionId, BoundingBox bbox) {
+    for (double lon : new double[] {bbox.getXmin(), bbox.getXmax()}) {
+      if (lon < -180.0 || lon > 180.0) {
+        builder.addStrictErrors(
+            MessageFormat.format(
+                "The spatial extent in collection ''{0}'' has a longitude value that is not between -180 and 180. Found: ''{1}''.",
+                collectionId, String.valueOf(lon)));
+      }
+    }
+    for (double lat : new double[] {bbox.getYmin(), bbox.getYmax()}) {
+      if (lat < -90.0 || lat > 90.0) {
+        builder.addStrictErrors(
+            MessageFormat.format(
+                "The spatial extent in collection ''{0}'' has a latitude value that is not between -90 and 90. Found: ''{1}''.",
+                collectionId, String.valueOf(lat)));
+      }
+    }
+    if (bbox.getYmax() < bbox.getYmin()) {
+      builder.addStrictErrors(
+          MessageFormat.format(
+              "The spatial extent in collection ''{0}'' has a maxmimum latitude value ''{1}'' that is lower than the minimum value ''{2}''.",
+              collectionId, String.valueOf(bbox.getYmax()), String.valueOf(bbox.getYmin())));
+    }
+  }
+
+  private void initApiMetadata(OgcApi api) {
+    Optional<Extent> apiExtent =
+        api.getData()
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent);
+
+    // also on a reload, where an extent of the previous configuration may still be set
+    apiExtent
+        .flatMap(Extent::getSpatial)
+        .flatMap(FeaturesCoreBuildingBlock::toBoundingBox)
+        .ifPresentOrElse(api::setSpatialExtent, api::removeSpatialExtent);
+
+    apiExtent
+        .flatMap(Extent::getTemporal)
+        .flatMap(de.ii.xtraplatform.features.domain.TemporalExtent::toInterval)
+        .map(TemporalExtent::of)
+        .ifPresentOrElse(api::setTemporalExtent, api::removeTemporalExtent);
   }
 
   @Override
@@ -288,15 +360,11 @@ public class FeaturesCoreBuildingBlock
     OgcApiDataV2 apiData = api.getData();
     FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
 
-    final Optional<CollectionExtent> optionalExtent = apiData.getExtent(collectionId);
-
-    optionalExtent
-        .flatMap(extent -> extent.isSpatialComputed() ? Optional.empty() : extent.getSpatial())
+    configuredSpatialExtent(apiData, collectionData)
         .or(() -> computeBbox(apiData, collectionId))
         .ifPresent(bbox -> api.setSpatialExtent(collectionId, bbox));
 
-    optionalExtent
-        .flatMap(extent -> extent.isTemporalComputed() ? Optional.empty() : extent.getTemporal())
+    configuredTemporalExtent(apiData, collectionData)
         .or(() -> computeInterval(apiData, collectionId))
         .ifPresent(interval -> api.setTemporalExtent(collectionId, interval));
 
@@ -334,18 +402,28 @@ public class FeaturesCoreBuildingBlock
     return change -> {
       String collectionId =
           FeaturesCoreConfiguration.getCollectionId(api.getData(), change.getFeatureType());
+      OgcApiDataV2 apiData = api.getData();
+      FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+      boolean hasFixedSpatialExtent = hasFixedSpatialExtent(apiData, collectionData);
+      boolean hasFixedTemporalExtent = hasFixedTemporalExtent(apiData, collectionData);
+
       switch (change.getAction()) {
         case CREATE:
           api.updateItemCount(collectionId, (long) change.getFeatureIds().size());
         case UPDATE:
-          change
-              .getNewBoundingBox()
-              .flatMap(this::transformToCrs84)
-              .ifPresent(bbox -> api.updateSpatialExtent(collectionId, bbox));
-          change
-              .getNewInterval()
-              .ifPresent(
-                  interval -> api.updateTemporalExtent(collectionId, TemporalExtent.of(interval)));
+          if (!hasFixedSpatialExtent) {
+            change
+                .getNewBoundingBox()
+                .flatMap(this::transformToCrs84)
+                .ifPresent(bbox -> api.updateSpatialExtent(collectionId, bbox));
+          }
+          if (!hasFixedTemporalExtent) {
+            change
+                .getNewInterval()
+                .ifPresent(
+                    interval ->
+                        api.updateTemporalExtent(collectionId, TemporalExtent.of(interval)));
+          }
           break;
         case DELETE:
           api.updateItemCount(collectionId, (long) -change.getFeatureIds().size());
@@ -430,6 +508,85 @@ public class FeaturesCoreBuildingBlock
       return featureExtents.get().getTemporalExtent(featureType).map(TemporalExtent::of);
     }
     return Optional.empty();
+  }
+
+  /**
+   * The configured extent of a collection: each part of the extent in FEATURES_CORE of the
+   * collection replaces the same part of the extent in FEATURES_CORE of the API. Extents in the
+   * deprecated options have been converted to these options by {@link FeaturesCoreDataHydrator}.
+   */
+  static Extent getConfiguredExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    return Extent.inherit(
+        Optional.ofNullable(collectionData)
+            .flatMap(cd -> cd.getExtension(FeaturesCoreConfiguration.class))
+            .flatMap(FeaturesCoreConfiguration::getExtent),
+        apiData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getExtent));
+  }
+
+  /** The fixed spatial extent of a collection in CRS84, empty if it is computed from the data. */
+  static Optional<BoundingBox> configuredSpatialExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    return getConfiguredExtent(apiData, collectionData)
+        .getSpatial()
+        .flatMap(FeaturesCoreBuildingBlock::toBoundingBox);
+  }
+
+  /** The fixed temporal extent of a collection, empty if it is computed from the data. */
+  static Optional<TemporalExtent> configuredTemporalExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    return getConfiguredExtent(apiData, collectionData)
+        .getTemporal()
+        .flatMap(de.ii.xtraplatform.features.domain.TemporalExtent::toInterval)
+        .map(TemporalExtent::of);
+  }
+
+  private static Optional<BoundingBox> toBoundingBox(SpatialExtent spatial) {
+    return spatial.toBoundingBox(Objects.nonNull(spatial.getZmin()) ? OgcCrs.CRS84h : OgcCrs.CRS84);
+  }
+
+  private boolean hasFixedSpatialExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    return configuredSpatialExtent(apiData, collectionData).isPresent()
+        || getProviderExtent(apiData, collectionData)
+            .flatMap(Extent::getSpatial)
+            .flatMap(spatial -> spatial.toBoundingBox(OgcCrs.CRS84))
+            .isPresent();
+  }
+
+  private boolean hasFixedTemporalExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    return configuredTemporalExtent(apiData, collectionData).isPresent()
+        || getProviderExtent(apiData, collectionData)
+            .flatMap(Extent::getTemporal)
+            .flatMap(de.ii.xtraplatform.features.domain.TemporalExtent::toInterval)
+            .isPresent();
+  }
+
+  // same resolution the provider applies, so that changes do not widen a fixed provider extent
+  private Optional<Extent> getProviderExtent(
+      OgcApiDataV2 apiData, @Nullable FeatureTypeConfigurationOgcApi collectionData) {
+    if (collectionData == null) {
+      return Optional.empty();
+    }
+    String featureType =
+        collectionData
+            .getExtension(FeaturesCoreConfiguration.class)
+            .flatMap(FeaturesCoreConfiguration::getFeatureType)
+            .orElse(collectionData.getId());
+
+    return providers
+        .getFeatureProvider(apiData, collectionData)
+        .filter(FeatureProviderEntity.class::isInstance)
+        .map(provider -> ((FeatureProviderEntity) provider).getData())
+        .map(
+            providerData ->
+                Extent.inherit(
+                    Optional.ofNullable(providerData.getTypes().get(featureType))
+                        .flatMap(FeatureSchema::getExtent),
+                    providerData.getExtent()));
   }
 
   @Override

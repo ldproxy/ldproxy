@@ -10,6 +10,7 @@ package de.ii.ogcapi.features.core.app;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import de.ii.ogcapi.features.core.domain.DeprecatedExtents;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -26,6 +27,7 @@ import de.ii.xtraplatform.features.domain.Metadata;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.AbstractMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,7 +63,7 @@ public class FeaturesCoreDataHydrator implements OgcApiDataHydratorExtension {
   public OgcApiDataV2 getHydratedData(OgcApiDataV2 apiData) {
     FeatureProvider featureProvider = providers.getFeatureProviderOrThrow(apiData);
 
-    OgcApiDataV2 data = apiData;
+    OgcApiDataV2 data = withDeprecatedExtents(apiData);
     if (data.isAuto() && data.getCollections().isEmpty()) {
       data =
           new ImmutableOgcApiDataV2.Builder()
@@ -234,6 +236,23 @@ public class FeaturesCoreDataHydrator implements OgcApiDataHydratorExtension {
     }
 
     return data;
+  }
+
+  // the deprecated extent options are used for FEATURES_CORE, and kept so that an upgrade of the
+  // configuration can still detect them
+  private static OgcApiDataV2 withDeprecatedExtents(OgcApiDataV2 apiData) {
+    if (apiData.getDefaultExtent().isPresent() && LOGGER.isWarnEnabled()) {
+      LOGGER.warn(
+          "The option 'defaultExtent' is deprecated, use 'extent' in the building block FEATURES_CORE of the API instead.");
+    }
+    List<String> collections = DeprecatedExtents.getCollectionsWithDeprecatedExtent(apiData);
+    if (!collections.isEmpty() && LOGGER.isWarnEnabled()) {
+      LOGGER.warn(
+          "The option 'extent' of a collection is deprecated, use 'extent' in the building block FEATURES_CORE of the collection instead. Collections: {}",
+          collections);
+    }
+
+    return DeprecatedExtents.apply(apiData, false);
   }
 
   private Map<String, FeatureTypeConfigurationOgcApi> generateCollections(

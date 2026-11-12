@@ -20,6 +20,7 @@ import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.ImmutableEpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
+import de.ii.xtraplatform.features.domain.Extent;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import java.util.LinkedHashMap;
@@ -255,6 +256,22 @@ public interface FeaturesCoreConfiguration
   }
 
   Optional<ItemType> getItemType();
+
+  /**
+   * @langEn Fixed spatial (`spatial`, in CRS84) and/or temporal (`temporal`) extent. If set, the
+   *     extent is not computed from the data. Each part set for a collection replaces the same part
+   *     set for the API; `computed: true` for a collection computes that part from the data
+   *     instead. Queries are not restricted to this extent; to restrict them, set the extent in an
+   *     SQL feature provider.
+   * @langDe Fester räumlicher (`spatial`, in CRS84) und/oder zeitlicher (`temporal`) Extent. Wenn
+   *     gesetzt, wird der Extent nicht aus den Daten berechnet. Jeder für eine Collection gesetzte
+   *     Teil ersetzt denselben für die API gesetzten Teil; `computed: true` für eine Collection
+   *     berechnet diesen Teil stattdessen aus den Daten. Abfragen werden nicht auf diesen Extent
+   *     eingeschränkt; dazu ist der Extent in einem SQL-Feature-Provider anzugeben.
+   * @default {}
+   * @since v4.9
+   */
+  Optional<Extent> getExtent();
 
   /**
    * @langEn Controls whether coordinates are limited to a certain number of places depending on the
