@@ -29,7 +29,7 @@ import de.ii.ogcapi.foundation.domain.PolicyAttributeResolver.Category;
 import de.ii.ogcapi.foundation.domain.PolicyObligationFulfiller;
 import de.ii.xtraplatform.auth.domain.PolicyDecider;
 import de.ii.xtraplatform.auth.domain.PolicyDecision;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.util.Tuple;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;

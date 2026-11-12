@@ -36,7 +36,7 @@ import de.ii.ogcapi.versioned.features.domain.ImmutableQueryInputTimeMap;
 import de.ii.ogcapi.versioned.features.domain.TimeMapFormatExtension;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration;
 import de.ii.ogcapi.versioned.features.domain.VersionedFeaturesQueriesHandler;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import io.dropwizard.auth.Auth;

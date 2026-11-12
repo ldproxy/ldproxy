@@ -37,7 +37,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.sorting.domain.SortingConfiguration;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;

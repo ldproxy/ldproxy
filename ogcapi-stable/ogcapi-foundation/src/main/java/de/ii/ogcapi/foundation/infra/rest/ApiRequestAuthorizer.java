@@ -9,7 +9,7 @@ package de.ii.ogcapi.foundation.infra.rest;
 
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import java.util.Optional;
 import javax.annotation.Nullable;
 

@@ -35,7 +35,7 @@ import de.ii.ogcapi.resources.domain.ImmutableQueryInputResourceDelete;
 import de.ii.ogcapi.resources.domain.QueriesHandlerResources;
 import de.ii.ogcapi.resources.domain.ResourceFormatExtension;
 import de.ii.ogcapi.resources.domain.ResourcesConfiguration;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import io.dropwizard.auth.Auth;

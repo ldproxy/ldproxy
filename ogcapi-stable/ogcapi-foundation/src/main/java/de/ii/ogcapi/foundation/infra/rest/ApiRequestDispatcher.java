@@ -29,8 +29,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiResource;
 import de.ii.ogcapi.foundation.domain.ParameterExtension;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
 import de.ii.ogcapi.foundation.domain.RequestInjectableContext;
-import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.AppContext;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.services.domain.AuditLog;
 import de.ii.xtraplatform.services.domain.ServiceEndpoint;
 import io.dropwizard.auth.Auth;
@@ -595,10 +595,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
     auditLog.setIncludePropertyValues(requestId, apiData.getAuditLog().getIncludePropertyValues());
 
     // set actor
-    optionalUser.ifPresent(
-        user ->
-            auditLog.setActor(
-                requestId, user.getRole().toString(), user.getName(), user.getClaims()));
+    optionalUser.ifPresent(user -> auditLog.setActor(requestId, user));
 
     // set operation
     // set operation method

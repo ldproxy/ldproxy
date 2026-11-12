@@ -39,7 +39,7 @@ import de.ii.ogcapi.styles.domain.StylesConfiguration;
 import de.ii.ogcapi.styles.domain.manager.ImmutableQueryInputStyleCreateReplace;
 import de.ii.ogcapi.styles.domain.manager.ImmutableQueryInputStyleDelete;
 import de.ii.ogcapi.styles.domain.manager.QueriesHandlerStylesManager;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;

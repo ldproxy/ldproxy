@@ -9,8 +9,8 @@ package de.ii.ogcapi.foundation.domain;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import de.ii.xtraplatform.auth.domain.User;
 import de.ii.xtraplatform.base.domain.WebContext;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.ws.rs.core.Request;
 import java.nio.file.Path;
