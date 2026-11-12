@@ -20,24 +20,21 @@ import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
 import de.ii.xtraplatform.features.domain.transform.WithoutInternal;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
+import de.ii.xtraplatform.values.domain.Values;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 public class SchemaCacheFeatures extends JsonSchemaCache {
 
-  private final Supplier<Map<String, Codelist>> codelistSupplier;
   private static final WithTransformationsApplied WITH_TRANSFORMATIONS_APPLIED =
       new WithTransformationsApplied();
   private static final WithoutInternal WITHOUT_INTERNAL = new WithoutInternal();
   private static final WithScope WITH_SCOPE_SCHEMA =
       new WithScope(EnumSet.of(SchemaBase.Scope.RETURNABLE, SchemaBase.Scope.RECEIVABLE));
 
-  public SchemaCacheFeatures(Supplier<Map<String, Codelist>> codelistSupplier) {
-    super();
-    this.codelistSupplier = codelistSupplier;
+  public SchemaCacheFeatures(Values<Codelist> codelists) {
+    super(codelists);
   }
 
   @Override
@@ -51,11 +48,7 @@ public class SchemaCacheFeatures extends JsonSchemaCache {
 
     SchemaDeriverFeatures schemaDeriverFeatures =
         new SchemaDeriverFeatures(
-            version,
-            schemaUri,
-            collectionData.getLabel(),
-            Optional.empty(),
-            codelistSupplier.get());
+            version, schemaUri, collectionData.getLabel(), Optional.empty(), getCodelists());
 
     return (JsonSchemaDocument)
         schema

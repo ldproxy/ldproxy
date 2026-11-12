@@ -92,7 +92,7 @@ public class EndpointSchema extends EndpointSubCollection
     super(extensionRegistry);
     this.queryHandler = queryHandler;
     this.valueStore = valueStore;
-    this.schemaCache = new SchemaCacheFeatures(valueStore.forType(Codelist.class)::asMap);
+    this.schemaCache = new SchemaCacheFeatures(valueStore.forType(Codelist.class));
   }
 
   @Override
