@@ -25,6 +25,7 @@ import de.ii.xtraplatform.xtralink.domain.JobProcessorBase;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -100,6 +101,10 @@ public class FeatureAggregateProcessor extends FeatureProcessor {
     }
     Optional<Geometry> clipGeometry = clip;
     Optional<PreparedGeometry> clipArea = clip.map(PreparedGeometryFactory::prepare);
+    Optional<GridCells> cells =
+        aggregation
+            .cellWidth()
+            .map(width -> new GridCells(width, featureSelection.fromNative(api)));
 
     Aggregator aggregator = new Aggregator(aggregation, selection.isMultiCollection());
     int maximum = maximumFeatures(configuration);
@@ -110,7 +115,7 @@ public class FeatureAggregateProcessor extends FeatureProcessor {
             aggregation.needsGeometry() || clip.isPresent(),
             clip,
             maximum,
-            record -> add(aggregator, aggregation, record, clipGeometry, clipArea));
+            record -> add(aggregator, aggregation, record, clipGeometry, clipArea, cells));
 
     if (read > maximum) {
       throw tooManyFeatures(maximum);
@@ -126,16 +131,20 @@ public class FeatureAggregateProcessor extends FeatureProcessor {
       Aggregation aggregation,
       FeatureRecord record,
       Optional<Geometry> clip,
-      Optional<PreparedGeometry> clipArea) {
+      Optional<PreparedGeometry> clipArea,
+      Optional<GridCells> cells) {
     Optional<Geometry> geometry = record.geometry();
     if (clipArea.isPresent()
         && (geometry.isEmpty() || !clipArea.get().intersects(geometry.get()))) {
       return;
     }
-    Map<String, Double> virtualValues =
-        aggregation.needsGeometry() && geometry.isPresent()
-            ? GeometryInputs.virtualValues(geometry.get(), clip)
-            : Map.of();
+    Map<String, Object> virtualValues = new HashMap<>();
+    if (geometry.isPresent()) {
+      if (aggregation.needsMeasures()) {
+        virtualValues.putAll(GeometryInputs.virtualValues(geometry.get(), clip));
+      }
+      cells.ifPresent(grid -> virtualValues.put(Aggregation.GEOMETRY, grid.center(geometry.get())));
+    }
     aggregator.add(record, virtualValues);
   }
 }

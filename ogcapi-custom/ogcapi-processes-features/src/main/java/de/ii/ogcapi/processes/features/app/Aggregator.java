@@ -63,9 +63,10 @@ class Aggregator {
 
   /**
    * @param record the feature
-   * @param virtualValues the values of the virtual properties, e.g. the area of the geometry
+   * @param virtualValues the values of the virtual properties, e.g. the area of the geometry or the
+   *     center of its grid cell
    */
-  void add(FeatureRecord record, Map<String, Double> virtualValues) {
+  void add(FeatureRecord record, Map<String, Object> virtualValues) {
     featuresScanned++;
 
     List<List<Object>> dimensions = new ArrayList<>();
@@ -76,7 +77,8 @@ class Aggregator {
       List<Object> values = values(record, virtualValues, key.property());
       List<Object> bucketed = new ArrayList<>();
       for (Object value : values) {
-        bucketed.add(bucket(key, value));
+        // the grid cell is already the bucket
+        bucketed.add(Aggregation.GEOMETRY.equals(key.property()) ? value : bucket(key, value));
       }
       dimensions.add(bucketed.isEmpty() ? singleton(null) : bucketed);
     }
@@ -154,9 +156,9 @@ class Aggregator {
   }
 
   private static List<Object> values(
-      FeatureRecord record, Map<String, Double> virtualValues, String property) {
+      FeatureRecord record, Map<String, Object> virtualValues, String property) {
     if (Aggregation.isVirtual(property)) {
-      Double value = virtualValues.get(property);
+      Object value = virtualValues.get(property);
       return Objects.isNull(value) ? List.of() : List.of(value);
     }
     return record.values(property);

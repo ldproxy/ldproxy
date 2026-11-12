@@ -208,4 +208,47 @@ class AggregatorSpec extends Specification {
         aggregation.properties() == ["a", "b", Aggregation.AREA]
         aggregation.needsGeometry()
     }
+
+    def "the grid cell is a group key, a feature without a geometry is in the group null"() {
+        given:
+        def aggregator = aggregator([groupBy: [[property: Aggregation.GEOMETRY, bucket: 250]]])
+
+        when:
+        aggregator.add(feature([:]), [(Aggregation.GEOMETRY): [5.1d, 52.1d]])
+        aggregator.add(feature([:]), [(Aggregation.GEOMETRY): [5.1d, 52.1d]])
+        aggregator.add(feature([:]), [(Aggregation.GEOMETRY): [5.2d, 52.1d]])
+        aggregator.add(feature([:]), [:])
+
+        then:
+        aggregator.result().groups == [
+            [key: [(Aggregation.GEOMETRY): [5.1d, 52.1d]], count: 2L],
+            [key: [(Aggregation.GEOMETRY): [5.2d, 52.1d]], count: 1L],
+            [key: [(Aggregation.GEOMETRY): null], count: 1L]]
+    }
+
+    def "the grid cell needs a width and can only be a group key"() {
+        when:
+        Aggregation.of(inputs)
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains(message)
+
+        where:
+        inputs                                                                     | message
+        [groupBy: [Aggregation.GEOMETRY]]                                          | "needs a bucket"
+        [groupBy: [[property: Aggregation.GEOMETRY, bucket: "year"]]]              | "needs a bucket"
+        [groupBy: [[property: Aggregation.GEOMETRY, bucket: 100], [property: Aggregation.GEOMETRY, bucket: 200]]] | "twice"
+        [aggregates: [[function: "count", property: Aggregation.GEOMETRY]]]        | "can only be a group key"
+    }
+
+    def "the grid cell needs the geometry, but neither area nor length"() {
+        when:
+        def aggregation = Aggregation.of([groupBy: [[property: Aggregation.GEOMETRY, bucket: 100]]])
+
+        then:
+        aggregation.needsGeometry()
+        !aggregation.needsMeasures()
+        aggregation.cellWidth() == Optional.of(100d)
+    }
 }

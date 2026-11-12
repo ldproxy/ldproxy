@@ -212,6 +212,24 @@ class FeatureSelection {
   }
 
   /**
+   * The transformation from the native, projected coordinate reference system to CRS84.
+   *
+   * @throws IllegalArgumentException if the native coordinate reference system is not projected
+   */
+  CrsTransformer fromNative(OgcApi api) {
+    toNative(api);
+    EpsgCrs nativeCrs = nativeCrs(api);
+    return crsTransformerFactory
+        .getTransformer(nativeCrs, OgcCrs.CRS84, true)
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format(
+                        "The features cannot be transformed from %s to CRS84.",
+                        nativeCrs.toUriString())));
+  }
+
+  /**
    * Reads the selected features and passes them to the consumer.
    *
    * @param properties the property paths that the process needs

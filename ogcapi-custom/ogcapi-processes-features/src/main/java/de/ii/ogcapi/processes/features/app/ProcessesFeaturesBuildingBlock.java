@@ -44,7 +44,11 @@ import jakarta.inject.Singleton;
  *       ...}`. The bucket is `year` or `month` for temporal values, or the class width of numeric
  *       values. A feature with several values of a property belongs to one group per value; a
  *       feature without a value belongs to the group `null`. If several collections are selected,
- *       the collection is the first group key, `objecttype`.
+ *       the collection is the first group key, `objecttype`. The virtual group key `{"property":
+ *       "$geometry", "bucket": ...}` groups the features by the cells of a square grid with the
+ *       width in meters in the native coordinate reference system, which must be projected; a
+ *       feature belongs to the cell of a point on its geometry, the key is the center of the cell
+ *       as `[lon, lat]` in CRS84.
  *     - `aggregates`: a list of aggregates, each `count` or an object `{"function": "...",
  *       "property": "..."}` with the functions `count`, `sum`, `min`, `max`, `avg` and `median`.
  *       The virtual properties `$area` and `$length` are the area and the length of the primary
@@ -146,7 +150,12 @@ import jakarta.inject.Singleton;
  *       "...", "bucket": ...}`. Der Bucket ist `year` oder `month` für zeitliche Werte oder die
  *       Klassenbreite numerischer Werte. Ein Feature mit mehreren Werten einer Eigenschaft gehört
  *       zu einer Gruppe je Wert; ein Feature ohne Wert gehört zur Gruppe `null`. Sind mehrere
- *       Collections ausgewählt, ist die Collection der erste Gruppenschlüssel, `objecttype`.
+ *       Collections ausgewählt, ist die Collection der erste Gruppenschlüssel, `objecttype`. Der
+ *       virtuelle Gruppenschlüssel `{"property": "$geometry", "bucket": ...}` gruppiert die Features
+ *       nach den Zellen eines quadratischen Gitters mit der Breite in Metern im nativen
+ *       Koordinatenreferenzsystem, das projiziert sein muss; ein Feature gehört zur Zelle eines
+ *       Punkts auf seiner Geometrie, der Schlüssel ist der Mittelpunkt der Zelle als `[lon, lat]`
+ *       in CRS84.
  *     - `aggregates`: eine Liste von Aggregaten, jeweils `count` oder ein Objekt `{"function":
  *       "...", "property": "..."}` mit den Funktionen `count`, `sum`, `min`, `max`, `avg` und
  *       `median`. Die virtuellen Eigenschaften `$area` und `$length` sind die Fläche und die Länge
