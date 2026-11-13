@@ -8,6 +8,7 @@
 package de.ii.ogcapi.processes.arazzo.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
 import java.util.Map;
@@ -44,4 +45,14 @@ public interface ArazzoWorkflow {
   Map<String, Object> getOutputs();
 
   List<ArazzoParameter> getParameters();
+
+  /**
+   * The extension {@code x-ldproxy-readOnly}: whether the workflow only reads data and has no other
+   * effects, also when a step uses POST.
+   */
+  @JsonProperty("x-ldproxy-readOnly")
+  @Value.Default
+  default boolean isReadOnly() {
+    return false;
+  }
 }

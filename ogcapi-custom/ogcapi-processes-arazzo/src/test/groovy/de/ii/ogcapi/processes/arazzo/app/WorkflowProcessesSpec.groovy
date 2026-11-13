@@ -53,6 +53,20 @@ class WorkflowProcessesSpec extends Specification {
         process.outputs.groups.schema.type.isEmpty()
     }
 
+    def "the extension x-ldproxy-readOnly makes the process of a workflow read-only"() {
+        given:
+        def doc = document([
+                workflow("liest", [[stepId: "a", operationId: "executeProcess"]], ["x-ldproxy-readOnly": true]),
+                workflow("schrijft", [[stepId: "a", operationId: "executeProcess"]]),
+        ])
+
+        when:
+        def readOnly = doc.workflows.collect { WorkflowProcesses.toProcess(doc, it).readOnly }
+
+        then:
+        readOnly == [true, false]
+    }
+
     def "an input schema with keywords that process descriptions do not support is rejected: #keyword"() {
         given:
         def doc = document([workflow("w", [[stepId: "a", operationId: "executeProcess"]], [inputs: [type: "object", properties: [x: schema]]])])

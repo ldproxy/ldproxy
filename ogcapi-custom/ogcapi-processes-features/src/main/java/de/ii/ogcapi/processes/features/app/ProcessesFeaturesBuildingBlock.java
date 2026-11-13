@@ -73,7 +73,8 @@ import jakarta.inject.Singleton;
  *     `profile` in the source, the profiles of the parameter `profile` of the execution request
  *     apply.
  *     <p>The process descriptions are written by the deployment, the inputs and outputs follow the
- *     description above. Example of a process `aggregate-features`:
+ *     description above. Both steps only read features, so a description sets `readOnly: true`.
+ *     Example of a process `aggregate-features`:
  *     <p><code>
  * ```yaml
  * ---
@@ -121,6 +122,7 @@ import jakarta.inject.Singleton;
  *   groupsTruncated:
  *     schema:
  *       type: boolean
+ * readOnly: true
  * job:
  *   partials: ['feature-aggregate:execute']
  * ```
@@ -186,7 +188,8 @@ import jakarta.inject.Singleton;
  *     `profile` in der Quelle gelten die Profile des Parameters `profile` der Anfrage zur
  *     Ausführung.
  *     <p>Die Prozessbeschreibungen schreibt das Deployment, die Eingaben und Ausgaben folgen der
- *     Beschreibung oben. Beispiel eines Prozesses `aggregate-features`:
+ *     Beschreibung oben. Beide Schritte lesen nur Features, eine Beschreibung setzt daher
+ *     `readOnly: true`. Beispiel eines Prozesses `aggregate-features`:
  *     <p><code>
  * ```yaml
  * ---
@@ -234,6 +237,7 @@ import jakarta.inject.Singleton;
  *   groupsTruncated:
  *     schema:
  *       type: boolean
+ * readOnly: true
  * job:
  *   partials: ['feature-aggregate:execute']
  * ```

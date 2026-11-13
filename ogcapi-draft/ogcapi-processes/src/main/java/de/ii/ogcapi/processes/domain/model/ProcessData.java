@@ -36,6 +36,8 @@ import org.immutables.value.Value;
  *     or by a processor outside of ldproxy, e.g. an xtralink workflow. All options of `job` are
  *     optional:
  *     <p>{@docTable:job}
+ *     <p>The option `readOnly` states that an execution only reads data and has no other effects
+ *     (default: `false`).
  * @langDe ## Konfiguration
  *     <p>Eine Prozessbeschreibung folgt der Anforderungsklasse [OGC PROCESS
  *     DESCRIPTION](https://docs.ogc.org/DRAFTS/18-062r3.html#clause_process-description), z.B. mit
@@ -45,6 +47,8 @@ import org.immutables.value.Value;
  *     ldproxy oder einem Prozessor außerhalb von ldproxy verarbeitet, z.B. einem xtralink-Workflow.
  *     Alle Optionen von `job` sind optional:
  *     <p>{@docTable:job}
+ *     <p>Die Option `readOnly` gibt an, dass eine Ausführung nur Daten liest und keine anderen
+ *     Wirkungen hat (Standard: `false`).
  * @langEn ### Example
  *     <p>A process `Echo` that returns its input, executed by a single step
  *     `oap:EchoProcess:execute`:
@@ -111,6 +115,20 @@ public interface ProcessData extends StoredValue, OgcProcess {
   @Value.Default
   default ProcessJobOptions getJob() {
     return new ImmutableProcessJobOptions.Builder().build();
+  }
+
+  /**
+   * @langEn Whether an execution only reads data and has no other effects. Clients can then execute
+   *     the process like a query, e.g. as an MCP tool that is marked as read-only.
+   * @langDe Ob eine Ausführung nur Daten liest und keine anderen Wirkungen hat. Clients können den
+   *     Prozess dann wie eine Abfrage ausführen, z.B. als MCP-Tool, das als nur lesend markiert
+   *     ist.
+   * @default false
+   * @since 4.9
+   */
+  @Value.Default
+  default boolean getReadOnly() {
+    return false;
   }
 
   abstract class Builder implements ValueBuilder<ProcessData> {}

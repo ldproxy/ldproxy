@@ -68,6 +68,9 @@ import jakarta.inject.Singleton;
  *       of the step is then the list of its values. The runs of the outermost loop execute in
  *       parallel, at most `maximumParallelLoopRuns` at the same time; steps that execute a process
  *       still run one after another.
+ *     - The extension `x-ldproxy-readOnly` of a workflow: `true` states that the workflow only
+ *       reads data and has no other effects, also when it uses POST, e.g. for a search. The
+ *       process of the workflow is then read-only (option `readOnly` of a process description).
  *     </code>
  *     <p>Not supported are AsyncAPI, `dependsOn`, `timeout` and parameters of actions. A
  *     description that uses them is rejected; a stored description is then not published, the
@@ -144,6 +147,10 @@ import jakarta.inject.Singleton;
  *       Durchläufe der äußersten Schleife werden parallel ausgeführt, höchstens
  *       `maximumParallelLoopRuns` gleichzeitig; Schritte, die einen Prozess ausführen, laufen
  *       weiterhin nacheinander.
+ *     - Die Erweiterung `x-ldproxy-readOnly` eines Workflows: `true` gibt an, dass der Workflow nur
+ *       Daten liest und keine anderen Wirkungen hat, auch wenn er POST verwendet, z.B. für eine
+ *       Suche. Der Prozess des Workflows ist dann nur lesend (Option `readOnly` einer
+ *       Prozessbeschreibung).
  *     </code>
  *     <p>Nicht unterstützt werden AsyncAPI, `dependsOn`, `timeout` und Parameter von Aktionen. Eine
  *     Beschreibung, die sie verwendet, wird abgelehnt; eine gespeicherte Beschreibung wird dann

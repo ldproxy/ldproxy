@@ -259,7 +259,8 @@ public class WorkflowProcesses implements ProcessContribution, WorkflowRepositor
             .title(workflow.getSummary().orElse(workflow.getWorkflowId()))
             .description(workflow.getDescription().or(() -> document.getInfo().getDescription()))
             .addJobControlOptions(JobControlOptions.SYNC_EXECUTE, JobControlOptions.ASYNC_EXECUTE)
-            .job(new ImmutableProcessJobOptions.Builder().partials(List.of(STEP)).build());
+            .job(new ImmutableProcessJobOptions.Builder().partials(List.of(STEP)).build())
+            .readOnly(workflow.isReadOnly());
 
     Map<String, Object> schema = WorkflowRunner.inputSchema(document, workflow);
     checkKeywords(schema, SCHEMA_KEYWORDS, workflow, "inputs");

@@ -86,6 +86,24 @@ class McpToolsProcessesSpec extends Specification {
         input['properties']['municipality'] == [type: 'string', pattern: '^[0-9]{4}$', title: 'Municipality', description: 'The code of the municipality.']
     }
 
+    def 'a process whose description states that it only reads data is a read-only tool'() {
+        given:
+        def process = process("""\
+            id: nearest
+            title: Nearest features
+            version: 1.0.0
+            readOnly: true
+            inputs: {}
+            outputs: {}
+            """.stripIndent())
+
+        when:
+        def tool = tools.toTool(API, CONFIG, process)
+
+        then:
+        tool.readOnly
+    }
+
     def 'an input with more than one value is an array of its values'() {
         when:
         def input = asMap(tools.toTool(API, CONFIG, COUNTS).inputSchema)

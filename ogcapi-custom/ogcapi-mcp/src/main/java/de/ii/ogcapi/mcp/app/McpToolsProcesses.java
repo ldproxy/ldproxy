@@ -274,8 +274,8 @@ final class McpToolsProcesses implements McpToolSource {
                     .orElse(""))
         .inputSchema(inputSchema)
         .outputSchema(outputSchema)
-        // a process may change data or have other effects
-        .isReadOnly(false)
+        // a process may change data or have other effects, unless its description states otherwise
+        .isReadOnly(process.getReadOnly())
         .build();
   }
 
