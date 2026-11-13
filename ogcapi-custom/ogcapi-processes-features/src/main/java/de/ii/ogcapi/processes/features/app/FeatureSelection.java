@@ -86,9 +86,12 @@ class FeatureSelection {
   static final String INPUT_SOURCE = "source";
 
   // the parameters that select a page, the properties, the coordinate reference system or the
-  // format; the process decides these
+  // format, and those that only shape or debug a response; the process decides these
   private static final Set<String> IGNORED_PARAMETERS =
       Set.of(
+          "pretty",
+          "debug",
+          "pipeline-skip",
           "f",
           "limit",
           "offset",
@@ -100,6 +103,10 @@ class FeatureSelection {
           "skipgeometry",
           "maxallowableoffset",
           "zoom-level");
+
+  // the parameters that are not accepted in a selection: the permissions are those of the execution
+  // request, not of a token in a source
+  private static final Set<String> REJECTED_PARAMETERS = Set.of("access_token");
 
   // the parameters of a collection source that shape the features that a process returns
   private static final Set<String> OUTPUT_PARAMETERS =
@@ -782,15 +789,22 @@ class FeatureSelection {
         .getQueryParameters();
   }
 
-  // the checks of the request dispatcher for the parameters of a GET request
-  private static List<String> validate(
+  // the checks of the request dispatcher for the parameters of a GET request; the message on
+  // unknown
+  // parameters lists those that can select features
+  static List<String> validate(
       OgcApiDataV2 apiData,
       Optional<String> collectionId,
       List<OgcApiQueryParameter> definitions,
       Map<String, String> values) {
     List<String> errors = new ArrayList<>();
     List<OgcApiQueryParameter> publicParameters =
-        definitions.stream().filter(parameter -> !parameter.isInternal()).toList();
+        definitions.stream()
+            .filter(parameter -> !parameter.isInternal())
+            .filter(
+                parameter ->
+                    !REJECTED_PARAMETERS.contains(parameter.getName().toLowerCase(Locale.ROOT)))
+            .toList();
 
     List<String> unknown =
         values.keySet().stream()

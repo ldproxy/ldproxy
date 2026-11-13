@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.processes.features.app
 
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
 import spock.lang.Specification
 
 class FeatureSelectionSpec extends Specification {
@@ -35,5 +36,40 @@ class FeatureSelectionSpec extends Specification {
 
         expect:
         FeatureNearestProcessor.sorted(queue)*.featureId() == ["a", "b", "c"]
+    }
+
+    OgcApiQueryParameter parameter(String name) {
+        OgcApiQueryParameter param = Stub(OgcApiQueryParameter)
+        param.getName() >> name
+        param.isInternal() >> false
+        param.validate(_, _, _) >> Optional.empty()
+        return param
+    }
+
+    def "the message on an unknown parameter lists only the parameters that select features"() {
+        given:
+        def definitions = ["access_token", "bbox", "pretty", "debug", "pipeline-skip", "limit", "status"].collect { parameter(it) }
+
+        when:
+        def errors = FeatureSelection.validate(null, Optional.of("pand"), definitions, [pandStatus: "x"])
+
+        then:
+        errors == ["The following parameters are rejected: pandStatus. Valid parameters are: bbox, status."]
+    }
+
+    def "an access token is rejected in a selection"() {
+        given:
+        def definitions = ["access_token", "bbox", "status"].collect { parameter(it) }
+
+        when:
+        def errors = FeatureSelection.validate(null, Optional.of("pand"), definitions, [access_token: "secret", status: "x"])
+
+        then:
+        errors == ["The following parameters are rejected: access_token. Valid parameters are: bbox, status."]
+    }
+
+    def "the parameters that only shape or debug a response are dropped"() {
+        expect:
+        FeatureSelection.parameters([pretty: true, debug: true, "pipeline-skip": "x", status: "y"]) == [status: "y"]
     }
 }
