@@ -39,7 +39,7 @@ class QueryParameterTemplateQueryableSpec extends Specification {
                 .apiId("api")
                 .collectionId("collection")
                 .name("lzi.end")
-                .description("a queryable")
+                .baseDescription("a queryable")
                 .schema(schema)
                 .schemaValidator(validator)
                 .type(type)
@@ -274,5 +274,21 @@ class QueryParameterTemplateQueryableSpec extends Specification {
         valueType                  | value                                              || expected
         SchemaBase.Type.DATE       | "2020-01-01,2021-02-28"                            || ["2020-01-01", "2021-02-28"]
         SchemaBase.Type.DATETIME   | "2020-01-01T10:00:00+01:00,2020-01-01T10:00:00Z"   || ["2020-01-01T09:00:00Z", "2020-01-01T10:00:00Z"]
+    }
+
+    def 'the description has the note on wildcards only if the value may contain one'() {
+        given:
+        def parameter = queryable(type, new StringSchema(), valueType)
+
+        expect:
+        parameter.baseDescription == "a queryable"
+        parameter.description == expected
+
+        where:
+        type                        | valueType              || expected
+        SchemaBase.Type.STRING      | null                   || "a queryable " + QueryParameterTemplateQueryable.WILDCARD_NOTE
+        SchemaBase.Type.VALUE_ARRAY | SchemaBase.Type.STRING || "a queryable " + QueryParameterTemplateQueryable.WILDCARD_NOTE
+        SchemaBase.Type.INTEGER     | null                   || "a queryable"
+        SchemaBase.Type.DATETIME    | null                   || "a queryable"
     }
 }

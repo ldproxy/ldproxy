@@ -104,6 +104,7 @@ final class McpToolsStoredQueries implements McpToolSource {
       Optional<ApiRequestContext> mcpRequest)
       throws IOException {
     String queryId = tool.getId().substring(PREFIX.length());
+    McpInternalRequests.checkArguments(tool, arguments, Optional.empty());
     String result = handleStoredQuery(api, mcpRequest, tool, queryId, arguments);
 
     return McpServerImpl.forToolResult(mcpObjectMapper.readValue(result, Map.class));

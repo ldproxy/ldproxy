@@ -303,17 +303,44 @@ public class McpToolUtils {
         .map(
             e -> {
               String collectionId = e.getKey();
+              List<String> filterOnly =
+                  apiData
+                      .getExtension(McpConfiguration.class, collectionId)
+                      .map(McpConfiguration::getFilterOnlyQueryables)
+                      .orElse(mcpConfiguration.getFilterOnlyQueryables());
+              // the queryables that are only available in filter are not arguments in the tool
+              // definition, but still accepted in a call: clients that take the API description
+              // literally pass any queryable as an argument
               List<OgcApiQueryParameter> collectionQueryParameters =
                   queryParametersByCollection.getOrDefault(collectionId, List.of());
+              List<OgcApiQueryParameter> arguments =
+                  collectionQueryParameters.stream()
+                      .filter(
+                          param ->
+                              !(param instanceof QueryParameterTemplateQueryable)
+                                  || !filterOnly.contains(param.getName()))
+                      .toList();
+              List<String> filterOnlyOfCollection =
+                  queryParametersByCollection.getOrDefault(collectionId, List.of()).stream()
+                      .filter(param -> param instanceof QueryParameterTemplateQueryable)
+                      .map(OgcApiQueryParameter::getName)
+                      .filter(filterOnly::contains)
+                      .toList();
               ObjectSchema inputSchema = new ObjectSchema();
-              for (OgcApiQueryParameter param : queryParametersByCollection.get(collectionId)) {
+              for (OgcApiQueryParameter param : arguments) {
                 Schema<?> schema = param.getSchema(apiData, collectionId);
                 if (schema != null) {
-                  schema.setDescription(param.getDescription());
                   inputSchema.addProperty(
-                      param.getName(), withPagingHint(param, schema, param.getDescription()));
+                      param.getName(), argumentSchema(param, schema, filterOnlyOfCollection));
                 }
               }
+              boolean wildcards =
+                  arguments.stream()
+                      .anyMatch(
+                          param ->
+                              param instanceof QueryParameterTemplateQueryable queryable
+                                  && QueryParameterTemplateQueryable.supportsWildcard(
+                                      queryable.getType(), queryable.getValueType()));
 
               /* See the filterAndCreateStoredQueries() method for a discussion why the derivation
                  of the output schema has been commented out for now.
@@ -363,6 +390,7 @@ public class McpToolUtils {
                           .getDescription()
                           .map(s -> s + System.lineSeparator())
                           .orElse("")
+                      + (wildcards ? WILDCARD_HINT + System.lineSeparator() : "")
                       + apiDescription(apiData, mcpConfiguration)
                           .map(desc -> desc + System.lineSeparator())
                           .orElse("")
@@ -449,4 +477,68 @@ public class McpToolUtils {
   static final String PAGING_HINT =
       "If the result contains 'nextOffset', more results are available: call the tool again with"
           + " the same arguments and this value as offset.";
+
+  // the note on wildcards is stated once in the tool description, not in every argument
+  static final String WILDCARD_HINT =
+      "In the arguments that filter by a property with a string value, the value may contain '*' as"
+          + " a wildcard for any sequence of characters; constraints of the property, for example"
+          + " 'pattern' or 'enum', are not applied to such a value.";
+
+  // shorter descriptions of the query parameters of the features than in the API definition; the
+  // tool definitions are part of the context of every request of a client
+  private static final Map<String, String> ARGUMENT_DESCRIPTIONS =
+      Map.of(
+          "bbox",
+          "Only objects whose geometry intersects the bounding box: minimum longitude, minimum"
+              + " latitude, maximum longitude, maximum latitude in WGS 84 (CRS84).",
+          "datetime",
+          "Only objects with a temporal property that intersects the value: a date (2018-02-12), a"
+              + " date-time (RFC 3339, 2018-02-12T23:20:50Z) or 'now', or an interval of two such"
+              + " values separated by '/', with '..' for an open end (2018-02-12/..).",
+          "ids",
+          "Only the objects with one of these ids.",
+          "limit",
+          "The maximum number of objects in the result.",
+          "sortby",
+          "The properties to sort by, each with an optional prefix '+' (ascending, the default) or"
+              + " '-' (descending).",
+          "properties",
+          "Only these properties are returned for each object; the id is always returned. Not"
+              + " together with exclude-properties.",
+          "exclude-properties",
+          "These properties are not returned for each object. Without this argument, the"
+              + " properties in its default value are left out; an empty list returns all"
+              + " properties. Not together with properties.",
+          "filter",
+          "A filter expression in CQL2 text over the queryables of the collection, for example"
+              + " name = 'A' AND height > 10. Supported are comparisons, LIKE, BETWEEN, IN, IS NULL,"
+              + " AND, OR, NOT and the spatial (S_INTERSECTS, coordinates in WGS 84), temporal"
+              + " (T_INTERSECTS) and array (A_CONTAINS) functions.");
+
+  /**
+   * The schema of an argument of a collection tool: a copy of the schema of the query parameter, so
+   * that the API definition is not changed, with the description of the argument. The pattern of a
+   * datetime value is left out, the value is still checked when the parameter is parsed.
+   */
+  static Schema<?> argumentSchema(
+      OgcApiQueryParameter param, Schema<?> schema, List<String> filterOnlyQueryables) {
+    Schema<?> copy = Json.mapper().convertValue(schema, Schema.class);
+    String description = param.getDescription();
+    if (param instanceof QueryParameterTemplateQueryable queryable) {
+      description = queryable.getBaseDescription();
+    } else if (ARGUMENT_DESCRIPTIONS.containsKey(param.getName())) {
+      description = ARGUMENT_DESCRIPTIONS.get(param.getName());
+      if ("datetime".equals(param.getName())) {
+        copy.setPattern(null);
+      }
+      if ("filter".equals(param.getName()) && !filterOnlyQueryables.isEmpty()) {
+        description +=
+            " Queryables that are only available here: "
+                + String.join(", ", filterOnlyQueryables)
+                + ".";
+      }
+    }
+    copy.setDescription(description);
+    return withPagingHint(param, copy, description);
+  }
 }

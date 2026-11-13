@@ -145,20 +145,13 @@ public class QueryParametersQueryables
     } else {
       description.append('.');
     }
-    if (QueryParameterTemplateQueryable.supportsWildcard(
-        queryableDefinition.getValue().getType(), queryableDefinition.getValue().getValueType())) {
-      description.append(
-          " The value may contain '*' as a wildcard for any sequence of characters. Schema"
-              + " constraints of the property, for example 'pattern' or 'enum', are not applied to"
-              + " values with a wildcard.");
-    }
     return new ImmutableQueryParameterTemplateQueryable.Builder()
         .apiId(apiData.getId())
         .collectionId(collectionData.getId())
         .name(field)
         .type(queryableDefinition.getValue().getType())
         .valueType(queryableDefinition.getValue().getValueType())
-        .description(description.toString())
+        .baseDescription(description.toString())
         .schema(schema2.get())
         .schemaValidator(schemaValidator)
         .build();

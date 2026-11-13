@@ -103,6 +103,39 @@ final class McpInternalRequests {
         body);
   }
 
+  /**
+   * Rejects arguments that are not query parameters of the tool. The query parameter set ignores
+   * unknown parameters, so a misspelled argument would otherwise return an unfiltered result.
+   *
+   * @param hint a sentence added to the message, for example where else a value can be given
+   */
+  static void checkArguments(McpTool tool, Map<String, Object> arguments, Optional<String> hint) {
+    Set<String> known =
+        tool.getQueryParameters().stream()
+            .map(OgcApiQueryParameter::getName)
+            .collect(Collectors.toSet());
+    List<String> unknown =
+        arguments.entrySet().stream()
+            .filter(e -> Objects.nonNull(e.getValue()) && !known.contains(e.getKey()))
+            .map(Entry::getKey)
+            .sorted()
+            .toList();
+    if (unknown.isEmpty()) {
+      return;
+    }
+    List<String> advertised =
+        Objects.nonNull(tool.getInputSchema().getProperties())
+            ? List.copyOf(tool.getInputSchema().getProperties().keySet())
+            : List.of();
+    throw new IllegalArgumentException(
+        "Unknown argument%s: %s. The arguments of the tool are: %s.%s"
+            .formatted(
+                unknown.size() == 1 ? "" : "s",
+                unknown.stream().map(name -> "'" + name + "'").collect(Collectors.joining(", ")),
+                String.join(", ", advertised),
+                hint.map(text -> " " + text).orElse("")));
+  }
+
   // the arguments of a tool call as the values of query parameters
   static Map<String, String> queryParameterValues(
       Map<String, Object> arguments,

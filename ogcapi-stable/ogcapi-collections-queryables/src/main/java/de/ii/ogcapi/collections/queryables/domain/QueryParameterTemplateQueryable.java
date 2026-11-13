@@ -67,8 +67,28 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
   @Override
   public abstract String getName();
 
+  /**
+   * The note on wildcards in the description of a parameter whose value may contain one (see {@link
+   * #supportsWildcard}).
+   */
+  public static final String WILDCARD_NOTE =
+      "The value may contain '*' as a wildcard for any sequence of characters. Schema constraints"
+          + " of the property, for example 'pattern' or 'enum', are not applied to values with a"
+          + " wildcard.";
+
+  /**
+   * The description of the parameter without the note on wildcards, for descriptions that state the
+   * note once for several parameters.
+   */
+  public abstract String getBaseDescription();
+
   @Override
-  public abstract String getDescription();
+  @Value.Derived
+  public String getDescription() {
+    return supportsWildcard(getType(), getValueType())
+        ? getBaseDescription() + " " + WILDCARD_NOTE
+        : getBaseDescription();
+  }
 
   public abstract SchemaBase.Type getType();
 

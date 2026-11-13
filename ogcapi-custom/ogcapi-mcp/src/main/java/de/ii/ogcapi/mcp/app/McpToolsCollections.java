@@ -99,6 +99,12 @@ final class McpToolsCollections implements McpToolSource {
       Optional<ApiRequestContext> mcpRequest)
       throws IOException {
     String collectionId = tool.getId().substring(PREFIX.length());
+    McpInternalRequests.checkArguments(
+        tool,
+        arguments,
+        Optional.of(
+            "Other queryables of the collection can be used in the argument 'filter', see its"
+                + " description."));
     String result = handleCollectionQuery(api, mcpRequest, tool, collectionId, arguments);
 
     return McpServerImpl.forToolResult(mcpObjectMapper.readValue(result, Map.class));

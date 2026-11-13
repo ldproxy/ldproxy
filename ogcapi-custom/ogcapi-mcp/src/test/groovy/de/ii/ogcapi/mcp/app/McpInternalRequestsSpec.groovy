@@ -12,8 +12,10 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent
 import de.ii.ogcapi.foundation.domain.ApiOperation
 import de.ii.ogcapi.foundation.domain.ApiResponse
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool
 import de.ii.ogcapi.mcp.domain.McpTool
+import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.ObjectSchema
 import jakarta.ws.rs.core.MediaType
 import spock.lang.Specification
@@ -69,5 +71,42 @@ class McpInternalRequestsSpec extends Specification {
     def 'a tool without an operation has no alternate media types'() {
         expect:
         McpInternalRequests.alternateMediaTypes(tool(Optional.empty()), McpInternalRequests.GEOJSON).isEmpty()
+    }
+
+    McpTool toolWithArguments() {
+        OgcApiQueryParameter limit = Stub(OgcApiQueryParameter)
+        limit.getName() >> "limit"
+        OgcApiQueryParameter hidden = Stub(OgcApiQueryParameter)
+        hidden.getName() >> "buurtnaam"
+        def inputSchema = new ObjectSchema()
+        inputSchema.addProperty("limit", new IntegerSchema())
+        new ImmutableMcpTool.Builder()
+                .id("collection_pand")
+                .name("Collection - Pand")
+                .description("Panden")
+                .inputSchema(inputSchema)
+                .outputSchema(new ObjectSchema())
+                .queryParameters([limit, hidden])
+                .build()
+    }
+
+    def 'the arguments of a tool are accepted, also those that are not in the tool definition'() {
+        when:
+        McpInternalRequests.checkArguments(toolWithArguments(), arguments, Optional.of("Use filter."))
+
+        then:
+        noExceptionThrown()
+
+        where:
+        arguments << [[:], [limit: 10], [buurtnaam: "Hof"], [limit: 10, gemeentecod: null]]
+    }
+
+    def 'an unknown argument is rejected with the arguments of the tool'() {
+        when:
+        McpInternalRequests.checkArguments(toolWithArguments(), [gemeentecod: "0307", limit: 10, a: 1], Optional.of("Use filter."))
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message == "Unknown arguments: 'a', 'gemeentecod'. The arguments of the tool are: limit. Use filter."
     }
 }

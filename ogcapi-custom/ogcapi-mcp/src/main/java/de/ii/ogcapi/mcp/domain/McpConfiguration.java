@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 /**
@@ -81,6 +82,32 @@ public interface McpConfiguration extends ExtensionConfiguration {
    * @since v5.0
    */
   Optional<Boolean> getApiDescriptionInTools();
+
+  /**
+   * @langEn Queryables that are not arguments of their own in the tools of the collections. They
+   *     can still be used in the argument `filter`. This keeps the tool definitions small, for
+   *     example for queryables that are rarely used on their own.
+   * @langDe Queryables, die in den Tools der Collections keine eigenen Argumente sind. Sie können
+   *     weiterhin im Argument `filter` verwendet werden. Das hält die Tool-Definitionen klein, zum
+   *     Beispiel bei Queryables, die selten allein verwendet werden.
+   * @default []
+   * @since v5.0
+   */
+  List<String> getFilterOnlyQueryables();
+
+  @Override
+  default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
+    return new ImmutableMcpConfiguration.Builder()
+        .from(source)
+        .from(this)
+        .filterOnlyQueryables(
+            Stream.concat(
+                    ((McpConfiguration) source).getFilterOnlyQueryables().stream(),
+                    getFilterOnlyQueryables().stream())
+                .distinct()
+                .toList())
+        .build();
+  }
 
   @Value.Immutable
   @JsonDeserialize(builder = ImmutableMcpIncludeExclude.Builder.class)
