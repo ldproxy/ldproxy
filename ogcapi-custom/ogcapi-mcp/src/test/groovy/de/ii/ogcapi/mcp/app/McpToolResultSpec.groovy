@@ -89,6 +89,29 @@ class McpToolResultSpec extends Specification {
         error.get().contains("The complete result is available at " + SELF.href)
     }
 
+    def 'a result above the maximum size that is one of several pages links this page and names the links to the others'() {
+        given:
+        McpTool tool = new ImmutableMcpTool.Builder()
+                .id("collection_pand")
+                .name("Collection - Pand")
+                .description("Panden")
+                .inputSchema(new ObjectSchema())
+                .outputSchema(new ObjectSchema())
+                .build()
+        Map<String, Object> result = McpServerImpl.forToolResult([
+                type          : "FeatureCollection",
+                numberReturned: 10,
+                features      : [],
+                links         : [SELF, HTML, NEXT]])
+
+        when:
+        String error = McpServerImpl.tooLarge(tool, result, 1001, Optional.of(1000)).get()
+
+        then:
+        error.contains("This page of the result is available at " + SELF.href + ", the other pages through the links \"next\" and \"prev\" of each page")
+        !error.contains("complete result")
+    }
+
     def 'a result within the maximum size, or without a maximum, is returned'() {
         given:
         McpTool tool = new ImmutableMcpTool.Builder()

@@ -433,11 +433,27 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
             + resourceLink(tool, result)
                 .map(
                     link ->
-                        " The complete result is available at "
-                            + link.uri()
-                            + "; a client can load it from there directly, for example to show it"
-                            + " on a map, without passing it through the model.")
+                        (isPaged(result)
+                                ? " This page of the result is available at "
+                                    + link.uri()
+                                    + ", the other pages through the links \"next\" and \"prev\""
+                                    + " of each page; a client can load them from there directly,"
+                                : " The complete result is available at "
+                                    + link.uri()
+                                    + "; a client can load it from there directly,")
+                            + " for example to show it on a map, without passing it through the"
+                            + " model.")
                 .orElse(""));
+  }
+
+  // a result is one page of several when it links a next or a previous page
+  private static boolean isPaged(Map<String, Object> result) {
+    return result.get("links") instanceof List<?> links
+        && links.stream()
+            .anyMatch(
+                link ->
+                    link instanceof Map<?, ?> map
+                        && ("next".equals(map.get("rel")) || "prev".equals(map.get("rel"))));
   }
 
   // of the links in a response, a client of a tool needs those to other pages and those to the same
