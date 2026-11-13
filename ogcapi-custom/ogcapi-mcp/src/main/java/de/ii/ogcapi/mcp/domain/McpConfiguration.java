@@ -95,6 +95,23 @@ public interface McpConfiguration extends ExtensionConfiguration {
    */
   List<String> getFilterOnlyQueryables();
 
+  /**
+   * @langEn The maximum size of a tool result, in characters of its JSON text. A larger result is
+   *     not returned: the call fails with a message that states the size of the result and the
+   *     number of features, suggests how to ask for less, and links the complete result in the HTTP
+   *     API. This protects clients whose model has a limited context, for example from thousands of
+   *     features with their geometries. Without a value, the size is not limited.
+   * @langDe Die maximale Größe eines Tool-Ergebnisses in Zeichen seines JSON-Texts. Ein größeres
+   *     Ergebnis wird nicht zurückgegeben: Der Aufruf schlägt mit einer Meldung fehl, die die Größe
+   *     des Ergebnisses und die Anzahl der Features nennt, Hinweise gibt, wie weniger abgefragt
+   *     werden kann, und auf das vollständige Ergebnis in der HTTP-API verweist. Das schützt
+   *     Clients, deren Modell einen begrenzten Kontext hat, zum Beispiel vor Tausenden von Features
+   *     mit ihren Geometrien. Ohne Wert ist die Größe nicht begrenzt.
+   * @default null
+   * @since v5.0
+   */
+  Optional<Integer> getMaxResultSize();
+
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
     return new ImmutableMcpConfiguration.Builder()

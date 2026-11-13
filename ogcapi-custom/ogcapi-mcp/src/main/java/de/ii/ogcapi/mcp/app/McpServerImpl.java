@@ -218,6 +218,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     McpSchema mcpSchema = getSchema(api);
     JsonSchemaValidator jsonSchemaValidator = new DefaultJsonSchemaValidator(objectMapper);
     List<SyncToolSpecification> toolSpecifications = new ArrayList<>();
+    Optional<Integer> maxResultSize =
+        api.getData()
+            .getExtension(McpConfiguration.class)
+            .flatMap(McpConfiguration::getMaxResultSize);
 
     for (McpTool tool : mcpSchema.getTools()) {
       Map<String, Object> inputSchema = toMap(tool.getInputSchema());
@@ -264,9 +268,25 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                               tool,
                               Objects.requireNonNullElse(request.arguments(), Map.of()),
                               mcpRequest(context));
+                  String text = mcpObjectMapper.writeValueAsString(result);
+                  Optional<String> tooLarge = tooLarge(tool, result, text.length(), maxResultSize);
+                  if (tooLarge.isPresent()) {
+                    if (LOGGER.isDebugEnabled()) {
+                      LOGGER.debug(
+                          "Result of MCP tool '{}' not returned, {} characters exceed the limit of"
+                              + " {}",
+                          tool.getId(),
+                          text.length(),
+                          maxResultSize.get());
+                    }
+                    CallToolResult.Builder errorResult =
+                        CallToolResult.builder().addTextContent(tooLarge.get()).isError(true);
+                    resourceLink(tool, result).ifPresent(errorResult::addContent);
+                    return errorResult.build();
+                  }
                   CallToolResult.Builder toolResult =
                       CallToolResult.builder()
-                          .addTextContent(mcpObjectMapper.writeValueAsString(result))
+                          .addTextContent(text)
                           .isError(false)
                           .structuredContent(result);
                   resourceLink(tool, result).ifPresent(toolResult::addContent);
@@ -383,6 +403,41 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                 + " (error ID %016x). The data may be temporarily unavailable, trying again later"
                 + " may help.",
             id);
+  }
+
+  // a result above the configured size would fill the context of the model, or exceed it, so the
+  // call fails instead with a message the model can act on: how large the result is, how to ask for
+  // less, and where the complete result is, for a client that can load it without the model
+  static Optional<String> tooLarge(
+      McpTool tool, Map<String, Object> result, int size, Optional<Integer> maxResultSize) {
+    if (maxResultSize.isEmpty() || size <= maxResultSize.get()) {
+      return Optional.empty();
+    }
+    Optional<Integer> features =
+        result.get("features") instanceof List<?> list
+            ? Optional.of(list.size())
+            : Optional.empty();
+    return Optional.of(
+        "Error executing tool '"
+            + tool.getId()
+            + "': the result has "
+            + size
+            + " characters"
+            + features.map(n -> " (" + n + " features)").orElse("")
+            + ", more than the "
+            + maxResultSize.get()
+            + " characters this server returns. Ask for less: leave out properties that are not"
+            + " needed, especially the geometry, select a smaller area or fewer objects, or use a"
+            + " smaller limit and page through the result. For counts, sums or a distribution over"
+            + " an area, use a tool that aggregates, if there is one."
+            + resourceLink(tool, result)
+                .map(
+                    link ->
+                        " The complete result is available at "
+                            + link.uri()
+                            + "; a client can load it from there directly, for example to show it"
+                            + " on a map, without passing it through the model.")
+                .orElse(""));
   }
 
   // of the links in a response, a client of a tool needs those to other pages and those to the same

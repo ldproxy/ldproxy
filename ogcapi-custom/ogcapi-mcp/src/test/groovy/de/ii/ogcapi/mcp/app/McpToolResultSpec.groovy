@@ -65,6 +65,47 @@ class McpToolResultSpec extends Specification {
         McpServerImpl.forToolResult([type: "FeatureCollection", features: []]).keySet() as List == ["type", "features"]
     }
 
+    def 'a result above the maximum size is not returned, the error states its size and links the complete result'() {
+        given:
+        McpTool tool = new ImmutableMcpTool.Builder()
+                .id("collection_pand")
+                .name("Collection - Pand")
+                .description("Panden")
+                .inputSchema(new ObjectSchema())
+                .outputSchema(new ObjectSchema())
+                .build()
+        Map<String, Object> result = McpServerImpl.forToolResult([
+                type          : "FeatureCollection",
+                numberReturned: 2,
+                features      : [[type: "Feature", id: "a"], [type: "Feature", id: "b"]],
+                links         : [SELF, HTML]])
+
+        when:
+        Optional<String> error = McpServerImpl.tooLarge(tool, result, 1001, Optional.of(1000))
+
+        then:
+        error.isPresent()
+        error.get().startsWith("Error executing tool 'collection_pand': the result has 1001 characters (2 features), more than the 1000 characters")
+        error.get().contains("The complete result is available at " + SELF.href)
+    }
+
+    def 'a result within the maximum size, or without a maximum, is returned'() {
+        given:
+        McpTool tool = new ImmutableMcpTool.Builder()
+                .id("process_aggregate-features")
+                .name("Aggregate features")
+                .description("Aggregates")
+                .inputSchema(new ObjectSchema())
+                .outputSchema(new ObjectSchema())
+                .build()
+        Map<String, Object> result = [groups: [], total: [count: 0L]]
+
+        expect:
+        McpServerImpl.tooLarge(tool, result, 1000, Optional.of(1000)).isEmpty()
+        McpServerImpl.tooLarge(tool, result, 5_000_000, Optional.empty()).isEmpty()
+        McpServerImpl.tooLarge(tool, result, 1001, Optional.of(1000)).get() ==~ /Error executing tool 'process_aggregate-features': the result has 1001 characters, more than .*if there is one\./
+    }
+
     def 'the result in the HTTP API is a resource link'() {
         given:
         McpTool tool = new ImmutableMcpTool.Builder()
