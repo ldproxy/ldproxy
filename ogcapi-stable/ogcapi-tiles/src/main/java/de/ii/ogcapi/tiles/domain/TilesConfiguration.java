@@ -11,6 +11,8 @@ import static de.ii.ogcapi.tiles.app.TilesBuildingBlock.DATASET_TILES;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonMerge;
+import com.fasterxml.jackson.annotation.OptBoolean;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.Lists;
 import de.ii.ogcapi.features.core.domain.SfFlatConfiguration;
@@ -18,9 +20,13 @@ import de.ii.ogcapi.foundation.domain.AliasConfiguration;
 import de.ii.ogcapi.foundation.domain.CachingConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.ProfilesConfiguration;
 import de.ii.ogcapi.html.domain.MapClient;
+import de.ii.ogcapi.tiles.domain.TileSet.DataType;
+import de.ii.ogcapi.tiles.domain.TileSetsLinkScope.Level;
+import de.ii.ogcapi.tiles.domain.TileSetsLinkScope.TileType;
 import de.ii.xtraplatform.docs.JsonDynamicSubType;
 import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.tiles.domain.TileAccess;
@@ -568,6 +574,51 @@ public interface TilesConfiguration
   @Nullable
   WmtsScope getWmts();
 
+  /**
+   * @langEn Adds links to the tileset lists (`.../tiles`, `.../map/tiles`,
+   *     `.../styles/{styleId}/map/tiles`) in JSON and HTML, for example to the records of a
+   *     metadata catalog. Required properties of a link are a URI (`href`), a title (`title`) and a
+   *     relation (`rel`). Without a `scope`, every tileset list receives the link, including those
+   *     of the collections, since the configuration of the API applies to the collections as well.
+   *     With `scope`, the link is restricted to some tileset lists: `levels` selects the dataset
+   *     (`DATASET`) or the collections (`COLLECTIONS`), `tileTypes` the vector tiles (`VECTOR`),
+   *     the map tiles (`MAP`) or the map tiles of a style (`STYLED_MAP`), and `styles` the map
+   *     tiles of the listed styles. Links configured for a collection only apply to the tileset
+   *     lists of that collection.
+   * @langDe Ergänzt Links in den Listen von Kachelsätzen (`.../tiles`, `.../map/tiles`,
+   *     `.../styles/{styleId}/map/tiles`) in JSON und HTML, zum Beispiel zu den Datensätzen eines
+   *     Metadatenkatalogs. Anzugeben sind jeweils mindestens die URI (`href`), der Titel (`title`)
+   *     und die Link-Relation (`rel`). Ohne `scope` erhält jede Liste von Kachelsätzen den Link,
+   *     auch die der Collections, da die Konfiguration der API auch für die Collections gilt. Mit
+   *     `scope` wird der Link auf einige Listen beschränkt: `levels` wählt den Datensatz
+   *     (`DATASET`) oder die Collections (`COLLECTIONS`), `tileTypes` die Vektorkacheln (`VECTOR`),
+   *     die Kartenkacheln (`MAP`) oder die Kartenkacheln eines Styles (`STYLED_MAP`) und `styles`
+   *     die Kartenkacheln der aufgeführten Styles. Bei einer Collection konfigurierte Links gelten
+   *     nur für die Listen von Kachelsätzen dieser Collection.
+   * @default []
+   * @since v4.9
+   */
+  @JsonMerge(OptBoolean.FALSE)
+  List<TileSetsLink> getAdditionalLinks();
+
+  /**
+   * The additional links of a tileset list.
+   *
+   * @param collectionId the collection of the tileset list, empty for the dataset
+   * @param dataType the data type of the tilesets
+   * @param styleId the style of styled map tiles, otherwise empty
+   * @return the links that apply to the tileset list, without their scope
+   */
+  default List<Link> additionalLinksFor(
+      Optional<String> collectionId, DataType dataType, Optional<String> styleId) {
+    Level level = collectionId.isPresent() ? Level.COLLECTIONS : Level.DATASET;
+    Optional<TileType> tileType = TileType.of(dataType, styleId);
+    return getAdditionalLinks().stream()
+        .filter(link -> link.appliesTo(level, tileType, styleId))
+        .map(TileSetsLink::toLink)
+        .toList();
+  }
+
   // TODO cache values so these are only computed once
   default boolean hasCollectionTiles(
       TilesProviders providers, OgcApiDataV2 apiData, String collectionId) {
@@ -701,6 +752,16 @@ public interface TilesConfiguration
               }
             });
     builder.tileSetEncodings(tileSetEncodings);
+
+    List<TileSetsLink> additionalLinks = Lists.newArrayList(src.getAdditionalLinks());
+    getAdditionalLinks()
+        .forEach(
+            link -> {
+              if (!additionalLinks.contains(link)) {
+                additionalLinks.add(link);
+              }
+            });
+    builder.additionalLinks(additionalLinks);
 
     return builder.build();
   }
