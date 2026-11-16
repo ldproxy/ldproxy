@@ -146,6 +146,8 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
 
   public abstract Optional<MbStyleTerrain> getTerrain();
 
+  public abstract Optional<MbStyleProjection> getProjection();
+
   // TODO: replace with SchemaDeriverStyleLayer
   @JsonIgnore
   public List<StyleLayer> getLayerMetadata(
@@ -409,9 +411,17 @@ public abstract class MbStyleStylesheet implements StoredValue, AutoValue {
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
     adjustedMetadata.put(METADATA_PREFIX + "tileMatrixSets", sourceTms);
 
+    // tiles in another tile matrix set are only placed correctly in a map in its CRS; a client
+    // has to register the CRS under this name, e.g. "EPSG:25832"
+    MbStyleProjection projection =
+        ImmutableMbStyleProjection.builder()
+            .type(tileMatrixSet.get().getCrs().toSimpleString())
+            .build();
+
     return new ImmutableMbStyleStylesheet.Builder()
         .from(this)
         .zoom(getZoom().map(adjustZoomLevel))
+        .projection(projection)
         .metadata(adjustedMetadata)
         .sources(adjustedSources)
         .layers(
