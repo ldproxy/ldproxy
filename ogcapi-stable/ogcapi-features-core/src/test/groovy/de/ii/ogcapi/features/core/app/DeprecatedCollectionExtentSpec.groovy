@@ -103,6 +103,27 @@ class DeprecatedCollectionExtentSpec extends Specification {
         coreExtent(applied).flatMap(Extent::getSpatial) == Optional.of(CORE_SPATIAL)
     }
 
+    def "a part that is only set in the deprecated extent is used for FEATURES_CORE"() {
+
+        given:
+        def core = new ImmutableFeaturesCoreConfiguration.Builder()
+                .extent(ImmutableExtent.builder().spatial(CORE_SPATIAL).build())
+                .build()
+        def legacy = new ImmutableCollectionExtent.Builder()
+                .spatial(LEGACY_BBOX)
+                .temporal(TemporalExtent.of("2010-01-01", null))
+                .build()
+        def data = apiData(collection(legacy, core))
+
+        when:
+        def applied = DeprecatedExtents.apply(data, true)
+
+        then: 'the spatial part of FEATURES_CORE wins, the temporal part is moved'
+        coreExtent(applied).flatMap(Extent::getSpatial) == Optional.of(CORE_SPATIAL)
+        coreExtent(applied).flatMap(Extent::getTemporal).map { it.start } == Optional.of("2010-01-01T00:00:00Z")
+        applied.getCollections().get("foo").getExtent().isEmpty()
+    }
+
     def "a deprecated temporal extent in milliseconds becomes a date-time"() {
 
         given:

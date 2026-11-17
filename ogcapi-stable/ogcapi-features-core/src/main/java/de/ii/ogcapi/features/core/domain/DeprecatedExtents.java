@@ -24,7 +24,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The deprecated options `defaultExtent` of an API and `extent` of a collection are used for the
- * option `extent` of FEATURES_CORE of the API or the collection, unless that is set.
+ * option `extent` of FEATURES_CORE of the API or the collection, for each part (`spatial`,
+ * `temporal`) that is not set there.
  */
 @SuppressWarnings({"deprecation", "removal"})
 public final class DeprecatedExtents {
@@ -122,13 +123,9 @@ public final class DeprecatedExtents {
             .map(FeaturesCoreConfiguration.class::cast)
             .findFirst();
 
-    if (coreConfig.flatMap(FeaturesCoreConfiguration::getExtent).isPresent()) {
-      return Optional.of(extensions);
-    }
-
-    Extent extent;
+    Extent deprecatedExtent;
     try {
-      extent = deprecated.toExtent();
+      deprecatedExtent = deprecated.toExtent();
     } catch (IllegalStateException e) {
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("The deprecated extent of {} is ignored: {}", context, e.getMessage());
@@ -136,7 +133,10 @@ public final class DeprecatedExtents {
       return Optional.empty();
     }
 
-    if (extent.getSpatial().isEmpty() && extent.getTemporal().isEmpty()) {
+    Optional<Extent> configuredExtent = coreConfig.flatMap(FeaturesCoreConfiguration::getExtent);
+    Extent extent = Extent.inherit(configuredExtent, Optional.of(deprecatedExtent));
+
+    if (configuredExtent.map(extent::equals).orElse(isEmpty(extent))) {
       return Optional.of(extensions);
     }
 
@@ -161,5 +161,9 @@ public final class DeprecatedExtents {
                         ? (ExtensionConfiguration) withExtent
                         : extension)
             .toList());
+  }
+
+  private static boolean isEmpty(Extent extent) {
+    return extent.getSpatial().isEmpty() && extent.getTemporal().isEmpty();
   }
 }
