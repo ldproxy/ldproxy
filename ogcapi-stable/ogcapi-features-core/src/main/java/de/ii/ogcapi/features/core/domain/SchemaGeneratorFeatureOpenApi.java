@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -49,11 +50,13 @@ public class SchemaGeneratorFeatureOpenApi implements SchemaGeneratorOpenApi {
       new ConcurrentHashMap<>();
   private final FeaturesCoreProviders providers;
   private final Values<Codelist> codelistStore;
+  private final AtomicLong codelistsRevision;
 
   @Inject
   public SchemaGeneratorFeatureOpenApi(FeaturesCoreProviders providers, ValueStore valueStore) {
     this.providers = providers;
     this.codelistStore = valueStore.forType(Codelist.class);
+    this.codelistsRevision = new AtomicLong(codelistStore.getRevision());
   }
 
   @Override
@@ -63,6 +66,12 @@ public class SchemaGeneratorFeatureOpenApi implements SchemaGeneratorOpenApi {
 
   @Override
   public Schema<?> getSchema(OgcApiDataV2 apiData, String collectionId) {
+    // the schemas contain codelist values
+    long currentCodelistsRevision = codelistStore.getRevision();
+    if (codelistsRevision.getAndSet(currentCodelistsRevision) != currentCodelistsRevision) {
+      schemaCache.clear();
+    }
+
     return schemaCache
         .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
         .computeIfAbsent(
