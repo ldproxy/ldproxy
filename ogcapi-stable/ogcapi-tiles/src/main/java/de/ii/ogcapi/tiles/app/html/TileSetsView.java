@@ -98,6 +98,21 @@ public abstract class TileSetsView extends OgcApiView {
     return i18n().get("none", language());
   }
 
+  @Value.Derived
+  public String linksTitle() {
+    return i18n().get("linksTitle", language());
+  }
+
+  @Value.Default
+  public List<Link> additionalLinks() {
+    return List.of();
+  }
+
+  @Value.Derived
+  public boolean hasAdditionalLinks() {
+    return !additionalLinks().isEmpty();
+  }
+
   @Value.Default
   public boolean withOlMap() {
     return true;

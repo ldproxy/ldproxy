@@ -225,6 +225,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
 
     Optional<DataType> dataType =
         tileFormats.stream().map(TileFormatExtension::getDataType).findAny();
+    DataType resourceDataType =
+        dataType.orElse(queryInput.getPath().contains("/map/") ? DataType.map : DataType.vector);
 
     List<Link> links =
         tilesLinkGenerator.generateTileSetsLinks(
@@ -235,6 +237,16 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
             i18n,
             requestContext.getLanguage());
 
+    List<Link> additionalLinks =
+        (collectionId.isEmpty()
+                ? apiData.getExtension(TilesConfiguration.class)
+                : apiData.getExtension(TilesConfiguration.class, collectionId.get()))
+            .map(
+                config ->
+                    config.additionalLinksFor(
+                        collectionId, resourceDataType, queryInput.getStyleId()))
+            .orElse(List.of());
+
     ImmutableTileSets.Builder builder =
         ImmutableTileSets.builder()
             .title(featureType.isPresent() ? featureType.get().getLabel() : apiData.getLabel())
@@ -242,7 +254,8 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
                 featureType
                     .map(ft -> ft.getDescription().orElse(""))
                     .orElseGet(() -> apiData.getDescription().orElse("")))
-            .links(links);
+            .links(links)
+            .addAllLinks(additionalLinks);
 
     List<TileMatrixSet> tileMatrixSets =
         tileMatrixSetIds.stream()
@@ -300,8 +313,7 @@ public class TilesQueriesHandlerImpl extends AbstractVolatileComposed
         .entity(
             outputFormat.getTileSetsEntity(
                 tileSets,
-                dataType.orElse(
-                    queryInput.getPath().contains("/map/") ? DataType.map : DataType.vector),
+                resourceDataType,
                 queryInput.getStyleId(),
                 collectionId,
                 api,
