@@ -48,6 +48,19 @@ import java.util.Optional;
  *     `successor-version`, `latest-version`, `version-history`, `timemap`, `memento`, `original`).
  *     Zusammen mit den Bausteinen Transactions und CRUD erzeugen Mutationen neue Versionen (bzw.
  *     stellen vorhandene still), statt Zeilen in der Datenbank zu überschreiben.
+ * @limitationsEn Collections with versioned features should not set a fixed temporal extent
+ *     (`extent.temporal`), neither in the feature provider nor in the API configuration
+ *     (`FEATURES_CORE`). The temporal extent should be computed from the data so that it covers all
+ *     versions. A fixed temporal extent in the feature provider also restricts queries: versions
+ *     outside of it are then missing from queries with `datetime` and from the version history, and
+ *     a feature whose versions all lie outside of it is reported as not existing.
+ * @limitationsDe Collections mit versionierten Features sollten keinen festen zeitlichen Extent
+ *     (`extent.temporal`) setzen, weder im Feature-Provider noch in der API-Konfiguration
+ *     (`FEATURES_CORE`). Der zeitliche Extent sollte aus den Daten berechnet werden, damit er alle
+ *     Versionen umfasst. Ein fester zeitlicher Extent im Feature-Provider schränkt zudem die
+ *     Abfragen ein: Versionen außerhalb fehlen dann in Abfragen mit `datetime` und in der
+ *     Versionshistorie, und ein Feature, dessen Versionen alle außerhalb liegen, wird als nicht
+ *     existierend gemeldet.
  * @ref:cfg {@link de.ii.ogcapi.versioned.features.domain.VersionedFeaturesConfiguration}
  * @ref:cfgProperties {@link
  *     de.ii.ogcapi.versioned.features.domain.ImmutableVersionedFeaturesConfiguration}

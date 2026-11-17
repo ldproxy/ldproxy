@@ -24,6 +24,7 @@ import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.features.domain.FeatureTypeConfiguration;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.net.URISyntaxException;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -56,8 +57,8 @@ public abstract class OgcApiDatasetView extends OgcApiView {
         .map(
             v -> {
               ImmutableTemporalExtent.Builder builder = new ImmutableTemporalExtent.Builder();
-              if (Objects.nonNull(v[0])) builder.start(v[0].toEpochMilli());
-              if (Objects.nonNull(v[1])) builder.end(v[1].toEpochMilli());
+              if (Objects.nonNull(v[0])) builder.start(DateTimeFormatter.ISO_INSTANT.format(v[0]));
+              if (Objects.nonNull(v[1])) builder.end(DateTimeFormatter.ISO_INSTANT.format(v[1]));
               return builder.build();
             });
   }
@@ -126,19 +127,16 @@ public abstract class OgcApiDatasetView extends OgcApiView {
   }
 
   public Map<String, String> getTemporalExtent() {
-    if (rawTemporalExtent().isEmpty()) return null;
-    else if (Objects.isNull(rawTemporalExtent().get().getStart())
-        && Objects.isNull(rawTemporalExtent().get().getEnd())) return ImmutableMap.of();
-    else if (Objects.isNull(rawTemporalExtent().get().getStart()))
-      return ImmutableMap.of("end", String.valueOf(rawTemporalExtent().get().getEnd()));
-    else if (Objects.isNull(rawTemporalExtent().get().getEnd()))
-      return ImmutableMap.of("start", String.valueOf(rawTemporalExtent().get().getStart()));
-    else
-      return ImmutableMap.of(
-          "start",
-          String.valueOf(rawTemporalExtent().get().getStart()),
-          "end",
-          String.valueOf(rawTemporalExtent().get().getEnd()));
+    if (temporalExtentIso().isEmpty()) return null;
+
+    var interval = temporalExtentIso().get().getInterval()[0];
+    var start = interval[0] != null ? Long.toString(interval[0].toEpochMilli()) : null;
+    var end = interval[1] != null ? Long.toString(interval[1].toEpochMilli()) : null;
+
+    if (Objects.isNull(start) && Objects.isNull(end)) return ImmutableMap.of();
+    else if (Objects.isNull(start)) return ImmutableMap.of("end", end);
+    else if (Objects.isNull(end)) return ImmutableMap.of("start", start);
+    else return ImmutableMap.of("start", start, "end", end);
   }
 
   public Optional<String> getTemporalCoverage() {
