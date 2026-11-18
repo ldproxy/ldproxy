@@ -28,7 +28,7 @@ import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.pubsub.domain.AsyncApiDefinitionFormatExtension;
 import de.ii.ogcapi.pubsub.domain.QueriesHandlerPubSub;
 import de.ii.ogcapi.pubsub.domain.QueriesHandlerPubSub.Query;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;

@@ -53,7 +53,7 @@ import de.ii.ogcapi.transactions.domain.TransactionsConfiguration;
 import de.ii.xtralink.jobs.Identifiers;
 import de.ii.xtralink.jobs.Job;
 import de.ii.xtralink.jobs.JobConfiguration;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;

@@ -14,7 +14,10 @@ import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
+import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.FoundationValidator;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
@@ -22,6 +25,10 @@ import de.ii.ogcapi.tilematrixsets.domain.TileMatrixSetsConfiguration;
 import de.ii.ogcapi.tiles.domain.ImmutableTilesConfiguration.Builder;
 import de.ii.ogcapi.tiles.domain.TileFormatExtension;
 import de.ii.ogcapi.tiles.domain.TileSetFormatExtension;
+import de.ii.ogcapi.tiles.domain.TileSetsLink;
+import de.ii.ogcapi.tiles.domain.TileSetsLinkScope;
+import de.ii.ogcapi.tiles.domain.TileSetsLinkScope.Level;
+import de.ii.ogcapi.tiles.domain.TileSetsLinkScope.TileType;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration;
 import de.ii.ogcapi.tiles.domain.TilesConfiguration.WmtsScope;
 import de.ii.ogcapi.tiles.domain.TilesProviders;
@@ -49,6 +56,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,6 +266,27 @@ public class TilesBuildingBlock implements ApiBuildingBlock, ApiExtensionHealth 
     ImmutableValidationResult.Builder builder =
         ImmutableValidationResult.builder().mode(apiValidation);
 
+    apiData
+        .getExtension(TilesConfiguration.class)
+        .filter(ExtensionConfiguration::isEnabled)
+        .ifPresent(
+            config ->
+                validateAdditionalLinks(
+                    builder,
+                    config.getAdditionalLinks(),
+                    "/tiles",
+                    false,
+                    Stream.concat(
+                            tilesProviders.getRasterTilesetMetadata(apiData).keySet().stream(),
+                            apiData.getCollections().values().stream()
+                                .flatMap(
+                                    collectionData ->
+                                        tilesProviders
+                                            .getRasterTilesetMetadata(apiData, collectionData)
+                                            .keySet()
+                                            .stream()))
+                        .collect(Collectors.toUnmodifiableSet())));
+
     for (Map.Entry<String, TilesConfiguration> entry :
         apiData.getCollections().entrySet().stream()
             .filter(
@@ -274,6 +303,20 @@ public class TilesBuildingBlock implements ApiBuildingBlock, ApiExtensionHealth 
             .entrySet()) {
       String collectionId = entry.getKey();
       TilesConfiguration config = entry.getValue();
+      FeatureTypeConfigurationOgcApi collectionData = apiData.getCollections().get(collectionId);
+
+      // only the links configured for the collection, without those inherited from the API
+      validateAdditionalLinks(
+          builder,
+          collectionData.getExtensions().stream()
+              .filter(TilesConfiguration.class::isInstance)
+              .map(TilesConfiguration.class::cast)
+              .flatMap(collectionConfig -> collectionConfig.getAdditionalLinks().stream())
+              .distinct()
+              .toList(),
+          String.format("/collections/%s/tiles", collectionId),
+          true,
+          tilesProviders.getRasterTilesetMetadata(apiData, collectionData).keySet());
 
       List<String> formatLabels =
           extensionRegistry.getExtensionsForType(TileFormatExtension.class).stream()
@@ -316,6 +359,54 @@ public class TilesBuildingBlock implements ApiBuildingBlock, ApiExtensionHealth 
     }
 
     return builder.build();
+  }
+
+  private static void validateAdditionalLinks(
+      ImmutableValidationResult.Builder builder,
+      List<TileSetsLink> links,
+      String path,
+      boolean collectionLevel,
+      Set<String> knownStyles) {
+    FoundationValidator.validateLinks(builder, links.stream().map(Link.class::cast).toList(), path);
+
+    for (TileSetsLink link : links) {
+      if (link.getScope().isEmpty()) {
+        continue;
+      }
+      TileSetsLinkScope scope = link.getScope().get();
+
+      if (collectionLevel
+          && !scope.getLevels().isEmpty()
+          && !scope.getLevels().contains(Level.COLLECTIONS)) {
+        builder.addWarnings(
+            MessageFormat.format(
+                "Link ''{0}'' in resource ''{1}'' has no effect: links configured for a collection only apply to the tileset lists of the collection, but the scope does not include ''COLLECTIONS''.",
+                link.getHref(), path));
+      }
+
+      if (scope.getStyles().isEmpty()) {
+        continue;
+      }
+      List<TileType> otherTileTypes =
+          scope.getTileTypes().stream().filter(type -> type != TileType.STYLED_MAP).toList();
+      if (!otherTileTypes.isEmpty()) {
+        builder.addWarnings(
+            MessageFormat.format(
+                "Link ''{0}'' in resource ''{1}'': the scope lists styles, which restrict the link to the map tiles of these styles, so the tile types {2} do not apply.",
+                link.getHref(), path, otherTileTypes));
+      }
+      // the styles are only known once the tile provider is available
+      List<String> unknownStyles =
+          knownStyles.isEmpty()
+              ? List.of()
+              : scope.getStyles().stream().filter(style -> !knownStyles.contains(style)).toList();
+      if (!unknownStyles.isEmpty()) {
+        builder.addWarnings(
+            MessageFormat.format(
+                "Link ''{0}'' in resource ''{1}'': the scope lists styles without map tiles: {2}.",
+                link.getHref(), path, unknownStyles));
+      }
+    }
   }
 
   @Override

@@ -43,7 +43,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -90,17 +89,6 @@ public class EndpointParameter extends EndpointRequiresFeatures implements ApiEx
   }
 
   // the resources depend on the stored queries, the definition is updated when they change
-  @Override
-  public ApiEndpointDefinition getDefinition(OgcApiDataV2 apiData) {
-    if (!isEnabledForApi(apiData) || !getComposedVolatile(apiData).isAvailable()) {
-      return super.getDefinition(apiData);
-    }
-
-    return apiDefinitions.computeIfAbsent(
-        Objects.hash(apiData.hashCode(), repository.getAll(apiData).hashCode()),
-        ignore -> computeDefinition(apiData));
-  }
-
   // one resource per stored query, so that the names are the parameters of the query
   @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {

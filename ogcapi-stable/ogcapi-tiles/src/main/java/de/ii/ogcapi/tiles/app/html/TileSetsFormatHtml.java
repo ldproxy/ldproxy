@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
+import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.html.domain.FormatHtml;
@@ -279,6 +280,10 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
             : null;
     boolean removeZoomLevelConstraints =
         tilesConfig.map(TilesConfiguration::getRemoveZoomLevelConstraints).orElse(false);
+    List<Link> additionalLinks =
+        tilesConfig
+            .map(config -> config.additionalLinksFor(collectionId, dataType, styleId))
+            .orElse(List.of());
 
     return new ImmutableTileSetsView.Builder()
         .apiData(api.getData())
@@ -286,7 +291,9 @@ public class TileSetsFormatHtml implements TileSetsFormatExtension, FormatHtml {
         .collectionId(collectionId)
         .tileMatrixSets(tileMatrixSets)
         .breadCrumbs(breadCrumbs)
-        .rawLinks(tiles.getLinks())
+        .rawLinks(
+            tiles.getLinks().stream().filter(link -> !additionalLinks.contains(link)).toList())
+        .additionalLinks(additionalLinks)
         .basePath(requestContext.getBasePath())
         .apiPath(requestContext.getApiPath())
         .mapClientType(mapClientType)

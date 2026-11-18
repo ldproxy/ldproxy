@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import de.ii.ogcapi.foundation.domain.CollectionExtent;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.Link;
 import de.ii.ogcapi.foundation.domain.OgcResourceMetadata;
@@ -96,6 +95,21 @@ public abstract class TileSetsView extends OgcApiView {
   @Value.Derived
   public String none() {
     return i18n().get("none", language());
+  }
+
+  @Value.Derived
+  public String linksTitle() {
+    return i18n().get("linksTitle", language());
+  }
+
+  @Value.Default
+  public List<Link> additionalLinks() {
+    return List.of();
+  }
+
+  @Value.Derived
+  public boolean hasAdditionalLinks() {
+    return !additionalLinks().isEmpty();
   }
 
   @Value.Default
@@ -349,8 +363,7 @@ public abstract class TileSetsView extends OgcApiView {
                     tBbox.getLowerLeft()[1].doubleValue(),
                     tBbox.getUpperRight()[0].doubleValue(),
                     tBbox.getUpperRight()[1].doubleValue(),
-                    OgcCrs.CRS84))
-        .or(() -> apiData().getDefaultExtent().flatMap(CollectionExtent::getSpatial));
+                    OgcCrs.CRS84));
   }
 
   @Value.Derived

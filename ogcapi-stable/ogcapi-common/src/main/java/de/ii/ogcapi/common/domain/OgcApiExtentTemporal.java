@@ -49,11 +49,11 @@ public interface OgcApiExtentTemporal {
         .interval(
             new Instant[][] {
               {
-                (interval.getStart() != null)
-                    ? Instant.ofEpochMilli(interval.getStart()).truncatedTo(ChronoUnit.SECONDS)
+                (interval.getStartInstant() != null)
+                    ? interval.getStartInstant().truncatedTo(ChronoUnit.SECONDS)
                     : null,
-                (interval.getEnd() != null)
-                    ? Instant.ofEpochMilli(interval.getEnd()).truncatedTo(ChronoUnit.SECONDS)
+                (interval.getEndInstant() != null)
+                    ? interval.getEndInstant().truncatedTo(ChronoUnit.SECONDS)
                     : null
               }
             })

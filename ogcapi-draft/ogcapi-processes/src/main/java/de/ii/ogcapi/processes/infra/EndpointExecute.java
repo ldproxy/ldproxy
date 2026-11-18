@@ -14,9 +14,11 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
 import de.ii.ogcapi.common.domain.async.JobStatusFormatExtension;
 import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiExtensionHealth;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
@@ -37,7 +39,6 @@ import de.ii.ogcapi.processes.domain.ExecutionQueriesHandler;
 import de.ii.ogcapi.processes.domain.ImmutableQueryInputExecution;
 import de.ii.ogcapi.processes.domain.ProcessesCoreConfiguration;
 import de.ii.ogcapi.processes.domain.format.ExecuteFormatExtension;
-import de.ii.ogcapi.processes.domain.model.ProcessRepository;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -77,7 +78,7 @@ import org.slf4j.LoggerFactory;
  */
 @Singleton
 @AutoBind
-public class EndpointExecute extends EndpointProcessIds {
+public class EndpointExecute extends Endpoint implements ApiExtensionHealth {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EndpointExecute.class);
   private static final List<String> TAGS = ImmutableList.of("Processes");
@@ -88,10 +89,8 @@ public class EndpointExecute extends EndpointProcessIds {
 
   @Inject
   public EndpointExecute(
-      ExtensionRegistry extensionRegistry,
-      ExecutionQueriesHandler queryHandler,
-      ProcessRepository processRepository) {
-    super(extensionRegistry, processRepository);
+      ExtensionRegistry extensionRegistry, ExecutionQueriesHandler queryHandler) {
+    super(extensionRegistry);
     this.queryHandler = queryHandler;
   }
 

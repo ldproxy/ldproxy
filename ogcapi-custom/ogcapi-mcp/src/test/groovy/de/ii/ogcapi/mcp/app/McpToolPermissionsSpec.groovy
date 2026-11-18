@@ -17,8 +17,8 @@ import de.ii.ogcapi.foundation.domain.OgcApiResource
 import de.ii.ogcapi.foundation.domain.QueryParameterSet
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool
 import de.ii.ogcapi.mcp.domain.McpTool
-import de.ii.xtraplatform.auth.domain.ImmutableUser
-import de.ii.xtraplatform.auth.domain.User
+import de.ii.xtraplatform.base.domain.auth.ImmutableUser
+import de.ii.xtraplatform.base.domain.auth.User
 import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.web.domain.URICustomizer
 import io.swagger.v3.oas.models.media.ObjectSchema

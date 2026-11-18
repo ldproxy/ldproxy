@@ -7,7 +7,7 @@
  */
 package de.ii.ogcapi.foundation.domain;
 
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import java.util.Optional;
 import javax.annotation.Nullable;
 

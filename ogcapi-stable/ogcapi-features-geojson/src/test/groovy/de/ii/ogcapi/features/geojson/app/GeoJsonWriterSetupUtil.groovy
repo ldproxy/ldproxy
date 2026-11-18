@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableMap
 import de.ii.ogcapi.features.geojson.domain.*
 import de.ii.ogcapi.foundation.app.OgcApiEntity
 import de.ii.ogcapi.foundation.domain.*
-import de.ii.xtraplatform.auth.domain.User
+import de.ii.xtraplatform.base.domain.auth.User
 import de.ii.xtraplatform.base.domain.AppContext
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import de.ii.xtraplatform.crs.domain.OgcCrs

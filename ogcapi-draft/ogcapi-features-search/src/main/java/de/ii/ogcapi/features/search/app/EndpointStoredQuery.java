@@ -68,8 +68,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @title Stored Query
@@ -90,8 +88,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @AutoBind
 public class EndpointStoredQuery extends EndpointRequiresFeatures implements ApiExtensionHealth {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointStoredQuery.class);
 
   private static final List<String> TAGS = ImmutableList.of("Discover and execute queries");
 
@@ -159,31 +155,6 @@ public class EndpointStoredQuery extends EndpointRequiresFeatures implements Api
 
   // TODO temporary fix, Endpoint.getDefinition() for now is no longer final;
   //      update with https://github.com/interactive-instruments/ldproxy/issues/843
-  @Override
-  public ApiEndpointDefinition getDefinition(OgcApiDataV2 apiData) {
-    if (!isEnabledForApi(apiData)) {
-      return super.getDefinition(apiData);
-    }
-
-    return apiDefinitions.computeIfAbsent(
-        // override to trigger update when stored queries have changed
-        repository.getAll(apiData).hashCode(),
-        ignore -> {
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Generating API definition for {}", this.getClass().getSimpleName());
-          }
-
-          ApiEndpointDefinition apiEndpointDefinition = computeDefinition(apiData);
-
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(
-                "Finished generating API definition for {}", this.getClass().getSimpleName());
-          }
-
-          return apiEndpointDefinition;
-        });
-  }
-
   @Override
   protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
     ImmutableApiEndpointDefinition.Builder definitionBuilder =

@@ -15,5 +15,5 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["src", "vite.config.js", "vite-plugins", "vite.config.ts"]
+  "include": ["src", "vite.config.mjs", "vite-plugins", "vite.config.ts"]
 }

@@ -6,7 +6,7 @@ import type { LayerControlEntry } from "@xtramaps/layer-control-maplibre";
 // mapClient.mustache/app-filtereditor.mustache) before the corresponding bundle runs. Every
 // app entry spreads its global directly as props onto its root component, so each shape here
 // mirrors that component's own props (plus the DOM element id used as the render target).
-// `global.x` (as opposed to `globalThis.x`) resolves the same way at runtime: `vite.config.js`
+// `global.x` (as opposed to `globalThis.x`) resolves the same way at runtime: `vite.config.mjs`
 // replaces the bare `global` identifier with `globalThis` at build time (see `define`).
 
 export interface TranslationBundle {

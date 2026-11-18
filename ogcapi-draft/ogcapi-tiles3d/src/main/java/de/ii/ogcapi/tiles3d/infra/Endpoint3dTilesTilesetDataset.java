@@ -35,7 +35,7 @@ import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.Query;
 import de.ii.ogcapi.tiles3d.domain.QueriesHandler3dTiles.QueryInputTileset;
 import de.ii.ogcapi.tiles3d.domain.Tile3dProviders;
 import de.ii.ogcapi.tiles3d.domain.Tiles3dConfiguration;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import io.dropwizard.auth.Auth;
 import jakarta.inject.Inject;
