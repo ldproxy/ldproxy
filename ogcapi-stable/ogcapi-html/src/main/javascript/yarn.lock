@@ -3416,7 +3416,7 @@ __metadata:
     rlayers: ^1.1.1
     webpack: 4.46.0
     webpack-cli: 3.3.12
-    webpack-dev-server: 3.11.2
+    webpack-dev-server: 3.11.3
   languageName: unknown
   linkType: soft
 
@@ -5412,7 +5412,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ansi-html@npm:0.0.7, ansi-html@npm:^0.0.7":
+"ansi-html@npm:^0.0.7":
   version: 0.0.7
   resolution: "ansi-html@npm:0.0.7"
   bin:
@@ -17639,11 +17639,11 @@ resolve@^2.0.0-next.3:
   languageName: node
   linkType: hard
 
-"webpack-dev-server@npm:3.11.2":
-  version: 3.11.2
-  resolution: "webpack-dev-server@npm:3.11.2"
+"webpack-dev-server@npm:3.11.3":
+  version: 3.11.3
+  resolution: "webpack-dev-server@npm:3.11.3"
   dependencies:
-    ansi-html: 0.0.7
+    ansi-html-community: 0.0.8
     bonjour: ^3.5.0
     chokidar: ^2.1.8
     compression: ^1.7.4
@@ -17683,7 +17683,7 @@ resolve@^2.0.0-next.3:
       optional: true
   bin:
     webpack-dev-server: bin/webpack-dev-server.js
-  checksum: d2bfa2e9a33f96dc5af8f771e9978956e59c3efcad3deaca246ea7ff219c5587ebcf20ea0f0b6af251dec5e8111c0e473aa43a57bc9a88fb3ad8573f4a321805
+  checksum: ae2dbcfcd9e8064b00b9c369343b4d4ff31c30a37c459f00b40d27fd6008188edd20ab8497155cd39f0ba704682fc60ca065b6458b54d2dac938b290e0df8cd9
   languageName: node
   linkType: hard
 
