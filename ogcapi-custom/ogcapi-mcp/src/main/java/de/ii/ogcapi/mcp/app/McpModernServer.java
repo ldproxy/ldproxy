@@ -29,6 +29,7 @@ import io.modelcontextprotocol.modern.server.feature.ToolsFeature;
 import io.modelcontextprotocol.modern.server.feature.ToolsPage;
 import io.modelcontextprotocol.modern.server.transport.HttpServletMcpTransport;
 import io.modelcontextprotocol.server.McpTransportContextExtractor;
+import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,7 +53,8 @@ final class McpModernServer {
       ToolCaller toolCaller,
       McpJsonMapper jsonMapper,
       JsonSchemaValidator jsonSchemaValidator,
-      McpTransportContextExtractor<HttpServletRequest> contextExtractor) {
+      McpTransportContextExtractor<HttpServletRequest> contextExtractor,
+      ServerHttpHeaderValidator originValidator) {
     Map<String, McpSyncTool> toolsByName = new LinkedHashMap<>();
     for (AvailableTool tool : tools) {
       toolsByName.put(
@@ -106,6 +108,7 @@ final class McpModernServer {
         .jsonMapper(jsonMapper)
         .endpoint("/mcp")
         .contextExtractor(contextExtractor)
+        .httpHeaderValidator(originValidator)
         .build();
   }
 

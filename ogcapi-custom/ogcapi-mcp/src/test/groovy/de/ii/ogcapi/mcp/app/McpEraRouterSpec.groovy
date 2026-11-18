@@ -38,9 +38,16 @@ class McpEraRouterSpec extends Specification {
     static final Map<String, Object> META = ["io.modelcontextprotocol/protocolVersion": MODERN,
                                              "io.modelcontextprotocol/clientCapabilities": [:]]
 
+    static final URI API_URI = URI.create("https://example.org/cshapes")
+
     McpEraRouter router
 
     def setup() {
+        router = createRouter([])
+    }
+
+    private static McpEraRouter createRouter(List<String> allowedOrigins) {
+        def originValidator = McpServerImpl.originValidator(allowedOrigins, API_URI)
         def jsonMapper = new JacksonMcpJsonMapper(MAPPER)
         def validator = new DefaultJsonSchemaValidator(MAPPER)
         def tool = new AvailableTool(
@@ -59,6 +66,7 @@ class McpEraRouterSpec extends Specification {
         def legacy = HttpServletStatelessServerTransport.builder()
                 .jsonMapper(jsonMapper)
                 .messageEndpoint("/mcp")
+                .httpHeaderValidator(originValidator)
                 .build()
         McpServer.sync(legacy)
                 .serverInfo("legacy", "1.0.0")
@@ -76,9 +84,10 @@ class McpEraRouterSpec extends Specification {
                 caller,
                 jsonMapper,
                 validator,
-                { request -> McpTransportContext.EMPTY })
+                { request -> McpTransportContext.EMPTY },
+                originValidator)
 
-        router = new McpEraRouter(legacy, modern)
+        return new McpEraRouter(legacy, modern)
     }
 
     def cleanup() {
@@ -162,6 +171,75 @@ class McpEraRouterSpec extends Specification {
         then:
         result.body.error.code == -32022
         result.body.error.data.supported == [MODERN]
+    }
+
+    def 'the origin of the API is the one a browser sends'() {
+        expect:
+        McpServerImpl.origin(URI.create(uri)) == origin
+
+        where:
+        uri                                  | origin
+        "https://example.org/cshapes"        | "https://example.org"
+        "HTTPS://Example.ORG:443/cshapes"    | "https://example.org"
+        "http://localhost:7080/cshapes"      | "http://localhost:7080"
+        "http://localhost:80/cshapes"        | "http://localhost"
+        "https://example.org:8443/a/b"       | "https://example.org:8443"
+    }
+
+    def 'a request from a web page of another origin is rejected in both eras'() {
+        when:
+        def legacy = post(initialize(), [Origin: "https://evil.example"])
+        def modern = post([jsonrpc: "2.0", id: 2, method: "tools/list", params: [_meta: META]],
+                modernHeaders("tools/list", null) + [Origin: "https://evil.example"])
+
+        then:
+        legacy.status == 403
+        modern.status == 403
+    }
+
+    def 'a request from a web page of the API itself is accepted in both eras'() {
+        when:
+        def legacy = post(initialize(), [Origin: "https://example.org"])
+        def modern = post([jsonrpc: "2.0", id: 2, method: "tools/list", params: [_meta: META]],
+                modernHeaders("tools/list", null) + [Origin: "https://example.org"])
+
+        then:
+        legacy.status == 200
+        legacy.body.result.protocolVersion == "2025-11-25"
+        modern.status == 200
+        modern.body.result.tools*.name == ["collection_countries"]
+    }
+
+    def 'a configured origin is accepted, with any port if the port is a wildcard'() {
+        given:
+        router.close()
+        router = createRouter(["https://app.example", "http://localhost:*"])
+
+        expect:
+        post(initialize(), [Origin: origin]).status == status
+
+        where:
+        origin                   | status
+        "https://app.example"    | 200
+        "http://localhost:3000"  | 200
+        "http://localhost"       | 200
+        "https://other.example"  | 403
+    }
+
+    def 'with the wildcard, every origin is accepted'() {
+        given:
+        router.close()
+        router = createRouter(["*"])
+
+        expect:
+        post(initialize(), [Origin: "https://evil.example"]).status == 200
+    }
+
+    private static Map initialize() {
+        [jsonrpc: "2.0", id: 1, method: "initialize", params: [
+                protocolVersion: "2025-11-25",
+                capabilities   : [:],
+                clientInfo     : [name: "spec", version: "1.0.0"]]]
     }
 
     private static Map<String, String> modernHeaders(String method, String name) {

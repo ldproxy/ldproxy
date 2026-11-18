@@ -112,6 +112,24 @@ public interface McpConfiguration extends ExtensionConfiguration {
    */
   Optional<Integer> getMaxResultSize();
 
+  /**
+   * @langEn Origins of web pages, in addition to the origin of the API itself, whose scripts may
+   *     send requests to the MCP endpoint, for example `https://app.example.com`. A port can be
+   *     replaced by `*`, for example `http://localhost:*`; `*` alone allows all origins. A request
+   *     with the header `Origin` of another web page is rejected with status 403, as the MCP
+   *     specification requires to protect against DNS rebinding. Requests without the header, as
+   *     sent by clients that are not web pages, are not affected.
+   * @langDe Origins von Webseiten, zusätzlich zum Origin der API selbst, deren Skripte Anfragen an
+   *     den MCP-Endpunkt senden dürfen, zum Beispiel `https://app.example.com`. Ein Port kann durch
+   *     `*` ersetzt werden, zum Beispiel `http://localhost:*`; `*` allein erlaubt alle Origins.
+   *     Eine Anfrage mit dem Header `Origin` einer anderen Webseite wird mit Status 403 abgelehnt,
+   *     wie es die MCP-Spezifikation zum Schutz vor DNS-Rebinding verlangt. Anfragen ohne den
+   *     Header, wie sie Clients senden, die keine Webseiten sind, sind nicht betroffen.
+   * @default []
+   * @since v5.0
+   */
+  List<String> getAllowedOrigins();
+
   @Override
   default ExtensionConfiguration mergeInto(ExtensionConfiguration source) {
     return new ImmutableMcpConfiguration.Builder()
@@ -121,6 +139,12 @@ public interface McpConfiguration extends ExtensionConfiguration {
             Stream.concat(
                     ((McpConfiguration) source).getFilterOnlyQueryables().stream(),
                     getFilterOnlyQueryables().stream())
+                .distinct()
+                .toList())
+        .allowedOrigins(
+            Stream.concat(
+                    ((McpConfiguration) source).getAllowedOrigins().stream(),
+                    getAllowedOrigins().stream())
                 .distinct()
                 .toList())
         .build();

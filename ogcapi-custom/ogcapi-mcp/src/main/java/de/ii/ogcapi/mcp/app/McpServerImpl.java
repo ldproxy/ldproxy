@@ -51,7 +51,9 @@ import io.modelcontextprotocol.modern.server.transport.HttpServletMcpTransport;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.server.McpTransportContextExtractor;
+import io.modelcontextprotocol.server.transport.DefaultServerTransportSecurityValidator;
 import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
+import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
 import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.Implementation;
@@ -73,6 +75,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -165,11 +168,19 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                       ? McpTransportContext.create(
                           Map.of(McpServer.REQUEST_CONTEXT, requestContext))
                       : McpTransportContext.EMPTY;
+          ServerHttpHeaderValidator originValidator =
+              originValidator(
+                  api.getData()
+                      .getExtension(McpConfiguration.class)
+                      .map(McpConfiguration::getAllowedOrigins)
+                      .orElse(List.of()),
+                  api.getUri());
           HttpServletStatelessServerTransport transport =
               HttpServletStatelessServerTransport.builder()
                   .jsonMapper(jsonMapper)
                   .messageEndpoint("/mcp")
                   .contextExtractor(contextExtractor)
+                  .httpHeaderValidator(originValidator)
                   .build();
           List<AvailableTool> tools;
           try {
@@ -187,10 +198,36 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                   toolCaller,
                   jsonMapper,
                   jsonSchemaValidator,
-                  contextExtractor);
+                  contextExtractor,
+                  originValidator);
 
           return new McpEraRouter(transport, modernTransport);
         });
+  }
+
+  // the web pages whose scripts may use the MCP endpoint: those of the API itself and the
+  // configured ones; a request from another web page is rejected, as MCP requires to protect
+  // against DNS rebinding, while a request without the header Origin, from a client that is not a
+  // web page, is not affected
+  static ServerHttpHeaderValidator originValidator(List<String> allowedOrigins, URI apiUri) {
+    if (allowedOrigins.contains("*")) {
+      return ServerHttpHeaderValidator.NOOP;
+    }
+    return DefaultServerTransportSecurityValidator.builder()
+        .allowedOrigins(
+            Stream.concat(Stream.of(origin(apiUri)), allowedOrigins.stream()).distinct().toList())
+        .build();
+  }
+
+  // the origin as a browser sends it: scheme and host in lower case, the port only if it is not
+  // the default port of the scheme
+  static String origin(URI uri) {
+    String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+    String host = uri.getHost().toLowerCase(Locale.ROOT);
+    int port = uri.getPort();
+    boolean defaultPort =
+        port == -1 || "http".equals(scheme) && port == 80 || "https".equals(scheme) && port == 443;
+    return defaultPort ? scheme + "://" + host : scheme + "://" + host + ":" + port;
   }
 
   // a tool that is offered by the servers of both protocol eras

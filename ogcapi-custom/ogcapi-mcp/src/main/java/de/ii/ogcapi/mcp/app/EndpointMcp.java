@@ -18,6 +18,7 @@ import de.ii.ogcapi.foundation.domain.Endpoint;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -84,7 +85,7 @@ public class EndpointMcp extends Endpoint {
             path,
             false,
             queryParameters,
-            ImmutableList.of(),
+            getHeaders(extensionRegistry, apiData, path, HttpMethods.POST),
             getResponseContent(apiData),
             operationSummary,
             operationDescription,
