@@ -35,6 +35,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.core.Context;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -48,6 +49,10 @@ import java.util.Optional;
 public class EndpointMcp extends Endpoint {
 
   private static final List<String> TAGS = ImmutableList.of("MCP");
+  private static final String ORIGIN = "Origin";
+  private static final String SEC_FETCH_MODE = "Sec-Fetch-Mode";
+  private static final String CORS = "cors";
+  private static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
 
   private final McpServer mcpServer;
 
@@ -115,6 +120,18 @@ public class EndpointMcp extends Endpoint {
       throws ServletException, IOException {
     // the tools derive the links in their results from the request, like the API
     request.setAttribute(McpServer.REQUEST_CONTEXT, requestContext);
+    allowCrossOrigin(request, response);
     mcpServer.getServlet(api).service(request, response);
+  }
+
+  // the MCP server writes the response itself, the CORS filter of the API would add its header too
+  // late; a web page of an allowed origin needs the header to read the response, a web page of
+  // another origin is rejected by the MCP server
+  static void allowCrossOrigin(HttpServletRequest request, HttpServletResponse response) {
+    String origin = request.getHeader(ORIGIN);
+    if (Objects.nonNull(origin) && !origin.isEmpty()
+        || CORS.equalsIgnoreCase(request.getHeader(SEC_FETCH_MODE))) {
+      response.setHeader(ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+    }
   }
 }
