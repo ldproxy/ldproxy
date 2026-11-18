@@ -25,6 +25,8 @@ import java.util.Objects;
  */
 final class McpEraRouter extends HttpServlet {
 
+  private static final long serialVersionUID = 1L;
+
   static final String PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
   static final String FIRST_MODERN_VERSION = "2026-07-28";
 
@@ -41,7 +43,7 @@ final class McpEraRouter extends HttpServlet {
   // answers with the versions it supports
   static boolean isModern(String protocolVersion) {
     return Objects.nonNull(protocolVersion)
-        && protocolVersion.trim().compareTo(FIRST_MODERN_VERSION) >= 0;
+        && FIRST_MODERN_VERSION.compareTo(protocolVersion.trim()) <= 0;
   }
 
   @Override

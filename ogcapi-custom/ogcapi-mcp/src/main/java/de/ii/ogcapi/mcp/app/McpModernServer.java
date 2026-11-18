@@ -45,7 +45,6 @@ final class McpModernServer {
 
   private McpModernServer() {}
 
-  @SuppressWarnings("PMD.ExcessiveParameterList")
   static HttpServletMcpTransport create(
       io.modelcontextprotocol.spec.McpSchema.Implementation serverInfo,
       String instructions,
