@@ -8,8 +8,8 @@
 package de.ii.ogcapi.foundation.infra.rest;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import de.ii.ogcapi.foundation.domain.ApiHeader;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiOperation;
 import de.ii.ogcapi.foundation.domain.EndpointExtension;
@@ -34,7 +34,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 @AutoBind
@@ -47,6 +49,21 @@ public class OptionsEndpoint implements EndpointExtension {
   // W3C Linked Data Platform 1.0, 4.5.2; and RFC 5789, 3.1
   public static final String ACCEPT_POST = "Accept-Post";
   public static final String ACCEPT_PATCH = "Accept-Patch";
+  // the request headers that a cross-origin client may send to any resource
+  static final List<String> GENERAL_REQUEST_HEADERS =
+      List.of(
+          "Accept",
+          "Accept-Language",
+          "Origin",
+          "Content-Type",
+          "Content-Language",
+          "Content-Crs",
+          "Authorization",
+          "Prefer",
+          "If-Match",
+          "If-None-Match",
+          "If-Modified-Since",
+          "If-Unmodified-Since");
   private final ExtensionRegistry extensionRegistry;
 
   @Inject
@@ -106,26 +123,24 @@ public class OptionsEndpoint implements EndpointExtension {
       throw new NotFoundException("The requested path is not a resource in this API.");
     }
 
+    String path = "/" + entrypoint + subPath;
+    String headers =
+        String.join(
+            ", ",
+            allowedHeaders(
+                supportedMethods.stream()
+                    .map(
+                        method ->
+                            findEndpoint(apiData, entrypoint, subPath, method)
+                                .flatMap(
+                                    endpoint ->
+                                        endpoint.getDefinition(apiData).getOperation(path, method)))
+                    .toList()));
+
     // add OPTIONS since this is supported for all paths
     supportedMethods.add(OPTIONS);
 
     String methods = String.join(", ", supportedMethods);
-    String headers =
-        String.join(
-            ", ",
-            ImmutableList.of(
-                "Accept",
-                "Accept-Language",
-                "Origin",
-                "Content-Type",
-                "Content-Language",
-                "Content-Crs",
-                "Authorization",
-                "Prefer",
-                "If-Match",
-                "If-None-Match",
-                "If-Modified-Since",
-                "If-Unmodified-Since"));
     Response.ResponseBuilder response =
         Response.ok(methods)
             // the response content is not a representation of the resource and not negotiated
@@ -146,6 +161,29 @@ public class OptionsEndpoint implements EndpointExtension {
         .ifPresent(value -> response.header(ACCEPT_PATCH, value));
 
     return response.build();
+  }
+
+  /**
+   * The request headers that a cross-origin client may send, as the value of the header {@code
+   * Access-Control-Allow-Headers}: the headers that apply to every resource and the request headers
+   * that the operations of the resource declare, for example the headers of a protocol that an
+   * endpoint implements. A header is listed once, regardless of its case; the declared headers are
+   * sorted, because the operations come from a set of methods without a defined order.
+   */
+  static List<String> allowedHeaders(List<Optional<ApiOperation>> operations) {
+    Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    names.addAll(GENERAL_REQUEST_HEADERS);
+
+    return Stream.concat(
+            GENERAL_REQUEST_HEADERS.stream(),
+            operations.stream()
+                .flatMap(Optional::stream)
+                .flatMap(operation -> operation.getHeaders().stream())
+                .filter(ApiHeader::isRequestHeader)
+                .map(ApiHeader::getName)
+                .sorted()
+                .filter(names::add))
+        .toList();
   }
 
   private Optional<String> acceptedMediaTypes(
