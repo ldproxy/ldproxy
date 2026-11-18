@@ -26,6 +26,7 @@ dependencies {
         exclude module: 'jackson-annotations'
         exclude module: 'reactive-streams'
         exclude module: 'slf4j-api'
+        exclude module: 'jspecify'
     }
     embeddedFlat (libCatalog.mcp.json.jackson2)
 

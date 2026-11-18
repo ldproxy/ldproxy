@@ -47,8 +47,10 @@ import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator;
 import io.modelcontextprotocol.json.schema.JsonSchemaValidator.ValidationResponse;
 import io.modelcontextprotocol.json.schema.jackson2.DefaultJsonSchemaValidator;
+import io.modelcontextprotocol.modern.server.transport.HttpServletMcpTransport;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
+import io.modelcontextprotocol.server.McpTransportContextExtractor;
 import io.modelcontextprotocol.server.transport.HttpServletStatelessServerTransport;
 import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
@@ -63,6 +65,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response.Status.Family;
 import java.io.IOException;
@@ -93,8 +96,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   private final Map<String, McpSchema> schemas = new ConcurrentHashMap<>();
   private final ObjectMapper objectMapper;
   private final ObjectMapper mcpObjectMapper;
-  private final Map<String, HttpServletStatelessServerTransport> servers =
-      new ConcurrentHashMap<>();
+  private final Map<String, McpEraRouter> servers = new ConcurrentHashMap<>();
   // the order of the sources is the order of the tools
   private final List<McpToolSource> toolSources;
 
@@ -145,36 +147,71 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   @Override
   public HttpServlet getServlet(OgcApi api) {
     String cacheKey = getCacheKey(api);
-    HttpServletStatelessServerTransport current = servers.get(cacheKey);
+    McpEraRouter current = servers.get(cacheKey);
     if (Objects.nonNull(current)) {
       return current;
     }
-    removeOutdated(servers, api.getId(), cacheKey, HttpServletStatelessServerTransport::close);
+    removeOutdated(servers, api.getId(), cacheKey, McpEraRouter::close);
 
     return servers.computeIfAbsent(
         cacheKey,
         key -> {
           McpJsonMapper jsonMapper = new JacksonMcpJsonMapper(mcpObjectMapper);
+          JsonSchemaValidator jsonSchemaValidator = new DefaultJsonSchemaValidator(objectMapper);
+          McpTransportContextExtractor<HttpServletRequest> contextExtractor =
+              request ->
+                  request.getAttribute(McpServer.REQUEST_CONTEXT)
+                          instanceof ApiRequestContext requestContext
+                      ? McpTransportContext.create(
+                          Map.of(McpServer.REQUEST_CONTEXT, requestContext))
+                      : McpTransportContext.EMPTY;
           HttpServletStatelessServerTransport transport =
               HttpServletStatelessServerTransport.builder()
                   .jsonMapper(jsonMapper)
                   .messageEndpoint("/mcp")
-                  .contextExtractor(
-                      request ->
-                          request.getAttribute(McpServer.REQUEST_CONTEXT)
-                                  instanceof ApiRequestContext requestContext
-                              ? McpTransportContext.create(
-                                  Map.of(McpServer.REQUEST_CONTEXT, requestContext))
-                              : McpTransportContext.EMPTY)
+                  .contextExtractor(contextExtractor)
                   .build();
+          List<AvailableTool> tools;
           try {
-            McpStatelessSyncServer server = createServer(api, transport, jsonMapper);
+            tools = availableTools(api, jsonSchemaValidator);
           } catch (IOException e) {
             throw new IllegalStateException(e);
           }
+          ToolCaller toolCaller = toolCaller(api);
+          createServer(api, transport, jsonMapper, jsonSchemaValidator, tools, toolCaller);
+          HttpServletMcpTransport modernTransport =
+              McpModernServer.create(
+                  serverInfo(api.getData(), api.getUri()),
+                  instructions(api.getData()),
+                  tools,
+                  toolCaller,
+                  jsonMapper,
+                  jsonSchemaValidator,
+                  contextExtractor);
 
-          return transport;
+          return new McpEraRouter(transport, modernTransport);
         });
+  }
+
+  // a tool that is offered by the servers of both protocol eras
+  record AvailableTool(
+      McpTool tool,
+      McpToolSource source,
+      Map<String, Object> inputSchema,
+      Map<String, Object> outputSchema) {}
+
+  // the result of a tool call, independent of the protocol era; structuredContent is null for an
+  // error
+  record ToolCallResult(
+      String text,
+      boolean isError,
+      Map<String, Object> structuredContent,
+      Optional<ResourceLink> resourceLink) {}
+
+  @FunctionalInterface
+  interface ToolCaller {
+    ToolCallResult call(
+        AvailableTool tool, Map<String, Object> arguments, McpTransportContext context);
   }
 
   // the transport writes an error of a request as an McpError, which is an exception; without a
@@ -212,16 +249,10 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
                     }));
   }
 
-  private McpStatelessSyncServer createServer(
-      OgcApi api, McpStatelessServerTransport transport, McpJsonMapper jsonMapper)
+  private List<AvailableTool> availableTools(OgcApi api, JsonSchemaValidator jsonSchemaValidator)
       throws IOException {
     McpSchema mcpSchema = getSchema(api);
-    JsonSchemaValidator jsonSchemaValidator = new DefaultJsonSchemaValidator(objectMapper);
-    List<SyncToolSpecification> toolSpecifications = new ArrayList<>();
-    Optional<Integer> maxResultSize =
-        api.getData()
-            .getExtension(McpConfiguration.class)
-            .flatMap(McpConfiguration::getMaxResultSize);
+    List<AvailableTool> tools = new ArrayList<>();
 
     for (McpTool tool : mcpSchema.getTools()) {
       Map<String, Object> inputSchema = toMap(tool.getInputSchema());
@@ -250,55 +281,78 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
         continue;
       }
 
-      toolSpecifications.add(
-          new SyncToolSpecification(
-              Tool.builder(tool.getId(), inputSchema)
-                  .title(tool.getName())
-                  .description(tool.getDescription())
-                  .outputSchema(outputSchema)
-                  .annotations(annotations(tool))
-                  .build(),
-              (context, request) -> {
-                try {
-                  Map<String, Object> result =
-                      source
-                          .get()
-                          .call(
-                              api,
-                              tool,
-                              Objects.requireNonNullElse(request.arguments(), Map.of()),
-                              mcpRequest(context));
-                  String text = mcpObjectMapper.writeValueAsString(result);
-                  Optional<String> tooLarge = tooLarge(tool, result, text.length(), maxResultSize);
-                  if (tooLarge.isPresent()) {
-                    if (LOGGER.isDebugEnabled()) {
-                      LOGGER.debug(
-                          "Result of MCP tool '{}' not returned, {} characters exceed the limit of"
-                              + " {}",
-                          tool.getId(),
-                          text.length(),
-                          maxResultSize.get());
-                    }
-                    CallToolResult.Builder errorResult =
-                        CallToolResult.builder().addTextContent(tooLarge.get()).isError(true);
-                    resourceLink(tool, result).ifPresent(errorResult::addContent);
-                    return errorResult.build();
-                  }
-                  CallToolResult.Builder toolResult =
-                      CallToolResult.builder()
-                          .addTextContent(text)
-                          .isError(false)
-                          .structuredContent(result);
-                  resourceLink(tool, result).ifPresent(toolResult::addContent);
-                  return toolResult.build();
-                } catch (Throwable e) {
-                  return CallToolResult.builder()
-                      .addTextContent(toolError(tool.getId(), e))
-                      .isError(true)
-                      .build();
-                }
-              }));
+      tools.add(new AvailableTool(tool, source.get(), inputSchema, outputSchema));
     }
+
+    return tools;
+  }
+
+  // the call of a tool, the same for both protocol eras
+  private ToolCaller toolCaller(OgcApi api) {
+    Optional<Integer> maxResultSize =
+        api.getData()
+            .getExtension(McpConfiguration.class)
+            .flatMap(McpConfiguration::getMaxResultSize);
+
+    return (available, arguments, context) -> {
+      McpTool tool = available.tool();
+      try {
+        Map<String, Object> result =
+            available.source().call(api, tool, arguments, mcpRequest(context));
+        String text = mcpObjectMapper.writeValueAsString(result);
+        Optional<String> tooLarge = tooLarge(tool, result, text.length(), maxResultSize);
+        if (tooLarge.isPresent()) {
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                "Result of MCP tool '{}' not returned, {} characters exceed the limit of {}",
+                tool.getId(),
+                text.length(),
+                maxResultSize.get());
+          }
+          return new ToolCallResult(tooLarge.get(), true, null, resourceLink(tool, result));
+        }
+        return new ToolCallResult(text, false, result, resourceLink(tool, result));
+      } catch (Throwable e) {
+        return new ToolCallResult(toolError(tool.getId(), e), true, null, Optional.empty());
+      }
+    };
+  }
+
+  private static CallToolResult toLegacyResult(ToolCallResult result) {
+    CallToolResult.Builder builder =
+        CallToolResult.builder().addTextContent(result.text()).isError(result.isError());
+    if (Objects.nonNull(result.structuredContent())) {
+      builder.structuredContent(result.structuredContent());
+    }
+    result.resourceLink().ifPresent(builder::addContent);
+    return builder.build();
+  }
+
+  private McpStatelessSyncServer createServer(
+      OgcApi api,
+      McpStatelessServerTransport transport,
+      McpJsonMapper jsonMapper,
+      JsonSchemaValidator jsonSchemaValidator,
+      List<AvailableTool> tools,
+      ToolCaller toolCaller) {
+    List<SyncToolSpecification> toolSpecifications =
+        tools.stream()
+            .map(
+                available ->
+                    new SyncToolSpecification(
+                        Tool.builder(available.tool().getId(), available.inputSchema())
+                            .title(available.tool().getName())
+                            .description(available.tool().getDescription())
+                            .outputSchema(available.outputSchema())
+                            .annotations(annotations(available.tool()))
+                            .build(),
+                        (context, request) ->
+                            toLegacyResult(
+                                toolCaller.call(
+                                    available,
+                                    Objects.requireNonNullElse(request.arguments(), Map.of()),
+                                    context))))
+            .toList();
 
     return io.modelcontextprotocol.server.McpServer.sync(transport)
         .serverInfo(serverInfo(api.getData(), api.getUri()))
@@ -537,7 +591,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
   @Override
   public void onStop() {
-    servers.values().forEach(HttpServletStatelessServerTransport::close);
+    servers.values().forEach(McpEraRouter::close);
 
     AppLifeCycle.super.onStop();
   }
