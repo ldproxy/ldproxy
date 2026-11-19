@@ -146,6 +146,41 @@ class ApiOperationResponsesSpec extends Specification {
                 .getSchema().getAdditionalProperties() == false
     }
 
+    def 'the request body of a URL-encoded POST does not change the schema of a query parameter'() {
+        given:
+        OgcApiDataV2 apiData = new ImmutableOgcApiDataV2.Builder().id('buildings').build()
+        def schema = new io.swagger.v3.oas.models.media.StringSchema().title('name')
+        schema.setDescription('the name of the building')
+        OgcApiQueryParameter param = Stub()
+        param.getName() >> 'name'
+        param.getDescription() >> 'name: the name of the building'
+        param.getSchema(apiData, Optional.empty()) >> schema
+
+        when:
+        ApiOperation operation = ApiOperation.getResource(
+                apiData,
+                '/search/query',
+                true,
+                ImmutableList.of(param),
+                ImmutableList.of(),
+                Map.of(MediaType.APPLICATION_JSON_TYPE, content()),
+                'execute a query',
+                Optional.empty(),
+                Optional.empty(),
+                'executeQuery',
+                PermissionGroup.of(PermissionGroup.Base.READ, 'data', 'read data'),
+                ImmutableList.of('Access data'),
+                Optional.empty(),
+                Optional.empty()).get()
+
+        then: 'the property of the request body has the description of the parameter'
+        operation.getRequestBody().get().getContent().get(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+                .getSchema().getProperties().get('name').getDescription() == 'name: the name of the building'
+
+        and: 'the schema of the parameter keeps its own description'
+        schema.getDescription() == 'the name of the building'
+    }
+
     private static ApiOperation putOperation(boolean putAllowsCreate) {
         putOperation(putAllowsCreate, ImmutableList.of())
     }

@@ -18,11 +18,11 @@ import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiResource;
+import de.ii.ogcapi.foundation.domain.SchemaCopy;
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool;
 import de.ii.ogcapi.mcp.domain.McpConfiguration;
 import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpTool;
-import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import java.util.Comparator;
@@ -334,6 +334,9 @@ public class McpToolUtils {
                       param.getName(), argumentSchema(param, schema, filterOnlyOfCollection));
                 }
               }
+              boolean queryables =
+                  arguments.stream()
+                      .anyMatch(param -> param instanceof QueryParameterTemplateQueryable);
               boolean wildcards =
                   arguments.stream()
                       .anyMatch(
@@ -390,6 +393,7 @@ public class McpToolUtils {
                           .getDescription()
                           .map(s -> s + System.lineSeparator())
                           .orElse("")
+                      + (queryables ? QUERYABLE_HINT + System.lineSeparator() : "")
                       + (wildcards ? WILDCARD_HINT + System.lineSeparator() : "")
                       + apiDescription(apiData, mcpConfiguration)
                           .map(desc -> desc + System.lineSeparator())
@@ -467,7 +471,7 @@ public class McpToolUtils {
     if (!"offset".equals(param.getName())) {
       return schema;
     }
-    Schema<?> copy = Json.mapper().convertValue(schema, Schema.class);
+    Schema<?> copy = SchemaCopy.shallow(schema);
     copy.setDescription(
         (Objects.nonNull(description) && !description.isBlank() ? description + " " : "")
             + PAGING_HINT);
@@ -477,6 +481,11 @@ public class McpToolUtils {
   static final String PAGING_HINT =
       "If the result contains 'nextOffset', more results are available: call the tool again with"
           + " the same arguments and this value as offset.";
+
+  // an argument named after a property has the description of the property, that it filters by
+  // the property is stated once in the tool description
+  static final String QUERYABLE_HINT =
+      "The arguments named after a property of the objects filter by the value of the property.";
 
   // the note on wildcards is stated once in the tool description, not in every argument
   static final String WILDCARD_HINT =
@@ -517,15 +526,19 @@ public class McpToolUtils {
 
   /**
    * The schema of an argument of a collection tool: a copy of the schema of the query parameter, so
-   * that the API definition is not changed, with the description of the argument. The pattern of a
-   * datetime value is left out, the value is still checked when the parameter is parsed.
+   * that the API definition is not changed, with the description of the argument. An argument named
+   * after a property has the description of the property. The pattern of a datetime value is left
+   * out, the value is still checked when the parameter is parsed.
    */
   static Schema<?> argumentSchema(
       OgcApiQueryParameter param, Schema<?> schema, List<String> filterOnlyQueryables) {
-    Schema<?> copy = Json.mapper().convertValue(schema, Schema.class);
+    Schema<?> copy = SchemaCopy.shallow(schema);
     String description = param.getDescription();
     if (param instanceof QueryParameterTemplateQueryable queryable) {
-      description = queryable.getBaseDescription();
+      description =
+          Objects.nonNull(schema.getDescription()) && !schema.getDescription().isBlank()
+              ? schema.getDescription()
+              : queryable.getBaseDescription();
     } else if (ARGUMENT_DESCRIPTIONS.containsKey(param.getName())) {
       description = ARGUMENT_DESCRIPTIONS.get(param.getName());
       if ("datetime".equals(param.getName())) {

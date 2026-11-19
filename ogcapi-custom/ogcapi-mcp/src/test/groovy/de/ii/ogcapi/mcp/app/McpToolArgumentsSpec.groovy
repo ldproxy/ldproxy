@@ -12,6 +12,10 @@ import de.ii.ogcapi.collections.queryables.domain.QueryParameterTemplateQueryabl
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
 import de.ii.ogcapi.foundation.domain.SchemaValidator
 import de.ii.xtraplatform.features.domain.SchemaBase
+import io.swagger.v3.core.util.Json
+import io.swagger.v3.oas.models.media.ArraySchema
+import io.swagger.v3.oas.models.media.NumberSchema
+import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Specification
 
@@ -55,7 +59,7 @@ class McpToolArgumentsSpec extends Specification {
         filterOnly << [[], ["eindRegistratie", "buurtnaam"]]
     }
 
-    def 'a queryable argument has the description without the note on wildcards'() {
+    def 'a queryable argument without a property description has the description without the note on wildcards'() {
         given:
         QueryParameterTemplateQueryable queryable = new ImmutableQueryParameterTemplateQueryable.Builder()
                 .apiId("api")
@@ -73,6 +77,44 @@ class McpToolArgumentsSpec extends Specification {
         then:
         queryable.description.contains(QueryParameterTemplateQueryable.WILDCARD_NOTE)
         argument.description == "Filter the collection by property 'naam'."
+    }
+
+    def 'a queryable argument has the description of the property'() {
+        given:
+        def schema = new StringSchema().title("name")
+        schema.setDescription("The name of the street.")
+        QueryParameterTemplateQueryable queryable = new ImmutableQueryParameterTemplateQueryable.Builder()
+                .apiId("api")
+                .collectionId("collection")
+                .name("naam")
+                .baseDescription("Filter the collection by property 'naam' (name): The name of the street.")
+                .schema(schema)
+                .schemaValidator(ACCEPT_ALL)
+                .type(SchemaBase.Type.STRING)
+                .build()
+
+        when:
+        def argument = McpToolUtils.argumentSchema(queryable, queryable.getSchema(null), [])
+
+        then:
+        argument.description == "The name of the street."
+        argument.title == "name"
+    }
+
+    def 'the alternatives of an array argument are not turned into objects'() {
+        given: 'a schema like the one of bbox'
+        def schema = new ArraySchema()
+                .items(new NumberSchema().format("double"))
+                .oneOf([new Schema<>().minItems(4).maxItems(4), new Schema<>().minItems(6).maxItems(6)])
+
+        when:
+        def argument = McpToolUtils.argumentSchema(parameter("bbox", "a long description"), schema, [])
+        def json = Json.mapper().convertValue(argument, Map)
+
+        then:
+        json.type == "array"
+        json.oneOf.every { it.type == null }
+        json.oneOf*.minItems == [4, 6]
     }
 
     def 'another argument keeps the description of the parameter'() {
