@@ -40,20 +40,20 @@ import org.immutables.value.Value;
 public interface McpConfiguration extends ExtensionConfiguration {
 
   /**
-   * @langEn Specifies which collections, stored queries and processes should be included in the MCP
-   *     schema.
-   * @langDe Gibt an, welche Collections, Stored Queries und Prozesse ins MCP-Schema übernommen
-   *     werden sollen.
+   * @langEn Specifies which collections, stored queries, processes and skills should be included in
+   *     the MCP schema.
+   * @langDe Gibt an, welche Collections, Stored Queries, Prozesse und Skills ins MCP-Schema
+   *     übernommen werden sollen.
    * @default []
    * @since v4.6
    */
   Optional<McpIncludeExclude> getIncluded();
 
   /**
-   * @langEn Specifies which collections, stored queries and processes should be excluded from the
-   *     MCP schema.
-   * @langDe Gibt an, welche Collections, Stored Queries und Prozesse vom MCP-Schema ausgeschlossen
-   *     werden sollen.
+   * @langEn Specifies which collections, stored queries, processes and skills should be excluded
+   *     from the MCP schema.
+   * @langDe Gibt an, welche Collections, Stored Queries, Prozesse und Skills vom MCP-Schema
+   *     ausgeschlossen werden sollen.
    * @default []
    * @since v4.6
    */
@@ -184,6 +184,25 @@ public interface McpConfiguration extends ExtensionConfiguration {
      * @since v5.0
      */
     List<String> getProcesses();
+
+    /**
+     * @langEn List of skill names to be included or excluded, `*` includes all skills. A skill is a
+     *     directory `resources/skills/{apiId}/{name}` in the store with a file `SKILL.md` in the
+     *     Agent Skills format (a frontmatter with `name` and `description`, then Markdown) and
+     *     optional reference files. Each skill is a tool `skill_{name}` that returns the text of
+     *     `SKILL.md` or of a reference file; its description is the `description` of the skill.
+     *     Without an entry in `included`, all skills of the API are tools.
+     * @langDe Liste der Skill-Namen, die eingeschlossen oder ausgeschlossen werden sollen, `*`
+     *     schließt alle Skills ein. Ein Skill ist ein Verzeichnis `resources/skills/{apiId}/{name}`
+     *     im Store mit einer Datei `SKILL.md` im Format der Agent Skills (ein Frontmatter mit
+     *     `name` und `description`, dann Markdown) und optionalen Referenzdateien. Jeder Skill ist
+     *     ein Tool `skill_{name}`, das den Text von `SKILL.md` oder einer Referenzdatei liefert;
+     *     seine Beschreibung ist die `description` des Skills. Ohne einen Eintrag in `included`
+     *     sind alle Skills der API Tools.
+     * @default []
+     * @since v5.0
+     */
+    List<String> getSkills();
   }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}

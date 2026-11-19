@@ -39,6 +39,7 @@ import de.ii.xtraplatform.base.domain.AppLifeCycle;
 import de.ii.xtraplatform.base.domain.Jackson;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.cql.domain.Cql;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import io.modelcontextprotocol.common.McpTransportContext;
@@ -116,11 +117,14 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
       Cql cql,
       ProcessRepository processRepository,
       ProcessesExecutor processesExecutor,
-      ApiRequestAuthorizer apiRequestAuthorizer) {
+      ApiRequestAuthorizer apiRequestAuthorizer,
+      ResourceStore resourceStore) {
     this.objectMapper = jackson.getDefaultObjectMapper();
     this.mcpObjectMapper = mcpObjectMapper(objectMapper);
     this.toolSources =
         List.of(
+            // the skills first: they say how to use the other tools
+            new McpToolsSkills(resourceStore),
             new McpToolsCollections(
                 appContext,
                 extensionRegistry,
@@ -193,7 +197,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
           HttpServletMcpTransport modernTransport =
               McpModernServer.create(
                   serverInfo(api.getData(), api.getUri()),
-                  instructions(api.getData()),
+                  instructions(api.getData(), skillTools(tools)),
                   tools,
                   toolCaller,
                   jsonMapper,
@@ -393,7 +397,7 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
 
     return io.modelcontextprotocol.server.McpServer.sync(transport)
         .serverInfo(serverInfo(api.getData(), api.getUri()))
-        .instructions(instructions(api.getData()))
+        .instructions(instructions(api.getData(), skillTools(tools)))
         .capabilities(ServerCapabilities.builder().tools(true).build())
         .jsonMapper(jsonMapper)
         .jsonSchemaValidator(jsonSchemaValidator)
@@ -433,15 +437,37 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
   // the background shared by all tools, the tool descriptions start with what the tool is for; the
   // server information does not reach the model, so a configured version is also stated here
   static String instructions(OgcApiDataV2 apiData) {
+    return instructions(apiData, List.of());
+  }
+
+  // the skills are named once, so that a model reads them before it uses the other tools
+  static String instructions(OgcApiDataV2 apiData, List<String> skillTools) {
     String instructions =
         apiData
             .getDescription()
             .map(description -> apiData.getLabel() + ": " + description)
             .orElse(apiData.getLabel());
 
+    if (!skillTools.isEmpty()) {
+      instructions +=
+          String.format(
+              "\n\nBefore using the other tools, read the guidance for this API with the tool%s %s:"
+                  + " which tool answers which question, what the values mean and what to watch"
+                  + " out for.",
+              skillTools.size() > 1 ? "s" : "", String.join(", ", skillTools));
+    }
+
+    String withSkills = instructions;
     return apiVersion(apiData)
-        .map(version -> instructions + "\n\nVersion of the API: " + version)
-        .orElse(instructions);
+        .map(version -> withSkills + "\n\nVersion of the API: " + version)
+        .orElse(withSkills);
+  }
+
+  private static List<String> skillTools(List<AvailableTool> tools) {
+    return tools.stream()
+        .map(available -> available.tool().getId())
+        .filter(id -> id.startsWith(McpToolsSkills.PREFIX))
+        .toList();
   }
 
   private static Optional<String> apiVersion(OgcApiDataV2 apiData) {
