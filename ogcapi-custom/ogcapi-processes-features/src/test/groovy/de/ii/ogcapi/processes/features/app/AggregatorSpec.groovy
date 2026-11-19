@@ -87,8 +87,51 @@ class AggregatorSpec extends Specification {
 
         then:
         aggregator.result().groups == [
-                [key: [objecttype: "wegdeel", status: "a"], count: 2L],
-                [key: [objecttype: "pand", status: "a"], count: 1L]]
+                [key: ['$collection': "wegdeel", status: "a"], count: 2L],
+                [key: ['$collection': "pand", status: "a"], count: 1L]]
+    }
+
+    def "the collection is a group key at the given position, also for a single collection"() {
+        given:
+        def aggregator = aggregator([groupBy: ["status", Aggregation.COLLECTION]], multiCollection)
+
+        when:
+        aggregator.add(feature([status: ["a"]], "pand"), [:])
+        aggregator.add(feature([status: ["b"]], "pand"), [:])
+        aggregator.add(feature([status: ["a"]], "pand"), [:])
+
+        then:
+        aggregator.result().groups == [
+                [key: [status: "a", '$collection': "pand"], count: 2L],
+                [key: [status: "b", '$collection': "pand"], count: 1L]]
+
+        where:
+        multiCollection << [true, false]
+    }
+
+    def "the collection needs neither the geometry nor a property of the features"() {
+        when:
+        def aggregation = Aggregation.of([groupBy: [Aggregation.COLLECTION]])
+
+        then:
+        !aggregation.needsGeometry()
+        aggregation.groupsByCollection()
+        Aggregation.isVirtual(Aggregation.COLLECTION)
+    }
+
+    def "the collection takes no bucket and can only be a group key"() {
+        when:
+        Aggregation.of(inputs)
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message.contains(message)
+
+        where:
+        inputs                                                                     | message
+        [groupBy: [[property: Aggregation.COLLECTION, bucket: 10]]]                | "takes no bucket"
+        [groupBy: [Aggregation.COLLECTION, Aggregation.COLLECTION]]                | "twice"
+        [aggregates: [[function: "count", property: Aggregation.COLLECTION]]]      | "can only be a group key"
     }
 
     def "computes sum, min, max, avg and median"() {

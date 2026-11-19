@@ -29,8 +29,6 @@ import java.util.Set;
  */
 class Aggregator {
 
-  static final String OBJECTTYPE = "objecttype";
-
   static final String OUTPUT_GROUPS = "groups";
   static final String OUTPUT_TOTAL = "total";
   static final String OUTPUT_FEATURES_SCANNED = "featuresScanned";
@@ -39,18 +37,24 @@ class Aggregator {
   private static final int DECIMALS = 3;
 
   private final Aggregation aggregation;
+  // the collection is the implicit first group key
   private final boolean byCollection;
   private final List<String> keyNames;
   private final Map<List<Object>, List<Accumulator>> groups;
   private final List<Accumulator> total;
   private long featuresScanned;
 
-  Aggregator(Aggregation aggregation, boolean byCollection) {
+  /**
+   * @param aggregation the groups and aggregates
+   * @param multiCollection whether the features come from several collections; then the collection
+   *     is the first group key, unless the group keys contain it explicitly
+   */
+  Aggregator(Aggregation aggregation, boolean multiCollection) {
     this.aggregation = aggregation;
-    this.byCollection = byCollection;
+    this.byCollection = multiCollection && !aggregation.groupsByCollection();
     this.keyNames = new ArrayList<>();
     if (byCollection) {
-      keyNames.add(OBJECTTYPE);
+      keyNames.add(Aggregation.COLLECTION);
     }
     aggregation.groupBy().forEach(key -> keyNames.add(key.property()));
     this.groups = new LinkedHashMap<>();
@@ -157,6 +161,9 @@ class Aggregator {
 
   private static List<Object> values(
       FeatureRecord record, Map<String, Object> virtualValues, String property) {
+    if (Aggregation.COLLECTION.equals(property)) {
+      return List.of(record.collectionId());
+    }
     if (Aggregation.isVirtual(property)) {
       Object value = virtualValues.get(property);
       return Objects.isNull(value) ? List.of() : List.of(value);

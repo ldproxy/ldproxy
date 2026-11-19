@@ -45,9 +45,10 @@ import jakarta.inject.Singleton;
  *     - `groupBy`: a list of properties, each a name or an object `{"property": "...", "bucket":
  *       ...}`. The bucket is `year` or `month` for temporal values, or the class width of numeric
  *       values. A feature with several values of a property belongs to one group per value; a
- *       feature without a value belongs to the group `null`. If several collections are selected,
- *       the collection is the first group key, `objecttype`. The virtual group key `{"property":
- *       "$geometry", "bucket": ...}` groups the features by the cells of a square grid with the
+ *       feature without a value belongs to the group `null`. The virtual group key `$collection`
+ *       is the id of the collection of a feature; if several collections are selected and the
+ *       group keys do not contain it, it is the first group key. The virtual group key
+ *       `{"property": "$geometry", "bucket": ...}` groups the features by the cells of a square grid with the
  *       width in meters in the native coordinate reference system, which must be projected; a
  *       feature belongs to the cell of a point on its geometry, the key is the center of the cell
  *       as `[lon, lat]` in CRS84.
@@ -158,9 +159,10 @@ import jakarta.inject.Singleton;
  *     - `groupBy`: eine Liste von Eigenschaften, jeweils ein Name oder ein Objekt `{"property":
  *       "...", "bucket": ...}`. Der Bucket ist `year` oder `month` für zeitliche Werte oder die
  *       Klassenbreite numerischer Werte. Ein Feature mit mehreren Werten einer Eigenschaft gehört
- *       zu einer Gruppe je Wert; ein Feature ohne Wert gehört zur Gruppe `null`. Sind mehrere
- *       Collections ausgewählt, ist die Collection der erste Gruppenschlüssel, `objecttype`. Der
- *       virtuelle Gruppenschlüssel `{"property": "$geometry", "bucket": ...}` gruppiert die Features
+ *       zu einer Gruppe je Wert; ein Feature ohne Wert gehört zur Gruppe `null`. Der virtuelle
+ *       Gruppenschlüssel `$collection` ist die Id der Collection eines Features; sind mehrere
+ *       Collections ausgewählt und enthalten die Gruppenschlüssel ihn nicht, ist er der erste
+ *       Gruppenschlüssel. Der virtuelle Gruppenschlüssel `{"property": "$geometry", "bucket": ...}` gruppiert die Features
  *       nach den Zellen eines quadratischen Gitters mit der Breite in Metern im nativen
  *       Koordinatenreferenzsystem, das projiziert sein muss; ein Feature gehört zur Zelle eines
  *       Punkts auf seiner Geometrie, der Schlüssel ist der Mittelpunkt der Zelle als `[lon, lat]`

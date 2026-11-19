@@ -21,6 +21,8 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
   static final String LENGTH = "$length";
   // only as a group key with a bucket, the width of a cell of a grid in meters
   static final String GEOMETRY = "$geometry";
+  // only as a group key, the id of the collection of the feature
+  static final String COLLECTION = "$collection";
 
   static final String INPUT_GROUP_BY = "groupBy";
   static final String INPUT_AGGREGATES = "aggregates";
@@ -68,7 +70,12 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
   }
 
   boolean needsGeometry() {
-    return properties().stream().anyMatch(Aggregation::isVirtual);
+    return properties().stream().anyMatch(Aggregation::isGeometric);
+  }
+
+  /** Whether the collection is an explicit group key. */
+  boolean groupsByCollection() {
+    return groupBy.stream().anyMatch(key -> COLLECTION.equals(key.property()));
   }
 
   /** Whether an aggregate or a group key uses the area or the length of the geometry. */
@@ -85,6 +92,11 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
   }
 
   static boolean isVirtual(String property) {
+    return isGeometric(property) || COLLECTION.equals(property);
+  }
+
+  // the virtual properties that are derived from the geometry
+  private static boolean isGeometric(String property) {
     return AREA.equals(property) || LENGTH.equals(property) || GEOMETRY.equals(property);
   }
 
@@ -104,9 +116,11 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
     if (aggregates.isEmpty()) {
       aggregates.add(new Aggregate(Function.COUNT, Optional.empty()));
     }
-    if (groupBy.stream().filter(key -> GEOMETRY.equals(key.property())).count() > 1) {
-      throw new IllegalArgumentException(
-          String.format("The input 'groupBy' contains the group key '%s' twice.", GEOMETRY));
+    for (String virtual : List.of(GEOMETRY, COLLECTION)) {
+      if (groupBy.stream().filter(key -> virtual.equals(key.property())).count() > 1) {
+        throw new IllegalArgumentException(
+            String.format("The input 'groupBy' contains the group key '%s' twice.", virtual));
+      }
     }
     if (aggregates.stream().map(Aggregate::name).distinct().count() < aggregates.size()) {
       throw new IllegalArgumentException("The input 'aggregates' contains an aggregate twice.");
@@ -141,6 +155,10 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
           String.format(
               "The group key '%s' needs a bucket, the width of a cell of the grid in meters.",
               GEOMETRY));
+    }
+    if (COLLECTION.equals(key.property()) && key.bucket().isPresent()) {
+      throw new IllegalArgumentException(
+          String.format("The group key '%s' takes no bucket.", COLLECTION));
     }
     return key;
   }
@@ -187,9 +205,9 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
         }
         return new Aggregate(f, Optional.empty());
       }
-      if (GEOMETRY.equals(property)) {
+      if (GEOMETRY.equals(property) || COLLECTION.equals(property)) {
         throw new IllegalArgumentException(
-            String.format("The property '%s' can only be a group key.", GEOMETRY));
+            String.format("The property '%s' can only be a group key.", property));
       }
       if (property instanceof String p) {
         return new Aggregate(f, Optional.of(property(p, INPUT_AGGREGATES)));

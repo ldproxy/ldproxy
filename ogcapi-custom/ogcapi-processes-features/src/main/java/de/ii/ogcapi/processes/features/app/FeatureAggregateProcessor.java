@@ -89,8 +89,13 @@ public class FeatureAggregateProcessor extends FeatureProcessor {
     if (!unknown.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(
-              "Unknown properties: %s. The properties are: %s.",
-              String.join(", ", unknown), String.join(", ", known)));
+              "Unknown properties: %s. The properties are: %s. The virtual properties are %s (only as a group key), %s and %s, and %s (only as a group key with a bucket).",
+              String.join(", ", unknown),
+              String.join(", ", known),
+              Aggregation.COLLECTION,
+              Aggregation.AREA,
+              Aggregation.LENGTH,
+              Aggregation.GEOMETRY));
     }
 
     Optional<Geometry> clip = Optional.empty();
