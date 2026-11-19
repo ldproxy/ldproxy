@@ -440,7 +440,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     return instructions(apiData, List.of());
   }
 
-  // the skills are named once, so that a model reads them before it uses the other tools
+  // the skills are named once, as further guidance, not as a first step: reading a skill costs a
+  // model round trip that re-reads the whole context, the key hints belong in the API description
   static String instructions(OgcApiDataV2 apiData, List<String> skillTools) {
     String instructions =
         apiData
@@ -451,9 +452,8 @@ public class McpServerImpl implements McpServer, AppLifeCycle {
     if (!skillTools.isEmpty()) {
       instructions +=
           String.format(
-              "\n\nBefore using the other tools, read the guidance for this API with the tool%s %s:"
-                  + " which tool answers which question, what the values mean and what to watch"
-                  + " out for.",
+              "\n\nFurther guidance for this API is available with the tool%s %s: which tool"
+                  + " answers which question, what the values mean and what to watch out for.",
               skillTools.size() > 1 ? "s" : "", String.join(", ", skillTools));
     }
 

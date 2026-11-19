@@ -147,7 +147,7 @@ description: >-
 
         expect:
         McpServerImpl.instructions(apiData, ['skill_bgt']) ==
-                'BGT\n\nBefore using the other tools, read the guidance for this API with the tool skill_bgt:' +
+                'BGT\n\nFurther guidance for this API is available with the tool skill_bgt:' +
                 ' which tool answers which question, what the values mean and what to watch out for.'
         McpServerImpl.instructions(apiData, []) == 'BGT'
     }
