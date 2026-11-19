@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import qs from "qs";
 import { useTranslation } from "react-i18next";
+import { parseQuery, stringifyQuery } from "../query";
 import { Button, Col, Row, Collapse, Input } from "reactstrap";
 import i18n from "../../i18n";
 import "../FilterEditor/Badge/style.css";
@@ -36,13 +36,7 @@ const LimitEditor = ({
     });
   }, [language, translations]);
 
-  const initialQuery = useMemo(
-    () =>
-      qs.parse(window.location.search, {
-        ignoreQueryPrefix: true,
-      }),
-    [],
-  );
+  const initialQuery = useMemo(() => parseQuery(window.location.search), []);
 
   const normalizedOptions = useMemo(
     () =>
@@ -117,17 +111,13 @@ const LimitEditor = ({
       return;
     }
 
-    const query = qs.parse(window.location.search, {
-      ignoreQueryPrefix: true,
-    });
+    const query = parseQuery(window.location.search);
     query.limit = String(nextLimit);
     delete query.offset;
 
     setAppliedLimit(nextLimit);
 
-    window.location.search = qs.stringify(query, {
-      addQueryPrefix: true,
-    });
+    window.location.search = stringifyQuery(query);
   };
 
   const onSelectChange = (event: React.ChangeEvent<HTMLInputElement>) => {

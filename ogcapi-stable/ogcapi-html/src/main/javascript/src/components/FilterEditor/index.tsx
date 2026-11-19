@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import qs from "qs";
 import { useTranslation } from "react-i18next";
+import { parseQuery, stringifyQuery } from "../query";
 import i18n from "../../i18n";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
@@ -13,9 +13,7 @@ import type { BoundsArray } from "./Editor/Spatial/util";
 
 const baseUrl = getBaseUrl();
 
-const query = qs.parse(window.location.search, {
-  ignoreQueryPrefix: true,
-});
+const query = parseQuery(window.location.search);
 
 const toBounds = (filter: string): BoundsArray => {
   const a = filter.split(",");
@@ -161,9 +159,7 @@ const FilterEditor = ({
       }
     }
 
-    window.location.search = qs.stringify(query, {
-      addQueryPrefix: true,
-    });
+    window.location.search = stringifyQuery(query);
   };
 
   const deleteFilters = (field: string) => () => {
