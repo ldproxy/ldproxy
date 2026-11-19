@@ -52,7 +52,8 @@ final class McpToolsCollections implements McpToolSource {
           "properties",
           "exclude-properties",
           "filter",
-          "zoom-level");
+          "zoom-level",
+          "crs");
 
   private final AppContext appContext;
   private final ExtensionRegistry extensionRegistry;

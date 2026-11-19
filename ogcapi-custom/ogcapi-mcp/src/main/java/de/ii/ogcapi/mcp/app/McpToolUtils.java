@@ -522,7 +522,11 @@ public class McpToolUtils {
           "A filter expression in CQL2 text over the queryables of the collection, for example"
               + " name = 'A' AND height > 10. Supported are comparisons, LIKE, BETWEEN, IN, IS NULL,"
               + " AND, OR, NOT and the spatial (S_INTERSECTS, coordinates in WGS 84), temporal"
-              + " (T_INTERSECTS) and array (A_CONTAINS) functions.");
+              + " (T_INTERSECTS) and array (A_CONTAINS) functions.",
+          "crs",
+          "The coordinate reference system of the coordinates in the result; without this argument"
+              + " WGS 84 longitude/latitude (CRS84). The other arguments, for example bbox, stay in"
+              + " WGS 84.");
 
   /**
    * The schema of an argument of a collection tool: a copy of the schema of the query parameter, so

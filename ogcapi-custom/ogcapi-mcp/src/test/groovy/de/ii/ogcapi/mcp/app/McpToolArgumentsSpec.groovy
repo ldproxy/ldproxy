@@ -45,6 +45,21 @@ class McpToolArgumentsSpec extends Specification {
         schema.description == "the description in the API definition"
     }
 
+    def 'the crs argument keeps the coordinate reference systems of the parameter'() {
+        given:
+        def schema = new StringSchema().format("uri")._enum([
+                "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
+                "http://www.opengis.net/def/crs/EPSG/0/28992"])._default("http://www.opengis.net/def/crs/OGC/1.3/CRS84")
+
+        when:
+        def argument = McpToolUtils.argumentSchema(parameter("crs", "a long description"), schema, [])
+
+        then:
+        argument.description.startsWith("The coordinate reference system of the coordinates in the result")
+        argument.enum == ["http://www.opengis.net/def/crs/OGC/1.3/CRS84", "http://www.opengis.net/def/crs/EPSG/0/28992"]
+        argument.default == "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+    }
+
     def 'the filter argument names the queryables that are only available in the filter'() {
         when:
         def argument = McpToolUtils.argumentSchema(
