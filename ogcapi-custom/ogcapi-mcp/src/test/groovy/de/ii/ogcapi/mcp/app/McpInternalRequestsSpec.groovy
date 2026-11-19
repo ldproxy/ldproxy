@@ -10,14 +10,22 @@ package de.ii.ogcapi.mcp.app
 import de.ii.ogcapi.foundation.domain.ApiMediaType
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent
 import de.ii.ogcapi.foundation.domain.ApiOperation
+import de.ii.ogcapi.foundation.domain.ApiRequestContext
 import de.ii.ogcapi.foundation.domain.ApiResponse
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
+import de.ii.ogcapi.foundation.domain.ListParameterValues
+import de.ii.ogcapi.foundation.domain.OgcApi
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter
+import de.ii.ogcapi.foundation.domain.QueryParameterSet
 import de.ii.ogcapi.mcp.domain.ImmutableMcpTool
 import de.ii.ogcapi.mcp.domain.McpTool
+import de.ii.xtraplatform.base.domain.AppContext
+import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.ObjectSchema
 import jakarta.ws.rs.core.MediaType
+import java.util.function.Function
 import spock.lang.Specification
 
 class McpInternalRequestsSpec extends Specification {
@@ -99,6 +107,45 @@ class McpInternalRequestsSpec extends Specification {
 
         where:
         arguments << [[:], [limit: 10], [buurtnaam: "Hof"], [limit: 10, gemeentecod: null]]
+    }
+
+    OgcApiQueryParameter parameter(String name) {
+        OgcApiQueryParameter parameter = Stub(OgcApiQueryParameter)
+        parameter.getName() >> name
+        return parameter
+    }
+
+    def 'a comma within an item of an array argument is kept when the value is split into its items'() {
+        when:
+        Map<String, String> values = McpInternalRequests.queryParameterValues(
+                [land: ["Bosnia, Herzegovina", "Kosovo"], weglaten: ["geometrie", "status"]],
+                [parameter("land"), parameter("weglaten")],
+                { new ArraySchema() } as Function)
+
+        then:
+        ListParameterValues.split(values.land) == ["Bosnia, Herzegovina", "Kosovo"]
+        ListParameterValues.split(values.weglaten) == ["geometrie", "status"]
+    }
+
+    def 'the request of a tool call separates the items by a comma and encodes a comma within an item'() {
+        given:
+        OgcApiDataV2 data = Stub(OgcApiDataV2)
+        data.getSubPath() >> ["bag"]
+        OgcApi api = Stub(OgcApi)
+        api.getData() >> data
+        api.getUri() >> URI.create("https://example.org/bag")
+        Map<String, String> values = McpInternalRequests.queryParameterValues(
+                [land: ["Bosnia, Herzegovina", "Kosovo"]], [parameter("land")], { new ArraySchema() } as Function)
+
+        when:
+        ApiRequestContext request = McpInternalRequests.internalRequest(
+                Stub(AppContext), api, Optional.empty(), values, "collections", "pand", "items")
+                .mediaType(McpInternalRequests.GEOJSON)
+                .queryParameterSet(QueryParameterSet.of([], [:]))
+                .build()
+
+        then:
+        request.getUriCustomizer().toString() == "https://example.org/bag/collections/pand/items?land=Bosnia%2C%20Herzegovina,Kosovo"
     }
 
     def 'an unknown argument is rejected with the arguments of the tool'() {

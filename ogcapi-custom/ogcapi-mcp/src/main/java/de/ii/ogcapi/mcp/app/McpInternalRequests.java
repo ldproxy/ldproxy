@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.ApiRequestAuthorizer;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
 import de.ii.ogcapi.foundation.domain.ImmutableStaticRequestContext;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.mcp.domain.McpTool;
@@ -160,7 +161,10 @@ final class McpInternalRequests {
   private static String parseParameterValue(Schema<?> schema, Object value) {
     if (schema != null && "array".equals(schema.getType())) {
       if (value instanceof List<?> list) {
-        return list.stream().map(Object::toString).collect(Collectors.joining(","));
+        // a comma separates the items, a comma within an item is kept as an encoded comma
+        return list.stream()
+            .map(item -> item.toString().replace(',', ListParameterValues.ENCODED_COMMA))
+            .collect(Collectors.joining(","));
       }
       if (value instanceof String str) {
         return str.replaceAll("^\\[|\\]$", "");
