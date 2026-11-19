@@ -219,6 +219,7 @@ public class ApiRequestDispatcher implements ServiceEndpoint {
         new ImmutableRequestContext.Builder()
             .webContext(appContext)
             .requestContext(requestContext)
+            .rawQuery(Optional.ofNullable(servletRequest).map(HttpServletRequest::getQueryString))
             .queryParameterSet(queryParameterSet)
             .mediaType(selectedMediaType)
             .alternateMediaTypes(getAlternateMediaTypes(selectedMediaType, supportedMediaTypes))
