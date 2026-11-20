@@ -172,6 +172,54 @@ class AggregatorSpec extends Specification {
         aggregator.result().total == ["sum(x)": 0.300d, "avg(y)": null]
     }
 
+    def "a weighted average weights the values of each feature, per group and in the total"() {
+        given:
+        def aggregator = aggregator([groupBy: ["g"], aggregates: [
+                [function: "avg", property: "p", weight: "n"],
+                [function: "avg", property: "p"]]])
+
+        when:
+        aggregator.add(feature([g: ["a"], p: [100L], n: [300L]]), [:])
+        aggregator.add(feature([g: ["a"], p: [0L], n: [100L]]), [:])
+        aggregator.add(feature([g: ["b"], p: [50L], n: [10L]]), [:])
+        // left out of the weighted average: no weight, several weights, no number
+        aggregator.add(feature([g: ["b"], p: [0L]]), [:])
+        aggregator.add(feature([g: ["b"], p: [0L], n: [1L, 2L]]), [:])
+        aggregator.add(feature([g: ["b"], p: [0L], n: ["x"]]), [:])
+        def result = aggregator.result()
+
+        then:
+        result.groups == [
+                [key: [g: "a"], "avg(p, weight=n)": 75.0d, "avg(p)": 50.0d],
+                [key: [g: "b"], "avg(p, weight=n)": 50.0d, "avg(p)": 12.5d]]
+        result.total == ["avg(p, weight=n)": 74.390d, "avg(p)": 25.0d]
+    }
+
+    def "a weighted average without a weight sum is null"() {
+        given:
+        def aggregator = aggregator([aggregates: [[function: "avg", property: "p", weight: "n"]]])
+
+        when:
+        aggregator.add(feature([p: [10L], n: [0L]]), [:])
+        aggregator.add(feature([p: [20L]]), [:])
+
+        then:
+        aggregator.result().total == ["avg(p, weight=n)": null]
+    }
+
+    def "a weighted average can be weighted by the area"() {
+        given:
+        def aggregator = aggregator([aggregates: [[function: "avg", property: "p", weight: Aggregation.AREA]]])
+
+        when:
+        aggregator.add(feature([p: [1L]]), [(Aggregation.AREA): 3.0d])
+        aggregator.add(feature([p: [5L]]), [(Aggregation.AREA): 1.0d])
+
+        then:
+        aggregator.result().total == ['avg(p, weight=$area)': 2.0d]
+        Aggregation.of([aggregates: [[function: "avg", property: "p", weight: Aggregation.AREA]]]).needsMeasures()
+    }
+
     def "min and max of dates compare the text"() {
         given:
         def aggregator = aggregator([aggregates: [[function: "min", property: "d"], [function: "max", property: "d"]]])
@@ -241,6 +289,9 @@ class AggregatorSpec extends Specification {
         [aggregates: [[function: "sum"]]]                       || "needs a property"
         [aggregates: ["count", "count"]]                        || "twice"
         [limit: 0]                                              || "positive integer"
+        [aggregates: [[function: "sum", property: "p", weight: "n"]]]          || "Only the aggregate 'avg' takes a weight"
+        [aggregates: [[function: "avg", property: "p", weight: 1]]]            || "must be the name of a property"
+        [aggregates: [[function: "avg", property: "p", weight: '$collection']]] || "can only be a group key"
     }
 
     def "the properties of the groups and aggregates"() {
@@ -250,6 +301,11 @@ class AggregatorSpec extends Specification {
         then:
         aggregation.properties() == ["a", "b", Aggregation.AREA]
         aggregation.needsGeometry()
+    }
+
+    def "the weight is one of the properties"() {
+        expect:
+        Aggregation.of([aggregates: [[function: "avg", property: "p", weight: "n"]]]).properties() == ["p", "n"]
     }
 
     def "the grid cell is a group key, a feature without a geometry is in the group null"() {

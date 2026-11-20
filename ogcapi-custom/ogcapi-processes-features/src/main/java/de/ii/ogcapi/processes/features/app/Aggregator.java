@@ -25,7 +25,8 @@ import java.util.Set;
  * Computes the groups and aggregates of {@code feature-aggregate:execute} from a stream of
  * features. Each feature counts once in each group that it belongs to: a property with several
  * values puts the feature into one group per value, a missing value forms the group {@code null}.
- * Only {@code median} keeps the values, all other aggregates keep a fixed state per group.
+ * Only {@code median} keeps the values, all other aggregates keep a fixed state per group. A
+ * weighted average uses the values of a feature only if its weight is a single number.
  */
 class Aggregator {
 
@@ -88,14 +89,16 @@ class Aggregator {
     }
 
     List<List<Object>> aggregateValues = new ArrayList<>();
+    List<List<Object>> weights = new ArrayList<>();
     for (Aggregate aggregate : aggregation.aggregates()) {
       aggregateValues.add(
           aggregate.property().map(p -> values(record, virtualValues, p)).orElse(List.of()));
+      weights.add(aggregate.weight().map(w -> values(record, virtualValues, w)).orElse(List.of()));
     }
 
-    accumulate(total, aggregateValues);
+    accumulate(total, aggregateValues, weights);
     for (List<Object> key : keys(dimensions)) {
-      accumulate(groups.computeIfAbsent(key, k -> accumulators()), aggregateValues);
+      accumulate(groups.computeIfAbsent(key, k -> accumulators()), aggregateValues, weights);
     }
   }
 
@@ -149,13 +152,17 @@ class Aggregator {
         .forEach(
             aggregate ->
                 accumulators.add(
-                    new Accumulator(aggregate.function(), aggregate.property().isEmpty())));
+                    new Accumulator(
+                        aggregate.function(),
+                        aggregate.property().isEmpty(),
+                        aggregate.weight().isPresent())));
     return accumulators;
   }
 
-  private static void accumulate(List<Accumulator> accumulators, List<List<Object>> values) {
+  private static void accumulate(
+      List<Accumulator> accumulators, List<List<Object>> values, List<List<Object>> weights) {
     for (int i = 0; i < accumulators.size(); i++) {
-      accumulators.get(i).add(values.get(i));
+      accumulators.get(i).add(values.get(i), weights.get(i));
     }
   }
 
@@ -250,23 +257,31 @@ class Aggregator {
   private static final class Accumulator {
     private final Function function;
     private final boolean perFeature;
+    private final boolean weighted;
     private long count;
     private double sum;
+    private double weightSum;
     private boolean integral = true;
     private Object min;
     private Object max;
     private List<Double> values;
 
-    Accumulator(Function function, boolean perFeature) {
+    Accumulator(Function function, boolean perFeature, boolean weighted) {
       this.function = function;
       this.perFeature = perFeature;
+      this.weighted = weighted;
       if (function == Function.MEDIAN) {
         this.values = new ArrayList<>();
       }
     }
 
-    // the values of the property of one feature; count without a property counts the feature
-    void add(List<Object> featureValues) {
+    // the values of the property of one feature and the values of the weight; count without a
+    // property counts the feature
+    void add(List<Object> featureValues, List<Object> featureWeights) {
+      if (weighted) {
+        addWeighted(featureValues, featureWeights);
+        return;
+      }
       switch (function) {
         case COUNT -> {
           if (perFeature || !featureValues.isEmpty()) {
@@ -284,6 +299,22 @@ class Aggregator {
       }
       if (Objects.isNull(max) || compare(value, max) > 0) {
         max = value;
+      }
+    }
+
+    // a feature without a single number as weight is left out
+    private void addWeighted(List<Object> featureValues, List<Object> featureWeights) {
+      Double weight = featureWeights.size() == 1 ? number(featureWeights.get(0)) : null;
+      if (Objects.isNull(weight)) {
+        return;
+      }
+      for (Object value : featureValues) {
+        Double number = number(value);
+        if (Objects.nonNull(number)) {
+          count++;
+          sum += number * weight;
+          weightSum += weight;
+        }
       }
     }
 
@@ -307,9 +338,16 @@ class Aggregator {
         case MIN -> min;
         case MAX -> max;
         case SUM -> count == 0 ? null : integral ? (Object) (long) sum : round(sum);
-        case AVG -> count == 0 ? null : round(sum / count);
+        case AVG -> average();
         case MEDIAN -> median();
       };
+    }
+
+    private Object average() {
+      if (weighted) {
+        return count == 0 || weightSum == 0 ? null : round(sum / weightSum);
+      }
+      return count == 0 ? null : round(sum / count);
     }
 
     private Object median() {

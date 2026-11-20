@@ -54,7 +54,9 @@ import jakarta.inject.Singleton;
  *       as `[lon, lat]` in CRS84.
  *     - `aggregates`: a list of aggregates, each `count` or an object `{"function": "...",
  *       "property": "..."}` with the functions `count`, `sum`, `min`, `max`, `avg` and `median`.
- *       The virtual properties `$area` and `$length` are the area and the length of the primary
+ *       `avg` takes an optional member `"weight"`, the name of a property whose value weights the
+ *       values of a feature, for example the number of dwellings for a percentage; features
+ *       without a single numeric weight are left out. The virtual properties `$area` and `$length` are the area and the length of the primary
  *       geometry in the native coordinate reference system, which must be projected. Default is
  *       `count`.
  *     - `clip`: only the features that intersect an area, either `{"point": [lon, lat],
@@ -169,7 +171,10 @@ import jakarta.inject.Singleton;
  *       in CRS84.
  *     - `aggregates`: eine Liste von Aggregaten, jeweils `count` oder ein Objekt `{"function":
  *       "...", "property": "..."}` mit den Funktionen `count`, `sum`, `min`, `max`, `avg` und
- *       `median`. Die virtuellen Eigenschaften `$area` und `$length` sind die Fläche und die Länge
+ *       `median`. `avg` hat ein optionales Element `"weight"`, den Namen einer Eigenschaft, deren
+ *       Wert die Werte eines Features gewichtet, zum Beispiel die Anzahl der Wohnungen bei einem
+ *       Prozentsatz; Features ohne genau ein numerisches Gewicht bleiben unberücksichtigt. Die
+ *       virtuellen Eigenschaften `$area` und `$length` sind die Fläche und die Länge
  *       der primären Geometrie im nativen Koordinatenreferenzsystem, das projiziert sein muss.
  *       Default ist `count`.
  *     - `clip`: nur die Features, die ein Gebiet schneiden, entweder `{"point": [lon, lat],

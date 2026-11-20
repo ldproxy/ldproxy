@@ -54,10 +54,23 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
   /** A group key: a property, optionally with a bucket for temporal or numeric values. */
   record GroupKey(String property, Optional<Bucket> bucket, double width) {}
 
-  /** An aggregate: a function, optionally of a property. */
-  record Aggregate(Function function, Optional<String> property) {
+  /**
+   * An aggregate: a function, optionally of a property; an average optionally weighted by a second
+   * property.
+   */
+  record Aggregate(Function function, Optional<String> property, Optional<String> weight) {
+    Aggregate(Function function, Optional<String> property) {
+      this(function, property, Optional.empty());
+    }
+
     String name() {
-      return property.map(p -> String.format("%s(%s)", function.id(), p)).orElse(function.id());
+      return property
+          .map(
+              p ->
+                  weight
+                      .map(w -> String.format("%s(%s, weight=%s)", function.id(), p, w))
+                      .orElse(String.format("%s(%s)", function.id(), p)))
+          .orElse(function.id());
     }
   }
 
@@ -65,7 +78,11 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
   List<String> properties() {
     List<String> properties = new ArrayList<>();
     groupBy.forEach(key -> properties.add(key.property()));
-    aggregates.forEach(aggregate -> aggregate.property().ifPresent(properties::add));
+    aggregates.forEach(
+        aggregate -> {
+          aggregate.property().ifPresent(properties::add);
+          aggregate.weight().ifPresent(properties::add);
+        });
     return properties.stream().distinct().toList();
   }
 
@@ -210,11 +227,32 @@ record Aggregation(List<GroupKey> groupBy, List<Aggregate> aggregates, Optional<
             String.format("The property '%s' can only be a group key.", property));
       }
       if (property instanceof String p) {
-        return new Aggregate(f, Optional.of(property(p, INPUT_AGGREGATES)));
+        return new Aggregate(f, Optional.of(property(p, INPUT_AGGREGATES)), weight(f, map));
       }
     }
     throw new IllegalArgumentException(
         "An aggregate must be 'count' or an object with the members 'function' and 'property'.");
+  }
+
+  // the optional weight of an average
+  private static Optional<String> weight(Function function, Map<?, ?> aggregate) {
+    Object weight = aggregate.get("weight");
+    if (Objects.isNull(weight)) {
+      return Optional.empty();
+    }
+    if (function != Function.AVG) {
+      throw new IllegalArgumentException(
+          String.format("Only the aggregate 'avg' takes a weight, not '%s'.", function.id()));
+    }
+    if (GEOMETRY.equals(weight) || COLLECTION.equals(weight)) {
+      throw new IllegalArgumentException(
+          String.format("The property '%s' can only be a group key.", weight));
+    }
+    if (weight instanceof String w) {
+      return Optional.of(property(w, INPUT_AGGREGATES));
+    }
+    throw new IllegalArgumentException(
+        "The weight of an aggregate must be the name of a property.");
   }
 
   private static Function function(String function) {
