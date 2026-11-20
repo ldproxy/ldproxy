@@ -11,16 +11,24 @@ import spock.lang.Specification
 
 class JobFailureSpec extends Specification {
 
-    def "the reason for the failure of a job is a client error: #status"() {
+    def "the reason for the failure of a job is a client or an upstream error, not: #status"() {
         when:
         JobFailure.of(status, "The input is invalid.")
 
         then:
         IllegalStateException e = thrown()
-        e.message == "The reason for the failure of a job is a client error (4xx), found status ${status}.".toString()
+        e.message == "The reason for the failure of a job is a client error (4xx) or an upstream error (502, 503, 504), found status ${status}.".toString()
 
         where:
-        status << [200, 399, 500, 503]
+        status << [200, 399, 500, 501, 505]
+    }
+
+    def "an upstream error is a stated reason: #status"() {
+        expect:
+        JobFailure.from(JobFailure.of(status, "The external API cannot be reached.").asOutputs()).get().status == status
+
+        where:
+        status << [502, 503, 504]
     }
 
     def "a stated reason is read from the job outputs"() {
@@ -32,11 +40,11 @@ class JobFailureSpec extends Specification {
         JobFailure.from(outputs) == Optional.of(JobFailure.of(422, "urn:example:invalid", "The input is invalid."))
     }
 
-    def "a status of no client error in the job outputs is no stated reason: #status"() {
+    def "a status of no client or upstream error in the job outputs is no stated reason: #status"() {
         expect: 'as written by a processor outside of ldproxy'
         JobFailure.from([failure: [status: status, detail: "The input is invalid."]]).isEmpty()
 
         where:
-        status << [200, 500, 503]
+        status << [200, 500, 501]
     }
 }

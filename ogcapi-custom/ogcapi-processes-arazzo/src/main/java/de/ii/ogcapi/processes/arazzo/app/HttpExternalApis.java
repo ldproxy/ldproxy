@@ -146,12 +146,12 @@ final class HttpExternalApis implements ExternalApis {
           send(GET, url, Map.of(ACCEPT, OPENAPI_ACCEPT), Optional.empty(), maximumResponseSize);
     } catch (IllegalArgumentException e) {
       throw new WorkflowException(
-          WorkflowException.Kind.PROBLEM,
+          WorkflowException.Kind.UPSTREAM,
           String.format("The OpenAPI document '%s' cannot be read: %s", url, e.getMessage()),
           e);
     }
     if (!received.response().isSuccessful()) {
-      throw WorkflowException.problem(
+      throw WorkflowException.upstream(
           "The OpenAPI document '%s' cannot be read, the status code is %d.",
           url, received.response().getStatus());
     }
@@ -161,7 +161,7 @@ final class HttpExternalApis implements ExternalApis {
       document = YAML.readValue(received.response().getBody(), Map.class);
     } catch (IOException e) {
       throw new WorkflowException(
-          WorkflowException.Kind.PROBLEM,
+          WorkflowException.Kind.UPSTREAM,
           String.format("The OpenAPI document '%s' is neither JSON nor YAML.", url),
           e);
     }

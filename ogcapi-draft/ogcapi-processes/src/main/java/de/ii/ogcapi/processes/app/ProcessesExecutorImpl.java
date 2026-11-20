@@ -19,6 +19,7 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobStatusInfo;
 import de.ii.ogcapi.foundation.domain.CompiledJsonSchema;
 import de.ii.ogcapi.foundation.domain.SchemaValidator;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
+import de.ii.ogcapi.foundation.domain.UpstreamErrorException;
 import de.ii.ogcapi.processes.domain.ExecutionRequestContext;
 import de.ii.ogcapi.processes.domain.OapJob;
 import de.ii.ogcapi.processes.domain.ProcessesExecutor;
@@ -107,15 +108,21 @@ public class ProcessesExecutorImpl implements ProcessesExecutor {
 
     // a job that did not succeed has no outputs, which is not an execution without outputs
     if (finalJob.status() != Status.SUCCESSFUL) {
-      // a client error that the processor stated, e.g. 422 for inputs it cannot process, is
-      // answered as such, as by the results of an asynchronous execution; any other failure is
-      // unexpected
+      // a reason that the processor stated, e.g. 422 for inputs it cannot process or 502 for an
+      // external API that cannot be reached, is answered as such, as by the results of an
+      // asynchronous execution; any other failure is unexpected
       Optional<JobFailure> reason =
           finalJob.status() == Status.FAILED
               ? JobFailure.from(finalJob.outputs())
               : Optional.empty();
       if (reason.isPresent()) {
-        throw new TypedClientErrorException(
+        if (JobFailure.isClientError(reason.get().getStatus())) {
+          throw new TypedClientErrorException(
+              reason.get().getDetail(),
+              reason.get().getStatus(),
+              reason.get().getType().orElse(null));
+        }
+        throw new UpstreamErrorException(
             reason.get().getDetail(),
             reason.get().getStatus(),
             reason.get().getType().orElse(null));

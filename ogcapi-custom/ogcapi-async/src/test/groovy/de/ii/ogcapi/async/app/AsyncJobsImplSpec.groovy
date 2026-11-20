@@ -160,7 +160,7 @@ class AsyncJobsImplSpec extends Specification {
         JobFailure.of(400, "https://example.org/bad-value", "Bad value.") || 400  | [type: "https://example.org/bad-value", status: 400, title: "Bad Request", detail: "Bad value."]
     }
 
-    def "the result of a failed job with a stated status of no client error is an unexpected failure: #jobOutputs"() {
+    def "the result of a failed job with a stated status of no client or upstream error is an unexpected failure: #jobOutputs"() {
         given: 'as stated by a processor outside of ldproxy'
         stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_PROCESSES), jobOutputs, ["Disk full."])
 
@@ -176,8 +176,22 @@ class AsyncJobsImplSpec extends Specification {
         where:
         jobOutputs << [
                 [failure: [status: 200, detail: "Everything is fine."]],
-                [failure: [status: 503, detail: "Try again later."]],
+                [failure: [status: 501, detail: "Not implemented."]],
                 outputs(JobResultFile.of(RESULT, "application/json", 200))]
+    }
+
+    def "the result of a failed job with a stated upstream error has its status"() {
+        given:
+        stored["job-1"] = job(Status.FAILED, asyncContext(EntityType.OGC_API_PROCESSES),
+                [failure: [status: 502, detail: "The external API cannot be reached."]], [])
+
+        when:
+        AsyncJobs.ResultDocument document = asyncJobs.getResultDocument("job-1").orElseThrow()
+
+        then:
+        document.status == 502
+        new ObjectMapper().readValue(content(document), Map) ==
+                [status: 502, title: "Bad Gateway", detail: "The external API cannot be reached."]
     }
 
     def "the outputs of a #status job are not available"() {

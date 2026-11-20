@@ -19,6 +19,7 @@ import de.ii.ogcapi.common.domain.async.ImmutableAsyncSubscriber
 import de.ii.ogcapi.common.domain.async.JobContextAsync
 import de.ii.ogcapi.common.domain.async.JobFailure
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException
+import de.ii.ogcapi.foundation.domain.UpstreamErrorException
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcExecute
 import de.ii.ogcapi.processes.domain.model.ImmutableOgcSchema
@@ -258,7 +259,20 @@ class ProcessesExecutorImplSpec extends Specification {
         e.type == "urn:example:invalid"
     }
 
-    def "a synchronous execution whose job failed with a stated status of no client error is unexpected: #failure.status"() {
+    def "a synchronous execution whose job failed with a stated upstream error answers it"() {
+        when:
+        executor.executeSync("api", testProcess, execute([count: 1]), 1000)
+
+        then:
+        1 * jobs.push(_) >> job(Status.ACCEPTED, [:])
+        1 * jobs.waitFor("job-1") >> CompletableFuture.completedFuture(
+                job(Status.FAILED, JobFailure.of(502, "The external API cannot be reached.").asOutputs(), ["The external API cannot be reached."]))
+        UpstreamErrorException e = thrown()
+        e.response.status == 502
+        e.message == "The external API cannot be reached."
+    }
+
+    def "a synchronous execution whose job failed with a stated status of no client or upstream error is unexpected: #failure.status"() {
         when:
         executor.executeSync("api", testProcess, execute([count: 1]), 1000)
 

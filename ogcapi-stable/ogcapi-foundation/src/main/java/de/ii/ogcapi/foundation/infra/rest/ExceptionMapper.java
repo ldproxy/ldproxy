@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.FormatNotSupportedException;
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
+import de.ii.ogcapi.foundation.domain.UpstreamErrorException;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
 import io.dropwizard.jersey.errors.LoggingExceptionMapper;
@@ -243,6 +244,26 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
       return Response.fromResponse(response)
           .type(exceptionFormat.getMediaType().type())
           .entity(exceptionFormat.getExceptionEntity(apiErrorMessage))
+          .build();
+    } else if (exception instanceof UpstreamErrorException upstream) {
+      // no error of this server to log with a stack trace; whoever raised it logs the cause
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "Upstream error {} for {}: {}",
+            response.getStatus(),
+            getRequestPath(true),
+            exception.getMessage());
+      }
+      return Response.status(response.getStatus())
+          .type(exceptionFormat.getMediaType().type())
+          .entity(
+              exceptionFormat.getExceptionEntity(
+                  new ApiErrorMessage(
+                      response.getStatus(),
+                      response.getStatusInfo().getReasonPhrase(),
+                      msg,
+                      null,
+                      upstream.getType())))
           .build();
     } else if (exception instanceof ServiceUnavailableException) {
       return serviceUnavailable(exceptionFormat, exception.getMessage());

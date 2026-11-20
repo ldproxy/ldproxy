@@ -591,7 +591,8 @@ final class WorkflowRunner {
     try {
       return Optional.of(run(document, workflow, inputs, depth));
     } catch (WorkflowException e) {
-      if (e.getKind() == WorkflowException.Kind.PROBLEM) {
+      // only a failure of the nested workflow is the failure of the step that called it
+      if (e.getKind() != WorkflowException.Kind.FAILURE) {
         throw e;
       }
       return Optional.empty();
@@ -915,15 +916,22 @@ final class WorkflowRunner {
     throw stepFailed(state, step, outcome);
   }
 
+  // a step that failed with a server error, after its retries, is an error of the API of the step
   private static WorkflowException stepFailed(State state, ArazzoStep step, StepOutcome outcome) {
-    return WorkflowException.failure(
-        "The step '%s' of the workflow '%s' failed%s.",
-        step.getStepId(),
-        state.workflow.getWorkflowId(),
-        outcome
-            .exchange()
-            .map(exchange -> " with status " + exchange.response().statusCode() + detail(exchange))
-            .orElse(""));
+    boolean serverError =
+        outcome.exchange().map(exchange -> exchange.response().statusCode() >= 500).orElse(false);
+    return new WorkflowException(
+        serverError ? WorkflowException.Kind.UPSTREAM : WorkflowException.Kind.FAILURE,
+        String.format(
+            "The step '%s' of the workflow '%s' failed%s.",
+            step.getStepId(),
+            state.workflow.getWorkflowId(),
+            outcome
+                .exchange()
+                .map(
+                    exchange ->
+                        " with status " + exchange.response().statusCode() + detail(exchange))
+                .orElse("")));
   }
 
   private static String detail(Exchange exchange) {

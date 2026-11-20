@@ -8,6 +8,7 @@
 package de.ii.ogcapi.common.domain.async;
 
 import com.google.common.base.Preconditions;
+import de.ii.ogcapi.foundation.domain.UpstreamErrorException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -19,9 +20,10 @@ import org.immutables.value.Value;
  * (Requirement 60 of OGC API Processes: the status corresponds to the reason for the failure).
  * Without a stated reason, the failure is unexpected and the result has the status 500.
  *
- * <p>The reason is a client error (4xx), e.g. 422 for inputs that the processor cannot process. A
- * failure for another reason is unexpected, also when a processor outside of ldproxy states another
- * status in the job outputs.
+ * <p>The reason is a client error (4xx), e.g. 422 for inputs that the processor cannot process, or
+ * the failure of an API that the processor depends on (502, 503 or 504), e.g. an external API that
+ * cannot be reached. A failure for another reason is unexpected, also when a processor outside of
+ * ldproxy states another status in the job outputs.
  *
  * <p>A processor sets the reason as the job outputs, or adds it to them, before it reports the
  * failure. Job outputs are persisted as plain maps, so the reason is a map below the key {@code
@@ -40,18 +42,24 @@ public interface JobFailure {
     return new ImmutableJobFailure.Builder().status(status).type(type).detail(detail).build();
   }
 
-  /** Whether the status is that of a client error, the only status of a stated reason. */
+  /** Whether the status is that of a client error. */
   static boolean isClientError(int status) {
     return status >= 400 && status < 500;
   }
 
+  /** Whether the status can be that of a stated reason: a client or an upstream error. */
+  static boolean isStatedStatus(int status) {
+    return isClientError(status) || UpstreamErrorException.isUpstreamError(status);
+  }
+
   /**
-   * The stated reason in the job outputs; empty without one or with a status of no client error.
+   * The stated reason in the job outputs; empty without one or with a status of no client or
+   * upstream error.
    */
   static Optional<JobFailure> from(Map<String, Object> outputs) {
     if (!(outputs.get(KEY) instanceof Map<?, ?> failure)
         || !(failure.get("status") instanceof Number status)
-        || !isClientError(status.intValue())
+        || !isStatedStatus(status.intValue())
         || !(failure.get("detail") instanceof String detail)) {
       return Optional.empty();
     }
@@ -63,7 +71,7 @@ public interface JobFailure {
             .build());
   }
 
-  /** The HTTP status that corresponds to the reason, a client error, e.g. 422. */
+  /** The HTTP status that corresponds to the reason, e.g. 422 or 502. */
   int getStatus();
 
   /** The exception type, a URI; without it the type of the problem is "about:blank". */
@@ -86,8 +94,8 @@ public interface JobFailure {
   @Value.Check
   default void check() {
     Preconditions.checkState(
-        isClientError(getStatus()),
-        "The reason for the failure of a job is a client error (4xx), found status %s.",
+        isStatedStatus(getStatus()),
+        "The reason for the failure of a job is a client error (4xx) or an upstream error (502, 503, 504), found status %s.",
         getStatus());
   }
 

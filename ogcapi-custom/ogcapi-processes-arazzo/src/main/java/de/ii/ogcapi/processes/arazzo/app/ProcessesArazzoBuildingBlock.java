@@ -60,6 +60,10 @@ import jakarta.inject.Singleton;
  *       `retryLimit`, also as reusable components. A failure action `end` ends a nested workflow;
  *       in the workflow of the process, it fails the execution with the status code and the detail
  *       of the failed step.
+ *     - An invalid or unsupported description fails the execution with the status 400, a failed
+ *       step with 422. An external API that the workflow depends on and that fails, i.e. an OpenAPI
+ *       document of a source description that cannot be read or a step that failed with a server
+ *       error (5xx) after its retries, fails it with the status 502, also in a nested workflow.
  *     - All runtime expressions except `$message` and `$self`. The success criteria and the outputs
  *       of a step that calls a workflow see the outputs of that workflow as `$outputs`.
  *     - The extension `x-dso-forEach` of the Arazzo descriptions of the Digitaal Stelsel
@@ -137,6 +141,12 @@ import jakarta.inject.Singleton;
  *       `retryLimit`, auch als wiederverwendbare Komponenten. Eine Fehleraktion `end` beendet einen
  *       verschachtelten Workflow; im Workflow des Prozesses lässt sie die Ausführung mit dem
  *       Statuscode und dem Detail des fehlgeschlagenen Schritts fehlschlagen.
+ *     - Eine ungültige oder nicht unterstützte Beschreibung lässt die Ausführung mit dem Status
+ *       400 fehlschlagen, ein fehlgeschlagener Schritt mit 422. Eine externe API, von der der
+ *       Workflow abhängt und die versagt, d.h. ein OpenAPI-Dokument einer Quellbeschreibung, das
+ *       nicht gelesen werden kann, oder ein Schritt, der nach seinen Wiederholungen mit einem
+ *       Serverfehler (5xx) fehlgeschlagen ist, lässt sie mit dem Status 502 fehlschlagen, auch in
+ *       einem verschachtelten Workflow.
  *     - Alle Laufzeitausdrücke außer `$message` und `$self`. Die Erfolgskriterien und die Ausgaben
  *       eines Schritts, der einen Workflow aufruft, sehen die Ausgaben dieses Workflows als
  *       `$outputs`.

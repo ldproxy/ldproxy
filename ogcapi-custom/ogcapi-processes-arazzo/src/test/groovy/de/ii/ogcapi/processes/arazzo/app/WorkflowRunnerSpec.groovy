@@ -78,6 +78,26 @@ class WorkflowRunnerSpec extends Specification {
         e.message.contains("status 400: Invalid limit")
     }
 
+    def "a step that failed with a server error is an upstream error, also in a nested workflow"() {
+        given:
+        dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> new StepResponse(503, [:], Optional.of([detail: "Service Unavailable"])) }
+        def doc = document([
+                workflow("outer", [[stepId: "call", workflowId: "inner"]]),
+                workflow("inner", [[stepId: "a", operationId: "pand.getItems"]])])
+
+        when:
+        runner().run(doc, workflowId, [:])
+
+        then:
+        WorkflowException e = thrown()
+        e.kind == WorkflowException.Kind.UPSTREAM
+        e.status == 502
+        e.message.contains("status 503: Service Unavailable")
+
+        where:
+        workflowId << ["inner", "outer"]
+    }
+
     def "a retry repeats the step up to the limit, the header Retry-After takes precedence"() {
         given:
         dispatcher.responses["pand.getItems"] = { StepRequest r, int n -> n < 3 ? new StepResponse(503, ["retry-after": "2"], Optional.empty()) : ok([features: []]) }

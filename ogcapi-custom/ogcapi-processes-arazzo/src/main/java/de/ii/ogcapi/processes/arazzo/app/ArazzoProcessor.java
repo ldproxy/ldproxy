@@ -134,15 +134,15 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
     // the workflow holds its job slot while it runs; one slot stays free for its processes
     Optional<String> noSlot = workflowSlots.enterWorkflow();
     if (noSlot.isPresent()) {
-      return clientFailure(job, jobs, 429, noSlot.get());
+      return statedFailure(job, jobs, 429, noSlot.get());
     }
     Map<String, Object> outputs;
     try {
       outputs = process(apiId, processId, inputs.getInputs(), runner);
     } catch (WorkflowException e) {
-      return clientFailure(job, jobs, e.getStatus(), e.getMessage());
+      return statedFailure(job, jobs, e.getStatus(), e.getMessage());
     } catch (IllegalArgumentException e) {
-      return clientFailure(job, jobs, 400, e.getMessage());
+      return statedFailure(job, jobs, 400, e.getMessage());
     } finally {
       workflowSlots.exitWorkflow();
     }
@@ -157,7 +157,8 @@ abstract class ArazzoProcessor extends JobProcessorSimple<OapJob> {
     return jobs.success();
   }
 
-  private static JobResult clientFailure(Job job, JobProcessing jobs, int status, String detail) {
+  // the reason for the failure: a client error or the failure of an API the workflow depends on
+  private static JobResult statedFailure(Job job, JobProcessing jobs, int status, String detail) {
     JobFailure failure = JobFailure.of(status, detail);
     jobs.outputs(job.id(), failure.asOutputs());
     return jobs.failure(failure.getDetail());

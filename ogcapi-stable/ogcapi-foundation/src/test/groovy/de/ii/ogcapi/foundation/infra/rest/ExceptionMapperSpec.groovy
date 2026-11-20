@@ -12,6 +12,7 @@ import de.ii.ogcapi.foundation.domain.ExceptionFormatExtension
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType
 import de.ii.ogcapi.foundation.domain.TypedClientErrorException
+import de.ii.ogcapi.foundation.domain.UpstreamErrorException
 import jakarta.ws.rs.NotFoundException
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.MediaType
@@ -89,6 +90,26 @@ class ExceptionMapperSpec extends Specification {
                     .build()
             getExceptionEntity(_) >> { ApiErrorMessage message -> message }
         }
+    }
+
+    def "an upstream error keeps its status and reports its message"() {
+        when:
+        Response response = mapper.toResponse(new UpstreamErrorException(
+                "The OpenAPI document 'https://example.com/openapi.json' cannot be read.", 502, null))
+        ApiErrorMessage message = response.getEntity() as ApiErrorMessage
+
+        then:
+        response.getStatus() == 502
+        message.getCode() == 502
+        message.getDetails() == "The OpenAPI document 'https://example.com/openapi.json' cannot be read."
+    }
+
+    def "an upstream error has a gateway status"() {
+        when:
+        new UpstreamErrorException("failed", 500, null)
+
+        then:
+        thrown(IllegalArgumentException)
     }
 
     def "the status of a server error is kept"() {

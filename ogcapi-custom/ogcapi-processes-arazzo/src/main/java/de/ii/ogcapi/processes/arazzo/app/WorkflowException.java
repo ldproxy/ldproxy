@@ -8,10 +8,13 @@
 package de.ii.ogcapi.processes.arazzo.app;
 
 /**
- * A workflow that cannot be executed or that failed; both are client errors of the execution. A
- * description that is invalid or not supported is a {@link Kind#PROBLEM}, also in a nested
- * workflow; a workflow that failed, e.g. because a step failed without a failure action, is a
- * {@link Kind#FAILURE}, which a nested workflow reports as the failure of the step that called it.
+ * A workflow that cannot be executed or that failed. A description that is invalid or not supported
+ * is a {@link Kind#PROBLEM}, also in a nested workflow; a workflow that failed, e.g. because a step
+ * failed without a failure action, is a {@link Kind#FAILURE}, which a nested workflow reports as
+ * the failure of the step that called it; both are client errors of the execution. An API that the
+ * workflow depends on and that cannot be reached or failed, e.g. an OpenAPI document that cannot be
+ * read or a step that failed with a server error, is an {@link Kind#UPSTREAM} error (502), also in
+ * a nested workflow.
  */
 class WorkflowException extends RuntimeException {
 
@@ -19,7 +22,8 @@ class WorkflowException extends RuntimeException {
 
   enum Kind {
     PROBLEM(400),
-    FAILURE(422);
+    FAILURE(422),
+    UPSTREAM(502);
 
     private final int status;
 
@@ -50,6 +54,10 @@ class WorkflowException extends RuntimeException {
 
   static WorkflowException failure(String format, Object... arguments) {
     return new WorkflowException(Kind.FAILURE, String.format(format, arguments));
+  }
+
+  static WorkflowException upstream(String format, Object... arguments) {
+    return new WorkflowException(Kind.UPSTREAM, String.format(format, arguments));
   }
 
   Kind getKind() {

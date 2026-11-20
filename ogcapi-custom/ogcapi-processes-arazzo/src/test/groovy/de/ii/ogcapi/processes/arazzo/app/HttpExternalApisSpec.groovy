@@ -97,7 +97,7 @@ paths:
         allowed << [[], ["https://api.example.com/v2/"], ["http://api.example.com/v1/"], ["https://api.example.com:8443/v1/"]]
     }
 
-    def "a document that is not an OpenAPI 3 document or that cannot be read is rejected"() {
+    def "a document that is not an OpenAPI 3 document is a problem, one that cannot be read an upstream error"() {
         given:
         http.responses[DOCUMENT] = { String method -> response(status, body) }
 
@@ -106,14 +106,26 @@ paths:
 
         then:
         WorkflowException e = thrown()
-        e.kind == WorkflowException.Kind.PROBLEM
+        e.kind == kind
         e.message.contains(message)
 
         where:
-        status | body                  || message
-        200    | 'swagger: "2.0"'      || "not an OpenAPI 3 document"
-        200    | '{"openapi": '        || "neither JSON nor YAML"
-        404    | 'not found'           || "the status code is 404"
+        status | body                  || kind                             | message
+        200    | 'swagger: "2.0"'      || WorkflowException.Kind.PROBLEM   | "not an OpenAPI 3 document"
+        200    | '{"openapi": '        || WorkflowException.Kind.UPSTREAM  | "neither JSON nor YAML"
+        404    | 'not found'           || WorkflowException.Kind.UPSTREAM  | "the status code is 404"
+        503    | 'unavailable'         || WorkflowException.Kind.UPSTREAM  | "the status code is 503"
+    }
+
+    def "a document whose request fails is an upstream error with the status 502"() {
+        when:
+        apis().api("https://api.example.com/v1/unknown.json", 1000)
+
+        then:
+        WorkflowException e = thrown()
+        e.kind == WorkflowException.Kind.UPSTREAM
+        e.status == 502
+        e.message.contains("cannot be read: ")
     }
 
     def "a step request has the URL of the server, the headers of the step and JSON content"() {
