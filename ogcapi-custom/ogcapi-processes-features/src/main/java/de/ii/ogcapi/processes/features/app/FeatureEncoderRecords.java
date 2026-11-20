@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.WKBWriter;
 
@@ -30,6 +31,8 @@ import org.locationtech.jts.io.WKBWriter;
 class FeatureEncoderRecords extends FeatureEncoderSfFlat {
 
   private static final byte[] NEWLINE = "\n".getBytes(StandardCharsets.UTF_8);
+  // the property of a feature reference with the id of the referenced feature
+  private static final String REFERENCE_ID = "id";
 
   private final FeatureTransformationContext transformationContext;
   private final ObjectMapper mapper;
@@ -87,7 +90,7 @@ class FeatureEncoderRecords extends FeatureEncoderSfFlat {
 
   // the values are keyed by the path of the property, values in arrays are collected under the
   // path of the array; geometries are written separately
-  private static void collect(PropertySfFlat property, Map<String, List<Object>> values) {
+  static void collect(PropertySfFlat property, Map<String, List<Object>> values) {
     if (property.getSchema().filter(SchemaBase::isSpatial).isPresent()) {
       return;
     }
@@ -95,12 +98,7 @@ class FeatureEncoderRecords extends FeatureEncoderSfFlat {
       case VALUE -> {
         Object value = typed(property);
         if (Objects.nonNull(value)) {
-          String path =
-              property
-                  .getSchema()
-                  .map(FeatureSchema::getFullPathAsString)
-                  .orElse(property.getName());
-          values.computeIfAbsent(path, key -> new ArrayList<>()).add(value);
+          values.computeIfAbsent(path(property), key -> new ArrayList<>()).add(value);
         }
       }
       case OBJECT, ARRAY ->
@@ -109,6 +107,21 @@ class FeatureEncoderRecords extends FeatureEncoderSfFlat {
         // nothing to collect
       }
     }
+  }
+
+  // the id of a feature reference has the path of the reference, as in the queryables, so that
+  // the features can be grouped by the referenced feature
+  private static String path(PropertySfFlat property) {
+    Optional<FeatureSchema> reference =
+        property
+            .getParent()
+            .flatMap(PropertySfFlat::getSchema)
+            .filter(SchemaBase::isFeatureRef)
+            .filter(schema -> REFERENCE_ID.equals(property.getName()));
+    return reference
+        .or(property::getSchema)
+        .map(FeatureSchema::getFullPathAsString)
+        .orElse(property.getName());
   }
 
   private static Object typed(PropertySfFlat property) {
