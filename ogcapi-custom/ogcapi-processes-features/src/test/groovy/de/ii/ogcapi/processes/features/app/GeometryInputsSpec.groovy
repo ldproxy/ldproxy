@@ -11,6 +11,7 @@ import de.ii.xtraplatform.crs.domain.CoordinateTuple
 import de.ii.xtraplatform.crs.domain.CrsTransformer
 import org.locationtech.jts.geom.Envelope
 import org.locationtech.jts.geom.GeometryFactory
+import org.locationtech.jts.io.WKTReader
 import spock.lang.Specification
 
 class GeometryInputsSpec extends Specification {
@@ -64,6 +65,27 @@ class GeometryInputsSpec extends Specification {
         then:
         values[Aggregation.AREA] == 200d
         values[Aggregation.LENGTH] == 60d
+    }
+
+    def "a self-intersecting geometry is repaired before it is clipped"() {
+        given: "a bow tie of two triangles of 25 m² each, the clip covers the right one"
+        def bowTie = new WKTReader().read("POLYGON((0 0, 10 10, 10 0, 0 10, 0 0))")
+        def clip = new GeometryFactory().toGeometry(new Envelope(5, 15, -5, 15))
+
+        when:
+        def values = GeometryInputs.virtualValues(bowTie, Optional.of(clip))
+
+        then:
+        Math.abs(values[Aggregation.AREA] - 25d) < 0.000001
+    }
+
+    def "a self-intersecting clip polygon is repaired"() {
+        when: "a bow tie of two triangles of 0.25 square degrees each"
+        def clip = GeometryInputs.clip([geometry: [type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 1], [0, 0]]]]], toNative())
+
+        then:
+        clip.valid
+        Math.abs(clip.area - 500000d) < 0.000001
     }
 
     def "invalid geometry inputs are rejected"() {

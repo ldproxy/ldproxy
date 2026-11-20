@@ -23,6 +23,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.TopologyException;
+import org.locationtech.jts.geom.util.GeometryFixer;
 import org.locationtech.jts.operation.overlayng.OverlayNG;
 import org.locationtech.jts.operation.overlayng.OverlayNGRobust;
 
@@ -61,7 +63,7 @@ final class GeometryInputs {
       return center.buffer(distance(clip.get(INPUT_DISTANCE), "clip.distance"), QUADRANT_SEGMENTS);
     }
     if (clip.get(INPUT_GEOMETRY) instanceof Map<?, ?> geometry) {
-      return transform(polygonal(geometry), toNative);
+      return valid(transform(polygonal(geometry), toNative));
     }
     throw new IllegalArgumentException(
         "The input 'clip' must have the members 'point' and 'distance' or the member 'geometry'.");
@@ -103,17 +105,33 @@ final class GeometryInputs {
 
   /**
    * The values of the virtual properties of a feature: the area and the length of its geometry, or
-   * of the part of it within the clip area.
+   * of the part of it within the clip area. The clip area must be valid.
    */
   static Map<String, Double> virtualValues(Geometry geometry, Optional<Geometry> clip) {
-    Geometry part =
-        clip.isPresent()
-            ? OverlayNGRobust.overlay(geometry, clip.get(), OverlayNG.INTERSECTION)
-            : geometry;
+    Geometry part = clip.isPresent() ? intersection(geometry, clip.get()) : geometry;
     Map<String, Double> values = new HashMap<>();
     values.put(Aggregation.AREA, part.getArea());
     values.put(Aggregation.LENGTH, part.getLength());
     return values;
+  }
+
+  /**
+   * The part of a geometry within the clip area. The overlay fails on an invalid geometry, for
+   * example a self-intersecting ring, which occurs in source data; the geometry is then repaired
+   * and the overlay repeated. Validity is not checked up front, that would cost a check for every
+   * feature although almost all geometries are valid.
+   */
+  private static Geometry intersection(Geometry geometry, Geometry clip) {
+    try {
+      return OverlayNGRobust.overlay(geometry, clip, OverlayNG.INTERSECTION);
+    } catch (TopologyException e) {
+      return OverlayNGRobust.overlay(GeometryFixer.fix(geometry), clip, OverlayNG.INTERSECTION);
+    }
+  }
+
+  /** The geometry, repaired if it is invalid, for example a ring that intersects itself. */
+  private static Geometry valid(Geometry geometry) {
+    return geometry.isValid() ? geometry : GeometryFixer.fix(geometry);
   }
 
   private static Geometry polygonal(Map<?, ?> geometry) {
