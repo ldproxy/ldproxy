@@ -14,14 +14,11 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
-import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
-import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,7 +26,7 @@ import java.util.Map;
  */
 @Singleton
 @AutoBind
-public class JobResultValuesFormatJson implements JobResultValuesFormatExtension, ConformanceClass {
+public class JobResultValuesFormatJson implements JobResultValuesFormatExtension {
 
   private final Schema<?> schemaValues;
   private final Map<String, Schema<?>> referencedSchemasValues;
@@ -38,11 +35,6 @@ public class JobResultValuesFormatJson implements JobResultValuesFormatExtension
   public JobResultValuesFormatJson(ClassSchemaCache classSchemaCache) {
     schemaValues = classSchemaCache.getSchema(OgcApiJobResultValues.class);
     referencedSchemasValues = classSchemaCache.getReferencedSchemas(OgcApiJobResultValues.class);
-  }
-
-  @Override
-  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/json");
   }
 
   @Override

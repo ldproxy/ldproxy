@@ -14,7 +14,6 @@ import de.ii.ogcapi.common.domain.async.OgcApiJobStatus;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
-import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -33,18 +32,13 @@ import java.util.List;
  */
 @Singleton
 @AutoBind
-public class JobStatusFormatHtml implements JobStatusFormatExtension, FormatHtml, ConformanceClass {
+public class JobStatusFormatHtml implements JobStatusFormatExtension, FormatHtml {
 
   private final I18n i18n;
 
   @Inject
   public JobStatusFormatHtml(I18n i18n) {
     this.i18n = i18n;
-  }
-
-  @Override
-  public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return List.of("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/html");
   }
 
   @Override

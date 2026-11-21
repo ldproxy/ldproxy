@@ -138,6 +138,13 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
                 "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/core",
                 "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/oas30",
                 "https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/ogc-process-description"));
+    // processes only create jobs that can be dismissed with asynchronous execution
+    if (apiData
+        .getExtension(ProcessesCoreConfiguration.class)
+        .filter(ProcessesCoreConfiguration::isAsync)
+        .isPresent()) {
+      conformanceClasses.add("https://www.opengis.net/spec/ogcapi-processes-1/2.0/conf/dismiss");
+    }
     // callbacks are only sent to the configured URIs
     if (apiData
         .getExtension(ProcessesCoreConfiguration.class)
