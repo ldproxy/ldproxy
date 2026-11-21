@@ -169,9 +169,8 @@ public interface ApiOperation {
       Schema<Object> formSchema = new ObjectSchema().additionalProperties(false);
       queryParameters.forEach(
           param -> {
-            Schema<?> paramSchema =
-                param.getSchema(apiData, collectionId).description(param.getDescription());
-            formSchema.addProperties(param.getName(), paramSchema);
+            formSchema.addProperties(
+                param.getName(), param.getSchemaWithDescription(apiData, collectionId));
             if (param.getRequired(apiData, collectionId)) {
               formSchema.addRequiredItem(param.getName());
             }

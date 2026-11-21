@@ -79,22 +79,11 @@ public class QueryParametersStoredQueries implements RuntimeQueryParametersExten
                         entry -> {
                           String name = entry.getKey();
                           Schema<?> schema = entry.getValue();
-                          StringBuilder description = new StringBuilder(name);
-                          if (Objects.nonNull(schema.getTitle()) && !schema.getTitle().isEmpty()) {
-                            description.append(schema.getTitle());
-                            if (Objects.nonNull(schema.getDescription())
-                                && !schema.getDescription().isEmpty()) {
-                              description.append(": ");
-                              description.append(schema.getDescription());
-                            } else {
-                              description.append('.');
-                            }
-                          }
                           return ImmutableQueryParameterTemplateParameter.builder()
                               .apiId(apiData.getId())
                               .queryId(query.getId())
                               .name(name)
-                              .description(description.toString())
+                              .description(describe(name, schema))
                               .schema(schema)
                               .schemaValidator(schemaValidator)
                               .build();
@@ -102,5 +91,20 @@ public class QueryParametersStoredQueries implements RuntimeQueryParametersExten
                     .collect(Collectors.toUnmodifiableList()))
         .flatMap(Collection::stream)
         .collect(Collectors.toUnmodifiableList());
+  }
+
+  // "title: description" from the schema of the parameter; the name of the parameter only if the
+  // schema has neither
+  static String describe(String name, Schema<?> schema) {
+    boolean hasTitle = Objects.nonNull(schema.getTitle()) && !schema.getTitle().isEmpty();
+    boolean hasDescription =
+        Objects.nonNull(schema.getDescription()) && !schema.getDescription().isEmpty();
+    if (hasTitle && hasDescription) {
+      return schema.getTitle() + ": " + schema.getDescription();
+    }
+    if (hasTitle) {
+      return schema.getTitle() + ".";
+    }
+    return hasDescription ? schema.getDescription() : name;
   }
 }

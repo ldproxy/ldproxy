@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain
 
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
+import io.swagger.v3.core.util.Json
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.BooleanSchema
 import io.swagger.v3.oas.models.media.IntegerSchema
@@ -116,5 +117,37 @@ class ParameterExtensionSpec extends Specification {
         'AB'   || false
         'A"'   || true
         'ABC'  || true
+    }
+
+    def 'the schema with description is a copy, the schema of the parameter does not change'() {
+        given:
+        Schema<?> original = parameterSchema
+        String before = Json.mapper().writeValueAsString(original)
+
+        when:
+        Schema<?> copy = parameter(original).getSchemaWithDescription(null, Optional.empty())
+
+        then: 'the copy has the description of the parameter and the constraints of the schema'
+        !copy.is(original)
+        copy.description == 'test parameter'
+        copy.class == original.class
+        copy.type == original.type
+        copy.pattern == original.pattern
+        copy.enum == original.enum
+        copy.minimum == original.minimum
+        copy.default == original.default
+        copy.items?.type == original.items?.type
+        copy.items?.enum == original.items?.enum
+
+        and: 'the schema of the parameter is unchanged'
+        Json.mapper().writeValueAsString(original) == before
+
+        where:
+        parameterSchema << [
+                new StringSchema().pattern('^[A-Z]{2}$').description('own description'),
+                new StringSchema()._enum(['a', 'b'])._default('a'),
+                new IntegerSchema().minimum(1)._default(10),
+                new ArraySchema().items(new StringSchema()._enum(['x', 'y'])),
+                ParameterExtension.SCHEMA]
     }
 }

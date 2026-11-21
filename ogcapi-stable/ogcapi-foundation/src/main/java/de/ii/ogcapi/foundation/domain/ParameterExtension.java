@@ -71,6 +71,17 @@ public interface ParameterExtension extends ApiExtension {
     return collectionId.isPresent() ? getSchema(apiData, collectionId.get()) : getSchema(apiData);
   }
 
+  /**
+   * The schema of the parameter with the description of the parameter, for a schema that describes
+   * the parameter on its own, e.g. as a member of a request body. The schema is a copy: the schema
+   * of a parameter is shared, e.g. by the operations of a resource, and must not change.
+   */
+  default Schema<?> getSchemaWithDescription(OgcApiDataV2 apiData, Optional<String> collectionId) {
+    Schema<?> copy = Json.mapper().convertValue(getSchema(apiData, collectionId), Schema.class);
+    copy.setDescription(getDescription());
+    return copy;
+  }
+
   default boolean getExplode() {
     return false;
   }
