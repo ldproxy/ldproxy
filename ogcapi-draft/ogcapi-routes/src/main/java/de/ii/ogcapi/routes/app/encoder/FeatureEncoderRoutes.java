@@ -42,7 +42,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import javax.measure.Unit;
-import org.kortforsyningen.proj.Units;
+import org.osgeo.proj.Units;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
