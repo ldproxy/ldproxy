@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Replaces Neutrino's HtmlWebpackPlugin + mustache.ejs pipeline: for every app/style entry,
@@ -31,7 +32,7 @@ function collectCss(entryChunk, bundle) {
   return [...css];
 }
 
-export function ogcapiHtmlMustachePlugin({ apps, styles }) {
+export function ogcapiHtmlMustachePlugin({ apps, styles, favicon }) {
   let base = '/';
 
   return {
@@ -56,11 +57,13 @@ export function ogcapiHtmlMustachePlugin({ apps, styles }) {
         })),
       ];
 
-      const favicon = Object.values(bundle).find(
-        (asset) =>
-          asset.type === 'asset' &&
-          (asset.names ?? [asset.name]).some((name) => name?.startsWith('favicon.'))
-      );
+      // The favicon is emitted here, not imported by an entry: an import whose value is not used
+      // is tree-shaken, and then the bundle has no favicon asset at all.
+      const faviconFileName = favicon
+        ? this.getFileName(
+            this.emitFile({ type: 'asset', name: 'favicon.ico', source: readFileSync(favicon) })
+          )
+        : undefined;
 
       for (const { key, templateName, includeFavicon } of entries) {
         const chunk = Object.values(bundle).find(
@@ -79,9 +82,9 @@ export function ogcapiHtmlMustachePlugin({ apps, styles }) {
         // further down. The old webpack build closed that gap by baking `publicPath` ("/ogcapi-html")
         // into every emitted URL; `base` here is Vite's equivalent and has to be prepended the
         // same way, or every asset 404s one path segment short.
-        if (includeFavicon && favicon) {
+        if (includeFavicon && faviconFileName) {
           lines.push(
-            `<link rel="shortcut icon" type="image/x-icon" href="{{assetsPrefix}}${base}${favicon.fileName}">`
+            `<link rel="shortcut icon" type="image/x-icon" href="{{assetsPrefix}}${base}${faviconFileName}">`
           );
         }
 
