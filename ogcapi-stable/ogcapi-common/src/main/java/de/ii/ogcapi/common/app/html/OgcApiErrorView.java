@@ -9,6 +9,7 @@ package de.ii.ogcapi.common.app.html;
 
 import com.google.common.base.Charsets;
 import de.ii.ogcapi.foundation.domain.ApiErrorMessage;
+import de.ii.xtraplatform.web.domain.StaticResourceHandler;
 import io.dropwizard.views.common.View;
 
 public class OgcApiErrorView extends View {
@@ -18,9 +19,11 @@ public class OgcApiErrorView extends View {
   public String detail;
   public String instance;
   public String type;
+  public String assetsPrefix;
 
-  protected OgcApiErrorView(ApiErrorMessage errorMessage) {
+  protected OgcApiErrorView(ApiErrorMessage errorMessage, String apiPath) {
     super("/templates/exception.mustache", Charsets.UTF_8);
+    this.assetsPrefix = apiPath + StaticResourceHandler.PREFIX;
     this.status = errorMessage.getCode();
     this.title = errorMessage.getMessage();
     this.detail = errorMessage.getDetails();
