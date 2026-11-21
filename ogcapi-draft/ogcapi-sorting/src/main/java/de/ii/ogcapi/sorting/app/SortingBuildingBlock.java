@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -121,16 +122,18 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
               provider.getId()));
     }
 
-    // no additional operational checks for now, only validation; we can stop, if no validation is
-    // requested
-    if (apiValidation == ValidationResult.MODE.NONE) {
-      return builder.build();
-    }
+    // a configured sortable that is ignored is always reported; without validation as a warning
+    Consumer<String> error =
+        apiValidation == ValidationResult.MODE.NONE ? builder::addWarnings : builder::addErrors;
+    Consumer<String> strictError =
+        apiValidation == ValidationResult.MODE.NONE
+            ? builder::addWarnings
+            : builder::addStrictErrors;
 
     for (Map.Entry<String, SortingConfiguration> entry : configs.entrySet()) {
       // check that there is at least one sortable for each collection where sorting is enabled
       if (entry.getValue().getIncluded().isEmpty()) {
-        builder.addStrictErrors(
+        strictError.accept(
             MessageFormat.format(
                 "Sorting is enabled for collection ''{0}'', but no sortable property has been configured.",
                 entry.getKey()));
@@ -141,13 +144,14 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
           api.getData().getCollections().get(entry.getKey());
       Optional<FeatureSchema> schema = providers.getFeatureSchema(api.getData(), collectionData);
       if (schema.isEmpty()) {
-        builder.addStrictErrors(
+        strictError.accept(
             MessageFormat.format(
                 "Sorting is enabled for collection ''{0}'', but no provider has been configured.",
                 entry.getKey()));
       } else {
-        checkSortablesExist(builder, entry, properties);
-        checkSortablesAreEligible(builder, entry, api.getData(), collectionData, schema, providers);
+        checkSortablesExist(error, entry, properties);
+        checkSortablesAreEligible(
+            strictError, entry, properties, api.getData(), collectionData, schema, providers);
       }
     }
 
@@ -155,7 +159,7 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
   }
 
   private void checkSortablesExist(
-      ImmutableValidationResult.Builder builder,
+      Consumer<String> error,
       Map.Entry<String, SortingConfiguration> entry,
       List<String> properties) {
     for (String sortable :
@@ -165,7 +169,7 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
             .collect(Collectors.toUnmodifiableList())) {
       // does the collection include the sortable property?
       if (!properties.contains(sortable)) {
-        builder.addErrors(
+        error.accept(
             MessageFormat.format(
                 "The sorting configuration for collection ''{0}'' includes property ''{1}'', but the property does not exist.",
                 entry.getKey(), sortable));
@@ -174,8 +178,9 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
   }
 
   private void checkSortablesAreEligible(
-      ImmutableValidationResult.Builder builder,
+      Consumer<String> strictError,
       Map.Entry<String, SortingConfiguration> entry,
+      List<String> properties,
       OgcApiDataV2 apiData,
       FeatureTypeConfigurationOgcApi collectionData,
       Optional<FeatureSchema> schema,
@@ -190,10 +195,12 @@ public class SortingBuildingBlock implements ApiBuildingBlock {
             .collect(Collectors.toList());
     entry.getValue().getIncluded().stream()
         .filter(propertyName -> !"*".equals(propertyName))
+        // a property that does not exist is already reported
+        .filter(properties::contains)
         .filter(propertyName -> !sortables.contains(propertyName))
         .forEach(
             propertyName ->
-                builder.addStrictErrors(
+                strictError.accept(
                     MessageFormat.format(
                         "The sorting configuration for collection ''{0}'' includes a sortable property ''{1}'', but the property is not eligible.",
                         entry.getKey(), propertyName)));

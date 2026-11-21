@@ -127,17 +127,12 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
           if (extension instanceof ApiExtensionHealth) {
             ((ApiExtensionHealth) extension).initWhenAvailable(this);
           } else {
-            extension.onStartup(this, apiValidation);
+            log(extension.onStartup(this, apiValidation));
           }
         } else {
           ValidationResult result = extension.onStartup(this, apiValidation);
           isSuccess = isSuccess && result.isSuccess();
-
-          result.getErrors().forEach(LOGGER::error);
-          result
-              .getStrictErrors()
-              .forEach(result.getMode() == MODE.STRICT ? LOGGER::error : LOGGER::warn);
-          result.getWarnings().forEach(LOGGER::warn);
+          log(result);
         }
       }
       // TODO
@@ -151,6 +146,14 @@ public class OgcApiEntity extends AbstractService<OgcApiDataV2> implements OgcAp
     }
 
     return isSuccess;
+  }
+
+  private static void log(ValidationResult result) {
+    result.getErrors().forEach(LOGGER::error);
+    result
+        .getStrictErrors()
+        .forEach(result.getMode() == MODE.STRICT ? LOGGER::error : LOGGER::warn);
+    result.getWarnings().forEach(LOGGER::warn);
   }
 
   @Override
