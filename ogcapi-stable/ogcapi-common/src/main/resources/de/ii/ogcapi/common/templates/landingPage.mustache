@@ -148,7 +148,7 @@
                 <div class="col-md-10">
                     <ul class="list-unstyled">
                         <li>
-                            [ [ {{minLon}}, {{minLat}} ], [ {{maxLon}}, {{maxLat}} ] ]
+                            [ [ {{minLng}}, {{minLat}} ], [ {{maxLng}}, {{maxLat}} ] ]
                         </li>
                     </ul>
                 </div>
@@ -232,8 +232,10 @@
 
 {{> app-common}}
 
+{{#bbox}}
 {{^hideMap}}
   {{> mapClient}}
 {{/hideMap}}
+{{/bbox}}
 
 {{> footer}}
