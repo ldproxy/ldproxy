@@ -17,6 +17,7 @@ import de.ii.xtraplatform.cql.domain.Cql2Expression;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.crs.domain.OgcCrs;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -153,15 +154,47 @@ public class ParameterResolver implements ParameterResolverBase {
   private int resolveParameter(IntegerOrParameter value, Map<String, JsonSchema> parameters) {
     return value
         .getValue()
-        .or(() -> value.getParameter().map(param -> (Integer) resolveParameter(param, parameters)))
+        .or(
+            () ->
+                value
+                    .getParameter()
+                    .map(param -> toInt(param.getName(), resolveParameter(param, parameters))))
         .orElseThrow();
+  }
+
+  private static int toInt(String name, Object value) {
+    // a JSON integer outside the 32-bit range is parsed as a Long or BigInteger
+    if (value instanceof Number num) {
+      try {
+        return new BigDecimal(num.toString()).intValueExact();
+      } catch (ArithmeticException | NumberFormatException e) {
+        // not an integer or out of range, rejected below
+      }
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "The value '%s' of parameter '%s' is not an integer between %d and %d.",
+            value, name, Integer.MIN_VALUE, Integer.MAX_VALUE));
   }
 
   private double resolveParameter(DoubleOrParameter value, Map<String, JsonSchema> parameters) {
     return value
         .getValue()
-        .or(() -> value.getParameter().map(param -> (Double) resolveParameter(param, parameters)))
+        .or(
+            () ->
+                value
+                    .getParameter()
+                    .map(param -> toDouble(param.getName(), resolveParameter(param, parameters))))
         .orElseThrow();
+  }
+
+  private static double toDouble(String name, Object value) {
+    // a JSON number without a fraction is parsed as an Integer or Long
+    if (value instanceof Number num) {
+      return num.doubleValue();
+    }
+    throw new IllegalArgumentException(
+        String.format("The value '%s' of parameter '%s' is not a number.", value, name));
   }
 
   private List<String> resolveParameters(
