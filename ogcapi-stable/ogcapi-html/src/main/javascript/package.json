@@ -54,7 +54,7 @@
     "globals": "17.14.0",
     "storybook": "10.6.7",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.2",
+    "typescript-eslint": "8.73.0",
     "vite": "8.3.8"
   },
   "overrides": {
@@ -66,5 +66,5 @@
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
-  "packageManager": "npm@11.21.2"
+  "packageManager": "npm@11.21.3"
 }
