@@ -7,13 +7,17 @@
  */
 package de.ii.ogcapi.styles.app
 
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry
 import de.ii.ogcapi.foundation.domain.ImmutableFeatureTypeConfigurationOgcApi
 import de.ii.ogcapi.foundation.domain.ImmutableOgcApiDataV2
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
+import de.ii.ogcapi.foundation.infra.json.ClassSchemaCacheImpl
 import de.ii.ogcapi.html.app.StyleReaderImpl
 import de.ii.ogcapi.html.domain.MapClient
 import de.ii.ogcapi.html.domain.StyleReader
 import de.ii.ogcapi.styles.domain.ImmutableStylesConfiguration
+import de.ii.ogcapi.styles.domain.MbStyleStylesheet
+import de.ii.ogcapi.styles.domain.StylesheetContent
 import de.ii.xtraplatform.values.domain.KeyValueStore
 import de.ii.xtraplatform.values.domain.StoredValue
 import de.ii.xtraplatform.values.domain.ValueStore
@@ -118,6 +122,35 @@ class StyleReaderCollectionStyleSpec extends Specification {
         then:
 
         url == "https://example.com/api/styles/default?f=mbs"
+    }
+
+    def 'deriving a collection style accepts layers of the API source without a source layer'() {
+
+        given:
+
+        String style = '''{
+          "version": 8,
+          "sources": {
+            "api": { "type": "vector", "tiles": ["https://example.com/api/tiles/WebMercatorQuad/{z}/{y}/{x}?f=mvt"] }
+          },
+          "layers": [
+            { "id": "no_source_layer", "type": "fill", "source": "api" },
+            { "id": "styled_fill", "type": "fill", "source": "api", "source-layer": "styled" }
+          ]
+        }'''
+        MbStyleStylesheet stylesheet = StyleFormatMbStyle.parse(style.getBytes(StandardCharsets.UTF_8), false)
+        StylesheetContent content = new StylesheetContent(style.getBytes(StandardCharsets.UTF_8), "api/default", true, stylesheet)
+        StyleFormatMbStyle format = new StyleFormatMbStyle(Stub(ExtensionRegistry), new ClassSchemaCacheImpl())
+
+        when:
+
+        Optional<StylesheetContent> styled = format.deriveCollectionStyle(content, apiData(true), SERVICE_URL, "styled", "default")
+        Optional<StylesheetContent> unstyled = format.deriveCollectionStyle(content, apiData(true), SERVICE_URL, "unstyled", "default")
+
+        then:
+
+        styled.get().getMbStyle().get().getLayers()*.getId() == ["no_source_layer", "styled_fill"]
+        unstyled.isEmpty()
     }
 
     static String styleUrl(StyleReader reader, String collectionId, OgcApiDataV2 apiData) {
