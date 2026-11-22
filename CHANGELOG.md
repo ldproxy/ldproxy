@@ -1,5 +1,21 @@
 # Changelog
 
+## v4.8.3 (22/11/2026)
+#### Fixed bugs
+
+-  apiVersion redirect has double slash [#1931](https://github.com/ldproxy/ldproxy/issues/1931)
+-  various issues with feature types using root concat [#1930](https://github.com/ldproxy/ldproxy/issues/1930)
+-  requests hanging when the database rejects the first query [#1929](https://github.com/ldproxy/ldproxy/issues/1929)
+
+#### Dependency updates
+
+* Update dependency io.minio:minio to v9.0.4 (maintenance-7.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/549
+* Update dependency io.github.classgraph:classgraph to v4.8.200 (maintenance-7.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/554
+* Update swagger to v2.2.56 (maintenance-7.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform/pull/570
+* Update dependency org.postgresql:postgresql to v42.7.14 (maintenance-8.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/648
+* Update dependency com.github.ElectronicChartCentre:java-vector-tile to v1.4.2 (maintenance-8.0) by @renovate[bot] in https://github.com/ldproxy/xtraplatform-spatial/pull/660
+
+---
 ## v4.8.2 (07/10/2026)
 #### Fixed bugs
 
