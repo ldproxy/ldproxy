@@ -8,11 +8,13 @@
 package de.ii.ogcapi.foundation.domain
 
 import de.ii.ogcapi.foundation.infra.json.SchemaValidatorImpl
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.swagger.v3.core.util.Json
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.BooleanSchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.NumberSchema
+import io.swagger.v3.oas.models.media.ObjectSchema
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
 import spock.lang.Shared
@@ -149,5 +151,28 @@ class ParameterExtensionSpec extends Specification {
                 new IntegerSchema().minimum(1)._default(10),
                 new ArraySchema().items(new StringSchema()._enum(['x', 'y'])),
                 ParameterExtension.SCHEMA]
+    }
+
+    def 'the schema with description is the schema of the parameter with the description, also with subschemas without a type'() {
+        given:
+        Schema<?> original = parameterSchema
+        ObjectNode expected = Json.mapper().valueToTree(original)
+        expected.put('description', 'test parameter')
+
+        when:
+        Schema<?> copy = parameter(original).getSchemaWithDescription(null, Optional.empty())
+
+        then:
+        Json.mapper().valueToTree(copy) == expected
+
+        where:
+        parameterSchema << [
+                new ArraySchema().items(new NumberSchema()).oneOf([
+                        new Schema<>().minItems(4).maxItems(4),
+                        new Schema<>().minItems(6).maxItems(6)]),
+                new Schema<>().anyOf([new StringSchema(), new Schema<>().minLength(2)]),
+                new Schema<>().description('any value'),
+                new ObjectSchema().addProperty('a', new Schema<>().maxLength(3)),
+                new ArraySchema().items(new Schema<>().minLength(1))]
     }
 }
