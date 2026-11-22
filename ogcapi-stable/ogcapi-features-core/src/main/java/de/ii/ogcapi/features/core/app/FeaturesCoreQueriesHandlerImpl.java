@@ -598,12 +598,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         // Structured Fields does only support 3 decimal places for some reason. We still provide
         // all decimal places, but other parsers will likely round the values to 3 places. The
         // min values need to be rounded down, the max values need to be rounded up to ensure that
-        // the coordinates are in the bbox.
+        // the coordinates are in the bbox. No whitespace after the commas: the API definition
+        // declares the header as an array of numbers (style simple), and Structured Fields
+        // parsers accept a list without it, too.
         BoundingBox bbox = result.getSpatialExtent().get();
         spatialExtentHeader =
             String.format(
                 Locale.US,
-                "%f, %f, %f, %f",
+                "%f,%f,%f,%f",
                 bbox.getXmin(),
                 bbox.getYmin(),
                 bbox.getXmax(),
