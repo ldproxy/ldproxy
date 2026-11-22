@@ -51,6 +51,14 @@ public interface StyleReader {
 
   List<String> getStyleIds(String apiId, Optional<String> collectionId, StyleFormat styleFormat);
 
+  /**
+   * Whether the MapLibre style of the API can be applied to the features of a collection: it has a
+   * layer with the collection as source layer, or none of its layers uses a source layer. The map
+   * client applies every data layer of the style to the features shown on the page, so a style with
+   * source layers for other collections only would render them arbitrarily.
+   */
+  boolean appliesToCollection(String apiId, String collectionId, String styleId);
+
   default String getStyleUrl(
       Optional<String> requestedStyle,
       Optional<String> collectionId,
@@ -110,6 +118,13 @@ public interface StyleReader {
 
     // Try fallback to the dataset style, if we have a collection id
     if (collectionId.isPresent()) {
+      if (f == StyleFormat.MBS
+          && exists(apiId, Optional.empty(), styleId.get(), f, apiData)
+          && !appliesToCollection(apiId, collectionId.get(), styleId.get())) {
+        // the dataset style has no layer for the collection, use the default map style
+        return null;
+      }
+
       return getStyleUrl(
           requestedStyle,
           Optional.empty(),
