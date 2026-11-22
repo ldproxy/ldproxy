@@ -27,4 +27,5 @@ dependencies {
     provided project(":ogcapi-tilematrixsets")
 
     testProvided(testFixtures(project(":ogcapi-foundation")))
+    testProvided project(":ogcapi-xml")
 }
