@@ -60,6 +60,14 @@ public interface ApiHeader extends ApiExtension {
     return SCHEMA;
   }
 
+  /**
+   * Whether an array or object value is serialized exploded (style simple): for an object, {@code
+   * true} means {@code key=value,key=value} instead of {@code key,value,key,value}.
+   */
+  default boolean getExplode() {
+    return false;
+  }
+
   boolean isApplicable(OgcApiDataV2 apiData, String definitionPath, HttpMethods method);
 
   SchemaValidator getSchemaValidator();
@@ -109,12 +117,18 @@ public interface ApiHeader extends ApiExtension {
             .name(getName())
             .description(getDescription())
             .schema(getSchema(apiData));
+    if (getExplode()) {
+      header.explode(true);
+    }
     setOpenApiDescription(apiData, header);
     return header;
   }
 
   private Header newHeaderResponse(OgcApiDataV2 apiData) {
     Header openApiHeader = new Header().schema(getSchema(apiData));
+    if (getExplode()) {
+      openApiHeader.explode(true);
+    }
     setOpenApiDescription(apiData, openApiHeader);
     return openApiHeader;
   }

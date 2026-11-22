@@ -614,12 +614,12 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
       if (result.getTemporalExtent().isPresent()) {
         // Structured Fields does not support timestamps, so the typical approach is to use seconds
-        // since epoch
+        // since epoch; no whitespace after the comma, as for the bounding box
         Tuple<Instant, Instant> interval = result.getTemporalExtent().get();
         if (Objects.nonNull(interval.first()) && Objects.nonNull(interval.second())) {
           temporalExtentHeader =
               String.format(
-                  "start=%d, end=%d",
+                  "start=%d,end=%d",
                   interval.first().getEpochSecond(), interval.second().getEpochSecond());
         } else if (Objects.nonNull(interval.first())) {
           temporalExtentHeader = String.format("start=%d", interval.first().getEpochSecond());
