@@ -8,6 +8,7 @@
 package de.ii.ogcapi.projections.app
 
 import de.ii.ogcapi.features.core.domain.SchemaInfo
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.QueryParameterSet
 import de.ii.ogcapi.foundation.domain.SchemaValidator
 import jakarta.ws.rs.core.MultivaluedHashMap
@@ -15,7 +16,8 @@ import spock.lang.Specification
 
 /**
  * OGC API Features Part 6, /req/properties/exclusive-parameters A: a request with both query
- * parameters "properties" and "exclude-properties" is a bad request.
+ * parameters "properties" and "exclude-properties" is a bad request. /req/properties/exclude-parameter
+ * B: an empty value of "exclude-properties" is an empty list, no property is excluded.
  */
 class QueryParameterPropertiesExclusiveSpec extends Specification {
 
@@ -54,5 +56,30 @@ class QueryParameterPropertiesExclusiveSpec extends Specification {
     def 'exclude-properties is parsed after properties'() {
         expect:
         excludeProperties.getPriority() > properties.getPriority()
+    }
+
+    def 'an empty exclude-properties is accepted as an empty list'() {
+        when:
+        def withEmpty = evaluate(['exclude-properties': ''])
+
+        then:
+        withEmpty.getValue(excludeProperties) == Optional.of([])
+    }
+
+    def 'an empty exclude-properties together with properties is rejected'() {
+        when:
+        evaluate(['properties': 'name', 'exclude-properties': ''])
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'the schema of exclude-properties allows an empty list, the schema of properties does not'() {
+        given:
+        def apiData = Stub(OgcApiDataV2)
+
+        expect:
+        excludeProperties.getSchema(apiData).getMinItems() == null
+        properties.getSchema(apiData).getMinItems() == 1
     }
 }
