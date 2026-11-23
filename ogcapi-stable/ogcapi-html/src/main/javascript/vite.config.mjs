@@ -49,11 +49,7 @@ export default defineConfig({
     // automatic runtime. Every file already does `import React from "react"`, so classic mode
     // is a drop-in fix with no source changes.
     react({ jsxRuntime: 'classic' }),
-    ogcapiHtmlMustachePlugin({
-      apps,
-      styles,
-      favicon: resolve(root, 'src/styles/common/favicon.ico'),
-    }),
+    ogcapiHtmlMustachePlugin({ apps, styles }),
     cesiumAssets(),
     maplibreWorker(),
   ],
