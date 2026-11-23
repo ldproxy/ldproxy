@@ -252,6 +252,7 @@ public class CrudBuildingBlock implements ApiBuildingBlock {
             (collectionId, collectionData) -> {
               if (collectionData
                       .getExtension(CrudConfiguration.class)
+                      .filter(ExtensionConfiguration::isEnabled)
                       .map(CrudConfiguration::supportsLastModified)
                       .orElse(false)
                   && providers

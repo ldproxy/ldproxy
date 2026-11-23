@@ -155,6 +155,12 @@ public class ProcessesCoreBuildingBlock implements ApiBuildingBlock, Conformance
     return conformanceClasses;
   }
 
+  // processes are resources of the API, not of a collection
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return isExtensionEnabled(apiData, getBuildingBlockConfigurationType());
+  }
+
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
     return new ImmutableProcessesCoreConfiguration.Builder()

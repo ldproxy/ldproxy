@@ -218,6 +218,12 @@ public class PubSubBuildingBlock
     this.mapper = new ObjectMapper();
   }
 
+  // brokers and the publisher are configured for the API, collections only select publications
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return isExtensionEnabled(apiData, getBuildingBlockConfigurationType());
+  }
+
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
     return new ImmutablePubSubConfiguration.Builder().enabled(false).publisher("ldproxy").build();
