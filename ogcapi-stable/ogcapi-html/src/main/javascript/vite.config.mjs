@@ -64,9 +64,6 @@ export default defineConfig({
   build: {
     outDir: resolve(root, '../../../build/generated/src/main/resources/de/ii/ogcapi/html'),
     emptyOutDir: true,
-    // favicon.ico must stay a real emitted asset (its URL is referenced by name in
-    // ogcapi-html-mustache.js), never inlined as a data URI even though it is tiny.
-    assetsInlineLimit: (filePath) => (filePath.endsWith('.ico') ? false : undefined),
     rollupOptions: {
       input,
       output: {

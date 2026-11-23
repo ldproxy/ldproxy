@@ -1,4 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./style.css";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- emitted as a static asset for the favicon link tag
-import favicon from "./favicon.ico";
+// ?no-inline: the favicon must be emitted as a file, since ogcapi-html-mustache.js links it by
+// name; the tiny .ico would otherwise be inlined as a data URI and never reach the bundle.
+import "./favicon.ico?no-inline";
