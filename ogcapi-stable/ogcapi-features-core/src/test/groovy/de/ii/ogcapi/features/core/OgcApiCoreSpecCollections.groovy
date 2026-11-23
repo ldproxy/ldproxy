@@ -38,6 +38,7 @@ class OgcApiCoreSpecCollections extends Specification {
     @Shared
     FeaturesCoreProviders providers = Mock {
         getFeatureSchema(_, _) >> Optional.of(createFeatureSchema())
+        getFeatureProvider(_, _, _) >> Optional.empty()
     }
     @Shared
     ExtensionRegistry registry = createExtensionRegistry(providers)
@@ -225,7 +226,7 @@ class OgcApiCoreSpecCollections extends Specification {
                 }
 
                 if (extensionType == CollectionExtension.class) {
-                    CollectionExtensionFeatures collectionExtension = new CollectionExtensionFeatures(self, createI18n(), providers)
+                    CollectionExtensionFeatures collectionExtension = new CollectionExtensionFeatures(self, createI18n(), providers, null, null)
                     return ImmutableList.of((T) collectionExtension)
                 }
 
