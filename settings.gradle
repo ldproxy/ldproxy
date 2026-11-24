@@ -20,7 +20,7 @@ buildscript {
 }
 
 plugins {
-    id "de.interactive_instruments.xtraplatform-settings" version "7.1.7"
+    id "de.interactive_instruments.xtraplatform-settings" version "7.2.0"
 }
 
 apply from: 'shared.gradle'
