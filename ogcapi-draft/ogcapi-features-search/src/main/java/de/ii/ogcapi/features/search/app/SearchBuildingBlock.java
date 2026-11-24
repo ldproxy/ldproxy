@@ -39,14 +39,16 @@ import java.util.Optional;
  *     </code>
  *     <p>A query expression is expressed as a JSON object.
  *     <p>The query expression object can describe a single query (the properties "collections",
- *     "filter", "filterCrs", "properties", "excludeProperties" and "sortby" are members of the
- *     query expression object) or multiple queries (a "queries" member with an array of query
- *     objects is present) in a single request.
+ *     "filter", "properties", "excludeProperties" and "sortby" are members of the query expression
+ *     object) or multiple queries (a "queries" member with an array of query objects is present) in
+ *     a single request. The members "id", "title", "description", "filterCrs", "filterOperator",
+ *     "crs", "verticalCrs", "profiles", "limit", "offset", "maxAllowableOffset", "supportPaging",
+ *     "deduplicate" and "parameters" are always members of the query expression object and apply to
+ *     all queries; see the general remarks below.
  *     <p>For each query:
  *     <p><code>
- * - The value of "collection" is an array with one item, the identifier of the collection to query.
+ * - The value of "collections" is an array with one item, the identifier of the collection to query.
  * - The value of "filter" is a CQL2 JSON filter expression. See the [Filter building block](filter.md).
- * - The value of "filterCrs" is the URI of the coordinate reference system of coordinates in a "filter". The default is "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, longitude/latitude).
  * - The value of "properties" is an array with the names of properties to include in the response. See the [Projections building block](projections.md).
  * - The value of "excludeProperties" is an array with the names of properties to exclude from the response. The properties that are selected by "properties" (all properties, if it is absent) are returned without them. Excluding a property that the queried collection does not have has no effect.
  * - The value of "sortby" is used to sort the features in the response. See the [Sorting building block](sorting.md).
@@ -83,7 +85,7 @@ import java.util.Optional;
  *     that must be combined with the corresponding member in each query. The global and local property
  *     selection list are concatenated, the global and local exclusion list are unioned and then
  *     subtracted from the selection, and the global and local filters are combined using the logical
- *     operator specified by the "filterOperator" member.
+ *     operator specified by the "filterOperator" member ("AND" or "OR", the default is "AND").
  *   - The global member "filter" must only reference queryables that are common to all
  *     collections being queried.
  *   - The global member "properties" must only reference presentables that are common to all
@@ -109,21 +111,45 @@ import java.util.Optional;
  *     "supportPaging" to true to be paged instead: the response then reports "numberMatched" and
  *     "numberReturned" and the result can be retrieved page by page via "offset", with "next"/"prev"
  *     links. Ad-hoc queries (POST) are always single-shot, as there is no addressable URL to page
- *     through. Since a single-shot response may be too large to be rendered in a browser, it is
- *     returned with a "Content-Disposition: attachment" header, i.e., browsers save the response
- *     as a file instead of rendering it. This also applies to formats that browsers otherwise
+ *     through; "supportPaging": true is rejected for them. Since a single-shot response may be too
+ *     large to be rendered in a browser, it is returned with a "Content-Disposition: attachment"
+ *     header, i.e., browsers save the response as a file instead of rendering it. This also applies to formats that browsers otherwise
  *     display directly, like GeoJSON.
+ * - With "supportPaging": true, the value of "limit" is the number of features per page (the
+ *     default is the option "defaultPageSize" of the Features building block) and the value of
+ *     "offset" is the index of the first feature of the page in the overall result set (the default
+ *     is 0). The query parameter "offset" of a request overrides "offset". Without paging, both
+ *     members have no effect.
+ * - The value of "filterCrs" is the URI of the coordinate reference system of the coordinates in
+ *     all filters of the query expression, the global "filter" as well as the "filter" of each
+ *     query. The default is "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84,
+ *     longitude/latitude).
  * - The "crs" and "verticalCrs" members are optional and can be used to specify the coordinate
  *     reference system for the coordinates in the response. If no value is specified, the default
  *     coordinate reference system is used. If "verticalCrs" is specified, then it must be the URI
  *     of a vertical coordinate reference system and "crs" must be specified and be the URI of a
  *     horizontal 2D coordinate reference system.
+ * - The value of "profiles" is an array of profile identifiers, as in the query parameter
+ *     "profile" of the Features resources (see the [Features building block](features.md)), for
+ *     example "rel-as-link" or "val-as-title". The profiles are negotiated for each queried
+ *     collection and the output format; for a profile set without a requested profile, the default
+ *     profile from the option "defaultProfiles" of the Features building block applies. A profile
+ *     that selects the coordinate reference system of the response is only used if "crs" is
+ *     absent.
+ * - The value of "maxAllowableOffset" simplifies all geometries in the response with the [Douglas
+ *     Peucker
+ *     algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).
+ *     It is the maximum distance between the original and the simplified geometry, in the units of
+ *     the coordinate reference system of the response. The default is 0, that is, no
+ *     simplification.
  * - HTML is only available for queries with "supportPaging" set to true that return the response
  *     in the default coordinate reference system (the embedded map does not support other
  *     coordinate reference systems). For all other queries, HTML is not included in the list of
  *     output formats of the query and requests for HTML are rejected with a 406 (Not Acceptable).
  *     If the value of "crs" is a parameter, HTML is not offered, since the coordinate reference
- *     system is only known when the query is executed.
+ *     system is only known when the query is executed. The same applies if "profiles" includes a
+ *     profile that selects the coordinate reference system of the response, or a parameter that
+ *     may resolve to such a profile.
  * - "sortby" will only apply per query. A global "sortby" would require that the
  *     results of all queries are compiled first and then the combined result set is sorted. This
  *     would not support "streaming" the response.
@@ -161,12 +187,14 @@ import java.util.Optional;
  *     <p>Das Query-Expression-Objekt kann eine einzelne Abfrage (Key-Value-Paare "collections",
  *     "filter", "properties", "excludeProperties" und "sortby") oder mehrere Abfragen
  *     (Key-Value-Paar "queries" mit einem Array von Abfrageobjekten) in einer einzigen Anfrage
- *     beschreiben.
+ *     beschreiben. Die Key-Value-Paare "id", "title", "description", "filterCrs", "filterOperator",
+ *     "crs", "verticalCrs", "profiles", "limit", "offset", "maxAllowableOffset", "supportPaging",
+ *     "deduplicate" und "parameters" gehören immer zum Query-Expression-Objekt und gelten für alle
+ *     Abfragen; siehe die allgemeinen Hinweise unten.
  *     <p>Für jede Abfrage:
  *     <p><code>
- * - Der Wert von "collection" ist ein Array mit einem Element, dem Identifikator der abzufragenden Feature Collection.
+ * - Der Wert von "collections" ist ein Array mit einem Element, dem Identifikator der abzufragenden Feature Collection.
  * - Der Wert von "filter" ist ein CQL2 JSON-Filterausdruck. Siehe den [Filter-Baustein](filter.md).
- * - Der Wert von "filterCrs" ist die URI des Koordinatenreferenzsystems der Koordinaten in einem "filter". Der Standardwert ist "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, Longitude/Latitude).
  * - Der Wert von "properties" ist ein Array mit den Namen der Eigenschaften, die in die Antwort aufgenommen werden sollen. Siehe den [Projections-Baustein](projections.md).
  * - Der Wert von "excludeProperties" ist ein Array mit den Namen der Eigenschaften, die aus der Antwort ausgeschlossen werden sollen. Die von "properties" ausgewählten Eigenschaften (alle Eigenschaften, wenn es fehlt) werden ohne sie zurückgegeben. Der Ausschluss einer Eigenschaft, die die abgefragte Collection nicht hat, bleibt ohne Wirkung.
  * - Der Wert von "sortby" wird zum Sortieren der Merkmale in der Antwort verwendet. Siehe den [Sorting-Baustein](sorting.md).
@@ -178,7 +206,7 @@ import java.util.Optional;
  *     <p>Für mehrere Abfragen:
  *     <p><code>
  * - Wenn mehrere Abfragen angegeben werden, werden die Ergebnisse zusammengeführt. Die Antwort ist eine einzelne Feature Collection. Die Feature-IDs in der Antwort auf eine Abfrage mit mehreren Feature Collections müssen eindeutig sein. Da der Bezeichner eines Features nur pro Feature Collection eindeutig sein muss, müssen sie mit der Feature-Collection-ID kombiniert werden. Es wird eine Verkettung mit "." als Verbindungszeichen verwendet (z. B. "apronelement.123456"). Deklariert der Feature-Provider, dass seine Feature-IDs global eindeutig sind, werden die IDs nicht umgeschrieben.
- * - Die direkten Key-Value-Paare "filter", "properties" und "excludeProperties" stellen 'globale' Bedingungen dar, die in jeder Abfrage mit dem entsprechenden Key-Value-Paar kombiniert werden müssen. Die globale und die lokale Eigenschaftsauswahlliste werden verkettet, die globale und die lokale Ausschlussliste werden vereinigt und anschließend von der Auswahl abgezogen. Die globalen und lokalen Filter werden mit dem logischen Operator kombiniert, der durch das Mitglied "filterOperator" angegeben wird.
+ * - Die direkten Key-Value-Paare "filter", "properties" und "excludeProperties" stellen 'globale' Bedingungen dar, die in jeder Abfrage mit dem entsprechenden Key-Value-Paar kombiniert werden müssen. Die globale und die lokale Eigenschaftsauswahlliste werden verkettet, die globale und die lokale Ausschlussliste werden vereinigt und anschließend von der Auswahl abgezogen. Die globalen und lokalen Filter werden mit dem logischen Operator kombiniert, der durch das Mitglied "filterOperator" angegeben wird ("AND" oder "OR", der Standardwert ist "AND").
  *   - Das globale Mitglied "filter" darf nur auf Queryables verweisen, die allen abgefragten Collections gemeinsam sind.
  *   - Das globale Mitglied "properties" darf nur auf Presentables verweisen, die allen abgefragten Collections gemeinsam sind.
  *   - Das globale Mitglied "excludeProperties" darf auf ein Presentable verweisen, das nur einige der abgefragten Collections haben; für die übrigen bleibt es ohne Wirkung. Ein Name, den keine von ihnen hat, ist ein Fehler.
@@ -187,9 +215,13 @@ import java.util.Optional;
  *     <p>Allgemeines:
  *     <p><code>
  * - Ein "Titel" und eine "Beschreibung" für die Query Expression können hinzugefügt werden. Es wird dringend empfohlen, beides anzugeben, um Benutzern die Abfrage zu erklären.
- * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Formate, in denen diese Angaben Pflicht sind (GML mit "supportsStandardResponseParameters"), geben "numberMatched" als "unknown" und "numberReturned" als "0" an; "0" bedeutet hier, dass die Anzahl nicht bestimmt wurde. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt. Da eine in einem Durchgang ausgegebene Antwort zu groß sein kann, um in einem Browser dargestellt zu werden, wird sie mit einem Header "Content-Disposition: attachment" ausgegeben, d. h. Browser speichern die Antwort als Datei, anstatt sie anzuzeigen. Dies gilt auch für Formate, die Browser sonst direkt anzeigen, wie GeoJSON.
+ * - Standardmäßig wird die Ergebnismenge in einem Durchgang ausgegeben: alle passenden Features auf einmal, ohne Paging-Links und ohne "numberMatched"/"numberReturned"; dies vermeidet eine Count-Abfrage pro (Unter-)Abfrage und ist bei großen Ergebnismengen deutlich schneller. Formate, in denen diese Angaben Pflicht sind (GML mit "supportsStandardResponseParameters"), geben "numberMatched" als "unknown" und "numberReturned" als "0" an; "0" bedeutet hier, dass die Anzahl nicht bestimmt wurde. Eine Stored Query kann "supportPaging" auf true setzen, um stattdessen seitenweise ausgegeben zu werden: Die Antwort enthält dann "numberMatched" und "numberReturned" und die Ergebnismenge kann über "offset" seitenweise abgerufen werden, mit "next"/"prev"-Links. Ad-hoc-Abfragen (POST) werden immer in einem Durchgang ausgegeben, da es keine adressierbare URL für das Paging gibt; "supportPaging": true wird für sie abgelehnt. Da eine in einem Durchgang ausgegebene Antwort zu groß sein kann, um in einem Browser dargestellt zu werden, wird sie mit einem Header "Content-Disposition: attachment" ausgegeben, d. h. Browser speichern die Antwort als Datei, anstatt sie anzuzeigen. Dies gilt auch für Formate, die Browser sonst direkt anzeigen, wie GeoJSON.
+ * - Mit "supportPaging": true ist der Wert von "limit" die Anzahl der Features je Seite (der Standardwert ist die Option "defaultPageSize" des Features-Bausteins) und der Wert von "offset" der Index des ersten Features der Seite in der gesamten Ergebnismenge (der Standardwert ist 0). Der Query-Parameter "offset" einer Anfrage überschreibt "offset". Ohne Paging haben beide Key-Value-Paare keine Wirkung.
+ * - Der Wert von "filterCrs" ist die URI des Koordinatenreferenzsystems der Koordinaten in allen Filtern der Query Expression, sowohl im globalen "filter" als auch im "filter" jeder Abfrage. Der Standardwert ist "http://www.opengis.net/def/crs/OGC/1.3/CRS84" (WGS 84, Longitude/Latitude).
  * - Die Elemente "crs" und "verticalCrs" sind optional und können verwendet werden, um das Koordinatenreferenzsystem für die Koordinaten in der Antwort zu spezifizieren. Ist kein Wert angegeben, dann wird das Standard-Koordinatenreferenzsystem verwendet. Ist "verticalCrs" angegeben, dann muss es die URI eines vertikalen Koordinatenreferenzsystem sind und "crs" angegeben sein und die URI eines horizontales 2D-Koordinatenreferenzsystem sein.
- * - HTML ist nur für Abfragen verfügbar, bei denen "supportPaging" auf true gesetzt ist und die die Antwort im Standard-Koordinatenreferenzsystem zurückgeben (die eingebettete Karte unterstützt keine anderen Koordinatenreferenzsysteme). Für alle anderen Abfragen wird HTML nicht in der Liste der Ausgabeformate der Abfrage aufgeführt und Anfragen nach HTML werden mit einem 406 (Not Acceptable) abgelehnt. Ist der Wert von "crs" ein Parameter, wird HTML nicht angeboten, da das Koordinatenreferenzsystem erst bei der Ausführung der Abfrage bekannt ist.
+ * - Der Wert von "profiles" ist ein Array mit Profil-Identifikatoren wie beim Query-Parameter "profile" der Features-Ressourcen (siehe den [Features-Baustein](features.md)), zum Beispiel "rel-as-link" oder "val-as-title". Die Profile werden für jede abgefragte Collection und das Ausgabeformat ausgehandelt; für eine Profilgruppe ohne angefordertes Profil gilt das Standardprofil aus der Option "defaultProfiles" des Features-Bausteins. Ein Profil, das das Koordinatenreferenzsystem der Antwort festlegt, wird nur verwendet, wenn "crs" fehlt.
+ * - Der Wert von "maxAllowableOffset" vereinfacht alle Geometrien in der Antwort mit dem [Douglas-Peucker-Algorithmus](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm). Er legt den maximalen Abstand zwischen der Originalgeometrie und der vereinfachten Geometrie fest, in den Einheiten des Koordinatenreferenzsystems der Antwort. Der Standardwert ist 0, d. h. keine Vereinfachung.
+ * - HTML ist nur für Abfragen verfügbar, bei denen "supportPaging" auf true gesetzt ist und die die Antwort im Standard-Koordinatenreferenzsystem zurückgeben (die eingebettete Karte unterstützt keine anderen Koordinatenreferenzsysteme). Für alle anderen Abfragen wird HTML nicht in der Liste der Ausgabeformate der Abfrage aufgeführt und Anfragen nach HTML werden mit einem 406 (Not Acceptable) abgelehnt. Ist der Wert von "crs" ein Parameter, wird HTML nicht angeboten, da das Koordinatenreferenzsystem erst bei der Ausführung der Abfrage bekannt ist. Dasselbe gilt, wenn "profiles" ein Profil enthält, das das Koordinatenreferenzsystem der Antwort festlegt, oder einen Parameter, der zu einem solchen Profil aufgelöst werden kann.
  * - "sortby" wird nur pro Abfrage angewendet. Ein globales "sortby" würde erfordern, dass die Ergebnisse aller Abfragen zuerst kompiliert werden und dann die kombinierte Ergebnismenge sortiert wird. Dies würde das "Streaming" der Antwort nicht unterstützen.
  * - Im Falle einer parametrisierten gespeicherten Abfrage kann der Abfrageausdruck JSON-Objekte mit einem Member "$parameter" enthalten. Der Wert von "$parameter" ist ein Objekt mit einem Key-Value-Paar, bei dem der Schlüssel der Parametername und der Wert ein JSON-Schema ist, das den Parameter beschreibt. Bei der Ausführung der gespeicherten Abfrage werden alle Objekte mit einem "$parameter"-Member durch den Wert des Parameters für diese Abfrageausführung ersetzt. Kommagetrennte Parameterwerte werden in ein Array umgewandelt, wenn der Parameter vom Typ "array" ist.
  * - Parameter können auch in einem Member "parameters" im Abfrageausdruck angegeben werden und mit "$ref" referenziert werden.
@@ -218,10 +250,10 @@ import java.util.Optional;
  *     `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`,
  *     `additionalItems` and `items: false` are not supported.
  * - Parameters in filter expressions are limited to scalar values (string, number, boolean),
- *     arrays of scalar values, or geometries as WKT (see above).
- * - POST to execute a stored query is not supported. This will be added after discussing the
- *     specification in OGC (e.g., whether the payload should be JSON or URL-encoded query
- *     parameters).
+ *     arrays of scalar values, or geometries as WKT or GeoJSON (see above).
+ * - A stored query can only be executed with POST if it is not paged. The parameters are then
+ *     URL-encoded in the request body (content type `application/x-www-form-urlencoded`), a JSON
+ *     payload is not supported. The response includes no links.
  *     </code>
  *     <p>Result sets have the following constraints:
  *     <p><code>
@@ -238,8 +270,8 @@ import java.util.Optional;
  * @limitationsDe Für parametrisierte gespeicherte Abfragen gelten die folgenden Beschränkungen:
  *     <p><code>
  * - Das JSON-Schema eines Parameters unterstützt eine Teilmenge der Sprache. Insbesondere werden `patternProperties`, `additionalProperties`, `allOf`, `oneOf`, `prefixItems`, `additionalItems` und `items: false` nicht unterstützt.
- * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte), Arrays von Skalarwerten oder Geometrien als WKT (siehe oben) beschränkt.
- * - POST zur Ausführung einer gespeicherten Abfrage wird nicht unterstützt. Dies wird hinzugefügt, nachdem die Spezifikation in OGC diskutiert wurde (z.B. ob die Nutzlast JSON oder URL-kodierte Abfrageparameter sein sollen).
+ * - Parameter in Filterausdrücken sind auf Skalarwerte (Strings, Zahlen, Boolesche Werte), Arrays von Skalarwerten oder Geometrien als WKT oder GeoJSON (siehe oben) beschränkt.
+ * - Eine gespeicherte Abfrage kann nur mit POST ausgeführt werden, wenn sie nicht seitenweise ausgegeben wird. Die Parameter werden dann URL-kodiert im Request-Body übergeben (Content-Type `application/x-www-form-urlencoded`), eine JSON-Nutzlast wird nicht unterstützt. Die Antwort enthält keine Links.
  *     </code>
  *     <p>Für Result-Sets gelten die folgenden Beschränkungen:
  *     <p><code>
