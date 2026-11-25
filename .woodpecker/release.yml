@@ -51,7 +51,7 @@ steps:
 ## workaround: docker buildx imagetools create --tag "iide/ldproxy:latest" "iide/ldproxy:4.1.0"
 
   github:
-    image: node:24@sha256:9d266751ca3d7fdbe651c878ffd5ad0a42fed49a18c283509267c97f025b7496
+    image: node:24@sha256:49f7adaf9f1574bc45c20ea317139b39a59d7e758d0e93745e112fd85cb42623
     commands:
       - export HOME=$${CI_WORKSPACE}
       - npx --yes @cjbarth/github-release-notes@3.0.0 release -d --head $CI_COMMIT_BRANCH -t $CI_COMMIT_TAG --token=$GITHUB_TOKEN
