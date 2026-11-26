@@ -290,6 +290,26 @@ import de.ii.xtraplatform.docs.DocVar;
 @AutoMultiBind
 public interface ApiBuildingBlock extends ApiExtension {
 
+  /**
+   * A building block is enabled for an API, if its configuration is enabled at the API level or for
+   * at least one enabled collection. A building block that is disabled at the API level and enabled
+   * only for some collections is started and its resources are available for these collections, in
+   * line with the endpoints of the building block that are enabled for an API, if one of the
+   * collections enables them. A building block that only applies at the API level overrides this
+   * method.
+   *
+   * @param apiData the API
+   * @return {@code true}, if the building block is enabled for the API or one of its collections
+   */
+  @Override
+  default boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return ApiExtension.super.isEnabledForApi(apiData)
+        || apiData.getCollections().values().stream()
+            .filter(FeatureTypeConfigurationOgcApi::getEnabled)
+            .anyMatch(
+                collection -> isExtensionEnabled(collection, getBuildingBlockConfigurationType()));
+  }
+
   @Override
   default Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
     return getDefaultConfiguration().getClass();

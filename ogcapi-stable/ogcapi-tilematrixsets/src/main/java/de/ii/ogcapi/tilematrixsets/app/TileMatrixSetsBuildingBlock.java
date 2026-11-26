@@ -88,6 +88,12 @@ public class TileMatrixSetsBuildingBlock implements ApiBuildingBlock, Conformanc
         "http://www.opengis.net/spec/tms/2.0/conf/json-tilematrixset");
   }
 
+  // the tile matrix sets are resources of the API, not of a collection
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return isExtensionEnabled(apiData, getBuildingBlockConfigurationType());
+  }
+
   @Override
   public ExtensionConfiguration getDefaultConfiguration() {
 

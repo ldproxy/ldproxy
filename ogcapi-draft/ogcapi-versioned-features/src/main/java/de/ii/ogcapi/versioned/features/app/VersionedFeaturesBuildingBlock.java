@@ -106,6 +106,9 @@ public class VersionedFeaturesBuildingBlock implements ApiBuildingBlock {
         .getCollections()
         .forEach(
             (collectionId, collectionData) -> {
+              if (!isEnabledForApi(api.getData(), collectionId)) {
+                return;
+              }
               String featureTypeId =
                   collectionData
                       .getExtension(FeaturesCoreConfiguration.class)
