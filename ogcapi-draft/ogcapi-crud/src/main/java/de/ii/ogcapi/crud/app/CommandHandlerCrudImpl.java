@@ -797,9 +797,9 @@ public class CommandHandlerCrudImpl extends AbstractVolatileComposed implements 
     String timeHeader = response.getHeaderString(FeaturesCoreQueriesHandler.TEMPORAL_EXTENT_HEADER);
     Optional<Tuple<Long, Long>> currentTime = Optional.empty();
     if (Objects.nonNull(timeHeader)) {
-      Matcher startMatcher = Pattern.compile("^.*start\\s*=\\s*(\\d+).*$").matcher(timeHeader);
+      Matcher startMatcher = Pattern.compile("^.*start\\s*=\\s*(-?\\d+).*$").matcher(timeHeader);
       boolean startIsSet = startMatcher.find();
-      Matcher endMatcher = Pattern.compile("^.*end\\s*=\\s*(\\d+).*$").matcher(timeHeader);
+      Matcher endMatcher = Pattern.compile("^.*end\\s*=\\s*(-?\\d+).*$").matcher(timeHeader);
       boolean endIsSet = endMatcher.find();
       if (startIsSet && endIsSet) {
         currentTime =

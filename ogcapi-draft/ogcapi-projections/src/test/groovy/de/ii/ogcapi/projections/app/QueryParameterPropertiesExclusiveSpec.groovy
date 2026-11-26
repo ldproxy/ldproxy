@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.projections.app
 
+import de.ii.ogcapi.features.core.domain.FeaturesCoreProviders
 import de.ii.ogcapi.features.core.domain.SchemaInfo
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2
 import de.ii.ogcapi.foundation.domain.QueryParameterSet
@@ -22,7 +23,7 @@ import spock.lang.Specification
 class QueryParameterPropertiesExclusiveSpec extends Specification {
 
     QueryParameterProperties properties = new QueryParameterProperties(Stub(SchemaInfo), Stub(SchemaValidator))
-    QueryParameterExcludeProperties excludeProperties = new QueryParameterExcludeProperties(Stub(SchemaInfo), Stub(SchemaValidator))
+    QueryParameterExcludeProperties excludeProperties = new QueryParameterExcludeProperties(Stub(SchemaInfo), Stub(SchemaValidator), Stub(FeaturesCoreProviders))
 
     QueryParameterSet evaluate(Map<String, String> query) {
         def values = new MultivaluedHashMap<String, String>()

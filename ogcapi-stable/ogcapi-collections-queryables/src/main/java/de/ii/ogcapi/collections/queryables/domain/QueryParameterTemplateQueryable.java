@@ -7,12 +7,12 @@
  */
 package de.ii.ogcapi.collections.queryables.domain;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.features.core.domain.FeatureQueryParameter;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
@@ -47,8 +47,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParameterBase
     implements FeatureQueryParameter, TypedQueryParameter<Cql2Expression> {
-
-  private static final Splitter ARRAY_SPLITTER = Splitter.on(',').trimResults();
 
   public abstract String getApiId();
 
@@ -161,12 +159,15 @@ public abstract class QueryParameterTemplateQueryable extends OgcApiQueryParamet
               ImmutableList.of(
                   Property.of(getName()), ScalarLiteral.of(value.replaceAll("\\*", "%"))));
         }
+        List<String> items = ListParameterValues.split(value);
         return AContains.of(
             Property.of(getName()),
             ArrayLiteral.of(
-                ARRAY_SPLITTER.splitToList(value).stream()
-                    .map(s -> getScalarLiteral(s, getValueType().orElse(Type.STRING)))
-                    .collect(Collectors.toUnmodifiableList())));
+                // an empty value is an empty string, as for a property that is not an array
+                (items.isEmpty() ? List.of("") : items)
+                    .stream()
+                        .map(s -> getScalarLiteral(s, getValueType().orElse(Type.STRING)))
+                        .collect(Collectors.toUnmodifiableList())));
       }
 
       Type t = getValueType().orElse(getType());

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import qs from "qs";
 import { useTranslation } from "react-i18next";
+import { parseQuery, stringifyQuery } from "../query";
 import { Button, Col, Row, Collapse } from "reactstrap";
 import i18n from "../../i18n";
 import { useApiInfo } from "../SortingEditor/hooks";
@@ -78,13 +78,7 @@ const CrsEditor = () => {
     setCrsValues(values);
   }, [collection, isLoaded]);
 
-  const initialQuery = useMemo(
-    () =>
-      qs.parse(window.location.search, {
-        ignoreQueryPrefix: true,
-      }),
-    [],
-  );
+  const initialQuery = useMemo(() => parseQuery(window.location.search), []);
 
   const [appliedCrs, setAppliedCrs] = useState(defaultCollectionCrs);
   const [draftCrs, setDraftCrs] = useState(defaultCollectionCrs);
@@ -119,9 +113,7 @@ const CrsEditor = () => {
   const save = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.currentTarget.blur();
 
-    const query = qs.parse(window.location.search, {
-      ignoreQueryPrefix: true,
-    });
+    const query = parseQuery(window.location.search);
 
     const normalizedDraftCrs = normalizeCrs(draftCrs);
 
@@ -139,9 +131,7 @@ const CrsEditor = () => {
 
     setAppliedCrs(normalizedDraftCrs);
 
-    window.location.search = qs.stringify(query, {
-      addQueryPrefix: true,
-    });
+    window.location.search = stringifyQuery(query);
   };
 
   const cancel = (event: React.MouseEvent<HTMLButtonElement>) => {

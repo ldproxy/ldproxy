@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import qs from "qs";
 import { useTranslation } from "react-i18next";
+import { parseQuery, stringifyQuery } from "../query";
 import i18n from "../../i18n";
 import Editor from "./Editor";
 import EditorHeader from "./Editor/Header";
@@ -11,9 +11,7 @@ import type { Filters } from "./types";
 
 const baseUrl = getBaseUrl();
 
-const query = qs.parse(window.location.search, {
-  ignoreQueryPrefix: true,
-});
+const query = parseQuery(window.location.search);
 
 const SortingEditor = () => {
   const initialFilters = useRef<Filters>({});
@@ -112,7 +110,7 @@ const SortingEditor = () => {
       delete query.sortby;
     }
 
-    const url = qs.stringify(query, { addQueryPrefix: true });
+    const url = stringifyQuery(query);
     window.location.search = url;
   };
 

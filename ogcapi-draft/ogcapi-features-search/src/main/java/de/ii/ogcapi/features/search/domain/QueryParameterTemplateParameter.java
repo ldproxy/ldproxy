@@ -17,6 +17,7 @@ import de.ii.ogcapi.features.search.app.SearchBuildingBlock;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExternalDocumentation;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
+import de.ii.ogcapi.foundation.domain.ListParameterValues;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameterBase;
@@ -113,22 +114,21 @@ public abstract class QueryParameterTemplateParameter extends OgcApiQueryParamet
     StringBuilder valueAsString = new StringBuilder();
     if (schema instanceof ArraySchema && !value.trim().startsWith("[")) {
       Schema<?> itemsSchema = ((ArraySchema) schema).getItems();
-      if (itemsSchema instanceof StringSchema) {
+      if (ListParameterValues.split(value).isEmpty()) {
+        // an empty value is an empty list, not a list with an empty string
+        valueAsString.append("[]");
+      } else if (itemsSchema instanceof StringSchema) {
         valueAsString.append(
             String.format(
                 "[\"%s\"]",
-                Splitter.on(',')
-                    .trimResults()
-                    .splitToStream(value)
+                ListParameterValues.split(value).stream()
                     .map(s -> s.replace("\"", "\\\""))
                     .collect(Collectors.joining("\",\""))));
       } else {
         valueAsString.append(
             String.format(
                 "[%s]",
-                Splitter.on(',')
-                    .trimResults()
-                    .splitToStream(value)
+                ListParameterValues.split(value).stream()
                     .map(s -> s.replace("\"", "\\\""))
                     .collect(Collectors.joining(","))));
       }
