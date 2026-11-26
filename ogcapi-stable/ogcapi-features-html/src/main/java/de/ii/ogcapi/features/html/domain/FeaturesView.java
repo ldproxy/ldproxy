@@ -51,8 +51,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URIBuilder;
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -415,16 +413,17 @@ public abstract class FeaturesView extends OgcApiDatasetView {
   @Value.Derived
   public String getQueryWithoutPage() {
     try {
-      List<NameValuePair> query =
-          new URIBuilder(RawQuery())
-              .getQueryParams().stream()
-                  .filter(kvp -> !"offset".equals(kvp.getName()) && !"limit".equals(kvp.getName()))
-                  .collect(Collectors.toList());
+      // the query is written again with the commas as they are in the request
+      String query =
+          new URICustomizer(RawQuery())
+              .removeParametersIf(name -> "offset".equals(name) || "limit".equals(name))
+              .build()
+              .getRawQuery();
 
-      if (query.isEmpty()) {
+      if (Objects.isNull(query) || query.isEmpty()) {
         return "?";
       }
-      return '?' + new URIBuilder().setParameters(query).build().getRawQuery() + '&';
+      return '?' + query + '&';
     } catch (URISyntaxException e) {
       throw new IllegalStateException(
           String.format("Failed to parse query parameters: '%s'", RawQuery()), e);
@@ -454,16 +453,17 @@ public abstract class FeaturesView extends OgcApiDatasetView {
       List<String> ignore = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(without);
 
       try {
-        List<NameValuePair> query =
-            new URIBuilder(RawQuery())
-                .getQueryParams().stream()
-                    .filter(kvp -> !ignore.contains(kvp.getName().toLowerCase()))
-                    .collect(Collectors.toList());
+        // the query is written again with the commas as they are in the request
+        String query =
+            new URICustomizer(RawQuery())
+                .removeParametersIf(name -> ignore.contains(name.toLowerCase()))
+                .build()
+                .getRawQuery();
 
-        if (query.isEmpty()) {
+        if (Objects.isNull(query) || query.isEmpty()) {
           return "?";
         }
-        return '?' + new URIBuilder().setParameters(query).build().getRawQuery() + '&';
+        return '?' + query + '&';
       } catch (URISyntaxException e) {
         throw new IllegalStateException(
             String.format("Failed to parse query parameters: '%s'", RawQuery()), e);

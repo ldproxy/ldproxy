@@ -8,6 +8,7 @@
 package de.ii.ogcapi.foundation.domain;
 
 import com.google.common.base.Splitter;
+import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.glassfish.jersey.uri.UriComponent;
@@ -21,8 +22,11 @@ import org.glassfish.jersey.uri.UriComponent;
  */
 public final class ListParameterValues {
 
-  /** Replaces an encoded comma in a decoded value, until the value is split into its items. */
-  public static final char ENCODED_COMMA = '\u001F';
+  /**
+   * Replaces an encoded comma in a decoded value, until the value is split into its items; the same
+   * character as in the query of a {@link URICustomizer}.
+   */
+  public static final char ENCODED_COMMA = URICustomizer.ENCODED_COMMA;
 
   private static final Pattern ENCODED_COMMA_PATTERN = Pattern.compile("%2[cC]");
   private static final String ENCODED_MARKER = "%1F";
