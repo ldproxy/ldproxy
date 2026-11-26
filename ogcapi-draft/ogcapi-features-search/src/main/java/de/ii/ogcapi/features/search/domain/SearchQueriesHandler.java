@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.features.search.domain;
 
+import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.PermissionGroup;
 import de.ii.ogcapi.foundation.domain.PermissionGroup.Base;
 import de.ii.ogcapi.foundation.domain.QueriesHandler;
@@ -16,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.QueryInput;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.crs.domain.EpsgCrs;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
+import de.ii.xtraplatform.features.domain.JobHook;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -31,6 +33,12 @@ public interface SearchQueriesHandler
 
   @Override
   Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers();
+
+  /**
+   * Validates a query as its execution would, without executing it, e.g. before the query is
+   * submitted as a job. An invalid query fails with the same exception as its execution.
+   */
+  void validate(QueryInputQuery queryInput, ApiRequestContext requestContext);
 
   enum Query implements QueryIdentifier {
     STORED_QUERIES,
@@ -71,6 +79,9 @@ public interface SearchQueriesHandler
     default boolean includeBodyLinks() {
       return true;
     }
+
+    /** Progress/cancellation hook for the request; empty on the synchronous path. */
+    Optional<JobHook> getJobHook();
   }
 
   @Value.Immutable

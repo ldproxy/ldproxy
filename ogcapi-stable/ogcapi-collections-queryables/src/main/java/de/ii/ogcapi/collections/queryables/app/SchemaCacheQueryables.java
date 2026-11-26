@@ -24,23 +24,19 @@ import de.ii.xtraplatform.features.domain.transform.PropertyTransformations;
 import de.ii.xtraplatform.features.domain.transform.WithTransformationsApplied;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument;
 import de.ii.xtraplatform.jsonschema.domain.JsonSchemaDocument.VERSION;
+import de.ii.xtraplatform.values.domain.Values;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 class SchemaCacheQueryables extends JsonSchemaCache {
 
   private static final String DEFAULT_FLATTENING_SEPARATOR = ".";
 
-  private final Supplier<Map<String, Codelist>> codelistSupplier;
   private final FeaturesCoreProviders providers;
 
   public SchemaCacheQueryables(
-      Supplier<Map<String, Codelist>> codelistSupplier,
-      FeaturesCoreProviders featuresCoreProviders) {
-    super();
-    this.codelistSupplier = codelistSupplier;
+      Values<Codelist> codelists, FeaturesCoreProviders featuresCoreProviders) {
+    super(codelists);
     this.providers = featuresCoreProviders;
   }
 
@@ -77,7 +73,7 @@ class SchemaCacheQueryables extends JsonSchemaCache {
             schemaUri,
             collectionData.getLabel(),
             Optional.empty(),
-            codelistSupplier.get(),
+            getCodelists(),
             ImmutableList.of("*"));
 
     return (JsonSchemaDocument) queryablesSchema.accept(schemaFlattener).accept(schemaDeriver);

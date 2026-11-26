@@ -7,6 +7,8 @@
  */
 package de.ii.ogcapi.foundation.infra.json;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableMap;
@@ -24,6 +26,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URI;
@@ -31,11 +34,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -175,12 +180,53 @@ public class ClassSchemaCacheImpl implements ClassSchemaCache {
     }
 
     if (clazz.isEnum()) {
-      return new EnumSchema((Object[]) clazz.getEnumConstants());
+      return new EnumSchema(enumValues(clazz));
     } else if (clazz.isArray()) {
       return new ArraySchema(clazz, clazz.getComponentType(), this);
     }
 
+    // an object that is serialized as the value of a @JsonValue method has the schema of that
+    // value, any value for an Object
+    Optional<Method> jsonValue = jsonValueMethod(clazz);
+    if (jsonValue.isPresent()) {
+      Class<?> valueType = jsonValue.get().getReturnType();
+      return Objects.equals(valueType, Object.class) || Objects.equals(valueType, JsonNode.class)
+          ? new Schema<>()
+          : getSchema(valueType, null);
+    }
+
     return new ObjectSchema(clazz, this);
+  }
+
+  // the values as serialized, e.g. "sync-execute" for SYNC_EXECUTE with a @JsonValue method or
+  // "object" for OBJECT with @JsonProperty("object")
+  private static Object[] enumValues(Class<?> clazz) {
+    Object[] constants = clazz.getEnumConstants();
+    Optional<Method> jsonValue = jsonValueMethod(clazz);
+    return Arrays.stream(constants)
+        .map(
+            constant -> {
+              try {
+                if (jsonValue.isPresent()) {
+                  return jsonValue.get().invoke(constant);
+                }
+                JsonProperty property =
+                    clazz.getField(((Enum<?>) constant).name()).getAnnotation(JsonProperty.class);
+                return Objects.nonNull(property) && !property.value().isEmpty()
+                    ? property.value()
+                    : constant;
+              } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(
+                    "Could not determine the value of enum constant " + constant, e);
+              }
+            })
+        .toArray();
+  }
+
+  private static Optional<Method> jsonValueMethod(Class<?> clazz) {
+    return Arrays.stream(clazz.getMethods())
+        .filter(m -> m.isAnnotationPresent(JsonValue.class) && m.getParameterCount() == 0)
+        .findFirst();
   }
 
   private void addDependency(Class<?> clazz, Class<?> referencedClazz) {

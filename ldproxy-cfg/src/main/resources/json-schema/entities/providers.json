@@ -15,10 +15,10 @@
         "FEATURES",
         "MBTILES",
         "HTTP",
+        "GRAPHQL",
+        "SQL",
         "ORACLE",
         "GEOPARQUET",
-        "SQL",
-        "GRAPHQL",
         "WFS"
       ]
     }
@@ -130,6 +130,44 @@
             "const": "FEATURE"
           },
           "providerSubType": {
+            "const": "GRAPHQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderGraphQlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
+            "const": "SQL"
+          }
+        },
+        "required": [
+          "providerType",
+          "providerSubType"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/FeatureProviderSqlData"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "providerType": {
+            "const": "FEATURE"
+          },
+          "providerSubType": {
             "const": "ORACLE"
           }
         },
@@ -159,44 +197,6 @@
       },
       "then": {
         "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "SQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderSqlData"
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "providerType": {
-            "const": "FEATURE"
-          },
-          "providerSubType": {
-            "const": "GRAPHQL"
-          }
-        },
-        "required": [
-          "providerType",
-          "providerSubType"
-        ]
-      },
-      "then": {
-        "$ref": "#/$defs/FeatureProviderGraphQlData"
       }
     },
     {
@@ -644,276 +644,6 @@
       },
       "additionalProperties": false
     },
-    "FeatureProviderSqlData": {
-      "title": "FeatureProviderSqlData",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "id",
-          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "providerType": {
-          "title": "providerType",
-          "description": "Always `FEATURE`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providerSubType": {
-          "title": "providerSubType",
-          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "nativeCrs": {
-          "title": "nativeCrs",
-          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
-          "type": "object",
-          "$ref": "#/$defs/EpsgCrs"
-        },
-        "nativeTimeZone": {
-          "title": "nativeTimeZone",
-          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "defaultLanguage": {
-          "title": "defaultLanguage",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "typeValidation": {
-          "title": "typeValidation",
-          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "labelTemplate": {
-          "title": "labelTemplate",
-          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "providesGeometryTypes": {
-          "title": "providesGeometryTypes",
-          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "globallyUniqueFeatureIds": {
-          "title": "globallyUniqueFeatureIds",
-          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "cql2Functions": {
-          "title": "cql2Functions",
-          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/CustomFunction"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/CustomFunction"
-              }
-            }
-          ]
-        },
-        "extensions": {
-          "title": "extensions",
-          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "$ref": "#/$defs/ExtensionConfiguration"
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "$ref": "#/$defs/ExtensionConfiguration"
-              }
-            }
-          ]
-        },
-        "codelists": {
-          "title": "codelists",
-          "description": "",
-          "type": "object",
-          "additionalProperties": {
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "auto": {
-          "title": "auto",
-          "description": "Option to generate missing definitions automatically from the data source.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "connectionInfo": {
-          "title": "connectionInfo",
-          "description": "See [Connection Info](#connection-info).",
-          "type": "object",
-          "$ref": "#/$defs/ConnectionInfoSql"
-        },
-        "datasetChanges": {
-          "title": "datasetChanges",
-          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)    below.",
-          "type": "object",
-          "$ref": "#/$defs/DatasetChangeSettings"
-        },
-        "sourcePathDefaults": {
-          "title": "sourcePathDefaults",
-          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path    Defaults](10-sql.md#source-path-defaults) below.",
-          "type": "object",
-          "$ref": "#/$defs/SqlPathDefaults"
-        },
-        "queryGeneration": {
-          "title": "queryGeneration",
-          "description": "Options for query generation, for details see [Query    Generation](10-sql.md#query-generation) below.",
-          "type": "object",
-          "$ref": "#/$defs/QueryGeneratorSettings"
-        },
-        "queryProcessing": {
-          "title": "queryProcessing",
-          "description": "Options for query processing, for details see [Query    Processing](10-sql.md#query-processing) below.",
-          "type": "object",
-          "$ref": "#/$defs/QueryProcessorSettings"
-        },
-        "types": {
-          "title": "types",
-          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        },
-        "fragments": {
-          "title": "fragments",
-          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/FeatureSchema"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "FeatureProviderGraphQlData": {
       "title": "FeatureProviderGraphQlData",
       "description": "",
@@ -981,6 +711,12 @@
             "null"
           ]
         },
+        "transformationArea": {
+          "title": "transformationArea",
+          "description": "Area, as a bounding box in CRS84 (`xmin`, `ymin`, `xmax`, `ymax`), that is used to    select the transformation between two coordinate reference systems when several are    available, for example a regional NTv2 grid instead of a national one. The most accurate    transformation whose area of use contains this box is used; grid files that are not part of    the default installation have to be provided in `resources/proj`. Without a value, the    transformation is selected independently of an area.      The box has to lie completely within the area of use of the intended transformation. If    it extends beyond it, even by a few hundredths of a degree, a less accurate transformation    that covers the whole box is selected instead. For this reason, the spatial extent of the    data, of an API or of a provider is often not suitable: for a dataset that covers the    region of a regional transformation completely, the extent usually extends slightly beyond    its area of use, for example because of features on the boundary, or because the extent of    data stored in a projected coordinate reference system becomes larger when it is converted    to CRS84. Use the area of use of the intended transformation as given in the EPSG registry    instead, for example `7.77, 49.39, 10.24, 51.66` for the transformation from DHDN to ETRS89    in Hessen (HeTA2010). Coordinates slightly outside of the area of use are still transformed    as long as they are covered by the grid.",
+          "type": "object",
+          "$ref": "#/$defs/BoundingBox"
+        },
         "defaultLanguage": {
           "title": "defaultLanguage",
           "description": "",
@@ -1143,6 +879,12 @@
             }
           ]
         },
+        "extent": {
+          "title": "extent",
+          "description": "Optional spatial (in the native CRS) and temporal extent for all types in this    provider. If set, the extent is not computed from the data. SQL providers also restrict    queries for multiple features to the extent, see `queryGeneration`; other providers do not    restrict queries.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
+        },
         "connectionInfo": {
           "title": "connectionInfo",
           "description": "",
@@ -1158,6 +900,288 @@
         "types": {
           "title": "types",
           "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureProviderSqlData": {
+      "title": "FeatureProviderSqlData",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "description": "Unique identifier of the entity, has to match the filename. Allowed characters are    (A-Z, a-z), numbers (0-9), underscore and hyphen.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Option to disable the entity, which means it will not be available to other entities    and background tasks will not be running.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerType": {
+          "title": "providerType",
+          "description": "Always `FEATURE`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providerSubType": {
+          "title": "providerSubType",
+          "description": "`SQL` for SQL DBMS as data source, `WFS` for *OGC Web Feature Service* as data source.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeCrs": {
+          "title": "nativeCrs",
+          "description": "Coordinate reference system of geometries in the dataset. The EPSG code of the    coordinate reference system is given as integer in `code`. `forceAxisOrder` may be set to    use a non-default axis order: `LON_LAT` uses longitude/east as first value and    latitude/north as second value, `LAT_LON` uses the reverse. `NONE` uses the default axis    order and is the default value. Example: The default coordinate reference system `CRS84`    would look like this: `code: 4326` and `forceAxisOrder: LON_LAT`.",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
+        },
+        "nativeTimeZone": {
+          "title": "nativeTimeZone",
+          "description": "A timezone ID, such as `Europe/Berlin`. Is applied to temporal values without timezone    in the dataset.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "transformationArea": {
+          "title": "transformationArea",
+          "description": "Area, as a bounding box in CRS84 (`xmin`, `ymin`, `xmax`, `ymax`), that is used to    select the transformation between two coordinate reference systems when several are    available, for example a regional NTv2 grid instead of a national one. The most accurate    transformation whose area of use contains this box is used; grid files that are not part of    the default installation have to be provided in `resources/proj`. Without a value, the    transformation is selected independently of an area.      The box has to lie completely within the area of use of the intended transformation. If    it extends beyond it, even by a few hundredths of a degree, a less accurate transformation    that covers the whole box is selected instead. For this reason, the spatial extent of the    data, of an API or of a provider is often not suitable: for a dataset that covers the    region of a regional transformation completely, the extent usually extends slightly beyond    its area of use, for example because of features on the boundary, or because the extent of    data stored in a projected coordinate reference system becomes larger when it is converted    to CRS84. Use the area of use of the intended transformation as given in the EPSG registry    instead, for example `7.77, 49.39, 10.24, 51.66` for the transformation from DHDN to ETRS89    in Hessen (HeTA2010). Coordinates slightly outside of the area of use are still transformed    as long as they are covered by the grid.",
+          "type": "object",
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "defaultLanguage": {
+          "title": "defaultLanguage",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "typeValidation": {
+          "title": "typeValidation",
+          "description": "Optional type definition validation with regard to the data source (only for SQL).    `NONE` means no validation. With `LAX` the validation will fail and the provider will not    start, when issues are detected that would definitely lead to runtime errors. Issues that    might lead to runtime errors depending on the data will be logged as warning. With `STRICT`    the validation will fail for any detected issue. That means the provider will only start if    runtime errors with regard to the data source can be ruled out.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "labelTemplate": {
+          "title": "labelTemplate",
+          "description": "A template for schema labels. By default, the label set in the schema is used - or the    name, if no label is set. The template is a string template and can contain the variables    `{{value}}` for the schema label and `{{unit}}` for the unit declared in the schema. For    example, to append the unit of measure in square brackets to the property label, one can    use `{{value}}{{unit \\| prepend:\u0027 [\u0027 \\| append:\u0027]\u0027}}`. This option is only supported in the    SQL feature provider.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "providesGeometryTypes": {
+          "title": "providesGeometryTypes",
+          "description": "This option allows to specify the specific geometry types that are provided by the    provider. Known geometry types are `POINT`, `MULTI_POINT`, `LINE_STRING`,    `MULTI_LINE_STRING`, `POLYGON`, `MULTI_POLYGON`, `GEOMETRY_COLLECTION`, `CIRCULAR_STRING`,    `COMPOUND_CURVE`, `CURVE_POLYGON`, `MULTI_CURVE`, `MULTI_SURFACE`, and    `POLYHEDRAL_SURFACE`. More complex geometry types like `CIRCULAR_STRING`, `COMPOUND_CURVE`    or `CURVE_POLYGON` will be simplified for PostGIS feature providers, if the output format    does not support them.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "globallyUniqueFeatureIds": {
+          "title": "globallyUniqueFeatureIds",
+          "description": "If `true`, feature ids are unique across all feature types of the provider, not just    within a single type. Consumers that combine features from multiple types into one response    (for example the *Search* building block) can then keep the ids unchanged instead of    qualifying them with the collection to avoid collisions.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cql2Functions": {
+          "title": "cql2Functions",
+          "description": "Optional custom CQL2 functions that can be used in filters. See [Custom CQL2    Functions](#custom-cql2-functions) for details and examples.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/CustomFunction"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/CustomFunction"
+              }
+            }
+          ]
+        },
+        "extensions": {
+          "title": "extensions",
+          "description": "Definition of extensions, see [Extensions](90-extensions/README.md).",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "$ref": "#/$defs/ExtensionConfiguration"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "$ref": "#/$defs/ExtensionConfiguration"
+              }
+            }
+          ]
+        },
+        "codelists": {
+          "title": "codelists",
+          "description": "",
+          "type": "object",
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "auto": {
+          "title": "auto",
+          "description": "Option to generate missing definitions automatically from the data source.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Optional spatial (in the native CRS) and temporal extent for all types in this    provider. If set, the extent is not computed from the data. SQL providers also restrict    queries for multiple features to the extent, see `queryGeneration`; other providers do not    restrict queries.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
+        },
+        "connectionInfo": {
+          "title": "connectionInfo",
+          "description": "See [Connection Info](#connection-info).",
+          "type": "object",
+          "$ref": "#/$defs/ConnectionInfoSql"
+        },
+        "datasetChanges": {
+          "title": "datasetChanges",
+          "description": "Dataset change handling, for details see [Dataset Changes](10-sql.md#dataset-changes)    below.",
+          "type": "object",
+          "$ref": "#/$defs/DatasetChangeSettings"
+        },
+        "sourcePathDefaults": {
+          "title": "sourcePathDefaults",
+          "description": "Defaults for the path expressions in `sourcePath`, for details see [Source Path    Defaults](10-sql.md#source-path-defaults) below.",
+          "type": "object",
+          "$ref": "#/$defs/SqlPathDefaults"
+        },
+        "queryGeneration": {
+          "title": "queryGeneration",
+          "description": "Options for query generation, for details see [Query    Generation](10-sql.md#query-generation) below.",
+          "type": "object",
+          "$ref": "#/$defs/QueryGeneratorSettings"
+        },
+        "queryProcessing": {
+          "title": "queryProcessing",
+          "description": "Options for query processing, for details see [Query    Processing](10-sql.md#query-processing) below.",
+          "type": "object",
+          "$ref": "#/$defs/QueryProcessorSettings"
+        },
+        "types": {
+          "title": "types",
+          "description": "Definition of feature types. The entries have to be [schema    definitions](#schema-definitions) with `type: OBJECT` and at least one property with `role:    ID`.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/FeatureSchema"
+          }
+        },
+        "fragments": {
+          "title": "fragments",
+          "description": "Definition of reusable schema fragments that can be referenced using `schema` in    `types`. The entries are arbitrary [schema definitions](#schema-definitions).",
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/FeatureSchema"
@@ -1233,6 +1257,12 @@
             "null"
           ]
         },
+        "transformationArea": {
+          "title": "transformationArea",
+          "description": "Area, as a bounding box in CRS84 (`xmin`, `ymin`, `xmax`, `ymax`), that is used to    select the transformation between two coordinate reference systems when several are    available, for example a regional NTv2 grid instead of a national one. The most accurate    transformation whose area of use contains this box is used; grid files that are not part of    the default installation have to be provided in `resources/proj`. Without a value, the    transformation is selected independently of an area.      The box has to lie completely within the area of use of the intended transformation. If    it extends beyond it, even by a few hundredths of a degree, a less accurate transformation    that covers the whole box is selected instead. For this reason, the spatial extent of the    data, of an API or of a provider is often not suitable: for a dataset that covers the    region of a regional transformation completely, the extent usually extends slightly beyond    its area of use, for example because of features on the boundary, or because the extent of    data stored in a projected coordinate reference system becomes larger when it is converted    to CRS84. Use the area of use of the intended transformation as given in the EPSG registry    instead, for example `7.77, 49.39, 10.24, 51.66` for the transformation from DHDN to ETRS89    in Hessen (HeTA2010). Coordinates slightly outside of the area of use are still transformed    as long as they are covered by the grid.",
+          "type": "object",
+          "$ref": "#/$defs/BoundingBox"
+        },
         "defaultLanguage": {
           "title": "defaultLanguage",
           "description": "",
@@ -1394,6 +1424,12 @@
               "type": "null"
             }
           ]
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Optional spatial (in the native CRS) and temporal extent for all types in this    provider. If set, the extent is not computed from the data. SQL providers also restrict    queries for multiple features to the extent, see `queryGeneration`; other providers do not    restrict queries.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         },
         "connectionInfo": {
           "title": "connectionInfo",
@@ -2023,6 +2059,190 @@
       },
       "additionalProperties": false
     },
+    "SpatialExtent": {
+      "title": "SpatialExtent",
+      "description": "Spatial extent. The coordinates are in the native CRS of the feature provider for providers and types, and in CRS84 (longitude/latitude) for tilesets and APIs.",
+      "type": "object",
+      "properties": {
+        "xmin": {
+          "title": "xmin",
+          "description": "Minimum x coordinate.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ymin": {
+          "title": "ymin",
+          "description": "Minimum y coordinate.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zmin": {
+          "title": "zmin",
+          "description": "Minimum z coordinate, optional.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "xmax": {
+          "title": "xmax",
+          "description": "Maximum x coordinate.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ymax": {
+          "title": "ymax",
+          "description": "Maximum y coordinate.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zmax": {
+          "title": "zmax",
+          "description": "Maximum z coordinate, optional.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "computed": {
+          "title": "computed",
+          "description": "Set to `true` to compute the extent from the data instead of inheriting a fixed extent    from the parent level (provider for types, tileset defaults for tilesets). Without a fixed    extent on the parent level, this is the same as omitting the extent. Either the coordinates    or `computed: true` must be set; `false` is not allowed.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "TemporalExtent": {
+      "title": "TemporalExtent",
+      "description": "Temporal extent. Bounds are either dates (yyyy-MM-dd, interpreted in UTC) or date-times with offset (yyyy-MM-ddTHH:mm:ss[.SSS]Z or ±HH:mm). A missing bound is open.",
+      "type": "object",
+      "properties": {
+        "start": {
+          "title": "start",
+          "description": "Start of the extent, either a date (`yyyy-MM-dd`, UTC) or a date-time with offset. Open    if not set.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "end": {
+          "title": "end",
+          "description": "End of the extent, either a date (`yyyy-MM-dd`, inclusive, UTC) or a date-time with    offset. Open if not set.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "computed": {
+          "title": "computed",
+          "description": "Set to `true` to compute the extent from the data instead of inheriting a fixed extent    from the parent level (provider for types). Without a fixed extent on the parent level,    this is the same as omitting the extent. Either `start`, `end` or both, or `computed: true`    must be set; `false` is not allowed.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Extent": {
+      "title": "Extent",
+      "description": "Extent object for spatial and temporal extents.",
+      "type": "object",
+      "properties": {
+        "spatial": {
+          "title": "spatial",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/SpatialExtent"
+        },
+        "temporal": {
+          "title": "temporal",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/TemporalExtent"
+        }
+      },
+      "additionalProperties": false
+    },
     "TilesetMbTilesDefaults": {
       "title": "TilesetMbTilesDefaults",
       "description": "",
@@ -2051,6 +2271,12 @@
             "boolean",
             "null"
           ]
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If set,    `bounds` from the MBTiles metadata is ignored.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         }
       },
       "additionalProperties": false
@@ -2093,6 +2319,12 @@
             "boolean",
             "null"
           ]
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If set,    `bounds` from the MBTiles metadata is ignored.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         },
         "tileMatrixSet": {
           "title": "tileMatrixSet",
@@ -2367,6 +2599,22 @@
             }
           ]
         },
+        "tileExtent": {
+          "title": "tileExtent",
+          "description": "The width and height of a tile in the internal coordinate system that is used for the    coordinates in a vector tile. A higher value increases the geometric precision of the tiles    and reduces the simplification of the geometries, but it also increases the size of the    tiles. The value should be a power of 2. Renderers typically restrict the internal    precision, MapLibre for example normalizes all coordinates to a value of `8192`, so higher    values have no effect in such clients. Changing the value invalidates the content of    existing tile caches, the tiles have to be seeded again.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "featureProvider": {
           "title": "featureProvider",
           "description": "The id of the feature provider. By default the tile provider id without `-tiles` is    used.",
@@ -2384,6 +2632,12 @@
           "additionalProperties": {
             "$ref": "#/$defs/MinMax"
           }
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If set, the    extent is not derived from the feature provider.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         }
       },
       "additionalProperties": false
@@ -2477,6 +2731,12 @@
             "null"
           ]
         },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If set, the    extent is not derived from the feature provider.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
+        },
         "featureLimit": {
           "title": "featureLimit",
           "description": "Maximum number of features contained in a single tile per query. This option is ignored    in the optimized PostGIS MVT tile generation.",
@@ -2534,6 +2794,22 @@
             },
             {
               "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tileExtent": {
+          "title": "tileExtent",
+          "description": "The width and height of a tile in the internal coordinate system that is used for the    coordinates in a vector tile. A higher value increases the geometric precision of the tiles    and reduces the simplification of the geometries, but it also increases the size of the    tiles. The value should be a power of 2. Renderers typically restrict the internal    precision, MapLibre for example normalizes all coordinates to a value of `8192`, so higher    values have no effect in such clients. Changing the value invalidates the content of    existing tile caches, the tiles have to be seeded again.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
               "type": "string"
             },
             {
@@ -2971,6 +3247,12 @@
           "additionalProperties": {
             "$ref": "#/$defs/MinMax"
           }
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If not set,    the extent of the tile matrix sets is used.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         }
       },
       "additionalProperties": false
@@ -3011,6 +3293,12 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Fixed extent of the tileset, only `spatial` in CRS84 (longitude/latitude). If not set,    the extent of the tile matrix sets is used.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         },
         "urlTemplate": {
           "title": "urlTemplate",
@@ -3081,6 +3369,116 @@
             "boolean",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BoundingBox": {
+      "title": "BoundingBox",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "xmin": {
+          "title": "xmin",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ymin": {
+          "title": "ymin",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zmin": {
+          "title": "zmin",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "xmax": {
+          "title": "xmax",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ymax": {
+          "title": "ymax",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zmax": {
+          "title": "zmax",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "epsgCrs": {
+          "title": "epsgCrs",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/EpsgCrs"
         }
       },
       "additionalProperties": false
@@ -3267,6 +3665,73 @@
       },
       "additionalProperties": false
     },
+    "JsonSchemaConfiguration": {
+      "title": "JsonSchemaConfiguration",
+      "description": "```yaml  - type: JSON_SCHEMA  enabled: true  objectTypeRefs:    \u0027#/$defs/Link\u0027: Link  ```",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `JSON_SCHEMA`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "JSON_SCHEMA"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the extension?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "objectTypeRefs": {
+          "title": "objectTypeRefs",
+          "description": "Allows to map JSON schema definitions to an `objectType`, e.g. `\u0027#/$defs/Link\u0027: Link`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "geometryTypeRefs": {
+          "title": "geometryTypeRefs",
+          "description": "Allows to map JSON schema definitions to a `geometryType`, e.g.    `https://geojson.org/schema/LineString.json\u0027: LINE_STRING`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "relationRefs": {
+          "title": "relationRefs",
+          "description": "Allows to map JSON schema definitions to a `refType`, e.g. `\u0027#/$defs/Address\u0027:    address`.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "compositionIndexes": {
+          "title": "compositionIndexes",
+          "description": "Allows to choose a specific variant for oneOf/anyOf/allOf.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "PgisTilesConfiguration": {
       "title": "PgisTilesConfiguration",
       "description": "```yaml  - type: PGIS_TILES  enabled: true  unsupportedProperties: IGNORE  ```",
@@ -3302,6 +3767,85 @@
         "unsupportedProperties": {
           "title": "unsupportedProperties",
           "description": "How should the extension behave when unsupported properties are found in the    configuration. Options are `DISABLE` to disable the extension, `WARN` to log a warning and    `IGNORE` to ignore the properties.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureChangesPgConfiguration": {
+      "title": "FeatureChangesPgConfiguration",
+      "description": "```yaml  - type: FEATURE_CHANGES_PG  enabled: true  listenForTypes: # optional, default is to listen for all types  - governmentalservice  pollingInterval: 30s # optional, default is 60s  ```",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "type",
+          "description": "Always `FEATURE_CHANGES_PG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ],
+          "const": "FEATURE_CHANGES_PG"
+        },
+        "enabled": {
+          "title": "enabled",
+          "description": "Enable the extension?",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "listenForTypes": {
+          "title": "listenForTypes",
+          "description": "List of types that should be observed. An empty list means all types.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pollingInterval": {
+          "title": "pollingInterval",
+          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be    polled for changes with the given interval.",
           "type": [
             "string",
             "number",
@@ -3487,161 +4031,15 @@
       },
       "additionalProperties": false
     },
-    "FeatureChangesPgConfiguration": {
-      "title": "FeatureChangesPgConfiguration",
-      "description": "```yaml  - type: FEATURE_CHANGES_PG  enabled: true  listenForTypes: # optional, default is to listen for all types  - governmentalservice  pollingInterval: 30s # optional, default is 60s  ```",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Always `FEATURE_CHANGES_PG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "FEATURE_CHANGES_PG"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the extension?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "listenForTypes": {
-          "title": "listenForTypes",
-          "description": "List of types that should be observed. An empty list means all types.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pollingInterval": {
-          "title": "pollingInterval",
-          "description": "Since the JDBC driver for PostgreSQL does not support real reactivity, it has to be    polled for changes with the given interval.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "JsonSchemaConfiguration": {
-      "title": "JsonSchemaConfiguration",
-      "description": "```yaml  - type: JSON_SCHEMA  enabled: true  objectTypeRefs:    \u0027#/$defs/Link\u0027: Link  ```",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "type",
-          "description": "Always `JSON_SCHEMA`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ],
-          "const": "JSON_SCHEMA"
-        },
-        "enabled": {
-          "title": "enabled",
-          "description": "Enable the extension?",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "objectTypeRefs": {
-          "title": "objectTypeRefs",
-          "description": "Allows to map JSON schema definitions to an `objectType`, e.g. `\u0027#/$defs/Link\u0027: Link`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "geometryTypeRefs": {
-          "title": "geometryTypeRefs",
-          "description": "Allows to map JSON schema definitions to a `geometryType`, e.g.    `https://geojson.org/schema/LineString.json\u0027: LINE_STRING`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "relationRefs": {
-          "title": "relationRefs",
-          "description": "Allows to map JSON schema definitions to a `refType`, e.g. `\u0027#/$defs/Address\u0027:    address`.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "compositionIndexes": {
-          "title": "compositionIndexes",
-          "description": "Allows to choose a specific variant for oneOf/anyOf/allOf.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "ExtensionConfiguration": {
       "type": "object",
       "properties": {
         "type": {
           "enum": [
+            "JSON_SCHEMA",
             "PGIS_TILES",
-            "ROUTES",
             "FEATURE_CHANGES_PG",
-            "JSON_SCHEMA"
+            "ROUTES"
           ]
         }
       },
@@ -3649,6 +4047,21 @@
         "type"
       ],
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "JSON_SCHEMA"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/JsonSchemaConfiguration"
+          }
+        },
         {
           "if": {
             "properties": {
@@ -3662,21 +4075,6 @@
           },
           "then": {
             "$ref": "#/$defs/PgisTilesConfiguration"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ROUTES"
-              }
-            },
-            "required": [
-              "type"
-            ]
-          },
-          "then": {
-            "$ref": "#/$defs/RoutesConfiguration"
           }
         },
         {
@@ -3698,7 +4096,7 @@
           "if": {
             "properties": {
               "type": {
-                "const": "JSON_SCHEMA"
+                "const": "ROUTES"
               }
             },
             "required": [
@@ -3706,463 +4104,10 @@
             ]
           },
           "then": {
-            "$ref": "#/$defs/JsonSchemaConfiguration"
+            "$ref": "#/$defs/RoutesConfiguration"
           }
         }
       ]
-    },
-    "PoolSettings": {
-      "title": "PoolSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "maxConnections": {
-          "title": "maxConnections",
-          "description": "Maximum number of connections to the database. The default value is computed    depending on the number of processor cores and the maximum number of joins per feature    type in the [Types Configuration](README.md#schema-definitions). The default value is    recommended for optimal performance under load. The smallest possible value also depends    on the maximum number of joins per feature type, smaller values are rejected.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "minConnections": {
-          "title": "minConnections",
-          "description": "Minimum number of connections to the database that are maintained.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "initFailTimeout": {
-          "title": "initFailTimeout",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "idleTimeout": {
-          "title": "idleTimeout",
-          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only    applies to connections beyond the `minConnections` limit. A value of 0 means that idle    connections are never removed from the pool.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "shared": {
-          "title": "shared",
-          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a    single connection pool will be shared between these providers. If any of the other    `connectionInfo` options do not match, the provider startup will fail.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "FeatureActionTrigger": {
-      "title": "FeatureActionTrigger",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "onDelete": {
-          "title": "onDelete",
-          "description": "",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "ConnectionInfoSql": {
-      "title": "ConnectionInfoSql",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "connectionUri": {
-          "title": "connectionUri",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "dialect": {
-          "title": "dialect",
-          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "database": {
-          "title": "database",
-          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`    in the [Store](../../application/20-configuration/10-store-new.md).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "host": {
-          "title": "host",
-          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.    `db:30305`. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "user": {
-          "title": "user",
-          "description": "The user name. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "password": {
-          "title": "password",
-          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schemas": {
-          "title": "schemas",
-          "description": "The names of database schemas that should be used in addition to `public`. Not relevant    for `GPKG`.",
-          "allOf": [
-            {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "items": {
-                  "type": [
-                    "string",
-                    "number",
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            {
-              "if": {
-                "type": "object"
-              },
-              "then": {
-                "type": [
-                  "string",
-                  "number",
-                  "boolean",
-                  "null"
-                ]
-              }
-            }
-          ]
-        },
-        "pool": {
-          "title": "pool",
-          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
-          "type": "object",
-          "$ref": "#/$defs/PoolSettings"
-        },
-        "defaultCollation": {
-          "title": "defaultCollation",
-          "description": "The default collation locale used by the database for string comparisons, e.g. `en` or    `en-US` for English. The special value `C` is allowed for the `C` or `POSIX` collation.    This will not change the database settings or the queries, but is needed for string    comparisons in the application.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "driverOptions": {
-          "title": "driverOptions",
-          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,    `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the    [driver    documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "triggers": {
-          "title": "triggers",
-          "description": "",
-          "type": "object",
-          "$ref": "#/$defs/FeatureActionTrigger"
-        },
-        "assumeExternalChanges": {
-          "title": "assumeExternalChanges",
-          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may    be changed by external applications. Setting this to `true` for example will recompute    extents and counts on every provider start or reload.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "deprecated": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "DatasetChangeSettings": {
-      "title": "DatasetChangeSettings",
-      "description": "Defines how dataset changes should be detected. There are the following modes:       - `OFF`: The dataset is considered static and no change detection is performed. If there is a  new dataset version, that should result in changes to `connectionInfo`. (This will be the  default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD  interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes  (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic  synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.  In this mode a synchronization happens on every provider start or reload.  Additionally a periodic synchronization can be configured with `syncPeriodic`.",
-      "type": "object",
-      "properties": {
-        "mode": {
-          "title": "mode",
-          "description": "The mode for dataset change detection, see above.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "syncPeriodic": {
-          "title": "syncPeriodic",
-          "description": "A crontab pattern to periodically refresh all cached data that is derived from the    dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "SqlPathDefaults": {
-      "title": "SqlPathDefaults",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "primaryKey": {
-          "title": "primaryKey",
-          "description": "The default column that is used for join analysis if no differing primary key is set in    the [sourcePath](#source-path-syntax). Only relevant for CRUD.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "sortKey": {
-          "title": "sortKey",
-          "description": "The default column that is used to sort rows if no differing sort key is set in the    [sourcePath](#source-path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "schema": {
-          "title": "schema",
-          "description": "The default schema that is applied to tables without prefix in    [sourcePaths](#source-path-syntax).",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "junctionTablePattern": {
-          "title": "junctionTablePattern",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryGeneratorSettings": {
-      "title": "QueryGeneratorSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "chunkSize": {
-          "title": "chunkSize",
-          "description": "",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "resultSetMaterializationMaxSize": {
-          "title": "resultSetMaterializationMaxSize",
-          "description": "Maximum number of members a result set of a multi-query may have to be materialized    once and reused as a literal list across the queries of the request. Larger result sets    fall back to inline (re-evaluated) subqueries.",
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "computeNumberMatched": {
-          "title": "computeNumberMatched",
-          "description": "Option to disable computation of the number of selected features for performance    reasons that are returned in `numberMatched`. As a general rule this should be disabled    for big datasets.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "nullOrder": {
-          "title": "nullOrder",
-          "description": "If no value is provided, the sort order of the database (typically `last` for    ascending and `first` for descending) is used. `last` or `first` can be used to force a    specific sort order, if some rows have null values.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "accentiCollation": {
-          "title": "accentiCollation",
-          "description": "",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        },
-        "geometryEncoding": {
-          "title": "geometryEncoding",
-          "description": "Encoding of the returned geometries, either Well-Known Text (WKT) or Well-Known    Binary (WKB). WKB is the default encoding since v4.5.",
-          "type": [
-            "string",
-            "number",
-            "boolean",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "QueryProcessorSettings": {
-      "title": "QueryProcessorSettings",
-      "description": "",
-      "type": "object",
-      "properties": {
-        "skipUnusedPipelineSteps": {
-          "title": "skipUnusedPipelineSteps",
-          "description": "Skip unused pipeline steps in the feature stream processing. If set to true, steps    that are not required to fulfil the request (e.g. coordinate processing, if no coordinate    transformation or specific coordinate precision is needed) are skipped. This can improve    performance depending on the query and the capabilities used in the feature provider. For    now the default is `false`, but the default may change to `true`, if experience shows    that the option does not have side effects.",
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
     },
     "CrsVariants": {
       "title": "CrsVariants",
@@ -4687,7 +4632,7 @@
         },
         "type": {
           "title": "type",
-          "description": "Data type of the schema object. Default is `OBJECT` when `properties` is set, otherwise    it is `STRING`. Possible values:       - `FLOAT`, `INTEGER`, `STRING`, `BOOLEAN`, `DATETIME`, `DATE` for simple values. - `GEOMETRY` for geometries. - `OBJECT` for objects. - `OBJECT_ARRAY` for a list of objects. - `VALUE_ARRAY` for a list of simple values. - `FEATURE_REF` for a reference to another feature or external resource. - `FEATURE_REF_ARRAY` for a list of references to others features or external resources.",
+          "description": "Data type of the schema object. Default is `OBJECT` when `properties` is set, otherwise    it is `STRING`. Possible values:       - `FLOAT`, `INTEGER`, `STRING`, `BOOLEAN`, `DATETIME`, `DATE` for simple values. - `GEOMETRY` for geometries. - `OBJECT` for objects. - `OBJECT_ARRAY` for a list of objects. - `VALUE_ARRAY` for a list of simple values. - `FEATURE_REF` for a reference to another feature or external resource. - `FEATURE_REF_ARRAY` for a list of references to others features or external resources. - `ENCRYPTED` for an encrypted value, the logical type is declared in `valueType`. - `ENCRYPTED_ARRAY` for a list of encrypted values, the logical type is declared in `valueType`.",
           "type": [
             "string",
             "number",
@@ -4707,7 +4652,7 @@
         },
         "valueType": {
           "title": "valueType",
-          "description": "Only needed when `type` is `VALUE_ARRAY`. Possible values: `FLOAT`, `INTEGER`,    `STRING`, `BOOLEAN`, `DATETIME`, `DATE`",
+          "description": "Only needed when `type` is `VALUE_ARRAY`, `ENCRYPTED` or `ENCRYPTED_ARRAY`. Possible    values: `FLOAT`, `INTEGER`, `STRING`, `BOOLEAN`, `DATETIME`, `DATE`. For `ENCRYPTED` and    `ENCRYPTED_ARRAY` this is the logical type of the decrypted values.",
           "type": [
             "string",
             "number",
@@ -4866,6 +4811,12 @@
             "boolean",
             "null"
           ]
+        },
+        "extent": {
+          "title": "extent",
+          "description": "Optional spatial (in the native CRS) and temporal extent for this feature type. Each    part replaces the same part of the extent of the provider. SQL providers also restrict    queries for multiple features to the extent, see `queryGeneration`.",
+          "type": "object",
+          "$ref": "#/$defs/Extent"
         },
         "unit": {
           "title": "unit",
@@ -5414,6 +5365,517 @@
           "description": "Options for single feature queries. If not set, a collection query will be used.",
           "type": "object",
           "$ref": "#/$defs/SingleQuery"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PoolSettings": {
+      "title": "PoolSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "maxConnections": {
+          "title": "maxConnections",
+          "description": "Maximum number of connections to the database. The default value is computed    depending on the number of processor cores and the maximum number of joins per feature    type in the [Types Configuration](README.md#schema-definitions). The default value is    recommended for optimal performance under load. The smallest possible value also depends    on the maximum number of joins per feature type, smaller values are rejected.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minConnections": {
+          "title": "minConnections",
+          "description": "Minimum number of connections to the database that are maintained.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initFailTimeout": {
+          "title": "initFailTimeout",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "idleTimeout": {
+          "title": "idleTimeout",
+          "description": "The maximum amount of time that a connection is allowed to sit idle in the pool. Only    applies to connections beyond the `minConnections` limit. A value of 0 means that idle    connections are never removed from the pool.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "leakDetectionThreshold": {
+          "title": "leakDetectionThreshold",
+          "description": "Diagnostic option. If set to a duration of at least `2s`, a warning with the stack    trace of the borrowing code is logged whenever a connection has been out of the pool for    longer than that, and a second message is logged when such a connection is returned after    all. A connection that is never returned only produces the first message, which is how a    leak is told apart from a slow request. Long-running requests such as large exports or    multi-action transactions legitimately hold a connection for a while, so choose a value    above the longest expected request. `0` disables the check. The messages are written by    the logger `com.zaxxer.hikari`, the warning at level `WARN` and the return message at    level `INFO`; a logging configuration that restricts third-party loggers has to let them    through.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "shared": {
+          "title": "shared",
+          "description": "If enabled for multiple providers with matching `host`, `database` and `user`, a    single connection pool will be shared between these providers. If any of the other    `connectionInfo` options do not match, the provider startup will fail.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "FeatureActionTrigger": {
+      "title": "FeatureActionTrigger",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "onDelete": {
+          "title": "onDelete",
+          "description": "",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionInfoSql": {
+      "title": "ConnectionInfoSql",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "connectionUri": {
+          "title": "connectionUri",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "dialect": {
+          "title": "dialect",
+          "description": "`PGIS` for PostgreSQL/PostGIS, `GPKG` for GeoPackage or SQLite/SpatiaLite.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "database": {
+          "title": "database",
+          "description": "The name of the database. For `GPKG` a relative path to a resource with type `features`    in the [Store](../../application/20-configuration/10-store-new.md).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "host": {
+          "title": "host",
+          "description": "The database host. To use a non-default port, add it to the host separated by `:`, e.g.    `db:30305`. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "user": {
+          "title": "user",
+          "description": "The user name. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "password": {
+          "title": "password",
+          "description": "The base64 encoded password of the user. Not relevant for `GPKG`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schemas": {
+          "title": "schemas",
+          "description": "The names of database schemas that should be used in addition to `public`. Not relevant    for `GPKG`.",
+          "allOf": [
+            {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "items": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "object"
+              },
+              "then": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "pool": {
+          "title": "pool",
+          "description": "Connection pool settings, for details see [Pool](10-sql.md#pool) below.",
+          "type": "object",
+          "$ref": "#/$defs/PoolSettings"
+        },
+        "defaultCollation": {
+          "title": "defaultCollation",
+          "description": "The default collation locale used by the database for string comparisons, e.g. `en` or    `en-US` for English. The special value `C` is allowed for the `C` or `POSIX` collation.    This will not change the database settings or the queries, but is needed for string    comparisons in the application.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "driverOptions": {
+          "title": "driverOptions",
+          "description": "Custom options for the JDBC driver. For `PGIS`, you might pass `gssEncMode`, `ssl`,    `sslmode`, `sslcert`, `sslkey`, `sslrootcert` and `sslpassword`. For details see the    [driver    documentation](https://jdbc.postgresql.org/documentation/head/connect.html#connection-parameters).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "triggers": {
+          "title": "triggers",
+          "description": "",
+          "type": "object",
+          "$ref": "#/$defs/FeatureActionTrigger"
+        },
+        "assumeExternalChanges": {
+          "title": "assumeExternalChanges",
+          "description": "*Deprecated* (replaced by `datasetChanges.mode`). Assume that the connected dataset may    be changed by external applications. Setting this to `true` for example will recompute    extents and counts on every provider start or reload.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "deprecated": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DatasetChangeSettings": {
+      "title": "DatasetChangeSettings",
+      "description": "Defines how dataset changes should be detected. There are the following modes:       - `OFF`: The dataset is considered static and no change detection is performed. If there is a  new dataset version, that should result in changes to `connectionInfo`. (This will be the  default in v5.x) - `CRUD`: Changes to the dataset are exclusively made by the application itself through the CRUD  interface. (This is the default in v4.x) - `TRIGGER`: There are triggers set up for the dataset that notify the application about changes  (see for example [Change Listener](90-extensions/change_listener.md)). Additionally a periodic  synchronization can be configured with `syncPeriodic` for the case of missed notifications. - `EXTERNAL`: Assume that the dataset may be changed by external applications.  In this mode a synchronization happens on every provider start or reload.  Additionally a periodic synchronization can be configured with `syncPeriodic`.",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "title": "mode",
+          "description": "The mode for dataset change detection, see above.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "syncPeriodic": {
+          "title": "syncPeriodic",
+          "description": "A crontab pattern to periodically refresh all cached data that is derived from the    dataset. Only available for modes `EXTERNAL` and `TRIGGER`.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "SqlPathDefaults": {
+      "title": "SqlPathDefaults",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "primaryKey": {
+          "title": "primaryKey",
+          "description": "The default column that is used for join analysis if no differing primary key is set in    the [sourcePath](#source-path-syntax). Only relevant for CRUD.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "sortKey": {
+          "title": "sortKey",
+          "description": "The default column that is used to sort rows if no differing sort key is set in the    [sourcePath](#source-path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "schema": {
+          "title": "schema",
+          "description": "The default schema that is applied to tables without prefix in    [sourcePaths](#source-path-syntax).",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "junctionTablePattern": {
+          "title": "junctionTablePattern",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryGeneratorSettings": {
+      "title": "QueryGeneratorSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "chunkSize": {
+          "title": "chunkSize",
+          "description": "",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resultSetMaterializationMaxSize": {
+          "title": "resultSetMaterializationMaxSize",
+          "description": "Maximum number of members a result set of a multi-query may have to be materialized    once and reused as a literal list across the queries of the request. Larger result sets    fall back to inline (re-evaluated) subqueries.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "(0|-?[1-9][0-9]*)(\\.[0-9]*)?",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "computeNumberMatched": {
+          "title": "computeNumberMatched",
+          "description": "Option to disable computation of the number of selected features for performance    reasons that are returned in `numberMatched`. As a general rule this should be disabled    for big datasets.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nullOrder": {
+          "title": "nullOrder",
+          "description": "If no value is provided, the sort order of the database (typically `last` for    ascending and `first` for descending) is used. `last` or `first` can be used to force a    specific sort order, if some rows have null values.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "nativeDatetimeComparison": {
+          "title": "nativeDatetimeComparison",
+          "description": "Option to compare the values of `DATETIME` properties in filters in the data type of    the database column, so that the database can use indexes and statistics of the column.    Requires that the columns have a timestamp type (`timestamp` or `timestamptz`);    properties with a `format` are not affected. With the option, fractions of a second are    compared exactly; without it, values are compared at the precision of whole seconds. Only    supported for PostgreSQL, ignored for other dialects.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "restrictToSpatialExtent": {
+          "title": "restrictToSpatialExtent",
+          "description": "Restrict all queries for multiple features to the spatial extent of the type, if a    fixed spatial extent is configured. Features are selected if they intersect the extent,    so they may reach beyond it. Queries for a single feature by id are not affected.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "restrictToTemporalExtent": {
+          "title": "restrictToTemporalExtent",
+          "description": "Restrict all queries for multiple features to the temporal extent of the type, if a    fixed temporal extent is configured. Features are selected if they intersect the extent,    so they may reach beyond it. Queries for a single feature by id are not affected.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accentiCollation": {
+          "title": "accentiCollation",
+          "description": "",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "geometryEncoding": {
+          "title": "geometryEncoding",
+          "description": "Encoding of the returned geometries, either Well-Known Text (WKT) or Well-Known    Binary (WKB). WKB is the default encoding since v4.5.",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryProcessorSettings": {
+      "title": "QueryProcessorSettings",
+      "description": "",
+      "type": "object",
+      "properties": {
+        "skipUnusedPipelineSteps": {
+          "title": "skipUnusedPipelineSteps",
+          "description": "Skip unused pipeline steps in the feature stream processing. If set to true, steps    that are not required to fulfil the request (e.g. coordinate processing, if no coordinate    transformation or specific coordinate precision is needed) are skipped. This can improve    performance depending on the query and the capabilities used in the feature provider. For    now the default is `false`, but the default may change to `true`, if experience shows    that the option does not have side effects.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false

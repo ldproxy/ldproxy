@@ -9,7 +9,9 @@ package de.ii.ogcapi.features.search.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Funnel;
 import de.ii.xtraplatform.cql.domain.Cql;
@@ -44,13 +46,22 @@ public interface StoredQueryExpression extends StoredQueryBase, StoredQueryCompo
   String REF = "$ref";
   String PARAMETER = "$parameter";
 
-  static StoredQueryExpression of(InputStream requestBody) throws IOException {
-    StoredQueryExpression query = MAPPER.readValue(requestBody, StoredQueryExpression.class);
-    // the JSON literal null is parsed as a null value
-    if (query == null) {
+  /**
+   * Reads a stored query from a request body in the format of the stored query files. The id is the
+   * one of the request path, an id in the body is not required.
+   */
+  static StoredQueryExpression of(InputStream requestBody, String id, Cql cql) throws IOException {
+    JsonNode body = MAPPER.readTree(requestBody);
+    // also an empty body or the JSON literal null
+    if (body == null || !body.isObject()) {
       throw new IOException("the request body does not contain a query expression");
     }
-    return query;
+
+    ((ObjectNode) body).put("id", id);
+    StoredQueryValue value = MAPPER.readerFor(StoredQueryValue.class).readValue(body);
+
+    // also derives the schemas of all parameters, as for the stored query files
+    return from(value, cql);
   }
 
   static StoredQueryExpression from(StoredQueryValue storedQueryValue, Cql cql) {

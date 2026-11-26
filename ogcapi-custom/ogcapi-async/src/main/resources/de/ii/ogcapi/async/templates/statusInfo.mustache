@@ -1,0 +1,60 @@
+{{> header}}
+
+<div>
+  <h1>{{title}}</h1>
+
+  {{#statusInfo}}
+    <div class="row my-1">
+      <div class="col-md-4 font-weight-bold text-truncate">{{jobIdTitle}}</div>
+      <div class="col-md-8">{{id}}</div>
+    </div>
+    {{#processId}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{processIdTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/processId}}
+    <div class="row my-1">
+      <div class="col-md-4 font-weight-bold text-truncate">{{statusTitle}}</div>
+      <div class="col-md-8">{{statusValue}}</div>
+    </div>
+    {{#message}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{messageTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/message}}
+    {{#progress}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{progressTitle}}</div>
+        <div class="col-md-8">{{.}}%</div>
+      </div>
+    {{/progress}}
+    {{#created}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{createdTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/created}}
+    {{#started}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{startedTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/started}}
+    {{#finished}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{finishedTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/finished}}
+    {{#updated}}
+      <div class="row my-1">
+        <div class="col-md-4 font-weight-bold text-truncate">{{updatedTitle}}</div>
+        <div class="col-md-8">{{.}}</div>
+      </div>
+    {{/updated}}
+  {{/statusInfo}}
+</div>
+
+{{> footer}}

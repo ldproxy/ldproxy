@@ -40,6 +40,7 @@ public interface ApiOperation {
   Logger LOGGER = LoggerFactory.getLogger(ApiOperation.class);
   String STATUS_200 = "200";
   String STATUS_201 = "201";
+  String STATUS_202 = "202";
   String STATUS_204 = "204";
 
   enum OperationType {
@@ -168,9 +169,8 @@ public interface ApiOperation {
       Schema<Object> formSchema = new ObjectSchema().additionalProperties(false);
       queryParameters.forEach(
           param -> {
-            Schema<?> paramSchema =
-                param.getSchema(apiData, collectionId).description(param.getDescription());
-            formSchema.addProperties(param.getName(), paramSchema);
+            formSchema.addProperties(
+                param.getName(), param.getSchemaWithDescription(apiData, collectionId));
             if (param.getRequired(apiData, collectionId)) {
               formSchema.addRequiredItem(param.getName());
             }

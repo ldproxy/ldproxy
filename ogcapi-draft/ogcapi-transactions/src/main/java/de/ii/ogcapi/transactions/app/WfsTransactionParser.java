@@ -53,13 +53,15 @@ import javax.xml.stream.events.XMLEvent;
 
 /**
  * Streaming parser for WFS 2.0 {@code wfs:Transaction} XML payloads. Each {@code wfs:Insert} yields
- * one {@link TxInsert} per consecutive-same-collection group of children, with every feature
- * pre-read into a byte array and exposed via {@code items()} — so the executor can batch-call
- * {@code Session.createFeatures} for the whole group rather than once per feature. {@code
+ * one {@link TxInsert} for the collection of its first feature, whose {@code items()} reads the
+ * features one at a time from the request body — so the executor can batch-call {@code
+ * Session.createFeatures} for the whole insert rather than once per feature, without the parser
+ * holding the insert in memory. Features of other collections in the same {@code wfs:Insert} (rare
+ * but spec-allowed) are buffered and follow as one {@link TxInsert} per collection. {@code
  * wfs:Update}, {@code wfs:Replace} and {@code wfs:Delete} are buffered eagerly (one feature for
  * replace; metadata only for the others).
  *
- * <p>Consecutive sibling {@code wfs:Insert} elements that all carry features of the same single
+ * <p>Consecutive sibling {@code wfs:Insert} elements that start with a feature of the same
  * collection and that do not declare their own {@code handle} are additionally coalesced into one
  * {@code TxInsert}, so the batch path keeps spanning them. A sibling with a {@code handle}
  * preserves per-action identity and stops the merge.
@@ -202,11 +204,12 @@ public class WfsTransactionParser implements TransactionParser {
     private final XMLOutputFactory outputFactory;
     private final XMLEventFactory eventFactory;
     private final StartElement root;
-    // Inserts buffered out of a single wfs:Insert that contains features of more than one
-    // collection (rare but spec-allowed): the iterator returns one BufferedInsert per
-    // consecutive-same-collection group, queueing the rest here.
+    // Actions already known when a streaming insert ends: the buffered features of other
+    // collections of its wfs:Insert, or the insert of a sibling wfs:Insert that starts with
+    // another collection.
     private final java.util.Deque<TxAction> pendingActions = new java.util.ArrayDeque<>();
     private TxAction pending;
+    private StreamingInsert previous;
     private boolean exhausted;
 
     WfsActionIterator(
@@ -225,6 +228,10 @@ public class WfsTransactionParser implements TransactionParser {
       if (pending != null) return true;
       if (exhausted) return false;
       try {
+        if (previous != null) {
+          previous.drainRemainder();
+          previous = null;
+        }
         pending = readNextAction();
       } catch (XMLStreamException e) {
         throw new IllegalArgumentException("Malformed wfs:Transaction body: " + e.getMessage(), e);
@@ -238,6 +245,9 @@ public class WfsTransactionParser implements TransactionParser {
       if (!hasNext()) throw new NoSuchElementException();
       TxAction r = pending;
       pending = null;
+      if (r instanceof StreamingInsert) {
+        previous = (StreamingInsert) r;
+      }
       return r;
     }
 
@@ -260,38 +270,16 @@ public class WfsTransactionParser implements TransactionParser {
         }
         switch (name.getLocalPart()) {
           case "Insert":
-            // Read every feature child of this wfs:Insert, grouped by element local name.
-            // Bundling them into one TxInsert (per collection) is the lever the executor and SQL
-            // session use to batch JDBC mains/children across features; without this, each child
-            // would land as its own SingleItemInsert (N=1) and the multi-row INSERT path stays
-            // idle. Children of different collection types in the same wfs:Insert produce one
-            // BufferedInsert per group, queued in pendingActions.
-            //
-            // Coalesce extension: consecutive sibling wfs:Insert elements (no handle on the
-            // sibling, so per-action identity isn't being relied on) whose features all map to
-            // the single collection bucket already being built are absorbed into the same
-            // BufferedInsert — that way the executor batch path covers them too. The handle on
-            // the first wfs:Insert (if any) becomes the merged action's actionId; further
-            // siblings that bring in a different collection or carry their own handle stop the
-            // coalesce loop.
-            Optional<String> handle = Optional.ofNullable(attribute(start, "handle"));
-            Map<String, List<BufferedItem>> byCollection = new LinkedHashMap<>();
-            consumeWfsInsertChildren(start, byCollection);
-            while (byCollection.size() == 1 && nextSiblingIsCoalescableInsert(reader)) {
-              StartElement nextInsertStart = reader.nextEvent().asStartElement();
-              consumeWfsInsertChildren(nextInsertStart, byCollection);
+            // All features of this wfs:Insert become one TxInsert (per collection), the lever the
+            // executor and SQL session use to batch JDBC mains/children across features. The
+            // features are read lazily by the TxInsert, see StreamingInsert.
+            String collectionId = peekFeatureName();
+            if (collectionId == null) {
+              skipElement(reader); // empty wfs:Insert — move on to next sibling
+              continue;
             }
-            if (byCollection.isEmpty()) {
-              continue; // empty wfs:Insert — move on to next sibling
-            }
-            Iterator<Map.Entry<String, List<BufferedItem>>> entries =
-                byCollection.entrySet().iterator();
-            Map.Entry<String, List<BufferedItem>> first = entries.next();
-            while (entries.hasNext()) {
-              Map.Entry<String, List<BufferedItem>> ent = entries.next();
-              pendingActions.add(new BufferedInsert(ent.getKey(), handle, ent.getValue()));
-            }
-            return new BufferedInsert(first.getKey(), handle, first.getValue());
+            return new StreamingInsert(
+                collectionId, Optional.ofNullable(attribute(start, "handle")), start);
           case "Replace":
             return parseReplace(start);
           case "Update":
@@ -306,24 +294,22 @@ public class WfsTransactionParser implements TransactionParser {
     }
 
     /**
-     * Reads every feature child of one {@code wfs:Insert} into {@code byCollection}, keyed by the
-     * feature element's local name. Stops at the matching {@code </wfs:Insert>} end tag.
+     * Peeks past whitespace/comments to the first child of the {@code wfs:Insert} whose start tag
+     * has just been read. Returns the local name of that feature element, or null if the {@code
+     * wfs:Insert} is empty; the feature itself is not consumed.
      */
-    private void consumeWfsInsertChildren(
-        StartElement insertStart, Map<String, List<BufferedItem>> byCollection)
-        throws XMLStreamException {
+    private String peekFeatureName() throws XMLStreamException {
       while (reader.hasNext()) {
-        XMLEvent e = reader.nextEvent();
-        if (e.isEndElement() && isWfs(e.asEndElement().getName(), "Insert")) return;
-        if (!e.isStartElement()) continue;
-        StartElement feature = e.asStartElement();
-        String collectionId = feature.getName().getLocalPart();
-        Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
-        byte[] payload = copySubtree(reader, feature, root, insertStart);
-        byCollection
-            .computeIfAbsent(collectionId, k -> new ArrayList<>())
-            .add(new BufferedItem(gmlId, payload));
+        XMLEvent peeked = reader.peek();
+        if (peeked.isStartElement()) {
+          return peeked.asStartElement().getName().getLocalPart();
+        }
+        if (peeked.isEndElement()) {
+          return null;
+        }
+        reader.nextEvent();
       }
+      return null;
     }
 
     /**
@@ -702,15 +688,176 @@ public class WfsTransactionParser implements TransactionParser {
       String text = sb.toString().trim();
       return text.isEmpty() ? null : text;
     }
+
+    /**
+     * Streaming insert of one collection: {@link #items()} reads one feature at a time from the
+     * request body, so neither the parser nor the executor holds the whole insert in memory and the
+     * executor checks for cancellation while the insert is read. Features of other collections in
+     * the same {@code wfs:Insert} are buffered and queued as {@link BufferedInsert}s when the
+     * insert ends.
+     *
+     * <p>Coalescing: at the end of a {@code wfs:Insert} without features of other collections, a
+     * sibling {@code wfs:Insert} without a {@code handle} whose first feature belongs to the same
+     * collection continues this insert. A sibling that starts with another collection is queued as
+     * its own streaming insert. The handle of the first {@code wfs:Insert} (if any) is the actionId
+     * of the merged action.
+     */
+    private final class StreamingInsert implements TxInsert {
+
+      private final String collectionId;
+      private final Optional<String> actionId;
+      private final Map<String, List<BufferedItem>> otherCollections = new LinkedHashMap<>();
+      // the wfs:Insert the reader is currently inside; its namespaces are in scope of the features
+      private StartElement insertStart;
+      private boolean itemsConsumed;
+      private boolean done;
+
+      StreamingInsert(String collectionId, Optional<String> actionId, StartElement insertStart) {
+        this.collectionId = collectionId;
+        this.actionId = actionId;
+        this.insertStart = insertStart;
+      }
+
+      @Override
+      public String getCollectionId() {
+        return collectionId;
+      }
+
+      @Override
+      public Optional<String> getActionId() {
+        return actionId;
+      }
+
+      @Override
+      public Optional<String> getTitle() {
+        return Optional.empty();
+      }
+
+      @Override
+      public Optional<String> getDescription() {
+        return Optional.empty();
+      }
+
+      @Override
+      public MediaType getMediaType() {
+        return MediaType.valueOf(MEDIA_TYPE_GML);
+      }
+
+      @Override
+      public Iterator<InsertItem> items() {
+        if (itemsConsumed) {
+          throw new IllegalStateException(
+              "items() has already been called on the wfs:Insert of " + collectionId);
+        }
+        itemsConsumed = true;
+        return new Iterator<>() {
+          private InsertItem next;
+
+          @Override
+          public boolean hasNext() {
+            if (next != null) return true;
+            next = readItem(false);
+            return next != null;
+          }
+
+          @Override
+          public InsertItem next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            InsertItem r = next;
+            next = null;
+            return r;
+          }
+        };
+      }
+
+      /**
+       * Reads the rest of the insert, so the parent action iterator can read the next action. Safe
+       * to call even if items() was never invoked or was only partially consumed.
+       */
+      void drainRemainder() {
+        while (readItem(true) != null) {
+          // skipped
+        }
+      }
+
+      /**
+       * Returns the next feature of this collection, or null at the end of the insert. With {@code
+       * skip}, the features of this collection are skipped and a placeholder item is returned.
+       */
+      private InsertItem readItem(boolean skip) {
+        try {
+          while (!done && reader.hasNext()) {
+            XMLEvent e = reader.nextEvent();
+            if (e.isEndElement() && isWfs(e.asEndElement().getName(), "Insert")) {
+              if (!otherCollections.isEmpty() || !continueWithSibling()) {
+                finish();
+              }
+              continue;
+            }
+            if (!e.isStartElement()) continue;
+            StartElement feature = e.asStartElement();
+            String name = feature.getName().getLocalPart();
+            Optional<String> gmlId = Optional.ofNullable(gmlIdAttribute(feature));
+            if (!collectionId.equals(name)) {
+              otherCollections
+                  .computeIfAbsent(name, k -> new ArrayList<>())
+                  .add(new BufferedItem(gmlId, copySubtree(reader, feature, root, insertStart)));
+              continue;
+            }
+            if (skip) {
+              skipElement(reader);
+              return SKIPPED;
+            }
+            byte[] payload = copySubtree(reader, feature, root, insertStart);
+            return new InsertItem(gmlId, payload, new ByteArrayInputStream(payload));
+          }
+          return null;
+        } catch (XMLStreamException e) {
+          throw new IllegalArgumentException(
+              "Malformed wfs:Transaction body: " + e.getMessage(), e);
+        }
+      }
+
+      /**
+       * At the end of a {@code wfs:Insert}: moves the reader into the next sibling {@code
+       * wfs:Insert} if it can be coalesced and starts with a feature of this collection (empty
+       * siblings are skipped). A sibling that starts with another collection is queued as its own
+       * insert.
+       */
+      private boolean continueWithSibling() throws XMLStreamException {
+        while (nextSiblingIsCoalescableInsert(reader)) {
+          StartElement sibling = reader.nextEvent().asStartElement();
+          String first = peekFeatureName();
+          if (first == null) {
+            skipElement(reader);
+            continue;
+          }
+          if (first.equals(collectionId)) {
+            insertStart = sibling;
+            return true;
+          }
+          pendingActions.add(new StreamingInsert(first, Optional.empty(), sibling));
+          return false;
+        }
+        return false;
+      }
+
+      private void finish() {
+        done = true;
+        otherCollections.forEach(
+            (other, items) -> pendingActions.add(new BufferedInsert(other, actionId, items)));
+        otherCollections.clear();
+      }
+    }
   }
 
+  private static final InsertItem SKIPPED =
+      new InsertItem(Optional.empty(), new byte[0], InputStream.nullInputStream());
+
   /**
-   * Buffered insert: holds every feature child of a {@code wfs:Insert} (for one collection) as a
-   * pre-read byte array, returned one at a time from {@link #items()}. Buffering occurs once per
-   * wfs:Insert in {@link WfsActionIterator#readNextAction()} — memory peaks at the size of that
-   * single wfs:Insert, which is already in memory as the request body anyway. Bundling features
-   * into one TxInsert is what lets the executor batch-call {@code Session.createFeatures} and the
-   * SQL session fold multiple main INSERTs into one multi-row statement.
+   * Buffered insert: holds the features of one collection that appeared in a {@code wfs:Insert}
+   * after features of another collection, as pre-read byte arrays returned one at a time from
+   * {@link #items()}.
    */
   private static final class BufferedInsert implements TxInsert {
 

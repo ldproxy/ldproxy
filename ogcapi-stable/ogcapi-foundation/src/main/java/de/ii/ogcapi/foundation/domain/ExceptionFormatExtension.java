@@ -18,4 +18,14 @@ public interface ExceptionFormatExtension extends FormatExtension {
   }
 
   Object getExceptionEntity(ApiErrorMessage errorMessage);
+
+  /**
+   * @param errorMessage the error
+   * @param apiPath the external path of the API addressed by the request, or of the web
+   *     application, if the request does not address an API; e.g. to reference static resources
+   * @return the representation of the error
+   */
+  default Object getExceptionEntity(ApiErrorMessage errorMessage, String apiPath) {
+    return getExceptionEntity(errorMessage);
+  }
 }

@@ -80,4 +80,17 @@ class SchemaValidatorSpec extends Specification {
         cleanup:
         Locale.setDefault(defaultLocale)
     }
+
+    def "An error of the value itself has no location prefix, nested errors keep their location: #json"() {
+        when:
+        Optional<String> result = schemaValidator.validate(schema, json)
+
+        then:
+        result.get() == message
+
+        where:
+        schema                                                            | json         || message
+        '{"type":"integer"}'                                              | '"abc"'      || '[string found, integer expected]'
+        '{"type":"object","properties":{"a":{"type":"integer"}}}'         | '{"a":"x"}'  || '[/a: string found, integer expected]'
+    }
 }

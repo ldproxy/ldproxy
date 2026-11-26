@@ -112,4 +112,27 @@ class AdjustZoomLevelsSpec extends Specification{
 
         derived == reference_AdV25832
     }
+
+    def 'keep the projection of a stylesheet unless it is derived for another tiling scheme'() {
+
+        given:
+
+        MbStyleStylesheet stylesheet = MAPPER.readValue("""{"version":8,"projection":{"type":${type}},"sources":{},"layers":[]}""", MbStyleStylesheet.class)
+
+        when:
+
+        String parsed = MAPPER.writeValueAsString(stylesheet)
+        String webMercatorQuad = MAPPER.writeValueAsString(stylesheet.adjustForTileMatrixSetIfNecessary(Optional.empty(), "http://localhost:7080/strassen"))
+        String adv = MAPPER.writeValueAsString(stylesheet.adjustForTileMatrixSetIfNecessary(Optional.of(adv25832), "http://localhost:7080/strassen"))
+
+        then:
+
+        parsed.contains(""""projection":{"type":${type}}""")
+        webMercatorQuad.contains(""""projection":{"type":${type}}""")
+        adv.contains('"projection":{"type":"EPSG:25832"}')
+
+        where:
+
+        type << ['"globe"', '["interpolate",["linear"],["zoom"],10,"vertical-perspective",12,"mercator"]']
+    }
 }

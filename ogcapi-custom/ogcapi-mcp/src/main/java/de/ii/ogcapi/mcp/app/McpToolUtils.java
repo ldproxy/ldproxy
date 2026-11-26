@@ -302,10 +302,10 @@ public class McpToolUtils {
                   queryParametersByCollection.getOrDefault(collectionId, List.of());
               ObjectSchema inputSchema = new ObjectSchema();
               for (OgcApiQueryParameter param : queryParametersByCollection.get(collectionId)) {
-                Schema<?> schema = param.getSchema(apiData, collectionId);
-                if (schema != null) {
-                  schema.setDescription(param.getDescription());
-                  inputSchema.addProperty(param.getName(), schema);
+                if (param.getSchema(apiData, collectionId) != null) {
+                  inputSchema.addProperty(
+                      param.getName(),
+                      param.getSchemaWithDescription(apiData, Optional.of(collectionId)));
                 }
               }
 

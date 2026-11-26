@@ -11,6 +11,7 @@ import de.ii.ogcapi.html.domain.OgcApiView;
 import de.ii.xtraplatform.auth.domain.Oidc;
 import de.ii.xtraplatform.openapi.domain.ImmutableSwaggerUi;
 import de.ii.xtraplatform.openapi.domain.SwaggerUi;
+import java.util.Objects;
 import org.immutables.value.Value;
 
 @Value.Style(builder = "new")
@@ -36,7 +37,7 @@ public abstract class OpenApiView extends OgcApiView {
         new ImmutableSwaggerUi.Builder()
             .definitionUri(uriCustomizer().copy().setParameter("f", "json").toString());
 
-    if (oidc().isEnabled()) {
+    if (oidc().isEnabled() && Objects.nonNull(oidc().getClientId())) {
       builder.clientId(oidc().getClientId()).clientSecret(oidc().getClientSecret());
     }
 

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.tiles.domain;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.google.common.hash.Funnel;
@@ -17,6 +18,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
+@JsonPropertyOrder({"tileMatrixSet", "tileMatrixSetLimits"})
 public interface WmtsTileMatrixSetLink {
 
   @JacksonXmlProperty(namespace = WmtsServiceMetadata.XMLNS, localName = "TileMatrixSet")

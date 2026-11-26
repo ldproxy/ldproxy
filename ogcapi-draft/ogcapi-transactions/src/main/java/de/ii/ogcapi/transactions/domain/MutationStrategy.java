@@ -114,6 +114,34 @@ public interface MutationStrategy extends ApiExtension {
   }
 
   /**
+   * Whether a {@code Replace} action whose new version begins at the begin of the open version
+   * ({@code PRIMARY_INTERVAL_START}) leaves the feature unchanged instead of being rejected: it
+   * delivers the open version again. Only meaningful with {@link #retiresOnReplace()}; the default
+   * plain strategy returns {@code false}.
+   */
+  default boolean ignoresRepeatedVersion(OgcApiDataV2 apiData, String collectionId) {
+    return false;
+  }
+
+  /**
+   * Whether an {@code Insert} item whose feature id already has a version (the {@link
+   * #requiresInsertPreflight()} check fails) is skipped with a warning instead of rejecting the
+   * action. The default plain strategy returns {@code false}.
+   */
+  default boolean ignoresExistingFeatureOnInsert(OgcApiDataV2 apiData, String collectionId) {
+    return false;
+  }
+
+  /**
+   * Whether a {@code Replace} action on a feature id without any version inserts the feature
+   * instead of being rejected. Only meaningful with {@link #retiresOnReplace()}; the default plain
+   * strategy returns {@code false}.
+   */
+  default boolean insertsUnknownFeatureOnReplace(OgcApiDataV2 apiData, String collectionId) {
+    return false;
+  }
+
+  /**
    * How the executor should handle an {@code Update} action on this collection.
    *
    * <ul>
@@ -191,11 +219,11 @@ public interface MutationStrategy extends ApiExtension {
 
   /**
    * Whether the executor should run the versioned-insert pre-flight check via {@link
-   * FeatureTransactions.Session#assertNoConflictingVersion(String, String)} for every {@code
-   * Insert} item that carries an id. Used by versioned strategies to reject inserts on a feature id
-   * that already exists in any version (open or retired) — clients add new versions via {@code
-   * Replace} / {@code Update} / {@code Delete}, not {@code Insert}. Plain strategies inherit the
-   * default {@code false}.
+   * FeatureTransactions.Session#findConflictingVersions(String, java.util.Collection)} for the
+   * {@code Insert} items that carry an id. Used by versioned strategies to reject inserts on a
+   * feature id that already exists in any version (open or retired) — clients add new versions via
+   * {@code Replace} / {@code Update} / {@code Delete}, not {@code Insert}. Plain strategies inherit
+   * the default {@code false}.
    */
   default boolean requiresInsertPreflight() {
     return false;

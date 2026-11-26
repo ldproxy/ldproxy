@@ -26,6 +26,7 @@ import de.ii.ogcapi.transactions.domain.TxActionType;
 import de.ii.ogcapi.transactions.domain.TxSemantic;
 import de.ii.xtraplatform.base.domain.resiliency.AbstractVolatileComposed;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileRegistry;
+import de.ii.xtraplatform.features.domain.JobHook;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
@@ -67,7 +68,9 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
 
   @Override
   public Response processTransaction(
-      QueryInputTransaction queryInput, ApiRequestContext requestContext) {
+      QueryInputTransaction queryInput,
+      ApiRequestContext requestContext,
+      Optional<JobHook> jobHook) {
     Transaction transaction = null;
 
     try {
@@ -90,7 +93,8 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
                 requestContext,
                 queryInput.getRequestCrs(),
                 queryInput.getHandling(),
-                queryInput.getMutationDatetime());
+                queryInput.getMutationDatetime(),
+                jobHook);
         transaction = null;
       } catch (IllegalArgumentException e) {
         throw new BadRequestException("Could not parse transaction body: " + e.getMessage());
@@ -136,6 +140,11 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     @Override
     public TxSemantic getSemantic() {
       return delegate.getSemantic();
+    }
+
+    @Override
+    public boolean isWfs() {
+      return delegate.isWfs();
     }
 
     @Override
@@ -193,7 +202,8 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     HeaderPrefer.Return ret = queryInput.getReturnPreference();
     boolean atomic = result.getSemantic() == TxSemantic.ATOMIC;
     boolean failed = !result.isSuccess();
-    int status = (atomic && failed) ? 422 : 200;
+    // a failure not caused by the request is a server error: the same request may succeed later
+    int status = (atomic && failed) ? (result.isServerError() ? 500 : 422) : 200;
     boolean noContent =
         ret == HeaderPrefer.Return.NONE && !failed && collectWarnings(result).isEmpty();
     // a requested return=none is only applied when the response actually has no content; failures
@@ -276,7 +286,10 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
 
     result
         .getTransactionError()
-        .ifPresent(error -> exceptions.add(renderTransactionException(error)));
+        .ifPresent(
+            error ->
+                exceptions.add(
+                    renderTransactionException(error, result.isTransactionServerError())));
 
     if (!exceptions.isEmpty()) {
       body.set("exceptions", exceptions);
@@ -366,11 +379,11 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
    * A failure of the transaction as a whole (pre-commit hook or commit), not attributable to a
    * single action — rendered without action-level fields.
    */
-  private static ObjectNode renderTransactionException(String error) {
+  private static ObjectNode renderTransactionException(String error, boolean serverError) {
     ObjectNode ex = MAPPER.createObjectNode();
     ex.put("type", "about:blank");
     ex.put("title", "Transaction failed");
-    ex.put("status", 422);
+    ex.put("status", serverError ? 500 : 422);
     ex.put("detail", error);
     return ex;
   }
@@ -380,7 +393,7 @@ public class CommandHandlerTransactionsImpl extends AbstractVolatileComposed
     ObjectNode ex = MAPPER.createObjectNode();
     ex.put("type", "about:blank");
     ex.put("title", "Action " + action + " on '" + r.getCollectionId() + "' failed");
-    ex.put("status", 422);
+    ex.put("status", r.isServerError() ? 500 : 422);
     ex.put("detail", r.getError().orElse("unknown error"));
     r.getActionId().ifPresent(id -> ex.put("actionId", id));
     ex.put("collectionId", r.getCollectionId());

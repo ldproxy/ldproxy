@@ -15,6 +15,7 @@ import de.ii.xtraplatform.cql.domain.Parameter
 import de.ii.xtraplatform.cql.domain.ScalarLiteral
 import de.ii.xtraplatform.cql.domain.SpatialLiteral
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaGeometry
+import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaInteger
 import de.ii.xtraplatform.jsonschema.domain.ImmutableJsonSchemaString
 import de.ii.xtraplatform.jsonschema.domain.JsonSchema
 import spock.lang.Specification
@@ -177,5 +178,35 @@ class ParameterResolverCqlSpec extends Specification {
         then:
         def e = thrown IllegalArgumentException
         e.message.contains("No value provided")
+    }
+
+    def 'an integer value outside the 32-bit range resolves to a scalar'() {
+        given:
+        def schema = new ImmutableJsonSchemaInteger.Builder().build()
+        def resolver = resolver([aoi: value], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        expect:
+        parameter.accept(resolver) == ScalarLiteral.of(value)
+
+        where:
+        value << [2147483648L, -2147483649L]
+    }
+
+    def 'a value without a literal type is rejected instead of being dropped'() {
+        given:
+        def schema = new ImmutableJsonSchemaInteger.Builder().build()
+        def resolver = resolver([aoi: value], schema)
+        def parameter = Parameter.of("aoi", schema)
+
+        when:
+        parameter.accept(resolver)
+
+        then:
+        def e = thrown IllegalArgumentException
+        e.message.contains("parameter 'aoi'")
+
+        where:
+        value << [new BigInteger("9223372036854775808"), null]
     }
 }

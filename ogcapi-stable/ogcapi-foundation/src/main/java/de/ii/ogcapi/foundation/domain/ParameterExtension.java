@@ -70,6 +70,36 @@ public interface ParameterExtension extends ApiExtension {
     return collectionId.isPresent() ? getSchema(apiData, collectionId.get()) : getSchema(apiData);
   }
 
+  /**
+   * The schema of the parameter with the description of the parameter, for a schema that describes
+   * the parameter on its own, e.g. as a member of a request body. The schema is a copy: the schema
+   * of a parameter is shared, e.g. by the operations of a resource, and must not change.
+   */
+  default Schema<?> getSchemaWithDescription(OgcApiDataV2 apiData, Optional<String> collectionId) {
+    Schema<?> copy = shallowCopy(getSchema(apiData, collectionId));
+    copy.setDescription(getDescription());
+    return copy;
+  }
+
+  /**
+   * A copy of the schema that shares the subschemas with the original. A deep copy through JSON
+   * does not preserve the schema: the swagger deserializer turns every subschema without a type,
+   * e.g. a member of oneOf that only restricts the number of items, into an object schema.
+   */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static Schema<?> shallowCopy(Schema<?> schema) {
+    Schema copy = Json.mapper().convertValue(schema, schema.getClass());
+    copy.setType(schema.getType());
+    copy.setNot(schema.getNot());
+    copy.setItems(schema.getItems());
+    copy.setProperties(schema.getProperties());
+    copy.setAdditionalProperties(schema.getAdditionalProperties());
+    copy.setAllOf(schema.getAllOf());
+    copy.setAnyOf(schema.getAnyOf());
+    copy.setOneOf(schema.getOneOf());
+    return copy;
+  }
+
   default boolean getExplode() {
     return false;
   }

@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.versioned.features.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
@@ -158,6 +159,71 @@ public interface VersionedFeaturesConfiguration extends ExtensionConfiguration {
    */
   @Nullable
   String getCompositeIdTimestampFormat();
+
+  /**
+   * @langEn With `true`, a `Replace` whose new version begins at the begin of the open version
+   *     (`PRIMARY_INTERVAL_START`) delivers the open version again and leaves the feature
+   *     unchanged; the action succeeds without changes. With `false`, such a `Replace` is rejected,
+   *     since a version cannot end at its own begin.
+   * @langDe Mit `true` liefert ein `Replace`, dessen neue Version zum Beginn der offenen Version
+   *     (`PRIMARY_INTERVAL_START`) beginnt, die offene Version erneut und lässt das Feature
+   *     unverändert; die Aktion ist ohne Änderungen erfolgreich. Mit `false` wird ein solches
+   *     `Replace` abgelehnt, da eine Version nicht zu ihrem eigenen Beginn enden kann.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getIgnoreRepeatedVersions();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean ignoresRepeatedVersions() {
+    return Boolean.TRUE.equals(getIgnoreRepeatedVersions());
+  }
+
+  /**
+   * @langEn With `true`, an `Insert` of a feature that already has a version (open or retired)
+   *     leaves the feature unchanged; the item is skipped with a warning. With `false`, such an
+   *     `Insert` is rejected, since new versions of a feature are added with `Replace`, `Update` or
+   *     `Delete`.
+   * @langDe Mit `true` lässt ein `Insert` eines Features, von dem bereits eine Version (offen oder
+   *     stillgelegt) existiert, das Feature unverändert; das Element wird mit einer Warnung
+   *     übersprungen. Mit `false` wird ein solches `Insert` abgelehnt, da neue Versionen eines
+   *     Features mit `Replace`, `Update` oder `Delete` hinzugefügt werden.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getIgnoreExistingFeaturesOnInsert();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean ignoresExistingFeaturesOnInsert() {
+    return Boolean.TRUE.equals(getIgnoreExistingFeaturesOnInsert());
+  }
+
+  /**
+   * @langEn With `true`, a `Replace` of a feature that has no version at all inserts the feature,
+   *     with a warning. With `false`, such a `Replace` is rejected. A `Replace` of a feature whose
+   *     versions are all retired is rejected in either case.
+   * @langDe Mit `true` fügt ein `Replace` eines Features, von dem noch keine Version existiert, das
+   *     Feature mit einer Warnung ein. Mit `false` wird ein solches `Replace` abgelehnt. Ein
+   *     `Replace` eines Features, dessen Versionen alle stillgelegt sind, wird in jedem Fall
+   *     abgelehnt.
+   * @default false
+   * @since v4.9
+   */
+  @Nullable
+  Boolean getInsertUnknownFeaturesOnReplace();
+
+  @JsonIgnore
+  @Value.Derived
+  @Value.Auxiliary
+  default boolean insertsUnknownFeaturesOnReplace() {
+    return Boolean.TRUE.equals(getInsertUnknownFeaturesOnReplace());
+  }
 
   abstract class Builder extends ExtensionConfiguration.Builder {}
 

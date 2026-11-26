@@ -16,6 +16,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.SpecificationMaturity;
 import de.ii.ogcapi.transactions.domain.ImmutableTransactionsConfiguration.Builder;
 import de.ii.ogcapi.transactions.domain.TransactionsConfiguration.Semantic;
+import io.dropwizard.util.Duration;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Optional;
@@ -260,6 +261,9 @@ public class TransactionsBuildingBlock implements ApiBuildingBlock {
         .wfsTransaction(false)
         .defaultSemantic(Semantic.ATOMIC)
         .maxActionsPerRequest(0)
+        .async(false)
+        .maxWait(60)
+        .jobTtl(Duration.hours(1))
         .build();
   }
 

@@ -70,9 +70,9 @@ public class ParameterResolverCql extends CqlVisitorCopy implements ParameterRes
       return handleGeometry(name, value, geometryFormat.get());
     }
     if (value instanceof List<?> list) {
-      return ArrayLiteral.of(list.stream().map(this::handleScalar).toList());
+      return ArrayLiteral.of(list.stream().map(item -> handleScalar(name, item)).toList());
     }
-    return handleScalar(value);
+    return handleScalar(name, value);
   }
 
   private static Optional<String> getGeometryFormat(JsonSchema schema) {
@@ -152,16 +152,23 @@ public class ParameterResolverCql extends CqlVisitorCopy implements ParameterRes
     }
   }
 
-  private Scalar handleScalar(Object value) {
+  private static Scalar handleScalar(String name, Object value) {
     if (value instanceof String string) {
       return ScalarLiteral.of(string);
     } else if (value instanceof Integer num) {
+      return ScalarLiteral.of(num);
+    } else if (value instanceof Long num) {
+      // an integer outside the 32-bit range
       return ScalarLiteral.of(num);
     } else if (value instanceof Double num) {
       return ScalarLiteral.of(num);
     } else if (value instanceof Boolean bool) {
       return ScalarLiteral.of(bool);
     }
-    return null;
+    // e.g. an integer outside the 64-bit range or a null value; without this, the operand would
+    // silently be dropped from the filter expression
+    throw new IllegalArgumentException(
+        String.format(
+            "The value '%s' of parameter '%s' is not supported in a filter.", value, name));
   }
 }

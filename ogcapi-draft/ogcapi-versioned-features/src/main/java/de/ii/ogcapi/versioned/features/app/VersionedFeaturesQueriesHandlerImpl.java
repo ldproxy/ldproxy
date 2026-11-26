@@ -36,6 +36,7 @@ import de.ii.xtraplatform.features.domain.CollectionMetadata;
 import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureQuery;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
+import de.ii.xtraplatform.features.domain.FeatureStream;
 import de.ii.xtraplatform.features.domain.FeatureStream.ResultReduced;
 import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
@@ -49,6 +50,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotAcceptableException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.text.MessageFormat;
 import java.util.List;
@@ -221,10 +223,17 @@ public class VersionedFeaturesQueriesHandlerImpl extends AbstractVolatile
       throw new NotFoundException("The requested feature does not exist.");
     }
 
+    return toResponse(result, outputFormat.getMediaType().type());
+  }
+
+  static Response toResponse(ResultReduced<byte[]> result, MediaType mediaType) {
+    // the stream reports a failed query in the result, not as an exception
+    result.getError().ifPresent(FeatureStream::processStreamError);
+
     if (!result.hasFeatures()) {
       throw new NotFoundException("The requested feature does not exist.");
     }
 
-    return Response.ok(result.reduced()).type(outputFormat.getMediaType().type()).build();
+    return Response.ok(result.reduced()).type(mediaType).build();
   }
 }

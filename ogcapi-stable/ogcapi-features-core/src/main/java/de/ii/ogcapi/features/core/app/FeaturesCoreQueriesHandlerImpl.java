@@ -146,6 +146,16 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
     onVolatileStarted();
   }
 
+  static String relToI18nKey(String rel) {
+    String[] parts = rel.split("-");
+    StringBuilder sb = new StringBuilder(parts[0]);
+    for (int i = 1; i < parts.length; i++) {
+      sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+    }
+    sb.append("Link");
+    return sb.toString();
+  }
+
   @Override
   public Map<Query, QueryHandler<? extends QueryInput>> getQueryHandlers() {
     return queryHandlers;
@@ -588,12 +598,14 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
         // Structured Fields does only support 3 decimal places for some reason. We still provide
         // all decimal places, but other parsers will likely round the values to 3 places. The
         // min values need to be rounded down, the max values need to be rounded up to ensure that
-        // the coordinates are in the bbox.
+        // the coordinates are in the bbox. No whitespace after the commas: the API definition
+        // declares the header as an array of numbers (style simple), and Structured Fields
+        // parsers accept a list without it, too.
         BoundingBox bbox = result.getSpatialExtent().get();
         spatialExtentHeader =
             String.format(
                 Locale.US,
-                "%f, %f, %f, %f",
+                "%f,%f,%f,%f",
                 bbox.getXmin(),
                 bbox.getYmin(),
                 bbox.getXmax(),
@@ -602,7 +614,7 @@ public class FeaturesCoreQueriesHandlerImpl extends AbstractVolatileComposed
 
       if (result.getTemporalExtent().isPresent()) {
         // Structured Fields does not support timestamps, so the typical approach is to use seconds
-        // since epoch
+        // since epoch; no whitespace after the comma, as for the bounding box
         Tuple<Instant, Instant> interval = result.getTemporalExtent().get();
         if (Objects.nonNull(interval.first()) && Objects.nonNull(interval.second())) {
           temporalExtentHeader =

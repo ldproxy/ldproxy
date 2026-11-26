@@ -1,0 +1,22 @@
+maturity = 'PROPOSAL'
+maintenance = 'FULL'
+description = 'Support for asynchronous jobs and processes.'
+descriptionDe = 'Unterstützung für asynchrone Jobs und Prozesse.'
+
+dependencies {
+    provided 'de.interactive_instruments:xtraplatform-auth'
+    provided 'de.interactive_instruments:xtraplatform-blobs'
+    provided 'de.interactive_instruments:xtraplatform-crs'
+    provided 'de.interactive_instruments:xtraplatform-entities'
+    provided 'de.interactive_instruments:xtraplatform-services'
+    provided 'de.interactive_instruments:xtraplatform-web'
+    provided 'de.interactive_instruments:xtraplatform-xtralink'
+    provided 'de.interactive_instruments:ogcapi-common'
+    provided 'de.interactive_instruments:ogcapi-html'
+
+    testProvided 'de.interactive_instruments:xtraplatform-cache'
+    testProvided 'de.interactive_instruments:xtraplatform-features'
+    testProvided 'de.interactive_instruments:xtraplatform-streams'
+    testProvided 'de.interactive_instruments:ogcapi-json'
+    testProvided 'de.interactive_instruments:ogcapi-xml'
+}

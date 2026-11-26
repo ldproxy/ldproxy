@@ -43,6 +43,12 @@ public class HeaderContentTemporalExtent extends ApiExtensionCache implements Ap
     this.schemaValidator = schemaValidator;
   }
 
+  // the header is written as "start=<seconds>,end=<seconds>"
+  @Override
+  public boolean getExplode() {
+    return true;
+  }
+
   @Override
   public String getName() {
     return "Content-Temporal-Extent";
@@ -55,11 +61,6 @@ public class HeaderContentTemporalExtent extends ApiExtensionCache implements Ap
 
   @Override
   public boolean isResponseHeader() {
-    return true;
-  }
-
-  @Override
-  public boolean isExploded() {
     return true;
   }
 

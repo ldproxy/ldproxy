@@ -1,6 +1,5 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import "core-js";
 import MapLibre from "@xtramaps/web-map-maplibre-react";
 import "@xtramaps/web-map-maplibre-react/dist/index.css";
 import { LayerControl } from "@xtramaps/layer-control-maplibre-react";

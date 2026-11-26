@@ -29,6 +29,7 @@ public interface ApiRequestBody {
 
   Map<MediaType, ApiMediaTypeContent> getContent();
 
+  @Value.Default
   default boolean isRequired() {
     return false;
   }

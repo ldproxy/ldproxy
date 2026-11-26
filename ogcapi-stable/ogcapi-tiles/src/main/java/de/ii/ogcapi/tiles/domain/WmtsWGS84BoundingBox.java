@@ -7,6 +7,7 @@
  */
 package de.ii.ogcapi.tiles.domain;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.google.common.hash.Funnel;
 import de.ii.xtraplatform.tiles.domain.JacksonXmlAnnotation.XmlIgnore;
@@ -15,6 +16,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 @Value.Style(deepImmutablesDetection = true)
+@JsonPropertyOrder({"lowerCorner", "upperCorner"})
 public interface WmtsWGS84BoundingBox {
 
   @JacksonXmlProperty(namespace = WmtsServiceMetadata.XMLNS_OWS, localName = "LowerCorner")

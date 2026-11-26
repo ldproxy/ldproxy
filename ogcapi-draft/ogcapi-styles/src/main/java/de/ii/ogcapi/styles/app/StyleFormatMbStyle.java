@@ -211,7 +211,7 @@ public class StyleFormatMbStyle implements ConformanceClass, StyleFormatExtensio
                 layer ->
                     layer.getSource().isPresent()
                         && layer.getSource().get().equals(apiData.getId())
-                        && layer.getSource().isPresent()
+                        && layer.getSourceLayer().isPresent()
                         && layer.getSourceLayer().get().equals(collectionId)))
       return Optional.empty();
 

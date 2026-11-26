@@ -9,6 +9,7 @@ package de.ii.ogcapi.html.app;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.github.azahnen.dagger.annotations.AutoBind;
@@ -23,6 +24,7 @@ import de.ii.xtraplatform.values.domain.ValueStore;
 import de.ii.xtraplatform.values.domain.ValueStoreDecorator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +37,7 @@ import org.slf4j.LoggerFactory;
 public class StyleReaderImpl implements StyleReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StyleReaderImpl.class);
+  private static final String SOURCE_LAYER = "source-layer";
 
   private final KeyValueStore<StoredValue> mbStylesStore;
   private final KeyValueStore<StoredValue> tiles3dStylesStore;
@@ -79,13 +82,16 @@ public class StyleReaderImpl implements StyleReader {
         return true;
       }
 
-      // TODO: This is a hack and also fails to detect, if a collection style cannot be derived from
-      //       the dataset style for some reason (however, the deriveCollectionStyles option should
-      //       only be enabled where the derivation works, so this should be ok as a temporary
-      //       hack).
+      // TODO: This is a hack that mirrors the conditions of StyleFormatMbStyle for deriving a
+      //       collection style from the dataset style.
       return collectionId
           .filter(id -> hasDeriveCollectionStyles(apiData, id))
-          .map(id -> mbStylesStore.has(styleId, getPathArrayStyles(apiId, Optional.empty())))
+          .filter(id -> mbStylesStore.has(styleId, getPathArrayStyles(apiId, Optional.empty())))
+          .map(
+              id ->
+                  getLayers(apiId, styleId)
+                      .map(layers -> layers.stream().anyMatch(l -> isLayerOf(l, apiId, id)))
+                      .orElse(true))
           .orElse(false);
     }
     if (is3dTilesStyle(styleFormat)) {
@@ -109,6 +115,40 @@ public class StyleReaderImpl implements StyleReader {
     }
 
     return List.of();
+  }
+
+  @Override
+  public boolean appliesToCollection(String apiId, String collectionId, String styleId) {
+    return getLayers(apiId, styleId)
+        .map(
+            layers ->
+                layers.stream()
+                        .anyMatch(
+                            layer ->
+                                Objects.equals(collectionId, layer.path(SOURCE_LAYER).textValue()))
+                    || layers.stream().noneMatch(layer -> layer.hasNonNull(SOURCE_LAYER)))
+        .orElse(true);
+  }
+
+  // empty, if the style cannot be read; the caller then keeps the style
+  private Optional<List<JsonNode>> getLayers(String apiId, String styleId) {
+    if (!mbStylesStore.has(styleId, apiId)) {
+      return Optional.of(List.of());
+    }
+
+    try {
+      List<JsonNode> layers = new ArrayList<>();
+      MAPPER.valueToTree(mbStylesStore.get(styleId, apiId)).path("layers").forEach(layers::add);
+      return Optional.of(layers);
+    } catch (IllegalArgumentException e) {
+      LOGGER.debug("Could not read the layers of style '{}' in API '{}'.", styleId, apiId, e);
+      return Optional.empty();
+    }
+  }
+
+  private static boolean isLayerOf(JsonNode layer, String apiId, String collectionId) {
+    return Objects.equals(apiId, layer.path("source").textValue())
+        && Objects.equals(collectionId, layer.path(SOURCE_LAYER).textValue());
   }
 
   private String[] getPathArrayStyles(String apiId, Optional<String> collectionId) {

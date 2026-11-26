@@ -37,6 +37,21 @@
     </div>
     {{/tileJsonLink}}
 
+    {{#hasAdditionalLinks}}
+    <div class="row my-3">
+        <div class="col-md-2 font-weight-bold">{{linksTitle}}</div>
+        <div class="col-md-10">
+            <ul class="list-unstyled">
+                {{#additionalLinks}}
+                <li>
+                    <a href="{{href}}"{{#hreflang}} hreflang="{{hreflang}}"{{/hreflang}}>{{#title}}{{title}}{{/title}}{{^title}}{{href}}{{/title}}</a>
+                </li>
+                {{/additionalLinks}}
+            </ul>
+        </div>
+    </div>
+    {{/hasAdditionalLinks}}
+
     <div class="row my-3">
         <div class="col-md-2 font-weight-bold">{{mapTitle}}</div>
         <div class="col-md-10">

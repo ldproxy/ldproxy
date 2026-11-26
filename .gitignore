@@ -21,14 +21,6 @@ gradle.properties
 bin/
 *.sh
 
-# yarn v2
-.yarn/*
-.pnp.*
-!.yarn/sdks/
-!.yarn/releases/
-!.yarn/plugins/
-!.yarn/patches/
-install-state.gz
 # Neutrino build directory
 build
 

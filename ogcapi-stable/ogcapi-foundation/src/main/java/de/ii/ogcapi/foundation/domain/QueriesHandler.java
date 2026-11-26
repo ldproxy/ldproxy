@@ -22,7 +22,9 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Variant;
 import java.text.MessageFormat;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Collections;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -40,6 +42,27 @@ public interface QueriesHandler<T extends QueryIdentifier> {
   Logger LOGGER = LoggerFactory.getLogger(QueriesHandler.class);
 
   String[] ENCODINGS = {"gzip", "identity"};
+
+  // Tiers used when the Link response header would overflow the configured size budget.
+  // Order of attrition: alternate → link templates and the other links that do not fit into the
+  // budget left by the paging and version links → least-skippable → nothing more (only
+  // not-skippable remains).
+  //
+  // - NOT_SKIPPABLE (must): rels the client effectively requires to navigate at all.
+  //     "next" for paging continuation; "original" identifies the stable URI of a versioned
+  //     feature (RFC 7089 §2.2.5: REQUIRED on every Memento response).
+  // - LEAST_SKIPPABLE (should): high-value navigation that a client typically relies on.
+  //     "prev", "first" for paging; the versioned-features set for time-traveling between
+  //     versions and discovering the time map.
+  // - MOST_SKIPPABLE (may): drop first when over budget; the body's `links` array still
+  //     carries these.
+  // - PREFERRED: among the other links, the link to the resource itself and the links to the API
+  //     description (RFC 8631) fill the remaining budget first, then the rest in their order.
+  Set<String> NOT_SKIPPABLE =
+      Set.of("next", "original", "predecessor-version", "successor-version", "version-history");
+  Set<String> LEAST_SKIPPABLE = Set.of("prev", "first", "latest-version");
+  Set<String> MOST_SKIPPABLE = Set.of("alternate", "timemap");
+  Set<String> PREFERRED = Set.of("self", "service-desc", "service-doc", "service-meta");
 
   static void ensureCollectionIdExists(OgcApiDataV2 apiData, String collectionId) {
     if (!apiData.isCollectionEnabled(collectionId)) {
@@ -238,23 +261,6 @@ public interface QueriesHandler<T extends QueryIdentifier> {
     return response;
   }
 
-  // Tiers used when the Link response header would overflow the configured size budget.
-  // Order of attrition: alternate → everything else → least-skippable → nothing more (only
-  // not-skippable remains).
-  //
-  // - NOT_SKIPPABLE (must): rels the client effectively requires to navigate at all.
-  //     "next" for paging continuation; "original" identifies the stable URI of a versioned
-  //     feature (RFC 7089 §2.2.5: REQUIRED on every Memento response).
-  // - LEAST_SKIPPABLE (should): high-value navigation that a client typically relies on.
-  //     "prev", "first" for paging; the versioned-features set for time-traveling between
-  //     versions and discovering the time map.
-  // - MOST_SKIPPABLE (may): drop first when over budget; the body's `links` array still
-  //     carries these.
-  Set<String> NOT_SKIPPABLE =
-      Set.of("next", "original", "predecessor-version", "successor-version", "version-history");
-  Set<String> LEAST_SKIPPABLE = Set.of("prev", "first", "latest-version");
-  Set<String> MOST_SKIPPABLE = Set.of("alternate", "timemap");
-
   default void applyLinks(
       Response.ResponseBuilder response,
       int maxResponseLinkHeaderSize,
@@ -268,21 +274,50 @@ public interface QueriesHandler<T extends QueryIdentifier> {
       links = links.stream().filter(link -> !MOST_SKIPPABLE.contains(link.getRel())).toList();
     }
     if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
-      links =
+      List<jakarta.ws.rs.core.Link> navigation =
           links.stream()
               .filter(
                   link ->
                       NOT_SKIPPABLE.contains(link.getRel())
                           || LEAST_SKIPPABLE.contains(link.getRel()))
               .toList();
+      if (linksSize(navigation, List.of()) > maxResponseLinkHeaderSize) {
+        navigation =
+            navigation.stream().filter(link -> NOT_SKIPPABLE.contains(link.getRel())).toList();
+      }
+      links = fillLinkBudget(links, navigation, maxResponseLinkHeaderSize);
       linkTemplates = List.of();
-    }
-    if (linksSize(links, linkTemplates) > maxResponseLinkHeaderSize) {
-      links = links.stream().filter(link -> NOT_SKIPPABLE.contains(link.getRel())).toList();
     }
 
     links.forEach(response::links);
     linkTemplates.forEach(template -> response.header("Link-Template", template));
+  }
+
+  // keeps the required links and adds the other links as long as they fit into the budget, the
+  // preferred ones first; the links keep their order
+  default List<jakarta.ws.rs.core.Link> fillLinkBudget(
+      List<jakarta.ws.rs.core.Link> links,
+      List<jakarta.ws.rs.core.Link> required,
+      int maxResponseLinkHeaderSize) {
+    Set<jakarta.ws.rs.core.Link> selected = Collections.newSetFromMap(new IdentityHashMap<>());
+    selected.addAll(required);
+    List<jakarta.ws.rs.core.Link> candidates =
+        Stream.concat(
+                links.stream().filter(link -> PREFERRED.contains(link.getRel())),
+                links.stream().filter(link -> !PREFERRED.contains(link.getRel())))
+            .filter(link -> !selected.contains(link))
+            .toList();
+
+    int size = linksSize(required, List.of());
+    for (jakarta.ws.rs.core.Link link : candidates) {
+      int length = link.toString().length();
+      if (size + length <= maxResponseLinkHeaderSize) {
+        selected.add(link);
+        size += length;
+      }
+    }
+
+    return links.stream().filter(selected::contains).toList();
   }
 
   default int linksSize(List<jakarta.ws.rs.core.Link> links, List<String> linkTemplates) {

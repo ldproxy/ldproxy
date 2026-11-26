@@ -14,6 +14,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ExceptionFormatExtension;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.xtraplatform.base.domain.AppContext;
 import io.dropwizard.jersey.errors.ErrorEntityWriter;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -29,9 +30,12 @@ import jakarta.ws.rs.core.MediaType;
 public class ExceptionFormatHtml extends ErrorEntityWriter<ApiErrorMessage, OgcApiErrorView>
     implements ExceptionFormatExtension {
 
+  private final AppContext appContext;
+
   @Inject
-  public ExceptionFormatHtml() {
+  public ExceptionFormatHtml(AppContext appContext) {
     super(MediaType.TEXT_HTML_TYPE, OgcApiErrorView.class);
+    this.appContext = appContext;
   }
 
   @Override
@@ -50,7 +54,17 @@ public class ExceptionFormatHtml extends ErrorEntityWriter<ApiErrorMessage, OgcA
   }
 
   @Override
+  public Object getExceptionEntity(ApiErrorMessage errorMessage, String apiPath) {
+    return new OgcApiErrorView(errorMessage, apiPath);
+  }
+
+  // without a request, the static resources are referenced below the root of the web application
+  @Override
   protected OgcApiErrorView getRepresentation(ApiErrorMessage errorMessage) {
-    return new OgcApiErrorView(errorMessage);
+    String rootPath =
+        appContext.getPathPrefix().isEmpty()
+            ? ""
+            : "/" + String.join("/", appContext.getPathPrefix());
+    return new OgcApiErrorView(errorMessage, rootPath);
   }
 }

@@ -101,8 +101,7 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
   public Schema<?> getSchema(OgcApiDataV2 apiData) {
     return schemaMap
         .computeIfAbsent(apiData.hashCode(), ignore -> new ConcurrentHashMap<>())
-        .computeIfAbsent(
-            "*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)).minItems(1));
+        .computeIfAbsent("*", ignore -> new ArraySchema().items(new StringSchema().minLength(1)));
   }
 
   // the feature id cannot be excluded
@@ -126,8 +125,8 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
             ignore ->
                 new ArraySchema()
                     .items(
-                        new StringSchema()._enum(getExcludablePropertyNames(apiData, collectionId)))
-                    .minItems(1));
+                        new StringSchema()
+                            ._enum(getExcludablePropertyNames(apiData, collectionId))));
   }
 
   @Override
@@ -140,6 +139,12 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
     return ProjectionsConfiguration.class;
   }
 
+  // parsed after "properties", the two parameters are mutually exclusive
+  @Override
+  public int getPriority() {
+    return 2;
+  }
+
   @Override
   public List<String> parse(
       String value,
@@ -149,6 +154,13 @@ public class QueryParameterExcludeProperties extends OgcApiQueryParameterBase
     if (Objects.isNull(value)) {
       // no default value
       return null;
+    }
+
+    if (Objects.nonNull(typedValues.get(QueryParameterProperties.NAME))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "The query parameters '%s' and '%s' cannot be combined.",
+              QueryParameterProperties.NAME, getName()));
     }
 
     try {

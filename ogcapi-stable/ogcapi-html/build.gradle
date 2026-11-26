@@ -59,7 +59,7 @@ task npmBuild(type: NpmTask) {
     dependsOn npmInstall
     inputs.file("src/main/javascript/package.json")
     inputs.file("src/main/javascript/package-lock.json")
-    inputs.file("src/main/javascript/vite.config.js")
+    inputs.file("src/main/javascript/vite.config.mjs")
     inputs.dir("src/main/javascript/vite-plugins")
     inputs.dir("src/main/javascript/src")
     outputs.dir(generatedResourcesDir)

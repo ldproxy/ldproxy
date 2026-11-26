@@ -8,6 +8,7 @@
 package de.ii.ogcapi.features.html.app;
 
 import com.google.common.collect.ImmutableList;
+import de.ii.xtraplatform.crs.domain.BoundingBox;
 import de.ii.xtraplatform.geometries.domain.Geometry;
 import de.ii.xtraplatform.geometries.domain.GeometryCollection;
 import de.ii.xtraplatform.geometries.domain.transform.ClampToEllipsoid;
@@ -17,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CesiumDataFeatures {
@@ -24,6 +26,7 @@ public class CesiumDataFeatures {
   public final List<FeatureHtml> features;
   public final boolean clampToEllipsoid;
   public final String encodedUrl;
+  private final Optional<BoundingBox> collectionExtent;
   private Double minLon = null;
   private Double maxLon = null;
   private Double minLat = null;
@@ -31,10 +34,18 @@ public class CesiumDataFeatures {
   private Double minHeight = null;
   private Double maxHeight = null;
 
-  public CesiumDataFeatures(List<FeatureHtml> features, String url) {
+  /**
+   * @param features the features of the page
+   * @param url the URL of the glTF representation of the features
+   * @param collectionExtent the spatial extent of the collection in CRS84, used when the features
+   *     have no coordinates (no features or no geometries)
+   */
+  public CesiumDataFeatures(
+      List<FeatureHtml> features, String url, Optional<BoundingBox> collectionExtent) {
     this.features = features;
     this.clampToEllipsoid = true; // TODO make configurable
     this.encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8);
+    this.collectionExtent = collectionExtent;
   }
 
   public boolean fromFeatures() {
@@ -86,6 +97,9 @@ public class CesiumDataFeatures {
         geom = (GeometryCollection) new ClampToEllipsoid().visit(geom);
       }
       double[][] minMax = geom.accept(new MinMaxDeriver());
+      if (Objects.isNull(minMax)) {
+        minMax = fallbackMinMax();
+      }
       minLon = Math.max(minMax[0][0], -180.0);
       maxLon = Math.min(minMax[1][0], 180.0);
       minLat = Math.max(minMax[0][1], -90.0);
@@ -93,6 +107,17 @@ public class CesiumDataFeatures {
       minHeight = minMax[0][2];
       maxHeight = minMax[1][2];
     }
+  }
+
+  private double[][] fallbackMinMax() {
+    return collectionExtent
+        .map(
+            bbox ->
+                new double[][] {
+                  {bbox.getXmin(), bbox.getYmin(), Objects.requireNonNullElse(bbox.getZmin(), 0.0)},
+                  {bbox.getXmax(), bbox.getYmax(), Objects.requireNonNullElse(bbox.getZmax(), 0.0)}
+                })
+        .orElse(new double[][] {{-180.0, -90.0, 0.0}, {180.0, 90.0, 0.0}});
   }
 
   private List<Geometry<?>> getGeometries(

@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.collect.ImmutableMap
 import de.ii.ogcapi.foundation.domain.*
 import de.ii.ogcapi.html.domain.MapClient
+import de.ii.ogcapi.tiles.domain.ImmutableTileSetsLink
 import de.ii.ogcapi.tiles.domain.ImmutableTilesConfiguration
 import de.ii.ogcapi.tiles.domain.TilesConfiguration
 import de.ii.xtraplatform.features.domain.transform.ImmutablePropertyTransformation
@@ -28,7 +29,12 @@ class TilesConfigurationSpec extends AbstractExtensionConfigurationSpec implemen
                 .style("foo")
                 .removeZoomLevelConstraints(true)
                 .putTransformations("foo", [new ImmutablePropertyTransformation.Builder().rename("bar").build()])
+                .addAdditionalLinks(link("https://example.com/foo"))
                 .build()
+    }
+
+    static link(String href) {
+        return new ImmutableTileSetsLink.Builder().rel("describedby").title("foo").href(href).build()
     }
 
     @Override
@@ -64,6 +70,7 @@ class TilesConfigurationSpec extends AbstractExtensionConfigurationSpec implemen
         return new ImmutableTilesConfiguration.Builder()
                 .tileProviderTileset("foo")
                 .addTileSetEncodings("bar")
+                .addAdditionalLinks(link("https://example.com/foo"), link("https://example.com/bar"))
                 .build()
     }
 
@@ -75,6 +82,10 @@ class TilesConfigurationSpec extends AbstractExtensionConfigurationSpec implemen
                 .tileSetEncodings(ImmutableList.of(
                         "foo",
                         "bar"
+                ))
+                .additionalLinks(ImmutableList.of(
+                        link("https://example.com/foo"),
+                        link("https://example.com/bar")
                 ))
                 .build()
     }

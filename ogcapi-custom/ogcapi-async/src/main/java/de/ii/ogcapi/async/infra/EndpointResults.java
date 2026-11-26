@@ -1,0 +1,177 @@
+/*
+ * Copyright 2026 interactive instruments GmbH
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package de.ii.ogcapi.async.infra;
+
+import static de.ii.ogcapi.async.domain.JobQueriesHandler.GROUP_JOBS_READ;
+
+import com.github.azahnen.dagger.annotations.AutoBind;
+import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.async.app.AsyncBuildingBlock;
+import de.ii.ogcapi.async.domain.AsyncConfiguration;
+import de.ii.ogcapi.async.domain.ImmutableQueryInputResults;
+import de.ii.ogcapi.async.domain.JobQueriesHandler;
+import de.ii.ogcapi.common.domain.async.JobResultsFormatExtension;
+import de.ii.ogcapi.foundation.domain.ApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ApiOperation;
+import de.ii.ogcapi.foundation.domain.ApiRequestContext;
+import de.ii.ogcapi.foundation.domain.Endpoint;
+import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
+import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HttpMethods;
+import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
+import de.ii.ogcapi.foundation.domain.ImmutableApiOperation;
+import de.ii.ogcapi.foundation.domain.ImmutableOgcApiResourceAuxiliary;
+import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
+import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
+import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * @title Results (full)
+ * @path jobs/{jobId}/results
+ * @langEn Retrieve all requested job results. If the result of the job is a single document, e.g.
+ *     the result of a search or of a transaction, it is returned in the media type in which it is
+ *     stored, regardless of the `Accept` header; the parameter `f` is not supported.
+ * @langDe Alle angeforderten Job-Ergebnisse abrufen. Ist das Ergebnis des Jobs ein einzelnes
+ *     Dokument, z. B. das Ergebnis einer Suche oder einer Transaktion, wird es in dem Medientyp
+ *     geliefert, in dem es gespeichert ist, unabhängig vom `Accept`-Header; der Parameter `f` wird
+ *     nicht unterstützt.
+ * @ref:formats {@link de.ii.ogcapi.common.domain.async.JobResultsFormatExtension}
+ */
+@Singleton
+@AutoBind
+public class EndpointResults extends Endpoint {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EndpointResults.class);
+  private static final List<String> TAGS = ImmutableList.of("Jobs");
+  private static final int STATUS_UNPROCESSABLE_ENTITY = 422;
+
+  private final JobQueriesHandler queryHandler;
+
+  @Inject
+  public EndpointResults(ExtensionRegistry extensionRegistry, JobQueriesHandler queryHandler) {
+    super(extensionRegistry);
+    this.queryHandler = queryHandler;
+  }
+
+  @Override
+  protected ApiEndpointDefinition computeDefinition(OgcApiDataV2 apiData) {
+
+    ImmutableApiEndpointDefinition.Builder definitionBuilder =
+        new ImmutableApiEndpointDefinition.Builder()
+            .apiEntrypoint("jobs")
+            .sortPriority(ApiEndpointDefinition.SORT_PRIORITY_JOB_RESULTS);
+
+    computeDefinitionResults(apiData, definitionBuilder);
+
+    return definitionBuilder.build();
+  }
+
+  private void computeDefinitionResults(
+      OgcApiDataV2 apiData, ImmutableApiEndpointDefinition.Builder definitionBuilder) {
+    String path = "/jobs/{jobId}/results";
+    HttpMethods method = HttpMethods.GET;
+
+    List<OgcApiPathParameter> pathParameters = getPathParameters(extensionRegistry, apiData, path);
+
+    if (pathParameters.stream().noneMatch(param -> "jobId".equals(param.getName()))) {
+      LOGGER.error(
+          "Path parameter 'jobId' missing for resource at path '{}'. The GET method will not be available.",
+          path);
+    } else {
+      List<OgcApiQueryParameter> queryParameters =
+          getQueryParameters(extensionRegistry, apiData, path);
+
+      String operationSummary = "Retrieve all requested processing results";
+      Optional<String> operationDescription =
+          Optional.of(
+              """
+                    Returns the results for the job specified by `jobId`. If the result of the job
+                    is a single document, e.g. the result of a search or of a transaction, it is
+                    returned in the media type in which it is stored, regardless of the `Accept`
+                    header; the parameter `f` is not supported.
+                    """);
+
+      ImmutableOgcApiResourceAuxiliary.Builder resourceBuilder =
+          new ImmutableOgcApiResourceAuxiliary.Builder().path(path).pathParameters(pathParameters);
+
+      ApiOperation.getResource(
+              apiData,
+              path,
+              false,
+              queryParameters,
+              ImmutableList.of(),
+              getResponseContent(apiData),
+              operationSummary,
+              operationDescription,
+              Optional.empty(),
+              getOperationId("getJobResults"),
+              GROUP_JOBS_READ,
+              TAGS,
+              AsyncBuildingBlock.MATURITY,
+              AsyncBuildingBlock.SPEC)
+          // the results of a failed job have the status of the reason, typically 422
+          .map(
+              operation ->
+                  new ImmutableApiOperation.Builder()
+                      .from(operation)
+                      .addErrorStatusCodes(STATUS_UNPROCESSABLE_ENTITY)
+                      .build())
+          .ifPresent(operation -> resourceBuilder.putOperations(method.name(), operation));
+      definitionBuilder.putResources(path, resourceBuilder.build());
+    }
+  }
+
+  @GET
+  @Path("/{jobId}/results")
+  public Response getJobResults(
+      @PathParam("jobId") String jobId,
+      @Context OgcApi api,
+      @Context ApiRequestContext requestContext) {
+
+    checkPathParameter(extensionRegistry, api.getData(), "/jobs/{jobId}/results", "jobId", jobId);
+
+    JobQueriesHandler.QueryInputResults queryInput =
+        new ImmutableQueryInputResults.Builder()
+            .from(getGenericQueryInput(api.getData()))
+            .jobId(jobId)
+            .build();
+
+    return queryHandler.handle(JobQueriesHandler.Query.RESULTS, queryInput, requestContext);
+  }
+
+  @Override
+  public Class<? extends ExtensionConfiguration> getBuildingBlockConfigurationType() {
+    return AsyncConfiguration.class;
+  }
+
+  @Override
+  public List<? extends FormatExtension> getResourceFormats() {
+    if (formats == null) {
+      formats = extensionRegistry.getExtensionsForType(JobResultsFormatExtension.class);
+    }
+    return formats;
+  }
+
+  @Override
+  public boolean isEnabledForApi(OgcApiDataV2 apiData) {
+    return AsyncBuildingBlock.isAsyncEnabled(apiData);
+  }
+}

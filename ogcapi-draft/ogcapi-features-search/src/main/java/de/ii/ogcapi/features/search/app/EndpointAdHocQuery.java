@@ -13,6 +13,7 @@ import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiResourceData;
+import de.ii.ogcapi.common.domain.async.AsyncResponses;
 import de.ii.ogcapi.features.core.domain.EndpointRequiresFeatures;
 import de.ii.ogcapi.features.core.domain.FeatureFormatExtension;
 import de.ii.ogcapi.features.core.domain.FeaturesCoreConfiguration;
@@ -21,6 +22,7 @@ import de.ii.ogcapi.features.search.domain.ImmutableQueryExpression;
 import de.ii.ogcapi.features.search.domain.ImmutableQueryInputQuery;
 import de.ii.ogcapi.features.search.domain.QueryExpression;
 import de.ii.ogcapi.features.search.domain.SearchConfiguration;
+import de.ii.ogcapi.features.search.domain.SearchJob;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.Query;
 import de.ii.ogcapi.features.search.domain.SearchQueriesHandler.QueryInputQuery;
@@ -36,6 +38,7 @@ import de.ii.ogcapi.foundation.domain.ConformanceClass;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
+import de.ii.ogcapi.foundation.domain.HeaderPrefer;
 import de.ii.ogcapi.foundation.domain.HttpMethods;
 import de.ii.ogcapi.foundation.domain.ImmutableApiEndpointDefinition;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaType;
@@ -43,16 +46,19 @@ import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
+import de.ii.xtraplatform.blobs.domain.ResourceStore;
 import de.ii.xtraplatform.entities.domain.ImmutableValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult;
 import de.ii.xtraplatform.entities.domain.ValidationResult.MODE;
+import de.ii.xtraplatform.xtralink.domain.Jobs;
 import io.dropwizard.auth.Auth;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
@@ -91,18 +97,24 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   private final FeaturesCoreProviders providers;
   private final Schema<?> schema;
   private final Map<String, Schema<?>> referencedSchemas;
+  private final Jobs jobs;
+  private final ResourceStore resultStore;
 
   @Inject
   public EndpointAdHocQuery(
       ExtensionRegistry extensionRegistry,
       SearchQueriesHandler queryHandler,
       FeaturesCoreProviders providers,
-      ClassSchemaCache classSchemaCache) {
+      ClassSchemaCache classSchemaCache,
+      Jobs jobs,
+      ResourceStore resourceStore) {
     super(extensionRegistry);
     this.queryHandler = queryHandler;
     this.providers = providers;
     this.schema = classSchemaCache.getSchema(QueryExpression.class);
     this.referencedSchemas = classSchemaCache.getReferencedSchemas(QueryExpression.class);
+    this.jobs = jobs;
+    this.resultStore = resourceStore.with(Jobs.RESOURCE_TYPE, SearchJob.KIND);
   }
 
   @Override
@@ -182,48 +194,86 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
     String description =
         "An ad-hoc query expression is expressed as a JSON object. The query expression object "
             + "can describe a single query (the properties \"collections\", \"filter\", "
-            + "\"properties\" and \"sortby\" are members of the query expression object) or "
-            + "multiple queries (a \"queries\" member with an array of query objects is present) "
-            + "in a single request.\n"
+            + "\"properties\", \"excludeProperties\" and \"sortby\" are members of the query "
+            + "expression object) or multiple queries (a \"queries\" member with an array of query "
+            + "objects is present) in a single request. The members \"title\", \"description\", "
+            + "\"filterCrs\", \"filterOperator\", \"crs\", \"verticalCrs\", \"profiles\", "
+            + "\"maxAllowableOffset\" and \"deduplicate\" are always members of the query "
+            + "expression object and apply to all queries.\n"
             + "<p>For each query:</p>"
-            + "<ul><li>The value of \"collection\" is an array with one item, the identifier of the "
-            + "collection to query.\n"
+            + "<ul><li>The value of \"collections\" is an array with one item, the identifier of "
+            + "the collection to query.\n"
             + "<li>The value of \"filter\" is a CQL2 JSON filter expression.\n"
             + "<li>The value of \"properties\" is an array with the names of properties to include "
             + "in the response.\n"
-            + "<li>The value of \"sortby\" is used to sort the features in the response.\n</ul>"
+            + "<li>The value of \"excludeProperties\" is an array with the names of properties to "
+            + "exclude from the response. The properties that are selected by \"properties\" (all "
+            + "properties, if it is absent) are returned without them.\n"
+            + "<li>The value of \"sortby\" is used to sort the features in the response.\n"
+            + "<li>The value of \"resultSets\" is an object that declares named result sets. Each "
+            + "value is an object: if it is empty, the result set consists of the ids of the "
+            + "features selected by the query; with a member \"values\" naming a property, it "
+            + "consists of the ids referenced by that property of the selected features; with a "
+            + "member \"key\", it consists of composite keys, one member per key part, mapping the "
+            + "name of the part to the property that holds it. \"resultSet\" with a name is a "
+            + "shorthand for a single result set of the selected ids.\n"
+            + "<li>A later query selects features that are related to a result set with the CQL2 "
+            + "predicate {\"op\": \"inResultSet\", \"args\": [ { \"property\": \"...\" }, "
+            + "\"name\" ]} or, for a composite-key result set, {\"op\": \"inResultSetByKey\", "
+            + "\"args\": [ { \"&lt;part&gt;\": { \"property\": \"...\" }, ... }, \"name\" ]} in "
+            + "its \"filter\".\n"
+            + "<li>With \"resultSetOnly\": true, a query only declares its result sets; it "
+            + "contributes no features to the response.\n</ul>"
             + "<p>For multiple queries:</p>"
             + "<ul><li>If multiple queries are specified, the results are concatenated. The response "
             + "is a single feature collection. The feature ids in the response to a "
             + "multi-collection query must be unique. Since the identifier of a feature only has to "
             + "be unique per collection, they need to be combined with the collection identifier. "
             + "A concatenation with \".\" as the joining character is used (e.g., "
-            + "\"apronelement.123456\").\n"
-            + "<li>The direct members \"filter\" and \"properties\" represent \"global\" "
-            + "constraints that must be combined with the corresponding member in each query. The "
-            + "global and local property selection list are concatenated and then the global and "
-            + "local filters are combined using the logical operator specified by the "
-            + "\"filterOperator\" member.\n"
+            + "\"apronelement.123456\"). If the feature provider declares that its feature ids are "
+            + "globally unique, the ids are not rewritten.\n"
+            + "<li>The direct members \"filter\", \"properties\" and \"excludeProperties\" "
+            + "represent \"global\" constraints that must be combined with the corresponding member "
+            + "in each query. The global and local property selection list are concatenated, the "
+            + "global and local exclusion list are unioned and then subtracted from the selection, "
+            + "and the global and local filters are combined using the logical operator specified "
+            + "by the \"filterOperator\" member (\"AND\" or \"OR\", the default is \"AND\").\n"
             + "<li>The global member \"filter\" must only reference queryables that are common to "
             + "all collections being queried.\n"
             + "<li>The global member \"properties\" must only reference presentables that are "
-            + "common to all collections being queried.\n</ul>"
+            + "common to all collections being queried.\n"
+            + "<li>The global member \"excludeProperties\" may reference a presentable that only "
+            + "some of the collections being queried have; a name that none of them has is an "
+            + "error.\n"
+            + "<li>With \"deduplicate\": true, a feature that is selected by more than one query is "
+            + "only included in the response once.\n</ul>"
             + "<p>General remarks:</p>"
             + "<ul><li>A \"title\" and \"description\" for the query expression can be added. "
             + "Providing both is strongly recommended to explain the query to users.\n"
-            + "<li>The \"limit\" member applies to the entire result set.\n"
+            + "<li>Ad-hoc queries are not paged: all matching features are returned, the "
+            + "\"limit\" and \"offset\" members have no effect and \"supportPaging\": true is "
+            + "rejected. The server may cap the number of features per query. The response is "
+            + "returned with a \"Content-Disposition: attachment\" header and HTML is not "
+            + "supported.\n"
+            + "<li>The value of \"filterCrs\" is the URI of the coordinate reference system of the "
+            + "coordinates in all filters of the query expression. The default is "
+            + "\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\".\n"
+            + "<li>The values of \"crs\" and \"verticalCrs\" are the URIs of the coordinate "
+            + "reference systems of the coordinates in the response. If \"verticalCrs\" is "
+            + "specified, \"crs\" must be specified, too, and be a horizontal 2D coordinate "
+            + "reference system.\n"
+            + "<li>The value of \"profiles\" is an array of profile identifiers, as in the query "
+            + "parameter \"profile\" of the features resources (e.g., \"rel-as-link\" or "
+            + "\"val-as-title\"). The profiles are negotiated for each queried collection and the "
+            + "output format. A profile that selects the coordinate reference system of the "
+            + "response is only used if \"crs\" is absent.\n"
+            + "<li>The value of \"maxAllowableOffset\" simplifies all geometries in the response "
+            + "with the Douglas-Peucker algorithm. It is the maximum distance between the original "
+            + "and the simplified geometry, in the units of the coordinate reference system of the "
+            + "response.\n"
             + "<li>\"sortby\" will only apply per query. A global \"sortby\" would require that "
             + "the results of all queries are compiled first and then the combined result set is "
-            + "sorted. This would not support \"streaming\" the response.\n"
-            + "<li>In case of a parameterized stored query, the query expression may contain JSON "
-            + "objects with a member \"$parameter\". The value of \"$parameter\" is an object with "
-            + "a member where the key is the parameter name and the value is a JSON schema "
-            + "describing the parameter. When executing the stored query, all objects with a "
-            + "\"$parameter\" member are replaced with the value of the parameter for this query "
-            + "execution. Comma-separated parameter values are converted to an array, if the "
-            + "parameter is of type \"array\".\n"
-            + "<li>Parameters may also be provided in a member \"parameters\" in the query "
-            + "expression and referenced using \"$ref\".</ul>";
+            + "sorted. This would not support \"streaming\" the response.</ul>";
     Optional<String> operationDescription = Optional.of(description);
     ImmutableOgcApiResourceData.Builder resourceBuilder =
         new ImmutableOgcApiResourceData.Builder().path(path);
@@ -243,6 +293,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             TAGS,
             SearchBuildingBlock.MATURITY,
             SearchBuildingBlock.SPEC)
+        .map(operation -> AsyncResponses.withAccepted(operation, isAsync(apiData)))
         .ifPresent(operation -> resourceBuilder.putOperations(method.toString(), operation));
     definitionBuilder.putResources(path, resourceBuilder.build());
 
@@ -253,6 +304,7 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Path("/")
   public Response getAdhocQuery(
       @Auth Optional<User> optionalUser,
+      @HeaderParam("Prefer") List<String> prefer,
       @Context OgcApi api,
       @Context ApiRequestContext requestContext,
       @Context HttpServletRequest request,
@@ -298,6 +350,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
             .isStoredQuery(false)
             .build();
 
+    if (HeaderPrefer.containsToken(prefer, "respond-async") && isAsync(apiData)) {
+      // an invalid query is rejected before a job is created, as by a synchronous request
+      queryHandler.validate(queryInput, requestContext);
+      return SearchAsync.submit(jobs, resultStore, requestContext, prefer, query, false);
+    }
+
     return queryHandler.handle(Query.QUERY, queryInput, requestContext);
   }
 
@@ -310,5 +368,12 @@ public class EndpointAdHocQuery extends EndpointRequiresFeatures
   @Override
   public Set<Volatile2> getVolatiles(OgcApiDataV2 apiData) {
     return Set.of(queryHandler, providers.getFeatureProviderOrThrow(apiData));
+  }
+
+  private static boolean isAsync(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(SearchConfiguration.class)
+        .map(SearchConfiguration::isAsync)
+        .orElse(false);
   }
 }

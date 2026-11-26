@@ -71,7 +71,7 @@ import java.util.Optional;
  *     Specifically, in GeoPackage feature providers, queryables in a JSON column that are arrays
  *     are not supported. In PostgreSQL/PostGIS feature providers, the `A_OVERLAPS` operator is not
  *     supported for queryables in a JSON column.
- *     <p>The conformance classes *Functions* and *Arithmetic Expressions* are not supported.
+ *     <p>The conformance class *Arithmetic Expressions* is not supported.
  *     <p>The operator `IN` requires a property on the left side and literals on the right side.
  *     <p>Only `booleanLiteral` may be used from `booleanExpression` in a `scalarExpression`.
  *     <p>The Unicode characters "\x10000" to "\x10FFFF" are not supported.
@@ -79,7 +79,7 @@ import java.util.Optional;
  *     unterstützt. Insbesondere werden in GeoPackage Feature-Providern Queryables in einer
  *     JSON-Spalte, die Arrays sind, nicht unterstützt. In PostgreSQL/PostGIS-Feature-Anbietern wird
  *     der Operator `A_OVERLAPS` für Queryables in einer JSON-Spalte nicht unterstützt.
- *     <p>Die Konformitätsklassen *Functions* und *Arithmetic Expressions* werden nicht unterstützt.
+ *     <p>Die Konformitätsklasse *Arithmetic Expressions* wird nicht unterstützt.
  *     <p>In einer `scalarExpression` darf aus `booleanExpression` nur `booleanLiteral` verwendet
  *     werden.
  *     <p>Der Operator `IN` erfordert eine Eigenschaft auf der linken Seite und Literale auf der

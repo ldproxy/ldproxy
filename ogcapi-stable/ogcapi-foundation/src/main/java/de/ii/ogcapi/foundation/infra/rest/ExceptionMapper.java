@@ -15,8 +15,11 @@ import de.ii.ogcapi.foundation.domain.ExceptionFormatExtension;
 import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.FormatNotSupportedException;
+import de.ii.ogcapi.foundation.domain.TypedClientErrorException;
+import de.ii.xtraplatform.base.domain.AppContext;
 import de.ii.xtraplatform.base.domain.LogContext;
 import de.ii.xtraplatform.base.domain.resiliency.VolatileUnavailableException;
+import de.ii.xtraplatform.web.domain.ForwardedUri;
 import io.dropwizard.jersey.errors.LoggingExceptionMapper;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,11 +28,16 @@ import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.PathSegment;
 import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -62,21 +70,34 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
   private HttpHeaders httpHeaders;
 
   private final ContentNegotiationMediaType contentNegotiationMediaType;
+  private final AppContext appContext;
 
   @Inject
   public ExceptionMapper(
       ExtensionRegistry extensionRegistry,
-      ContentNegotiationMediaType contentNegotiationMediaType) {
+      ContentNegotiationMediaType contentNegotiationMediaType,
+      AppContext appContext) {
     super();
     this.extensionRegistry = extensionRegistry;
     this.contentNegotiationMediaType = contentNegotiationMediaType;
+    this.appContext = appContext;
+  }
+
+  private static boolean isHtml(ExceptionFormatExtension format) {
+    return format.getMediaType().type().isCompatible(MediaType.TEXT_HTML_TYPE);
   }
 
   @Override
   public Response toResponse(Throwable exception) {
-    // content negotiation for the error response
-    ImmutableSet<ApiMediaType> supportedMediaTypes =
+    // content negotiation for the error response; the registration order is not stable, so
+    // without an explicit preference for HTML clients deterministically get a machine-readable
+    // error
+    List<ExceptionFormatExtension> exceptionFormats =
         extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).stream()
+            .sorted(Comparator.comparing(ExceptionMapper::isHtml))
+            .toList();
+    ImmutableSet<ApiMediaType> supportedMediaTypes =
+        exceptionFormats.stream()
             .map(FormatExtension::getMediaType)
             .collect(ImmutableSet.toImmutableSet());
     Optional<ApiMediaType> mediaType =
@@ -86,12 +107,10 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
         mediaType
             .flatMap(
                 apiMediaType ->
-                    extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).stream()
+                    exceptionFormats.stream()
                         .filter(format -> apiMediaType == format.getMediaType())
                         .findFirst())
-            .orElseGet(
-                () ->
-                    extensionRegistry.getExtensionsForType(ExceptionFormatExtension.class).get(0));
+            .orElseGet(() -> exceptionFormats.get(0));
 
     String msg = getMessage(exception);
     String msgCause = getMessageOfCause(exception);
@@ -140,7 +159,8 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     return Response.serverError()
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     responseStatus.getStatusCode(),
                     responseStatus.getReasonPhrase(),
@@ -160,7 +180,8 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     return Response.status(responseStatus)
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     responseStatus.getStatusCode(), responseStatus.getReasonPhrase(), msg)))
         .build();
@@ -179,7 +200,8 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     return Response.status(responseStatus)
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     responseStatus.getStatusCode(), responseStatus.getReasonPhrase(), msg)))
         .build();
@@ -200,7 +222,8 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     return Response.status(responseStatus)
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     responseStatus.getStatusCode(), responseStatus.getReasonPhrase(), msg)))
         .build();
@@ -220,12 +243,17 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
             getRequestPath(true),
             exception.getMessage());
       }
+      String type =
+          exception instanceof TypedClientErrorException typedException
+              ? typedException.getType()
+              : null;
+      ApiErrorMessage apiErrorMessage =
+          new ApiErrorMessage(
+              response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg, null, type);
+
       return Response.fromResponse(response)
           .type(exceptionFormat.getMediaType().type())
-          .entity(
-              exceptionFormat.getExceptionEntity(
-                  new ApiErrorMessage(
-                      response.getStatus(), response.getStatusInfo().getReasonPhrase(), msg)))
+          .entity(toEntity(exceptionFormat, apiErrorMessage))
           .build();
     } else if (exception instanceof ServiceUnavailableException) {
       return serviceUnavailable(exceptionFormat, exception.getMessage());
@@ -234,10 +262,11 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     // family.equals(Response.Status.Family.SERVER_ERROR)
     long id =
         logException(Objects.nonNull(exception.getCause()) ? exception.getCause() : exception);
-    return Response.serverError()
+    return Response.status(response.getStatus())
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     response.getStatus(),
                     response.getStatusInfo().getReasonPhrase(),
@@ -256,7 +285,8 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
     return Response.status(responseStatus)
         .type(exceptionFormat.getMediaType().type())
         .entity(
-            exceptionFormat.getExceptionEntity(
+            toEntity(
+                exceptionFormat,
                 new ApiErrorMessage(
                     responseStatus.getStatusCode(), responseStatus.getReasonPhrase(), msg)))
         .build();
@@ -277,6 +307,29 @@ public class ExceptionMapper extends LoggingExceptionMapper<Throwable> {
       LOGGER.debug(LogContext.MARKER.STACKTRACE, "Stacktrace:", exception);
     }
     return id;
+  }
+
+  private Object toEntity(ExceptionFormatExtension exceptionFormat, ApiErrorMessage errorMessage) {
+    return exceptionFormat.getExceptionEntity(errorMessage, getApiPath());
+  }
+
+  // The external path of the API: the path prefix of the web application (as forwarded by a
+  // reverse proxy or configured) followed by the first segment of the request path. Static
+  // resources are served below this path also when no API with this id exists. For a request to
+  // the web application root, the path prefix.
+  private String getApiPath() {
+    String forwardedPrefix = httpHeaders.getHeaderString(ForwardedUri.X_FORWARDED_PREFIX);
+    List<String> segments =
+        new ArrayList<>(
+            Objects.nonNull(forwardedPrefix)
+                ? ForwardedUri.PATH_SPLITTER.splitToList(forwardedPrefix)
+                : appContext.getPathPrefix());
+    uriInfo.getPathSegments(false).stream()
+        .map(PathSegment::getPath)
+        .filter(segment -> !segment.isEmpty())
+        .findFirst()
+        .ifPresent(segments::add);
+    return segments.isEmpty() ? "" : "/" + String.join("/", segments);
   }
 
   private String getRequestPath(@SuppressWarnings("SameParameterValue") boolean queryParameters) {

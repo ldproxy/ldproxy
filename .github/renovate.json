@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["ldproxy/renovate-config:xtraplatform", "ldproxy/renovate-config:maintenance2(4.8,4.7)"],
+  "extends": ["ldproxy/renovate-config:xtraplatform", "ldproxy/renovate-config:maintenance2(4.9,4.8)"],
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
@@ -18,6 +18,27 @@
     {
       "groupName": "flatgeobuf",
       "matchPackageNames": ["/flatgeobuf/", "/flatbuffers/"]
+    },
+    {
+      "description": "Review the ogcapi-html frontend dependencies together in one PR. The xtramaps rule below overrides this for @xtramaps packages, so it must stay after this one.",
+      "groupName": "ogcapi-html",
+      "matchFileNames": ["ogcapi-stable/ogcapi-html/src/main/javascript/**"]
+    },
+    {
+      "description": "One xtramaps release touches several @xtramaps packages; update them in one PR so they stay on the same release.",
+      "groupName": "xtramaps",
+      "matchPackageNames": ["@xtramaps/**"]
+    },
+    {
+      "description": "The docs dependencies only build the documentation site, so review them together in one PR instead of one per package.",
+      "groupName": "docs",
+      "matchFileNames": ["src/markdown/**"]
+    },
+    {
+      "description": "VuePress plugins only work with the vuepress core version they were built against, and the docs are pinned to vuepress 2.0.0-rc.0. Hold all of them until the docs are migrated together.",
+      "matchFileNames": ["src/markdown/package.json"],
+      "matchPackageNames": ["vuepress", "@vuepress/**", "vuepress-plugin-*"],
+      "enabled": false
     }
   ]
 }

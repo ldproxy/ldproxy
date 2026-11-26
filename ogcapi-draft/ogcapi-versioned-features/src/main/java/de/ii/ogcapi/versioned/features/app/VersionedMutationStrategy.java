@@ -164,6 +164,30 @@ public class VersionedMutationStrategy implements MutationStrategy {
   }
 
   @Override
+  public boolean ignoresRepeatedVersion(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getExtension(VersionedFeaturesConfiguration.class, collectionId)
+        .map(VersionedFeaturesConfiguration::ignoresRepeatedVersions)
+        .orElse(false);
+  }
+
+  @Override
+  public boolean ignoresExistingFeatureOnInsert(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getExtension(VersionedFeaturesConfiguration.class, collectionId)
+        .map(VersionedFeaturesConfiguration::ignoresExistingFeaturesOnInsert)
+        .orElse(false);
+  }
+
+  @Override
+  public boolean insertsUnknownFeatureOnReplace(OgcApiDataV2 apiData, String collectionId) {
+    return apiData
+        .getExtension(VersionedFeaturesConfiguration.class, collectionId)
+        .map(VersionedFeaturesConfiguration::insertsUnknownFeaturesOnReplace)
+        .orElse(false);
+  }
+
+  @Override
   public boolean retiresOnDelete() {
     return true;
   }

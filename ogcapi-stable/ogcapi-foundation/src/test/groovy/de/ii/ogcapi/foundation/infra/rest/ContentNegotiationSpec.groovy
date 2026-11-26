@@ -53,6 +53,26 @@ class ContentNegotiationSpec extends Specification {
         mediaType != null && (mediaType == html || mediaType == json)
     }
 
+    def "Provided wildcard does not win over a concrete match"() {
+        given:
+        List<MediaType> acceptable = ImmutableList.of(json)
+        List<MediaType> provided = ImmutableList.of(wildcard, json)
+        when:
+        MediaType mediaType = ApiMediaType.negotiateMediaType(acceptable, provided)
+        then:
+        mediaType == json
+    }
+
+    def "Provided wildcard is used if nothing concrete matches"() {
+        given:
+        List<MediaType> acceptable = ImmutableList.of(xml)
+        List<MediaType> provided = ImmutableList.of(json, wildcard)
+        when:
+        MediaType mediaType = ApiMediaType.negotiateMediaType(acceptable, provided)
+        then:
+        mediaType == wildcard
+    }
+
     def "Negotiate with wildcard / null"() {
         given:
         List<MediaType> acceptable = ImmutableList.of(wildcard)

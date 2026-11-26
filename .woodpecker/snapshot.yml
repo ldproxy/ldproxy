@@ -4,12 +4,21 @@ when:
 steps:
 
   libs:
-    image: eclipse-temurin:25@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641
+    image: eclipse-temurin:25@sha256:ce2ef9d2d67a68de5e196d4de9d743327c44a10b57fe02ec39f572c652cacfd3
     environment:
       - DOCS_VERSION=next
     commands:
-      - ./gradlew publish dockerContext docsVuepress -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
+      - ./gradlew dockerContext docsVuepress -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]
+
+  publish-snapshot:
+    image: eclipse-temurin:25@sha256:ce2ef9d2d67a68de5e196d4de9d743327c44a10b57fe02ec39f572c652cacfd3
+    commands:
+      - ./gradlew publish -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
+    secrets: [ snapshot_user, snapshot_pass]
+    when:
+      branch:
+        exclude: [ renovate-* ]
 
   docs:
     image: williamjackson/netlify-cli:15.11.0@sha256:7112992fe176050f38f2ead32074ec4bd54bb2c63c0a5b1bd7af8ca16e206168
@@ -20,9 +29,11 @@ steps:
     secrets: [ netlify_token]
     when:
       branch: master
+      # dependency updates don't change the docs content, so they don't need a redeploy
+      evaluate: 'not (CI_COMMIT_AUTHOR_EMAIL contains "renovate[bot]")'
 
   dist-arm64:
-    image: eclipse-temurin:25@sha256:2d5d5e9b533342a565907c84f47a2ec298c40cde7b13a3ca85d4950fa456a641
+    image: eclipse-temurin:25@sha256:ce2ef9d2d67a68de5e196d4de9d743327c44a10b57fe02ec39f572c652cacfd3
     commands:
       - ./gradlew dockerContext -Pplatform=linux-arm64 -Pbranch=$CI_COMMIT_BRANCH -PdeployUser=$SNAPSHOT_USER -PdeployPassword=$SNAPSHOT_PASS
     secrets: [ snapshot_user, snapshot_pass]

@@ -31,7 +31,7 @@ export default tseslint.config(
       ecmaVersion: 2022,
       sourceType: "module",
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.node, ...globals.mocha },
+      globals: { ...globals.node },
     },
   },
   ...storybook.configs["flat/recommended"],

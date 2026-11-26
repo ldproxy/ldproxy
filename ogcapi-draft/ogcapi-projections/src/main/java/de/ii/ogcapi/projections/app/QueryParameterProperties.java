@@ -56,6 +56,8 @@ public class QueryParameterProperties extends OgcApiQueryParameterBase
         TileGenerationUserParameter,
         ConformanceClass {
 
+  static final String NAME = "properties";
+
   private final SchemaInfo schemaInfo;
   private final SchemaValidator schemaValidator;
 
@@ -72,7 +74,7 @@ public class QueryParameterProperties extends OgcApiQueryParameterBase
 
   @Override
   public String getName() {
-    return "properties";
+    return NAME;
   }
 
   @Override

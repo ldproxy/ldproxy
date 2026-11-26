@@ -41,7 +41,7 @@ import de.ii.ogcapi.foundation.domain.OgcApiPathParameter;
 import de.ii.ogcapi.foundation.domain.OgcApiQueryParameter;
 import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.QueryParameterSet;
-import de.ii.xtraplatform.auth.domain.User;
+import de.ii.xtraplatform.base.domain.auth.User;
 import de.ii.xtraplatform.base.domain.resiliency.Volatile2;
 import de.ii.xtraplatform.codelists.domain.Codelist;
 import de.ii.xtraplatform.values.domain.ValueStore;
@@ -92,7 +92,7 @@ public class EndpointSchema extends EndpointSubCollection
     super(extensionRegistry);
     this.queryHandler = queryHandler;
     this.valueStore = valueStore;
-    this.schemaCache = new SchemaCacheFeatures(valueStore.forType(Codelist.class)::asMap);
+    this.schemaCache = new SchemaCacheFeatures(valueStore.forType(Codelist.class));
   }
 
   @Override
