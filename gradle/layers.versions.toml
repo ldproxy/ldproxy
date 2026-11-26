@@ -1,5 +1,5 @@
 [versions]
-xtraplatform-core    = '7.2.0-SNAPSHOT'
+xtraplatform-core    = '7.2.0-uri-customizer-encoded-commas-SNAPSHOT'
 xtraplatform-native  = '2.8.0-SNAPSHOT'
 xtraplatform-spatial = '8.2.0-SNAPSHOT'
 
