@@ -55,7 +55,9 @@ import jakarta.inject.Singleton;
  *       object context itself, as in the examples of the specification.
  *     - Selector objects of the types `jsonpath`, `xpath` and `jsonpointer` in outputs,
  *       parameters, payloads and replacements. A selector that selects one node has its value,
- *       several nodes a list of their values, no node no value.
+ *       several nodes a list of their values, no node no value. An `xpath` selector whose
+ *       context is a list, e.g. XML values selected with JSONPath, is evaluated per item and has
+ *       the list of the item values, e.g. `normalize-space(/)` for the text of each XML value.
  *     - The actions `end`, `goto` and `retry` with `retryAfter` (at most 60 seconds) and
  *       `retryLimit`, also as reusable components. A failure action `end` ends a nested workflow;
  *       in the workflow of the process, it fails the execution with the status code and the detail
@@ -136,7 +138,10 @@ import jakarta.inject.Singleton;
  *       einen Objekt-Kontext selbst, wie in den Beispielen der Spezifikation.
  *     - Selektor-Objekte vom Typ `jsonpath`, `xpath` und `jsonpointer` in Ausgaben, Parametern,
  *       Anfrageinhalten und Ersetzungen. Ein Selektor, der einen Knoten auswählt, hat dessen Wert,
- *       bei mehreren Knoten die Liste ihrer Werte, ohne Knoten keinen Wert.
+ *       bei mehreren Knoten die Liste ihrer Werte, ohne Knoten keinen Wert. Ein `xpath`-Selektor,
+ *       dessen Kontext eine Liste ist, z.B. mit JSONPath ausgewählte XML-Werte, wird je Element
+ *       ausgewertet und hat die Liste der Werte der Elemente, z.B. `normalize-space(/)` für den Text
+ *       jedes XML-Werts.
  *     - Die Aktionen `end`, `goto` und `retry` mit `retryAfter` (höchstens 60 Sekunden) und
  *       `retryLimit`, auch als wiederverwendbare Komponenten. Eine Fehleraktion `end` beendet einen
  *       verschachtelten Workflow; im Workflow des Prozesses lässt sie die Ausführung mit dem

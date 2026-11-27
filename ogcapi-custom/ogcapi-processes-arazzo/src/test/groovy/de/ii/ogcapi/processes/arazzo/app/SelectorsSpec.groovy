@@ -87,6 +87,16 @@ class SelectorsSpec extends Specification {
         !Criteria.test(new ImmutableArazzoCriterion.Builder().context('$response.body').condition("//*[local-name()='antwoord']").type("xpath").build(), ctx)
     }
 
+    def "an XPath selector on a list context is evaluated per item"() {
+        given:
+        def ctx = new ExpressionContext([teksten: ['<Inhoud xmlns="https://standaarden.overheid.nl/stop/imop/tekst/"><Al>Een\n   <IntRef ref="a">5.5</IntRef>  twee</Al></Inhoud>', null, '<Inhoud><Al/></Inhoud>']], [:], [:], [:], [:], Optional.empty())
+
+        expect:
+        Selectors.select([context: '$inputs.teksten', selector: "normalize-space(/)", type: "xpath"], ctx) == ["Een 5.5 twee", null, ""]
+        Selectors.select([context: '$inputs.teksten', selector: "//*[local-name()='IntRef']/@ref", type: "xpath"], ctx) == ["a", null, null]
+        Selectors.select([context: '$inputs.missing', selector: "normalize-space(/)", type: "xpath"], ctx) == null
+    }
+
     def "an XML document with a DTD is refused"() {
         when:
         Selectors.matchesXPath('<?xml version="1.0"?><!DOCTYPE a [<!ENTITY e SYSTEM "file:///etc/passwd">]><a>&e;</a>', "/a")

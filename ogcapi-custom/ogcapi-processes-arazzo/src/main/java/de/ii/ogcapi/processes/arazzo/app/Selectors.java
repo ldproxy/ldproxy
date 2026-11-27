@@ -38,7 +38,7 @@ import org.xml.sax.SAXException;
  * <p>A selector that selects one node has the value of the node, a selector that selects several
  * nodes the list of their values, one that selects nothing has no value. The specification leaves
  * the value open; a filter that selects exactly one document can then be used like a single value,
- * e.g. as a path parameter.
+ * e.g. as a path parameter. An XPath selector on a list context is evaluated per item.
  */
 final class Selectors {
 
@@ -125,7 +125,7 @@ final class Selectors {
     }
     return switch (Criteria.typeName(selector.get(TYPE))) {
       case JSONPATH -> single(jsonPath(document, expression));
-      case XPATH -> single(xpathNodes(document, expression));
+      case XPATH -> xpathValue(document, expression);
       default -> JsonPointers.get(document, expression);
     };
   }
@@ -172,6 +172,21 @@ final class Selectors {
           String.format("The JSONPath query '%s' cannot be evaluated: %s", query, e.getMessage()),
           e);
     }
+  }
+
+  // a list context, e.g. XML values selected with JSONPath, has one value per item; no context, no
+  // value
+  private static Object xpathValue(Object document, String expression) {
+    if (Objects.isNull(document)) {
+      return null;
+    }
+    if (document instanceof List<?> items) {
+      List<Object> values = new ArrayList<>();
+      items.forEach(
+          item -> values.add(Objects.isNull(item) ? null : single(xpathNodes(item, expression))));
+      return values;
+    }
+    return single(xpathNodes(document, expression));
   }
 
   // the string values of the selected nodes, or the value of an expression that is no node set
