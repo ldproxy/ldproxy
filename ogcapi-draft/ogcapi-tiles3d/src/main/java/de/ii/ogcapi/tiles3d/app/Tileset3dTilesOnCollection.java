@@ -69,26 +69,24 @@ public class Tileset3dTilesOnCollection implements CollectionExtension {
         uriCustomizerTileset = uriCustomizerTileset.ensureLastPathSegment("3dtiles");
       }
       if (!isExtensionEnabled(featureTypeConfiguration, FeaturesCoreConfiguration.class)) {
+        // the same title in the Collections and the Collection resource, as required by OGC API -
+        // Common - Part 2
+        collection.title(featureTypeConfiguration.getLabel());
         if (isNested) {
-          collection
-              .title(featureTypeConfiguration.getLabel() + " (3D Tiles)")
-              .addLinks(
-                  new ImmutableLink.Builder()
-                      .href(
-                          uriCustomizer
-                              .copy()
-                              .ensureNoTrailingSlash()
-                              .clearParameters()
-                              .ensureLastPathSegments(
-                                  "collections", featureTypeConfiguration.getId())
-                              .toString())
-                      .rel("self")
-                      .title(
-                          i18n.get("selfLinkCollection", language)
-                              .replace("{{collection}}", featureTypeConfiguration.getLabel()))
-                      .build());
-        } else {
-          collection.title(featureTypeConfiguration.getLabel());
+          collection.addLinks(
+              new ImmutableLink.Builder()
+                  .href(
+                      uriCustomizer
+                          .copy()
+                          .ensureNoTrailingSlash()
+                          .clearParameters()
+                          .ensureLastPathSegments("collections", featureTypeConfiguration.getId())
+                          .toString())
+                  .rel("self")
+                  .title(
+                      i18n.get("selfLinkCollection", language)
+                          .replace("{{collection}}", featureTypeConfiguration.getLabel()))
+                  .build());
         }
         collection
             .description(featureTypeConfiguration.getDescription())

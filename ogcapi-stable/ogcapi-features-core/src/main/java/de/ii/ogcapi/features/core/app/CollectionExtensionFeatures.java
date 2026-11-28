@@ -28,6 +28,9 @@ import de.ii.ogcapi.foundation.domain.Profile;
 import de.ii.ogcapi.foundation.domain.ProfileSet;
 import de.ii.ogcapi.foundation.domain.TemporalExtent;
 import de.ii.xtraplatform.crs.domain.BoundingBox;
+import de.ii.xtraplatform.crs.domain.CrsInfo;
+import de.ii.xtraplatform.crs.domain.CrsTransformerFactory;
+import de.ii.xtraplatform.features.domain.FeatureProvider;
 import de.ii.xtraplatform.features.domain.FeatureSchema;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
@@ -38,18 +41,26 @@ import java.util.Optional;
 
 @Singleton
 @AutoBind
+// the class assembles the collection information from many parts of the API and the provider
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class CollectionExtensionFeatures implements CollectionExtension {
 
   private final I18n i18n;
   private final ExtensionRegistry extensionRegistry;
   private final FeaturesCoreProviders providers;
+  private final StorageCrsBbox storageCrsBbox;
 
   @Inject
   public CollectionExtensionFeatures(
-      ExtensionRegistry extensionRegistry, I18n i18n, FeaturesCoreProviders providers) {
+      ExtensionRegistry extensionRegistry,
+      I18n i18n,
+      FeaturesCoreProviders providers,
+      CrsTransformerFactory crsTransformerFactory,
+      CrsInfo crsInfo) {
     this.extensionRegistry = extensionRegistry;
     this.i18n = i18n;
     this.providers = providers;
+    this.storageCrsBbox = new StorageCrsBbox(crsTransformerFactory, crsInfo);
   }
 
   @Override
@@ -199,6 +210,15 @@ public class CollectionExtensionFeatures implements CollectionExtension {
             .orElse(false);
 
     Optional<BoundingBox> spatial = api.getSpatialExtent(collectionId);
+    // OGC API - Common - Part 2 requires the extent in the storage CRS, if it is not CRS84
+    Optional<double[]> storageBbox =
+        spatial
+            .filter(bbox -> isSpatial)
+            .flatMap(
+                bbox ->
+                    providers
+                        .getFeatureProvider(apiData, featureType, FeatureProvider::crs)
+                        .flatMap(crs -> storageCrsBbox.of(bbox, crs.getNativeCrs())));
     // data with primary temporal information has a temporal extent, even if it is not known
     Optional<TemporalExtent> temporal =
         api.getTemporalExtent(collectionId)
@@ -208,9 +228,9 @@ public class CollectionExtensionFeatures implements CollectionExtension {
                         ? Optional.of(TemporalExtent.of((String) null, null))
                         : Optional.empty());
     if (isSpatial && isTemporal) {
-      collection.extent(OgcApiExtent.of(spatial, temporal));
+      collection.extent(OgcApiExtent.of(spatial, storageBbox, temporal));
     } else if (isSpatial) {
-      collection.extent(OgcApiExtent.of(spatial, Optional.empty()));
+      collection.extent(OgcApiExtent.of(spatial, storageBbox, Optional.empty()));
     } else if (isTemporal) {
       collection.extent(OgcApiExtent.of(Optional.empty(), temporal));
     }

@@ -34,12 +34,19 @@ public interface OgcApiExtent {
 
   static Optional<OgcApiExtent> of(
       Optional<BoundingBox> spatial, Optional<TemporalExtent> temporal) {
+    return of(spatial, Optional.empty(), temporal);
+  }
+
+  static Optional<OgcApiExtent> of(
+      Optional<BoundingBox> spatial,
+      Optional<double[]> storageCrsBbox,
+      Optional<TemporalExtent> temporal) {
     if (spatial.isEmpty() && temporal.isEmpty()) {
       return Optional.empty();
     }
 
     ImmutableOgcApiExtent.Builder builder = ImmutableOgcApiExtent.builder();
-    spatial.ifPresent(bbox -> builder.spatial(OgcApiExtentSpatial.of(bbox)));
+    spatial.ifPresent(bbox -> builder.spatial(OgcApiExtentSpatial.of(bbox, storageCrsBbox)));
     temporal.ifPresent(interval -> builder.temporal(OgcApiExtentTemporal.of(interval)));
     return Optional.of(builder.build());
   }

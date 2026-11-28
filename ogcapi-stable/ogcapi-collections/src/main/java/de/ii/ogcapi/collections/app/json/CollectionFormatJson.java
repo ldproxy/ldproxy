@@ -9,6 +9,7 @@ package de.ii.ogcapi.collections.app.json;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.CollectionFormatExtension;
 import de.ii.ogcapi.collections.domain.OgcApiCollection;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
@@ -16,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ClassSchemaCache;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.ImmutableApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.OgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
@@ -34,16 +36,22 @@ public class CollectionFormatJson implements CollectionFormatExtension, Conforma
 
   private final Schema<?> schemaCollection;
   private final Map<String, Schema<?>> referencedSchemasCollection;
+  private final ExtensionRegistry extensionRegistry;
 
   @Inject
-  public CollectionFormatJson(ClassSchemaCache classSchemaCache) {
+  public CollectionFormatJson(
+      ClassSchemaCache classSchemaCache, ExtensionRegistry extensionRegistry) {
+    this.extensionRegistry = extensionRegistry;
     schemaCollection = classSchemaCache.getSchema(OgcApiCollection.class);
     referencedSchemasCollection = classSchemaCache.getReferencedSchemas(OgcApiCollection.class);
   }
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of("http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/json");
+    if (!CollectionExtension.areNestedCollectionsIdentical(extensionRegistry, apiData)) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.of("https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/json");
   }
 
   @Override

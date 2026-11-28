@@ -19,6 +19,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ExtensionConfiguration;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import jakarta.inject.Inject;
@@ -56,18 +57,10 @@ public class CrsOnCollection implements CollectionExtension {
       ApiMediaType mediaType,
       List<ApiMediaType> alternateMediaTypes,
       Optional<Locale> language) {
-    boolean hasGeometry =
-        providers
-            .getFeatureSchema(api.getData(), featureTypeConfiguration)
-            .flatMap(SchemaBase::getPrimaryGeometry)
-            .isPresent();
-    if (isExtensionEnabled(featureTypeConfiguration, CrsConfiguration.class) && hasGeometry) {
+    if (isExtensionEnabled(featureTypeConfiguration, CrsConfiguration.class)
+        && hasGeometry(api.getData(), featureTypeConfiguration)) {
       List<String> crsList;
-      if (isNested
-          && !api.getData()
-              .getExtension(CrsConfiguration.class)
-              .map(CrsConfiguration::shouldSuppressGlobalCrsList)
-              .orElse(false)) {
+      if (isNested && !suppressGlobalCrsList(api.getData())) {
         // just reference the default list of coordinate reference systems
         crsList = ImmutableList.of("#/crs");
       } else {
@@ -89,5 +82,34 @@ public class CrsOnCollection implements CollectionExtension {
     }
 
     return collection;
+  }
+
+  /**
+   * Unless the global list is suppressed, a collection in the Collections resource references the
+   * global list of CRSs (`"#/crs"`), while the Collection resource lists the CRSs.
+   */
+  @Override
+  public boolean isNestedCollectionIdentical(OgcApiDataV2 apiData) {
+    return suppressGlobalCrsList(apiData)
+        || apiData.getCollections().values().stream()
+            .noneMatch(
+                collection ->
+                    isExtensionEnabled(collection, CrsConfiguration.class)
+                        && hasGeometry(apiData, collection));
+  }
+
+  private static boolean suppressGlobalCrsList(OgcApiDataV2 apiData) {
+    return apiData
+        .getExtension(CrsConfiguration.class)
+        .map(CrsConfiguration::shouldSuppressGlobalCrsList)
+        .orElse(false);
+  }
+
+  private boolean hasGeometry(
+      OgcApiDataV2 apiData, FeatureTypeConfigurationOgcApi featureTypeConfiguration) {
+    return providers
+        .getFeatureSchema(apiData, featureTypeConfiguration)
+        .flatMap(SchemaBase::getPrimaryGeometry)
+        .isPresent();
   }
 }

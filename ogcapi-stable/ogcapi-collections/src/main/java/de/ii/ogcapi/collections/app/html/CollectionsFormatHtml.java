@@ -9,6 +9,7 @@ package de.ii.ogcapi.collections.app.html;
 
 import com.github.azahnen.dagger.annotations.AutoBind;
 import com.google.common.collect.ImmutableList;
+import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.Collections;
 import de.ii.ogcapi.collections.domain.CollectionsFormatExtension;
 import de.ii.ogcapi.collections.domain.OgcApiCollection;
@@ -16,6 +17,7 @@ import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ApiMediaTypeContent;
 import de.ii.ogcapi.foundation.domain.ApiRequestContext;
 import de.ii.ogcapi.foundation.domain.ConformanceClass;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FormatExtension;
 import de.ii.ogcapi.foundation.domain.I18n;
 import de.ii.ogcapi.foundation.domain.OgcApi;
@@ -40,10 +42,12 @@ public class CollectionsFormatHtml
     implements CollectionsFormatExtension, ConformanceClass, FormatHtml {
 
   private final I18n i18n;
+  private final ExtensionRegistry extensionRegistry;
 
   @Inject
-  public CollectionsFormatHtml(I18n i18n) {
+  public CollectionsFormatHtml(I18n i18n, ExtensionRegistry extensionRegistry) {
     this.i18n = i18n;
+    this.extensionRegistry = extensionRegistry;
   }
 
   @Override
@@ -58,7 +62,10 @@ public class CollectionsFormatHtml
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of("http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/html");
+    if (!CollectionExtension.areNestedCollectionsIdentical(extensionRegistry, apiData)) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.of("https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/html");
   }
 
   private boolean isNoIndexEnabledForApi(OgcApiDataV2 apiData) {

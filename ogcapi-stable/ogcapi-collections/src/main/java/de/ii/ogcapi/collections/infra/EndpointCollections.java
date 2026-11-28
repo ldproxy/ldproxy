@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import de.ii.ogcapi.collections.app.CollectionsBuildingBlock;
 import de.ii.ogcapi.collections.app.ImmutableQueryInputCollections;
 import de.ii.ogcapi.collections.app.QueriesHandlerCollectionsImpl;
+import de.ii.ogcapi.collections.domain.CollectionExtension;
 import de.ii.ogcapi.collections.domain.CollectionsConfiguration;
 import de.ii.ogcapi.collections.domain.CollectionsFormatExtension;
 import de.ii.ogcapi.collections.domain.QueriesHandlerCollections;
@@ -79,7 +80,10 @@ public class EndpointCollections extends Endpoint implements ConformanceClass {
 
   @Override
   public List<String> getConformanceClassUris(OgcApiDataV2 apiData) {
-    return ImmutableList.of("http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/collections");
+    if (!CollectionExtension.areNestedCollectionsIdentical(extensionRegistry, apiData)) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.of("https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections");
   }
 
   @Override

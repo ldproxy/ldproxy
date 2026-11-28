@@ -37,10 +37,24 @@ import java.util.Optional;
  *     [OGC API - Features - Part 1: Core
  *     1.0.1](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) for the two mentioned
  *     resources.
+ *     <p>In addition, the building block implements all requirements of the conformance classes
+ *     *Collections*, *HTML* and *JSON* of [OGC API - Common - Part 2: Geospatial Data
+ *     1.0](https://docs.ogc.org/is/20-024/20-024.html); *HTML* and *JSON* are declared if the
+ *     respective format is enabled. If the building block *CRS* is enabled, the conformance classes
+ *     are only declared if `suppressGlobalCrsList` is `true` (see
+ *     [CRS](crs.md#conformance-classes)). The conformance class *Uniform Additional Dimensions
+ *     Collections* is not supported.
  * @conformanceDe "Feature Collections" implementiert alle Vorgaben der Konformitätsklasse "Core"
  *     von [OGC API - Features - Part 1: Core
  *     1.0.1](https://docs.ogc.org/is/17-069r4/17-069r4.html#rc_core) für die zwei genannten
  *     Ressourcen.
+ *     <p>Zusätzlich implementiert der Baustein alle Vorgaben der Konformitätsklassen "Collections",
+ *     "HTML" und "JSON" von [OGC API - Common - Part 2: Geospatial Data
+ *     1.0](https://docs.ogc.org/is/20-024/20-024.html); "HTML" und "JSON" werden deklariert, wenn
+ *     das jeweilige Format aktiviert ist. Ist der Baustein "CRS" aktiviert, werden die
+ *     Konformitätsklassen nur deklariert, wenn `suppressGlobalCrsList` den Wert `true` hat (siehe
+ *     [CRS](crs.md#konformitatsklassen)). Die Konformitätsklasse "Uniform Additional Dimensions
+ *     Collections" wird nicht unterstützt.
  * @ref:cfg {@link de.ii.ogcapi.collections.domain.CollectionsConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.collections.domain.ImmutableCollectionsConfiguration}
  * @ref:endpoints {@link de.ii.ogcapi.collections.infra.EndpointCollections}, {@link

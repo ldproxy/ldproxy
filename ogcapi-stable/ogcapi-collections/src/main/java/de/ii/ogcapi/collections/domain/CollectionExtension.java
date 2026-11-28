@@ -11,8 +11,10 @@ import com.github.azahnen.dagger.annotations.AutoMultiBind;
 import de.ii.ogcapi.collections.domain.ImmutableOgcApiCollection.Builder;
 import de.ii.ogcapi.foundation.domain.ApiMediaType;
 import de.ii.ogcapi.foundation.domain.ContentExtension;
+import de.ii.ogcapi.foundation.domain.ExtensionRegistry;
 import de.ii.ogcapi.foundation.domain.FeatureTypeConfigurationOgcApi;
 import de.ii.ogcapi.foundation.domain.OgcApi;
+import de.ii.ogcapi.foundation.domain.OgcApiDataV2;
 import de.ii.xtraplatform.web.domain.URICustomizer;
 import java.util.List;
 import java.util.Locale;
@@ -66,5 +68,30 @@ public interface CollectionExtension extends ContentExtension {
   default String getResourceName() {
     return "Collection";
   }
-  ;
+
+  /**
+   * OGC API - Common - Part 2 requires that every property of a collection in the Collections
+   * resource has the same value in the Collection resource (requirement
+   * `/req/collections/description-success`, part C; `links` excepted).
+   *
+   * @param apiData the API
+   * @return {@code false}, if the extension adds a property to a collection in the Collections
+   *     resource with a value that differs from the value in the Collection resource
+   */
+  default boolean isNestedCollectionIdentical(OgcApiDataV2 apiData) {
+    return true;
+  }
+
+  /**
+   * @param extensionRegistry the extension registry
+   * @param apiData the API
+   * @return {@code true}, if the collections in the Collections resource have the same property
+   *     values as in the Collection resource, i.e., the conformance classes of OGC API - Common -
+   *     Part 2 may be declared
+   */
+  static boolean areNestedCollectionsIdentical(
+      ExtensionRegistry extensionRegistry, OgcApiDataV2 apiData) {
+    return extensionRegistry.getExtensionsForType(CollectionExtension.class).stream()
+        .allMatch(extension -> extension.isNestedCollectionIdentical(apiData));
+  }
 }

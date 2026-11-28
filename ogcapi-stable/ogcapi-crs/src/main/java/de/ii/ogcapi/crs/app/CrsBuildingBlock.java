@@ -50,11 +50,28 @@ import java.util.Set;
  * @cfgFilesDe PROJ-Grid-Shift-Dateien müssen im Ressourcen-Store im Verzeichnis `proj` abgelegt
  *     werden.
  * @conformanceEn *CRS* implements all requirements of conformance class *Coordinate Reference
- *     System by Reference* of [OGC API - Features - Part 2: Coordinate Reference System by *
+ *     System by Reference* of [OGC API - Features - Part 2: Coordinate Reference System by
  *     Reference 1.0.1](https://docs.ogc.org/is/18-058r1/18-058r1.html).
+ *     <p>By default, the Collections resource references the global list of coordinate reference
+ *     systems in each collection (`"crs": ["#/crs"]`), as OGC API - Features - Part 2 permits. The
+ *     Collection resource lists the coordinate reference systems explicitly. [OGC API - Common -
+ *     Part 2: Geospatial Data 1.0](https://docs.ogc.org/is/20-024/20-024.html) requires identical
+ *     values in both resources (requirement `/req/collections/description-success`). The API
+ *     therefore declares the conformance classes *Collections*, *HTML* and *JSON* of OGC API -
+ *     Common - Part 2 only if `suppressGlobalCrsList` is `true`; then each collection in the
+ *     Collections resource lists its coordinate reference systems explicitly.
  * @conformanceDe Der Baustein implementiert alle Vorgaben der Konformitätsklasse "Coordinate
  *     Reference System by Reference" von [OGC API - Features - Part 2: Coordinate Reference System
  *     by Reference 1.0.1](https://docs.ogc.org/is/18-058r1/18-058r1.html).
+ *     <p>Standardmäßig verweist die Collections-Ressource bei jeder Collection auf die globale
+ *     Liste der Koordinatenreferenzsysteme (`"crs": ["#/crs"]`), wie es OGC API - Features - Part 2
+ *     erlaubt. Die Collection-Ressource listet die Koordinatenreferenzsysteme explizit auf. [OGC
+ *     API - Common - Part 2: Geospatial Data 1.0](https://docs.ogc.org/is/20-024/20-024.html)
+ *     verlangt identische Werte in beiden Ressourcen (Anforderung
+ *     `/req/collections/description-success`). Die API deklariert die Konformitätsklassen
+ *     "Collections", "HTML" und "JSON" von OGC API - Common - Part 2 daher nur, wenn
+ *     `suppressGlobalCrsList` den Wert `true` hat; dann listet jede Collection in der
+ *     Collections-Ressource ihre Koordinatenreferenzsysteme explizit auf.
  * @ref:cfg {@link de.ii.ogcapi.crs.domain.CrsConfiguration}
  * @ref:cfgProperties {@link de.ii.ogcapi.crs.domain.ImmutableCrsConfiguration}
  * @ref:queryParameters {@link de.ii.ogcapi.crs.app.QueryParameterCrsFeatures}, {@link
