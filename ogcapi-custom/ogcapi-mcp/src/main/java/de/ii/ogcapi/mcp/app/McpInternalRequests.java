@@ -121,20 +121,51 @@ final class McpInternalRequests {
             .map(Entry::getKey)
             .sorted()
             .toList();
-    if (unknown.isEmpty()) {
+    if (!unknown.isEmpty()) {
+      List<String> advertised =
+          Objects.nonNull(tool.getInputSchema().getProperties())
+              ? List.copyOf(tool.getInputSchema().getProperties().keySet())
+              : List.of();
+      throw new IllegalArgumentException(
+          "Unknown argument%s: %s. The arguments of the tool are: %s.%s"
+              .formatted(
+                  unknown.size() == 1 ? "" : "s",
+                  unknown.stream().map(name -> "'" + name + "'").collect(Collectors.joining(", ")),
+                  String.join(", ", advertised),
+                  hint.map(text -> " " + text).orElse("")));
+    }
+    checkExcludedProperties(tool, arguments.get("exclude-properties"));
+  }
+
+  /**
+   * Rejects names in exclude-properties that are not properties of the objects. The argument does
+   * not list the names, the argument properties does (see McpToolUtils.argumentSchema), and the
+   * schema validation of the tool call does not check them; the query parameter set would ignore an
+   * unknown name.
+   */
+  static void checkExcludedProperties(McpTool tool, Object excluded) {
+    Map<String, Schema> arguments = tool.getInputSchema().getProperties();
+    Schema<?> properties = Objects.nonNull(arguments) ? arguments.get("properties") : null;
+    if (Objects.isNull(excluded)
+        || Objects.isNull(properties)
+        || Objects.isNull(properties.getItems())
+        || Objects.isNull(properties.getItems().getEnum())) {
       return;
     }
-    List<String> advertised =
-        Objects.nonNull(tool.getInputSchema().getProperties())
-            ? List.copyOf(tool.getInputSchema().getProperties().keySet())
-            : List.of();
-    throw new IllegalArgumentException(
-        "Unknown argument%s: %s. The arguments of the tool are: %s.%s"
-            .formatted(
-                unknown.size() == 1 ? "" : "s",
-                unknown.stream().map(name -> "'" + name + "'").collect(Collectors.joining(", ")),
-                String.join(", ", advertised),
-                hint.map(text -> " " + text).orElse("")));
+    List<String> names = properties.getItems().getEnum().stream().map(String::valueOf).toList();
+    Stream<String> values =
+        excluded instanceof List<?> list
+            ? list.stream().map(String::valueOf)
+            : Arrays.stream(String.valueOf(excluded).split(",")).map(String::trim);
+    List<String> unknown = values.filter(value -> !names.contains(value)).distinct().toList();
+    if (!unknown.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Unknown propert%s in exclude-properties: %s. The properties are: %s."
+              .formatted(
+                  unknown.size() == 1 ? "y" : "ies",
+                  unknown.stream().map(name -> "'" + name + "'").collect(Collectors.joining(", ")),
+                  String.join(", ", names)));
+    }
   }
 
   // the arguments of a tool call as the values of query parameters

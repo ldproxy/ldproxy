@@ -24,6 +24,7 @@ import de.ii.xtraplatform.base.domain.AppContext
 import io.swagger.v3.oas.models.media.ArraySchema
 import io.swagger.v3.oas.models.media.IntegerSchema
 import io.swagger.v3.oas.models.media.ObjectSchema
+import io.swagger.v3.oas.models.media.StringSchema
 import jakarta.ws.rs.core.MediaType
 import java.util.function.Function
 import spock.lang.Specification
@@ -155,5 +156,44 @@ class McpInternalRequestsSpec extends Specification {
         then:
         def e = thrown(IllegalArgumentException)
         e.message == "Unknown arguments: 'a', 'gemeentecod'. The arguments of the tool are: limit. Use filter."
+    }
+
+    McpTool toolWithPropertyNames() {
+        def names = ["exclude-properties", "properties"].collect { name ->
+            OgcApiQueryParameter parameter = Stub(OgcApiQueryParameter)
+            parameter.getName() >> name
+            parameter
+        }
+        def inputSchema = new ObjectSchema()
+        inputSchema.addProperty("properties", new ArraySchema().items(new StringSchema()._enum(["identificatie", "status", "geometrie"])))
+        inputSchema.addProperty("exclude-properties", new ArraySchema().items(new StringSchema()))
+        new ImmutableMcpTool.Builder()
+                .id("collection_pand")
+                .name("Collection - Pand")
+                .description("Panden")
+                .inputSchema(inputSchema)
+                .outputSchema(new ObjectSchema())
+                .queryParameters(names)
+                .build()
+    }
+
+    def 'the names in exclude-properties are accepted when properties lists them'() {
+        when:
+        McpInternalRequests.checkArguments(toolWithPropertyNames(), arguments, Optional.empty())
+
+        then:
+        noExceptionThrown()
+
+        where:
+        arguments << [[:], ["exclude-properties": ["geometrie"]], ["exclude-properties": []], ["exclude-properties": "geometrie, status"]]
+    }
+
+    def 'an unknown name in exclude-properties is rejected with the names of the properties'() {
+        when:
+        McpInternalRequests.checkArguments(toolWithPropertyNames(), ["exclude-properties": ["geometrie", "geometry", "naam"]], Optional.empty())
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message == "Unknown properties in exclude-properties: 'geometry', 'naam'. The properties are: identificatie, status, geometrie."
     }
 }

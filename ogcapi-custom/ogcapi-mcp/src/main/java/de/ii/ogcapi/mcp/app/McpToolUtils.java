@@ -25,6 +25,7 @@ import de.ii.ogcapi.mcp.domain.McpConfiguration.McpIncludeExclude;
 import de.ii.ogcapi.mcp.domain.McpTool;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -498,16 +499,16 @@ public class McpToolUtils {
   private static final Map<String, String> ARGUMENT_DESCRIPTIONS =
       Map.of(
           "bbox",
-          "Only objects whose geometry intersects the bounding box: minimum longitude, minimum"
-              + " latitude, maximum longitude, maximum latitude in WGS 84 (CRS84).",
+          "Only objects that intersect this box in WGS 84: min lon, min lat, max lon, max lat.",
           "datetime",
-          "Only objects with a temporal property that intersects the value: a date (2018-02-12), a"
-              + " date-time (RFC 3339, 2018-02-12T23:20:50Z) or 'now', or an interval of two such"
-              + " values separated by '/', with '..' for an open end (2018-02-12/..).",
+          "Only objects whose time intersects this date, date-time (RFC 3339), 'now' or interval"
+              + " 'start/end' ('..' for an open end).",
           "ids",
           "Only the objects with one of these ids.",
           "limit",
           "The maximum number of objects in the result.",
+          "offset",
+          "The index of the first object in the result.",
           "sortby",
           "The properties to sort by, each with an optional prefix '+' (ascending, the default) or"
               + " '-' (descending).",
@@ -515,24 +516,24 @@ public class McpToolUtils {
           "Only these properties are returned for each object; the id is always returned. Not"
               + " together with exclude-properties.",
           "exclude-properties",
-          "These properties are not returned for each object. Without this argument, the"
-              + " properties in its default value are left out; an empty list returns all"
-              + " properties. Not together with properties.",
+          "These properties, named as in properties, are not returned. Without this argument the"
+              + " default ones are left out; an empty list returns all. Not together with"
+              + " properties.",
           "filter",
-          "A filter expression in CQL2 text over the queryables of the collection, for example"
-              + " name = 'A' AND height > 10. Supported are comparisons, LIKE, BETWEEN, IN, IS NULL,"
-              + " AND, OR, NOT and the spatial (S_INTERSECTS, coordinates in WGS 84), temporal"
-              + " (T_INTERSECTS) and array (A_CONTAINS) functions.",
+          "CQL2 text over the queryables, for example name = 'A' AND height > 10: comparisons, LIKE,"
+              + " BETWEEN, IN, IS NULL, AND, OR, NOT, S_INTERSECTS (WGS 84), T_INTERSECTS,"
+              + " A_CONTAINS.",
           "crs",
-          "The coordinate reference system of the coordinates in the result; without this argument"
-              + " WGS 84 longitude/latitude (CRS84). The other arguments, for example bbox, stay in"
-              + " WGS 84.");
+          "The CRS of the coordinates in the result, default WGS 84 (CRS84); the other arguments"
+              + " stay in WGS 84.");
 
   /**
    * The schema of an argument of a collection tool: a copy of the schema of the query parameter, so
    * that the API definition is not changed, with the description of the argument. An argument named
-   * after a property has the description of the property. The pattern of a datetime value is left
-   * out, the value is still checked when the parameter is parsed.
+   * after a property has the description of the property. The pattern of a datetime value, the
+   * default of crs, which the description states, and the enumeration of the property names in
+   * exclude-properties, which repeats the one in properties, are left out; the values are still
+   * checked when the parameters are parsed.
    */
   static Schema<?> argumentSchema(
       OgcApiQueryParameter param, Schema<?> schema, List<String> filterOnlyQueryables) {
@@ -547,6 +548,13 @@ public class McpToolUtils {
       description = ARGUMENT_DESCRIPTIONS.get(param.getName());
       if ("datetime".equals(param.getName())) {
         copy.setPattern(null);
+      }
+      if ("crs".equals(param.getName())) {
+        copy.setDefault(null);
+        copy.setDefaultSetFlag(false);
+      }
+      if ("exclude-properties".equals(param.getName()) && Objects.nonNull(schema.getItems())) {
+        copy.setItems(new StringSchema());
       }
       if ("filter".equals(param.getName()) && !filterOnlyQueryables.isEmpty()) {
         description +=

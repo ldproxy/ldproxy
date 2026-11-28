@@ -39,13 +39,13 @@ class McpToolArgumentsSpec extends Specification {
         def argument = McpToolUtils.argumentSchema(parameter("datetime", "a long description"), schema, [])
 
         then:
-        argument.description.startsWith("Only objects with a temporal property")
+        argument.description.startsWith("Only objects whose time intersects")
         argument.pattern == null
         schema.pattern == "^[0-9]+\$"
         schema.description == "the description in the API definition"
     }
 
-    def 'the crs argument keeps the coordinate reference systems of the parameter'() {
+    def 'the crs argument keeps the coordinate reference systems of the parameter, but not the default the description states'() {
         given:
         def schema = new StringSchema().format("uri")._enum([
                 "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
@@ -55,9 +55,38 @@ class McpToolArgumentsSpec extends Specification {
         def argument = McpToolUtils.argumentSchema(parameter("crs", "a long description"), schema, [])
 
         then:
-        argument.description.startsWith("The coordinate reference system of the coordinates in the result")
+        argument.description.startsWith("The CRS of the coordinates in the result")
         argument.enum == ["http://www.opengis.net/def/crs/OGC/1.3/CRS84", "http://www.opengis.net/def/crs/EPSG/0/28992"]
-        argument.default == "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+        argument.default == null
+        !Json.mapper().writeValueAsString(argument).contains('"default"')
+        schema.default == "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+    }
+
+    def 'the exclude-properties argument keeps its default, but not the property names that properties already lists'() {
+        given:
+        def schema = new ArraySchema().items(new StringSchema()._enum(["name", "height"]))
+        schema.setDefault(["height"])
+
+        when:
+        def argument = McpToolUtils.argumentSchema(parameter("exclude-properties", "a long description"), schema, [])
+        def properties = McpToolUtils.argumentSchema(parameter("properties", "a long description"), schema, [])
+
+        then:
+        argument.description.contains("named as in properties")
+        argument.items.enum == null
+        argument.default == ["height"]
+        properties.items.enum == ["name", "height"]
+        schema.items.enum == ["name", "height"]
+    }
+
+    def 'the offset argument has the short description and the paging hint'() {
+        when:
+        def argument = McpToolUtils.argumentSchema(
+                parameter("offset", "The optional offset parameter identifies the index of the first feature"),
+                new Schema<Integer>().type("integer"), [])
+
+        then:
+        argument.description == "The index of the first object in the result. " + McpToolUtils.PAGING_HINT
     }
 
     def 'the filter argument names the queryables that are only available in the filter'() {
@@ -66,7 +95,7 @@ class McpToolArgumentsSpec extends Specification {
                 parameter("filter", "a long description"), new StringSchema(), filterOnly)
 
         then:
-        argument.description.startsWith("A filter expression in CQL2 text")
+        argument.description.startsWith("CQL2 text over the queryables")
         argument.description.contains("Queryables that are only available here") == !filterOnly.isEmpty()
         filterOnly.every { argument.description.contains(it) }
 
