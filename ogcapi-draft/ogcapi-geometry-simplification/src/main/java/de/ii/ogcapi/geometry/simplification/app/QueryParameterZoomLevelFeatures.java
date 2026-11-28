@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.kortforsyningen.proj.Units;
+import org.osgeo.proj.Units;
 
 /**
  * @title zoom-level

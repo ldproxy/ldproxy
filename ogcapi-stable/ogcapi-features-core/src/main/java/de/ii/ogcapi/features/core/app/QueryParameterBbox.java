@@ -53,7 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.measure.Unit;
-import org.kortforsyningen.proj.Units;
+import org.osgeo.proj.Units;
 
 /**
  * @title bbox
