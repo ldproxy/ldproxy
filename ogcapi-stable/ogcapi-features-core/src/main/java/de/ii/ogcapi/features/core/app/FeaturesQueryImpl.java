@@ -31,6 +31,7 @@ import de.ii.xtraplatform.features.domain.ImmutableFeatureQuery;
 import de.ii.xtraplatform.features.domain.SchemaBase;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -203,15 +204,28 @@ public class FeaturesQueryImpl extends AbstractVolatileComposed implements Featu
     // so we need to build the query to get the CRS
     ImmutableFeatureQuery query = queryBuilder.build();
     if (!coordinatePrecision.isEmpty() && query.getCrs().isPresent()) {
+      // a query parameter may have set a precision already, e.g. for a zoom level
       List<Integer> precisionList =
           crsInfo.getPrecisionList(query.getCrs().get(), coordinatePrecision);
       if (!precisionList.isEmpty()) {
-        queryBuilder.geometryPrecision(precisionList);
+        queryBuilder.geometryPrecision(coarser(query.getGeometryPrecision(), precisionList));
       }
       precisionList = crsInfo.getPrecisionList(OgcCrs.CRS84h, coordinatePrecision);
       if (!precisionList.isEmpty()) {
-        queryBuilder.wgs84GeometryPrecision(precisionList);
+        queryBuilder.wgs84GeometryPrecision(
+            coarser(query.getWgs84GeometryPrecision(), precisionList));
       }
     }
+  }
+
+  // per axis the smaller number of decimal places; 0 means that the coordinates are not rounded
+  static List<Integer> coarser(List<Integer> precision, List<Integer> other) {
+    List<Integer> coarser = new ArrayList<>();
+    for (int i = 0; i < other.size(); i++) {
+      int a = i < precision.size() ? precision.get(i) : 0;
+      int b = other.get(i);
+      coarser.add(a == 0 ? b : b == 0 ? a : Math.min(a, b));
+    }
+    return coarser;
   }
 }
